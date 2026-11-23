@@ -49,11 +49,6 @@
     <string name="proxy_username">Имя пользователя</string>
     <string name="proxy_password">Пароль</string>
     <string name="proxy_restart_hint">Применяется к новым соединениям сразу; существующие long-lived соединения живут до переработки</string>
-    <string name="action_save">Сохранять</string>
-    <string name="action_cancel">Отмена</string>
-    <string name="action_delete">Удалить</string>
-    <string name="action_edit">Редактировать</string>
-    <string name="action_close">Закрывать</string>
     <string name="action_more">Более</string>
     <string name="action_send">Отправлять</string>
     <string name="action_collapse">Крах</string>
@@ -227,7 +222,6 @@
     <string name="chat_favorite_selected_all_exist">Все %1$d уже в избранном</string>
     <string name="settings_chat_prefer_card_output">Предпочитать вывод карточками</string>
     <string name="chat_card_state_only">(содержимое карточки обновлено)</string>
-    <string name="moment_action_edit">Изменить</string>
     <string name="groupchat_stop_generating">Остановить генерацию</string>
     <string name="translate_page_stop_speaking">Остановить чтение</string>
     <string name="settings_screen_group_cards">Карточки и генеративный интерфейс</string>

@@ -55,11 +55,13 @@ import androidx.compose.ui.window.DialogProperties
 import io.zer0.muse.ui.common.surface.LocalMuseCompactList
 import io.zer0.muse.ui.common.surface.MuseDialogWindowEffect
 import io.zer0.muse.ui.common.surface.museModalScrim
+import io.zer0.muse.ui.theme.MuseAlpha
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseCornerRadius
 import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.theme.MuseSheetSizes
 import io.zer0.muse.ui.theme.MuseSpringTier
 import io.zer0.muse.ui.theme.fakeGlassSurface
 import kotlinx.coroutines.launch
@@ -138,12 +140,12 @@ fun MuseBottomSheet(
         val density = LocalDensity.current
         val bottomInset = with(density) { WindowInsets.navigationBars.getBottom(this).toDp() }
         val glassApply = io.zer0.muse.ui.theme.LocalLiquidGlass.current.enabled
-        val glassBase = MaterialTheme.colorScheme.surface.copy(alpha = 0.78f)
+        val glassBase = MaterialTheme.colorScheme.surface.copy(alpha = MuseAlpha.glassSurface)
         Box(Modifier.fillMaxSize()) {
             AnimatedVisibility(
                 visibleState = visible,
-                enter = fadeIn(MuseMotion.tween(180)),
-                exit = fadeOut(MuseMotion.tween(140)),
+                enter = fadeIn(MuseMotion.tween(MuseAnimation.FAST_NORMAL_MS)),
+                exit = fadeOut(MuseMotion.tween(MuseAnimation.FAST_MS)),
             ) {
                 Box(
                     Modifier.fillMaxSize().museModalScrim().clickable(
@@ -163,7 +165,7 @@ fun MuseBottomSheet(
                     modifier = Modifier.align(Alignment.BottomCenter),
                     enter = slideInVertically(animationSpec = MuseMotion.springSpec(MuseSpringTier.STEADY)) { it },
                     // F3.2: 滑出关闭由 offset 动画负责到位，这里只淡残边。
-                    exit = fadeOut(MuseMotion.tween(120)),
+                    exit = fadeOut(MuseMotion.tween(MuseAnimation.FAST_MS)),
                 ) {
                     Surface(
                         modifier = Modifier
@@ -180,8 +182,8 @@ fun MuseBottomSheet(
                                 if (glassApply) Modifier.fakeGlassSurface(BottomSheetSurfaceShape, glassBase) else Modifier,
                             ),
                         ) {
-                            val dragThresholdPx = with(density) { 32.dp.toPx() }
-                            val rubberCapPx = with(density) { 24.dp.toPx() }
+                            val dragThresholdPx = with(density) { MuseSheetSizes.dragDismissThreshold.toPx() }
+                            val rubberCapPx = with(density) { MuseSheetSizes.rubberBandMax.toPx() }
                             val slideOutPx = with(density) { sheetMaxHeight.toPx() }
                             Box(
                                 Modifier.pointerInput(dragThresholdPx) {
@@ -267,16 +269,17 @@ fun MuseBottomSheet(
     }
 }
 
-/** 顶部把手保留 32dp 交互带，支持向下滑动关闭。 */
+/** 顶部把手保留交互带，支持向下滑动关闭。 */
 @Composable
 fun SheetHandle() {
     Box(
-        modifier = Modifier.fillMaxWidth().height(32.dp),
+        modifier = Modifier.fillMaxWidth().height(MuseSheetSizes.handleBandHeight),
         contentAlignment = Alignment.Center,
     ) {
         Spacer(
-            Modifier.width(36.dp).height(4.dp).clip(RoundedCornerShape(2.dp))
-                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)),
+            Modifier.width(MuseSheetSizes.handleWidth).height(MuseSheetSizes.handleHeight)
+                .clip(RoundedCornerShape(MuseSheetSizes.handleCornerRadius))
+                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = MuseAlpha.handle)),
         )
     }
 }

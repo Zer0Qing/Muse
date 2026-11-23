@@ -46,6 +46,18 @@
     <string name="settings_agent_offset_hours_minutes">± %1$d h %2$d min</string>
 
     <!-- Appearance / Theme -->
+    <string name="settings_theme_policy_off">Desactivado</string>
+    <string name="settings_theme_policy_custom_time">Hora personalizada</string>
+    <string name="settings_theme_policy_sunrise_sunset">Amanecer / atardecer</string>
+    <string name="settings_theme_schedule_parse_error">No se pudo leer la configuración automática. La automatización está desactivada y el tema base no ha cambiado.</string>
+    <string name="settings_theme_solar_permission_required">Se necesita permiso de ubicación aproximada. Se usa el tema base.</string>
+    <string name="settings_theme_solar_location_unavailable">No hay una ubicación en caché. Se usa el tema base.</string>
+    <string name="settings_theme_solar_events_unavailable">No se pudo calcular el amanecer y el atardecer de hoy. Se usa el tema base.</string>
+    <string name="settings_theme_solar_cache_unavailable">El amanecer y el atardecer de hoy no están disponibles.</string>
+    <string name="settings_theme_solar_polar_day">El sol permanece sobre el horizonte todo el día.</string>
+    <string name="settings_theme_solar_polar_night">El sol permanece bajo el horizonte todo el día.</string>
+    <string name="settings_theme_solar_times">Amanecer %1$s · Atardecer %2$s</string>
+    <string name="settings_theme_solar_location_updated">Ubicación en caché actualizada: %1$s</string>
     <string name="settings_theme_appearance">Apariencia</string>
     <string name="settings_theme_follow_system">Seguir el sistema</string>
     <string name="settings_theme_light">Claro</string>
@@ -125,8 +137,6 @@
     <string name="prompt_template_manager_built_in">Integrada</string>
     <string name="prompt_template_manager_move_up">Subir</string>
     <string name="prompt_template_manager_move_down">Bajar</string>
-    <string name="prompt_template_manager_edit">Editar</string>
-    <string name="prompt_template_manager_delete">Eliminar</string>
     <string name="prompt_template_manager_delete_confirm">¿Eliminar la plantilla «%1$s»?</string>
     <string name="prompt_template_manager_add">Nueva plantilla</string>
     <string name="prompt_template_manager_category">Categoría</string>
@@ -310,8 +320,6 @@
     <string name="settings_rag_manage_kbs">Administrar bases de conocimiento</string>
     <string name="kb_manage_create">Nueva base de conocimientos</string>
     <string name="kb_manage_desc_label">Descripción (opcional)</string>
-    <string name="kb_manage_edit">Editar</string>
-    <string name="kb_manage_delete">Eliminar</string>
     <string name="kb_manage_delete_confirm">¿Eliminar la base de conocimientos «%1$s»?</string>
     <string name="kb_manage_default_no_delete">La base de conocimientos predeterminada no se puede eliminar</string>
     <string name="kb_manage_doc_count">%1$d documentos</string>
@@ -422,8 +430,6 @@
     <string name="settings_theme_custom_secondary_color">Color secundario (opcional)</string>
     <string name="settings_theme_custom_tertiary_color">Color terciario (opcional)</string>
     <string name="settings_theme_custom_preview">Vista previa de color</string>
-    <string name="settings_theme_custom_save">Guardar</string>
-    <string name="settings_theme_custom_delete">Eliminar</string>
     <string name="settings_theme_custom_delete_confirm">¿Eliminar este tema?</string>
     <string name="settings_theme_custom_delete_confirm_msg">Esto no se puede deshacer. Las pantallas que usen este tema volverán al tema predeterminado.</string>
     <string name="settings_theme_custom_export">Exportar tema</string>

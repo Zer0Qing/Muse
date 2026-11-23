@@ -54,14 +54,16 @@ import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.findActivity
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseCapsuleTab
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.navigation.MuseTopBar
+import io.zer0.muse.ui.theme.MuseButtonSize
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
-import io.zer0.muse.ui.theme.pill
+import io.zer0.muse.ui.theme.MuseSpacing
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -86,6 +88,8 @@ internal fun ProviderEditPage(
     onSave: (ProviderConfig) -> Unit,
     isFromPreset: Boolean = false,
     onDelete: (() -> Unit)? = null,
+    isActive: Boolean = false,
+    onActivate: (() -> Unit)? = null,
 ) {
     var displayName by rememberSaveable { mutableStateOf(config.displayName) }
     var type by rememberSaveable(stateSaver = ProviderTypeSaver) { mutableStateOf(config.type) }
@@ -315,8 +319,12 @@ internal fun ProviderEditPage(
     //  - URL 多策略补全:base → base+/v1 → 剥离尾部 /v1 后重试(覆盖用户漏填/多填场景)
     //  - 错误分级:401/403 立即报错不 fallback(凭证问题不掩盖)
     //  - 手动刷新按钮可绕过缓存(forceFresh = true)
+    val isLocalEndpoint = baseUrl.contains("localhost", ignoreCase = true) ||
+        baseUrl.contains("127.0.0.1") ||
+        baseUrl.contains("10.0.2.2") ||
+        baseUrl.contains("::1")
     val fetchModels: (Boolean) -> Unit = { forceFresh ->
-        if (apiKey.isBlank()) {
+        if (apiKey.isBlank() && !isLocalEndpoint) {
             fetchError = context.getString(R.string.settings_provider_fill_api_key_first)
         } else {
             val tempSpecific = if (type == ProviderType.GEMINI) {
@@ -1018,9 +1026,10 @@ internal fun ProviderEditPage(
     val hasUnsavedChanges by remember {
         derivedStateOf { buildCurrentConfig() != config }
     }
-    BackHandler {
+    val handleBack: () -> Unit = {
         if (hasUnsavedChanges) showDiscardConfirm = true else onDismiss()
     }
+    BackHandler(onBack = handleBack)
     if (showDiscardConfirm) {
         MuseDialog(
             onDismissRequest = { showDiscardConfirm = false },
@@ -1031,9 +1040,20 @@ internal fun ProviderEditPage(
                 showDiscardConfirm = false
                 onDismiss()
             },
+            dismissText = stringResource(R.string.common_cancel),
+            onDismiss = { showDiscardConfirm = false },
             destructive = true,
         )
     }
+    val canDeleteProvider = onDelete != null && !isNew && !config.builtIn
+    var activatedLocally by rememberSaveable { mutableStateOf(isActive) }
+    val effectiveIsActive = isActive || activatedLocally
+    val modelsTabLabel = if (modelsState.isNotEmpty()) {
+        "${stringResource(R.string.settings_provider_tab_models)} (${modelsState.size})"
+    } else {
+        stringResource(R.string.settings_provider_tab_models)
+    }
+
     io.zer0.muse.ui.common.surface.MusePageScaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
@@ -1041,45 +1061,28 @@ internal fun ProviderEditPage(
                 title = displayName.ifBlank {
                     if (isNew) stringResource(R.string.settings_provider_new) else config.displayName.ifBlank { config.id }
                 },
-                onBack = onDismiss,
+                onBack = handleBack,
                 actions = {
-                    // v1.97: 分享二维码按钮(仅在已存在的 Provider 显示,新建时不显示)
                     if (!isNew) {
                         MuseTactileButton(
                             icon = MuseIcons.qrcode,
                             onClick = { showQrShareDialog = true },
                             contentDescription = stringResource(R.string.qr_share_btn),
+                            compact = true,
                         )
                     }
-                    // v2.4: 测试连接按钮已移至 ConfigTab(紧邻 baseUrl/apiKey 输入框,
-                    // 结果胶囊就近展示,符合系统设置页"操作就近反馈"风格)
-                    // v1.134 P0-2: 保存按钮用 Surface+clickable 胶囊(避免 Material3 默认 Button)
-                    Surface(
-                        shape = MuseShapes.pill,
-                        color = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                    MuseCapsuleButton(
+                        text = stringResource(R.string.common_save),
                         onClick = save,
-                        modifier = Modifier,
-                    ) {
-                        Text(
-                            text = stringResource(R.string.common_save),
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.padding(horizontal = MusePaddings.screen, vertical = MusePaddings.contentGap),
-                        )
-                    }
+                        variant = if (isNew || hasUnsavedChanges) {
+                            IosCapsuleButtonVariant.Primary
+                        } else {
+                            IosCapsuleButtonVariant.Secondary
+                        },
+                        size = MuseButtonSize.Compact,
+                        fillWidth = false,
+                    )
                 },
-            )
-        },
-        bottomBar = {
-            // 底部悬浮操作栏
-            ProviderEditBottomBar(
-                canFetch = !isFetchingModels && apiKey.isNotBlank(),
-                isFetching = isFetchingModels,
-                canDelete = onDelete != null && !isNew && !config.builtIn,
-                onFetch = fetchModels,
-                onAddModel = { showAddModelDialog = true },
-                onDelete = { showDeleteConfirm = true },
             )
         },
         containerColor = MaterialTheme.colorScheme.background,
@@ -1087,23 +1090,20 @@ internal fun ProviderEditPage(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                // v1.125: 移除多余的 imePadding(),Scaffold 的 innerPadding 已包含 IME 偏移,
-                // 双重 imePadding 会把整个内容区推得过高,导致输入框被键盘遮挡。
+                // Scaffold 的 innerPadding 已包含 IME 偏移，避免双重 imePadding 把输入框顶出视口。
                 .padding(innerPadding),
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
-                // v1.0.90 fix: 原手写分段控件在高度不受限的容器里给页签用了 fillMaxHeight()，
-                // 两个页签被撑成整屏高、正文被挤出可视区（用户截图即如此）。改用统一的胶囊页签。
                 MuseCapsuleTab(
                     tabs = listOf(
                         stringResource(R.string.settings_provider_tab_config),
-                        stringResource(R.string.settings_provider_tab_models),
+                        modelsTabLabel,
                     ),
                     selectedIndex = selectedTab,
                     onSelect = { selectedTab = it },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = MusePaddings.screen, vertical = MusePaddings.contentGap),
+                        .padding(horizontal = MusePaddings.pageMargin, vertical = MuseSpacing.sm),
                 )
 
                 when (selectedTab) {
@@ -1189,10 +1189,8 @@ internal fun ProviderEditPage(
                         oauthConfig = config.oauthConfig,
                         onOAuthLogin = onOAuthLogin,
                         isOAuthLoading = isOAuthLoading,
-                        // P2-11: 透传已存储 token 状态 + 撤销回调
                         hasStoredOAuthToken = hasStoredOAuthToken,
                         onRevokeOAuth = onRevokeOAuth,
-                        // P1-3: 透传限流参数
                         requestLimitPerMinuteText = requestLimitPerMinuteText,
                         onRequestLimitPerMinuteTextChange = { requestLimitPerMinuteText = it.filter { ch -> ch.isDigit() } },
                         maxConcurrentRequestsText = maxConcurrentRequestsText,
@@ -1204,15 +1202,22 @@ internal fun ProviderEditPage(
                                 fetchError = context.getString(R.string.settings_provider_file_picker_failed, it.message ?: "")
                             }
                         },
+                        canActivate = !isNew && !effectiveIsActive && onActivate != null,
+                        onActivate = {
+                            activatedLocally = true
+                            onActivate?.invoke()
+                        },
+                        canDelete = canDeleteProvider,
+                        onDeleteRequest = { showDeleteConfirm = true },
                     )
 
                     1 -> ModelsTab(
                         config = config,
                         modelsState = modelsState,
                         isFetching = isFetchingModels,
+                        canFetch = !isFetchingModels && (apiKey.isNotBlank() || isLocalEndpoint),
                         onFetch = fetchModels,
                         onAddModel = { showAddModelDialog = true },
-                        // v1.0.8 (7.6): 透传模型健康检查回调 + 状态 Map
                         onTestModel = { testModel(it) },
                         modelTestStatuses = modelTestStatuses,
                     )

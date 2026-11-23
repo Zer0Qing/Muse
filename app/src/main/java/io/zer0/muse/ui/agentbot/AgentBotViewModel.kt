@@ -1,11 +1,34 @@
 package io.zer0.muse.ui.agentbot
 
+import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.zer0.common.Logger
 import io.zer0.muse.R
+import io.zer0.muse.data.agentbot.AgentBotProjection
 import io.zer0.muse.data.agentbot.AgentBotRepository
+import io.zer0.muse.data.agentbot.AgentCapabilityPromptBuilder
+import io.zer0.muse.data.agentbot.AgentModelRouter
+import io.zer0.muse.data.agentbot.AgentRoutineEngine
+import io.zer0.muse.data.agentbot.AgentSquadIdentityStore
+import io.zer0.muse.data.agentbot.AgentStreamCoordinator
+import io.zer0.muse.data.agentbot.AgentTeachRecorder
+import io.zer0.muse.data.agentbot.AnnotationKind
+import io.zer0.muse.data.agentbot.BotAnnotationService
+import io.zer0.muse.data.agentbot.BotCardKind
+import io.zer0.muse.data.agentbot.BotCardStatus
+import io.zer0.muse.data.agentbot.BotMessageCardEntity
+import io.zer0.muse.data.agentbot.BotRoutineEntity
+import io.zer0.muse.data.agentbot.LiveMissionProgressBus
+import io.zer0.muse.data.agentbot.RoutineTriggerType
+import io.zer0.muse.data.agentbot.TaskCreationInput
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import io.zer0.muse.data.agentbot.AgentBotError
+import io.zer0.muse.data.agentbot.AgentBotScope
+import io.zer0.muse.data.agentbot.AgentBotScopeState
+import io.zer0.muse.data.agentbot.ApprovalRequestEntity
 import io.zer0.muse.data.agentbot.ApprovalStatus
 import io.zer0.muse.data.agentbot.AgentBotPrompt
 import io.zer0.muse.data.agentbot.AgentBotUiState
@@ -18,15 +41,36 @@ import io.zer0.muse.data.agentbot.BotTaskEntity
 import io.zer0.muse.data.agentbot.BotTaskScheduler
 import io.zer0.muse.data.agentbot.BotTaskStatus
 import io.zer0.muse.data.agentbot.BotTaskStatusMachine
+import io.zer0.muse.data.agentbot.StagedArtifactStore
+import io.zer0.muse.data.agentbot.StagedCandidatesUnavailableException
 import io.zer0.muse.data.agentbot.TranscriptRestorer
+import io.zer0.muse.data.agentbot.asScopeStates
 import io.zer0.muse.data.agentbot.ConversationToolAllowanceStore
 import io.zer0.muse.data.agentbot.ForegroundCoordinator
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.asStateFlow
 import io.zer0.muse.data.agentbot.PublicationService
+import io.zer0.muse.data.agentbot.PublicationKind
+import io.zer0.muse.data.agentbot.ReviewDecision
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import io.zer0.muse.ui.chat.ChatViewModel
+import io.zer0.muse.ui.chat.readImageContentBase64
 
 /**
  * Agent 中枢页的 ViewModel。
@@ -41,6 +85,7 @@ import io.zer0.muse.ui.chat.ChatViewModel
  * [AgentBotUiState] 的四个域各自一个 StateFlow。任务进度变化不会让输入框重组 ——
  * 这是中枢"做事时还能聊天"的性能前提（见 BLK-8 的取舍记录）。
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 class AgentBotViewModel(
     private val repository: AgentBotRepository,
     private val facade: AgentConversationFacade,
@@ -54,6 +99,18 @@ class AgentBotViewModel(
     private val resultApplier: BotResultApplier,
     private val restorer: TranscriptRestorer,
     private val results: io.zer0.muse.data.agentbot.AgentBotResultPublisher,
+    private val streamCoordinator: AgentStreamCoordinator? = null,
+    private val promptBuilder: AgentCapabilityPromptBuilder? = null,
+    private val annotationService: BotAnnotationService? = null,
+    private val progressBus: LiveMissionProgressBus? = null,
+    private val modelRouter: AgentModelRouter? = null,
+    private val configStore: io.zer0.ai.ProviderConfigStore? = null,
+    private val routineEngine: AgentRoutineEngine? = null,
+    private val squadIdentities: AgentSquadIdentityStore? = null,
+    private val teachRecorder: AgentTeachRecorder? = null,
+    private val assistantRepository: io.zer0.muse.data.assistant.AssistantRepository? = null,
+    private val channelManager: io.zer0.muse.channel.ChannelManager? = null,
+    private val artifactRepository: io.zer0.muse.data.artifact.ArtifactRepository? = null,
 ) : ViewModel() {
 
     private val ui = AgentBotUiState()
@@ -62,46 +119,474 @@ class AgentBotViewModel(
     val transcript: StateFlow<List<AgentBotUiState.PublishedMessage>> = ui.transcript
     val taskBoard: StateFlow<AgentBotUiState.TaskBoard> = ui.taskBoard
     val busy: StateFlow<AgentBotUiState.Busy> = ui.busy
+    val streaming: StateFlow<AgentBotUiState.StreamingBubble> = ui.streaming
 
-    /** 当前绑定的 Bot。切 Bot 时草稿不串。 */
+    val liveSteps: StateFlow<Map<String, List<LiveMissionProgressBus.LiveStep>>> =
+        progressBus?.liveSteps ?: MutableStateFlow(emptyMap())
+    val sandboxLogs: StateFlow<List<LiveMissionProgressBus.SandboxLogLine>> =
+        progressBus?.sandboxLogs ?: MutableStateFlow(emptyList())
+    val pendingSteerCounts: StateFlow<Map<String, Int>> =
+        progressBus?.pendingSteerCounts ?: MutableStateFlow(emptyMap())
+    val activeVirtualDisplay: StateFlow<LiveMissionProgressBus.ActiveVirtualDisplay?> =
+        progressBus?.activeVirtualDisplay ?: MutableStateFlow(null)
+    val modelRoutes: StateFlow<AgentModelRouter.Snapshot> =
+        modelRouter?.snapshot ?: MutableStateFlow(AgentModelRouter.Snapshot())
+    val squadIdentityBindings: StateFlow<Map<String, AgentSquadIdentityStore.IdentityBinding>> =
+        squadIdentities?.bindings ?: MutableStateFlow(emptyMap())
+    val teachState: StateFlow<AgentTeachRecorder.State> =
+        teachRecorder?.state ?: MutableStateFlow(AgentTeachRecorder.State())
+    val channelsFlow: StateFlow<List<io.zer0.muse.channel.ChannelConfig>> =
+        channelManager?.channels ?: MutableStateFlow(emptyList())
+    val assistantsFlow: Flow<List<io.zer0.muse.data.assistant.AssistantEntity>> =
+        assistantRepository?.observeAll ?: flowOf(emptyList())
+    val artifactsFlow: Flow<List<io.zer0.muse.data.artifact.ArtifactEntity>> =
+        artifactRepository?.observeAll() ?: flowOf(emptyList())
+
+    private val _hasOlderTranscript = MutableStateFlow(false)
+    val hasOlderTranscript: StateFlow<Boolean> = _hasOlderTranscript.asStateFlow()
+
+    private val _loadingOlderTranscript = MutableStateFlow(false)
+    val loadingOlderTranscript: StateFlow<Boolean> = _loadingOlderTranscript.asStateFlow()
+
+    /** 页面数据四态。切作用域时回到 Loading；读取失败进 Error 且保留上次内容。 */
+    private val _scopeState = MutableStateFlow<AgentBotScopeState>(AgentBotScopeState.Loading)
+    val scopeState: StateFlow<AgentBotScopeState> = _scopeState.asStateFlow()
+
+    private val _taskDetails = MutableStateFlow<AgentBotUiState.TaskDetails?>(null)
+    val taskDetails: StateFlow<AgentBotUiState.TaskDetails?> = _taskDetails.asStateFlow()
+
+    private val _candidatePreview = MutableStateFlow<AgentBotUiState.CandidatePreview?>(null)
+    val candidatePreview: StateFlow<AgentBotUiState.CandidatePreview?> = _candidatePreview.asStateFlow()
+
+    /** 解析后的 canonical 会话。宿主只给 assistantId 时，页面靠它恢复上次的会话。 */
+    private val _boundSessionId = MutableStateFlow("")
+    val boundSessionId: StateFlow<String> = _boundSessionId.asStateFlow()
+
+    /** 当前作用域请求。null 表示页面还没 bind。 */
+    private val scopeRequest = MutableStateFlow<ScopeRequest?>(null)
+
+    /** 必须在 scopeRequest 声明之后初始化，避免 Kotlin 属性初始化顺序 NPE。 */
+    val routinesFlow: Flow<List<BotRoutineEntity>> =
+        scopeRequest.flatMapLatest { req ->
+            val botId = req?.assistantId.orEmpty().ifBlank { DEFAULT_BOT_ID }
+            routineEngine?.observeByBot(botId) ?: flowOf(emptyList())
+        }
+
+    /** 重试计数。每点一次重试 +1，flatMapLatest 据此重新收集一遍。 */
+    private val scopeRetry = MutableStateFlow(0L)
+
+    /**
+     * 暂存区清单。它不是 Room 表，只能由显式刷新推进。
+     *
+     * 存的是**读取结果**而不是列表：读失败与"没有候选"必须能区分，
+     * 否则一次 IO 故障会被页面显示成"候选没了"。
+     */
+    private val stagedCandidates =
+        MutableStateFlow<StagedArtifactStore.StagedListResult>(
+            StagedArtifactStore.StagedListResult.Success(emptyList()),
+        )
+
+    /** 上一次成功投影。Error 与重试都靠它保住"已经看到的东西"。 */
+    private var lastProjection: AgentBotProjection? = null
+
     /** 当前前台回合的 Job。stopReply() 只取消它。 */
     private var foregroundTurnJob: Job? = null
 
     private var currentBotId: String = DEFAULT_BOT_ID
     private var currentSessionId: String = ""
 
+    init {
+        viewModelScope.launch {
+            combine(scopeRequest, scopeRetry) { request, token -> request to token }
+                .flatMapLatest { (request, token) ->
+                    if (request == null) {
+                        flowOf<AgentBotScopeState>(AgentBotScopeState.Loading)
+                    } else {
+                        resolveScopeStates(request, token)
+                    }
+                }
+                .collect { state -> onScopeState(state) }
+        }
+    }
+
+    /** 一次页面范围请求：assistant + 宿主传入的 canonical 会话（可能为空，待绑定回读）。 */
+    private data class ScopeRequest(val assistantId: String, val sessionId: String)
+
     /**
      * 绑定当前 Bot 与它的 canonical 会话。
      *
      * 会话 id 由宿主传入，不从"当前在看哪个会话"推断 —— 那正是跨会话污染的来源。
+     * 绑定会落库（[AgentBotRepository.ensureBinding]）：进程重启后重新进页面，
+     * 宿主可能只拿得到 assistantId，这时从绑定里回读同一个 canonical 会话。
      */
     fun bind(botId: String, originSessionId: String) {
-        currentBotId = botId.ifBlank { DEFAULT_BOT_ID }
-        currentSessionId = originSessionId
-        ui.setComposerBot(currentBotId)
-        refreshBoard()
-        refreshAllowances()
+        val assistantId = botId.ifBlank { DEFAULT_BOT_ID }
+        val previousBotId = currentBotId
+        // 会话为空只说明宿主这次没有更好的信息，不代表用户换了作用域。
+        val scopeChanged = assistantId != previousBotId ||
+            (originSessionId.isNotBlank() && originSessionId != currentSessionId)
+        currentBotId = assistantId
+        currentSessionId = resolveBoundSession(assistantId, previousBotId, originSessionId)
+        ui.setComposerBot(assistantId)
         refreshCandidates()
+        refreshAllowances()
+        if (scopeChanged) {
+            // 切作用域先清空：Loading 期间继续显示上一个 Bot 的看板比短暂空白更误导。
+            lastProjection = null
+            _hasOlderTranscript.value = false
+            clearProjectionViews()
+        }
         // 对话流也必须从库里重建：只在内存里累加的话，重启/切会话后是空白。
         reloadTranscript()
+        scopeRequest.value = ScopeRequest(assistantId, originSessionId)
+    }
+
+    /**
+     * 决定这次 bind 之后页面跟哪个会话。
+     *
+     * 宿主重开页面时可能只给 assistantId（会话为空）：那不算换作用域，
+     * 沿用它上次的会话。换了助手又没给会话时，旧会话属于上一个助手，
+     * 不能带过去当兜底 —— 否则页面会显示另一个助手的对话。
+     */
+    private fun resolveBoundSession(
+        assistantId: String,
+        previousBotId: String,
+        originSessionId: String,
+    ): String = when {
+        originSessionId.isNotBlank() -> originSessionId
+        assistantId != previousBotId -> ""
+        else -> currentSessionId
+    }
+
+    /**
+     * 观察当前 assistant + canonical 会话的完整投影。
+     *
+     * 任务、审批、候选、transcript 全部按同一作用域过滤；任何一项换成全局查询，
+     * 页面就会显示别的 Bot 的东西。读取异常不在这里吞掉 —— 交给
+     * [asScopeStates] 变成 Error 并保留上一次成功内容。
+     */
+    fun observeAgentScope(assistantId: String, sessionId: String): Flow<AgentBotProjection> {
+        if (assistantId.isBlank() || sessionId.isBlank()) {
+            return flowOf(AgentBotProjection(assistantId = assistantId, sessionId = sessionId))
+        }
+        val baseFlow = combine(
+            repository.observeScope(assistantId, sessionId),
+            stagedCandidates,
+            restorer.observe(sessionId),
+        ) { scope, staged, transcript ->
+            val entries = when (staged) {
+                is StagedArtifactStore.StagedListResult.Success -> staged.entries
+                // 读失败不能当成"没有候选"：这里直接抛给 asScopeStates，
+                // 由它折叠成 Error 并保留上一次成功内容。
+                is StagedArtifactStore.StagedListResult.Error ->
+                    throw StagedCandidatesUnavailableException(staged.reason, staged.cause)
+            }
+            Triple(scope, entries, transcript)
+        }
+        return combine(baseFlow, liveSteps, pendingSteerCounts) { (scope, entries, transcript), _, _ ->
+            project(scope, entries, transcript)
+        }
+    }
+
+    /** 读取失败后的重试入口。token 递增让界面区分"新一轮失败"。 */
+    fun retryScope() {
+        // 候选是文件不是 Room 表：重试必须显式重读，否则一次读失败会原地卡住。
+        refreshCandidates()
+        scopeRetry.update { it + 1 }
+    }
+
+    /** 解析绑定 → 收集投影 → 折叠四态。解析失败同样是 Error，不是空列表。 */
+    private fun resolveScopeStates(request: ScopeRequest, retryToken: Long): Flow<AgentBotScopeState> = flow {
+        emit(AgentBotScopeState.Loading)
+        val sessionId = if (request.sessionId.isBlank()) {
+            repository.getBindingForAssistant(request.assistantId)?.canonicalAgentSessionId.orEmpty()
+        } else {
+            repository.ensureBinding(request.assistantId, request.sessionId).canonicalAgentSessionId
+        }
+        if (sessionId.isBlank()) {
+            emit(AgentBotScopeState.Empty)
+            return@flow
+        }
+        // 解析期间可能已经切走：旧作用域的会话不得覆盖新的 currentSessionId。
+        currentCoroutineContext().ensureActive()
+        currentSessionId = sessionId
+        _boundSessionId.value = sessionId
+        emitAll(observeAgentScope(request.assistantId, sessionId).asScopeStates(retryToken, lastProjection))
+    }.catch { cause ->
+        if (cause is CancellationException) throw cause
+        Logger.e("AgentBotVM", "解析页面作用域失败: ${cause.message}", cause)
+        emit(
+            AgentBotScopeState.Error(
+                message = cause.message ?: "scope_resolve_failed",
+                retryToken = retryToken,
+                lastContent = lastProjection,
+            ),
+        )
+    }
+
+    /**
+     * 把作用域快照映射成页面投影。
+     *
+     * NEEDS_USER 的两种来源仍按"该任务有没有已结算批准且已无待审批"区分；
+     * 审批行来自同一份作用域快照，不再为每个任务单独查库。
+     */
+    private fun project(
+        scope: AgentBotScope,
+        staged: List<StagedArtifactStore.StagedEntry>,
+        transcript: List<AgentBotUiState.PublishedMessage>,
+    ): AgentBotProjection {
+        val approvedAwaitingRetry = approvedAwaitingRetryTaskIds(scope)
+        val liveStepMap = progressBus?.liveSteps?.value.orEmpty()
+        val steerCounts = progressBus?.pendingSteerCounts?.value.orEmpty()
+        val persistedStepsByTask = groupPersistedStepsByTask(scope)
+        val mergedStepsByTask = scope.tasks.associate { task ->
+            val persisted = persistedStepsByTask[task.taskId].orEmpty()
+            val live = liveStepMap[task.taskId].orEmpty().map { item ->
+                AgentBotUiState.TaskStepUi(
+                    stepId = item.stepId,
+                    stepIndex = item.stepIndex,
+                    toolName = item.toolName,
+                    displayLabel = item.displayLabel,
+                    status = item.status,
+                    summary = item.summary,
+                    assigneeBotId = item.assigneeBotId,
+                )
+            }
+            val merged = (persisted.associateBy { it.stepId } + live.associateBy { it.stepId })
+                .values
+                .sortedBy { it.stepIndex }
+            task.taskId to merged
+        }
+        val rows = scope.tasks.map { task ->
+            task.toRow(
+                approvedAwaitingRetry = task.taskId in approvedAwaitingRetry,
+                steps = mergedStepsByTask[task.taskId].orEmpty(),
+                pendingSteerCount = steerCounts[task.taskId] ?: 0,
+            )
+        }
+        val annotationsByMessage = scope.annotations
+            .filter { it.targetMessageId.isNotBlank() && it.assetRef.isNotBlank() }
+            .groupBy { it.targetMessageId }
+            .mapValues { (_, items) ->
+                items.map { entity ->
+                    AgentBotUiState.MessageReactionUi(
+                        id = entity.id,
+                        emoji = entity.assetRef,
+                        actorType = entity.actorType,
+                        kind = entity.kind,
+                    )
+                }
+            }
+        val cards = scope.cards.map { entity -> entity.toCardUi() }
+        return AgentBotProjection(
+            assistantId = scope.assistantId,
+            sessionId = scope.sessionId,
+            inProgress = rows.filter {
+                it.status in BotTaskStatus.NON_TERMINAL && it.status !in ACTION_REQUIRED_STATUSES
+            },
+            needsAction = rows.filter { it.status in ACTION_REQUIRED_STATUSES },
+            recent = rows.filter {
+                it.status in BotTaskStatus.TERMINAL && it.status !in ACTION_REQUIRED_STATUSES
+            },
+            pendingApprovals = scope.pendingApprovals.map { approval ->
+                approval.toApprovalRow(scope.tasks.firstOrNull { it.taskId == approval.taskId })
+            },
+            candidates = staged.filter { it.stagedId in scope.candidateIds }.map { it.toCandidateRow() },
+            transcript = transcript.takeLast(TRANSCRIPT_DISPLAY_LIMIT),
+            annotationsByMessage = annotationsByMessage,
+            cards = cards,
+            stepsByTask = mergedStepsByTask,
+        )
+    }
+
+    private fun groupPersistedStepsByTask(scope: AgentBotScope): Map<String, List<AgentBotUiState.TaskStepUi>> {
+        if (scope.steps.isEmpty()) return emptyMap()
+        // 步骤按 runId 分组，若单任务有多轮 run 则按开始顺序合入展示。
+        val taskIdByRunId = mutableMapOf<String, String>()
+        scope.approvals.forEach { approval ->
+            if (approval.runId.isNotBlank() && approval.taskId.isNotBlank()) {
+                taskIdByRunId[approval.runId] = approval.taskId
+            }
+        }
+        val grouped = mutableMapOf<String, MutableList<AgentBotUiState.TaskStepUi>>()
+        scope.steps.forEach { step ->
+            val taskId = taskIdByRunId[step.runId]
+                ?: scope.tasks.firstOrNull { it.status in BotTaskStatus.NON_TERMINAL }?.taskId
+                ?: scope.tasks.firstOrNull()?.taskId
+                ?: return@forEach
+            val list = grouped.getOrPut(taskId) { mutableListOf() }
+            list += AgentBotUiState.TaskStepUi(
+                stepId = step.stepId,
+                stepIndex = step.stepIndex,
+                toolName = step.toolName,
+                displayLabel = step.displayLabel.ifBlank { step.toolName.replace('_', ' ') },
+                status = step.status,
+                summary = step.summary,
+                assigneeBotId = step.assigneeBotId,
+            )
+        }
+        return grouped
+    }
+
+    private fun BotMessageCardEntity.toCardUi(): AgentBotUiState.MessageCardUi {
+        val options = if (cardKind == BotCardKind.CHOICE || cardKind == BotCardKind.CUE_BRIEFING) {
+            runCatching {
+                cardJson.decodeFromString<List<AgentStreamCoordinator.ChoiceOption>>(payloadJson)
+            }.getOrDefault(emptyList())
+        } else {
+            emptyList()
+        }
+        return AgentBotUiState.MessageCardUi(
+            cardId = cardId,
+            anchorMessageId = anchorMessageId,
+            taskId = taskId,
+            kind = cardKind,
+            title = title,
+            subtitle = subtitle,
+            options = options,
+            status = status,
+            selectedOptionId = selectedOptionId,
+            createdAt = createdAt,
+            payloadJson = payloadJson,
+        )
+    }
+
+    private fun approvedAwaitingRetryTaskIds(scope: AgentBotScope): Set<String> =
+        scope.tasks
+            .filter { it.status == BotTaskStatus.NEEDS_USER }
+            .filter { task ->
+                val approvals = scope.approvals.filter { it.taskId == task.taskId }
+                approvals.any {
+                    it.status == ApprovalStatus.APPROVED && it.decisionReason.isBlank()
+                } && approvals.none { it.status == ApprovalStatus.PENDING }
+            }
+            .mapTo(mutableSetOf()) { it.taskId }
+
+    private fun onScopeState(state: AgentBotScopeState) {
+        when (state) {
+            is AgentBotScopeState.Content -> {
+                // 过期投影连状态都不进：界面看到 Content 就一定显示这份内容，
+                // 放进来会让"当前作用域"的判定与界面实际显示的内容对不上。
+                if (!applyProjection(state.projection)) return
+            }
+            is AgentBotScopeState.Empty -> clearProjectionViews()
+            // 读取失败保留上一次已显示的内容：这里不清理任何东西。
+            is AgentBotScopeState.Error -> Unit
+            AgentBotScopeState.Loading -> Unit
+        }
+        _scopeState.value = state
+    }
+
+    /**
+     * 只有仍属于当前作用域的投影才能落到界面，慢一步的旧结果直接丢弃。
+     *
+     * @return 是否被接受。false 表示这是一份过期投影，调用方也不要把它记成最新状态。
+     */
+    private fun applyProjection(projection: AgentBotProjection): Boolean {
+        // 守卫必须在写入之前：过期投影一旦进了 lastProjection，
+        // 下一次读取失败就会把它当成"上次成功内容"回填到 Error.lastContent ——
+        // 界面会把上一个 Bot 的内容当作当前内容展示。
+        if (projection.assistantId != currentBotId || projection.sessionId != currentSessionId) {
+            return false
+        }
+        lastProjection = projection
+        _pendingCandidates.value = projection.candidates
+        ui.setTaskBoard(
+            AgentBotUiState.TaskBoard(
+                tasks = projection.taskRows,
+                approvals = projection.pendingApprovals,
+            ),
+        )
+        // 合并而不是替换：前台回合刚落进内存的那句话还没经过发布通道落库。
+        ui.replacePublished(restorer.merge(projection.transcript, ui.transcript.value))
+        return true
+    }
+
+    private fun clearProjectionViews() {
+        _pendingCandidates.value = emptyList()
+        ui.setTaskBoard(AgentBotUiState.TaskBoard())
+        ui.replacePublished(emptyList())
+    }
+
+    /** 会话解析结果。读失败与"确实没绑过"必须分开，否则新会话会把旧绑定挤掉。 */
+    private sealed interface SessionResolution {
+        data class Ready(val sessionId: String) : SessionResolution
+
+        /** 绑定读不出来：本次发送必须中止，不新建会话、不改写绑定。 */
+        data object BindingUnreadable : SessionResolution
+
+        /** 没有绑定，且创建会话失败。 */
+        data object CannotCreate : SessionResolution
     }
 
     /**
      * 确保有可用的 Agent 会话；没有就创建一个并绑定。
      *
-     * @return 会话 id；创建失败返回 null（调用方报错，绝不静默）。
+     * 优先回读绑定：宿主在新进程里可能只拿得到 assistantId，直接新建会话
+     * 会让用户看到一片空白的历史，而旧消息其实都还在原来的 canonical 会话里。
+     *
+     * **读取失败不等于没有绑定。** 把异常当成 null 会顺着往下新建会话并
+     * `ensureBinding` 覆盖旧行 —— 用户的历史就此"消失"。所以这里返回三态，
+     * 读失败直接中止，交给调用方提示。
      */
-    private suspend fun ensureAgentSession(): String? {
-        if (currentSessionId.isNotBlank()) return currentSessionId
-        val created = runCatching { sessions.createAgentSession(currentBotId) }
+    private suspend fun ensureAgentSession(botId: String): SessionResolution {
+        val currentSession = currentSessionId.takeIf { currentBotId == botId }.orEmpty()
+        if (currentSession.isNotBlank()) return SessionResolution.Ready(currentSession)
+        val bound = try {
+            repository.getBindingForAssistant(botId)
+        } catch (cause: CancellationException) {
+            throw cause
+        } catch (cause: Exception) {
+            Logger.e("AgentBotVM", "读取会话绑定失败，本次发送中止: ${cause.message}", cause)
+            return SessionResolution.BindingUnreadable
+        }?.canonicalAgentSessionId.orEmpty()
+        if (bound.isNotBlank()) {
+            adoptCanonicalSession(botId, bound)
+            return SessionResolution.Ready(bound)
+        }
+        val created = runCatching { sessions.createAgentSession(botId) }
             .onFailure { Logger.e("AgentBotVM", "自动创建 Agent 会话失败", it) }
-            .getOrNull() ?: return null
-        currentSessionId = created
+            .getOrNull() ?: return SessionResolution.CannotCreate
+        adoptCanonicalSession(botId, created)
+        runCatching { repository.ensureBinding(botId, created) }
+            .onFailure { Logger.w("AgentBotVM", "写入 canonical 会话绑定失败: ${it.message}") }
         Logger.i("AgentBotVM", "已自动创建 Agent 会话: $created")
-        return created
+        return SessionResolution.Ready(created)
+    }
+
+    private fun adoptCanonicalSession(botId: String, sessionId: String) {
+        if (currentBotId != botId) return
+        currentSessionId = sessionId
+        _boundSessionId.value = sessionId
+        // 首次发送前绑定可能是空的；拿到会话后让页面开始按它投影。
+        if (scopeRequest.value?.sessionId != sessionId) {
+            scopeRequest.value = ScopeRequest(botId, sessionId)
+        }
     }
     fun onComposerTextChange(text: String) {
         ui.setComposerText(text)
+    }
+
+    fun addPendingImage(uri: Uri, context: Context) {
+        if (ui.composer.value.pendingImages.size >= AgentBotUiState.MAX_PENDING_IMAGES) {
+            ui.setError(AgentBotError.ATTACHMENT_LIMIT)
+            return
+        }
+        viewModelScope.launch {
+            ui.setError(null)
+            val image = readImageContentBase64(uri, context) { error ->
+                Logger.w("AgentBotVM", "读取图片附件失败: ${error.message}", error)
+            }
+            if (image.isBlank()) {
+                ui.setError(AgentBotError.ATTACHMENT_FAILED)
+            } else if (!ui.addPendingImage(image)) {
+                ui.setError(AgentBotError.ATTACHMENT_LIMIT)
+            }
+        }
+    }
+
+    fun removePendingImage(imageBase64: String) {
+        ui.removePendingImages(listOf(imageBase64))
     }
 
     /**
@@ -111,8 +596,17 @@ class AgentBotViewModel(
      * 用户必须还能说话 —— 那是这个功能存在的理由。
      */
     fun send() {
-        val text = ui.composer.value.text
+        val composer = ui.composer.value
+        submit(composer.text, composer.pendingImages, composer)
+    }
+
+    private fun submit(
+        text: String,
+        imageBase64List: List<String>,
+        submittedComposer: AgentBotUiState.Composer?,
+    ) {
         if (text.isBlank()) return
+        val botId = currentBotId
         viewModelScope.launch {
             ui.setSending(true)
             ui.setError(null)
@@ -121,14 +615,23 @@ class AgentBotViewModel(
             // 真机验收抓到的缺陷：新装应用进 Agent Tab 打字发送，
             // 原来直接报「还没有可用的会话」。会话不是用户该操心的东西 ——
             // 第一次说话时应用就该替他把这个 Bot 的 canonical 会话建出来。
-            val sessionId = ensureAgentSession()
-            if (sessionId == null) {
-                ui.setSending(false)
-                ui.setError(AgentBotError.NO_SESSION)
-                return@launch
+            val sessionId = when (val resolution = ensureAgentSession(botId)) {
+                is SessionResolution.Ready -> resolution.sessionId
+                // 绑定读不出来：中止本次发送。新建会话会覆盖绑定，
+                // 用户原来的历史看起来就像"消失"了 —— 那比"这次没发出去"糟得多。
+                SessionResolution.BindingUnreadable -> {
+                    ui.setSending(false)
+                    ui.setError(AgentBotError.BINDING_UNREADABLE)
+                    return@launch
+                }
+                SessionResolution.CannotCreate -> {
+                    ui.setSending(false)
+                    ui.setError(AgentBotError.NO_SESSION)
+                    return@launch
+                }
             }
             val accepted = facade.acceptUserInput(
-                botId = currentBotId,
+                botId = botId,
                 originSessionId = sessionId,
                 text = text,
             )
@@ -144,28 +647,40 @@ class AgentBotViewModel(
             // 于是对话流里只有 Bot 的话，用户看不到自己说过什么 ——
             // 重启后更是彻底没了。事件是给调度用的，消息才是给人看的，
             // 两者都要写。
-            runCatching {
+            try {
                 sessions.appendMessage(
                     sessionId,
                     io.zer0.ai.core.UIMessage(
+                        id = kotlin.uuid.Uuid.parse(accepted.messageId),
                         role = io.zer0.ai.core.MessageRole.USER,
                         content = text,
+                        imageBase64List = imageBase64List,
                     ),
                 )
-            }.onFailure {
-                // 消息落库失败不回滚事件：事件已接纳，回合照常走；
-                // 但要在日志里留痕，否则"消息去哪了"无从排查。
-                Logger.w("AgentBotVM", "用户消息落库失败（事件已接纳）: ${it.message}")
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // 事件已落盘，但没有持久消息时不应让模型回合继续。
+                Logger.w("AgentBotVM", "用户消息落库失败（事件已接纳）: ${e.message}", e)
+                ui.setSending(false)
+                ui.setError(AgentBotError.SAVE_FAILED)
+                return@launch
             }
-            ui.appendPublished(
-                AgentBotUiState.PublishedMessage(
-                    messageId = "user-${accepted.eventId}",
-                    role = AgentBotUiState.Role.USER,
-                    text = text,
-                    createdAt = System.currentTimeMillis(),
-                ),
-            )
-            ui.setComposerText("")
+            if (currentBotId == botId && currentSessionId == sessionId) {
+                ui.appendPublished(
+                    AgentBotUiState.PublishedMessage(
+                        messageId = accepted.messageId,
+                        role = AgentBotUiState.Role.USER,
+                        text = text,
+                        createdAt = System.currentTimeMillis(),
+                        imageBase64List = imageBase64List,
+                    ),
+                )
+                if (submittedComposer != null) {
+                    if (ui.composer.value.text == submittedComposer.text) ui.setComposerText("")
+                    ui.removePendingImages(imageBase64List)
+                }
+            }
             // 关键：先放开输入再调模型。
             //
             // 旧实现在同一个协程里等模型返回，"发送中"会一直亮到模型答完 ——
@@ -173,11 +688,16 @@ class AgentBotViewModel(
             // 功能要消除的等待感。所以回合丢到独立 Job，输入立刻可用。
             ui.setSending(false)
             // 事件 id 即这次接纳的凭据；任务靠它回溯到触发它的那条消息。
-            val acceptedMessageId = accepted.batchId
+            val identity = io.zer0.muse.data.agentbot.AgentTurnIdentity(
+                assistantId = botId,
+                sessionId = sessionId,
+                requestId = accepted.messageId,
+                requestRevision = accepted.requestRevision,
+            )
             // 记下这一轮的 Job：stopReply() 只取消它，不碰后台任务。
             foregroundTurnJob = viewModelScope.launch {
-                runForegroundTurn(text, acceptedMessageId)
-                runTurnOnce()
+                runForegroundTurn(identity, text, imageBase64List)
+                runTurnOnce(botId, sessionId)
             }
         }
     }
@@ -188,26 +708,50 @@ class AgentBotViewModel(
      * 失败时不弹错误 —— 用户的输入已经落盘（facade 保证），
      * 只是这一轮没回复。给错误横幅会让用户以为消息丢了。
      */
-    private suspend fun runForegroundTurn(userText: String, acceptedMessageId: String) {
+    private suspend fun runForegroundTurn(
+        identity: io.zer0.muse.data.agentbot.AgentTurnIdentity,
+        userText: String,
+        imageBase64List: List<String>,
+    ) {
         // 多轮上下文：取该会话最近若干条。不传空列表 ——
         // 主 Bot 只看到"这一句"时无法理解"那个""再来一次"这类指代。
         val history = runCatching {
-            sessions.getRecentMessages(currentSessionId, HISTORY_LIMIT)
+            sessions.getRecentMessages(identity.sessionId, HISTORY_LIMIT)
+                .filterNot { it.id.toString() == identity.requestId }
         }.onFailure {
             // 读不到历史不该让整轮失败：退化成单轮仍能回答，只是少了上下文。
             Logger.w("AgentBotVM", "读取历史失败，退化为单轮: ${it.message}")
         }.getOrDefault(emptyList())
+
+        val streamingEngine = streamCoordinator
+        if (streamingEngine != null) {
+            runStreamingForegroundTurn(
+                streamingEngine = streamingEngine,
+                identity = identity,
+                history = history,
+                userText = userText,
+                imageBase64List = imageBase64List,
+            )
+            return
+        }
+
         val turn = coordinator.runTurn(
-            botId = currentBotId,
-            originSessionId = currentSessionId,
+            identity = identity,
             history = history,
             userText = userText,
-            requestRevision = 0L,
+            currentRequestRevision = {
+                repository.latestUserInputSequence(identity.assistantId, identity.sessionId)
+            },
+            inputImageBase64List = imageBase64List,
         ) ?: return
+        if (turn.requestSuperseded) return
         // V15: 模型始终没调 bot_say 时，明确告诉用户"这条没发出去"，并保留重试入口。
         // 不拿模型正文兜底 —— 那会伪造出一条用户以为是回复的消息。
+        val isCurrentScope = currentBotId == identity.assistantId && currentSessionId == identity.sessionId
         if (turn.missingBotSay) {
-            ui.setError(AgentBotError.MISSING_BOT_SAY)
+            if (isCurrentScope) {
+                ui.setError(AgentBotError.MISSING_BOT_SAY)
+            }
             return
         }
         // 清单 F4：Provider 静默返回纯文本（两次都没有 tool_calls）时，
@@ -215,31 +759,247 @@ class AgentBotViewModel(
         //
         // 不告诉的话，用户只会看到主 Bot 聊得很正常但从不做事，
         // 而原因（换一个 Provider 就能好）完全无从得知。
-        if (turn.providerToolBlind) {
+        if (turn.providerToolBlind && isCurrentScope) {
             ui.setError(AgentBotError.PROVIDER_TOOL_BLIND)
         }
-        if (turn.say.isNotBlank()) {
+        var publishedMessageId = turn.publishedMessageId
+        if (turn.shouldDispatch) {
+            val task = try {
+                repository.createTaskForInput(
+                    TaskCreationInput(
+                        identity = identity,
+                        goal = turn.dispatchGoal,
+                        acceptanceCriteria = turn.acceptance,
+                        resourceScope = turn.resourceScope,
+                    ),
+                )
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Logger.w("AgentBotVM", "派工失败: ${e.message}", e)
+                null
+            } ?: return
+
+            if (turn.say.isNotBlank()) {
+                val result = try {
+                    publication.publish(
+                        botId = identity.assistantId,
+                        originSessionId = identity.sessionId,
+                        causeEventIds = identity.requestId,
+                        requestRevision = identity.requestRevision,
+                        taskRevision = 1,
+                        items = listOf(PublicationService.Item(PublicationKind.TEXT, turn.say)),
+                        currentRequestRevision = repository.latestUserInputSequence(
+                            identity.assistantId,
+                            identity.sessionId,
+                        ),
+                    )
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    Logger.w("AgentBotVM", "派工确认发布失败: task=${task.taskId}", e)
+                    null
+                }
+                publishedMessageId = result?.messageIds?.firstOrNull().orEmpty()
+            }
+            if (isCurrentScope) refreshBoard()
+        }
+
+        if (publishedMessageId.isNotBlank() && isCurrentScope) {
             ui.appendPublished(
                 AgentBotUiState.PublishedMessage(
-                    messageId = "fg-" + System.nanoTime(),
+                    messageId = publishedMessageId,
                     role = AgentBotUiState.Role.BOT,
                     text = turn.say,
                     createdAt = System.currentTimeMillis(),
                 ),
             )
         }
-        if (turn.shouldDispatch) {
-            runCatching {
-                repository.createTask(
-                    botId = currentBotId,
-                    originSessionId = currentSessionId,
-                    // 记住是哪条消息触发的：审核阶段要能回溯"用户到底说了什么"。
-                    requestMessageId = acceptedMessageId,
-                    goal = turn.dispatchGoal,
-                    acceptanceCriteria = turn.acceptance,
+    }
+
+    /**
+     * 原生流式快慢双轨前台回合：
+     * - 实时输出流式气泡草稿，毫秒级首字响应；
+     * - 同步结算角标 Emoji 反应、后台异步任务派发、活体插话、后续建议卡与惯例创建；
+     * - 派发后台任务后 0ms 立即唤醒调度器。
+     */
+    private suspend fun runStreamingForegroundTurn(
+        streamingEngine: AgentStreamCoordinator,
+        identity: io.zer0.muse.data.agentbot.AgentTurnIdentity,
+        history: List<io.zer0.ai.core.UIMessage>,
+        userText: String,
+        imageBase64List: List<String>,
+    ) {
+        val isCurrentScope = { currentBotId == identity.assistantId && currentSessionId == identity.sessionId }
+        if (isCurrentScope()) {
+            ui.setTyping(true)
+            ui.setStreaming(AgentBotUiState.StreamingBubble(active = true))
+        }
+        try {
+            val assistant = runCatching { assistantRepository?.getById(identity.assistantId) }.getOrNull()
+            val activeMissions = runCatching {
+                repository.listTasks(identity.assistantId)
+                    .filter { it.originSessionId == identity.sessionId && it.status in BotTaskStatus.NON_TERMINAL }
+                    .map { task ->
+                        AgentCapabilityPromptBuilder.ActiveMissionSummary(
+                            taskId = task.taskId,
+                            goal = task.goal,
+                            status = task.status,
+                        )
+                    }
+            }.getOrDefault(emptyList())
+            val systemPrompt = promptBuilder?.build(
+                assistantName = assistant?.name.orEmpty(),
+                assistantSystemPrompt = assistant?.systemPrompt.orEmpty(),
+                activeMissions = activeMissions,
+            ).orEmpty()
+            val router = modelRouter
+            val store = configStore
+            val (routedProvider, routedModel) = if (router != null && store != null) {
+                runCatching { router.resolve(AgentModelRouter.Role.FOREGROUND, store) }
+                    .getOrDefault(null to null)
+            } else {
+                null to null
+            }
+
+            val outcome = streamingEngine.runStreamingTurn(
+                identity = identity,
+                systemPrompt = systemPrompt,
+                history = history,
+                userText = userText,
+                inputImageBase64List = imageBase64List,
+                providerConfig = routedProvider,
+                model = routedModel,
+                currentRequestRevision = {
+                    repository.latestUserInputSequence(identity.assistantId, identity.sessionId)
+                },
+                onDraft = { draft ->
+                    if (isCurrentScope()) {
+                        ui.setStreaming(
+                            AgentBotUiState.StreamingBubble(
+                                active = true,
+                                text = draft.text,
+                                reasoning = draft.reasoning,
+                                citationUrls = draft.citationUrls,
+                            ),
+                        )
+                    }
+                },
+            )
+            if (outcome.requestSuperseded) return
+
+            // 1. 气泡角标 Emoji 反应
+            val userHash = BotAnnotationService.hashOf(userText)
+            outcome.reactions.forEach { reaction ->
+                val targetId = reaction.targetMessageId.ifBlank { identity.requestId }
+                runCatching {
+                    annotationService?.annotate(
+                        botId = identity.assistantId,
+                        originSessionId = identity.sessionId,
+                        targetMessageId = targetId,
+                        kind = AnnotationKind.REACTION,
+                        assetRef = reaction.emoji,
+                        contentHash = if (targetId == identity.requestId) userHash else "",
+                    )
+                }.onFailure { Logger.w("AgentBotVM", "写入消息角标反应失败: ${it.message}") }
+            }
+
+            // 2. 落盘后的自然流式回复并入对话流
+            if (outcome.publishedMessageId.isNotBlank() && isCurrentScope()) {
+                ui.appendPublished(
+                    AgentBotUiState.PublishedMessage(
+                        messageId = outcome.publishedMessageId,
+                        role = AgentBotUiState.Role.BOT,
+                        text = outcome.text,
+                        createdAt = System.currentTimeMillis(),
+                    ),
                 )
-            }.onFailure { Logger.w("AgentBotVM", "派工失败: ${it.message}") }
-            refreshBoard()
+            }
+
+            // 3. 派发后台任务并 0ms 唤醒调度器
+            var anyDispatched = false
+            outcome.dispatches.forEachIndexed { idx, dispatch ->
+                val targetBotId = dispatch.assigneeBotId.ifBlank { identity.assistantId }
+                val created = runCatching {
+                    repository.createTaskForInput(
+                        TaskCreationInput(
+                            identity = identity.copy(assistantId = targetBotId),
+                            goal = dispatch.goal,
+                            acceptanceCriteria = dispatch.acceptance,
+                            resourceScope = dispatch.resourceScope,
+                            dedupeKey = "stream-dispatch:${identity.requestId}:$idx",
+                        ),
+                    )
+                }.onFailure {
+                    Logger.w("AgentBotVM", "流式派工失败: ${it.message}", it)
+                }.getOrNull()
+                if (created != null) {
+                    anyDispatched = true
+                    repository.upsertMessageCard(
+                        BotMessageCardEntity(
+                            cardId = "mission:${created.taskId}",
+                            botId = identity.assistantId,
+                            originSessionId = identity.sessionId,
+                            anchorMessageId = outcome.publishedMessageId.ifBlank { identity.requestId },
+                            taskId = created.taskId,
+                            cardKind = BotCardKind.MISSION,
+                            title = created.goal,
+                            subtitle = dispatch.acceptance,
+                        ),
+                    )
+                }
+            }
+            if (anyDispatched) {
+                scheduler.requestImmediateTick()
+                if (isCurrentScope()) refreshBoard()
+            }
+
+            // 4. 活体插话热注入运行中任务
+            outcome.steerings.forEach { steer ->
+                runCatching { scheduler.steerTask(steer.taskId, steer.instruction) }
+                    .onFailure { Logger.w("AgentBotVM", "活体插话失败: ${it.message}") }
+            }
+
+            // 5. 可点选后续建议卡片
+            outcome.choiceOffer?.let { offer ->
+                if (offer.options.isNotEmpty()) {
+                    repository.upsertMessageCard(
+                        BotMessageCardEntity(
+                            cardId = "choice:${outcome.publishedMessageId.ifBlank { identity.requestId }}",
+                            botId = identity.assistantId,
+                            originSessionId = identity.sessionId,
+                            anchorMessageId = outcome.publishedMessageId.ifBlank { identity.requestId },
+                            cardKind = BotCardKind.CHOICE,
+                            title = offer.prompt,
+                            payloadJson = cardJson.encodeToString(offer.options),
+                        ),
+                    )
+                }
+            }
+
+            // 6. 一句话沉淀为惯例
+            outcome.routineCreations.forEach { routine ->
+                runCatching {
+                    routineEngine?.createOrUpdate(
+                        botId = identity.assistantId,
+                        title = routine.title,
+                        goalPrompt = routine.goalPrompt,
+                        resourceScope = routine.resourceScope,
+                        triggerType = routine.triggerType,
+                        triggerExpr = routine.triggerExpr,
+                        originSessionId = identity.sessionId,
+                    )
+                }.onFailure { Logger.w("AgentBotVM", "流式创建惯例失败: ${it.message}") }
+            }
+
+            if (outcome.streamError != null && !outcome.hasAnyAction && isCurrentScope()) {
+                ui.setError(AgentBotError.SAVE_FAILED)
+            }
+        } finally {
+            if (isCurrentScope()) {
+                ui.setTyping(false)
+                ui.clearStreaming()
+            }
         }
     }
 
@@ -254,35 +1014,45 @@ class AgentBotViewModel(
      * 结果是 `TASK_RESULT_READY` / `TASK_FAILED` 既没发布也没落 UI，就被永久吞掉 ——
      * 用户永远收不到「你交代的事做完了」。
      *
-     * 现在只消费**这一层真的处理过**的事件：
+     * 现在是"发布成功才消费"：
      *
-     *  - 用户输入：接受即可（派工由 Coordinator 负责，那是后续动作，不影响这条已收下）
-     *  - 结果类：必须经发布通道提交后才能消费。发布还没接，所以返回 false 保留待处理
+     *  - 用户输入 / 接单 / 进度：接受即可（派工由 Coordinator 负责，不影响这条已收下）
+     *  - 可发布事实：必须经发布通道提交后才能消费，失败留着下轮重试
+     *  - 执行结果：只是审核入口，这里确认消费但不发言（正文要等审核结论）
+     *  - 审核事实：内部判据，看板读任务状态；确认消费避免占住收件箱配额
      */
-    suspend fun runTurnOnce() {
-        val result = inbox.runTurn(currentBotId) { event ->
+    suspend fun runTurnOnce(
+        botId: String = currentBotId,
+        sessionId: String = currentSessionId,
+    ) {
+        val result = inbox.runTurn(botId) { event ->
             when (event.kind) {
                 BotEventKind.USER_INPUT_RECEIVED -> true
                 BotEventKind.TASK_ACCEPTED -> true
                 BotEventKind.TASK_PROGRESSED -> true
-                // 结果类事件：必须发布成对话里的一行才算处理过。
-                //
-                // 之前这里一律返回 false（发布通道未接），事件会永远留在收件箱 ——
-                // 用户交代完一件事，任务确实跑完了，但他永远等不到「做完了」。
-                // 现在发布接上了：发布成功才消费，失败留着下轮重试。
+                // 对外发言只能由"审核允许"的发布事实触发。
+                // 执行结果事件同样走这里，但共享发布器对它只做确认消费，不产出正文。
+                BotEventKind.TASK_PUBLICATION_READY,
                 BotEventKind.TASK_RESULT_READY,
                 BotEventKind.TASK_FAILED,
-                -> publishResult(event)
+                -> publishResult(event, botId, sessionId)
+                // 审核事实不是给用户看的话，是给看板与排障用的。
+                BotEventKind.REVIEW_READY -> true
                 // 未识别的类型同样保留：宁可堆积也不静默丢弃。
                 else -> false
             }
         }
-        if (result.consumed > 0 || result.hasBacklog) refreshBoard()
+        if ((result.consumed > 0 || result.hasBacklog) && currentBotId == botId && currentSessionId == sessionId) {
+            refreshBoard()
+        }
     }
 
     /** 结果事件交给共享发布器：页面与后台必须说一模一样的话。 */
-    private suspend fun publishResult(event: io.zer0.muse.data.agentbot.BotEventEntity): Boolean =
-        results.publish(event, fallbackBotId = currentBotId, fallbackSessionId = currentSessionId)
+    private suspend fun publishResult(
+        event: io.zer0.muse.data.agentbot.BotEventEntity,
+        botId: String,
+        sessionId: String,
+    ): Boolean = results.publish(event, fallbackBotId = botId, fallbackSessionId = sessionId)
 
     /** 领一轮后台任务。由界面在可见时周期性调用。 */
     fun tickScheduler() {
@@ -335,6 +1105,217 @@ class AgentBotViewModel(
         foregroundTurnJob = null
         ui.setSending(false)
         ui.setTyping(false)
+        ui.clearStreaming()
+    }
+
+    /** 直接以纯文本发送（用于点击可点选建议卡、主动简报行动卡或语音转写自动发送）。 */
+    fun sendQuickText(text: String) {
+        if (text.isBlank()) return
+        submit(text.trim(), emptyList(), submittedComposer = null)
+    }
+
+    /** 用户长按气泡主动贴 Emoji 反应（双向互动）。 */
+    fun reactToMessage(messageId: String, emoji: String, actorType: String = io.zer0.muse.data.agentbot.BotAnnotationEntity.ACTOR_USER) {
+        val sessionId = currentSessionId
+        if (sessionId.isBlank() || messageId.isBlank() || emoji.isBlank()) return
+        val content = ui.transcript.value.firstOrNull { it.messageId == messageId }?.text.orEmpty()
+        viewModelScope.launch {
+            runCatching {
+                annotationService?.annotate(
+                    botId = currentBotId,
+                    originSessionId = sessionId,
+                    targetMessageId = messageId,
+                    kind = AnnotationKind.REACTION,
+                    assetRef = emoji,
+                    contentHash = BotAnnotationService.hashOf(content),
+                    actorType = actorType,
+                )
+            }.onFailure { Logger.w("AgentBotVM", "贴表情失败: ${it.message}") }
+        }
+    }
+
+    fun removeAnnotation(annotationId: String) {
+        if (annotationId.isBlank()) return
+        viewModelScope.launch {
+            runCatching { annotationService?.remove(annotationId) }
+                .onFailure { Logger.w("AgentBotVM", "移除表情反应失败: ${it.message}") }
+        }
+    }
+
+    /** 对运行中的后台任务进行活体插话纠偏。 */
+    fun steerTask(taskId: String, instruction: String) {
+        if (taskId.isBlank() || instruction.isBlank()) return
+        viewModelScope.launch {
+            runCatching { scheduler.steerTask(taskId, instruction) }
+                .onFailure { Logger.w("AgentBotVM", "任务插话失败: ${it.message}") }
+        }
+    }
+
+    /** 点击流内决策/建议卡上的某个选项。 */
+    fun selectChoiceOption(cardId: String, option: AgentStreamCoordinator.ChoiceOption) {
+        viewModelScope.launch {
+            runCatching { repository.resolveMessageCard(cardId, option.id) }
+                .onFailure { Logger.w("AgentBotVM", "更新选项卡片状态失败: ${it.message}") }
+            val reply = option.prompt.ifBlank { option.label }
+            if (reply.isNotBlank()) {
+                submit(reply, emptyList(), submittedComposer = null)
+            }
+        }
+    }
+
+    fun dismissCard(cardId: String) {
+        viewModelScope.launch {
+            runCatching { repository.dismissMessageCard(cardId) }
+                .onFailure { Logger.w("AgentBotVM", "收起卡片失败: ${it.message}") }
+        }
+    }
+
+    /** 向当前 Agent 对话流投递一张主动简报 / 建议行动卡。 */
+    fun publishCueBriefing(
+        title: String,
+        summary: String,
+        actions: List<AgentStreamCoordinator.ChoiceOption>,
+    ) {
+        val sessionId = currentSessionId
+        if (sessionId.isBlank()) return
+        viewModelScope.launch {
+            repository.upsertMessageCard(
+                BotMessageCardEntity(
+                    cardId = "cue:${java.util.UUID.randomUUID()}",
+                    botId = currentBotId,
+                    originSessionId = sessionId,
+                    cardKind = BotCardKind.CUE_BRIEFING,
+                    title = title,
+                    subtitle = summary,
+                    payloadJson = cardJson.encodeToString(actions),
+                ),
+            )
+        }
+    }
+
+    /** 将一条已完成任务一键沉淀成可复用惯例。 */
+    fun saveTaskAsRoutine(
+        taskId: String,
+        title: String = "",
+        triggerType: String = RoutineTriggerType.MANUAL,
+        triggerExpr: String = "",
+    ) {
+        viewModelScope.launch {
+            val task = repository.getTask(taskId) ?: return@launch
+            runCatching {
+                routineEngine?.saveFromTask(
+                    task = task,
+                    title = title,
+                    triggerType = triggerType,
+                    triggerExpr = triggerExpr,
+                )
+            }.onFailure { Logger.w("AgentBotVM", "保存任务为惯例失败: ${it.message}") }
+        }
+    }
+
+    fun createRoutine(
+        title: String,
+        goalPrompt: String,
+        triggerType: String = RoutineTriggerType.MANUAL,
+        triggerExpr: String = "",
+    ) {
+        if (title.isBlank() || goalPrompt.isBlank()) return
+        viewModelScope.launch {
+            runCatching {
+                routineEngine?.createOrUpdate(
+                    botId = currentBotId,
+                    title = title,
+                    goalPrompt = goalPrompt,
+                    triggerType = triggerType,
+                    triggerExpr = triggerExpr,
+                    originSessionId = currentSessionId,
+                )
+            }.onFailure { Logger.w("AgentBotVM", "创建惯例失败: ${it.message}") }
+        }
+    }
+
+    fun runRoutineNow(routine: BotRoutineEntity) {
+        viewModelScope.launch {
+            val session = when (val res = ensureAgentSession(currentBotId)) {
+                is SessionResolution.Ready -> res.sessionId
+                else -> return@launch
+            }
+            runCatching { routineEngine?.runNow(routine, session) }
+                .onFailure { Logger.w("AgentBotVM", "运行惯例失败: ${it.message}") }
+        }
+    }
+
+    fun toggleRoutine(routine: BotRoutineEntity, enabled: Boolean) {
+        viewModelScope.launch {
+            runCatching { routineEngine?.toggleEnabled(routine, enabled) }
+                .onFailure { Logger.w("AgentBotVM", "切换惯例开关失败: ${it.message}") }
+        }
+    }
+
+    fun deleteRoutine(routine: BotRoutineEntity) {
+        viewModelScope.launch {
+            runCatching { routineEngine?.delete(routine) }
+                .onFailure { Logger.w("AgentBotVM", "删除惯例失败: ${it.message}") }
+        }
+    }
+
+    fun startTeachRecording(title: String = "") {
+        teachRecorder?.start(currentBotId, title)
+    }
+
+    fun updateTeachTitle(title: String) {
+        teachRecorder?.updateTitle(title)
+    }
+
+    fun recordTeachStep(action: String, targetApp: String = "") {
+        teachRecorder?.recordStep(action, targetApp)
+    }
+
+    fun cancelTeachRecording() {
+        teachRecorder?.cancel()
+    }
+
+    fun finishTeachRecording() {
+        val draft = teachRecorder?.finish() ?: return
+        viewModelScope.launch {
+            runCatching {
+                routineEngine?.createOrUpdate(
+                    botId = draft.botId.ifBlank { currentBotId },
+                    title = draft.title,
+                    goalPrompt = draft.goalPrompt,
+                    stepsSummary = draft.stepsSummary,
+                    triggerType = RoutineTriggerType.MANUAL,
+                    originSessionId = currentSessionId,
+                )
+            }.onFailure { Logger.w("AgentBotVM", "保存示范惯例失败: ${it.message}") }
+        }
+    }
+
+    fun setModelRoute(role: AgentModelRouter.Role, providerId: String, modelId: String) {
+        modelRouter?.setBinding(role, providerId, modelId)
+    }
+
+    fun clearModelRoute(role: AgentModelRouter.Role) {
+        modelRouter?.clearBinding(role)
+    }
+
+    fun toggleChannelForBot(botId: String, channelId: String) {
+        squadIdentities?.toggleChannelForBot(botId, channelId)
+    }
+
+    fun setBotSpecialty(botId: String, specialty: String) {
+        squadIdentities?.setSpecialty(botId, specialty)
+    }
+
+    fun refreshChannels() {
+        viewModelScope.launch {
+            runCatching { channelManager?.refresh() }
+                .onFailure { Logger.w("AgentBotVM", "刷新渠道列表失败: ${it.message}") }
+        }
+    }
+
+    fun clearSandboxLogs() {
+        progressBus?.clearSandboxLogs()
     }
 
     /**
@@ -345,9 +1326,15 @@ class AgentBotViewModel(
      */
     fun continueTask(taskId: String) {
         viewModelScope.launch {
-            runCatching {
-                repository.transition(taskId, BotTaskStatusMachine.Event.USER_CONFIRMED_CONTINUE)
-            }.onFailure { Logger.w("AgentBotVM", "继续任务失败: ${it.message}") }
+            try {
+                if (repository.transition(taskId, BotTaskStatusMachine.Event.USER_CONFIRMED_CONTINUE) != null) {
+                    scheduler.tick()
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Logger.w("AgentBotVM", "继续任务失败: ${e.message}", e)
+            }
             refreshBoard()
         }
     }
@@ -358,6 +1345,113 @@ class AgentBotViewModel(
             runCatching { scheduler.cancel(taskId) }
                 .onFailure { Logger.w("AgentBotVM", "取消失败: ${it.message}") }
             refreshBoard()
+        }
+    }
+
+    fun retryTask(taskId: String) {
+        viewModelScope.launch {
+            val failed = repository.getTask(taskId)?.takeIf { it.status == BotTaskStatus.FAILED } ?: return@launch
+            runCatching {
+                repository.createTask(
+                    botId = failed.botId,
+                    originSessionId = failed.originSessionId,
+                    requestMessageId = failed.requestMessageId,
+                    goal = failed.goal,
+                    acceptanceCriteria = failed.acceptanceCriteria,
+                    resourceScope = failed.resourceScope,
+                    permissionScopeId = failed.permissionScopeId,
+                    priority = failed.priority,
+                    dedupeKey = "retry:$taskId:${java.util.UUID.randomUUID()}",
+                )
+                scheduler.tick()
+            }.onFailure {
+                Logger.w("AgentBotVM", "重试任务失败: ${it.message}", it)
+            }
+            refreshBoard()
+        }
+    }
+
+    fun openTaskDetails(taskId: String) {
+        viewModelScope.launch {
+            val details = runCatching {
+                val task = repository.getTask(taskId) ?: return@runCatching null
+                val run = repository.listRuns(taskId).maxByOrNull { it.attempt }
+                val fact = run?.let {
+                    repository.latestTaskEvent(taskId, it.runId, BotEventKind.REVIEW_READY)
+                }?.let { ReviewDecision.decode(it.payloadRef) }
+                AgentBotUiState.TaskDetails(
+                    taskId = task.taskId,
+                    goal = task.goal,
+                    acceptanceCriteria = task.acceptanceCriteria,
+                    status = task.status,
+                    summary = fact?.userVisibleSummary.orEmpty(),
+                    findings = fact?.unverifiedItems.orEmpty(),
+                    sideEffects = fact?.sideEffects.orEmpty(),
+                    candidateRefs = fact?.candidateRefs.orEmpty(),
+                )
+            }.onFailure {
+                Logger.w("AgentBotVM", "读取任务详情失败: ${it.message}", it)
+            }.getOrNull()
+            _taskDetails.value = details
+        }
+    }
+
+    fun closeTaskDetails() {
+        _taskDetails.value = null
+    }
+
+    fun openCandidatePreview(stagedId: String) {
+        viewModelScope.launch {
+            val candidate = withContext(Dispatchers.IO) {
+                resultApplier.readCandidate(stagedId)
+            }
+            _candidatePreview.value = candidate?.let {
+                AgentBotUiState.CandidatePreview(
+                    stagedId = stagedId,
+                    targetRef = it.targetRef,
+                    content = it.content.take(CANDIDATE_PREVIEW_MAX_CHARS),
+                    verificationState = it.verificationState,
+                    taskRevision = it.taskRevision,
+                    truncated = it.content.length > CANDIDATE_PREVIEW_MAX_CHARS,
+                )
+            }
+        }
+    }
+
+    fun closeCandidatePreview() {
+        _candidatePreview.value = null
+    }
+
+    fun retryMessage(messageId: String) {
+        val messages = ui.transcript.value
+        val index = messages.indexOfFirst { it.messageId == messageId }
+        if (index < 0) return
+        val selected = messages[index]
+        val source = if (selected.role == AgentBotUiState.Role.USER) {
+            selected
+        } else {
+            messages.take(index).lastOrNull { it.role == AgentBotUiState.Role.USER }
+        } ?: return
+        if (source.text.isBlank()) return
+        submit(source.text, source.imageBase64List, submittedComposer = null)
+    }
+
+    fun deleteMessage(messageId: String) {
+        val sessionId = currentSessionId
+        if (sessionId.isBlank()) return
+        viewModelScope.launch {
+            try {
+                sessions.deleteMessage(messageId)
+                if (currentSessionId == sessionId) {
+                    ui.replacePublished(ui.transcript.value.filterNot { it.messageId == messageId })
+                    reloadTranscript()
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Logger.w("AgentBotVM", "删除消息失败: ${e.message}", e)
+                ui.setError(AgentBotError.SAVE_FAILED)
+            }
         }
     }
 
@@ -394,19 +1488,15 @@ class AgentBotViewModel(
     val pendingCandidates: kotlinx.coroutines.flow.StateFlow<List<AgentBotUiState.CandidateRow>> =
         _pendingCandidates.asStateFlow()
 
-    /** 刷新候选列表。 */
+    /**
+     * 刷新候选列表。
+     *
+     * 读失败**不降级成空列表**：结果原样存进 [stagedCandidates]，
+     * 页面据此进 Error 并保留上一次清单。空列表会让"读不出来"和
+     * "真的没有候选"长得一模一样。
+     */
     fun refreshCandidates() {
-        _pendingCandidates.value = runCatching {
-            resultApplier.listPendingCandidates().map { entry ->
-                AgentBotUiState.CandidateRow(
-                    stagedId = entry.stagedId,
-                    targetRef = entry.candidate.targetRef,
-                    taskRevision = entry.candidate.taskRevision,
-                )
-            }
-        }.onFailure {
-            Logger.w("AgentBotVM", "读取候选列表失败: ${it.message}")
-        }.getOrDefault(emptyList())
+        stagedCandidates.value = resultApplier.listPendingCandidatesResult()
     }
 
     /** 用户丢弃某条候选。 */
@@ -448,49 +1538,76 @@ class AgentBotViewModel(
             if (currentSessionId != sessionAtStart) return@launch
             ui.replacePublished(first.messages)
 
-            if (limit <= TRANSCRIPT_FIRST_PAINT) return@launch
+            if (limit <= TRANSCRIPT_FIRST_PAINT) {
+                _hasOlderTranscript.value = first.messages.size >= limit &&
+                    (first.messages.firstOrNull()?.seq ?: 0L) > 1L
+                return@launch
+            }
             val full = restorer.read(sessionAtStart, limit)
             if (currentSessionId != sessionAtStart) return@launch
             ui.replacePublished(restorer.merge(full.messages, ui.transcript.value))
+            _hasOlderTranscript.value = full.messages.size >= limit &&
+                (full.messages.firstOrNull()?.seq ?: 0L) > 1L
+        }
+    }
+
+    fun loadOlderTranscript() {
+        val sessionAtStart = currentSessionId
+        val first = ui.transcript.value.firstOrNull() ?: return
+        if (sessionAtStart.isBlank() || first.seq <= 0L || !_hasOlderTranscript.value ||
+            _loadingOlderTranscript.value
+        ) {
+            return
+        }
+        viewModelScope.launch {
+            _loadingOlderTranscript.value = true
+            try {
+                val page = restorer.readOlder(sessionAtStart, first.seq, TRANSCRIPT_PAGE_SIZE)
+                if (currentSessionId != sessionAtStart) return@launch
+                ui.replacePublished(restorer.merge(page.messages, ui.transcript.value))
+                _hasOlderTranscript.value = page.messages.size >= TRANSCRIPT_PAGE_SIZE
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Logger.w("AgentBotVM", "加载更早消息失败: ${e.message}", e)
+                ui.setError(AgentBotError.HISTORY_LOAD_FAILED)
+            } finally {
+                _loadingOlderTranscript.value = false
+            }
         }
     }
     /** 刷新任务看板。只放用户需要知道的，不放子 Agent 与工具流水。 */
+    /**
+     * 看板数据已由 Room Flow 持续观察，这里只推进不来自 Room 的候选暂存区。
+     *
+     * 保留这个名字是因为界面侧仍在任务动作后调用它；真正的一次性读库
+     * 已经删掉 —— 那正是"在 bind 时读死一份、之后不再更新"的来源，
+     * 也是把全局审批混进当前页面的入口。
+     */
     fun refreshBoard() {
-        viewModelScope.launch {
-            val tasks = runCatching { repository.listTasks(currentBotId) }.getOrDefault(emptyList())
-            val pending = runCatching { repository.pendingApprovals() }.getOrDefault(emptyList())
-            // NEEDS_USER 的两种来源靠"该任务是否已有结算过的批准"区分。
-            // 这里一次性算出，避免在 toRow 里做挂起调用。
-            val approvedTaskIds = tasks.filter { it.status == BotTaskStatus.NEEDS_USER }
-                .filter { task ->
-                    runCatching {
-                        val approvals = repository.listApprovals(task.taskId)
-                        approvals.isNotEmpty() && approvals.none { it.status == ApprovalStatus.PENDING }
-                    }.getOrDefault(false)
-                }
-                .map { it.taskId }
-                .toSet()
-            ui.setTaskBoard(
-                AgentBotUiState.TaskBoard(
-                    tasks = tasks.map { it.toRow(approvedAwaitingRetry = it.taskId in approvedTaskIds) },
-                    approvals = pending.map {
-                        AgentBotUiState.ApprovalRow(
-                            approvalId = it.approvalId,
-                            taskId = it.taskId,
-                            toolName = it.toolName,
-                            risk = it.risk,
-                            argumentsPreview = it.argumentsRef,
-                            // 批准时要原样回传这两个值，服务端据此判定参数/资源有没有漂移。
-                            // 传空会让每次批准都被判 INVALIDATED。
-                            argumentsHash = it.argumentsHash,
-                            resourceVersion = it.resourceVersion,
-                            expiresAt = it.expiresAt,
-                        )
-                    },
-                ),
-            )
-        }
+        refreshCandidates()
     }
+
+    /** 审批实体 → 卡片行。浏览时与批准时必须同源，所以两个哈希字段原样透传。 */
+    private fun ApprovalRequestEntity.toApprovalRow(task: BotTaskEntity?) = AgentBotUiState.ApprovalRow(
+        approvalId = approvalId,
+        taskId = taskId,
+        toolName = toolName,
+        risk = risk,
+        argumentsPreview = argumentsRef,
+        // 批准时要原样回传这两个值，服务端据此判定参数/资源有没有漂移。
+        // 传空会让每次批准都被判 INVALIDATED。
+        argumentsHash = argumentsHash,
+        resourceVersion = resourceVersion,
+        expiresAt = expiresAt,
+        resourceScope = task?.resourceScope.orEmpty(),
+    )
+
+    private fun StagedArtifactStore.StagedEntry.toCandidateRow() = AgentBotUiState.CandidateRow(
+        stagedId = stagedId,
+        targetRef = candidate.targetRef,
+        taskRevision = candidate.taskRevision,
+    )
 
     /**
      * 任务 → 看板行。
@@ -498,7 +1615,11 @@ class AgentBotViewModel(
      * 状态文案在这里收敛：用户看到的是"在做""等你批准""需要你决定"，
      * 而不是 QUEUED / WAITING_APPROVAL 这种内部词。
      */
-    private fun BotTaskEntity.toRow(approvedAwaitingRetry: Boolean): AgentBotUiState.TaskRow {
+    private fun BotTaskEntity.toRow(
+        approvedAwaitingRetry: Boolean,
+        steps: List<AgentBotUiState.TaskStepUi> = emptyList(),
+        pendingSteerCount: Int = 0,
+    ): AgentBotUiState.TaskRow {
         // NEEDS_USER 有两个来源：审批通过（可重跑）、审核要求决策（需处理）。
         // 区分依据：该任务有没有"已结算的批准"且已无待审批。
         val needsUser: AgentBotPrompt? = when (status) {
@@ -517,6 +1638,8 @@ class AgentBotViewModel(
             if (status == BotTaskStatus.NEEDS_USER && approvedAwaitingRetry) {
                 add(AgentBotUiState.TaskAction.CONTINUE)
             }
+            if (status == BotTaskStatus.UNKNOWN) add(AgentBotUiState.TaskAction.VERIFY)
+            if (status == BotTaskStatus.FAILED) add(AgentBotUiState.TaskAction.RETRY)
             if (status == BotTaskStatus.QUEUED ||
                 status == BotTaskStatus.RUNNING ||
                 status == BotTaskStatus.WAITING_APPROVAL ||
@@ -539,19 +1662,40 @@ class AgentBotViewModel(
                 }
             }
         }
+        val latestStepNote = steps.lastOrNull()?.let { step ->
+            step.summary.ifBlank { step.displayLabel }
+        }.orEmpty()
         return AgentBotUiState.TaskRow(
             taskId = taskId,
             goal = goal,
             status = status,
-            note = "",
+            note = latestStepNote,
             needsUser = needsUser,
             actions = actions,
+            requestMessageId = requestMessageId,
+            steps = steps,
+            pendingSteerCount = pendingSteerCount,
+            createdAt = createdAt,
+            updatedAt = updatedAt,
         )
     }
 
     companion object {
+        private val cardJson = Json { ignoreUnknownKeys = true }
         /** 默认 Bot id。单 Bot 场景下固定值，多 Bot 时由绑定表给出。 */
         const val DEFAULT_BOT_ID = "default"
+
+        /**
+         * 必须由用户处理的两种任务状态。
+         *
+         * WAITING_APPROVAL、NEEDS_USER 与 UNKNOWN 归入 needsAction：它们都需要
+         * 用户决策或核验，界面上必须优先于"在做什么"出现。
+         */
+        private val ACTION_REQUIRED_STATUSES = setOf(
+            BotTaskStatus.WAITING_APPROVAL,
+            BotTaskStatus.NEEDS_USER,
+            BotTaskStatus.UNKNOWN,
+        )
 
         /**
          * 回合上下文条数（喂给模型）。
@@ -562,23 +1706,21 @@ class AgentBotViewModel(
         private const val HISTORY_LIMIT = 20
 
         /**
-         * 界面显示条数（从库里读回）。
+         * 界面单页条数（更早消息通过显式分页读取）。
          *
          * 与 [HISTORY_LIMIT] 分开是刻意的：两者约束不同。
          *
          *  - 模型上下文要**小**：每轮都带上，token 成本与延迟线性相关；
-         *  - 界面显示要**大**：用户往上翻是要看历史，看不到就是"消息丢了"。
-         *
-         * 共用一个常量时，20 条这个"够覆盖指代"的值被同时当成"够看完对话"，
-         * 结果聊过 20 轮之后往上翻就断头。
+         *  - 界面按页读取：用户可持续向前翻，不一次性载入长会话。
          */
-        private const val TRANSCRIPT_DISPLAY_LIMIT = 200
+        private const val TRANSCRIPT_DISPLAY_LIMIT = 50
+
+        private const val TRANSCRIPT_PAGE_SIZE = 50
+
+        private const val CANDIDATE_PREVIEW_MAX_CHARS = 20_000
 
         /**
-         * 首屏条数。
-         *
-         * 切会话时先读这么多条立刻显示，再在后台补齐到 [TRANSCRIPT_DISPLAY_LIMIT]。
-         * 50 条够填满一屏还有余量，读起来不会让用户等待。
+         * 切会话时先读一页立刻显示；更早消息由单独的分页动作补齐。
          */
         private const val TRANSCRIPT_FIRST_PAINT = 50
     }

@@ -224,6 +224,7 @@
     <string name="agent_bot_status_cancelled">已取消</string>
     <string name="agent_bot_status_needs_user">需要你决定</string>
     <string name="agent_bot_status_unknown">结果无法确认</string>
+    <string name="agent_bot_error_binding_unreadable">读取这个助手上次的会话记录失败，这条消息没有发出。稍后再试</string>
     <string name="agent_bot_error_no_session">还没有可用的会话</string>
     <string name="agent_bot_error_save_failed">消息没能保存，请重试</string>
     <string name="agent_bot_error_already_decided">这一步已经决定过了</string>

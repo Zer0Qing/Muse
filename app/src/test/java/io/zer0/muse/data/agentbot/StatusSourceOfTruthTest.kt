@@ -20,8 +20,8 @@ class StatusSourceOfTruthTest {
         File("src/main/java/io/zer0/muse/data/agentbot/BotTaskStatusMachine.kt").readText()
     }
 
-    private val screen: String by lazy {
-        File("src/main/java/io/zer0/muse/ui/agentbot/AgentBotScreen.kt").readText()
+    private val cards: String by lazy {
+        File("src/main/java/io/zer0/muse/ui/agentbot/AgentStreamCards.kt").readText()
     }
 
     @Test
@@ -63,9 +63,10 @@ class StatusSourceOfTruthTest {
 
     @Test
     fun `every status has a user facing label`() {
-        val at = screen.indexOf("private fun statusLabel(");
-        val fnEnd = screen.indexOf("private fun ", at + 10);
-        val body = screen.substring(at, if (fnEnd > at) fnEnd else screen.length);
+        val at = cards.indexOf("internal fun agentStatusLabel(");
+        assertTrue("找不到 agentStatusLabel", at >= 0);
+        val fnEnd = cards.indexOf("internal fun ", at + 15);
+        val body = cards.substring(at, if (fnEnd > at) fnEnd else cards.length);
         val missing = BotTaskStatus.ALL.filter { !body.contains(it) };
         assertTrue("这些状态没有用户可读文案：" + missing, missing.isEmpty());
     }

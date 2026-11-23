@@ -160,6 +160,22 @@
     <string name="runtime_card_install">Instalar entorno</string>
     <string name="runtime_card_later">Ahora no</string>
     <string name="runtime_card_failed_detail">Error de instalación: %1$s</string>
+    <string name="runtime_version_picker_title">Elegir versión del entorno</string>
+    <string name="runtime_version_download_size">Tamaño de descarga: %1$s</string>
+    <string name="runtime_version_current">Actual</string>
+    <string name="runtime_version_list_empty">No hay versiones disponibles</string>
+    <string name="runtime_action_local_install">Instalar desde un archivo</string>
+    <string name="runtime_action_update">Actualizar entorno</string>
+    <string name="runtime_action_repair">Reparar entorno</string>
+    <string name="runtime_action_rollback">Volver a la versión anterior</string>
+    <string name="runtime_action_uninstall">Desinstalar entorno</string>
+    <string name="runtime_action_resume">Reanudar instalación</string>
+    <string name="runtime_action_cancel">Cancelar instalación</string>
+    <string name="runtime_action_custom_url">Usar URL personalizada</string>
+    <string name="runtime_custom_url_title">Origen personalizado (%1$s)</string>
+    <string name="runtime_custom_url_address">URL de descarga HTTPS</string>
+    <string name="runtime_custom_url_sha256">SHA-256 (opcional)</string>
+    <string name="runtime_custom_url_unverified_warning">Sin SHA-256, el archivo se instalará como origen no verificado.</string>
     <string name="runtime_upgrade_title">El entorno ahora es independiente</string>
     <string name="runtime_upgrade_desc">Esta versión saca el entorno de Node del APK, por lo que la app ocupa mucho menos. Instálalo una vez antes de usar scripts, MCP o la terminal (unos 76 MB de descarga y 230 MB instalado).</string>
     <string name="terminal_send_to_ai_cd">Enviar esta ronda a la IA</string>
@@ -172,5 +188,4 @@
     <string name="offline_resources_title">Recursos sin conexión</string>
     <string name="offline_resources_runtime">Entorno (Node / Python)</string>
     <string name="offline_resources_asr">Modelo de voz local (SenseVoice)</string>
-    <string name="offline_resources_delete">Eliminar</string>
 </resources>

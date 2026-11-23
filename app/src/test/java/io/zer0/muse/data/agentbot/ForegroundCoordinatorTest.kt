@@ -81,7 +81,7 @@ class ForegroundCoordinatorTest {
         assertTrue(source.contains("Verdict.Reject"));
         assertTrue(
             "拒绝时要如实说，不能假装在处理",
-            source.contains("return Turn(say = turn.say"),
+            source.contains("turn = turn.copy(dispatchGoal = \"\", acceptance = \"\", resourceScope = \"\")"),
         )
     }
 

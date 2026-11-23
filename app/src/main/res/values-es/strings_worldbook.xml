@@ -7,13 +7,10 @@
     <string name="worldbook_new_default_name">Nueva entrada</string>
     <string name="worldbook_new_title">Nuevo libro de trasfondo</string>
     <string name="worldbook_edit_title">Editar libro de trasfondo</string>
-    <string name="worldbook_save">Guardar</string>
     <string name="worldbook_unsaved_title">Cambios no guardados</string>
     <string name="worldbook_unsaved_content">Tienes cambios sin guardar. ¿Seguro que quieres descartarlos?</string>
     <string name="worldbook_discard">Desechar</string>
     <string name="worldbook_unnamed">Sin nombre</string>
-    <string name="worldbook_edit_cd">Editar</string>
-    <string name="worldbook_delete_cd">Eliminar</string>
     <string name="worldbook_delete_title">Eliminar libro de trasfondo</string>
     <string name="worldbook_empty_title">No hay entradas en el libro de trasfondo</string>
     <string name="worldbook_keywords_label">Palabras clave: %1$s</string>

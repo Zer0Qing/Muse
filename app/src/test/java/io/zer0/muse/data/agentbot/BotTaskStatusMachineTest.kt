@@ -88,6 +88,17 @@ class BotTaskStatusMachineTest {
     }
 
     @Test
+    fun `denied expired and invalidated approvals return the task to needs-user`() {
+        assertEquals(
+            BotTaskStatus.NEEDS_USER,
+            BotTaskStatusMachine.next(
+                BotTaskStatus.WAITING_APPROVAL,
+                BotTaskStatusMachine.Event.REVIEW_NEEDS_USER,
+            ),
+        )
+    }
+
+    @Test
     fun `cancel with side effects becomes partial not cancelled`() {
         assertEquals(
             BotTaskStatus.PARTIAL,

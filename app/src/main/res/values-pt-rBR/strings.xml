@@ -49,11 +49,6 @@
     <string name="proxy_username">Nome de usuário</string>
     <string name="proxy_password">Senha</string>
     <string name="proxy_restart_hint">Vale para novas conexões imediatamente; conexões keep-alive existentes duram até serem recicladas</string>
-    <string name="action_save">Salvar</string>
-    <string name="action_cancel">Cancelar</string>
-    <string name="action_delete">Excluir</string>
-    <string name="action_edit">Editar</string>
-    <string name="action_close">Fechar</string>
     <string name="action_more">Mais</string>
     <string name="action_send">Enviar</string>
     <string name="action_collapse">Colapso</string>
@@ -227,7 +222,6 @@
     <string name="chat_favorite_selected_all_exist">Todas as %1$d já estão nos favoritos</string>
     <string name="settings_chat_prefer_card_output">Preferir saída em cartões</string>
     <string name="chat_card_state_only">(conteúdo do cartão atualizado)</string>
-    <string name="moment_action_edit">Editar</string>
     <string name="groupchat_stop_generating">Parar de gerar</string>
     <string name="translate_page_stop_speaking">Parar leitura</string>
     <string name="settings_screen_group_cards">Cartões e interface generativa</string>

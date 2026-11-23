@@ -23,12 +23,13 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import io.zer0.muse.ui.theme.MuseActionColors
+import io.zer0.muse.ui.theme.MuseButtonSizes
 import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.MuseSpringTier
-import io.zer0.muse.ui.theme.huge
+import io.zer0.muse.ui.theme.pill
 
 /**
  * 浮动按钮 — 替代 Material3 [androidx.compose.material3.FloatingActionButton]。
@@ -65,14 +66,15 @@ fun MuseFloatingButton(
     contentDescription: String? = null,
     containerColor: Color = MuseActionColors.container,
     contentColor: Color = MuseActionColors.content,
-    // CMP-08: 尺寸走令牌(56dp = MuseIconSizes.fab,符合 Material FAB 规范)
     size: Dp = MuseIconSizes.fab,
     iconSize: Dp = MuseIconSizes.icon,
+    compact: Boolean = false,
 ) {
+    val effectiveSize = if (compact && size == MuseIconSizes.fab) MuseButtonSizes.fabCompact else size
+    val effectiveIconSize = if (compact && iconSize == MuseIconSizes.icon) MuseIconSizes.iconMedium else iconSize
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
-    // 按下时 0.92 缩放(跟手档弹簧),模拟按压反馈
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.92f else 1f,
         animationSpec = MuseMotion.spring(MuseSpringTier.RESPONSIVE),
@@ -80,14 +82,13 @@ fun MuseFloatingButton(
     )
 
     Surface(
-        shape = MuseShapes.huge,
+        shape = MuseShapes.pill,
         color = containerColor,
         contentColor = contentColor,
-        // Keep the modal shadow stable; pressed feedback is expressed by scale only.
         shadowElevation = MuseElevation.modal,
         tonalElevation = MuseElevation.none,
         modifier = modifier
-            .size(size)
+            .size(effectiveSize)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -109,8 +110,8 @@ fun MuseFloatingButton(
         ) {
             Icon(
                 imageVector = icon,
-                contentDescription = null, // 已在 semantics 提供
-                modifier = Modifier.size(iconSize),
+                contentDescription = null,
+                modifier = Modifier.size(effectiveIconSize),
             )
         }
     }

@@ -191,4 +191,73 @@ class BackupRoundTripSerializationTest {
         assertEquals(emptyList<TranslateHistoryEntity>(), restored.translateHistories)
         assertEquals(emptyMap<String, List<*>>(), restored.scopedFacts)
     }
+
+    @Test
+    fun `proactive backlog and all bot ledgers round trip`() {
+        val dispatch = io.zer0.muse.data.proactive.ProactiveBacklogDispatchEntity(
+            dispatchId = "dispatch-1",
+            thoughtId = "thought-1",
+            assistantId = "assistant-1",
+            sessionId = "session-1",
+            state = io.zer0.muse.data.proactive.BacklogDispatchState.CLAIMED,
+            claimToken = "lease-token",
+            claimUntil = 50_000L,
+            nextAttemptAt = 10_000L,
+            createdAt = 1_000L,
+            updatedAt = 2_000L,
+        )
+        val schedule = io.zer0.muse.data.proactive.ProactiveBacklogScheduleEntity(
+            nextBacklogDispatchAt = 50_000L,
+            updatedAt = 2_000L,
+        )
+        val binding = io.zer0.muse.data.agentbot.BotBindingEntity(
+            botId = "bot-1",
+            assistantId = "assistant-1",
+            canonicalAgentSessionId = "session-1",
+        )
+        val task = io.zer0.muse.data.agentbot.BotTaskEntity(
+            taskId = "task-1",
+            botId = "bot-1",
+            originSessionId = "session-1",
+            goal = "finish a task",
+        )
+        val run = io.zer0.muse.data.agentbot.TaskRunEntity(runId = "run-1", taskId = task.taskId)
+        val step = io.zer0.muse.data.agentbot.TaskStepEntity(stepId = "step-1", runId = run.runId)
+        val event = io.zer0.muse.data.agentbot.BotEventEntity(eventId = "event-1", taskId = task.taskId)
+        val approval = io.zer0.muse.data.agentbot.ApprovalRequestEntity(approvalId = "approval-1", taskId = task.taskId)
+        val publication = io.zer0.muse.data.agentbot.PublicationOutboxEntity(id = "publication-1", botId = binding.botId)
+        val annotation = io.zer0.muse.data.agentbot.BotAnnotationEntity(id = "annotation-1", botId = binding.botId)
+        val backup = BackupService.Backup(
+            version = 5,
+            exportedAt = 3_000L,
+            sessions = emptyList(),
+            messages = emptyList(),
+            proactiveBacklogDispatches = listOf(dispatch),
+            proactiveBacklogSchedule = listOf(schedule),
+            botBindings = listOf(binding),
+            botTasks = listOf(task),
+            botTaskRuns = listOf(run),
+            botTaskSteps = listOf(step),
+            botEvents = listOf(event),
+            botApprovals = listOf(approval),
+            botPublications = listOf(publication),
+            botAnnotations = listOf(annotation),
+        )
+
+        val restored = json.decodeFromString(
+            BackupService.Backup.serializer(),
+            json.encodeToString(BackupService.Backup.serializer(), backup),
+        )
+
+        assertEquals(listOf(dispatch), restored.proactiveBacklogDispatches)
+        assertEquals(listOf(schedule), restored.proactiveBacklogSchedule)
+        assertEquals(listOf(binding), restored.botBindings)
+        assertEquals(listOf(task), restored.botTasks)
+        assertEquals(listOf(run), restored.botTaskRuns)
+        assertEquals(listOf(step), restored.botTaskSteps)
+        assertEquals(listOf(event), restored.botEvents)
+        assertEquals(listOf(approval), restored.botApprovals)
+        assertEquals(listOf(publication), restored.botPublications)
+        assertEquals(listOf(annotation), restored.botAnnotations)
+    }
 }

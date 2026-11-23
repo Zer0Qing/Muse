@@ -42,7 +42,6 @@
     <string name="assistant_detail_allow_group_chat">Permitir entrar no bate-papo em grupo</string>
     <string name="assistant_detail_allow_group_chat_desc">Quando desativado, este assistente não aparecerá na seleção de membros do chat em grupo</string>
     <string name="assistant_detail_select_model">Selecione Modelo Exclusivo</string>
-    <string name="assistant_detail_close">Fechar</string>
     <string name="assistant_detail_global_default_selected">Padrão global (selecionado)</string>
     <string name="assistant_detail_model_selected">%1$s (Selecionado)</string>
     <!-- Phase 6: Model picker UX improvements -->
@@ -78,14 +77,11 @@
     <string name="assistant_detail_global_pinned_disabled">Somente leitura. A memória global está desativada e estes itens não são incluídos para esta assistente.</string>
     <string name="assistant_detail_saved_memory_interaction_hint">Toque para expandir · Toque e segure para editar</string>
     <string name="assistant_detail_no_memory">Ainda não há lembranças</string>
-    <string name="assistant_detail_delete_cd">Excluir</string>
     <string name="assistant_detail_delete_memory">Excluir memória</string>
     <string name="assistant_detail_add_memory_dialog_title">Adicionar memória</string>
     <string name="assistant_detail_memory_edit_missing">Esta memória não existe mais ou o conteúdo é inválido</string>
     <string name="assistant_detail_edit_memory_dialog_title">Editar memória</string>
     <string name="assistant_detail_input_fact">Insira fato/conhecimento</string>
-    <string name="assistant_detail_save">Salvar</string>
-    <string name="assistant_detail_cancel">Cancelar</string>
     <string name="assistant_detail_custom_headers_label">JSON de cabeçalhos personalizados (por exemplo, {\"X-Custom\":\"value\"})</string>
     <string name="assistant_detail_custom_bodies_label">JSON de corpo personalizado (por exemplo, {\"user\":\"abc\"})</string>
     <string name="assistant_detail_tags_label">Tags (separadas por vírgula, por exemplo, escrita, tradução, código)</string>
@@ -97,20 +93,16 @@
     <string name="memory_screen_add_fact_cd">Adicionar metafato</string>
     <string name="memory_tab_facts">Fatos</string>
     <!-- v1.0.51: memory backfill migration progress -->
-    <string name="memory_screen_cancel">Cancelar</string>
     <string name="memory_screen_edit_fact">Editar metafato</string>
     <string name="memory_screen_edit_summary">Editar resumo da sessão</string>
     <string name="memory_open_conversation">Abrir conversa</string>
     <string name="memory_conversation_meta">Assistente %1$s · Espaço %2$s</string>
     <string name="memory_screen_no_fact">Ainda não há metafatos</string>
     <string name="memory_screen_collapse">Colapso</string>
-    <string name="memory_screen_edit_cd">Editar</string>
-    <string name="memory_screen_delete_cd">Excluir</string>
     <string name="memory_screen_load_failed">Falha no carregamento – detalhes completos do erro</string>
     <string name="memory_screen_copied_trace">Rastreamento de pilha completo copiado para a área de transferência</string>
     <string name="memory_screen_copy_trace_cd">Copiar rastreamento completo da pilha</string>
     <string name="memory_screen_input_content">Insira o conteúdo…</string>
-    <string name="memory_screen_save">Salvar</string>
     <string name="memory_screen_normal">Normal</string>
     <string name="memory_screen_failed_times">Falha %1$d vez(es)</string>
     <string name="memory_screen_last_success">Último sucesso: %1$s</string>
@@ -165,16 +157,16 @@
     <!-- ===== Settings screen SettingsScreen ===== -->
     <string name="settings_screen_title">Configurações</string>
     <!-- Categorias de configurações (primeiro nível) -->
-    <string name="settings_group_assistants">Assistentes</string>
-    <string name="settings_group_models">Modelos e provedores</string>
-    <string name="settings_group_tools">Ferramentas e permissões</string>
-    <string name="settings_group_voice">Voz</string>
-    <string name="settings_group_image">Imagem e visão</string>
+    <string name="settings_group_general">Geral e aparência</string>
+    <string name="settings_group_assistants">Assistentes e conversa</string>
+    <string name="settings_group_models">Modelos e ambiente</string>
+    <string name="settings_group_media">Voz e visão</string>
     <string name="settings_group_memory">Memória e conhecimento</string>
-    <string name="settings_group_connection">Conexões</string>
-    <string name="settings_group_automation">Automação</string>
+    <string name="settings_group_tools">Ferramentas e extensões</string>
+    <string name="settings_group_connection">Canais e rede</string>
+    <string name="settings_group_automation">Automação e segundo plano</string>
     <string name="settings_group_data_storage">Dados e backup</string>
-    <string name="settings_group_privacy_security">Privacidade e segurança</string>
+    <string name="settings_group_privacy_security">Privacidade e permissões</string>
     <string name="settings_group_about">Sobre</string>
     <string name="settings_group_developer">Desenvolvedor</string>
     <string name="settings_screen_appearance_label">Aparência</string>
@@ -235,10 +227,8 @@
     <string name="channel_intro">As credenciais ficam criptografadas apenas neste dispositivo.</string>
     <string name="channel_add">Adicionar canal</string>
     <string name="channel_edit_title">Editar canal</string>
-    <string name="channel_edit">Editar</string>
     <string name="channel_delete_confirm">Excluir este canal?</string>
     <string name="channel_empty">Ainda não há canais. Toque no botão acima para adicionar.</string>
-    <string name="channel_save">Salvar</string>
     <string name="channel_field_platform">Plataforma</string>
     <string name="channel_field_app_id">App ID</string>
     <string name="channel_field_app_secret">App Secret</string>
@@ -298,7 +288,6 @@
     <string name="vision_assist_done">Assistência de visão · Concluído</string>
 
     <!-- ===== Search screen SearchScreen ===== -->
-    <string name="search_cancel">Cancelar</string>
     <string name="search_placeholder">Pesquisar sessões/mensagens/configurações...</string>
     <string name="search_empty_hint">Insira palavras-chave para pesquisar sessões, mensagens ou configurações</string>
     <string name="search_tab_sessions">Sessões</string>
@@ -345,7 +334,6 @@
     <string name="skill_label_category">Categoria</string>
     <string name="skill_label_implementation">Implementação</string>
     <string name="skill_label_source">Fonte</string>
-    <string name="skill_close">Fechar</string>
     <string name="skill_row_cd">%1$s, %2$s, toque para ver detalhes</string>
     <string name="skill_use_case_read_file">Quando você precisar ler notas, configurações ou arquivos em cache no aplicativo, o LLM chamará isso automaticamente.</string>
     <string name="skill_use_case_write_file">Quando você precisar salvar notas, gerar documentos ou persistir dados, o LLM chamará isso automaticamente.</string>
@@ -559,7 +547,6 @@
     <!-- Shortcut descriptions (shown in settings/help pages) -->
     <!-- Right-click context menu items -->
     <string name="desktop_context_regenerate">Regenerado</string>
-    <string name="desktop_context_delete">Excluir</string>
 
     <!-- P2-12 Rich Text Input -->
     <string name="chat_compressing_banner">Comprimindo histórico da conversa…</string>
@@ -580,7 +567,6 @@
     <string name="settings_vision_probe_success">Teste bem-sucedido: o modelo de visão retornou uma descrição de %1$d caracteres.</string>
     <string name="settings_vision_show_all_models">Mostrar todos os modelos</string>
     <string name="settings_vision_show_all_models_subtitle">Modo avançado do relay: mostra todos os modelos, permitindo escolher manualmente um modelo de visão não detectado</string>
-    <string name="skill_delete">Excluir</string>
     <string name="skill_delete_confirm_message">Excluir «%1$s»? Esta ação não pode ser desfeita.</string>
     <string name="skill_delete_confirm_title">Confirmar exclusão</string>
     <string name="skill_delete_failed_ui">Nome de usuário:%1$s</string>
@@ -618,9 +604,7 @@
     <string name="chat_fork_success">Uma nova conversa foi criada a partir da conversa atual</string>
     <string name="chat_list_archived_entry">Arquivada (%1$d)</string>
     <string name="chat_list_archived_toast">Arquivada. Você pode restaurá-la em \"Arquivadas\".</string>
-    <string name="chat_list_edit">Editar</string>
     <string name="chat_list_edit_archive">Arquivar</string>
-    <string name="chat_list_edit_delete">Excluir</string>
     <plurals name="chat_list_edit_delete_confirm">
         <item quantity="one">Excluir %1$d conversa selecionada e todas as mensagens dela? Esta ação não pode ser desfeita.</item>
         <item quantity="other">Excluir %1$d conversas selecionadas e todas as mensagens delas? Esta ação não pode ser desfeita.</item>
@@ -756,7 +740,6 @@
     <string name="settings_preference_desc">Quando você diz ao assistente «de agora em diante, não…», ele guarda isso aqui como regra rígida e cumpre em todas as conversas.</string>
     <string name="settings_preference_empty">Nenhuma preferência registrada ainda</string>
     <string name="settings_preference_disable">Desativar</string>
-    <string name="settings_preference_delete">Excluir</string>
     <string name="settings_preference_delete_confirm">Após excluir esta preferência, o assistente deixará de cumpri-la.</string>
     <string name="settings_preference_disabled_tag">Desativada</string>
     <string name="settings_preference_source">Palavras originais: %1$s</string>

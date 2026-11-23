@@ -24,6 +24,45 @@ import androidx.compose.ui.graphics.Color
  * [container]/[content] 与 [tonalContainer]/[tonalContent] 都是 ColorScheme 里成对的
  * 前景/背景组合，12 套预设主题 + 自定义主题都定义了这两对，换主题即换色，对比度由主题保证。
  */
+/**
+ * 全局透明度语义令牌，收口组件中散落的 `.copy(alpha = ...)` 魔法数字。
+ * 与 `tokens.json` 的 `colors.alpha.*` 保持同源。
+ */
+object MuseAlpha {
+    /** 列表行按压浅遮罩。 */
+    const val rowPressed: Float = 0.06f
+
+    /** 按钮 / 图标按压遮罩。 */
+    const val pressedOverlay: Float = 0.08f
+
+    /** 列表与卡片内发丝分隔线。 */
+    const val divider: Float = 0.13f
+
+    /** 状态色浅底叠层（优先使用 [MuseStatusColors] 的成对容器色，动态场景回退此档）。 */
+    const val statusTint: Float = 0.14f
+
+    /** 底部抽屉拖拽把手。 */
+    const val handle: Float = 0.30f
+
+    /** 控件禁用态容器透明度。 */
+    const val disabled: Float = 0.38f
+
+    /** 半透明柔和卡片/动作行容器底。 */
+    const val mutedSurface: Float = 0.50f
+
+    /** 柔和细描边透明度。 */
+    const val subtleBorder: Float = 0.65f
+
+    /** 控件禁用态文字透明度（保留浅底可读性）。 */
+    const val disabledContent: Float = 0.75f
+
+    /** 玻璃态面板基色透明度。 */
+    const val glassSurface: Float = 0.78f
+
+    /** 分组标题弱化透明度。 */
+    const val titleMuted: Float = 0.85f
+}
+
 object MuseActionColors {
 
     /** 主操作容器：主题主色。 */
@@ -62,6 +101,6 @@ object MuseActionColors {
     val dangerContent: Color
         @Composable get() = MaterialTheme.colorScheme.onError
 
-    /** 禁用态透明度（与既有组件约定一致）。 */
-    const val disabledAlpha = 0.38f
+    /** 禁用态透明度（统一指向 [MuseAlpha.disabled]）。 */
+    const val disabledAlpha: Float = MuseAlpha.disabled
 }

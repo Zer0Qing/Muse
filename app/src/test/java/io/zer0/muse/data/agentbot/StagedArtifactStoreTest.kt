@@ -54,6 +54,52 @@ class StagedArtifactStoreTest {
     }
 
     @Test
+    fun `structured artifact metadata survives storage and older records still load`() {
+        val staged = store.stageArtifact(
+            StagedArtifactStore.Candidate(
+                targetRef = "workspace/notes.md",
+                content = "新的正文",
+            baseHash = StagedArtifactStore.hashSnapshot("旧正文"),
+                taskRevision = 3,
+                sourceRunId = "run-3",
+                verificationState = VerificationState.VERIFIED,
+            hasBaseSnapshot = true,
+            baseContent = "旧正文",
+            ),
+        )
+
+        val restored = store.readArtifact(staged.ref)
+        assertEquals("workspace/notes.md", restored?.targetPath)
+        assertEquals(StagedArtifactStore.hashOf("新的正文"), restored?.contentHash)
+        assertEquals(StagedArtifactStore.hashSnapshot("旧正文"), restored?.baseHash)
+        assertEquals(VerificationState.VERIFIED, restored?.verificationState)
+        assertEquals("run-3", restored?.sourceRunId)
+        assertEquals("旧正文", store.read(staged.ref)?.baseContent)
+
+        val oldV2 = File(dir, "cand-v2")
+        oldV2.writeText(
+            listOf(
+                "MUSE_ARTIFACT_V2",
+                "workspace/v2.md",
+                "old-hash",
+                "2",
+                "run-v2",
+                VerificationState.PROPOSED,
+                StagedArtifactStore.hashOf("v2 body"),
+                "v2 body",
+            ).joinToString("\n"),
+        )
+        assertEquals("v2 body", store.read("cand-v2")?.content)
+        assertFalse(store.read("cand-v2")?.hasBaseSnapshot ?: true)
+
+        val oldFile = File(dir, "cand-legacy")
+        oldFile.writeText("workspace/old.md\nold-hash\n1\nlegacy body")
+        val legacy = store.read("cand-legacy")
+        assertEquals("legacy body", legacy?.content)
+        assertEquals(1, legacy?.taskRevision)
+    }
+
+    @Test
     fun `stale revision is discarded instead of applied`() = kotlinx.coroutines.test.runTest {
         val id = store.stage(candidate(revision = 1));
         var wrote = false
@@ -109,17 +155,20 @@ class StagedArtifactStoreTest {
         assertTrue(result is StagedArtifactStore.ApplyResult.Applied);
         assertEquals(1, writes);
         assertEquals("改好的内容", written);
-        assertNull("应用后暂存条目应清理", store.read(id));
+        assertEquals(VerificationState.APPLIED_PENDING_COMMIT, store.readArtifact(id)?.verificationState)
     }
 
     @Test
-    fun `applying the same candidate twice writes only once`() = kotlinx.coroutines.test.runTest {
+    fun `retry after target write recognizes the applied content without writing twice`() = kotlinx.coroutines.test.runTest {
         val id = store.stage(candidate());
         var writes = 0
-        store.apply(id, 1, "hash-v1") { _, _ -> writes++ };
-        store.apply(id, 1, "hash-v1") { _, _ -> writes++ };
+        val first = store.apply(id, 1, "hash-v1") { _, _ -> writes++ }
+        val retry = store.apply(id, 1, StagedArtifactStore.hashOf("改好的内容")) { _, _ -> writes++ }
 
-        assertEquals("第二次找不到暂存条目，不该再写", 1, writes);
+        assertTrue(first is StagedArtifactStore.ApplyResult.Applied)
+        assertTrue(retry is StagedArtifactStore.ApplyResult.Applied)
+        assertEquals("恢复重试只能识别已写入的内容", 1, writes)
+        assertNotNull(store.read(id))
     }
 
     @Test
@@ -134,6 +183,22 @@ class StagedArtifactStoreTest {
     }
 
     @Test
+    fun `new file candidate only applies while the target is still missing`() = kotlinx.coroutines.test.runTest {
+        val conflictId = store.stage(candidate(baseHash = StagedArtifactStore.MISSING_TARGET_HASH))
+        var writes = 0
+
+        val conflict = store.apply(conflictId, 1, StagedArtifactStore.hashSnapshot("created by user")) { _, _ -> writes++ }
+        assertTrue("用户新建的同路径文件不能被覆盖", conflict is StagedArtifactStore.ApplyResult.Conflict)
+        assertEquals(0, writes)
+        assertEquals(VerificationState.CONFLICTED, store.readArtifact(conflictId)?.verificationState)
+
+        val missingId = store.stage(candidate(baseHash = StagedArtifactStore.MISSING_TARGET_HASH))
+        val apply = store.apply(missingId, 1, StagedArtifactStore.MISSING_TARGET_HASH) { _, _ -> writes++ }
+        assertTrue(apply is StagedArtifactStore.ApplyResult.Applied)
+        assertEquals(1, writes)
+    }
+
+    @Test
     fun `missing staged entry is stale not a crash`() = kotlinx.coroutines.test.runTest {
         val result = store.apply("does-not-exist", 1, "hash") { _, _ -> };
         assertTrue(result is StagedArtifactStore.ApplyResult.Stale);
@@ -145,5 +210,35 @@ class StagedArtifactStoreTest {
         store.stage(candidate());
         store.clearAll();
         assertEquals(0, dir.listFiles()?.size ?: 0);
+    }
+
+    @Test
+    fun `an empty staging dir is a successful empty result`() {
+        val fresh = StagedArtifactStore(File(dir, "never-created"));
+
+        val result = fresh.listStagedResult();
+
+        assertTrue(
+            "没有候选时必须是成功结果，而不是 Error",
+            result is StagedArtifactStore.StagedListResult.Success,
+        );
+        assertTrue((result as StagedArtifactStore.StagedListResult.Success).entries.isEmpty());
+    }
+
+    @Test
+    fun `a staging path that is not a directory is an error`() {
+        // 目录名被一个普通文件占住：listFiles() 只会返回 null，与"空目录"分不开。
+        val blocked = File(System.getProperty("java.io.tmpdir"), "agentbot-blocked-" + System.nanoTime());
+        blocked.writeText("not a directory");
+        try {
+            val result = StagedArtifactStore(blocked).listStagedResult();
+
+            assertTrue(
+                "读失败不能被伪装成空列表",
+                result is StagedArtifactStore.StagedListResult.Error,
+            );
+        } finally {
+            blocked.delete();
+        }
     }
 }

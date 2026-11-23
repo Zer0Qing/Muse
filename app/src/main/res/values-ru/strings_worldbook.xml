@@ -7,13 +7,10 @@
     <string name="worldbook_new_default_name">Новая запись</string>
     <string name="worldbook_new_title">Новая книга мира</string>
     <string name="worldbook_edit_title">Редактировать книгу мира</string>
-    <string name="worldbook_save">Сохранять</string>
     <string name="worldbook_unsaved_title">Несохраненные изменения</string>
     <string name="worldbook_unsaved_content">У вас есть несохраненные изменения.</string>
     <string name="worldbook_discard">Отказаться</string>
     <string name="worldbook_unnamed">Безымянный</string>
-    <string name="worldbook_edit_cd">Редактировать</string>
-    <string name="worldbook_delete_cd">Удалить</string>
     <string name="worldbook_delete_title">Удалить Всемирную книгу</string>
     <string name="worldbook_empty_title">Нет записей в мировой книге</string>
     <string name="worldbook_keywords_label">Ключевые слова: %1$s</string>

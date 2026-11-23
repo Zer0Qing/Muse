@@ -27,7 +27,7 @@ class ApprovalResumeTest {
     private lateinit var db: MuseDb
     private lateinit var repo: AgentBotRepository
     private lateinit var service: ApprovalService
-    private val resumed = mutableListOf<Triple<String, String, Boolean>>()
+    private val resumed = mutableListOf<Triple<String, String, String>>()
 
     @Before
     fun setUp() {
@@ -46,8 +46,8 @@ class ApprovalResumeTest {
         );
         service = ApprovalService(
             repository = repo,
-            onSettled = { taskId, approvalId, approved ->
-                resumed += Triple(taskId, approvalId, approved);
+            onSettled = { taskId, approvalId, status ->
+                resumed += Triple(taskId, approvalId, status);
             },
         );
     }
@@ -81,7 +81,7 @@ class ApprovalResumeTest {
 
         assertEquals(1, resumed.size);
         assertEquals(task.taskId, resumed.single().first);
-        assertTrue("批准要标记为 approved", resumed.single().third);
+        assertEquals(ApprovalStatus.APPROVED, resumed.single().third);
     }
 
     @Test
@@ -91,7 +91,7 @@ class ApprovalResumeTest {
 
         assertEquals(1, resumed.size);
         assertEquals(task.taskId, resumed.single().first);
-        assertTrue("拒绝要标记为 not approved", !resumed.single().third);
+        assertEquals(ApprovalStatus.DENIED, resumed.single().third);
     }
 
     @Test
@@ -103,12 +103,23 @@ class ApprovalResumeTest {
         // WAITING_APPROVAL。不回调的话它永远出不来 —— expireApprovals 只扫
         // PENDING，卡已结算，扫不到。
         //
-        // 回调时 approved=false，所以上层知道"这不是用户批准的"。
+        // 回调保留 INVALIDATED 状态，供上层区别参数失效与用户拒绝。
         val outcome = service.approve(approval.approvalId, "different-hash", "v1");
 
         assertTrue("必须是 Stale 结论", outcome is ApprovalService.Outcome.Stale);
         assertEquals("早退分支也要复位任务", 1, resumed.size);
-        assertTrue("但要标记成未批准", !resumed.single().third);
+        assertEquals(ApprovalStatus.INVALIDATED, resumed.single().third);
+    }
+
+    @Test
+    fun `expiry sweep notifies the task owner after settling`() = runTest {
+        val (task, approval) = setup()
+        db.approvalRequestDao().upsert(approval.copy(expiresAt = System.currentTimeMillis() - 1_000L))
+
+        assertEquals(1, service.sweepExpired())
+        assertEquals(1, resumed.size)
+        assertEquals(task.taskId, resumed.single().first)
+        assertEquals(ApprovalStatus.EXPIRED, resumed.single().third)
     }
 
     @Test

@@ -133,7 +133,6 @@
     <string name="settings_multi_agent_delete_team">チームの削除</string>
     <string name="settings_multi_agent_unnamed_team">無題のチーム</string>
     <string name="settings_multi_agent_no_members">メンバーがいません</string>
-    <string name="settings_multi_agent_delete">消去</string>
     <string name="settings_multi_agent_edit_team">チームの編集</string>
     <string name="settings_multi_agent_team_name">チーム名</string>
     <string name="settings_multi_agent_team_name_hint">例えば</string>
@@ -142,8 +141,6 @@
     <string name="settings_multi_agent_description_hint">チームの目的またはコラボレーションのシナリオ</string>
     <string name="settings_multi_agent_select_members">メンバーの選択</string>
     <string name="settings_multi_agent_no_assistants">アシスタントはいません。</string>
-    <string name="settings_multi_agent_save">保存</string>
-    <string name="settings_multi_agent_cancel">キャンセル</string>
 
     <!-- SettingsTutorialPage.kt -->
     <string name="settings_tutorial_title">チュートリアル</string>

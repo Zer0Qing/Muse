@@ -7,11 +7,7 @@ import java.io.File;
 /**
  * 事件优先级必须真的生效。
 
- * 上一轮把结果事件改成"保留待处理"后，我担心它们会挤占收件箱。
- * 查证发现更严重的问题：`priorityOf` **从来没被调用过** ——
- * `pendingEvents` 只按 `sequence ASC` 取前 N 条，优先级是死代码。
- *
- * 后果：用户说"停下"（优先级 1）可能排在闲聊（优先级 8）后面。
+ * 事件处理失败时仍保留原事件；扫描游标必须让后面的用户输入获得处理机会。
  */
 class EventPriorityEffectiveTest {
 
@@ -20,7 +16,7 @@ class EventPriorityEffectiveTest {
     }
 
     @Test
-    fun `runTurn sorts by priority before truncating`() {
+    fun `runTurn sorts the scan window and continues after an unhandled event`() {
         val at = processor.indexOf("suspend fun runTurn(");
         assertTrue(at > 0);
         val end = processor.indexOf("fun priorityOf(", at);
@@ -31,7 +27,8 @@ class EventPriorityEffectiveTest {
             body.contains("priorityOf("),
         );
         assertTrue("必须排序", body.contains("sortedWith("));
-        assertTrue("排序后要截断", body.contains(".take(maxEvents)"));
+        assertTrue("失败事件保留后要继续扫描", body.contains("if (!handled) continue"));
+        assertTrue("处理上限按已消费事件计算", body.contains("if (consumed >= maxEvents) break"));
     }
 
     @Test
@@ -43,6 +40,13 @@ class EventPriorityEffectiveTest {
         );
         val factor = Regex("PRIORITY_WINDOW_FACTOR = (\\d+)").find(processor)?.groupValues?.get(1)?.toIntOrNull();
         assertTrue("倍数必须大于 1，实际 " + factor, factor != null && factor > 1);
+    }
+
+    @Test
+    fun `pending scan cursor rotates past events waiting for retry`() {
+        assertTrue("扫描游标按 Bot 保存", processor.contains("scanCursors[botId]"));
+        assertTrue("按 sequence 继续扫描", processor.contains("pendingEventsAfter(botId, cursor, window)"));
+        assertTrue("扫描到末尾后从队列头恢复", processor.contains("cursor = 0L"));
     }
 
     @Test

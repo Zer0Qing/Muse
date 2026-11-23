@@ -46,6 +46,18 @@
     <string name="settings_agent_offset_hours_minutes">± %1$d h %2$d min</string>
 
     <!-- Appearance / Theme -->
+    <string name="settings_theme_policy_off">Desativado</string>
+    <string name="settings_theme_policy_custom_time">Horário personalizado</string>
+    <string name="settings_theme_policy_sunrise_sunset">Nascer / pôr do sol</string>
+    <string name="settings_theme_schedule_parse_error">Não foi possível ler a configuração automática. A automação foi desativada e o tema base permanece igual.</string>
+    <string name="settings_theme_solar_permission_required">É necessária a permissão de localização aproximada. O tema base está em uso.</string>
+    <string name="settings_theme_solar_location_unavailable">Não há localização em cache. O tema base está em uso.</string>
+    <string name="settings_theme_solar_events_unavailable">Não foi possível calcular o nascer e o pôr do sol de hoje. O tema base está em uso.</string>
+    <string name="settings_theme_solar_cache_unavailable">O nascer e o pôr do sol de hoje estão indisponíveis.</string>
+    <string name="settings_theme_solar_polar_day">O sol permanece acima do horizonte durante todo o dia.</string>
+    <string name="settings_theme_solar_polar_night">O sol permanece abaixo do horizonte durante todo o dia.</string>
+    <string name="settings_theme_solar_times">Nascer %1$s · Pôr %2$s</string>
+    <string name="settings_theme_solar_location_updated">Localização em cache atualizada em %1$s</string>
     <string name="settings_theme_appearance">Aparência</string>
     <string name="settings_theme_follow_system">Seguir sistema</string>
     <string name="settings_theme_light">Luz</string>
@@ -125,8 +137,6 @@
     <string name="prompt_template_manager_built_in">Integrado</string>
     <string name="prompt_template_manager_move_up">Mover para cima</string>
     <string name="prompt_template_manager_move_down">Mover para baixo</string>
-    <string name="prompt_template_manager_edit">Editar</string>
-    <string name="prompt_template_manager_delete">Excluir</string>
     <string name="prompt_template_manager_delete_confirm">Excluir o modelo "%1$s"?</string>
     <string name="prompt_template_manager_add">Novo modelo</string>
     <string name="prompt_template_manager_category">Categoria</string>
@@ -310,8 +320,6 @@
     <string name="settings_rag_manage_kbs">Gerenciar bases de conhecimento</string>
     <string name="kb_manage_create">Nova Base de Conhecimento</string>
     <string name="kb_manage_desc_label">Descrição (opcional)</string>
-    <string name="kb_manage_edit">Editar</string>
-    <string name="kb_manage_delete">Excluir</string>
     <string name="kb_manage_delete_confirm">Excluir base de conhecimento "%1$s"?</string>
     <string name="kb_manage_default_no_delete">A base de conhecimento padrão não pode ser excluída</string>
     <string name="kb_manage_doc_count">%1$d documentos</string>
@@ -422,8 +430,6 @@
     <string name="settings_theme_custom_secondary_color">Cor secundária (opcional)</string>
     <string name="settings_theme_custom_tertiary_color">Cor terciária (opcional)</string>
     <string name="settings_theme_custom_preview">Visualização de cores</string>
-    <string name="settings_theme_custom_save">Salvar</string>
-    <string name="settings_theme_custom_delete">Excluir</string>
     <string name="settings_theme_custom_delete_confirm">Excluir este tema?</string>
     <string name="settings_theme_custom_delete_confirm_msg">Isto não pode ser desfeito.</string>
     <string name="settings_theme_custom_export">Exportar tema</string>

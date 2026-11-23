@@ -59,11 +59,13 @@ class StagedCandidateAuditTest {
     }
 
     @Test
-    fun `an applied candidate disappears from the list`() = kotlinx.coroutines.test.runTest {
+    fun `an applied candidate remains until review commit is durable`() = kotlinx.coroutines.test.runTest {
         val id = store.stage(candidate());
         store.apply(id, currentTaskRevision = 1, currentTargetHash = "hash-v1") { _, _ -> };
 
-        assertTrue("应用后不该还在候选列表里", store.listStaged().isEmpty());
+        val retained = store.listStaged().single()
+        assertEquals(id, retained.stagedId)
+        assertEquals(VerificationState.APPLIED_PENDING_COMMIT, retained.candidate.verificationState)
     }
 
     @Test

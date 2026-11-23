@@ -102,6 +102,7 @@ import io.zer0.muse.runtime.RuntimeId
 import io.zer0.muse.runtime.RuntimeInstallCardStore
 import io.zer0.muse.runtime.RuntimeInstallService
 import io.zer0.muse.runtime.RuntimeInstallStatus
+import io.zer0.muse.runtime.RuntimeMissing
 import io.zer0.muse.runtime.RuntimeState
 import io.zer0.muse.transformer.InternalMarkupSanitizer
 import io.zer0.muse.ui.common.MuseFloatingActionItem
@@ -375,7 +376,7 @@ fun ChatScreen(
     // 用户选过的「以后再说」要活过进程重启；只扫描最近 30 条，避免远古消息反复触发。
     val runtimeAppContext = LocalContext.current
     val runtimeMissingMessageId = remember(messages) {
-        messages.takeLast(30).lastOrNull { it.content.contains("runtime_missing") }?.id?.toString()
+        messages.takeLast(30).lastOrNull { RuntimeMissing.isRuntimeMissingPayload(it.content) }?.id?.toString()
     }
     val runtimeMissing = runtimeMissingMessageId != null
     var runtimeBannerDismissed by remember { mutableStateOf(false) }

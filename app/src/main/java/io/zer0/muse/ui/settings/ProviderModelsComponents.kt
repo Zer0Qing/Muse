@@ -1,4 +1,4 @@
-@file:Suppress("FunctionNaming", "LongMethod", "LongParameterList", "CyclomaticComplexMethod", "TooManyFunctions", "ReturnCount", "TooGenericExceptionCaught", "SwallowedException", "MaxLineLength", "ComplexCondition", "UseCheckOrError")
+@file:Suppress("FunctionNaming", "LongMethod", "LongParameterList", "CyclomaticComplexMethod", "TooManyFunctions", "ReturnCount", "MaxLineLength", "ComplexCondition")
 
 package io.zer0.muse.ui.settings
 
@@ -12,14 +12,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -35,9 +35,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.zer0.ai.core.Model
@@ -55,9 +56,16 @@ import io.zer0.muse.ui.common.form.MuseSwitch
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
+import io.zer0.muse.ui.common.state.MuseEmptyState
+import io.zer0.muse.ui.common.surface.CardGroup
+import io.zer0.muse.ui.theme.MuseAlpha
+import io.zer0.muse.ui.theme.MuseBorderWidth
+import io.zer0.muse.ui.theme.MuseButtonSize
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.MuseSpacing
+import io.zer0.muse.ui.theme.pill
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -74,68 +82,150 @@ internal fun ModelsTab(
     isFetching: Boolean,
     onFetch: (Boolean) -> Unit,
     onAddModel: () -> Unit,
-    // v1.0.8 (7.6): 模型健康检查回调 + 状态透传(从 ProviderEditPage 传入)
     onTestModel: (Model) -> Unit = {},
     modelTestStatuses: Map<String, ModelTestStatus> = emptyMap(),
+    canFetch: Boolean = !isFetching,
 ) {
     var editingModel by remember { mutableStateOf<Model?>(null) }
+    var searchQuery by remember { mutableStateOf("") }
+    var showClearConfirm by remember { mutableStateOf(false) }
+
+    val allModels = modelsState.toList()
+    val filteredModels = remember(allModels, searchQuery) {
+        val q = searchQuery.trim()
+        if (q.isEmpty()) {
+            allModels
+        } else {
+            allModels.filter { m ->
+                m.id.contains(q, ignoreCase = true) || m.name.contains(q, ignoreCase = true)
+            }
+        }
+    }
+
+    if (showClearConfirm) {
+        MuseDialog(
+            onDismissRequest = { showClearConfirm = false },
+            title = stringResource(R.string.settings_provider_clear_models),
+            content = {
+                Text(
+                    text = stringResource(R.string.settings_provider_models_count, modelsState.size),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            },
+            confirmText = stringResource(R.string.common_delete),
+            onConfirm = {
+                modelsState.clear()
+                searchQuery = ""
+                showClearConfirm = false
+            },
+            dismissText = stringResource(R.string.common_cancel),
+            onDismiss = { showClearConfirm = false },
+            destructive = true,
+        )
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         if (modelsState.isEmpty()) {
-            // P2-5: 用 weight(1f) 让空状态占满按钮下方剩余空间
-            //  (Column 中 fillMaxSize 会拿到父级完整高度,而非剩余高度,导致溢出)
             EmptyModelsState(
                 isFetching = isFetching,
+                canFetch = canFetch,
                 onFetch = onFetch,
                 onAddModel = onAddModel,
                 modifier = Modifier.weight(1f),
             )
         } else {
             LazyColumn(
-                modifier = Modifier.weight(1f).fillMaxWidth(),
-                contentPadding = PaddingValues(vertical = MusePaddings.contentGap),
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                contentPadding = PaddingValues(
+                    start = MusePaddings.pageMargin,
+                    end = MusePaddings.pageMargin,
+                    top = MuseSpacing.sm,
+                    bottom = MuseSpacing.xxxl,
+                ),
+                verticalArrangement = Arrangement.spacedBy(MuseSpacing.md),
             ) {
-                item {
+                item(key = "models_toolbar") {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = MusePaddings.screen, vertical = MusePaddings.contentGap),
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
                     ) {
-                        MuseCapsuleButton(
-                            text = stringResource(R.string.settings_provider_clear_models),
-                            onClick = { modelsState.clear() },
-                            enabled = modelsState.isNotEmpty(),
-                            variant = IosCapsuleButtonVariant.Text,
-                            fillWidth = false,
-                        )
                         MuseCapsuleButton(
                             text = stringResource(R.string.settings_provider_refresh_models),
                             onClick = { onFetch(true) },
-                            enabled = !isFetching,
+                            enabled = canFetch && !isFetching,
                             loading = isFetching,
+                            leadingIcon = MuseIcons.refresh,
+                            variant = IosCapsuleButtonVariant.Secondary,
+                            size = MuseButtonSize.Compact,
+                            fillWidth = false,
+                        )
+                        MuseCapsuleButton(
+                            text = stringResource(R.string.settings_provider_add_new_model),
+                            onClick = onAddModel,
+                            leadingIcon = MuseIcons.plus,
+                            variant = IosCapsuleButtonVariant.Secondary,
+                            size = MuseButtonSize.Compact,
+                            fillWidth = false,
+                        )
+                        Spacer(Modifier.weight(1f))
+                        MuseCapsuleButton(
+                            text = stringResource(R.string.settings_provider_clear_models),
+                            onClick = { showClearConfirm = true },
                             variant = IosCapsuleButtonVariant.Text,
+                            size = MuseButtonSize.Compact,
                             fillWidth = false,
                         )
                     }
                 }
-                items(modelsState.toList(), key = { "${it.providerId}:${it.id}" }) { model ->
-                    ProviderModelRow(
-                        model = model,
-                        providerType = config.type,
-                        providerName = config.displayName,
-                        isAdded = true,
-                        onAction = { editingModel = model },
-                        // v1.0.8 (7.6): 传入健康检查回调 + 当前状态(按 model.id 查询)
-                        onTest = { onTestModel(model) },
-                        testStatus = modelTestStatuses[model.id] ?: ModelTestStatus.Idle,
-                    )
-                    HorizontalDivider(
-                        modifier = Modifier.padding(start = 68.dp),
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                        thickness = 0.5.dp,
-                    )
+
+                // 模型数量较多时自动出现实时搜索框，避免在中转站长列表里盲翻
+                if (allModels.size >= 8) {
+                    item(key = "models_search") {
+                        ModelsSearchField(
+                            query = searchQuery,
+                            onQueryChange = { searchQuery = it },
+                        )
+                    }
+                }
+
+                if (filteredModels.isEmpty()) {
+                    item(key = "models_no_match") {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = MuseSpacing.xxl),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = stringResource(R.string.settings_preset_no_match),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                } else {
+                    item(key = "models_group") {
+                        CardGroup {
+                            filteredModels.forEach { model ->
+                                item(key = "${model.providerId}:${model.id}") {
+                                    ProviderModelRow(
+                                        model = model,
+                                        providerType = config.type,
+                                        providerName = config.displayName,
+                                        isAdded = true,
+                                        onAction = { editingModel = model },
+                                        onTest = { onTestModel(model) },
+                                        testStatus = modelTestStatuses[model.id] ?: ModelTestStatus.Idle,
+                                        showLogo = false,
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -159,6 +249,69 @@ internal fun ModelsTab(
 }
 
 @Composable
+private fun ModelsSearchField(query: String, onQueryChange: (String) -> Unit) {
+    Surface(
+        shape = MuseShapes.pill,
+        color = MaterialTheme.colorScheme.surface,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(MusePaddings.searchBarHeight),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = MuseSpacing.md),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
+        ) {
+            Icon(
+                imageVector = MuseIcons.search,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(MuseIconSizes.iconSmall),
+            )
+            Box(
+                modifier = Modifier.weight(1f),
+                contentAlignment = Alignment.CenterStart,
+            ) {
+                BasicTextField(
+                    value = query,
+                    onValueChange = onQueryChange,
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    textStyle = MaterialTheme.typography.bodyMedium.copy(
+                        color = MaterialTheme.colorScheme.onSurface,
+                    ),
+                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    decorationBox = { innerTextField ->
+                        if (query.isEmpty()) {
+                            Text(
+                                text = stringResource(R.string.settings_provider_search_models),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                        innerTextField()
+                    },
+                )
+            }
+            if (query.isNotEmpty()) {
+                MuseTactileButton(
+                    icon = MuseIcons.x,
+                    onClick = { onQueryChange("") },
+                    contentDescription = stringResource(R.string.common_clear),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    compact = true,
+                )
+            }
+        }
+    }
+}
+
+@Composable
 internal fun ModelAbilityEditorDialog(model: Model, onDismiss: () -> Unit, onSave: (Model) -> Unit, onDelete: () -> Unit) {
     var supportsTools by remember { mutableStateOf(model.abilities.contains(ModelAbility.TOOL) || model.abilities.isEmpty()) }
     var supportsReasoning by remember { mutableStateOf(model.abilities.contains(ModelAbility.REASONING) || model.abilities.isEmpty()) }
@@ -173,23 +326,23 @@ internal fun ModelAbilityEditorDialog(model: Model, onDismiss: () -> Unit, onSav
         onDismissRequest = onDismiss,
         title = stringResource(R.string.settings_provider_edit_model_abilities),
         content = {
-            Column(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
+            ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    horizontalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
                         text = model.id,
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.primary,
-                        // LAYOUT-01: 模型 id 取剩余宽度 + 限行(id 可能很长),
-                        // 防止被右侧「一键检测」按钮挤成一列。
                         modifier = Modifier.weight(1f),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    // v1.97: 一键自动检测能力(基于 ModelRegistry token 匹配)
                     MuseTactileButton(
                         icon = MuseIcons.wand,
                         onClick = {
@@ -200,27 +353,24 @@ internal fun ModelAbilityEditorDialog(model: Model, onDismiss: () -> Unit, onSav
                             supportsReasoning = ModelAbility.REASONING in abilities
                             supportsVision = "image" in inputMods
                             supportsImageOutput = "image" in outputMods
-                            // 未显式设置 contextWindow 时,顺带回填注册表兜底值
                             if (contextWindow.isBlank()) {
                                 ModelContextWindowRegistry.lookup(model.id)?.let {
                                     contextWindow = it.toString()
                                 }
                             }
                         },
-                        contentDescription = null,
+                        contentDescription = stringResource(R.string.settings_provider_edit_model_abilities),
+                        compact = true,
                     )
                 }
-                Spacer(Modifier.size(MusePaddings.contentGap))
+
                 AbilitySwitchRow(stringResource(R.string.settings_provider_ability_tools), supportsTools) { supportsTools = it }
                 AbilitySwitchRow(stringResource(R.string.settings_provider_ability_reasoning), supportsReasoning) { supportsReasoning = it }
                 AbilitySwitchRow(stringResource(R.string.settings_provider_ability_streaming), supportsStreaming) { supportsStreaming = it }
-                AbilitySwitchRow(
-                    stringResource(R.string.settings_provider_ability_image_output),
-                    supportsImageOutput,
-                ) { supportsImageOutput = it }
                 AbilitySwitchRow(stringResource(R.string.settings_provider_ability_vision), supportsVision) { supportsVision = it }
+                AbilitySwitchRow(stringResource(R.string.settings_provider_ability_image_output), supportsImageOutput) { supportsImageOutput = it }
                 AbilitySwitchRow(stringResource(R.string.settings_provider_ability_video), supportsVideo) { supportsVideo = it }
-                Spacer(Modifier.size(MusePaddings.itemGap))
+
                 MuseTextField(
                     value = contextWindow,
                     onValueChange = { contextWindow = it.filter { c -> c.isDigit() } },
@@ -228,7 +378,6 @@ internal fun ModelAbilityEditorDialog(model: Model, onDismiss: () -> Unit, onSav
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                 )
-                Spacer(Modifier.size(MusePaddings.contentGap))
                 MuseTextField(
                     value = maxOutputTokens,
                     onValueChange = { maxOutputTokens = it.filter { c -> c.isDigit() } },
@@ -236,11 +385,11 @@ internal fun ModelAbilityEditorDialog(model: Model, onDismiss: () -> Unit, onSav
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                 )
-                Spacer(Modifier.size(MusePaddings.itemGap))
                 MuseCapsuleButton(
                     text = stringResource(R.string.settings_provider_remove_model),
                     onClick = onDelete,
-                    variant = IosCapsuleButtonVariant.Text,
+                    destructive = true,
+                    size = MuseButtonSize.Compact,
                     fillWidth = false,
                     modifier = Modifier.align(Alignment.End),
                 )
@@ -271,7 +420,6 @@ internal fun ModelAbilityEditorDialog(model: Model, onDismiss: () -> Unit, onSav
                     inputModalities = newInput,
                     contextWindow = contextWindow.toIntOrNull(),
                     maxOutputTokens = maxOutputTokens.toIntOrNull(),
-                    // v2.6.1: 标记用户显式编辑 —— 阻止 enhanceModel 用注册表覆盖这些设置。
                     userEdited = true,
                 ),
             )
@@ -286,12 +434,11 @@ internal fun AbilitySwitchRow(label: String, checked: Boolean, onCheckedChange: 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = MusePaddings.tightGap),
+            .clickable { onCheckedChange(!checked) }
+            .padding(vertical = MuseSpacing.xs),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // LAYOUT-01: 能力名称取剩余宽度 + 限行,防止被右侧 MuseSwitch 挤成一列
-        // (与 SettingsSwitchRow 同源的线上事故形态)。
         Text(
             text = label,
             style = MaterialTheme.typography.bodyLarge,
@@ -312,57 +459,47 @@ internal fun EmptyModelsState(
     isFetching: Boolean,
     onFetch: (Boolean) -> Unit,
     onAddModel: () -> Unit,
-    // P2-5: 外部传入 modifier,允许调用方在 Column 中用 weight(1f) 让其占满剩余空间
     modifier: Modifier = Modifier,
+    canFetch: Boolean = !isFetching,
 ) {
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 32.dp),
+            .padding(horizontal = MuseSpacing.xxl),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Text(
-            text = stringResource(R.string.settings_provider_no_models),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        MuseEmptyState(
+            icon = MuseIcons.atom,
+            title = stringResource(R.string.settings_provider_no_models),
         )
-        Spacer(Modifier.size(MusePaddings.contentGap))
-        Text(
-            text = stringResource(R.string.settings_provider_no_models_hint),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Spacer(Modifier.size(MuseIconSizes.icon))
+        Spacer(Modifier.height(MuseSpacing.lg))
         Row(
-            horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
+            horizontalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             MuseCapsuleButton(
                 text = stringResource(R.string.settings_provider_refresh_models),
                 onClick = { onFetch(true) },
-                enabled = !isFetching,
+                enabled = canFetch && !isFetching,
                 loading = isFetching,
-                variant = IosCapsuleButtonVariant.Text,
+                leadingIcon = MuseIcons.refresh,
+                variant = IosCapsuleButtonVariant.Primary,
+                size = MuseButtonSize.Medium,
                 fillWidth = false,
             )
-            MuseTactileButton(
-                icon = MuseIcons.plus,
+            MuseCapsuleButton(
+                text = stringResource(R.string.settings_provider_add_new_model),
                 onClick = onAddModel,
-                contentDescription = null,
+                leadingIcon = MuseIcons.plus,
+                variant = IosCapsuleButtonVariant.Secondary,
+                size = MuseButtonSize.Medium,
+                fillWidth = false,
             )
         }
     }
 }
 
-/**
- * 拉取上游模型成功后弹出的底部 Sheet。
- *
- * 改进点:
- *  - 不再手动输入上下文(K),统一用 [ModelContextWindowRegistry] 自动推断
- *  - 复选框改为行点击 + 右侧对勾
- *  - 搜索栏、分组标题、底部按钮均使用暖色风格
- */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun FetchedModelsPickerSheet(
     models: List<Model>,
@@ -380,85 +517,31 @@ internal fun FetchedModelsPickerSheet(
         if (query.isBlank()) models else models.filter { it.id.contains(query, ignoreCase = true) }
     }
 
-    // 选中数量用 derivedStateOf 缓存,避免 confirmText 每次重组都重新 count
     val selectedCount by remember {
         derivedStateOf { filtered.count { selected[it.id] == true } }
     }
 
-    // MuseDialog 替代原 ModalBottomSheet,避免真机 scrim 卡死
     MuseDialog(
         onDismissRequest = onDismiss,
         title = stringResource(R.string.settings_provider_select_models),
         content = {
-            Column(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
+            ) {
                 Text(
                     text = stringResource(R.string.settings_provider_models_count, models.size),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
 
-                Spacer(Modifier.size(MusePaddings.itemGap))
+                ModelsSearchField(
+                    query = query,
+                    onQueryChange = { query = it },
+                )
 
-                // 凹槽式搜索栏
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                            shape = MuseShapes.small,
-                        )
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
-                ) {
-                    Icon(
-                        imageVector = MuseIcons.search,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.outline,
-                        modifier = Modifier.size(MuseIconSizes.iconMedium),
-                    )
-                    Box(modifier = Modifier.weight(1f)) {
-                        // v2.0: placeholder 改走 decorationBox(标准用法)并声明 IME 搜索动作,
-                        // 读屏与输入法行为对齐系统搜索框。
-                        androidx.compose.foundation.text.BasicTextField(
-                            value = query,
-                            onValueChange = { query = it },
-                            modifier = Modifier.fillMaxWidth(),
-                            textStyle = MaterialTheme.typography.bodyMedium.copy(
-                                color = MaterialTheme.colorScheme.onSurface,
-                            ),
-                            singleLine = true,
-                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                                imeAction = androidx.compose.ui.text.input.ImeAction.Search,
-                            ),
-                            decorationBox = { innerTextField ->
-                                Box {
-                                    if (query.isBlank()) {
-                                        Text(
-                                            text = stringResource(R.string.settings_provider_search_models),
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        )
-                                    }
-                                    innerTextField()
-                                }
-                            },
-                        )
-                    }
-                    if (query.isNotBlank()) {
-                        MuseTactileButton(
-                            icon = MuseIcons.x,
-                            onClick = { query = "" },
-                            contentDescription = stringResource(R.string.common_clear),
-                            tint = MaterialTheme.colorScheme.outline,
-                            iconSize = MuseIconSizes.iconSmall,
-                        )
-                    }
-                }
-
-                // 全选/清空
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = MusePaddings.contentGap),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End,
                 ) {
                     Text(
@@ -467,7 +550,7 @@ internal fun FetchedModelsPickerSheet(
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.clickable { filtered.forEach { selected[it.id] = true } },
                     )
-                    Spacer(Modifier.width(16.dp))
+                    Spacer(Modifier.width(MuseSpacing.lg))
                     Text(
                         text = stringResource(R.string.common_clear),
                         style = MaterialTheme.typography.labelMedium,
@@ -476,20 +559,19 @@ internal fun FetchedModelsPickerSheet(
                     )
                 }
 
-                // 分组标题(可折叠)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { groupExpanded = !groupExpanded }
-                        .padding(vertical = 10.dp),
+                        .padding(vertical = MuseSpacing.xs),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
                 ) {
                     ProviderLogo(
                         type = providerType,
                         name = providerName,
                         size = MuseIconSizes.iconLarge,
-                        cornerRadius = 10.dp,
+                        cornerRadius = 8.dp,
                     )
                     Text(
                         text = providerName.ifBlank { stringResource(R.string.settings_provider_model_list) },
@@ -498,20 +580,18 @@ internal fun FetchedModelsPickerSheet(
                     )
                     Icon(
                         imageVector = if (groupExpanded) MuseIcons.chevronUp else MuseIcons.chevronDown,
-                        contentDescription = if (groupExpanded) {
-                            stringResource(
-                                R.string.settings_common_collapse,
-                            )
-                        } else {
-                            stringResource(R.string.common_expand)
-                        },
+                        contentDescription = stringResource(
+                            if (groupExpanded) R.string.settings_common_collapse else R.string.common_expand,
+                        ),
                         tint = MaterialTheme.colorScheme.outline,
-                        modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        modifier = Modifier.size(MuseIconSizes.iconSmall),
                     )
                 }
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                HorizontalDivider(
+                    thickness = MuseBorderWidth.hairline,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = MuseAlpha.divider),
+                )
 
-                // 模型列表(改为 Column,MuseDialog 内容区自带滚动)
                 if (groupExpanded) {
                     filtered.forEach { m ->
                         val isSelected = selected[m.id] ?: false
@@ -522,19 +602,18 @@ internal fun FetchedModelsPickerSheet(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { selected[m.id] = !isSelected }
-                                .padding(vertical = MusePaddings.itemGap),
+                                .padding(vertical = MuseSpacing.sm),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
+                            horizontalArrangement = Arrangement.spacedBy(MuseSpacing.md),
                         ) {
-                            // 左侧选中态:对勾圆圈
                             Box(
                                 modifier = Modifier
-                                    .size(22.dp)
+                                    .size(20.dp)
                                     .background(
                                         color = if (isSelected) {
                                             MaterialTheme.colorScheme.primary
                                         } else {
-                                            MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
+                                            MaterialTheme.colorScheme.outline.copy(alpha = MuseAlpha.handle)
                                         },
                                         shape = CircleShape,
                                     ),
@@ -550,33 +629,31 @@ internal fun FetchedModelsPickerSheet(
                                 }
                             }
 
-                            Column(modifier = Modifier.weight(1f)) {
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(MuseSpacing.xxs),
+                            ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
                                         text = m.id,
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(1f, fill = false),
                                     )
                                     if (m.id in existingIds) {
-                                        Spacer(Modifier.width(8.dp))
+                                        Spacer(Modifier.width(MuseSpacing.sm))
                                         Text(
-                                            stringResource(R.string.settings_provider_already_exists),
+                                            text = stringResource(R.string.settings_provider_already_exists),
                                             style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.tertiary,
+                                            color = MaterialTheme.colorScheme.primary,
                                         )
                                     }
-                                }
-                                if (m.name != m.id) {
-                                    Text(
-                                        text = m.name,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
                                 }
                                 ModelAbilityChips(model = m)
                             }
 
-                            // 上下文窗口标签
                             Surface(
                                 color = MaterialTheme.colorScheme.surfaceVariant,
                                 shape = MuseShapes.small,
@@ -585,11 +662,14 @@ internal fun FetchedModelsPickerSheet(
                                     text = contextText,
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    modifier = Modifier.padding(horizontal = MuseSpacing.sm, vertical = MuseSpacing.xxs),
                                 )
                             }
                         }
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                        HorizontalDivider(
+                            thickness = MuseBorderWidth.hairline,
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = MuseAlpha.divider),
+                        )
                     }
                 }
             }
@@ -622,12 +702,7 @@ internal fun formatContextWindow(tokens: Int?, unknownLabel: String): String {
 /**
  * 解析 Google Service Account JSON 文件内容。
  *
- * Google Service Account JSON 标准字段(仅取所需三项):
- *  - `private_key`: PEM PKCS#8 字符串
- *  - `client_email`: 服务账号邮箱
- *  - `project_id`: GCP 项目 ID
- *
- * @return Triple(email, privateKey, projectId);任一关键字段缺失返回 null
+ * 提取 `client_email` / `private_key` / `project_id`；任一关键字段缺失返回 null。
  */
 internal fun parseServiceAccountJson(jsonText: String): Triple<String, String, String>? {
     return runCatching {
@@ -640,10 +715,7 @@ internal fun parseServiceAccountJson(jsonText: String): Triple<String, String, S
 }
 
 /**
- * 按简单的点分 JSON Path 从 JSON 字符串中提取值。
- *
- * 支持对象字段与数组下标(如 $.data.total_usage 或 $.data.items.0.value)。
- * 解析失败或路径不存在返回 null。
+ * 按简单点分 JSON Path 从 JSON 字符串中提取值，解析失败或路径不存在返回 null。
  */
 internal fun extractJsonPath(json: String, path: String): String? {
     val keys = path.trim()

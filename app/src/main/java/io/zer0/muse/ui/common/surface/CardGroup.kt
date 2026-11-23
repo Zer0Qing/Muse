@@ -12,6 +12,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.util.fastForEachIndexed
+import io.zer0.muse.ui.theme.MuseAlpha
 import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
@@ -136,7 +137,7 @@ fun CardGroup(modifier: Modifier = Modifier, title: (@Composable () -> Unit)? = 
         // v1.0.27 修复:对齐系统设置分组标题 — 灰色小字、紧凑间距
         if (title != null) {
             CompositionLocalProvider(
-                LocalContentColor provides MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
+                LocalContentColor provides MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = MuseAlpha.titleMuted),
             ) {
                 ProvideTextStyle(MaterialTheme.typography.labelLarge) {
                     Box(

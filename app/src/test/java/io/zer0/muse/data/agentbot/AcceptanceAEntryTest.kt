@@ -24,6 +24,14 @@ class AcceptanceAEntryTest {
         File("src/main/java/io/zer0/muse/ui/agentbot/AgentBotScreen.kt").readText();
     }
 
+    private val workbench: String by lazy {
+        File("src/main/java/io/zer0/muse/ui/agentbot/AgentWorkbenchSheet.kt").readText();
+    }
+
+    private val agentBotUi: String by lazy {
+        screen + "\n" + workbench;
+    }
+
     @Test
     fun `A1 agent tab renders the bot screen`() {
         assertTrue(
@@ -51,8 +59,9 @@ class AcceptanceAEntryTest {
 
     @Test
     fun `A4 task board is rendered from state`() {
-        assertTrue("看板必须订阅状态", screen.contains("viewModel.taskBoard.collectAsStateWithLifecycle()"));
-        assertTrue("并且渲染出来", screen.contains("TaskBoardSection("));
+        assertTrue("页面必须消费四态作用域", screen.contains("viewModel.scopeState.collectAsStateWithLifecycle()"));
+        assertTrue("任务区必须从投影渲染", screen.contains("AgentLiveMissionCard("));
+        assertTrue("加载与失败状态要参与投影", screen.contains("AgentBotScopeState.Error"));
     }
 
     @Test
@@ -61,32 +70,32 @@ class AcceptanceAEntryTest {
             "放行列表必须订阅状态",
             screen.contains("viewModel.allowedTools.collectAsStateWithLifecycle()"),
         );
-        assertTrue("并且有收回入口", screen.contains("onRevoke = viewModel::revokeAllowance"));
+        assertTrue("并且有收回入口", screen.contains("onRevokeAllowance = viewModel::revokeAllowance"));
+        assertTrue("放行项通过统一行区渲染", workbench.contains("AgentBotRowSection("));
     }
 
     @Test
     fun `A6 candidate section is reachable`() {
         assertTrue(
-            "候选必须订阅状态",
-            screen.contains("viewModel.pendingCandidates.collectAsStateWithLifecycle()"),
+            "候选来自带作用域的页面投影",
+            screen.contains("projection?.candidates"),
         );
-        assertTrue("并且渲染出来", screen.contains("CandidateSection("));
+        assertTrue(
+            "候选必须可以打开和丢弃",
+            screen.contains("AgentArtifactDeliveryCard(") &&
+                screen.contains("onOpen = onOpenArtifact ?: viewModel::openCandidatePreview") &&
+                screen.contains("onDiscard = viewModel::discardCandidate"),
+        );
     }
 
     @Test
     fun `every rendered section is backed by a state flow`() {
         // 防止"渲染了一个空壳区块"：每个 Section 都要有对应的 collect。
         // 调用点有缩进，定义是顶格 —— 用词边界而不是行首锚点。
-        val sections = Regex("\\b(TaskBoardSection|ApprovalSection|AllowanceSection|CandidateSection)\\(")
-            .findAll(screen).map { it.groupValues[1] }.toSet();
-        assertTrue("四类区块都要出现", sections.size >= 4);
-        listOf(
-            "taskBoard", "allowedTools", "pendingCandidates",
-        ).forEach { flow ->
-            assertTrue(
-                flow + " 必须有对应的状态订阅",
-                screen.contains("viewModel." + flow + ".collectAsStateWithLifecycle()"),
-            );
-        };
+        val sections = Regex("\\b(AgentLiveMissionCard|AgentInlineApprovalCard|AgentBotRowSection|AgentArtifactDeliveryCard)\\(")
+            .findAll(agentBotUi).map { it.groupValues[1] }.toSet();
+        assertTrue("任务、审批、候选与放行列表都要出现", sections.size >= 4)
+        assertTrue(screen.contains("viewModel.scopeState.collectAsStateWithLifecycle()"))
+        assertTrue(screen.contains("viewModel.allowedTools.collectAsStateWithLifecycle()"))
     }
 }

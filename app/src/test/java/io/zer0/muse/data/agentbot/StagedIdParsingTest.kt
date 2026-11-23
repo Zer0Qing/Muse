@@ -46,6 +46,7 @@ class StagedIdParsingTest {
             approvalDao = db.approvalRequestDao(),
             publicationDao = db.publicationOutboxDao(),
             bindingDao = db.botBindingDao(),
+            database = db,
         );
         dir = File(System.getProperty("java.io.tmpdir"), "parse-" + System.nanoTime());
         staging = StagedArtifactStore(dir);
@@ -72,6 +73,7 @@ class StagedIdParsingTest {
         val run = repo.openRun(task.taskId)!!;
         repo.transition(task.taskId, BotTaskStatusMachine.Event.START);
         repo.transition(task.taskId, BotTaskStatusMachine.Event.EXECUTE_DONE);
+        repo.closeRun(run.runId, TaskRunStatus.COMPLETED)
         return task to run;
     }
 

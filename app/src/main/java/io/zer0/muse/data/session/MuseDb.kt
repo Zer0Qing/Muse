@@ -121,6 +121,8 @@ import java.io.File
  *   新版本代码不读旧列语义，旧数据一字未改。
  *   版本 121 → 122，删除旧小手机遗留的四张表（朋友圈/日记）与 isMiniPhone=1 的会话及其消息。
  *   该功能未对真实用户开放，库内无可保留业务数据；isMiniPhone 列保留（旧 SQLite 不支持 DROP COLUMN）。
+ *   v2.7.x: 版本 134 → 135，新增 proactive_backlog_dispatch（主动消息派发账，一条牵挂最多一条派发）。
+ *   纯新增表，不动 pending_thought / proactive_outcome 的任何行。
  */
 @Database(
     entities = [
@@ -191,6 +193,9 @@ import java.io.File
         io.zer0.muse.data.proactive.PendingThoughtEntity::class,
         io.zer0.muse.data.proactive.ProactiveOutcomeEntity::class,
         io.zer0.muse.data.proactive.ProactiveRelationEntity::class,
+        // v2.7.x: 主动消息 backlog 的派发账（一条牵挂最多一条派发）
+        io.zer0.muse.data.proactive.ProactiveBacklogDispatchEntity::class,
+        io.zer0.muse.data.proactive.ProactiveBacklogScheduleEntity::class,
         io.zer0.muse.proactive.SessionProactivePreferenceEntity::class,
         io.zer0.muse.data.terms.SessionTermEntity::class,
         // R2: 知识库 V2(原件/revision/epoch/租约四表;新装与迁移同构,不载入旧行)
@@ -221,6 +226,9 @@ import java.io.File
         io.zer0.muse.data.agentbot.BotBindingEntity::class,
         // Bot 标注：表情 / 贴纸 / 引用定位。与 messages.reaction（用户反应）分开。
         io.zer0.muse.data.agentbot.BotAnnotationEntity::class,
+        // 对话流动态交互卡片与可复用惯例。
+        io.zer0.muse.data.agentbot.BotMessageCardEntity::class,
+        io.zer0.muse.data.agentbot.BotRoutineEntity::class,
     ],
     version = MuseDb.LATEST_SCHEMA_VERSION,
     exportSchema = true,
@@ -333,6 +341,11 @@ abstract class MuseDb : RoomDatabase() {
     /** v2.6.9: 关系亲密度与当日预算。 */
     abstract fun proactiveRelationDao(): io.zer0.muse.data.proactive.ProactiveRelationDao
 
+    /** v2.7.x: 主动消息 backlog 的派发账（领取 / 回收 / 结果回填）。 */
+    abstract fun proactiveBacklogDao(): io.zer0.muse.data.proactive.ProactiveBacklogDao
+
+    abstract fun proactiveBacklogScheduleDao(): io.zer0.muse.data.proactive.ProactiveBacklogScheduleDao
+
     /** v2.7.x(E2): 会话术语表。 */
     abstract fun sessionTermDao(): io.zer0.muse.data.terms.SessionTermDao
 
@@ -361,9 +374,15 @@ abstract class MuseDb : RoomDatabase() {
     /** Bot 标注（表情 / 贴纸 / 引用定位）。 */
     abstract fun botAnnotationDao(): io.zer0.muse.data.agentbot.BotAnnotationDao
 
+    /** 对话流动态交互卡片。 */
+    abstract fun botMessageCardDao(): io.zer0.muse.data.agentbot.BotMessageCardDao
+
+    /** 可复用惯例与触发规则。 */
+    abstract fun botRoutineDao(): io.zer0.muse.data.agentbot.BotRoutineDao
+
     companion object {
         /** Single schema-version source; must match the latest exported JSON. */
-        const val LATEST_SCHEMA_VERSION = 134
+        const val LATEST_SCHEMA_VERSION = 137
 
         @Volatile
         private var dbInstance: MuseDb? = null
@@ -658,6 +677,9 @@ abstract class MuseDb : RoomDatabase() {
             MuseDbMigrations.MIGRATION_131_132,
             MuseDbMigrations.MIGRATION_132_133,
             MuseDbMigrations.MIGRATION_133_134,
+            MuseDbMigrations.MIGRATION_134_135,
+            MuseDbMigrations.MIGRATION_135_136,
+            MuseDbMigrations.MIGRATION_136_137,
         )
 
         // SpreadOperator:展开 126 个已包装的迁移对象。这里必须用 vararg 形式交给 Room 的

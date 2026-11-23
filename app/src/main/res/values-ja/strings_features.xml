@@ -6,8 +6,6 @@
     <string name="groupchat_empty_hint">最初のメッセージを送信してグループ チャットを開始します</string>
     <string name="groupchat_my_message">私のメッセージ</string>
     <string name="groupchat_copied">コピーされました</string>
-    <string name="groupchat_delete">消去</string>
-    <string name="groupchat_cancel">キャンセル</string>
     <string name="groupchat_delete_message_title">メッセージを削除する</string>
     <string name="groupchat_delete_message_confirm">このメッセージを削除してもよろしいですか?</string>
     <string name="groupchat_reasoning">推論</string>
@@ -19,7 +17,6 @@
     <string name="groupchat_pending_image">保留中の画像</string>
     <string name="groupchat_members_title">メンバー (%1$d)</string>
     <string name="groupchat_no_members">まだメンバーがいません</string>
-    <string name="groupchat_close">近い</string>
     <string name="groupchat_list_title">グループチャット</string>
     <string name="groupchat_create_cd">新しいグループチャット</string>
     <string name="groupchat_no_messages">まだメッセージはありません</string>
@@ -53,7 +50,6 @@
     <string name="account_change_avatar_hint">アバターをタップしてギャラリーから選択します</string>
     <string name="account_name_label">名前</string>
     <string name="account_name_placeholder">あなたの名前を入力してください</string>
-    <string name="account_save">保存</string>
     <string name="account_user_profile_title">プロフィール</string>
 
     <!-- ===== ui/onboarding ===== -->
@@ -69,8 +65,6 @@
     <string name="schedule_expand_history">実行履歴を表示する</string>
     <string name="schedule_next_run">次の実行: %1$s</string>
     <string name="schedule_run_now">今すぐ実行</string>
-    <string name="schedule_edit">編集</string>
-    <string name="schedule_delete">消去</string>
     <string name="schedule_delete_task">タスクの削除</string>
     <string name="schedule_execution_history">実行履歴</string>
     <string name="schedule_no_executions">まだ実行はありません</string>
@@ -93,9 +87,7 @@
     <string name="schedule_preset_daily_8">毎日午前8時</string>
     <string name="schedule_preset_midnight">毎深夜</string>
     <string name="schedule_next_run_preview">次は %1$s で実行します</string>
-    <string name="schedule_save">保存</string>
     <string name="schedule_create_btn">作成する</string>
-    <string name="schedule_cancel">キャンセル</string>
     <string name="schedule_msg_cancel">スケジュールメッセージをキャンセル</string>
     <string name="schedule_err_name_required">タスク名を入力してください</string>
     <string name="schedule_time_daily">毎日実行する時刻</string>
@@ -169,8 +161,6 @@
     <string name="quick_notes_title">簡単なメモ</string>
     <string name="quick_notes_new">新しいメモ</string>
     <string name="quick_notes_search">メモを検索…</string>
-    <string name="quick_notes_edit">編集</string>
-    <string name="quick_notes_delete">消去</string>
     <string name="quick_notes_delete_title">メモの削除</string>
     <string name="quick_notes_edit_title">メモを編集する</string>
     <string name="quick_notes_attach_image">画像を追加</string>
@@ -178,8 +168,6 @@
     <string name="quick_notes_title_label">タイトル</string>
     <string name="quick_notes_content_label">コンテンツ</string>
     <string name="quick_notes_tags_label">タグ (カンマ区切り)</string>
-    <string name="quick_notes_save">保存</string>
-    <string name="quick_notes_cancel">キャンセル</string>
     <string name="quick_notes_error_required">タイトルは必須です</string>
     <string name="quick_notes_input_hint">考えを書き留めてください…</string>
     <string name="quick_notes_tag_hint">#tag を使用して分類します</string>
@@ -225,8 +213,6 @@
     <string name="knowledge_empty_title">ナレッジベースが空です</string>
     <string name="knowledge_deleted">削除されました</string>
     <string name="knowledge_delete_doc">文書の削除</string>
-    <string name="knowledge_delete">消去</string>
-    <string name="knowledge_close">近い</string>
     <string name="knowledge_reindex">インデックスの再作成</string>
     <string name="knowledge_repair_index">インデックスを修復/再構築</string>
     <string name="knowledge_repairing">FTS インデックスを修復中...</string>
@@ -235,7 +221,6 @@
     <string name="knowledge_fts_repair_failed">インデックス修復に失敗: %1$s</string>
     <string name="knowledge_importing">インポート中</string>
     <string name="knowledge_reindexing">インデックスの再作成</string>
-    <string name="knowledge_cancel">キャンセル</string>
     <string name="knowledge_reading_file">ファイルを読み取り中…</string>
     <string name="knowledge_import_indexed_chunks">%1$d チャンクをインデックスしました</string>
     <string name="knowledge_parsing_doc">文書を解析中…</string>
@@ -373,7 +358,6 @@
 
     <!-- ===== ui/artifact ===== -->
     <string name="artifact_untitled">無題</string>
-    <string name="artifact_close">近い</string>
     <string name="artifact_type_code">コード</string>
     <string name="artifact_type_image">画像</string>
     <string name="artifact_type_html">Web ページ</string>
@@ -405,9 +389,7 @@
     <string name="model_profile_empty_title">まだモデルがありません</string>
     <string name="model_profile_empty_subtitle">まず設定で AI プロバイダーを追加してください</string>
     <string name="groupchat_edit_cd">グループチャットを編集する</string>
-    <string name="groupchat_edit">編集</string>
     <string name="groupchat_edit_title">グループチャットを編集する</string>
-    <string name="groupchat_edit_btn">保存</string>
     <string name="groupchat_edit_name_hint">グループチャット名</string>
     <!-- v2.x: Group chat discussion modes -->
     <string name="groupchat_mode_title">ディスカッションモード</string>
@@ -452,7 +434,6 @@
     <string name="groupchat_context_private_context_hint">この AI のプライベート コンテキスト (ロール設定、プライベート制約など) を入力します。</string>
     <string name="groupchat_context_private_context_set">セット</string>
     <string name="groupchat_context_private_context_empty">未設定</string>
-    <string name="groupchat_context_save">保存</string>
     <string name="groupchat_context_clear">クリア</string>
     <string name="groupchat_edit_member_required">少なくとも 1 人のメンバーを維持してください</string>
     <!-- ActivityHub: agent activity status chip labels (idle/thinking/working/waiting/done) -->
@@ -496,7 +477,6 @@
     <!-- ===== v1.201: LLM Review (LLM_REVIEW aggregation strategy) ===== -->
     <string name="multi_agent_llm_review_enabled">LLM レビューを有効にする</string>
     <string name="multi_agent_llm_review_model">レビューモデル</string>
-    <string name="multi_agent_llm_review_desc">マルチエージェントの結果を確認するには、別の LLM 呼び出しを使用します。</string><string name="quick_notes_attachment_count">%1$d 个付属品</string>
     <string name="quick_notes_encrypt_off">復号</string>
     <string name="quick_notes_encrypt_on">暗号化</string>
     <string name="quick_notes_encrypt_placeholder">この記録は暗号化されています。タップしてロック解除</string>
@@ -513,7 +493,6 @@
     <string name="quick_notes_parse_empty">ファイル内容が空か、解析できません</string>
     <string name="quick_notes_import_json">JSON からの入力</string>
     <string name="quick_notes_load_more">追加ダウンロードさらに多く</string>
-    <string name="quick_notes_markdown_edit">編集</string>
     <string name="quick_notes_markdown_preview">プレビュー</string>
     <string name="quick_notes_reminder">リマインダー</string>
     <string name="quick_notes_reminder_cancel">リマインダーをキャンセル</string>
@@ -635,7 +614,6 @@
     <string name="voice_conversation_state_speaking">読み上げ中</string>
     <string name="voice_conversation_state_thinking">考え中</string>
     <string name="voice_conversation_thinking">考え中...</string>
-    <string name="mini_album_cancel">キャンセル</string>
     <string name="knowledge_content_edited">本文を更新し、再インデックスしました</string>
     <string name="knowledge_edit_content">本文を編集</string>
     <string name="knowledge_edit_content_hint">変更後は再チャンク化してベクトルインデックスを生成するため、新しい本文が検索対象になります。</string>
@@ -824,4 +802,127 @@
     <string name="group_chat_action_create">グループチャットの作成</string>
     <string name="artifact_save_failed_with_reason">保存に失敗しました：%1$s</string>
     <string name="artifact_open_failed_with_reason">開けません：%1$s</string>
+    <string name="agent_screen_summary_counts">進行中 %1$d 件 · 要対応 %2$d 件 · 最近完了 %3$d 件</string>
+    <string name="agent_screen_needs_action">対応が必要</string>
+    <string name="agent_screen_running">進行中</string>
+    <string name="agent_screen_recent">最近完了</string>
+    <string name="agent_screen_transcript">会話</string>
+    <string name="agent_screen_show_all">すべて表示</string>
+    <string name="agent_screen_show_less">折りたたむ</string>
+    <string name="agent_screen_empty">タスクはありません</string>
+    <string name="agent_screen_retry_load">再読み込み</string>
+    <string name="agent_screen_open_task">タスクを開く</string>
+    <string name="agent_screen_retry_task">タスクを再試行</string>
+    <string name="agent_screen_verify_result">結果を確認</string>
+    <string name="agent_screen_approval_risk">リスク：%1$s</string>
+    <string name="agent_screen_approval_arguments">リクエスト：%1$s</string>
+    <string name="agent_screen_approval_scope">影響範囲：%1$s</string>
+    <string name="agent_screen_approval_expiry">有効期限：%1$s</string>
+    <string name="agent_screen_copy">コピー</string>
+    <string name="agent_screen_retry_message">返信を再試行</string>
+    <string name="agent_screen_delete_message">メッセージを削除</string>
+    <string name="agent_screen_load_older">過去のメッセージを読み込む</string>
+    <string name="agent_screen_add_image">画像を追加</string>
+    <string name="agent_screen_remove_image">画像を削除</string>
+    <string name="agent_screen_open_model">モデル：%1$s</string>
+    <string name="agent_screen_provider_settings">プロバイダー設定</string>
+    <string name="agent_screen_runtime_install">実行環境</string>
+    <string name="agent_screen_model_missing">モデルが選択されていません</string>
+    <string name="agent_screen_attachment_failed">画像を読み込めませんでした。別の画像をお試しください</string>
+    <string name="agent_screen_history_load_failed">過去のメッセージを読み込めませんでした</string>
+    <string name="agent_screen_transcript_empty">メッセージはありません</string>
+    <string name="agent_screen_title">Agent</string>
+    <string name="agent_screen_load_failed">ページの内容を一時的に読み込めません</string>
+    <string name="agent_screen_default_scope">この会話</string>
+    <string name="agent_screen_retry_task_confirm">このタスクを再試行しますか？</string>
+    <string name="agent_screen_retry_task_confirm_body">新しいタスクを作成します。すでに行われた操作が再実行される場合があります。</string>
+    <string name="agent_screen_more_actions">その他の操作</string>
+    <string name="agent_screen_open_artifact">結果を開く</string>
+    <string name="agent_screen_task_details">タスクの詳細</string>
+    <string name="agent_screen_acceptance">完了条件</string>
+    <string name="agent_screen_review_summary">確認の概要</string>
+    <string name="agent_screen_unverified">未確認</string>
+    <string name="agent_screen_side_effects">すでに行われた操作</string>
+    <string name="agent_screen_artifact_preview">候補の内容</string>
+    <string name="agent_screen_candidate_preview_truncated">プレビューを一部省略</string>
+    <string name="agent_screen_candidate_review_state">タスク版 %1$d · %2$s</string>
+    <string name="agent_screen_risk_low">低</string>
+    <string name="agent_screen_risk_standard">標準</string>
+    <string name="agent_screen_risk_high">高</string>
+    <string name="agent_screen_risk_critical">重大</string>
+    <string name="agent_screen_risk_unknown">不明</string>
+    <string name="agent_screen_attachment_limit">1 件のメッセージに追加できる画像は %1$d 枚までです</string>
+    <string name="agent_screen_candidate_proposed">提案済み</string>
+    <string name="agent_screen_candidate_verified">確認済み</string>
+    <string name="agent_screen_candidate_conflicted">対象が変更されました</string>
+    <string name="agent_screen_candidate_applied_pending">適用済み、確認記録待ち</string>
+    <string name="agent_screen_tool_write">ファイルを書き込む</string>
+    <string name="agent_screen_tool_edit">ファイルを編集</string>
+    <string name="agent_screen_tool_delete">ファイルを削除</string>
+    <string name="agent_screen_tool_create_folder">フォルダーを作成</string>
+    <string name="agent_screen_tool_move">ファイルを移動</string>
+    <string name="agent_screen_tool_copy">ファイルをコピー</string>
+    <string name="agent_screen_tool_list">ファイルを一覧表示</string>
+    <string name="agent_screen_tool_read">ファイルを読み取る</string>
+    <string name="agent_screen_tool_search">ワークスペースを検索</string>
+    <string name="agent_screen_tool_mounts">ワークスペースのマウント</string>
+    <string name="agent_hub_open_workbench">ワークベンチ</string>
+    <string name="agent_hub_switch_bot">エージェントを切替</string>
+    <string name="agent_hub_input_placeholder">長押しで話す、タップで入力…</string>
+    <string name="agent_hub_voice_recording">聞き取り中、離して終了…</string>
+    <string name="agent_hub_voice_cd">音声入力</string>
+    <string name="agent_hub_voice_unavailable">この端末では音声認識が設定されていません</string>
+    <string name="agent_hub_plus_cd">その他のツール</string>
+    <string name="agent_hub_scroll_bottom_cd">最新へ移動</string>
+    <string name="agent_hub_thinking">思考プロセス</string>
+    <string name="agent_hub_live_running">実行中 %1$d 件</string>
+    <string name="agent_hub_live_approvals">承認待ち %1$d 件</string>
+    <string name="agent_hub_live_vdisplay">仮想画面で %1$s を操作中</string>
+    <string name="agent_hub_mission_steps_count">%1$d ステップ完了</string>
+    <string name="agent_hub_mission_view_computer">実行画面を見る</string>
+    <string name="agent_hub_mission_steer">軌道修正</string>
+    <string name="agent_hub_mission_steer_hint">追加の条件や修正を入力…</string>
+    <string name="agent_hub_mission_steer_send">タスクへ送信</string>
+    <string name="agent_hub_mission_steered_badge">反映待ち %1$d 件</string>
+    <string name="agent_hub_mission_save_routine">ルーティン保存</string>
+    <string name="agent_hub_mission_saved_routine">再利用ルーティンとして保存しました</string>
+    <string name="agent_hub_choice_selected">選択済み</string>
+    <string name="agent_hub_cue_trigger_briefing">状況ブリーフィングを作成</string>
+    <string name="agent_hub_cue_briefing_title">現在の状況ブリーフィング</string>
+    <string name="agent_hub_cue_briefing_empty">保留中の事項はありません。いつでも新しい作業を任せられます。</string>
+    <string name="agent_hub_quick_briefing">ブリーフィング</string>
+    <string name="agent_hub_quick_teach">手順を教える</string>
+    <string name="agent_hub_quick_workbench">ワークベンチ</string>
+    <string name="agent_hub_tab_live">ライブ</string>
+    <string name="agent_hub_tab_routines">ルーティン</string>
+    <string name="agent_hub_tab_squad">チーム</string>
+    <string name="agent_hub_tab_artifacts">成果物</string>
+    <string name="agent_hub_computer_sandbox_logs">サンドボックス端末と実行ログ</string>
+    <string name="agent_hub_computer_clear_logs">ログを消去</string>
+    <string name="agent_hub_computer_vdisplay_title">バックグラウンド仮想画面</string>
+    <string name="agent_hub_computer_vdisplay_takeover">確認 / 操作を引き継ぐ</string>
+    <string name="agent_hub_routines_new">新規ルーティン</string>
+    <string name="agent_hub_routines_title_hint">ルーティン名</string>
+    <string name="agent_hub_routines_goal_hint">実行時に行う内容…</string>
+    <string name="agent_hub_routines_trigger_expr_hint">Cron 式（例: 0 8 * * *）またはキーワード</string>
+    <string name="agent_hub_routines_run_now">今すぐ実行</string>
+    <string name="agent_hub_trigger_manual">手動</string>
+    <string name="agent_hub_trigger_cron">定期</string>
+    <string name="agent_hub_trigger_notification">通知</string>
+    <string name="agent_hub_trigger_channel">チャネル</string>
+    <string name="agent_hub_teach_start">デモ記録を開始</string>
+    <string name="agent_hub_teach_recording">手順を記録中（%1$d ステップ）</string>
+    <string name="agent_hub_teach_step_hint">操作ステップを入力…</string>
+    <string name="agent_hub_teach_add_step">ステップを追加</string>
+    <string name="agent_hub_teach_finish">完了して保存</string>
+    <string name="agent_hub_squad_active">会話中</string>
+    <string name="agent_hub_squad_switch">切替</string>
+    <string name="agent_hub_squad_channels">外部チャネル連携</string>
+    <string name="agent_hub_squad_open_group">グループチャットを開く</string>
+    <string name="agent_hub_model_routing_title">役割別モデル設定</string>
+    <string name="agent_hub_route_foreground">対話応答</string>
+    <string name="agent_hub_route_background">バックグラウンド実行</string>
+    <string name="agent_hub_route_vision">画面操作</string>
+    <string name="agent_hub_route_follow_default">メインモデルを使用</string>
+    <string name="agent_hub_artifacts_history">成果物履歴</string>
 </resources>

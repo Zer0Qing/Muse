@@ -57,7 +57,7 @@ class ApprovalWiringIntegrityTest {
         val body = service.substring(at, minOf(at + 400, service.length));
         assertTrue(
             "回调失败不能让审批看起来失败 —— 它已经结算了",
-            body.contains("runCatching"),
+            body.contains("catch (e: Exception)") && body.contains("catch (e: CancellationException)"),
         );
     }
 }

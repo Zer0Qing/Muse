@@ -43,6 +43,72 @@ private typealias VideoHandler = io.zer0.muse.ui.chat.VideoAttachmentHandler
 internal fun resolveImageCapableModel(provider: ProviderConfig?, requested: Model?): Model? = requested?.takeIf { it.supportsImageOutput() }
     ?: provider?.models?.firstOrNull { it.supportsImageOutput() }
 
+internal suspend fun readImageContentBase64(
+    uri: Uri,
+    context: Context,
+    onFailure: (Throwable) -> Unit = {},
+): String = withContext(AppDispatchers.io) {
+    try {
+        val resolver = context.contentResolver
+        val bitmap = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+            val source = android.graphics.ImageDecoder.createSource(resolver, uri)
+            android.graphics.ImageDecoder.decodeBitmap(
+                source,
+                object : android.graphics.ImageDecoder.OnHeaderDecodedListener {
+                    override fun onHeaderDecoded(
+                        decoder: android.graphics.ImageDecoder,
+                        info: android.graphics.ImageDecoder.ImageInfo,
+                        src: android.graphics.ImageDecoder.Source,
+                    ) {
+                        var sample = 1
+                        while (info.size.width / sample > IMAGE_INPUT_SCALE_TARGET ||
+                            info.size.height / sample > IMAGE_INPUT_SCALE_TARGET
+                        ) {
+                            sample *= 2
+                        }
+                        decoder.setTargetSampleSize(sample)
+                    }
+                },
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            val bounds = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            resolver.openInputStream(uri)?.use { input ->
+                android.graphics.BitmapFactory.decodeStream(input, null, bounds)
+            }
+            var sample = 1
+            while (bounds.outWidth / sample > IMAGE_INPUT_SCALE_TARGET ||
+                bounds.outHeight / sample > IMAGE_INPUT_SCALE_TARGET
+            ) {
+                sample *= 2
+            }
+            val options = android.graphics.BitmapFactory.Options().apply { inSampleSize = sample }
+            resolver.openInputStream(uri)?.use { input ->
+                android.graphics.BitmapFactory.decodeStream(input, null, options)
+            }
+        } ?: return@withContext ""
+
+        try {
+            val bytes = java.io.ByteArrayOutputStream().use { output ->
+                bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, IMAGE_INPUT_JPEG_QUALITY, output)
+                output.toByteArray()
+            }
+            android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
+        } finally {
+            bitmap.recycle()
+        }
+    } catch (error: kotlinx.coroutines.CancellationException) {
+        throw error
+    } catch (error: Exception) {
+        Logger.w("ImageGenCoordinator", "图片读取失败: ${error.message}", error)
+        onFailure(error)
+        ""
+    }
+}
+
+private const val IMAGE_INPUT_SCALE_TARGET = 1024
+private const val IMAGE_INPUT_JPEG_QUALITY = 85
+
 /**
  * v1.105 阶段 1: 从 ChatViewModel 抽离的图片相关 Coordinator。
  *
@@ -83,12 +149,6 @@ class ImageGenCoordinator(
     private var currentMediaTaskId: String? = null
 
     companion object {
-        /** 图片缩放最长边(视觉模型不需要超清,控制 base64 体积)。 */
-        private const val IMAGE_SCALE_TARGET = 1024
-
-        /** 图片 JPEG 压缩质量(0-100)。 */
-        private const val IMAGE_JPEG_QUALITY = 85
-
         /**
          * 单次待发送图片上限。
          *
@@ -190,68 +250,14 @@ class ImageGenCoordinator(
 
     /** Phase 8.6: 把图片 URI 读为 base64(无 data: 前缀)。 */
     private suspend fun readImageAsBase64(uri: Uri, context: Context, addError: (ChatErrorType, String) -> Unit): String {
-        return withContext(AppDispatchers.io) {
-            var errThrowable: Throwable? = null
-            resultOf {
-                val resolver = context.contentResolver
-                val target = IMAGE_SCALE_TARGET
-
-                val bitmap: android.graphics.Bitmap? = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-                    val source = android.graphics.ImageDecoder.createSource(resolver, uri)
-                    android.graphics.ImageDecoder.decodeBitmap(
-                        source,
-                        object : android.graphics.ImageDecoder.OnHeaderDecodedListener {
-                            override fun onHeaderDecoded(
-                                decoder: android.graphics.ImageDecoder,
-                                info: android.graphics.ImageDecoder.ImageInfo,
-                                src: android.graphics.ImageDecoder.Source,
-                            ) {
-                                val w = info.size.width
-                                val h = info.size.height
-                                var sample = 1
-                                while (w / sample > target || h / sample > target) sample *= 2
-                                decoder.setTargetSampleSize(sample)
-                            }
-                        },
-                    )
-                } else {
-                    @Suppress("DEPRECATION")
-                    val opts = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
-                    resolver.openInputStream(uri)?.use { input ->
-                        android.graphics.BitmapFactory.decodeStream(input, null, opts)
-                    }
-                    var sample = 1
-                    while (opts.outWidth / sample > target || opts.outHeight / sample > target) sample *= 2
-                    val decodeOpts = android.graphics.BitmapFactory.Options().apply { inSampleSize = sample }
-                    resolver.openInputStream(uri)?.use { input ->
-                        android.graphics.BitmapFactory.decodeStream(input, null, decodeOpts)
-                    }
-                }
-
-                if (bitmap == null) {
-                    Logger.e(tag, "readImageAsBase64: bitmap is null, uri=$uri")
-                    return@resultOf ""
-                }
-
-                val baos = java.io.ByteArrayOutputStream()
-                bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, IMAGE_JPEG_QUALITY, baos)
-                bitmap.recycle()
-                val result = android.util.Base64.encodeToString(baos.toByteArray(), android.util.Base64.NO_WRAP)
-                Logger.i(tag, "readImageAsBase64: success, base64 length=${result.length}")
-                result
-            }.onError { _, t -> errThrowable = t }
-                .getOrNull() ?: run {
-                val e = errThrowable
-                Logger.e(tag, "readImageAsBase64 failed", e)
-                addError(
-                    ChatErrorType.UNKNOWN,
-                    context.getString(
-                        R.string.err_image_gen_read_failed_msg,
-                        e?.message ?: context.getString(R.string.err_chat_unknown),
-                    ),
-                )
-                ""
-            }
+        return readImageContentBase64(uri, context) { error ->
+            addError(
+                ChatErrorType.UNKNOWN,
+                context.getString(
+                    R.string.err_image_gen_read_failed_msg,
+                    error.message ?: context.getString(R.string.err_chat_unknown),
+                ),
+            )
         }
     }
 

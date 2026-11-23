@@ -148,7 +148,6 @@ Tap refresh to fetch the list upstream</string>
     <string name="favorites_tag_edit_hint">Group name (empty = ungrouped)</string>
     <string name="favorites_tag_edit_clear">Clear group</string>
     <string name="favorites_tag_edit_confirm">OK</string>
-    <string name="favorites_tag_edit_cancel">Cancel</string>
     <string name="favorites_tag_label">Group: %1$s</string>
     <string name="favorites_empty_in_filter">No favorites in this group</string>
     <string name="favorites_stale_variant_badge">A newer version exists</string>
@@ -223,6 +222,7 @@ Tap refresh to fetch the list upstream</string>
     <string name="agent_bot_status_cancelled">Cancelled</string>
     <string name="agent_bot_status_needs_user">Needs your decision</string>
     <string name="agent_bot_status_unknown">Result unknown</string>
+    <string name="agent_bot_error_binding_unreadable">Could not read the saved conversation for this assistant, so nothing was sent. Try again later</string>
     <string name="agent_bot_error_no_session">No conversation is available yet</string>
     <string name="agent_bot_error_save_failed">The message didn\'t save. Try again</string>
     <string name="agent_bot_error_already_decided">You already decided this step</string>

@@ -24,16 +24,16 @@ class CandidateUiWiringTest {
     @Test
     fun `candidate list is collected and rendered`() {
         assertTrue(
-            "候选列表必须在界面被订阅",
-            screen.contains("viewModel.pendingCandidates.collectAsStateWithLifecycle()"),
+            "候选列表必须来自当前作用域投影",
+            screen.contains("projection?.candidates"),
         );
-        assertTrue("必须有渲染区块", screen.contains("CandidateSection("));
+        assertTrue("必须有有键候选列表", screen.contains("items(candidates, key = { \"candidate:\${it.stagedId}\" })"));
     }
 
     @Test
     fun `candidate section offers a discard action`() {
-        assertTrue(screen.contains("onDiscard"));
-        assertTrue(screen.contains("viewModel::discardCandidate"));
+        assertTrue(screen.contains("onDiscard = viewModel::discardCandidate"));
+        assertTrue(screen.contains("onDiscardCandidate = viewModel::discardCandidate"));
     }
 
     @Test

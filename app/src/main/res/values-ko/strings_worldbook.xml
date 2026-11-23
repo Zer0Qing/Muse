@@ -7,13 +7,10 @@
     <string name="worldbook_new_default_name">신규 항목</string>
     <string name="worldbook_new_title">새로운 월드북</string>
     <string name="worldbook_edit_title">월드북 편집</string>
-    <string name="worldbook_save">구하다</string>
     <string name="worldbook_unsaved_title">저장되지 않은 변경사항</string>
     <string name="worldbook_unsaved_content">저장되지 않은 변경사항이 있습니다.</string>
     <string name="worldbook_discard">버리다</string>
     <string name="worldbook_unnamed">이름 없음</string>
-    <string name="worldbook_edit_cd">편집하다</string>
-    <string name="worldbook_delete_cd">삭제</string>
     <string name="worldbook_delete_title">월드북 삭제</string>
     <string name="worldbook_empty_title">월드북 항목이 없습니다.</string>
     <string name="worldbook_keywords_label">키워드: %1$s</string>

@@ -75,6 +75,140 @@ internal object MigrationsB {
     }
 
     /**
+     * 主动消息 backlog 的派发账。
+     *
+     * 纯新增表，不动 pending_thought / proactive_outcome 的任何行。thoughtId 唯一索引
+     * 保证一条牵挂最多一条派发；领取与回收都按 state + 时间条件更新，这两个组合
+     * 必须有索引，否则每轮巡检都是全表扫。列名与默认值逐项对齐
+     * `ProactiveBacklogDispatchEntity` —— 不一致时 Room 会在升级后的校验阶段直接报错。
+     */
+    val MIGRATION_134_135 = object : Migration(134, 135) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `proactive_backlog_dispatch` (" +
+                    "`dispatchId` TEXT NOT NULL, `thoughtId` TEXT NOT NULL DEFAULT '', " +
+                    "`assistantId` TEXT NOT NULL DEFAULT '', `sessionId` TEXT NOT NULL DEFAULT '', " +
+                    "`state` TEXT NOT NULL DEFAULT 'READY', `claimToken` TEXT DEFAULT NULL, " +
+                    "`claimUntil` INTEGER DEFAULT NULL, `attemptCount` INTEGER NOT NULL DEFAULT 0, " +
+                    "`nextAttemptAt` INTEGER NOT NULL DEFAULT 0, `lastError` TEXT DEFAULT NULL, " +
+                    "`outcomeId` TEXT DEFAULT NULL, `createdAt` INTEGER NOT NULL DEFAULT 0, " +
+                    "`updatedAt` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`dispatchId`))",
+            )
+            db.execSQL(
+                "CREATE UNIQUE INDEX IF NOT EXISTS `index_proactive_backlog_dispatch_thoughtId` " +
+                    "ON `proactive_backlog_dispatch`(`thoughtId`)",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_proactive_backlog_dispatch_scope` " +
+                    "ON `proactive_backlog_dispatch`(`assistantId`,`sessionId`)",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_proactive_backlog_dispatch_ready` " +
+                    "ON `proactive_backlog_dispatch`(`state`,`nextAttemptAt`)",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_proactive_backlog_dispatch_claim` " +
+                    "ON `proactive_backlog_dispatch`(`state`,`claimUntil`)",
+            )
+        }
+    }
+
+    val MIGRATION_135_136 = object : Migration(135, 136) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `proactive_outcome` ADD COLUMN `notificationState` TEXT NOT NULL DEFAULT 'NONE'")
+            db.execSQL("ALTER TABLE `proactive_outcome` ADD COLUMN `notificationId` INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE `proactive_outcome` ADD COLUMN `notificationTitle` TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE `proactive_outcome` ADD COLUMN `notificationPreview` TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE `proactive_outcome` ADD COLUMN `notificationError` TEXT DEFAULT NULL")
+            db.execSQL("ALTER TABLE `proactive_outcome` ADD COLUMN `notificationAttempts` INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE `proactive_outcome` ADD COLUMN `notificationNextAttemptAt` INTEGER NOT NULL DEFAULT 0")
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_proactive_outcome_notification` " +
+                    "ON `proactive_outcome`(`notificationState`,`notificationNextAttemptAt`)",
+            )
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `proactive_backlog_schedule` (" +
+                    "`id` INTEGER NOT NULL, `nextBacklogDispatchAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, " +
+                    "PRIMARY KEY(`id`))",
+            )
+        }
+    }
+
+    /**
+     * Agent 交互升级：
+     * - 扩充 bot_task_steps 四列（展示标题、执行态、结果摘要、负责队友），支持持久化实时时间线；
+     * - 新增 bot_message_cards（对话流动态交互卡片）；
+     * - 新增 bot_routines（可复用惯例与触发规则）。
+     */
+    val MIGRATION_136_137 = object : Migration(136, 137) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            val stepCols = mutableSetOf<String>()
+            db.query("PRAGMA table_info(`bot_task_steps`)").use { cursor ->
+                val nameIdx = cursor.getColumnIndex("name")
+                while (cursor.moveToNext()) {
+                    if (nameIdx >= 0) stepCols += cursor.getString(nameIdx)
+                }
+            }
+            if ("displayLabel" !in stepCols) {
+                db.execSQL("ALTER TABLE `bot_task_steps` ADD COLUMN `displayLabel` TEXT NOT NULL DEFAULT ''")
+            }
+            if ("status" !in stepCols) {
+                db.execSQL("ALTER TABLE `bot_task_steps` ADD COLUMN `status` TEXT NOT NULL DEFAULT 'RUNNING'")
+            }
+            if ("summary" !in stepCols) {
+                db.execSQL("ALTER TABLE `bot_task_steps` ADD COLUMN `summary` TEXT NOT NULL DEFAULT ''")
+            }
+            if ("assigneeBotId" !in stepCols) {
+                db.execSQL("ALTER TABLE `bot_task_steps` ADD COLUMN `assigneeBotId` TEXT NOT NULL DEFAULT ''")
+            }
+
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `bot_message_cards` (" +
+                    "`cardId` TEXT NOT NULL, `botId` TEXT NOT NULL DEFAULT '', " +
+                    "`originSessionId` TEXT NOT NULL DEFAULT '', `anchorMessageId` TEXT NOT NULL DEFAULT '', " +
+                    "`taskId` TEXT NOT NULL DEFAULT '', `cardKind` TEXT NOT NULL DEFAULT 'CHOICE', " +
+                    "`title` TEXT NOT NULL DEFAULT '', `subtitle` TEXT NOT NULL DEFAULT '', " +
+                    "`payloadJson` TEXT NOT NULL DEFAULT '{}', `status` TEXT NOT NULL DEFAULT 'ACTIVE', " +
+                    "`selectedOptionId` TEXT NOT NULL DEFAULT '', `createdAt` INTEGER NOT NULL DEFAULT 0, " +
+                    "`updatedAt` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`cardId`))",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_bot_message_cards_botId_originSessionId_createdAt` " +
+                    "ON `bot_message_cards`(`botId`,`originSessionId`,`createdAt`)",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_bot_message_cards_taskId` " +
+                    "ON `bot_message_cards`(`taskId`)",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_bot_message_cards_anchorMessageId` " +
+                    "ON `bot_message_cards`(`anchorMessageId`)",
+            )
+
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `bot_routines` (" +
+                    "`routineId` TEXT NOT NULL, `botId` TEXT NOT NULL DEFAULT '', " +
+                    "`title` TEXT NOT NULL DEFAULT '', `goalPrompt` TEXT NOT NULL DEFAULT '', " +
+                    "`stepsSummary` TEXT NOT NULL DEFAULT '', `resourceScope` TEXT NOT NULL DEFAULT '', " +
+                    "`triggerType` TEXT NOT NULL DEFAULT 'MANUAL', `triggerExpr` TEXT NOT NULL DEFAULT '', " +
+                    "`scheduledTaskId` TEXT NOT NULL DEFAULT '', `sourceTaskId` TEXT NOT NULL DEFAULT '', " +
+                    "`skillId` TEXT NOT NULL DEFAULT '', `enabled` INTEGER NOT NULL DEFAULT 1, " +
+                    "`lastRunAt` INTEGER NOT NULL DEFAULT 0, `lastRunStatus` TEXT NOT NULL DEFAULT '', " +
+                    "`runCount` INTEGER NOT NULL DEFAULT 0, `createdAt` INTEGER NOT NULL DEFAULT 0, " +
+                    "`updatedAt` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`routineId`))",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_bot_routines_botId_enabled` " +
+                    "ON `bot_routines`(`botId`,`enabled`)",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_bot_routines_triggerType_enabled` " +
+                    "ON `bot_routines`(`triggerType`,`enabled`)",
+            )
+        }
+    }
+
+    /**
      * Agent 中枢七表。
      *
      * 纯新增,不动任何既有行:中枢功能关着时这七张表就是空的,普通对话

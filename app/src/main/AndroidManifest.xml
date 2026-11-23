@@ -396,6 +396,24 @@
             </intent-filter>
         </receiver>
 
+        <receiver
+            android:name=".ui.theme.ThemeAlarmReceiver"
+            android:enabled="true"
+            android:exported="false" />
+
+        <receiver
+            android:name=".ui.theme.ThemeTimeChangeReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.DATE_CHANGED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
 
         <!-- 文件附件:用于把沙盒内文件通过 ACTION_VIEW 分享给其它应用打开 -->
         <provider

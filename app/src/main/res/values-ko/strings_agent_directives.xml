@@ -14,7 +14,6 @@
     <string name="agent_directives_text_limit">항목당 최대 200자</string>
     <string name="agent_directives_move_up">위로 이동</string>
     <string name="agent_directives_move_down">아래로 이동</string>
-    <string name="agent_directives_delete">삭제</string>
     <string name="agent_directives_omitted">분량이 많아 이번에는 다음 항목이 반영되지 않았습니다: %1$s</string>
     <string name="agent_directives_switch">이 규칙 사용</string>
 </resources>

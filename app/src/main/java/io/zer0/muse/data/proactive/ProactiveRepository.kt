@@ -41,6 +41,8 @@ class ProactiveThoughtRepository(
         writeDao.markSurfaced(id, at)
     }
 
+    suspend fun markSurfacedIfOpen(id: String, at: Long): Int = writeDao.markSurfacedIfOpen(id, at)
+
     /** 用户已经把这件事解决了（由对话或用户手动标记）。 */
     suspend fun complete(id: String) {
         writeDao.updateStatus(id, ThoughtStatus.DONE.name)
@@ -211,11 +213,36 @@ class ProactiveOutcomeRepository(
         now: Long,
         assistantId: String = "",
         messageId: String? = null,
-    ): String {
-        val id = java.util.UUID.randomUUID().toString()
-        dao.upsert(
+        outcomeId: String = java.util.UUID.randomUUID().toString(),
+        notificationTitle: String = "",
+        notificationPreview: String = "",
+        notificationId: Int = io.zer0.muse.notification.MuseNotificationIdPolicy.notificationIdForOutcome(outcomeId),
+    ): String = recordSentDetailed(
+        thought = thought,
+        sessionId = sessionId,
+        now = now,
+        assistantId = assistantId,
+        messageId = messageId,
+        outcomeId = outcomeId,
+        notificationTitle = notificationTitle,
+        notificationPreview = notificationPreview,
+        notificationId = notificationId,
+    ).outcomeId
+
+    suspend fun recordSentDetailed(
+        thought: PendingThoughtEntity?,
+        sessionId: String,
+        now: Long,
+        assistantId: String = "",
+        messageId: String? = null,
+        outcomeId: String = java.util.UUID.randomUUID().toString(),
+        notificationTitle: String = "",
+        notificationPreview: String = "",
+        notificationId: Int = io.zer0.muse.notification.MuseNotificationIdPolicy.notificationIdForOutcome(outcomeId),
+    ): ProactiveOutcomeInsertResult {
+        val inserted = dao.insertIfAbsent(
             ProactiveOutcomeEntity(
-                id = id,
+                id = outcomeId,
                 // 牵挂是可选的：现在大多数主动消息来自「接着对话说」，
                 // 并没有对应的账本条目。
                 thoughtId = thought?.id,
@@ -226,9 +253,17 @@ class ProactiveOutcomeRepository(
                 state = OutcomeState.PENDING.name,
                 // 存下来才能在下一轮反查出「上次说了什么」，用于防重复。
                 messageId = messageId,
+                notificationState = if (notificationTitle.isNotBlank() || notificationPreview.isNotBlank()) {
+                    ProactiveNotificationState.PENDING
+                } else {
+                    ProactiveNotificationState.NONE
+                },
+                notificationId = notificationId,
+                notificationTitle = notificationTitle,
+                notificationPreview = notificationPreview,
             ),
-        )
-        return id
+        ) != -1L
+        return ProactiveOutcomeInsertResult(outcomeId, inserted)
     }
 
     /**
@@ -237,27 +272,25 @@ class ProactiveOutcomeRepository(
      * 已经终结的状态不会被降级覆盖（回复之后再划掉通知仍是 REPLIED）——
      * 否则用户点开读过又顺手清通知，会被记成一次负反馈。
      */
-    suspend fun resolve(outcomeId: String, state: OutcomeState, now: Long) {
-        val current = dao.getById(outcomeId) ?: return
-        val isTerminal = current.stateEnum() == state ||
-            current.stateEnum() == OutcomeState.REPLIED ||
-            state == OutcomeState.PENDING
-        if (!isTerminal) applyTransition(current, state, now)
+    suspend fun resolve(outcomeId: String, state: OutcomeState, now: Long): Int {
+        val current = dao.getById(outcomeId) ?: return 0
+        val currentState = OutcomeState.entries.firstOrNull { it.name == current.state } ?: return 0
+        val allowed = when (currentState) {
+            OutcomeState.PENDING -> state == OutcomeState.OPENED || state == OutcomeState.REPLIED ||
+                state == OutcomeState.DISMISSED || state == OutcomeState.EXPIRED
+            OutcomeState.OPENED -> state == OutcomeState.REPLIED
+            OutcomeState.REPLIED, OutcomeState.DISMISSED, OutcomeState.EXPIRED -> false
+        }
+        if (!allowed) return 0
+        val changed = dao.transition(outcomeId, current.state, state.name, now)
+        if (changed == 1) applyTransition(current, state, now)
+        return changed
     }
 
     private suspend fun applyTransition(current: ProactiveOutcomeEntity, state: OutcomeState, now: Long) {
-        dao.upsert(current.stamped(state, now))
         val relation = relations.getOrCreate(current.assistantId, now)
         val next = ProactiveLearning.applyOutcome(relation.intimacy, state)
         if (next != relation.intimacy) relations.setIntimacy(current.assistantId, next)
-    }
-
-    /** 把时间戳写到对应的列上。状态列总是更新，时间列按状态分。 */
-    private fun ProactiveOutcomeEntity.stamped(state: OutcomeState, now: Long): ProactiveOutcomeEntity = when (state) {
-        OutcomeState.OPENED -> copy(state = state.name, openedAt = now)
-        OutcomeState.REPLIED -> copy(state = state.name, repliedAt = now)
-        OutcomeState.DISMISSED -> copy(state = state.name, dismissedAt = now)
-        OutcomeState.EXPIRED, OutcomeState.PENDING -> copy(state = state.name)
     }
 
     /** 找某会话里最近一条还在等反应的主动消息，用于回复检测与「打开即已读」。 */
@@ -273,8 +306,7 @@ class ProactiveOutcomeRepository(
      */
     suspend fun expireOverdue(now: Long): Int {
         val stale = dao.listPendingBefore(now - EXPIRE_AFTER_MS)
-        stale.forEach { resolve(it.id, OutcomeState.EXPIRED, now) }
-        return stale.size
+        return stale.sumOf { resolve(it.id, OutcomeState.EXPIRED, now) }
     }
 
     /**
@@ -287,6 +319,16 @@ class ProactiveOutcomeRepository(
         kinds.filterTo(mutableSetOf()) { isKindUnpopular(assistantId, it) }
 
     suspend fun getRecent(assistantId: String, limit: Int = 20): List<ProactiveOutcomeEntity> = dao.getRecent(assistantId, limit)
+
+    suspend fun notificationRecoveryBatch(now: Long, limit: Int = 40): List<ProactiveOutcomeEntity> =
+        dao.getNotificationRecoveryBatch(now, limit)
+
+    suspend fun nextNotificationRecoveryAt(): Long? = dao.getNextNotificationRecoveryAt()
+
+    suspend fun markNotificationPosted(outcomeId: String): Int = dao.markNotificationPosted(outcomeId)
+
+    suspend fun markNotificationFailed(outcomeId: String, error: String, nextAttemptAt: Long): Int =
+        dao.markNotificationFailed(outcomeId, error, nextAttemptAt)
 
     /**
      * 某类型是否已经被用户用脚投票否决了。
@@ -304,3 +346,8 @@ class ProactiveOutcomeRepository(
         return ProactiveLearning.isKindUnpopular(dismissed, total)
     }
 }
+
+data class ProactiveOutcomeInsertResult(
+    val outcomeId: String,
+    val inserted: Boolean,
+)

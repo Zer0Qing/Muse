@@ -291,8 +291,11 @@ class AgentBotLedgerTest {
         val dao = db.taskRunDao()
         dao.upsert(TaskRunEntity(runId = "r-live", taskId = "t1", attempt = 1, status = TaskRunStatus.RUNNING, leaseUntil = 9_000L))
         dao.upsert(TaskRunEntity(runId = "r-stale", taskId = "t2", attempt = 1, status = TaskRunStatus.RUNNING, leaseUntil = 100L))
-        dao.upsert(TaskRunEntity(runId = "r-done", taskId = "t3", attempt = 1, status = TaskRunStatus.COMPLETED, leaseUntil = 100L))
+        dao.upsert(TaskRunEntity(runId = "r-approval", taskId = "t3", attempt = 1, status = TaskRunStatus.WAITING_APPROVAL, leaseUntil = 100L))
+        dao.upsert(TaskRunEntity(runId = "r-resource", taskId = "t4", attempt = 1, status = TaskRunStatus.WAITING_RESOURCE, leaseUntil = 100L))
+        dao.upsert(TaskRunEntity(runId = "r-done", taskId = "t5", attempt = 1, status = TaskRunStatus.COMPLETED, leaseUntil = 100L))
 
+        // 等待态由外部条件恢复，租约到期不能把它们误判为进程死亡。
         assertEquals(listOf("r-stale"), dao.listStale(now = 1_000L).map { it.runId })
     }
 

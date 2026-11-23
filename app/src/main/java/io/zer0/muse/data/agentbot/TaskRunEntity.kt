@@ -98,7 +98,21 @@ data class TaskStepEntity(
     @ColumnInfo(defaultValue = "READ_ONLY") val sideEffect: String = StepSideEffect.READ_ONLY,
     @ColumnInfo(defaultValue = "0") val startedAt: Long = 0L,
     @ColumnInfo(defaultValue = "0") val finishedAt: Long = 0L,
+    /** 人类可读的步骤说明，用于对话流内动态任务卡时间线展示。 */
+    @ColumnInfo(defaultValue = "") val displayLabel: String = "",
+    /** 步骤执行态：RUNNING / SUCCEEDED / FAILED。 */
+    @ColumnInfo(defaultValue = "RUNNING") val status: String = StepExecutionStatus.RUNNING,
+    /** 单步结果简短摘要，重启后仍可展开查看过程。 */
+    @ColumnInfo(defaultValue = "") val summary: String = "",
+    /** 负责该步骤的专职队友 id；空串表示由主 Bot 自身执行。 */
+    @ColumnInfo(defaultValue = "") val assigneeBotId: String = "",
 )
+
+object StepExecutionStatus {
+    const val RUNNING = "RUNNING"
+    const val SUCCEEDED = "SUCCEEDED"
+    const val FAILED = "FAILED"
+}
 
 /**
  * 副作用类别 —— 决定"进程被杀后这一步能不能自动重放"。

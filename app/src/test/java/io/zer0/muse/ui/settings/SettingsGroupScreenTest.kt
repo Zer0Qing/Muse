@@ -128,8 +128,8 @@ class SettingsGroupScreenTest {
             }
         }
 
-        // 运行环境已独立成「离线资源」一级分组，不再属于数据与备份，故为 5 条。
-        composeTestRule.onAllNodesWithTag(SETTINGS_ENTRY_ROW_TAG).assertCountEquals(6)
+        // 离线运行环境已归入「模型与运行环境」，数据与备份保持纯净 5 项。
+        composeTestRule.onAllNodesWithTag(SETTINGS_ENTRY_ROW_TAG).assertCountEquals(5)
     }
 
     @Test
@@ -138,7 +138,7 @@ class SettingsGroupScreenTest {
         composeTestRule.setContent {
             MaterialTheme {
                 SettingsGroupScreen(
-                    kind = SettingsGroupKind.ASSISTANTS,
+                    kind = SettingsGroupKind.GENERAL,
                     onBack = {},
                     onNavigate = { navigated = it },
                 )
@@ -153,10 +153,10 @@ class SettingsGroupScreenTest {
 
         navigated = null
         composeTestRule
-            .onNode(hasTestTag(SETTINGS_ENTRY_ROW_TAG) and hasText(string(R.string.chat_agent_tab_title)))
+            .onNode(hasTestTag(SETTINGS_ENTRY_ROW_TAG) and hasText(string(R.string.settings_screen_appearance_label)))
             .performScrollTo()
             .performClick()
-        assertEquals(io.zer0.muse.ui.navigation.SettingsAgentRoute, navigated)
+        assertEquals(io.zer0.muse.ui.navigation.SettingsAppearanceRoute, navigated)
     }
 
     @Test

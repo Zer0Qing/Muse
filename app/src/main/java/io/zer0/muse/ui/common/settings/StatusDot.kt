@@ -16,9 +16,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
+import io.zer0.muse.ui.theme.MuseAlpha
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseMotion
+import io.zer0.muse.ui.theme.MuseSpacing
 
 /**
  * 状态指示小圆点 — 用于 MCP server / Provider 连接状态。
@@ -29,12 +30,12 @@ import io.zer0.muse.ui.theme.MuseMotion
  * @param contentDescription 无障碍描述(如"已连接"),为 null 时不注册语义
  */
 @Composable
-fun StatusDot(color: Color, size: Dp = 8.dp, pulse: Boolean = false, contentDescription: String? = null) {
+fun StatusDot(color: Color, size: Dp = MuseSpacing.sm, pulse: Boolean = false, contentDescription: String? = null) {
     val reducedMotion = MuseMotion.isReducedMotion()
     val alpha = if (!pulse) {
         1f
     } else if (reducedMotion) {
-        0.65f
+        MuseAlpha.subtleBorder
     } else {
         val transition = rememberInfiniteTransition(label = "status_dot_pulse")
         val animatedAlpha by transition.animateFloat(

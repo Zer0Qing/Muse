@@ -1,6 +1,7 @@
 package io.zer0.muse.data.assistant
 
 import android.content.Context
+import androidx.room.withTransaction
 import io.zer0.ai.core.ReasoningLevel
 import io.zer0.ai.core.UIMessage
 import io.zer0.common.AppJson
@@ -47,6 +48,7 @@ class AssistantRepository(
      * null 时跳过(单测/无 DI 环境)。
      */
     private val sessionMemoryCleanup: io.zer0.muse.data.memory.SessionMemoryCleanup? = null,
+    private val database: io.zer0.muse.data.session.MuseDb? = null,
 ) {
 
     val observeAll: Flow<List<AssistantEntity>> = dao.observeAll()
@@ -93,7 +95,16 @@ class AssistantRepository(
     }
 
     suspend fun delete(id: String) {
-        dao.deleteById(id)
+        val db = database
+        if (db == null) {
+            dao.deleteById(id)
+        } else {
+            db.withTransaction {
+                io.zer0.muse.data.agentbot.AgentBotDataCleanup(db)
+                    .deleteAssistantRowsInCurrentTransaction(id)
+                dao.deleteById(id)
+            }
+        }
         // 记忆必须先清、分库文件后删:清理器要读 `facts.db` 主库与 `facts_<id>.db` 本身,
         // 文件一旦先删,任何读取都会把空库重新建出来。
         sessionMemoryCleanup?.let { cleanup ->

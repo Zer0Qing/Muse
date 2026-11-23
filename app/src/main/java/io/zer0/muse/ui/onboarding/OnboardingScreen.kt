@@ -1139,15 +1139,6 @@ private fun StepProviderConfig(
             }
             else -> {
                 // 置灰的"下一步"必须说清为什么灰:此前用户只看到按钮点不动,
-                // 不知道该先做哪一步。
-                if (!canTest) {
-                    Spacer(modifier = Modifier.height(MusePaddings.contentGap))
-                    Text(
-                        text = stringResource(R.string.onboarding_provider_next_hint),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
             }
         }
 

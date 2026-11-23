@@ -6,10 +6,23 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.AlertDialog
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key as composeKey
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.stringResource
+import io.zer0.muse.R
+import io.zer0.muse.data.agentbot.AgentBotUiState
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
+import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.theme.MusePaddings
 
 /**
@@ -47,7 +60,7 @@ fun <T> AgentBotRowSection(
             text = title,
             style = MaterialTheme.typography.titleSmall,
         )
-        rows.forEach { row ->
+        rows.forEach { row -> composeKey(key(row)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -78,6 +91,133 @@ fun <T> AgentBotRowSection(
                     fillWidth = false,
                 )
             }
+        } }
+    }
+}
+
+@Composable
+fun AgentBotTaskRow(
+    row: AgentBotUiState.TaskRow,
+    status: String,
+    note: String,
+    onOpen: (String) -> Unit,
+    onCancel: (String) -> Unit,
+    onContinue: (String) -> Unit,
+    onRetry: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var confirming by remember(row.taskId) { mutableStateOf<AgentBotUiState.TaskAction?>(null) }
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = row.goal,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = status,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (note.isNotBlank()) {
+                Text(
+                    text = note,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
+        if (AgentBotUiState.TaskAction.CONTINUE in row.actions) {
+            MuseCapsuleButton(
+                text = stringResource(R.string.agent_bot_continue),
+                onClick = { confirming = AgentBotUiState.TaskAction.CONTINUE },
+                leadingIcon = MuseIcons.play,
+                fillWidth = false,
+            )
+        }
+        if (AgentBotUiState.TaskAction.RETRY in row.actions) {
+            MuseCapsuleButton(
+                text = stringResource(R.string.agent_screen_retry_task),
+                onClick = { confirming = AgentBotUiState.TaskAction.RETRY },
+                leadingIcon = MuseIcons.refresh,
+                variant = IosCapsuleButtonVariant.Secondary,
+                fillWidth = false,
+            )
+        }
+        if (AgentBotUiState.TaskAction.VERIFY in row.actions) {
+            MuseCapsuleButton(
+                text = stringResource(R.string.agent_screen_verify_result),
+                onClick = { onOpen(row.taskId) },
+                leadingIcon = MuseIcons.search,
+                fillWidth = false,
+            )
+        }
+        if (AgentBotUiState.TaskAction.CANCEL in row.actions) {
+            MuseTactileButton(
+                icon = MuseIcons.x,
+                contentDescription = stringResource(R.string.common_cancel),
+                onClick = { onCancel(row.taskId) },
+            )
+        }
+        if (AgentBotUiState.TaskAction.VERIFY !in row.actions) {
+            MuseTactileButton(
+                icon = MuseIcons.chevronRight,
+                contentDescription = stringResource(R.string.agent_screen_open_task),
+                onClick = { onOpen(row.taskId) },
+            )
+        }
+    }
+
+    confirming?.let { action ->
+        val continuing = action == AgentBotUiState.TaskAction.CONTINUE
+        AlertDialog(
+            onDismissRequest = { confirming = null },
+            title = {
+                Text(
+                    stringResource(
+                        if (continuing) R.string.agent_bot_prompt_approved_retry
+                        else R.string.agent_screen_retry_task_confirm,
+                    ),
+                )
+            },
+            text = {
+                Text(
+                    stringResource(
+                        if (continuing) R.string.agent_bot_continue_confirm
+                        else R.string.agent_screen_retry_task_confirm_body,
+                    ),
+                )
+            },
+            confirmButton = {
+                MuseCapsuleButton(
+                    text = stringResource(
+                        if (continuing) R.string.agent_bot_continue_confirm
+                        else R.string.agent_screen_retry_task,
+                    ),
+                    onClick = {
+                        confirming = null
+                        if (continuing) onContinue(row.taskId) else onRetry(row.taskId)
+                    },
+                    fillWidth = false,
+                )
+            },
+            dismissButton = {
+                MuseCapsuleButton(
+                    text = stringResource(R.string.common_cancel),
+                    onClick = { confirming = null },
+                    variant = IosCapsuleButtonVariant.Text,
+                    fillWidth = false,
+                )
+            },
+        )
     }
 }

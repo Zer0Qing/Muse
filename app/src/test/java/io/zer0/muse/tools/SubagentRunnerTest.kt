@@ -307,6 +307,156 @@ class SubagentRunnerTest {
     }
 
     @Test
+    fun `persistent approval pauses the run before later tool calls`() = runTest {
+        val mockChatService = mockk<ChatService>(relaxed = true)
+        val mockToolRegistry = mockk<ToolRegistry>(relaxed = true)
+        every { mockToolRegistry.listTools() } returns listOf(
+            ToolRegistry.ToolDef("write_file", "写入", emptyMap(), riskLevel = ToolRiskLevel.NORMAL),
+            ToolRegistry.ToolDef("echo", "回显", emptyMap(), riskLevel = ToolRiskLevel.SAFE),
+        )
+        every { mockToolRegistry.listToolsAsToolDefinitions(any()) } returns listOf(
+            ToolDefinition("write_file", "写入", "{}"),
+            ToolDefinition("echo", "回显", "{}"),
+        )
+        every { mockToolRegistry.getToolRiskLevel("write_file") } returns ToolRiskLevel.NORMAL
+        coEvery {
+            mockChatService.completeText(any(), any(), any(), any(), any(), any(), any(), any())
+        } returns ChatCompletion(
+            text = "",
+            finishReason = "tool_calls",
+            toolCalls = listOf(
+                ToolCall(id = "write-1", name = "write_file", arguments = "{}"),
+                ToolCall(id = "echo-1", name = "echo", arguments = "{}"),
+            ),
+        )
+
+        val runner = SubagentRunner(
+            mockChatService,
+            mockToolRegistry,
+            mockThreadStore(),
+            mockLimiter(),
+            mockk(relaxed = true),
+            ToolApprovalRouter(),
+        )
+        val result = runner.run(
+            SubagentRunner.Params(
+                task = "写文件后回显",
+                onApprovalRequired = { _, _, _, _ ->
+                    SubagentRunner.ApprovalRequestResult.Created("approval-1")
+                },
+            ),
+        )
+
+        assertFalse(result.success)
+        assertTrue("持久审批应结束当前执行", result.approvalPending)
+        assertEquals(1, result.toolCalls)
+        assertEquals(1, result.progressEntries.size)
+        coVerify(exactly = 1) {
+            mockChatService.completeText(any(), any(), any(), any(), any(), any(), any(), any())
+        }
+        coVerify(exactly = 0) { mockToolRegistry.executeFromJson(any(), any()) }
+    }
+
+    @Test
+    fun `approved one shot grant allows the matching tool call`() = runTest {
+        val mockChatService = mockk<ChatService>(relaxed = true)
+        val mockToolRegistry = mockk<ToolRegistry>(relaxed = true)
+        every { mockToolRegistry.listTools() } returns listOf(
+            ToolRegistry.ToolDef("write_file", "写入", emptyMap(), riskLevel = ToolRiskLevel.NORMAL),
+        )
+        every { mockToolRegistry.listToolsAsToolDefinitions(any()) } returns listOf(
+            ToolDefinition("write_file", "写入", "{}"),
+        )
+        every { mockToolRegistry.getToolRiskLevel("write_file") } returns ToolRiskLevel.NORMAL
+        coEvery {
+            mockChatService.completeText(any(), any(), any(), any(), any(), any(), any(), any())
+        } returnsMany listOf(
+            ChatCompletion(
+                text = "",
+                finishReason = "tool_calls",
+                toolCalls = listOf(ToolCall("write-1", "write_file", "{}")),
+            ),
+            ChatCompletion(text = "文件已处理", finishReason = "stop"),
+        )
+        coEvery { mockToolRegistry.executeFromJson("write_file", "{}") } returns "written"
+
+        val runner = SubagentRunner(
+            mockChatService,
+            mockToolRegistry,
+            mockThreadStore(),
+            mockLimiter(),
+            mockk(relaxed = true),
+            ToolApprovalRouter(),
+        )
+        val result = runner.run(
+            SubagentRunner.Params(
+                task = "写文件",
+                onApprovalRequired = { _, _, _, _ ->
+                    SubagentRunner.ApprovalRequestResult.Approved("approval-1")
+                },
+            ),
+        )
+
+        assertTrue(result.success)
+        assertEquals("文件已处理", result.summary)
+        coVerify(exactly = 1) { mockToolRegistry.executeFromJson("write_file", "{}") }
+    }
+
+    @Test
+    fun `host tool context carries the task resource scope and step identity`() = runTest {
+        val mockChatService = mockk<ChatService>(relaxed = true)
+        val mockToolRegistry = mockk<ToolRegistry>(relaxed = true)
+        every { mockToolRegistry.listTools() } returns listOf(
+            ToolRegistry.ToolDef("echo", "回显", emptyMap(), riskLevel = ToolRiskLevel.SAFE),
+        )
+        every { mockToolRegistry.listToolsAsToolDefinitions(any()) } returns listOf(
+            ToolDefinition("echo", "回显", "{}"),
+        )
+        every { mockToolRegistry.getToolRiskLevel("echo") } returns ToolRiskLevel.SAFE
+        coEvery {
+            mockChatService.completeText(any(), any(), any(), any(), any(), any(), any(), any())
+        } returnsMany listOf(
+            ChatCompletion(
+                text = "",
+                finishReason = "tool_calls",
+                toolCalls = listOf(ToolCall("echo-1", "echo", "{}")),
+            ),
+            ChatCompletion(text = "done", finishReason = "stop"),
+        )
+        val receivedContext = slot<ToolExecutionContext>()
+        coEvery {
+            mockToolRegistry.executeFromJson("echo", "{}", capture(receivedContext))
+        } returns "ok"
+
+        val runner = SubagentRunner(
+            mockChatService,
+            mockToolRegistry,
+            mockThreadStore(),
+            mockLimiter(),
+            mockk(relaxed = true),
+            ToolApprovalRouter(),
+        )
+        runner.run(
+            SubagentRunner.Params(
+                task = "只查看 notes.md",
+                onToolStarted = { _, _ -> "step-1" },
+                toolExecutionContext = ToolExecutionContext(
+                    scope = "main",
+                    spaceId = "default",
+                    assistantId = "assistant-a",
+                    sessionId = "session-a",
+                    resourceScope = "notes.md",
+                    isSubagentContext = true,
+                ),
+            ),
+        )
+
+        assertEquals("notes.md", receivedContext.captured.resourceScope)
+        assertEquals("step-1", receivedContext.captured.stepId)
+        assertEquals("session-a", receivedContext.captured.sessionId)
+    }
+
+    @Test
     fun `run stops when maxToolCalls budget exhausted and forces summary`() = runTest {
         val mockChatService = mockk<ChatService>(relaxed = true)
         val mockToolRegistry = mockk<ToolRegistry>(relaxed = true)

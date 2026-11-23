@@ -21,30 +21,24 @@ class TransitionResultHonoredTest {
     }
 
     @Test
-    fun `EXECUTE_DONE result is captured not discarded`() {
-        // 必须是 val x = transition(...)，不能是裸调用。
-        val bare = Regex("(?m)^\\s*repository\\.transition\\(\\s*task\\.taskId,\\s*BotTaskStatusMachine\\.Event\\.EXECUTE_DONE");
+    fun `execution completion uses a transactional repository operation`() {
+        val repository = File("src/main/java/io/zer0/muse/data/agentbot/AgentBotRepository.kt").readText()
         assertFalse(
-            "EXECUTE_DONE 的返回值不能丢弃 —— 被拒后仍会应用产物",
-            bare.containsMatchIn(scheduler),
+            "执行成功不能拆成 run 完成与任务状态转移",
+            scheduler.contains("repository.closeRun(run.runId, TaskRunStatus.COMPLETED)"),
         );
         assertTrue(
-            "必须捕获转移结果",
-            scheduler.contains("val moved = repository.transition("),
+            "执行结果应通过仓储事务写入审核队列",
+            scheduler.contains("repository.finishExecution(task.taskId, run.runId, run.taskRevision, payload)"),
         );
+        assertTrue(repository.contains("db.withTransaction { operation() }"))
     }
 
     @Test
-    fun `a rejected transition returns early before staging`() {
-        val at = scheduler.indexOf("val moved = repository.transition(");
-        assertTrue(at > 0);
-        // 早退必须在 staging.stage( 之前。
-        val stageAt = scheduler.indexOf("staging?.stage(", at);
-        val guardAt = scheduler.indexOf("if (moved == null)", at);
-        assertTrue("必须有 moved == null 的早退", guardAt > 0);
-        assertTrue("早退必须发生在暂存之前", guardAt < stageAt);
-        // 早退块里必须有 return。
-        val block = scheduler.substring(guardAt, minOf(guardAt + 500, scheduler.length));
-        assertTrue("早退块必须真的 return", block.contains("return"));
+    fun `review recovery reads durable result events for reviewing tasks`() {
+        assertTrue(scheduler.contains("reconcileReviewingResults()"))
+        assertTrue(scheduler.contains("repository.reviewingTasks()"))
+        assertTrue(scheduler.contains("reviewer.recover(task, run, resultEvent.payloadRef)"))
+        assertTrue("未转入审核的候选要清理", scheduler.contains("if (!stagedArtifactsTransferred) stagedArtifactRefs.forEach"));
     }
 }

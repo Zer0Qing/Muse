@@ -60,23 +60,35 @@ object BotEventKind {
     const val TASK_ACCEPTED = "TaskAccepted"
     const val TASK_PROGRESSED = "TaskProgressed"
     const val TASK_RESULT_READY = "TaskResultReady"
+    /**
+     * 审核已明确允许发布，可以对外说话了。
+     *
+     * 与 [TASK_RESULT_READY] 分开：执行完成只是"有材料了"，审核通过才是"可以说"。
+     * 只用一个事件会让"跑完就公开发言"这条错误路径重新长出来。
+     */
+    const val TASK_PUBLICATION_READY = "TaskPublicationReady"
     const val TASK_FAILED = "TaskFailed"
     const val APPROVAL_REQUIRED = "ApprovalRequired"
     const val APPROVAL_RESOLVED = "ApprovalResolved"
     const val TASK_CANCELLED = "TaskCancelled"
     const val REVIEW_READY = "ReviewReady"
     const val RESOURCE_CHANGED = "ResourceChanged"
+    const val TASK_STEERED = "TaskSteered"
+    const val STEP_UPDATED = "StepUpdated"
 
     val all: Set<String> = setOf(
         USER_INPUT_RECEIVED,
         TASK_ACCEPTED,
         TASK_PROGRESSED,
         TASK_RESULT_READY,
+        TASK_PUBLICATION_READY,
         TASK_FAILED,
         APPROVAL_REQUIRED,
         APPROVAL_RESOLVED,
         TASK_CANCELLED,
         REVIEW_READY,
         RESOURCE_CHANGED,
+        TASK_STEERED,
+        STEP_UPDATED,
     )
 }

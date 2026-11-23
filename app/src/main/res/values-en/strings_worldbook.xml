@@ -7,13 +7,10 @@
     <string name="worldbook_new_default_name">New entry</string>
     <string name="worldbook_new_title">New Worldbook</string>
     <string name="worldbook_edit_title">Edit Worldbook</string>
-    <string name="worldbook_save">Save</string>
     <string name="worldbook_unsaved_title">Unsaved Changes</string>
     <string name="worldbook_unsaved_content">You have unsaved changes. Discard them?</string>
     <string name="worldbook_discard">Discard</string>
     <string name="worldbook_unnamed">Unnamed</string>
-    <string name="worldbook_edit_cd">Edit</string>
-    <string name="worldbook_delete_cd">Delete</string>
     <string name="worldbook_delete_title">Delete Worldbook</string>
     <string name="worldbook_empty_title">No worldbook entries</string>
     <string name="worldbook_keywords_label">Keywords: %1$s</string>

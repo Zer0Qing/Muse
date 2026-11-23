@@ -1,5 +1,31 @@
 package io.zer0.muse.data.agentbot
 
+/** 一次前台模型回合固定使用的身份与输入版本。 */
+data class AgentTurnIdentity(
+    val assistantId: String,
+    val sessionId: String,
+    val requestId: String,
+    val requestRevision: Long,
+    val permissionScopeId: String = "",
+) {
+    fun validate(): String? = when {
+        assistantId.isBlank() -> "缺少 assistantId"
+        sessionId.isBlank() -> "缺少 sessionId"
+        requestId.isBlank() -> "缺少 requestId"
+        requestRevision < 1L -> "requestRevision 必须大于 0"
+        else -> null
+    }
+}
+
+data class TaskCreationInput(
+    val identity: AgentTurnIdentity,
+    val goal: String,
+    val acceptanceCriteria: String,
+    val resourceScope: String,
+    val permissionScopeId: String = identity.permissionScopeId,
+    val dedupeKey: String = "task-dispatch:${identity.requestId}",
+)
+
 /**
  * 一次执行的身份快照 —— 宿主注入，不从模型参数信任。
  *

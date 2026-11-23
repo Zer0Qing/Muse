@@ -125,8 +125,8 @@ fun SettingsGroupScreen(
         onBack = onBack,
         focusItemIndex = sectionIndex.takeIf { it >= 0 }?.plus(1),
     ) {
-        group.sections.forEach { section ->
-            item(key = "settings_section_${kind.name}_${section.labelRes ?: 0}") {
+        group.sections.forEachIndexed { index, section ->
+            item(key = "settings_section_${kind.name}_${index}_${section.labelRes ?: 0}") {
                 SettingsEntryCard(
                     label = section.labelRes?.let { stringResource(it) },
                     entries = section.entries.filter { it.isAvailable() },

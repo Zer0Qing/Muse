@@ -6,8 +6,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import io.zer0.muse.ui.theme.MuseCornerRadius
+import io.zer0.muse.ui.theme.MuseBorderWidth
+import io.zer0.muse.ui.theme.MuseShapes
 
 /**
  * 分组容器 — 一组共用圆角容器。
@@ -35,9 +35,9 @@ fun SettingsGroup(modifier: Modifier = Modifier, content: @Composable () -> Unit
     // 不再用硬编码 White@96%/10% 手写明暗分支。
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(MuseCornerRadius.CARD.dp),
+        shape = MuseShapes.extraLarge,
         color = colorScheme.surface,
-        border = androidx.compose.foundation.BorderStroke(0.6.dp, colorScheme.outlineVariant),
+        border = androidx.compose.foundation.BorderStroke(MuseBorderWidth.hairline, colorScheme.outlineVariant),
     ) {
         Column {
             content()

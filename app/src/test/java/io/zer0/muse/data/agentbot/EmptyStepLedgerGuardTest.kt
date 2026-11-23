@@ -53,7 +53,7 @@ class EmptyStepLedgerGuardTest {
         // 这里不能有"空账本"特判 —— 那一层区分不了两种成因。
         val at = applier.indexOf("val sideEffects: List<String> =");
         assertTrue(at > 0);
-        val end = applier.indexOf("val decision = reviewer.review(", at);
+        val end = applier.indexOf("var decision = reviewer.review(", at);
         val block = applier.substring(at, end);
         assertTrue(
             "不该在审核侧猜空账本的成因",

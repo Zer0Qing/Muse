@@ -1,6 +1,8 @@
 package io.zer0.muse.data.agentbot
 
+import io.zer0.common.AppJson
 import io.zer0.common.Logger
+import kotlinx.serialization.Serializable
 
 /**
  * 内部审核器 —— 决定子任务的结果能不能算"完成"。
@@ -30,6 +32,13 @@ class BotReviewWorker {
         val findings: List<String> = emptyList(),
         /** 返工时给下一轮的简要说明。 */
         val retryBrief: String = "",
+        /**
+         * 有验收标准却没有可核验记录时，这些项必须如实上报。
+         *
+         * 结构化字段而不是让下游去 findings 里找关键字：审核结论要能被程序消费，
+         * 靠字符串匹配迟早会因为改了一句文案而失效。
+         */
+        val unverifiedItems: List<String> = emptyList(),
     ) {
         val accepted: Boolean get() = disposition == ReviewDisposition.ACCEPT
     }
@@ -61,6 +70,8 @@ class BotReviewWorker {
          * 也不能对用户隐瞒"其实已经做了"。
          */
         irreversibleSideEffects: List<String> = emptyList(),
+        /** 空 resourceScope 的只读任务可以交付摘要，但摘要不伪装成文件产物。 */
+        summaryOnly: Boolean = false,
     ): Decision {
         val findings = mutableListOf<String>()
 
@@ -91,25 +102,32 @@ class BotReviewWorker {
         }
 
         // 2) 什么都没产出：不能算完成。
-        if (producedArtifacts.isEmpty()) {
+        if (producedArtifacts.isEmpty() && !summaryOnly) {
             findings += "没有任何可核验的产物 —— 只返回一段文字不算完成任务"
             return decideReworkOrGiveUp(findings, attempt, "需要真正产出可打开的产物")
+        }
+        if (summaryOnly && claimedSummary.isBlank()) {
+            findings += "只读任务没有可交付的摘要"
+            return decideReworkOrGiveUp(findings, attempt, "需要提供可核对的摘要")
         }
 
         // 3) 有验收标准却没跑过任何校验：不能宣称"已验证"。
         if (criteria.isNotBlank() && verifiedChecks.isEmpty()) {
-            findings += "有验收标准，但没有任何校验记录（测试/构建/diff 核对）"
+            findings += UNVERIFIED_CRITERIA_NOTE
+            val unverified = listOf(UNVERIFIED_CRITERIA_NOTE)
             // 第一次给返工机会；第二次直接如实上报未验项。
             return if (attempt < MAX_AUTO_REWORK) {
                 Decision(
                     disposition = ReviewDisposition.REWORK,
                     findings = findings,
                     retryBrief = "按验收标准补一次可核验的检查",
+                    unverifiedItems = unverified,
                 )
             } else {
                 Decision(
                     disposition = ReviewDisposition.PARTIAL,
                     findings = findings + "已达自动返工上限，未验项如实上报",
+                    unverifiedItems = unverified,
                 )
             }
         }
@@ -163,9 +181,108 @@ class BotReviewWorker {
         }
     }
 
+    /**
+     * 审核结论 → 任务状态。
+     *
+     * 与 [transitionFor] 是同一张映射的两种表达：一个给状态机，一个给审核事实。
+     * 不从事件反推是为了让"状态机改了映射"在这里编译期就暴露。
+     */
+    fun finalStateFor(disposition: String): String = when (disposition) {
+        ReviewDisposition.ACCEPT -> BotTaskStatus.SUCCEEDED
+        ReviewDisposition.PARTIAL -> BotTaskStatus.PARTIAL
+        ReviewDisposition.REWORK -> BotTaskStatus.QUEUED
+        ReviewDisposition.REJECT -> BotTaskStatus.FAILED
+        ReviewDisposition.NEEDS_USER -> BotTaskStatus.NEEDS_USER
+        ReviewDisposition.UNKNOWN -> BotTaskStatus.UNKNOWN
+        else -> {
+            Logger.w("BotReviewWorker", "未知审核结论，终态按 UNKNOWN 处理: $disposition")
+            BotTaskStatus.UNKNOWN
+        }
+    }
+
+    /**
+     * 把一次审核判断组装成可落库、可发布的审核事实。
+     *
+     * ## 摘要为什么必须在这里生成
+     *
+     * 发布正文只能来自审核事实。把子 Agent 的自述拼进来，等于让"我以为我做完了"
+     * 直接变成"已经做完" —— 那正是这个类要防的事。
+     *
+     * @param publicationAllowed 只有"审核接受且产物真的落地"才允许为 true
+     */
+    fun reviewDecision(
+        decision: Decision,
+        goal: String,
+        verifiedChecks: List<String>,
+        sideEffects: List<String>,
+        candidateRefs: List<String>,
+        publicationAllowed: Boolean,
+        publicationKey: String,
+        taskRevision: Int,
+    ): ReviewDecision = ReviewDecision(
+        disposition = decision.disposition,
+        publicationAllowed = publicationAllowed,
+        finalState = finalStateFor(decision.disposition),
+        userVisibleSummary = summarize(decision, goal, verifiedChecks, candidateRefs, sideEffects),
+        unverifiedItems = decision.unverifiedItems,
+        sideEffects = sideEffects,
+        candidateRefs = candidateRefs,
+        publicationKey = publicationKey,
+        taskRevision = taskRevision,
+    )
+
+    /** 用户可见摘要：只拼审核事实，不取子 Agent 自述。 */
+    private fun summarize(
+        decision: Decision,
+        goal: String,
+        verifiedChecks: List<String>,
+        candidateRefs: List<String>,
+        sideEffects: List<String>,
+    ): String = buildString {
+        append("「")
+        append(goal.trim().take(MAX_GOAL_CHARS).ifBlank { "这件事" })
+        append("」审核结论：")
+        append(dispositionText(decision.disposition))
+        if (candidateRefs.isNotEmpty()) {
+            append("\n产物：")
+            append(candidateRefs.joinToString("、"))
+        }
+        if (verifiedChecks.isNotEmpty()) {
+            append("\n已核验：")
+            append(verifiedChecks.joinToString("、"))
+        }
+        if (sideEffects.isNotEmpty()) {
+            append("\n已发生且无法回滚：")
+            append(sideEffects.joinToString("、"))
+        }
+        if (decision.unverifiedItems.isNotEmpty()) {
+            append("\n未验项：")
+            append(decision.unverifiedItems.joinToString("、"))
+        }
+    }
+
+    private fun dispositionText(disposition: String): String = when (disposition) {
+        ReviewDisposition.ACCEPT -> "已完成"
+        ReviewDisposition.PARTIAL -> "只完成了一部分"
+        ReviewDisposition.REWORK -> "还需要重做"
+        ReviewDisposition.REJECT -> "未通过审核"
+        ReviewDisposition.NEEDS_USER -> "需要你确认"
+        ReviewDisposition.UNKNOWN -> "结果无法确认"
+        else -> {
+            Logger.w("BotReviewWorker", "未知审核结论，摘要按无法确认处理: $disposition")
+            "结果无法确认"
+        }
+    }
+
     companion object {
         /** 自动返工上限。超过之后由主 Bot 说明阻塞，不再无限重试。 */
         const val MAX_AUTO_REWORK = 2
+
+        /** 摘要里保留的目标长度。再长会挤掉真正重要的结论。 */
+        private const val MAX_GOAL_CHARS = 60
+
+        /** "有标准但没校验"的统一措辞。审核事实与 findings 共用它，避免两处漂移。 */
+        private const val UNVERIFIED_CRITERIA_NOTE = "有验收标准，但没有任何校验记录（测试/构建/diff 核对）"
     }
 }
 
@@ -179,4 +296,50 @@ object ReviewDisposition {
     const val UNKNOWN = "UNKNOWN"
 
     val all: Set<String> = setOf(ACCEPT, REWORK, NEEDS_USER, PARTIAL, REJECT, UNKNOWN)
+}
+
+/**
+ * 审核事实 —— 这次结果能不能对外说、说什么、为什么。
+ *
+ * ## 为什么它不是一段文字
+ *
+ * 发布必须能回答"凭什么允许发布"。把结论、终态、未验项、副作用、产物引用
+ * 分开存，任何一项缺失都能被程序发现；糊成一句摘要就只能靠人读。
+ *
+ * ## 为什么它可以序列化进事件
+ *
+ * 事件表只留引用，正文不进事件。审核事实是"要不要发、发什么"的判据，
+ * 跟着事件走才能保证消费方看到的是同一个版本，而不是重新推理一遍。
+ */
+@Serializable
+data class ReviewDecision(
+    /** 见 [ReviewDisposition]。 */
+    val disposition: String,
+    /** 明确允许发布才为 true。失败/REWORK/PARTIAL/UNKNOWN 默认 false。 */
+    val publicationAllowed: Boolean,
+    /** 审核判定的任务状态（[BotTaskStatus] 常量）。 */
+    val finalState: String,
+    /** 允许发布时给用户看的正文，全部由审核事实拼成。 */
+    val userVisibleSummary: String,
+    val unverifiedItems: List<String> = emptyList(),
+    val sideEffects: List<String> = emptyList(),
+    val candidateRefs: List<String> = emptyList(),
+    /** 稳定发布键：同一条事实重复投递只对应一条对外消息。 */
+    val publicationKey: String = "",
+    val taskRevision: Int = 1,
+) {
+
+    fun encode(): String = AppJson.encodeToString(serializer(), this)
+
+    companion object {
+        /**
+         * 解析失败返回 null。
+         *
+         * 宁可当作"没有可发布事实"，也不能猜一份内容发出去 —— 猜出来的正文
+         * 会以审核的名义出现在用户面前。
+         */
+        fun decode(raw: String): ReviewDecision? = runCatching { AppJson.decodeFromString(serializer(), raw) }
+            .onFailure { Logger.w("BotReviewWorker", "审核事实解析失败: ${it.message}") }
+            .getOrNull()
+    }
 }

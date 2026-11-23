@@ -1,6 +1,7 @@
 package io.zer0.muse.ui.common.surface
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -13,15 +14,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
 import io.zer0.muse.ui.theme.MuseAnimation
+import io.zer0.muse.ui.theme.MuseCapsuleButtonSizes
 import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MuseHaptics
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.MuseSpringTier
 
 /**
  * Muse UI Kit — 容器基元 [MuseSurface]。
@@ -102,19 +106,19 @@ fun MuseSurface(
     val isPressed by interactionSource.collectIsPressedAsState()
     val haptic = LocalHapticFeedback.current
 
-    // 按压颜色渐变: 两种主题都只做轻微提亮,避免白色横条和强烈闪烁。
+    // 浅色主题按压略压深、深色主题按压略提亮，避免浅底白块与深底无反馈。
     val isLight = MaterialTheme.colorScheme.surface.luminance() > 0.5f
     val pressedColor = if (isLight) {
         color.copy(
-            red = (color.red + (1f - color.red) * 0.18f).coerceAtMost(1f),
-            green = (color.green + (1f - color.green) * 0.18f).coerceAtMost(1f),
-            blue = (color.blue + (1f - color.blue) * 0.18f).coerceAtMost(1f),
+            red = (color.red * 0.94f).coerceIn(0f, 1f),
+            green = (color.green * 0.94f).coerceIn(0f, 1f),
+            blue = (color.blue * 0.94f).coerceIn(0f, 1f),
         )
     } else {
         color.copy(
-            red = (color.red + (1f - color.red) * 0.18f).coerceAtMost(1f),
-            green = (color.green + (1f - color.green) * 0.18f).coerceAtMost(1f),
-            blue = (color.blue + (1f - color.blue) * 0.18f).coerceAtMost(1f),
+            red = (color.red + (1f - color.red) * 0.12f).coerceAtMost(1f),
+            green = (color.green + (1f - color.green) * 0.12f).coerceAtMost(1f),
+            blue = (color.blue + (1f - color.blue) * 0.12f).coerceAtMost(1f),
         )
     }
 
@@ -126,19 +130,35 @@ fun MuseSurface(
         ),
         label = "muse_surface_color",
     )
+    val pressScale by animateFloatAsState(
+        targetValue = if (isPressed && enableScale) MuseCapsuleButtonSizes.pressScale else 1f,
+        animationSpec = MuseMotion.spring(MuseSpringTier.RESPONSIVE),
+        label = "muse_surface_scale",
+    )
 
     Surface(
-        modifier = modifier.clickable(
-            interactionSource = interactionSource,
-            indication = null,
-            role = Role.Button,
-            onClick = {
-                if (enableHaptic) {
-                    MuseHaptics.light(haptic)
-                }
-                onClick()
-            },
-        ),
+        modifier = modifier
+            .then(
+                if (enableScale) {
+                    Modifier.graphicsLayer {
+                        scaleX = pressScale
+                        scaleY = pressScale
+                    }
+                } else {
+                    Modifier
+                },
+            )
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                role = Role.Button,
+                onClick = {
+                    if (enableHaptic) {
+                        MuseHaptics.light(haptic)
+                    }
+                    onClick()
+                },
+            ),
         shape = shape,
         color = animatedColor,
         tonalElevation = tonalElevation,

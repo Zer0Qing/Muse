@@ -26,7 +26,7 @@ object ProactiveCandidateFilter {
         intensity: ProactiveIntensity,
         bannedKinds: Set<ThoughtKind> = emptySet(),
     ): List<PendingThoughtEntity> = candidates
-        .sortedByDescending { it.weight }
+        .sortedWith(compareByDescending<PendingThoughtEntity> { it.weight }.thenBy { it.createdAt }.thenBy { it.id })
         .filter { intensity.allows(it.kindEnum()) }
         .filterNot { it.kindEnum() in bannedKinds }
 }

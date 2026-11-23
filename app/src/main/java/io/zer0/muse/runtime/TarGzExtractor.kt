@@ -2,6 +2,8 @@ package io.zer0.muse.runtime
 
 import io.zer0.common.Logger
 import java.io.File
+import java.io.EOFException
+import java.io.IOException
 import java.io.InputStream
 import java.util.zip.GZIPInputStream
 
@@ -26,19 +28,25 @@ object TarGzExtractor {
         // 符号链接创建失败被 onFailure 吞掉,包"解完了"但目录不完整,自检才在别处炸。
         // 现在把失败条目攒起来,解包结束后统一抛出,让失败停在安装步骤且说清是哪几条。
         val failedLinks = mutableListOf<String>()
+        val root = destDir.canonicalFile
+        var endBlocks = 0
         archive.inputStream().use { raw ->
             GZIPInputStream(raw, BUFFER_SIZE).use { gz ->
                 val header = ByteArray(HEADER_SIZE)
                 var longName: String? = null
                 var longLink: String? = null
                 while (true) {
-                    if (!readFully(gz, header, HEADER_SIZE)) break
-                    if (header.all { it == 0.toByte() }) {
-                        if (DEBUG_LOG && written == 0L) {
-                            Logger.w(TAG, "首块全零，按结束处理前先报一次")
-                        }
-                        continue // 结束块后的填充
+                    if (!readFully(gz, header, HEADER_SIZE)) {
+                        if (endBlocks >= REQUIRED_END_BLOCKS) break
+                        throw EOFException("tar 归档在结束块之前被截断")
                     }
+                    if (header.all { it == 0.toByte() }) {
+                        endBlocks++
+                        if (endBlocks >= REQUIRED_END_BLOCKS) break
+                        continue
+                    }
+                    if (endBlocks > 0) throw IOException("tar 结束块后仍出现成员")
+                    validateChecksum(header)
 
                     val magic = String(header, 257, 6, Charsets.US_ASCII).trim('\u0000', ' ')
                     if (magic != "ustar") {
@@ -58,10 +66,13 @@ object TarGzExtractor {
 
                     when (type) {
                         'x', 'g' -> {
-                            // pax 扩展头：记录长路径等；读完数据后从属性里取 path
                             val data = readExactly(gz, payload)
                             skipPadding(gz, payload)
-                            if (type == 'x') parsePaxPath(data)?.let { longName = it }
+                            val attributes = parsePax(data)
+                            if (type == 'x') {
+                                attributes.path?.let { longName = it }
+                                attributes.linkPath?.let { longLink = it }
+                            }
                             continue
                         }
                         'L' -> {
@@ -80,19 +91,17 @@ object TarGzExtractor {
                         name = longName
                         longName = null
                     }
-                    val target = File(destDir, name).canonicalFile
-                    require(target.path.startsWith(destDir.canonicalFile.path)) {
-                        "包内路径越界: $name"
-                    }
+                    val target = resolveInside(root, name, "包内路径越界")
 
                     when (type) {
                         '5' -> target.mkdirs()
                         '2' -> {
                             val link = longLink ?: linkNameRaw
                             longLink = null
+                            val linkTarget = resolveLinkInside(root, target.parentFile, link)
                             target.parentFile?.mkdirs()
-                            target.delete()
-                            runCatching { java.nio.file.Files.createSymbolicLink(target.toPath(), File(link).toPath()) }
+                            removeExistingTarget(target)
+                            runCatching { java.nio.file.Files.createSymbolicLink(target.toPath(), linkTarget) }
                                 .onFailure { e ->
                                     Logger.w(TAG, "符号链接创建失败: $name -> $link (${e.message})")
                                     failedLinks += "$name -> $link"
@@ -104,8 +113,9 @@ object TarGzExtractor {
                             // 真遇到就退回复制内容，语义接近且不会失败。
                             val link = longLink ?: linkNameRaw
                             longLink = null
-                            val source = File(destDir, link).canonicalFile
+                            val source = resolveInside(root, link, "硬链接目标越界")
                             target.parentFile?.mkdirs()
+                            removeExistingTarget(target)
                             if (source.isFile) {
                                 source.copyTo(target, overwrite = true)
                             } else {
@@ -117,6 +127,7 @@ object TarGzExtractor {
                         }
                         '0', '\u0000', '7' -> {
                             target.parentFile?.mkdirs()
+                            removeExistingTarget(target)
                             target.outputStream().use { out ->
                                 copyExactly(gz, out, payload) { written += it }
                             }
@@ -136,6 +147,7 @@ object TarGzExtractor {
                 }
             }
         }
+        if (endBlocks < REQUIRED_END_BLOCKS) throw EOFException("tar 归档缺少结束块")
         if (failedLinks.isNotEmpty()) {
             throw IllegalStateException(
                 "解包不完整:${failedLinks.size} 条链接创建失败 -> " +
@@ -152,27 +164,41 @@ object TarGzExtractor {
         file.setExecutable(exec, false)
     }
 
-    private fun parsePaxPath(data: ByteArray): String? {
-        // pax 记录形如 "12 path=/a/b\n"，长度是十进制字节数
+    private data class PaxAttributes(val path: String? = null, val linkPath: String? = null)
+
+    private fun parsePax(data: ByteArray): PaxAttributes {
         var index = 0
-        val text = String(data, Charsets.UTF_8)
-        while (index < text.length) {
-            val space = text.indexOf(' ', index)
-            if (space <= index) break
-            val len = text.substring(index, space).toIntOrNull() ?: break
-            val end = (index + len).coerceAtMost(text.length)
-            val record = text.substring(space + 1, end).trimEnd('\n')
-            if (record.startsWith("path=")) return record.removePrefix("path=")
+        var path: String? = null
+        var linkPath: String? = null
+        while (index < data.size) {
+            var space = index
+            while (space < data.size && data[space] != ' '.code.toByte()) space++
+            if (space == data.size) throw IOException("pax 记录缺少长度分隔符")
+            val lengthText = String(data, index, space - index, Charsets.US_ASCII)
+            val length = lengthText.toIntOrNull() ?: throw IOException("pax 记录长度非法")
+            val end = index + length
+            if (length <= space - index + 2 || end > data.size) throw EOFException("pax 记录长度越界或被截断")
+            if (data[end - 1] != '\n'.code.toByte()) throw IOException("pax 记录缺少换行结束符")
+            val valueStart = space + 1
+            val record = String(data, valueStart, end - valueStart - 1, Charsets.UTF_8)
+            when {
+                record.startsWith("path=") -> path = record.removePrefix("path=")
+                record.startsWith("linkpath=") -> linkPath = record.removePrefix("linkpath=")
+            }
             index = end
         }
-        return null
+        return PaxAttributes(path, linkPath)
     }
 
     private fun readFully(input: InputStream, buffer: ByteArray, length: Int): Boolean {
         var offset = 0
         while (offset < length) {
             val read = input.read(buffer, offset, length - offset)
-            if (read <= 0) return false
+            if (read < 0) {
+                if (offset == 0) return false
+                throw EOFException("tar header 被截断：$offset/$length bytes")
+            }
+            if (read == 0) continue
             offset += read
         }
         return true
@@ -180,14 +206,16 @@ object TarGzExtractor {
 
     private fun readExactly(input: InputStream, length: Long): ByteArray {
         if (length <= 0) return ByteArray(0)
+        if (length > Int.MAX_VALUE) throw IOException("tar 扩展头过大: $length bytes")
         val out = ByteArray(length.toInt())
         var offset = 0
         while (offset < out.size) {
             val read = input.read(out, offset, out.size - offset)
-            if (read <= 0) break
+            if (read < 0) throw EOFException("tar payload 被截断：$offset/${out.size} bytes")
+            if (read == 0) continue
             offset += read
         }
-        return if (offset == out.size) out else out.copyOf(offset)
+        return out
     }
 
     private fun copyExactly(input: InputStream, out: java.io.OutputStream, length: Long, onChunk: (Int) -> Unit) {
@@ -196,7 +224,8 @@ object TarGzExtractor {
         while (remaining > 0) {
             val want = minOf(remaining, buffer.size.toLong()).toInt()
             val read = input.read(buffer, 0, want)
-            if (read <= 0) break
+            if (read < 0) throw EOFException("tar 文件 payload 被截断：还差 $remaining bytes")
+            if (read == 0) continue
             out.write(buffer, 0, read)
             onChunk(read)
             remaining -= read
@@ -206,6 +235,50 @@ object TarGzExtractor {
     private fun skipPadding(input: InputStream, alreadyRead: Long) {
         val remainder = (HEADER_SIZE - (alreadyRead % HEADER_SIZE)) % HEADER_SIZE
         if (remainder > 0L) readExactly(input, remainder)
+    }
+
+    private fun validateChecksum(header: ByteArray) {
+        val expected = readOctal(header, CHECKSUM_OFFSET, CHECKSUM_LENGTH).toLong()
+        var actual = 0L
+        header.forEachIndexed { index, byte ->
+            actual += if (index in CHECKSUM_OFFSET until CHECKSUM_OFFSET + CHECKSUM_LENGTH) {
+                ' '.code.toLong()
+            } else {
+                (byte.toInt() and 0xff).toLong()
+            }
+        }
+        if (expected != actual) throw IOException("tar header 校验和错误：期望 $expected，实际 $actual")
+    }
+
+    private fun resolveInside(root: File, path: String, failure: String): File {
+        require(path.isNotBlank()) { "$failure: 路径为空" }
+        val candidate = File(root, path)
+        val canonicalCandidate = candidate.canonicalFile
+        val rootPath = root.path
+        require(canonicalCandidate.path == rootPath || canonicalCandidate.path.startsWith(rootPath + File.separator)) {
+            "$failure: $path"
+        }
+        if (canonicalCandidate.path == rootPath) return root
+        val parent = candidate.parentFile?.canonicalFile ?: root
+        require(parent.path == rootPath || parent.path.startsWith(rootPath + File.separator)) {
+            "$failure: $path"
+        }
+        return File(parent, candidate.name)
+    }
+
+    private fun resolveLinkInside(root: File, parent: File?, link: String): java.nio.file.Path {
+        require(link.isNotBlank()) { "符号链接目标为空" }
+        val resolved = if (File(link).isAbsolute) File(link).canonicalFile else File(parent ?: root, link).canonicalFile
+        val rootPath = root.path
+        require(resolved.path == rootPath || resolved.path.startsWith(rootPath + File.separator)) {
+            "符号链接目标越界: $link"
+        }
+        return File(link).toPath()
+    }
+
+    private fun removeExistingTarget(target: File) {
+        val exists = target.exists() || java.nio.file.Files.isSymbolicLink(target.toPath())
+        if (exists && !target.delete()) throw IOException("无法替换归档目标: ${target.name}")
     }
 
     private fun readString(bytes: ByteArray, offset: Int, length: Int): String {
@@ -228,7 +301,9 @@ object TarGzExtractor {
     }
 
     private const val HEADER_SIZE = 512
+    private const val CHECKSUM_OFFSET = 148
+    private const val CHECKSUM_LENGTH = 8
+    private const val REQUIRED_END_BLOCKS = 2
     private const val BUFFER_SIZE = 64 * 1024
     private const val TAG = "TarGzExtractor"
-    private const val DEBUG_LOG = true
 }

@@ -139,7 +139,6 @@
     <string name="favorites_tag_edit_hint">グループ名 (空 = グループ化されていない)</string>
     <string name="favorites_tag_edit_clear">グループをクリアする</string>
     <string name="favorites_tag_edit_confirm">わかりました</string>
-    <string name="favorites_tag_edit_cancel">キャンセル</string>
     <string name="favorites_tag_label">グループ: %1$s</string>
     <string name="favorites_empty_in_filter">このグループにはお気に入りがありません</string>
     <string name="favorites_stale_variant_badge">新しいバージョンがあります</string>
@@ -218,6 +217,7 @@
     <string name="agent_bot_status_cancelled">キャンセル済み</string>
     <string name="agent_bot_status_needs_user">判断が必要です</string>
     <string name="agent_bot_status_unknown">結果不明</string>
+    <string name="agent_bot_error_binding_unreadable">このアシスタントの保存済み会話を読み込めなかったため、送信していません。しばらくしてからもう一度お試しください</string>
     <string name="agent_bot_error_no_session">まだ使える会話がありません</string>
     <string name="agent_bot_error_save_failed">メッセージを保存できませんでした。もう一度お試しください</string>
     <string name="agent_bot_error_already_decided">この手順はすでに決定済みです</string>

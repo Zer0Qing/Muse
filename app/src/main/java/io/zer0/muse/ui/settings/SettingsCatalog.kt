@@ -55,17 +55,25 @@ import io.zer0.muse.ui.navigation.WorkspaceRoute
 import kotlinx.coroutines.flow.Flow
 
 /**
- * 设置一级分类。
- *
- * 设置首页只列这 14 类，每类的条目在分类页里；声明顺序即首页从上到下的顺序。
+ * 设置首页卡片分组（4 组静谧区块，靠留白自然分隔，无需分组大字标题）。
+ */
+enum class SettingsHomeBlock {
+    ESSENTIALS,
+    INTELLIGENCE,
+    CAPABILITIES,
+    SYSTEM,
+}
+
+/**
+ * 设置一级分类（12 个均衡分类，每类 3–5 项，按 4 个心智区块排布）。
  */
 enum class SettingsGroupKind {
+    GENERAL,
     ASSISTANTS,
     MODELS,
-    TOOLS,
-    VOICE,
-    IMAGE,
+    MEDIA,
     MEMORY,
+    TOOLS,
     CONNECTION,
     AUTOMATION,
     DATA_STORAGE,
@@ -192,9 +200,10 @@ data class SettingsSectionSpec(
     val entries: List<SettingsEntrySpec>,
 )
 
-/** 设置一级分类声明：标题、一句话说明、图标与其下的条目。 */
+/** 设置一级分类声明：所属首页卡片区块、标题、图标与其下的条目分区。 */
 data class SettingsGroupSpec(
     val kind: SettingsGroupKind,
+    val block: SettingsHomeBlock,
     @StringRes val titleRes: Int,
     val icon: ImageVector,
     val sections: List<SettingsSectionSpec>,
@@ -218,51 +227,28 @@ fun SettingsGroupSpec.directEntryRoute(): Any? {
 /**
  * 设置入口的唯一声明清单。
  *
- * 首页（14 个分类）、分类页（该类条目）、搜索索引（全量条目）都从这里取数据，
- * 三者不会再各自维护一份顺序或标题。
+ * 首页（12 个均衡分类，按 4 组静谧区块排布）、分类页（该类条目）、搜索索引（全量条目）
+ * 与 Web 端设置目录都以此为真源。
  */
 object SettingsCatalog {
 
     val groups: List<SettingsGroupSpec> = listOf(
+        // ── Block 1: 外观与助手 ──────────────────────────────────────────
         group(
-            SettingsGroupKind.ASSISTANTS,
-            R.string.settings_group_assistants,
-            MuseIcons.users,
+            SettingsGroupKind.GENERAL,
+            SettingsHomeBlock.ESSENTIALS,
+            R.string.settings_group_general,
+            MuseIcons.palette,
             entries(
                 entry(
-                    SettingsEntryId.USER_PROFILE,
-                    R.string.settings_user_profile_title,
-                    MuseIcons.user,
-                    SettingsEntryAction.Navigate(UserProfileEditRoute),
+                    SettingsEntryId.APPEARANCE,
+                    R.string.settings_screen_appearance_label,
+                    MuseIcons.palette,
+                    SettingsEntryAction.Navigate(SettingsAppearanceRoute),
                     keywords = listOf(
-                        "用户画像", "用户资料", "我的资料", "个人资料", "昵称", "头像", "profile",
-                        "yonghuhuaxiang", "yonghuziliao", "ziliao", "nicheng", "touxiang", "yhhx", "yhzl", "zl", "nc", "tx",
+                        "外观", "显示", "界面", "字号", "字体", "waiguan", "xianshi", "jiemian", "zihao",
+                        "ziti", "wg", "xs", "jm", "zt", "主题", "圆角", "启动页", "引导", "壁纸",
                     ),
-                ),
-                entry(
-                    SettingsEntryId.ASSISTANTS,
-                    R.string.settings_screen_assistant,
-                    MuseIcons.atom,
-                    SettingsEntryAction.Navigate(AssistantsRoute),
-                    keywords = listOf("助手", "assistant", "角色", "人设", "zhushou", "juese", "renshe", "zs", "js", "rs"),
-                ),
-                entry(
-                    SettingsEntryId.ASSISTANT_RESOURCES,
-                    R.string.settings_screen_assistant_resources,
-                    MuseIcons.stars,
-                    SettingsEntryAction.Navigate(SettingsAssistantResourcesRoute),
-                    keywords = listOf(
-                        "助手资源", "收藏夹", "世界书", "快捷消息", "模式注入", "Skills", "技能", "zhushouziyuan",
-                        "shoucangjia", "shijieshu", "kuaijiexiaoxi", "moshizhur", "jineng", "zszy",
-                        "scj", "sjs", "kjxx", "mszr", "jn",
-                    ),
-                ),
-                entry(
-                    SettingsEntryId.AGENT,
-                    R.string.chat_agent_tab_title,
-                    MuseIcons.users,
-                    SettingsEntryAction.Navigate(SettingsAgentRoute),
-                    keywords = listOf("Agent", "代理", "智能体", "自主", "daili", "zhinengti", "zizhu", "dl", "znt"),
                 ),
                 entry(
                     SettingsEntryId.CHAT,
@@ -276,19 +262,85 @@ object SettingsCatalog {
                     ),
                 ),
                 entry(
-                    SettingsEntryId.APPEARANCE,
-                    R.string.settings_screen_appearance_label,
-                    MuseIcons.palette,
-                    SettingsEntryAction.Navigate(SettingsAppearanceRoute),
+                    SettingsEntryId.USER_PROFILE,
+                    R.string.settings_user_profile_title,
+                    MuseIcons.user,
+                    SettingsEntryAction.Navigate(UserProfileEditRoute),
                     keywords = listOf(
-                        "外观", "显示", "界面", "字号", "字体", "waiguan", "xianshi", "jiemian", "zihao",
-                        "ziti", "wg", "xs", "jm", "zt", "主题", "圆角", "启动页", "引导", "壁纸",
+                        "用户画像", "用户资料", "我的资料", "个人资料", "昵称", "头像", "profile",
+                        "yonghuhuaxiang", "yonghuziliao", "ziliao", "nicheng", "touxiang", "yhhx", "yhzl", "zl", "nc", "tx",
+                    ),
+                ),
+                entry(
+                    SettingsEntryId.STATS,
+                    R.string.settings_screen_stats,
+                    MuseIcons.chartBar,
+                    SettingsEntryAction.Navigate(StatsRoute),
+                    keywords = listOf(
+                        "统计", "使用统计", "stats", "热力图", "数据", "tongji",
+                        "shiyongtongji", "relitu", "shuju", "tj", "sytj", "rlt", "sj",
                     ),
                 ),
             ),
         ),
         group(
+            SettingsGroupKind.ASSISTANTS,
+            SettingsHomeBlock.ESSENTIALS,
+            R.string.settings_group_assistants,
+            MuseIcons.atom,
+            entries(
+                entry(
+                    SettingsEntryId.ASSISTANTS,
+                    R.string.settings_screen_assistant,
+                    MuseIcons.atom,
+                    SettingsEntryAction.Navigate(AssistantsRoute),
+                    keywords = listOf("助手", "assistant", "角色", "人设", "zhushou", "juese", "renshe", "zs", "js", "rs"),
+                ),
+                entry(
+                    SettingsEntryId.AGENT,
+                    R.string.chat_agent_tab_title,
+                    MuseIcons.users,
+                    SettingsEntryAction.Navigate(SettingsAgentRoute),
+                    keywords = listOf("Agent", "代理", "智能体", "自主", "daili", "zhinengti", "zizhu", "dl", "znt"),
+                ),
+                entry(
+                    SettingsEntryId.AGENT_DIRECTIVES,
+                    R.string.settings_screen_agent_directives,
+                    MuseIcons.bell,
+                    SettingsEntryAction.Navigate(SettingsAgentDirectivesRoute),
+                    keywords = listOf(
+                        "约定", "规矩", "希望", "不希望", "别叫我", "directive",
+                        "yueding", "guiju", "xiwang", "buwang", "biejiaowozhenming",
+                    ),
+                ),
+                entry(
+                    SettingsEntryId.ASSISTANT_RESOURCES,
+                    R.string.settings_screen_assistant_resources,
+                    MuseIcons.stars,
+                    SettingsEntryAction.Navigate(SettingsAssistantResourcesRoute),
+                    keywords = listOf(
+                        "助手资源", "收藏夹", "世界书", "快捷消息", "模式注入", "Skills", "技能", "zhushouziyuan",
+                        "shoucangjia", "shijieshu", "kuaijiexiaoxi", "moshizhur", "jineng", "zszy",
+                        "scj", "sjs", "kjxx", "mszr", "jn",
+                    ),
+                ),
+                entry(
+                    SettingsEntryId.MINIPHONE,
+                    R.string.settings_miniphone_title,
+                    MuseIcons.deviceMobile,
+                    SettingsEntryAction.Navigate(MiniPhoneRoute),
+                    keywords = listOf(
+                        "小手机", "内置手机", "手机", "miniphone", "mini phone", "xiaoshouji",
+                        "neizhishouji", "shouji", "xsj", "sj",
+                    ),
+                    browseVisible = io.zer0.muse.feature.FeatureFlags.MINI_PHONE_ENTRY,
+                ),
+            ),
+        ),
+        // ── Block 2: 大脑、感官与记忆 ────────────────────────────────────
+        group(
             SettingsGroupKind.MODELS,
+            SettingsHomeBlock.INTELLIGENCE,
             R.string.settings_group_models,
             MuseIcons.provider,
             entries(
@@ -300,8 +352,6 @@ object SettingsCatalog {
                     keywords = listOf(
                         "供应商", "模型", "provider", "API", "密钥", "gongyingshang", "moxing", "miyao",
                         "gys", "mx", "my", "绘图", "Agnes", "DALL-E", "绘图供应商",
-                        // 2026-11-20(P2-6):真机在设置里搜英文 "model" 搜不到这一项 ——
-                        // 关键词里只有拼音 moxing 与中文「模型」，补上英文原词与常见写法。
                         "model", "models", "model provider", "llm", "endpoint",
                     ),
                 ),
@@ -318,133 +368,89 @@ object SettingsCatalog {
                     ),
                 ),
                 entry(
-                    SettingsEntryId.PROVIDER_PLUGINS,
-                    R.string.provider_plugins_title,
-                    MuseIcons.affiliate,
-                    SettingsEntryAction.Navigate(PluginManageRoute),
+                    SettingsEntryId.RUNTIME,
+                    R.string.offline_resources_entry_title,
+                    MuseIcons.download,
+                    SettingsEntryAction.Navigate(SettingsRuntimeRoute),
                     keywords = listOf(
-                        "插件管理", "应用插件", "供应商插件", "插件", "插件包", "app plugin", "provider plugin", "chajian",
-                        "chajianbao", "yingyongchajian", "gongyingshangchajian", "cj", "cjb",
+                        "运行时", "运行环境", "Node", "Python", "runtime", "terminal", "终端",
+                        "离线资源", "下载", "语音模型", "SenseVoice", "offline", "download", "asr",
+                        "yunxingshi", "yunxinghuanjing", "zhongduan", "yxs", "yxhj", "zd",
+                        "lixianziyuan", "xiazai", "yuyinmoxing", "lxzy", "xz", "yymx",
                     ),
                 ),
             ),
         ),
-        group(
-            SettingsGroupKind.TOOLS,
-            R.string.settings_group_tools,
-            MuseIcons.wrench,
-            entries(
-                entry(
-                    SettingsEntryId.TOOLS,
-                    R.string.settings_screen_tools,
-                    MuseIcons.wrench,
-                    SettingsEntryAction.Navigate(ToolsScreenRoute),
-                    keywords = listOf("工具", "AI工具", "ToolRegistry", "tool", "插件", "gongju", "AIgongju", "chajian", "gj", "AIgj", "cj"),
-                ),
-                entry(
-                    SettingsEntryId.PERMISSION_WIZARD,
-                    R.string.permission_wizard_title,
-                    // 20②: 外层只给一行；三通道权限模型的细节留在向导内页。
-                    MuseIcons.shieldCheck,
-                    SettingsEntryAction.Navigate(SettingsPermissionWizardRoute),
-                    keywords = listOf("权限", "向导", "无障碍", "Shizuku", "Root", "quanxian", "xiangdao", "wuzhangai", "qx", "xd", "wza"),
-                ),
-                entry(
-                    SettingsEntryId.WEB_SEARCH,
-                    R.string.settings_screen_web_search,
-                    MuseIcons.globe,
-                    SettingsEntryAction.Navigate(SettingsWebSearchRoute),
-                    keywords = listOf(
-                        "联网搜索", "搜索", "web search", "网络搜索", "在线搜索", "lianwang", "sousuo",
-                        "wangluosousuo", "zaixiansousuo", "lwss", "ss", "wlss", "zxss",
-                    ),
-                ),
-                // 单工具审批策略此前只有搜索索引一条记录，且指向只读的 ToolsScreenRoute
-                // （那一页自述"不做全局开关…只做展示与说明"）。真正可写的页面挂在
-                // ConnectionCenterRoute 上，而那条路由全仓 0 处 navigate —— 用户搜到"工具批准"
-                // 点进去改不了任何东西，改得了的页面又找不到。这里把可写页接进分类页。
-                entry(
-                    SettingsEntryId.TOOL_APPROVAL,
-                    R.string.settings_screen_entry_tool_approval,
-                    MuseIcons.shieldCheck,
-                    SettingsEntryAction.Navigate(ToolsSettingsRoute),
-                    keywords = listOf(
-                        "工具批准", "批准模式", "审批", "自动批准", "始终允许", "始终拒绝", "工具权限",
-                        "gongjupizhun", "pizhunmoshi", "shenpi", "zidongpizhun", "shizhongyunxu",
-                        "gjpz", "pzms", "sp", "zdpz", "szzx",
-                    ),
-                ),
-            ),
-        ),
-        group(
-            SettingsGroupKind.VOICE,
-            R.string.settings_group_voice,
+        groupSections(
+            SettingsGroupKind.MEDIA,
+            SettingsHomeBlock.INTELLIGENCE,
+            R.string.settings_group_media,
             MuseIcons.microphone,
-            entries(
-                entry(
-                    SettingsEntryId.TTS,
-                    R.string.settings_screen_media,
-                    MuseIcons.microphone,
-                    SettingsEntryAction.Navigate(SettingsMediaRoute),
-                    keywords = listOf(
-                        "语音播报", "媒体", "录音", "语音", "播报", "yuyinbobao",
-                        "meiti", "luyin", "yuyin", "bobao", "mt", "ly", "yy", "bb",
+            listOf(
+                SettingsSectionSpec(
+                    entries = entries(
+                        entry(
+                            SettingsEntryId.TTS,
+                            R.string.settings_screen_media,
+                            MuseIcons.microphone,
+                            SettingsEntryAction.Navigate(SettingsMediaRoute),
+                            keywords = listOf(
+                                "语音播报", "媒体", "录音", "语音", "播报", "yuyinbobao",
+                                "meiti", "luyin", "yuyin", "bobao", "mt", "ly", "yy", "bb",
+                            ),
+                        ),
+                        entry(
+                            SettingsEntryId.ASR,
+                            R.string.settings_screen_asr,
+                            MuseIcons.microphone,
+                            SettingsEntryAction.Navigate(SettingsAsrRoute),
+                            keywords = listOf(
+                                "ASR", "asr", "语音识别", "speech", "转文字", "识别语音", "yuyinshibie", "zhuanwenzi",
+                                "shibieyuyin", "yysb", "zwz", "sbyy",
+                            ),
+                        ),
+                        entry(
+                            SettingsEntryId.VOICE_CLONING,
+                            R.string.voice_cloning_title,
+                            MuseIcons.play,
+                            SettingsEntryAction.Navigate(VoiceCloningRoute),
+                            keywords = listOf(
+                                "语音克隆", "克隆", "音色", "声音复刻", "voice clone", "yuyinkelong",
+                                "kelong", "yinse", "shengyinfuke", "yykl", "kl", "ys",
+                            ),
+                        ),
                     ),
                 ),
-                entry(
-                    SettingsEntryId.ASR,
-                    R.string.settings_screen_asr,
-                    MuseIcons.microphone,
-                    SettingsEntryAction.Navigate(SettingsAsrRoute),
-                    keywords = listOf(
-                        "ASR", "asr", "语音识别", "speech", "转文字", "识别语音", "yuyinshibie", "zhuanwenzi",
-                        "shibieyuyin", "yysb", "zwz", "sbyy",
+                SettingsSectionSpec(
+                    entries = entries(
+                        entry(
+                            SettingsEntryId.VISION,
+                            R.string.settings_vision_title,
+                            MuseIcons.image,
+                            SettingsEntryAction.Navigate(SettingsVisionRoute),
+                            keywords = listOf(
+                                "视觉辅助", "视觉", "图片理解", "看图", "OCR", "视觉模型", "shijue",
+                                "tupianlijie", "kantu", "shijuefuzhu", "shijuemoxing", "sj", "tplj", "kt",
+                            ),
+                        ),
+                        entry(
+                            SettingsEntryId.IMAGE_VIDEO_GEN,
+                            R.string.video_gen_title,
+                            MuseIcons.video,
+                            SettingsEntryAction.Navigate(VideoGenerationRoute),
+                            keywords = listOf(
+                                "视频生成", "图片生成", "绘图", "生成图片", "文生图", "生成视频", "video gen",
+                                "image gen", "shipinshengcheng", "tupianshengcheng", "huitu", "shengchengtupian",
+                                "wenshengtu", "spsc", "tpsc", "ht",
+                            ),
+                        ),
                     ),
                 ),
-                entry(
-                    SettingsEntryId.VOICE_CLONING,
-                    R.string.voice_cloning_title,
-                    MuseIcons.play,
-                    SettingsEntryAction.Navigate(VoiceCloningRoute),
-                    keywords = listOf(
-                        "语音克隆", "克隆", "音色", "声音复刻", "voice clone", "yuyinkelong",
-                        "kelong", "yinse", "shengyinfuke", "yykl", "kl", "ys",
-                    ),
-                ),
-            ),
-        ),
-        group(
-            SettingsGroupKind.IMAGE,
-            R.string.settings_group_image,
-            MuseIcons.image,
-            entries(
-                entry(
-                    SettingsEntryId.IMAGE_VIDEO_GEN,
-                    R.string.video_gen_title,
-                    MuseIcons.video,
-                    SettingsEntryAction.Navigate(VideoGenerationRoute),
-                    keywords = listOf(
-                        "视频生成", "图片生成", "绘图", "生成图片", "文生图", "生成视频", "video gen",
-                        "image gen", "shipinshengcheng", "tupianshengcheng", "huitu", "shengchengtupian",
-                        "wenshengtu", "spsc", "tpsc", "ht",
-                    ),
-                ),
-                entry(
-                    SettingsEntryId.VISION,
-                    R.string.settings_vision_title,
-                    MuseIcons.image,
-                    SettingsEntryAction.Navigate(SettingsVisionRoute),
-                    keywords = listOf(
-                        "视觉辅助", "视觉", "图片理解", "看图", "OCR", "视觉模型", "shijue",
-                        "tupianlijie", "kantu", "shijuefuzhu", "shijuemoxing", "sj", "tplj", "kt",
-                    ),
-                ),
-                // 11①: AI 翻译不属于「图像与视觉」。入口已移除；翻译功能本身保留，
-                // 首页快捷栏的 Quick Translate 仍直达 TranslateRoute。
             ),
         ),
         group(
             SettingsGroupKind.MEMORY,
+            SettingsHomeBlock.INTELLIGENCE,
             R.string.settings_group_memory,
             MuseIcons.brain,
             entries(
@@ -468,7 +474,6 @@ object SettingsCatalog {
                         "xiangliang", "wendang", "zsk", "js", "xl", "wd",
                     ),
                 ),
-                // v2.7.x(E2): 术语页 —— 黑话与新词由用户确认后才进上下文,不确认就当没说。
                 entry(
                     SettingsEntryId.SESSION_TERMS,
                     R.string.settings_screen_session_terms,
@@ -480,14 +485,55 @@ object SettingsCatalog {
                 ),
             ),
         ),
+        // ── Block 3: 扩展、连接与自动化 ──────────────────────────────────
+        group(
+            SettingsGroupKind.TOOLS,
+            SettingsHomeBlock.CAPABILITIES,
+            R.string.settings_group_tools,
+            MuseIcons.wrench,
+            entries(
+                entry(
+                    SettingsEntryId.TOOLS,
+                    R.string.settings_screen_tools,
+                    MuseIcons.wrench,
+                    SettingsEntryAction.Navigate(ToolsScreenRoute),
+                    keywords = listOf("工具", "AI工具", "ToolRegistry", "tool", "插件", "gongju", "AIgongju", "chajian", "gj", "AIgj", "cj"),
+                ),
+                entry(
+                    SettingsEntryId.WEB_SEARCH,
+                    R.string.settings_screen_web_search,
+                    MuseIcons.globe,
+                    SettingsEntryAction.Navigate(SettingsWebSearchRoute),
+                    keywords = listOf(
+                        "联网搜索", "搜索", "web search", "网络搜索", "在线搜索", "lianwang", "sousuo",
+                        "wangluosousuo", "zaixiansousuo", "lwss", "ss", "wlss", "zxss",
+                    ),
+                ),
+                entry(
+                    SettingsEntryId.PROVIDER_PLUGINS,
+                    R.string.provider_plugins_title,
+                    MuseIcons.affiliate,
+                    SettingsEntryAction.Navigate(PluginManageRoute),
+                    keywords = listOf(
+                        "插件管理", "应用插件", "供应商插件", "插件", "插件包", "app plugin", "provider plugin", "chajian",
+                        "chajianbao", "yingyongchajian", "gongyingshangchajian", "cj", "cjb",
+                    ),
+                ),
+                entry(
+                    SettingsEntryId.MCP,
+                    R.string.settings_screen_mcp,
+                    MuseIcons.plug,
+                    SettingsEntryAction.Navigate(SettingsMcpRoute),
+                    keywords = listOf("MCP", "mcp", "服务器", "Model Context Protocol", "工具协议", "fuwuqi", "gongjixieyi", "fwq", "gjxy"),
+                ),
+            ),
+        ),
         group(
             SettingsGroupKind.CONNECTION,
+            SettingsHomeBlock.CAPABILITIES,
             R.string.settings_group_connection,
             MuseIcons.link,
             entries(
-                // 21: 原「扩展与连接」三级包装已拍平——它的五个目的地在二级都直达：
-                // 渠道/MCP 就在本组，插件在模型组，技能经助手资源，工具权限在工具组。
-                // 留着它只是多一层点击并把同样的入口再列一遍。
                 entry(
                     SettingsEntryId.CHANNEL,
                     R.string.channel_page_title,
@@ -520,17 +566,8 @@ object SettingsCatalog {
                         "wangyeban", "wangye", "liulanqi", "juyuwang", "erweima", "saoyisao", "sao",
                         "shoujifangwen", "pin", "web",
                     ),
-                    // 本版暂不主推：服务端与页面都能用，只是不在分类页给入口，搜索仍能命中。
                     browseVisible = false,
                 ),
-                entry(
-                    SettingsEntryId.MCP,
-                    R.string.settings_screen_mcp,
-                    MuseIcons.plug,
-                    SettingsEntryAction.Navigate(SettingsMcpRoute),
-                    keywords = listOf("MCP", "mcp", "服务器", "Model Context Protocol", "工具协议", "fuwuqi", "gongjixieyi", "fwq", "gjxy"),
-                ),
-                // 代理条目的说明由运行时按当前配置拼（未启用 / type host:port），清单里不给固定文案。
                 entry(
                     SettingsEntryId.PROXY,
                     R.string.proxy_title,
@@ -538,34 +575,11 @@ object SettingsCatalog {
                     SettingsEntryAction.Navigate(SettingsProxyRoute),
                     keywords = listOf("代理", "proxy", "网络", "VPN", "HTTP代理", "daili", "wangluo", "dl", "wl"),
                 ),
-                entry(
-                    SettingsEntryId.KEEP_ALIVE,
-                    R.string.settings_keep_alive_title,
-                    MuseIcons.battery,
-                    SettingsEntryAction.Navigate(KeepAliveSettingsRoute),
-                    keywords = listOf(
-                        "常驻后台", "保活", "后台", "电池优化", "自启动", "通知文案",
-                        "changzhu", "baohuo", "houtai", "dianchi", "zhiqidong",
-                        "czy", "bh", "ht", "dc", "zqd",
-                    ),
-                ),
-                entry(
-                    SettingsEntryId.MINIPHONE,
-                    R.string.settings_miniphone_title,
-                    MuseIcons.deviceMobile,
-                    SettingsEntryAction.Navigate(MiniPhoneRoute),
-                    keywords = listOf(
-                        "小手机", "内置手机", "手机", "miniphone", "mini phone", "xiaoshouji",
-                        "neizhishouji", "shouji", "xsj", "sj",
-                    ),
-                    // 31: 可见性只认编译期总闸这一个真源。原先这里再写一份 false，
-                    // 开入口时就得记得改两处，漏一处就是首页能进、设置搜不到。
-                    browseVisible = io.zer0.muse.feature.FeatureFlags.MINI_PHONE_ENTRY,
-                ),
             ),
         ),
         group(
             SettingsGroupKind.AUTOMATION,
+            SettingsHomeBlock.CAPABILITIES,
             R.string.settings_group_automation,
             MuseIcons.bell,
             entries(
@@ -577,16 +591,6 @@ object SettingsCatalog {
                     keywords = listOf(
                         "主动消息", "主动", "推送", "定时发送", "proactive", "zhudongxiaoxi", "zhudong",
                         "tuisong", "dingshifasong", "zdxx", "zd", "ts",
-                    ),
-                ),
-                entry(
-                    SettingsEntryId.AGENT_DIRECTIVES,
-                    R.string.settings_screen_agent_directives,
-                    MuseIcons.bell,
-                    SettingsEntryAction.Navigate(SettingsAgentDirectivesRoute),
-                    keywords = listOf(
-                        "约定", "规矩", "希望", "不希望", "别叫我", "directive",
-                        "yueding", "guiju", "xiwang", "buwang", "biejiaowozhenming",
                     ),
                 ),
                 entry(
@@ -606,10 +610,23 @@ object SettingsCatalog {
                     SettingsEntryAction.Navigate(SettingsAutomationRoute),
                     keywords = listOf("UI自动化", "自动操作", "屏幕读取", "手势", "zidonghua", "zidongcaozuo", "pingmu", "shoushi"),
                 ),
+                entry(
+                    SettingsEntryId.KEEP_ALIVE,
+                    R.string.settings_keep_alive_title,
+                    MuseIcons.battery,
+                    SettingsEntryAction.Navigate(KeepAliveSettingsRoute),
+                    keywords = listOf(
+                        "常驻后台", "保活", "后台", "电池优化", "自启动", "通知文案",
+                        "changzhu", "baohuo", "houtai", "dianchi", "zhiqidong",
+                        "czy", "bh", "ht", "dc", "zqd",
+                    ),
+                ),
             ),
         ),
+        // ── Block 4: 数据、隐私与系统 ────────────────────────────────────
         group(
             SettingsGroupKind.DATA_STORAGE,
+            SettingsHomeBlock.SYSTEM,
             R.string.settings_group_data_storage,
             MuseIcons.database,
             entries(
@@ -657,29 +674,13 @@ object SettingsCatalog {
                     SettingsEntryAction.Navigate(ArchivedChatsRoute),
                     keywords = listOf("归档", "archive", "已归档", "guidang", "gd"),
                 ),
-                // 条目名与组名分开:此前两者共用 offline_resources_title,
-                // 首页那一行、页面标题、条目名三处同字,用户点进去会以为没跳转。
-                entry(
-                    SettingsEntryId.RUNTIME,
-                    R.string.offline_resources_entry_title,
-                    MuseIcons.download,
-                    SettingsEntryAction.Navigate(SettingsRuntimeRoute),
-                    keywords = listOf(
-                        "运行时", "运行环境", "Node", "Python", "runtime", "terminal", "终端",
-                        "离线资源", "下载", "语音模型", "SenseVoice", "offline", "download", "asr",
-                        "yunxingshi", "yunxinghuanjing", "zhongduan", "yxs", "yxhj", "zd",
-                        "lixianziyuan", "xiazai", "yuyinmoxing", "lxzy", "xz", "yymx",
-                    ),
-                ),
             ),
         ),
-        // 下载类资源单独成组放在一级：运行环境和语音模型都是几百 MB 的按需下载，
-        // 以前一个在「数据与备份」里、一个在「语音识别」里再点一层，用户得记住两处。
-        // 合成一组后，设置首页一眼就能看到「还有个东西要下」。
         group(
             SettingsGroupKind.PRIVACY_SECURITY,
+            SettingsHomeBlock.SYSTEM,
             R.string.settings_group_privacy_security,
-            MuseIcons.lock,
+            MuseIcons.shieldCheck,
             entries(
                 entry(
                     SettingsEntryId.PII_GUARD,
@@ -694,16 +695,45 @@ object SettingsCatalog {
                     ),
                 ),
                 entry(
+                    SettingsEntryId.PERMISSION_WIZARD,
+                    R.string.permission_wizard_title,
+                    MuseIcons.shieldCheck,
+                    SettingsEntryAction.Navigate(SettingsPermissionWizardRoute),
+                    keywords = listOf("权限", "向导", "无障碍", "Shizuku", "Root", "quanxian", "xiangdao", "wuzhangai", "qx", "xd", "wza"),
+                ),
+                entry(
+                    SettingsEntryId.TOOL_APPROVAL,
+                    R.string.settings_screen_entry_tool_approval,
+                    MuseIcons.shieldCheck,
+                    SettingsEntryAction.Navigate(ToolsSettingsRoute),
+                    keywords = listOf(
+                        "工具批准", "批准模式", "审批", "自动批准", "始终允许", "始终拒绝", "工具权限",
+                        "gongjupizhun", "pizhunmoshi", "shenpi", "zidongpizhun", "shizhongyunxu",
+                        "gjpz", "pzms", "sp", "zdpz", "szzx",
+                    ),
+                ),
+                entry(
                     SettingsEntryId.SHARE,
                     R.string.common_share,
                     MuseIcons.lock,
                     SettingsEntryAction.Navigate(SettingsSecurityRoute),
                     keywords = listOf("分享", "导出", "分享模板", "share", "fenxiang", "daochu", "fx", "dc"),
                 ),
+                entry(
+                    SettingsEntryId.AUDIT_LOG,
+                    R.string.settings_audit_log,
+                    MuseIcons.history,
+                    SettingsEntryAction.Navigate(AuditLogRoute),
+                    keywords = listOf(
+                        "审计", "日志", "audit", "操作记录", "审计日志", "shenji",
+                        "rizhi", "caozuojilu", "shenjirizhi", "sj", "rz", "czjl", "sjrz",
+                    ),
+                ),
             ),
         ),
         group(
             SettingsGroupKind.ABOUT,
+            SettingsHomeBlock.SYSTEM,
             R.string.settings_group_about,
             MuseIcons.info,
             entries(
@@ -734,11 +764,10 @@ object SettingsCatalog {
         ),
         group(
             SettingsGroupKind.DEVELOPER,
+            SettingsHomeBlock.SYSTEM,
             R.string.settings_group_developer,
             MuseIcons.terminal,
             entries(
-                // 运行诊断 —— 「记忆页慢/后台没跑」不再靠猜;导出不含内容只含体积与计数。
-                // 归属开发者组：它是排障入口，普通用户不需要出现在「关于」里。
                 entry(
                     SettingsEntryId.DIAGNOSTICS,
                     R.string.settings_screen_diagnostics,
@@ -746,16 +775,6 @@ object SettingsCatalog {
                     SettingsEntryAction.Navigate(SettingsDiagnosticsRoute),
                     keywords = listOf(
                         "诊断", "运行", "卡顿", "存储", "日志", "diagnostics", "zhenduan", "yunhang", "kadun", "cunchu", "rizhi", "zd",
-                    ),
-                ),
-                entry(
-                    SettingsEntryId.STATS,
-                    R.string.settings_screen_stats,
-                    MuseIcons.chartBar,
-                    SettingsEntryAction.Navigate(StatsRoute),
-                    keywords = listOf(
-                        "统计", "使用统计", "stats", "热力图", "数据", "tongji",
-                        "shiyongtongji", "relitu", "shuju", "tj", "sytj", "rlt", "sj",
                     ),
                 ),
                 entry(
@@ -779,16 +798,6 @@ object SettingsCatalog {
                     SettingsEntryAction.Navigate(SettingsCrashReportRoute),
                     keywords = listOf("崩溃", "崩溃上报", "crash", "报告", "诊断", "bengkui", "baogao", "zhenduan", "bk", "bg", "zd"),
                 ),
-                entry(
-                    SettingsEntryId.AUDIT_LOG,
-                    R.string.settings_audit_log,
-                    MuseIcons.history,
-                    SettingsEntryAction.Navigate(AuditLogRoute),
-                    keywords = listOf(
-                        "审计", "日志", "audit", "操作记录", "审计日志", "shenji",
-                        "rizhi", "caozuojilu", "shenjirizhi", "sj", "rz", "czjl", "sjrz",
-                    ),
-                ),
             ),
         ),
     )
@@ -801,14 +810,30 @@ object SettingsCatalog {
 
     private fun group(
         kind: SettingsGroupKind,
+        block: SettingsHomeBlock,
         @StringRes titleRes: Int,
         icon: ImageVector,
         entries: List<SettingsEntrySpec>,
     ): SettingsGroupSpec = SettingsGroupSpec(
         kind = kind,
+        block = block,
         titleRes = titleRes,
         icon = icon,
         sections = listOf(SettingsSectionSpec(entries = entries)),
+    )
+
+    private fun groupSections(
+        kind: SettingsGroupKind,
+        block: SettingsHomeBlock,
+        @StringRes titleRes: Int,
+        icon: ImageVector,
+        sections: List<SettingsSectionSpec>,
+    ): SettingsGroupSpec = SettingsGroupSpec(
+        kind = kind,
+        block = block,
+        titleRes = titleRes,
+        icon = icon,
+        sections = sections,
     )
 
     private fun entries(vararg entries: SettingsEntrySpec): List<SettingsEntrySpec> = entries.toList()

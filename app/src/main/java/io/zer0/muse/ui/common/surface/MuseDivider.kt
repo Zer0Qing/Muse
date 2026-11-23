@@ -8,7 +8,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
+import io.zer0.muse.ui.theme.MuseAlpha
+import io.zer0.muse.ui.theme.MuseBorderWidth
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 
@@ -45,8 +46,8 @@ fun museDividerStartIndent(hasLeading: Boolean): Dp = if (hasLeading) {
 fun MuseDivider(
     modifier: Modifier = Modifier,
     startIndent: Dp = museDividerStartIndent(hasLeading = true),
-    thickness: Dp = 0.5.dp,
-    color: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.13f),
+    thickness: Dp = MuseBorderWidth.hairline,
+    color: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = MuseAlpha.divider),
 ) {
     HorizontalDivider(
         modifier = modifier

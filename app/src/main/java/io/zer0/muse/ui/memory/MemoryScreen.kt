@@ -1103,15 +1103,6 @@ private fun LazyListScope.memoryStreamItems(
             )
         }
     }
-    // MEM-01 (D2): 记忆流 = 按发生时间聚合的时间轴 — 顶部说明与时间语义
-    item(key = "memory_stream_subtitle") {
-        Text(
-            text = stringResource(R.string.memory_center_stream_subtitle),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = MusePaddings.screen, vertical = 2.dp),
-        )
-    }
     if (state.isLoading) {
         item(key = "memory_stream_loading") {
             Box(Modifier.fillMaxWidth().heightIn(min = 320.dp), contentAlignment = Alignment.Center) {

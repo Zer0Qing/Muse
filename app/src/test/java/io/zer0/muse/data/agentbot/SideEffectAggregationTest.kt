@@ -47,6 +47,7 @@ class SideEffectAggregationTest {
             approvalDao = db.approvalRequestDao(),
             publicationDao = db.publicationOutboxDao(),
             bindingDao = db.botBindingDao(),
+            database = db,
             now = { clock },
         );
         dir = File(System.getProperty("java.io.tmpdir"), "agg-" + System.nanoTime());
@@ -79,6 +80,7 @@ class SideEffectAggregationTest {
         val run = repo.openRun(task.taskId)!!;
         repo.transition(task.taskId, BotTaskStatusMachine.Event.START);
         repo.transition(task.taskId, BotTaskStatusMachine.Event.EXECUTE_DONE);
+        repo.closeRun(run.runId, TaskRunStatus.COMPLETED)
         return task to run;
     }
 

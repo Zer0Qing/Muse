@@ -133,7 +133,6 @@
     <string name="settings_multi_agent_delete_team">Eliminar equipo</string>
     <string name="settings_multi_agent_unnamed_team">Equipo sin título</string>
     <string name="settings_multi_agent_no_members">Sin miembros</string>
-    <string name="settings_multi_agent_delete">Eliminar</string>
     <string name="settings_multi_agent_edit_team">Editar equipo</string>
     <string name="settings_multi_agent_team_name">Nombre del equipo</string>
     <string name="settings_multi_agent_team_name_hint">p. ej.: Grupo de escritura</string>
@@ -142,8 +141,6 @@
     <string name="settings_multi_agent_description_hint">Propósito del equipo o escenario de colaboración</string>
     <string name="settings_multi_agent_select_members">Seleccionar miembros</string>
     <string name="settings_multi_agent_no_assistants">No hay asistentes disponibles. Crea uno primero en la página «Asistentes».</string>
-    <string name="settings_multi_agent_save">Guardar</string>
-    <string name="settings_multi_agent_cancel">Cancelar</string>
 
     <!-- SettingsTutorialPage.kt -->
     <string name="settings_tutorial_title">Guía de uso</string>

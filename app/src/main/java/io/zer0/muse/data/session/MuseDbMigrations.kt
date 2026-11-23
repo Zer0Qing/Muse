@@ -60,6 +60,9 @@ internal object MuseDbMigrations {
     val MIGRATION_123_124 get() = MigrationsB.MIGRATION_123_124
     val MIGRATION_131_132 get() = MigrationsB.MIGRATION_131_132
     val MIGRATION_133_134 get() = MigrationsB.MIGRATION_133_134
+    val MIGRATION_134_135 get() = MigrationsB.MIGRATION_134_135
+    val MIGRATION_135_136 get() = MigrationsB.MIGRATION_135_136
+    val MIGRATION_136_137 get() = MigrationsB.MIGRATION_136_137
     val MIGRATION_132_133 get() = MigrationsB.MIGRATION_132_133
     val MIGRATION_130_131 get() = MigrationsB.MIGRATION_130_131
     val MIGRATION_124_125 get() = MigrationsB.MIGRATION_124_125

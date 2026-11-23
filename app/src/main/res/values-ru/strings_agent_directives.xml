@@ -14,7 +14,6 @@
     <string name="agent_directives_text_limit">Не более 200 символов на пункт</string>
     <string name="agent_directives_move_up">Вверх</string>
     <string name="agent_directives_move_down">Вниз</string>
-    <string name="agent_directives_delete">Удалить</string>
     <string name="agent_directives_omitted">Слишком много; на этот раз не применилось: %1$s</string>
     <string name="agent_directives_switch">Включить это правило</string>
 </resources>

@@ -61,6 +61,8 @@ class AgentConversationFacadeTest {
 
         assertNotNull(batch)
         assertEquals(1, batch!!.mergedCount)
+        assertTrue("每条输入都要有消息 id", batch.messageId.isNotBlank())
+        assertTrue("输入版本必须由事件序号生成", batch.requestRevision > 0L)
         val events = repo.pendingEvents("bot-1")
         assertEquals(1, events.size)
         assertEquals(BotEventKind.USER_INPUT_RECEIVED, events.single().kind)
@@ -120,7 +122,9 @@ class AgentConversationFacadeTest {
             listOf("帮我看下这个", "顺便", "算了先别动"),
             c.texts,
         )
-        assertEquals("只唤醒一次", 1, repo.pendingEvents("bot-1").size)
+        assertEquals("每句仍有独立接纳事件", 3, repo.pendingEvents("bot-1").size)
+        assertEquals("批次引用最后一条输入", "算了先别动", repo.pendingEvents("bot-1").last().payloadRef)
+        assertTrue("每条输入推进版本", c.requestRevision > b.requestRevision && b.requestRevision > a.requestRevision)
     }
 
     @Test

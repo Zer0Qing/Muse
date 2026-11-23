@@ -25,9 +25,10 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import io.zer0.muse.ui.theme.MuseActionColors
+import io.zer0.muse.ui.theme.MuseAlpha
 import io.zer0.muse.ui.theme.MuseAnimation
+import io.zer0.muse.ui.theme.MuseChipSizes
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
@@ -36,15 +37,8 @@ import io.zer0.muse.ui.theme.semiLarge
 /**
  * 选择胶囊组件 — 替代 Material3 FilterChip / AssistChip。
  *
- * 视觉特征:
- *  - 选中态:primary 色背景 + onPrimary 文本 + SemiBold 字重
- *  - 未选中:surfaceVariant 半透明(0.5 alpha)+ onSurfaceVariant 文本 + Medium 字重
- *  - 圆角 [MuseShapes.semiLarge],无 ripple(Surface onClick 默认无 ripple)
- *  - 可选 leadingIcon / trailingIcon(如关闭按钮 X)
- *  - 不可用状态:alpha 0.38 + 禁用点击(Surface enabled=false)
- *  - CMP-04: 补选中语义(role=Checkbox + selected)与 48dp 最小触控
- *
- * 用于:标签筛选、类别切换、可关闭的标签、提示词模板选择等场景。
+ * 视觉高度由 [MuseChipSizes.visualHeight]（32dp）控制，告别此前 48dp 实心砖观感，
+ * 同时保留选中语义（role=Checkbox + selected）与无涟漪弹性反馈。
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -57,13 +51,10 @@ fun MuseChip(
     trailingIcon: @Composable (() -> Unit)? = null,
     enabled: Boolean = true,
 ) {
-    // UI-FIX A: 选中=实心黑底白字；未选中=不透明中性底。
-    // 旧实现未选中用 surfaceVariant@50% 半透明，压在内容上像一层遮罩，已取消。
-    // v2.x: 交互动效 — 按压缩放 + 选中态颜色弹性过渡(自绘反馈,无涟漪)
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
     val pressScale by animateFloatAsState(
-        targetValue = if (pressed) 0.95f else 1f,
+        targetValue = if (pressed) MuseChipSizes.pressScale else 1f,
         animationSpec = MuseMotion.tween(MuseAnimation.FAST_MS),
         label = "chipPress",
     )
@@ -86,9 +77,8 @@ fun MuseChip(
                 scaleX = pressScale
                 scaleY = pressScale
             }
-            .alpha(if (enabled) 1f else 0.38f)
-            // CMP-04/A11Y-01: 选中语义 + 48dp 最小触控(TalkBack 可读"已选中")
-            .heightIn(min = 48.dp)
+            .alpha(if (enabled) 1f else MuseAlpha.disabled)
+            .heightIn(min = MuseChipSizes.visualHeight)
             .semantics {
                 this.selected = selected
                 role = Role.Checkbox
@@ -103,12 +93,15 @@ fun MuseChip(
         Row(
             horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = MusePaddings.itemGap, vertical = MusePaddings.labelVerticalGap),
+            modifier = Modifier.padding(
+                horizontal = MuseChipSizes.paddingH,
+                vertical = MuseChipSizes.paddingV,
+            ),
         ) {
             if (leadingIcon != null) leadingIcon()
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelLarge,
+                style = MaterialTheme.typography.labelMedium,
                 fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
                 maxLines = 1,
             )

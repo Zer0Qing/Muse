@@ -46,6 +46,18 @@
     <string name="settings_agent_offset_hours_minutes">± %1$d ч %2$d мин</string>
 
     <!-- Appearance / Theme -->
+    <string name="settings_theme_policy_off">Выключено</string>
+    <string name="settings_theme_policy_custom_time">Свое расписание</string>
+    <string name="settings_theme_policy_sunrise_sunset">Восход / закат</string>
+    <string name="settings_theme_schedule_parse_error">Не удалось прочитать автоматические настройки. Автопереключение отключено, базовая тема сохранена.</string>
+    <string name="settings_theme_solar_permission_required">Требуется разрешение на приблизительное местоположение. Используется базовая тема.</string>
+    <string name="settings_theme_solar_location_unavailable">Нет сохраненного местоположения. Используется базовая тема.</string>
+    <string name="settings_theme_solar_events_unavailable">Не удалось рассчитать восход и закат на сегодня. Используется базовая тема.</string>
+    <string name="settings_theme_solar_cache_unavailable">Восход и закат на сегодня недоступны.</string>
+    <string name="settings_theme_solar_polar_day">Сегодня солнце весь день находится над горизонтом.</string>
+    <string name="settings_theme_solar_polar_night">Сегодня солнце весь день находится под горизонтом.</string>
+    <string name="settings_theme_solar_times">Восход %1$s · Закат %2$s</string>
+    <string name="settings_theme_solar_location_updated">Местоположение сохранено: %1$s</string>
     <string name="settings_theme_appearance">Внешний вид</string>
     <string name="settings_theme_follow_system">Системный</string>
     <string name="settings_theme_light">Светлый</string>
@@ -125,8 +137,6 @@
     <string name="prompt_template_manager_built_in">Встроенный</string>
     <string name="prompt_template_manager_move_up">Вверх</string>
     <string name="prompt_template_manager_move_down">Вниз</string>
-    <string name="prompt_template_manager_edit">Изменить</string>
-    <string name="prompt_template_manager_delete">Удалить</string>
     <string name="prompt_template_manager_delete_confirm">Удалить шаблон "%1$s"?</string>
     <string name="prompt_template_manager_add">Новый шаблон</string>
     <string name="prompt_template_manager_category">Категория</string>
@@ -310,8 +320,6 @@
     <string name="settings_rag_manage_kbs">Управление базами знаний</string>
     <string name="kb_manage_create">Новая база знаний</string>
     <string name="kb_manage_desc_label">Описание (необязательно)</string>
-    <string name="kb_manage_edit">Редактировать</string>
-    <string name="kb_manage_delete">Удалить</string>
     <string name="kb_manage_delete_confirm">Удалить базу знаний "%1$s"?</string>
     <string name="kb_manage_default_no_delete">Базу знаний по умолчанию нельзя удалить.</string>
     <string name="kb_manage_doc_count">%1$d документы</string>
@@ -422,8 +430,6 @@
     <string name="settings_theme_custom_secondary_color">Дополнительный цвет (необязательно)</string>
     <string name="settings_theme_custom_tertiary_color">Третичный цвет (необязательно)</string>
     <string name="settings_theme_custom_preview">Предварительный просмотр цвета</string>
-    <string name="settings_theme_custom_save">Сохранить</string>
-    <string name="settings_theme_custom_delete">Удалить</string>
     <string name="settings_theme_custom_delete_confirm">Удалить эту тему?</string>
     <string name="settings_theme_custom_delete_confirm_msg">Это невозможно отменить.</string>
     <string name="settings_theme_custom_export">Экспорт темы</string>

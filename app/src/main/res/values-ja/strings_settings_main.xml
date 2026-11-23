@@ -1,10 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- ==================== Common ==================== -->
-    <string name="settings_common_cancel">キャンセル</string>
-    <string name="settings_common_save">保存</string>
-    <string name="settings_common_delete">消去</string>
-    <string name="settings_common_close">近い</string>
     <string name="settings_common_add">追加</string>
     <string name="settings_common_show">見せる</string>
     <string name="settings_common_hide">隠れる</string>
@@ -347,7 +343,6 @@
     <string name="cloud_backup_delete_failed">削除に失敗しました</string>
     <string name="cloud_backup_delete_consequence">このクラウドバックアップは完全に削除されます。唯一のコピーの場合、クラウド上の退路を失います。</string>
     <string name="cloud_backup_delete_success">削除しました</string>
-    <string name="cloud_backup_delete_this">削除</string>
     <string name="cloud_backup_enable">クラウドバックアップを有効化</string>
     <string name="cloud_backup_hide_secret">非表示</string>
     <string name="cloud_backup_interval_hint">間隔が短いほどアップロードが頻繁になり、データ通信量と電池を消費します。大規模ナレッジベースでは ≥ 3 日を推奨</string>

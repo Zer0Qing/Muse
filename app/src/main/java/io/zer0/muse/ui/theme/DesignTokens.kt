@@ -84,8 +84,8 @@ object MuseAnimation {
     const val LOOP_EXTRA_SLOW_MS = 1800
 
     // v1.0.16: 导航过渡档位(280-300ms,介于 NORMAL 与 SLOW 之间)
-    /** 导航横向过渡 (280ms): NavGraph push/pop 水平滑动。 */
-    const val NAV_HORIZONTAL_MS = 280
+    /** 导航横向过渡 (240ms): 全站统一水平 push/pop 推滑时长。 */
+    const val NAV_HORIZONTAL_MS = 240
 
     /** 导航纵向进入 (300ms): NavGraph 垂直进入。 */
     const val NAV_VERTICAL_ENTER_MS = 300

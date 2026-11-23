@@ -13,13 +13,16 @@ import io.zer0.muse.ui.theme.DarkAiBubble
 import io.zer0.muse.ui.theme.DarkInk
 import io.zer0.muse.ui.theme.Ink
 import io.zer0.muse.ui.theme.LightAiBubble
+import io.zer0.muse.ui.theme.ThemeScheduler
 import io.zer0.muse.ui.theme.findPresetTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import org.koin.core.context.GlobalContext
 
 /**
  * 系统悬浮窗使用的 Material 主题颜色快照。
@@ -56,6 +59,7 @@ private data class ThemeInputs(
     val dynamicColor: Boolean,
     val customThemes: List<CustomTheme>,
     val highContrast: Boolean,
+    val effectiveDark: Boolean? = null,
 )
 
 /**
@@ -64,7 +68,7 @@ private data class ThemeInputs(
 internal fun observeQuickCaptureThemeColors(context: Context): Flow<QuickCaptureThemeColors> {
     val appContext = context.applicationContext
     val appearance = AppearanceSettingsStore(appContext)
-    val inputs = combine(
+    val appearanceInputs = combine(
         combine(
             appearance.themeModeFlow,
             appearance.themeIdFlow,
@@ -85,7 +89,12 @@ internal fun observeQuickCaptureThemeColors(context: Context): Flow<QuickCapture
     ) { base, highContrast ->
         base.copy(highContrast = highContrast)
     }
-    return inputs
+    val themeDecision = GlobalContext.getOrNull()
+        ?.let { koin -> runCatching { koin.get<ThemeScheduler>().decisionFlow }.getOrNull() }
+        ?: flowOf(null)
+    return combine(appearanceInputs, themeDecision) { inputs, decision ->
+        inputs.copy(effectiveDark = decision?.isDark)
+    }
         .map { resolveQuickCaptureThemeColors(appContext, it) }
         .distinctUntilChanged()
         .flowOn(Dispatchers.Default)
@@ -94,7 +103,7 @@ internal fun observeQuickCaptureThemeColors(context: Context): Flow<QuickCapture
 private fun resolveQuickCaptureThemeColors(context: Context, inputs: ThemeInputs): QuickCaptureThemeColors {
     val systemDark = (context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
         Configuration.UI_MODE_NIGHT_YES
-    val dark = when (inputs.themeMode) {
+    val dark = inputs.effectiveDark ?: when (inputs.themeMode) {
         "light" -> false
         "dark" -> true
         else -> systemDark

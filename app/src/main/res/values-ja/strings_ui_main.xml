@@ -42,7 +42,6 @@
     <string name="assistant_detail_allow_group_chat">グループチャットへの参加を許可する</string>
     <string name="assistant_detail_allow_group_chat_desc">オフの場合、このアシスタントはグループ チャットのメンバー選択に表示されません</string>
     <string name="assistant_detail_select_model">専用モデルを選択</string>
-    <string name="assistant_detail_close">近い</string>
     <string name="assistant_detail_global_default_selected">グローバルデフォルト (選択済み)</string>
     <string name="assistant_detail_model_selected">%1$s (選択済み)</string>
     <!-- Phase 6: Model picker UX improvements -->
@@ -78,14 +77,11 @@
     <string name="assistant_detail_global_pinned_disabled">閲覧のみ。グローバルメモリが無効のため、この助手には注入されません。</string>
     <string name="assistant_detail_saved_memory_interaction_hint">タップで全文を表示 · 長押しで編集</string>
     <string name="assistant_detail_no_memory">まだ思い出はありません</string>
-    <string name="assistant_detail_delete_cd">消去</string>
     <string name="assistant_detail_delete_memory">メモリの削除</string>
     <string name="assistant_detail_add_memory_dialog_title">メモリを追加する</string>
     <string name="assistant_detail_memory_edit_missing">このメモリは存在しないか、内容が無効です</string>
     <string name="assistant_detail_edit_memory_dialog_title">メモリを編集</string>
     <string name="assistant_detail_input_fact">事実/知識を入力してください</string>
-    <string name="assistant_detail_save">保存</string>
-    <string name="assistant_detail_cancel">キャンセル</string>
     <string name="assistant_detail_custom_headers_label">カスタム ヘッダー JSON (例: {\"X-Custom\":\"value\"})</string>
     <string name="assistant_detail_custom_bodies_label">カスタム本文 JSON (例: {\"user\":\"abc\"})</string>
     <string name="assistant_detail_tags_label">タグ (カンマ区切り、例: 執筆、翻訳、コード)</string>
@@ -97,20 +93,16 @@
     <string name="memory_screen_add_fact_cd">メタファクトを追加する</string>
     <string name="memory_tab_facts">事実</string>
     <!-- v1.0.51: memory backfill migration progress -->
-    <string name="memory_screen_cancel">キャンセル</string>
     <string name="memory_screen_edit_fact">メタファクトの編集</string>
     <string name="memory_screen_edit_summary">セッションの概要を編集する</string>
     <string name="memory_open_conversation">元の会話を開く</string>
     <string name="memory_conversation_meta">アシスタント %1$s · スペース %2$s</string>
     <string name="memory_screen_no_fact">まだメタファクトはありません</string>
     <string name="memory_screen_collapse">崩壊</string>
-    <string name="memory_screen_edit_cd">編集</string>
-    <string name="memory_screen_delete_cd">消去</string>
     <string name="memory_screen_load_failed">ロードに失敗しました - エラーの詳細</string>
     <string name="memory_screen_copied_trace">フルスタックトレースがクリップボードにコピーされました</string>
     <string name="memory_screen_copy_trace_cd">フルスタックトレースをコピーする</string>
     <string name="memory_screen_input_content">内容を入力してください…</string>
-    <string name="memory_screen_save">保存</string>
     <string name="memory_screen_normal">普通</string>
     <string name="memory_screen_failed_times">%1$d 回失敗しました</string>
     <string name="memory_screen_last_success">最後の成功: %1$s</string>
@@ -165,16 +157,16 @@
     <!-- ===== Settings screen SettingsScreen ===== -->
     <string name="settings_screen_title">設定</string>
     <!-- 設定の第一レベル分類 -->
-    <string name="settings_group_assistants">アシスタント</string>
-    <string name="settings_group_models">モデルとプロバイダー</string>
-    <string name="settings_group_tools">ツールと権限</string>
-    <string name="settings_group_voice">音声</string>
-    <string name="settings_group_image">画像と視覚</string>
+    <string name="settings_group_general">一般と外観</string>
+    <string name="settings_group_assistants">アシスタントと会話</string>
+    <string name="settings_group_models">モデルと実行環境</string>
+    <string name="settings_group_media">音声と視覚</string>
     <string name="settings_group_memory">記憶と知識</string>
-    <string name="settings_group_connection">接続</string>
-    <string name="settings_group_automation">自動化</string>
+    <string name="settings_group_tools">ツールと拡張機能</string>
+    <string name="settings_group_connection">チャネルとネットワーク</string>
+    <string name="settings_group_automation">自動化とバックグラウンド</string>
     <string name="settings_group_data_storage">データとバックアップ</string>
-    <string name="settings_group_privacy_security">プライバシーとセキュリティ</string>
+    <string name="settings_group_privacy_security">プライバシーと権限</string>
     <string name="settings_group_about">アプリについて</string>
     <string name="settings_group_developer">開発者</string>
     <string name="settings_screen_appearance_label">外観</string>
@@ -235,10 +227,8 @@
     <string name="channel_intro">認証情報は端末内で暗号化保存され、送信されません。</string>
     <string name="channel_add">チャネルを追加</string>
     <string name="channel_edit_title">チャネルを編集</string>
-    <string name="channel_edit">編集</string>
     <string name="channel_delete_confirm">このチャネルを削除しますか?</string>
     <string name="channel_empty">チャネルは未設定です。上のボタンから追加してください。</string>
-    <string name="channel_save">保存</string>
     <string name="channel_field_platform">プラットフォーム</string>
     <string name="channel_field_app_id">App ID</string>
     <string name="channel_field_app_secret">App Secret</string>
@@ -298,7 +288,6 @@
     <string name="vision_assist_done">ビジョンアシスト · 完了</string>
 
     <!-- ===== Search screen SearchScreen ===== -->
-    <string name="search_cancel">キャンセル</string>
     <string name="search_placeholder">セッション/メッセージ/設定を検索...</string>
     <string name="search_empty_hint">キーワードを入力してセッション、メッセージ、または設定を検索します</string>
     <string name="search_tab_sessions">セッション</string>
@@ -345,7 +334,6 @@
     <string name="skill_label_category">カテゴリ</string>
     <string name="skill_label_implementation">実装</string>
     <string name="skill_label_source">ソース</string>
-    <string name="skill_close">近い</string>
     <string name="skill_row_cd">%1$s、%2$s、タップして詳細を表示します</string>
     <string name="skill_use_case_read_file">アプリ内のメモ、構成、またはキャッシュされたファイルを読み取る必要がある場合、LLM はこれを自動的に呼び出します。</string>
     <string name="skill_use_case_write_file">メモの保存、ドキュメントの生成、またはデータの永続化が必要な場合、LLM はこれを自動的に呼び出します。</string>
@@ -559,7 +547,6 @@
     <!-- Shortcut descriptions (shown in settings/help pages) -->
     <!-- Right-click context menu items -->
     <string name="desktop_context_regenerate">再生する</string>
-    <string name="desktop_context_delete">消去</string>
 
     <!-- P2-12 Rich Text Input -->
     <string name="chat_compressing_banner">会話履歴を圧縮中…</string>
@@ -580,7 +567,6 @@
     <string name="settings_vision_probe_success">テスト成功: ビデオ モデルは %1$d 文字の説明を返しました。</string>
     <string name="settings_vision_show_all_models">全モデルを表示</string>
     <string name="settings_vision_show_all_models_subtitle">リレー上級モード：すべてのモデルを表示し、自動検出されない視覚モデルを手動選択できます</string>
-    <string name="skill_delete">削除</string>
     <string name="skill_delete_confirm_message">「%1$s」を削除する必要があることを確認しますか?この操作は削除できません。</string>
     <string name="skill_delete_confirm_title">削除の確認</string>
     <string name="skill_delete_failed_ui">削除失敗：%1$s</string>
@@ -617,9 +603,7 @@
     <string name="chat_fork_success">現在の会話から新しい会話を作成しました</string>
     <string name="chat_list_archived_entry">アーカイブ済み (%1$d)</string>
     <string name="chat_list_archived_toast">アーカイブしました。「アーカイブ」から復元できます</string>
-    <string name="chat_list_edit">編集</string>
     <string name="chat_list_edit_archive">アーカイブ</string>
-    <string name="chat_list_edit_delete">削除</string>
     <plurals name="chat_list_edit_delete_confirm">
         <item quantity="other">選択した %1$d 件の会話とそのメッセージをすべて削除します。この操作は元に戻せません。削除しますか？</item>
     </plurals>
@@ -753,7 +737,6 @@
     <string name="settings_preference_desc">「今後は…しないで」と伝えると、ここにハード制約として保存され、すべての会話で守られます。</string>
     <string name="settings_preference_empty">まだ設定は記録されていません</string>
     <string name="settings_preference_disable">無効化</string>
-    <string name="settings_preference_delete">削除</string>
     <string name="settings_preference_delete_confirm">削除するとアシスタントはこの設定を守らなくなります。</string>
     <string name="settings_preference_disabled_tag">無効</string>
     <string name="settings_preference_source">元の言葉：%1$s</string>

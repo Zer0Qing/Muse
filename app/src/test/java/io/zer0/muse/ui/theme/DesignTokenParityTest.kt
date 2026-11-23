@@ -144,7 +144,17 @@ class DesignTokenParityTest {
         assertVeil("dark", "onSurfaceVeil80", WarmPaperTheme.darkScheme.onSurface, 0.80)
         assertVeil("dark", "onSurfaceVeil85", WarmPaperTheme.darkScheme.onSurface, 0.85)
         assertVeil("dark", "primaryVeil20", WarmPaperTheme.darkScheme.primary, 0.20)
+        assertNumber("colors.alpha.rowPressed", MuseAlpha.rowPressed.toDouble())
+        assertNumber("colors.alpha.pressedOverlay", MuseAlpha.pressedOverlay.toDouble())
+        assertNumber("colors.alpha.divider", MuseAlpha.divider.toDouble())
+        assertNumber("colors.alpha.statusTint", MuseAlpha.statusTint.toDouble())
+        assertNumber("colors.alpha.handle", MuseAlpha.handle.toDouble())
         assertNumber("colors.alpha.actionDisabled", MuseActionColors.disabledAlpha.toDouble())
+        assertNumber("colors.alpha.mutedSurface", MuseAlpha.mutedSurface.toDouble())
+        assertNumber("colors.alpha.subtleBorder", MuseAlpha.subtleBorder.toDouble())
+        assertNumber("colors.alpha.actionContentDisabled", MuseAlpha.disabledContent.toDouble())
+        assertNumber("colors.alpha.glassSurface", MuseAlpha.glassSurface.toDouble())
+        assertNumber("colors.alpha.titleMuted", MuseAlpha.titleMuted.toDouble())
         assertNumber("colors.alpha.edgeGlowLight", MuseGlowTokens.Light.peakAlpha.toDouble())
         assertNumber("colors.alpha.edgeGlowDark", MuseGlowTokens.Dark.peakAlpha.toDouble())
     }
@@ -172,7 +182,14 @@ class DesignTokenParityTest {
             "colors.emotion",
             setOf("coralWhisper", "lavenderDream", "amberWarmth", "sageCalm", "mistGray"),
         )
-        assertKeySet("colors.alpha", setOf("actionDisabled", "actionContentDisabled", "edgeGlowLight", "edgeGlowDark"))
+        assertKeySet(
+            "colors.alpha",
+            setOf(
+                "rowPressed", "pressedOverlay", "divider", "statusTint", "handle",
+                "actionDisabled", "mutedSurface", "subtleBorder", "actionContentDisabled",
+                "glassSurface", "titleMuted", "edgeGlowLight", "edgeGlowDark",
+            ),
+        )
         val schemeKeys = setOf(
             "surface", "surfaceContainer", "surfaceContainerLow", "surfaceContainerHigh", "surfaceDim",
             "surfaceBright", "surfaceVariant", "onSurface", "onSurfaceVariant", "outline", "outlineVariant",
@@ -289,6 +306,19 @@ class DesignTokenParityTest {
     @Test
     fun `spacing tokens match MusePaddings`() {
         listOf(
+            "xxs" to MuseSpacing.xxs,
+            "xs" to MuseSpacing.xs,
+            "smTight" to MuseSpacing.smTight,
+            "sm" to MuseSpacing.sm,
+            "mdTight" to MuseSpacing.mdTight,
+            "md" to MuseSpacing.md,
+            "lg" to MuseSpacing.lg,
+            "xl" to MuseSpacing.xl,
+            "xxl" to MuseSpacing.xxl,
+            "xxxl" to MuseSpacing.xxxl,
+        ).forEach { (key, dp) -> assertNumber("spacing.scale.$key", dp.value.toDouble()) }
+
+        listOf(
             "screen" to MusePaddings.screen,
             "pageMargin" to MusePaddings.pageMargin,
             "sectionGap" to MusePaddings.sectionGap,
@@ -387,12 +417,47 @@ class DesignTokenParityTest {
         assertNumber("component.switch.thumbSize", MuseSwitchSizes.thumbSize.value.toDouble())
         assertNumber("component.switch.trackInset", MuseSwitchSizes.trackPadding.value.toDouble())
 
-        // 按钮：胶囊 48（MuseIconSizes.touchTarget）+ 24（MuseShapes.huge = MuseCornerRadius.SHEET）
-        // + 0.97（MuseCapsuleButtonSizes）；普通按钮 40（MuseDialogSizes.buttonVisualHeight）。
-        assertNumber("component.button.capsuleMinHeight", MuseIconSizes.touchTarget.value.toDouble())
+        // 按钮：默认中档 38dp（MuseButtonSizes.mediumHeight）+ 三档完整规格 + 紧凑浮钮 44dp。
+        assertNumber("component.button.capsuleMinHeight", MuseButtonSizes.mediumHeight.value.toDouble())
         assertNumber("component.button.capsuleRadius", MuseCornerRadius.SHEET.toDouble())
         assertNumber("component.button.capsulePressScale", MuseCapsuleButtonSizes.pressScale.toDouble())
         assertNumber("component.button.minHeight", MuseDialogSizes.buttonVisualHeight.value.toDouble())
+        assertNumber("component.button.largeHeight", MuseButtonSizes.largeHeight.value.toDouble())
+        assertNumber("component.button.mediumHeight", MuseButtonSizes.mediumHeight.value.toDouble())
+        assertNumber("component.button.compactHeight", MuseButtonSizes.compactHeight.value.toDouble())
+        assertNumber("component.button.largePaddingX", MuseButtonSizes.largePaddingH.value.toDouble())
+        assertNumber("component.button.mediumPaddingX", MuseButtonSizes.mediumPaddingH.value.toDouble())
+        assertNumber("component.button.compactPaddingX", MuseButtonSizes.compactPaddingH.value.toDouble())
+        assertNumber("component.button.largePaddingY", MuseButtonSizes.largePaddingV.value.toDouble())
+        assertNumber("component.button.mediumPaddingY", MuseButtonSizes.mediumPaddingV.value.toDouble())
+        assertNumber("component.button.compactPaddingY", MuseButtonSizes.compactPaddingV.value.toDouble())
+        assertNumber("component.button.fabCompact", MuseButtonSizes.fabCompact.value.toDouble())
+
+        // 标签胶囊：MuseChipSizes。
+        assertNumber("component.chip.visualHeight", MuseChipSizes.visualHeight.value.toDouble())
+        assertNumber("component.chip.minTouchHeight", MuseChipSizes.minTouchHeight.value.toDouble())
+        assertNumber("component.chip.paddingX", MuseChipSizes.paddingH.value.toDouble())
+        assertNumber("component.chip.paddingY", MuseChipSizes.paddingV.value.toDouble())
+        assertNumber("component.chip.pressScale", MuseChipSizes.pressScale.toDouble())
+
+        // 胶囊 Tab：MuseTabSizes。
+        assertNumber("component.tab.minHeight", MuseTabSizes.minHeight.value.toDouble())
+        assertNumber("component.tab.maxHeight", MuseTabSizes.maxHeight.value.toDouble())
+        assertNumber("component.tab.minSegmentWidth", MuseTabSizes.minSegmentWidth.value.toDouble())
+
+        // 底部抽屉把手与阻尼：MuseSheetSizes。
+        assertNumber("component.sheet.handleBandHeight", MuseSheetSizes.handleBandHeight.value.toDouble())
+        assertNumber("component.sheet.handleWidth", MuseSheetSizes.handleWidth.value.toDouble())
+        assertNumber("component.sheet.handleHeight", MuseSheetSizes.handleHeight.value.toDouble())
+        assertNumber("component.sheet.handleRadius", MuseSheetSizes.handleCornerRadius.value.toDouble())
+        assertNumber("component.sheet.dragDismissThreshold", MuseSheetSizes.dragDismissThreshold.value.toDouble())
+        assertNumber("component.sheet.rubberBandMax", MuseSheetSizes.rubberBandMax.value.toDouble())
+
+        // 边框厚度：MuseBorderWidth。
+        assertNumber("component.borderWidth.hairline", MuseBorderWidth.hairline.value.toDouble())
+        assertNumber("component.borderWidth.thin", MuseBorderWidth.thin.value.toDouble())
+        assertNumber("component.borderWidth.medium", MuseBorderWidth.medium.value.toDouble())
+        assertNumber("component.borderWidth.thick", MuseBorderWidth.thick.value.toDouble())
 
         // 气泡：MuseBubbleStyles / MuseCornerRadius / MusePaddings.bubbleInner / messageGap。
         assertNumber("component.bubble.maxWidthRatio", MuseBubbleStyles.MAX_WIDTH_FRACTION.toDouble())
@@ -436,7 +501,10 @@ class DesignTokenParityTest {
     fun `component groups expose exactly the expected keys`() {
         assertKeySet(
             "component",
-            setOf("card", "listRow", "switch", "button", "bubble", "inputBar", "topBar", "touchTarget", "avatar"),
+            setOf(
+                "card", "listRow", "switch", "button", "chip", "tab", "sheet",
+                "borderWidth", "bubble", "inputBar", "topBar", "touchTarget", "avatar",
+            ),
         )
         assertKeySet(
             "component.card",
@@ -444,7 +512,23 @@ class DesignTokenParityTest {
         )
         assertKeySet("component.listRow", setOf("minHeight", "minHeightCompact", "paddingX", "paddingY"))
         assertKeySet("component.switch", setOf("trackWidth", "trackHeight", "thumbSize", "trackInset"))
-        assertKeySet("component.button", setOf("capsuleMinHeight", "capsuleRadius", "capsulePressScale", "minHeight"))
+        assertKeySet(
+            "component.button",
+            setOf(
+                "capsuleMinHeight", "capsuleRadius", "capsulePressScale", "minHeight",
+                "largeHeight", "mediumHeight", "compactHeight",
+                "largePaddingX", "mediumPaddingX", "compactPaddingX",
+                "largePaddingY", "mediumPaddingY", "compactPaddingY",
+                "fabCompact",
+            ),
+        )
+        assertKeySet("component.chip", setOf("visualHeight", "minTouchHeight", "paddingX", "paddingY", "pressScale"))
+        assertKeySet("component.tab", setOf("minHeight", "maxHeight", "minSegmentWidth"))
+        assertKeySet(
+            "component.sheet",
+            setOf("handleBandHeight", "handleWidth", "handleHeight", "handleRadius", "dragDismissThreshold", "rubberBandMax"),
+        )
+        assertKeySet("component.borderWidth", setOf("hairline", "thin", "medium", "thick"))
         assertKeySet(
             "component.bubble",
             setOf("maxWidthRatio", "radius", "tailRadius", "innerPaddingX", "innerPaddingY", "gap"),
@@ -458,6 +542,44 @@ class DesignTokenParityTest {
             setOf("height", "rowPaddingX", "rowPaddingY", "titlePaddingX", "titlePaddingY"),
         )
         assertKeySet("component.avatar", setOf("inline", "list", "detail"))
+    }
+
+    @Test
+    fun `spacing hierarchy and button tiers stay ordered and compact`() {
+        assertTrue(
+            "列表项间距必须小于节间距，确保组内紧、组间松",
+            MusePaddings.itemGap < MusePaddings.sectionGap,
+        )
+        assertEquals(
+            "设置页边距应与通用屏幕边距一致，不额外挤压小屏内容宽度",
+            MusePaddings.screen,
+            MusePaddings.pageMargin,
+        )
+        assertTrue(
+            "胶囊按钮三档高度必须严格递增：Compact < Medium < Large",
+            MuseButtonSizes.compactHeight < MuseButtonSizes.mediumHeight &&
+                MuseButtonSizes.mediumHeight < MuseButtonSizes.largeHeight,
+        )
+        assertTrue(
+            "胶囊按钮三档水平内边距必须严格递增：Compact < Medium < Large",
+            MuseButtonSizes.compactPaddingH < MuseButtonSizes.mediumPaddingH &&
+                MuseButtonSizes.mediumPaddingH < MuseButtonSizes.largePaddingH,
+        )
+        assertTrue(
+            "Chip 视觉高度必须小于 48dp 触控红线，避免厚砖观感",
+            MuseChipSizes.visualHeight < MuseIconSizes.touchTarget,
+        )
+        assertTrue(
+            "浅色与深色状态容器色应各自区分于前景色",
+            LightStatusColors.successContainer != LightStatusColors.success &&
+                DarkStatusColors.successContainer != DarkStatusColors.success &&
+                LightStatusColors.warningContainer != LightStatusColors.warning &&
+                DarkStatusColors.warningContainer != DarkStatusColors.warning &&
+                LightStatusColors.errorContainer != LightStatusColors.error &&
+                DarkStatusColors.errorContainer != DarkStatusColors.error &&
+                LightStatusColors.infoContainer != LightStatusColors.info &&
+                DarkStatusColors.infoContainer != DarkStatusColors.info,
+        )
     }
 
     // ── 断言工具 ────────────────────────────────────────────────────────

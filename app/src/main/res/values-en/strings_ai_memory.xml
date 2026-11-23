@@ -84,7 +84,6 @@
     <string name="memory_space_create_title">New Memory Space</string>
     <string name="memory_space_rename">Rename</string>
     <string name="memory_space_rename_title">Rename Memory Space</string>
-    <string name="memory_space_delete">Delete</string>
     <string name="memory_space_name_label">Space Name</string>
     <string name="memory_space_fact_count">%1$d facts</string>
     <string name="memory_space_entry">Memory Spaces</string>
@@ -138,8 +137,6 @@
     <string name="memory_menu_pin">Pin</string>
     <string name="memory_menu_unpin">Unpin</string>
     <string name="memory_menu_importance">Set importance</string>
-    <string name="memory_menu_edit">Edit</string>
-    <string name="memory_menu_delete">Delete</string>
     <string name="memory_center_fact_count">facts</string>
     <string name="memory_center_empty_title">No memories yet</string>
     <string name="memory_center_empty_subtitle">Keep talking with Muse, or say “remember this” to add a fact.</string>

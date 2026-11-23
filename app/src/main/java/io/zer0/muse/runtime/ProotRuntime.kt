@@ -12,7 +12,6 @@ import java.util.concurrent.TimeUnit
  *
  * 为什么是 proot：Android 10+ 不允许执行应用可写目录里的二进制（W^X），
  * 而 proot 自己加载 ELF、不依赖系统的 execve，所以整套环境可以放在可下载的 rootfs 里。
- * 这也是 Operit / kelivo / rikkahub / DSH Go 走同一条路的同一个理由。
  *
  * proot 那四个文件（proot、loader、libtalloc、libandroid-shmem）随 APK 的 jniLibs 走：
  * 只有 `nativeLibraryDir` 里的文件是安装时由系统落盘、允许执行的。
@@ -26,9 +25,10 @@ class ProotRuntime(
     private val prootBin: File get() = File(binsDir, "libmuse_proot.so")
     private val loaderBin: File get() = File(binsDir, "libmuse_proot_loader.so")
 
-    /** jniLibs 里那四个文件是否都在（不在说明这个 ABI 没打进包）。 */
+    /** jniLibs 中执行所需的四个文件是否都在。 */
     fun isAvailable(): Boolean =
-        prootBin.isFile && loaderBin.isFile && File(binsDir, "libtalloc.so").isFile
+        prootBin.isFile && loaderBin.isFile &&
+            File(binsDir, "libtalloc.so").isFile && File(binsDir, "libandroid-shmem.so").isFile
 
     private fun tmpDir(): File = File(store.rootDir(), "tmp").apply { mkdirs() }
 
@@ -44,6 +44,7 @@ class ProotRuntime(
         timeoutMs: Long = DEFAULT_TIMEOUT_MS,
         binds: List<String> = emptyList(),
         env: Map<String, String> = emptyMap(),
+        workdirGuest: String? = null,
     ): ExecResult = withContext(Dispatchers.IO) {
         val state = store.state(id)
         if (state !is RuntimeState.Ready) {
@@ -62,7 +63,7 @@ class ProotRuntime(
             argv = argv,
             binds = binds,
             env = env,
-            workdirGuest = null,
+            workdirGuest = workdirGuest,
         )
 
         runCatching {
@@ -123,7 +124,8 @@ class ProotRuntime(
             add("-r")
             add(rootfs.absolutePath)
             listOf("/dev", "/proc", "/sys").forEach { add("-b"); add(it) }
-            binds.forEach { add("-b"); add(it) }
+            (binds + "${ProotDnsConfig.ensureFile(context).absolutePath}:/etc/resolv.conf")
+                .forEach { add("-b"); add(it) }
             add("-w")
             add(workdirGuest ?: "/")
             addAll(argv)

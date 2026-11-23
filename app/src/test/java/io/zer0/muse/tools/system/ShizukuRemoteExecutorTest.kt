@@ -1,6 +1,7 @@
 package io.zer0.muse.tools.system
 
 import io.zer0.common.Logger
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -25,9 +26,17 @@ import kotlin.concurrent.thread
  */
 class ShizukuRemoteExecutorTest {
 
+    private var previousLoggerEnabled = true
+
     @Before
     fun setUp() {
+        previousLoggerEnabled = Logger.enabled
         Logger.enabled = false
+    }
+
+    @After
+    fun tearDown() {
+        Logger.enabled = previousLoggerEnabled
     }
 
     // ── 文本路径 ──────────────────────────────────────────────────────────

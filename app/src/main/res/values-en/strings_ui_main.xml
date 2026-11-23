@@ -49,7 +49,6 @@
     <string name="assistant_detail_allow_group_chat">Allow joining group chat</string>
     <string name="assistant_detail_allow_group_chat_desc">When off, this assistant won\'t appear in group chat member selection</string>
     <string name="assistant_detail_select_model">Select Exclusive Model</string>
-    <string name="assistant_detail_close">Close</string>
     <string name="assistant_detail_global_default_selected">Global Default (Selected)</string>
     <string name="assistant_detail_model_selected">%1$s (Selected)</string>
     <!-- Phase 6: Model picker UX improvements -->
@@ -85,14 +84,11 @@
     <string name="assistant_detail_global_pinned_disabled">View only. Global memory is off, so these entries are not included for this assistant.</string>
     <string name="assistant_detail_saved_memory_interaction_hint">Tap to expand · Long-press to edit</string>
     <string name="assistant_detail_no_memory">No memories yet</string>
-    <string name="assistant_detail_delete_cd">Delete</string>
     <string name="assistant_detail_delete_memory">Delete Memory</string>
     <string name="assistant_detail_add_memory_dialog_title">Add Memory</string>
     <string name="assistant_detail_memory_edit_missing">This memory no longer exists or the content is invalid</string>
     <string name="assistant_detail_edit_memory_dialog_title">Edit Memory</string>
     <string name="assistant_detail_input_fact">Enter fact/knowledge</string>
-    <string name="assistant_detail_save">Save</string>
-    <string name="assistant_detail_cancel">Cancel</string>
     <string name="assistant_detail_custom_headers_label">Custom Headers JSON (e.g. {\"X-Custom\":\"value\"})</string>
     <string name="assistant_detail_custom_bodies_label">Custom Body JSON (e.g. {\"user\":\"abc\"})</string>
     <string name="assistant_detail_tags_label">Tags (comma separated, e.g. Writing, Translation, Code)</string>
@@ -104,20 +100,16 @@
     <string name="memory_screen_add_fact_cd">Add meta-fact</string>
     <string name="memory_tab_facts">Facts</string>
     <!-- v1.0.51: memory backfill migration progress -->
-    <string name="memory_screen_cancel">Cancel</string>
     <string name="memory_screen_edit_fact">Edit Meta-fact</string>
     <string name="memory_screen_edit_summary">Edit Session Summary</string>
     <string name="memory_open_conversation">Open conversation</string>
     <string name="memory_conversation_meta">Assistant %1$s · Space %2$s</string>
     <string name="memory_screen_no_fact">No meta-facts yet</string>
     <string name="memory_screen_collapse">Collapse</string>
-    <string name="memory_screen_edit_cd">Edit</string>
-    <string name="memory_screen_delete_cd">Delete</string>
     <string name="memory_screen_load_failed">Load failed — Full error details</string>
     <string name="memory_screen_copied_trace">Full stack trace copied to clipboard</string>
     <string name="memory_screen_copy_trace_cd">Copy full stack trace</string>
     <string name="memory_screen_input_content">Enter content…</string>
-    <string name="memory_screen_save">Save</string>
     <string name="memory_screen_normal">Normal</string>
     <string name="memory_screen_failed_times">Failed %1$d time(s)</string>
     <string name="memory_screen_last_success">Last success: %1$s</string>
@@ -174,16 +166,16 @@
     <!-- ===== Settings screen SettingsScreen ===== -->
     <string name="settings_screen_title">Settings</string>
     <!-- Settings categories (first level of the settings screen) -->
-    <string name="settings_group_assistants">Assistants</string>
-    <string name="settings_group_models">Models and Providers</string>
-    <string name="settings_group_tools">Tools and Permissions</string>
-    <string name="settings_group_voice">Voice</string>
-    <string name="settings_group_image">Images and Vision</string>
+    <string name="settings_group_general">General and Appearance</string>
+    <string name="settings_group_assistants">Assistants and Chat</string>
+    <string name="settings_group_models">Models and Runtime</string>
+    <string name="settings_group_media">Voice and Vision</string>
     <string name="settings_group_memory">Memory and Knowledge</string>
-    <string name="settings_group_connection">Connections</string>
-    <string name="settings_group_automation">Automation</string>
+    <string name="settings_group_tools">Tools and Extensions</string>
+    <string name="settings_group_connection">Channels and Network</string>
+    <string name="settings_group_automation">Automation and Background</string>
     <string name="settings_group_data_storage">Data and Backup</string>
-    <string name="settings_group_privacy_security">Privacy and Security</string>
+    <string name="settings_group_privacy_security">Privacy and Permissions</string>
     <string name="settings_group_about">About</string>
     <string name="settings_group_developer">Developer</string>
     <string name="settings_screen_appearance_label">Appearance</string>
@@ -244,10 +236,8 @@
     <string name="channel_intro">Credentials are encrypted and kept on this device only.</string>
     <string name="channel_add">Add channel</string>
     <string name="channel_edit_title">Edit channel</string>
-    <string name="channel_edit">Edit</string>
     <string name="channel_delete_confirm">Delete this channel?</string>
     <string name="channel_empty">No channels yet. Tap the button above to add one.</string>
-    <string name="channel_save">Save</string>
     <string name="channel_field_platform">Platform</string>
     <!-- v2.0.1: Localized platform display names -->
     <string name="channel_platform_feishu">Feishu</string>
@@ -391,7 +381,6 @@
     <string name="vision_assist_done">Vision Assist · Done</string>
 
     <!-- ===== Search screen SearchScreen ===== -->
-    <string name="search_cancel">Cancel</string>
     <string name="search_placeholder">Search sessions/messages/settings...</string>
     <string name="search_empty_hint">Enter keywords to search sessions, messages, or settings</string>
     <string name="search_tab_sessions">Sessions</string>
@@ -439,7 +428,6 @@
     <string name="skill_label_category">Category</string>
     <string name="skill_label_implementation">Implementation</string>
     <string name="skill_label_source">Source</string>
-    <string name="skill_close">Close</string>
     <string name="skill_row_cd">%1$s, %2$s, tap to view details</string>
     <string name="skill_use_case_read_file">When you need to read notes, configs, or cached files in the app, the LLM will call this automatically.</string>
     <string name="skill_use_case_write_file">When you need to save notes, generate documents, or persist data, the LLM will call this automatically.</string>
@@ -660,7 +648,6 @@
     <!-- Shortcut descriptions (shown in settings/help pages) -->
     <!-- Right-click context menu items -->
     <string name="desktop_context_regenerate">Regenerate</string>
-    <string name="desktop_context_delete">Delete</string>
 
     <!-- P2-12 Rich Text Input -->
     <string name="chat_compressing_banner">Compressing conversation history…</string>
@@ -682,7 +669,6 @@
     <string name="settings_vision_show_all_models">Show all models</string>
     <string name="settings_vision_show_all_models_subtitle">Relay advanced mode: shows all models, letting you manually pick a vision model not auto-detected</string>
     <string name="settings_vision_show_all_models_subtitle_no_hidden">Every model is already recognized as vision-capable — nothing to reveal</string>
-    <string name="skill_delete">Delete</string>
     <string name="skill_delete_confirm_message">Delete "%1$s"? This cannot be undone.</string>
     <string name="skill_delete_confirm_title">Confirm deletion</string>
     <string name="skill_delete_failed_ui">Delete failed: %1$s</string>
@@ -719,9 +705,7 @@
     <string name="chat_fork_success">A new session was created from the current conversation</string>
     <string name="chat_list_archived_entry">Archived (%1$d)</string>
     <string name="chat_list_archived_toast">Archived. You can restore it under \"Archived\".</string>
-    <string name="chat_list_edit">Edit</string>
     <string name="chat_list_edit_archive">Archive</string>
-    <string name="chat_list_edit_delete">Delete</string>
     <plurals name="chat_list_edit_delete_confirm">
         <item quantity="one">Delete %1$d selected conversation and all of its messages? This action cannot be undone.</item>
         <item quantity="other">Delete %1$d selected conversations and all of their messages? This action cannot be undone.</item>
@@ -857,7 +841,6 @@
     <string name="settings_preference_desc">When you tell the assistant "from now on, don\'t…", it stores that as a hard rule here and follows it in every conversation.</string>
     <string name="settings_preference_empty">No preferences recorded yet</string>
     <string name="settings_preference_disable">Disable</string>
-    <string name="settings_preference_delete">Delete</string>
     <string name="settings_preference_delete_confirm">After deleting this preference the assistant will no longer follow it.</string>
     <string name="settings_preference_disabled_tag">Disabled</string>
     <string name="settings_preference_source">Original words: %1$s</string>

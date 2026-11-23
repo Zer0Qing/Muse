@@ -158,6 +158,22 @@
     <string name="runtime_card_install">Install runtime</string>
     <string name="runtime_card_later">Not now</string>
     <string name="runtime_card_failed_detail">Install failed: %1$s</string>
+    <string name="runtime_version_picker_title">Choose a runtime version</string>
+    <string name="runtime_version_download_size">Download size: %1$s</string>
+    <string name="runtime_version_current">Current</string>
+    <string name="runtime_version_list_empty">No runtime versions available</string>
+    <string name="runtime_action_local_install">Install from file</string>
+    <string name="runtime_action_update">Update runtime</string>
+    <string name="runtime_action_repair">Repair runtime</string>
+    <string name="runtime_action_rollback">Roll back</string>
+    <string name="runtime_action_uninstall">Uninstall runtime</string>
+    <string name="runtime_action_resume">Resume installation</string>
+    <string name="runtime_action_cancel">Cancel installation</string>
+    <string name="runtime_action_custom_url">Use custom URL</string>
+    <string name="runtime_custom_url_title">Custom source (%1$s)</string>
+    <string name="runtime_custom_url_address">HTTPS download URL</string>
+    <string name="runtime_custom_url_sha256">SHA-256 (optional)</string>
+    <string name="runtime_custom_url_unverified_warning">Without SHA-256, this archive will be installed as an unverified source.</string>
     <string name="runtime_upgrade_title">Runtime is now separate</string>
     <string name="runtime_upgrade_desc">This version moves the Node runtime out of the APK, so the app is much smaller. Install it once before using scripts, MCP, or the terminal (about 76 MB download, 230 MB installed).</string>
     <string name="terminal_send_to_ai_cd">Send this round to AI</string>
@@ -170,5 +186,4 @@
     <string name="offline_resources_title">Offline resources</string>
     <string name="offline_resources_runtime">Runtime (Node / Python)</string>
     <string name="offline_resources_asr">Local speech model (SenseVoice)</string>
-    <string name="offline_resources_delete">Delete</string>
 </resources>

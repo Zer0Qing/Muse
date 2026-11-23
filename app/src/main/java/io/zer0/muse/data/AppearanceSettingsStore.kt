@@ -8,10 +8,13 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import io.zer0.common.AppJson
 import io.zer0.muse.ui.theme.CustomTheme
+import io.zer0.muse.ui.theme.BaseThemeMode
+import io.zer0.muse.ui.theme.ThemeAutoPolicy
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.json.jsonObject
 
 /**
  * P2-2 拆分：外观/主题子仓库。
@@ -28,10 +31,14 @@ class AppearanceSettingsStore(private val context: Context) {
     private val store get() = context.museSettingsDataStore
 
     val themeModeFlow: Flow<String> = store.data.mapDistinct { prefs -> prefs[KEY_THEME_MODE] ?: "system" }
+    val baseThemeModeFlow: Flow<BaseThemeMode> = themeModeFlow.map { BaseThemeMode.fromWire(it) }.distinctUntilChanged()
     val themeIdFlow: Flow<String> = store.data.mapDistinct { prefs -> prefs[KEY_THEME_ID] ?: "mono" }
     val darkThemeIdFlow: Flow<String> = store.data.mapDistinct { prefs -> prefs[KEY_DARK_THEME_ID] ?: "" }
     val themeScheduleFlow: Flow<ThemeScheduleConfig> = store.data.mapDistinct { prefs ->
-        decodePrefsOrNull(prefs[KEY_THEME_SCHEDULE], ThemeScheduleConfig.serializer(), "ThemeSchedule") ?: ThemeScheduleConfig()
+        decodeThemeSchedule(prefs[KEY_THEME_SCHEDULE]).config
+    }
+    val themeScheduleDiagnosticFlow: Flow<String?> = store.data.mapDistinct { prefs ->
+        decodeThemeSchedule(prefs[KEY_THEME_SCHEDULE]).diagnostic
     }
     val dynamicColorFlow: Flow<Boolean> = store.data.mapDistinct { prefs -> prefs[KEY_DYNAMIC_COLOR] ?: false }
     val fontSizeScaleFlow: Flow<String> = store.data.mapDistinct { prefs -> prefs[KEY_FONT_SIZE_SCALE] ?: "medium" }
@@ -86,7 +93,11 @@ class AppearanceSettingsStore(private val context: Context) {
         store.edit { it[KEY_DARK_THEME_ID] = id }
     }
     suspend fun saveThemeSchedule(config: ThemeScheduleConfig) {
-        store.edit { it[KEY_THEME_SCHEDULE] = AppJson.encodeToString(ThemeScheduleConfig.serializer(), config) }
+        val canonical = config.copy(
+            enabled = false,
+            schemaVersion = ThemeScheduleConfig.CURRENT_SCHEMA_VERSION,
+        )
+        store.edit { it[KEY_THEME_SCHEDULE] = AppJson.encodeToString(ThemeScheduleConfig.serializer(), canonical) }
     }
     suspend fun saveDynamicColor(enabled: Boolean) {
         store.edit { it[KEY_DYNAMIC_COLOR] = enabled }
@@ -151,6 +162,41 @@ class AppearanceSettingsStore(private val context: Context) {
             .onFailure { e -> android.util.Log.w("AppearanceStore", "$label 解析失败", e) }
             .getOrNull()
     }
+
+    private fun decodeThemeSchedule(raw: String?): ThemeScheduleRead {
+        if (raw.isNullOrBlank()) return ThemeScheduleRead(ThemeScheduleConfig(), null)
+        return runCatching {
+            val decoded = AppJson.decodeFromString(ThemeScheduleConfig.serializer(), raw)
+            val hasExplicitPolicy = AppJson.parseToJsonElement(raw).jsonObject.containsKey("autoPolicy")
+            @Suppress("DEPRECATION")
+            val migratedPolicy = if (hasExplicitPolicy) {
+                decoded.autoPolicy
+            } else if (decoded.enabled) {
+                ThemeAutoPolicy.CUSTOM_TIME
+            } else {
+                ThemeAutoPolicy.OFF
+            }
+            decoded.copy(
+                enabled = false,
+                schemaVersion = ThemeScheduleConfig.CURRENT_SCHEMA_VERSION,
+                autoPolicy = migratedPolicy,
+            )
+        }.fold(
+            onSuccess = { ThemeScheduleRead(it, null) },
+            onFailure = { error ->
+                android.util.Log.w("AppearanceStore", "ThemeSchedule 解析失败；保留基础主题模式并停用自动策略", error)
+                ThemeScheduleRead(
+                    ThemeScheduleConfig(),
+                    "ThemeSchedule parse failed: ${error.message ?: error.javaClass.simpleName}",
+                )
+            },
+        )
+    }
+
+    private data class ThemeScheduleRead(
+        val config: ThemeScheduleConfig,
+        val diagnostic: String?,
+    )
 
     companion object {
         /** 默认主题 id — 与 MainActivity/ThemeSection 保持一致(R-UI-03)。 */

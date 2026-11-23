@@ -62,6 +62,7 @@ import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.buildJsonObject
@@ -145,6 +146,7 @@ class BackupService(
      * NDJSON 路径走流式逐行解析,不消耗该上限(天然防 OOM)。
      */
     private val singleJsonMaxBytes: Long = MAX_SINGLE_JSON_BACKUP_BYTES,
+    private val afterRestore: suspend () -> Unit = {},
 ) {
     private val json = Json {
         prettyPrint = true
@@ -159,6 +161,16 @@ class BackupService(
             .onError { msg, _ -> Logger.w("BackupService", "恢复后 HNSW 索引失效处理失败: $msg") }
     }
 
+    private suspend fun runAfterRestoreRecovery() {
+        try {
+            afterRestore()
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            throw cancelled
+        } catch (error: Exception) {
+            Logger.w("BackupService", "恢复后调度对账失败: ${error.message}", error)
+        }
+    }
+
     /**
      * 备份数据结构。
      *
@@ -168,7 +180,7 @@ class BackupService(
      */
     @Serializable
     data class Backup(
-        val version: Int = 3,
+        val version: Int = 5,
         val exportedAt: Long,
         // ── 原有字段(v1/v2) ──
         val sessions: List<SessionEntity>,
@@ -231,8 +243,23 @@ class BackupService(
         val proactiveOutcomes: List<io.zer0.muse.data.proactive.ProactiveOutcomeEntity> = emptyList(),
         /** v2.6.9: 关系亲密度与主动等级。 */
         val proactiveRelations: List<io.zer0.muse.data.proactive.ProactiveRelationEntity> = emptyList(),
+        /** backlog 的待派发账本；恢复时废弃旧 claim lease。 */
+        val proactiveBacklogDispatches: List<io.zer0.muse.data.proactive.ProactiveBacklogDispatchEntity> = emptyList(),
+        /** backlog 的全局最早派发时间。 */
+        val proactiveBacklogSchedule: List<io.zer0.muse.data.proactive.ProactiveBacklogScheduleEntity> = emptyList(),
         /** v2.6.21: 单个会话的主动消息静音偏好。 */
         val sessionProactivePreferences: List<io.zer0.muse.proactive.SessionProactivePreferenceEntity> = emptyList(),
+        /** AgentBot: 任务、运行、审批、事件与发布状态，恢复后由启动对账处理旧 lease。 */
+        val botBindings: List<io.zer0.muse.data.agentbot.BotBindingEntity> = emptyList(),
+        val botTasks: List<io.zer0.muse.data.agentbot.BotTaskEntity> = emptyList(),
+        val botTaskRuns: List<io.zer0.muse.data.agentbot.TaskRunEntity> = emptyList(),
+        val botTaskSteps: List<io.zer0.muse.data.agentbot.TaskStepEntity> = emptyList(),
+        val botEvents: List<io.zer0.muse.data.agentbot.BotEventEntity> = emptyList(),
+        val botApprovals: List<io.zer0.muse.data.agentbot.ApprovalRequestEntity> = emptyList(),
+        val botPublications: List<io.zer0.muse.data.agentbot.PublicationOutboxEntity> = emptyList(),
+        val botAnnotations: List<io.zer0.muse.data.agentbot.BotAnnotationEntity> = emptyList(),
+        val botMessageCards: List<io.zer0.muse.data.agentbot.BotMessageCardEntity> = emptyList(),
+        val botRoutines: List<io.zer0.muse.data.agentbot.BotRoutineEntity> = emptyList(),
         /**
          * v2.7.x(E2): 术语表 —— 用户确认过的黑话与新词。
 
@@ -285,7 +312,12 @@ class BackupService(
         toolRounds.isNotEmpty() || sessionBranchHeads.isNotEmpty() || assistantRelationships.isNotEmpty() ||
         sessionTodos.isNotEmpty() ||
         pendingThoughts.isNotEmpty() || proactiveOutcomes.isNotEmpty() || proactiveRelations.isNotEmpty() ||
+        proactiveBacklogDispatches.isNotEmpty() || proactiveBacklogSchedule.isNotEmpty() ||
         sessionProactivePreferences.isNotEmpty() || sessionTerms.isNotEmpty() ||
+        botBindings.isNotEmpty() || botTasks.isNotEmpty() || botTaskRuns.isNotEmpty() ||
+        botTaskSteps.isNotEmpty() || botEvents.isNotEmpty() || botApprovals.isNotEmpty() ||
+        botPublications.isNotEmpty() || botAnnotations.isNotEmpty() ||
+        botMessageCards.isNotEmpty() || botRoutines.isNotEmpty() ||
         groupChatMemories.isNotEmpty() ||
         cardEntities.isNotEmpty() ||
         settingsSnapshot.isNotEmpty() || fileStores.isNotEmpty() || binaryFiles.isNotEmpty() ||
@@ -325,7 +357,7 @@ class BackupService(
      * @return 导入的会话数 + 消息数
      */
     suspend fun import(context: Context, uri: Uri, backupPassword: String? = null): Pair<Int, Int> = withContext(Dispatchers.IO) {
-        withBackupImportWriteGate {
+        val imported = withBackupImportWriteGate {
             val rawInput = context.contentResolver.openInputStream(uri)
                 ?: error(context.getString(R.string.backup_cannot_read, uri))
             rawInput.use { input ->
@@ -372,6 +404,8 @@ class BackupService(
                 }
             }
         }
+        runAfterRestoreRecovery()
+        imported
     }
 
     /** 识别本地备份 ZIP 中可能承载全量数据的 JSON/NDJSON 文件。 */
@@ -503,6 +537,7 @@ class BackupService(
         val muse = db.withTransaction {
             val s = db.sessionDao().observeAll().first()
             val msgs = s.flatMap { db.messageDao().observeBySession(it.id).first() }
+            val backlogSnapshot = snapshotBacklogForBackup(System.currentTimeMillis())
             ExportedMuseSnapshot(
                 sessions = s,
                 messages = msgs,
@@ -543,7 +578,19 @@ class BackupService(
                 pendingThoughts = db.pendingThoughtDao().getAll(),
                 proactiveOutcomes = db.proactiveOutcomeDao().getAll(),
                 proactiveRelations = db.proactiveRelationDao().getAll(),
+                proactiveBacklogDispatches = backlogSnapshot.dispatches,
+                proactiveBacklogSchedule = backlogSnapshot.schedule,
                 sessionProactivePreferences = db.sessionProactivePreferenceDao().getAll(),
+                botBindings = db.botBindingDao().getAll(),
+                botTasks = db.botTaskDao().getAll(),
+                botTaskRuns = db.taskRunDao().getAll(),
+                botTaskSteps = db.taskStepDao().getAll(),
+                botEvents = db.botEventDao().getAll(),
+                botApprovals = db.approvalRequestDao().getAll(),
+                botPublications = db.publicationOutboxDao().getAll(),
+                botAnnotations = db.botAnnotationDao().getAll(),
+                botMessageCards = db.botMessageCardDao().getAll(),
+                botRoutines = db.botRoutineDao().getAll(),
                 sessionTerms = db.sessionTermDao().getAll(),
                 groupChatMemories = db.groupChatMemoryDao().getAll(),
                 // v2.6.8: 卡片实体（NDJSON 导出，与单 JSON 同一定序）。
@@ -602,7 +649,19 @@ class BackupService(
         val pendingThoughts = muse.pendingThoughts
         val proactiveOutcomes = muse.proactiveOutcomes
         val proactiveRelations = muse.proactiveRelations
+        val proactiveBacklogDispatches = muse.proactiveBacklogDispatches
+        val proactiveBacklogSchedule = muse.proactiveBacklogSchedule
         val sessionProactivePreferences = muse.sessionProactivePreferences
+        val botBindings = muse.botBindings
+        val botTasks = muse.botTasks
+        val botTaskRuns = muse.botTaskRuns
+        val botTaskSteps = muse.botTaskSteps
+        val botEvents = muse.botEvents
+        val botApprovals = muse.botApprovals
+        val botPublications = muse.botPublications
+        val botAnnotations = muse.botAnnotations
+        val botMessageCards = muse.botMessageCards
+        val botRoutines = muse.botRoutines
         val sessionTerms = muse.sessionTerms
         val groupChatMemories = muse.groupChatMemories
         // v2.6.8: 卡片实体。
@@ -619,7 +678,7 @@ class BackupService(
         // Step 2: 写 meta 行
         val meta = buildJsonObject {
             put("type", "meta")
-            put("version", 4)
+            put("version", 5)
             put("exportedAt", System.currentTimeMillis())
             put("sessions", sessions.size)
             put("messages", allMessages.size)
@@ -666,6 +725,18 @@ class BackupService(
             put("pendingThoughts", pendingThoughts.size)
             put("proactiveOutcomes", proactiveOutcomes.size)
             put("proactiveRelations", proactiveRelations.size)
+            put("proactiveBacklogDispatches", proactiveBacklogDispatches.size)
+            put("proactiveBacklogSchedule", proactiveBacklogSchedule.size)
+            put("botBindings", botBindings.size)
+            put("botTasks", botTasks.size)
+            put("botTaskRuns", botTaskRuns.size)
+            put("botTaskSteps", botTaskSteps.size)
+            put("botEvents", botEvents.size)
+            put("botApprovals", botApprovals.size)
+            put("botPublications", botPublications.size)
+            put("botAnnotations", botAnnotations.size)
+            put("botMessageCards", botMessageCards.size)
+            put("botRoutines", botRoutines.size)
             put("sessionTerms", sessionTerms.size)
             put("sessionProactivePreferences", sessionProactivePreferences.size)
             put("assistantRelationships", assistantRelationships.size)
@@ -885,10 +956,32 @@ class BackupService(
         )
         writeTypedLines(
             writer,
+            "proactiveBacklogDispatch",
+            proactiveBacklogDispatches,
+            io.zer0.muse.data.proactive.ProactiveBacklogDispatchEntity.serializer(),
+        )
+        writeTypedLines(
+            writer,
+            "proactiveBacklogSchedule",
+            proactiveBacklogSchedule,
+            io.zer0.muse.data.proactive.ProactiveBacklogScheduleEntity.serializer(),
+        )
+        writeTypedLines(
+            writer,
             "sessionProactivePreference",
             sessionProactivePreferences,
             io.zer0.muse.proactive.SessionProactivePreferenceEntity.serializer(),
         )
+        writeTypedLines(writer, "botBinding", botBindings, io.zer0.muse.data.agentbot.BotBindingEntity.serializer())
+        writeTypedLines(writer, "botTask", botTasks, io.zer0.muse.data.agentbot.BotTaskEntity.serializer())
+        writeTypedLines(writer, "botTaskRun", botTaskRuns, io.zer0.muse.data.agentbot.TaskRunEntity.serializer())
+        writeTypedLines(writer, "botTaskStep", botTaskSteps, io.zer0.muse.data.agentbot.TaskStepEntity.serializer())
+        writeTypedLines(writer, "botEvent", botEvents, io.zer0.muse.data.agentbot.BotEventEntity.serializer())
+        writeTypedLines(writer, "botApproval", botApprovals, io.zer0.muse.data.agentbot.ApprovalRequestEntity.serializer())
+        writeTypedLines(writer, "botPublication", botPublications, io.zer0.muse.data.agentbot.PublicationOutboxEntity.serializer())
+        writeTypedLines(writer, "botAnnotation", botAnnotations, io.zer0.muse.data.agentbot.BotAnnotationEntity.serializer())
+        writeTypedLines(writer, "botMessageCard", botMessageCards, io.zer0.muse.data.agentbot.BotMessageCardEntity.serializer())
+        writeTypedLines(writer, "botRoutine", botRoutines, io.zer0.muse.data.agentbot.BotRoutineEntity.serializer())
         writeTypedLines(
             writer,
             "assistantRelationship",
@@ -1017,7 +1110,19 @@ class BackupService(
         val pendingThoughts: List<io.zer0.muse.data.proactive.PendingThoughtEntity>,
         val proactiveOutcomes: List<io.zer0.muse.data.proactive.ProactiveOutcomeEntity>,
         val proactiveRelations: List<io.zer0.muse.data.proactive.ProactiveRelationEntity>,
+        val proactiveBacklogDispatches: List<io.zer0.muse.data.proactive.ProactiveBacklogDispatchEntity>,
+        val proactiveBacklogSchedule: List<io.zer0.muse.data.proactive.ProactiveBacklogScheduleEntity>,
         val sessionProactivePreferences: List<io.zer0.muse.proactive.SessionProactivePreferenceEntity>,
+        val botBindings: List<io.zer0.muse.data.agentbot.BotBindingEntity>,
+        val botTasks: List<io.zer0.muse.data.agentbot.BotTaskEntity>,
+        val botTaskRuns: List<io.zer0.muse.data.agentbot.TaskRunEntity>,
+        val botTaskSteps: List<io.zer0.muse.data.agentbot.TaskStepEntity>,
+        val botEvents: List<io.zer0.muse.data.agentbot.BotEventEntity>,
+        val botApprovals: List<io.zer0.muse.data.agentbot.ApprovalRequestEntity>,
+        val botPublications: List<io.zer0.muse.data.agentbot.PublicationOutboxEntity>,
+        val botAnnotations: List<io.zer0.muse.data.agentbot.BotAnnotationEntity>,
+        val botMessageCards: List<io.zer0.muse.data.agentbot.BotMessageCardEntity>,
+        val botRoutines: List<io.zer0.muse.data.agentbot.BotRoutineEntity>,
         /** v2.7.x(E2): 术语表。 */
         val sessionTerms: List<io.zer0.muse.data.terms.SessionTermEntity>,
         /** v2.6.8: 卡片实体（`card_entities`）—— 停靠卡离开消息流后唯一的存身处。 */
@@ -1081,144 +1186,28 @@ class BackupService(
         // C-10: memoryDb / factDb 为独立数据库,无法与 MuseDb 跨库原子,
         // 故只在 MuseDb 事务成功后再于各自独立事务内统一"清空 + 插入",
         // 消除在 MuseDb 事务内提前提交 memory/fact 造成的跨库半状态及早前重复 flush。
-        var sessionCount = 0
-        var messageCount = 0
         // v4: 文件型存储(渠道/连接器/批注/收件箱/插件),声明在 try 外供尾部写入
         val fileStoreBuf = mutableMapOf<String, String>()
         // v4.1: 目录型文件(笔记附件/头像),同样在 try 外,尾部与文件型存储一同写入。
         // Buffer 在累积阶段就做白名单与容量裁剪,避免恶意备份先吃内存再校验。
         val binaryFileBuf = BackupBinaryFiles.Buffer()
-        // R9: 知识库 V2 便携备份(单条记录),在 MuseDb 事务内恢复。
-        var knowledgeV2PortableBuf: io.zer0.muse.knowledge.backup.KnowledgePortableBackup? = null
+        val backlogRestoreAt = System.currentTimeMillis()
+        val museImporter = NdJsonMuseImporter(backlogRestoreAt)
         try {
             // buffer 声明在事务外(尾部 memory/fact 事务块也要访问)
-            val sessionBuf = mutableListOf<SessionEntity>()
-            val messageBuf = mutableListOf<MessageEntity>()
-            // 旧小手机已下线:备份里残留的 isMiniPhone 会话不再作为普通会话恢复。
-            // 过滤发生在写入前(不写库再删),它们的消息也一起跳过。
-            val skippedMiniPhoneSessionIds = mutableSetOf<String>()
-            var skippedMiniPhoneSessions = 0
-            var skippedMiniPhoneMessages = 0
             val summaryBuf = mutableListOf<SessionSummaryEntity>()
             val contextCheckpointBuf = mutableListOf<ContextCheckpointEntity>()
             val dailyBuf = mutableListOf<DailyStateEntity>()
             val compiledBuf = mutableListOf<CompiledSectionEntity>()
             val scopedCompiledBuf = mutableListOf<ScopedCompiledSectionEntity>()
             val factBuf = mutableListOf<FactEntity>()
-            // v3: 扩展表 buffer
-            val assistantBuf = mutableListOf<AssistantEntity>()
-            val lorebookBuf = mutableListOf<LorebookEntity>()
-            val skillBuf = mutableListOf<SkillEntity>()
-            val artifactBuf = mutableListOf<ArtifactEntity>()
-            val quickMsgBuf = mutableListOf<QuickMessageEntity>()
-            val promptInjBuf = mutableListOf<PromptInjectionEntity>()
-            val folderBuf = mutableListOf<FolderEntity>()
-            val groupChatBuf = mutableListOf<GroupChatEntity>()
-            val groupChatMsgBuf = mutableListOf<GroupChatMessageEntity>()
-            val schedTaskBuf = mutableListOf<ScheduledTaskEntity>()
-            val schedExecBuf = mutableListOf<ScheduledTaskExecutionEntity>()
-            val knowDocBuf = mutableListOf<KnowledgeDocEntity>()
-            val knowChunkBuf = mutableListOf<KnowledgeChunkEntity>()
-            val experienceBuf = mutableListOf<ExperienceEntity>()
-            val milestoneBuf = mutableListOf<MilestoneEntity>()
-            val agentMsgBuf = mutableListOf<AgentMessageEntity>()
-            // P0-10: 此前缺失的实体
-            val quickNoteBuf = mutableListOf<io.zer0.muse.data.quicknote.QuickNoteEntity>()
-            val worldBookBuf = mutableListOf<io.zer0.muse.worldbook.WorldBookEntryEntity>()
-            val convEventBuf = mutableListOf<ConversationEventEntity>()
-            val convTurnBuf = mutableListOf<ConversationTurnEntity>()
-            val messagePartBuf = mutableListOf<MessagePartEntity>()
-            val messageOutboxBuf = mutableListOf<MessageOutboxEntity>()
-            val translateHistoryBuf = mutableListOf<TranslateHistoryEntity>()
-            val knowledgeBaseBuf = mutableListOf<KnowledgeBaseEntity>()
-            // AUD-20261011-NDJSON-FOLDERS: 知识库文件夹此前只有导出行、没有恢复分支,
-            // 清空阶段 deleteAll 后无法回填(每次 NDJSON 恢复清空全部文件夹)。
-            val knowledgeFolderBuf = mutableListOf<io.zer0.muse.data.knowledge.KnowledgeFolderEntity>()
-            val subagentThreadBuf = mutableListOf<SubagentThreadEntity>()
-            val toolRoundBuf = mutableListOf<ToolRoundEntity>()
-            val sessionBranchHeadBuf = mutableListOf<SessionBranchHeadEntity>()
-            val conversationCommandReceiptBuf =
-                mutableListOf<io.zer0.muse.data.conversation.ConversationCommandReceiptEntity>()
-            val conversationSelectionBuf =
-                mutableListOf<io.zer0.muse.data.conversation.ConversationSelectionEntity>()
-            val conversationDisplaySlotBuf =
-                mutableListOf<io.zer0.muse.data.conversation.ConversationDisplaySlotEntity>()
-            val groupChatMemoryBuf = mutableListOf<GroupChatMemoryEntity>()
-            // v2.6.7 fix (AUDIT F1): 待办与角色关系的恢复缓冲区。
-            val sessionTodoBuf = mutableListOf<io.zer0.muse.data.todo.SessionTodoEntity>()
-            // v2.6.9: 主动消息三表恢复缓冲。
-            val pendingThoughtBuf = mutableListOf<io.zer0.muse.data.proactive.PendingThoughtEntity>()
-            val sessionTermBuf = mutableListOf<io.zer0.muse.data.terms.SessionTermEntity>()
-            val proactiveOutcomeBuf = mutableListOf<io.zer0.muse.data.proactive.ProactiveOutcomeEntity>()
-            val proactiveRelationBuf = mutableListOf<io.zer0.muse.data.proactive.ProactiveRelationEntity>()
-            val sessionProactivePreferenceBuf =
-                mutableListOf<io.zer0.muse.proactive.SessionProactivePreferenceEntity>()
-            val assistantRelationshipBuf =
-                mutableListOf<io.zer0.muse.data.relationship.AssistantRelationshipEntity>()
-            // v2.6.8: 卡片实体恢复缓冲。
-            val cardEntityBuf = mutableListOf<CardEntityRecord>()
             // P0-10: 子助手分库 — scope → facts(跨库,独立于 MuseDb 事务)
             val scopedFactBuf = LinkedHashMap<String, MutableList<FactEntity>>()
             var settingsSnapshot: Map<String, String> = emptyMap()
 
             db.withTransaction {
                 // 1. 先清空所有表
-                clearConversationStateForRestore(db)
-                db.assistantDao().deleteAll()
-                db.lorebookDao().deleteAll()
-                db.skillDao().deleteAll()
-                db.artifactDao().deleteAll()
-                db.quickMessageDao().deleteAll()
-                db.promptInjectionDao().deleteAll()
-                db.folderDao().deleteAll()
-                db.groupChatMessageDao().deleteAll()
-                db.groupChatDao().deleteAll()
-                db.scheduledTaskExecutionDao().deleteAll()
-                db.scheduledTaskDao().deleteAll()
-                db.knowledgeChunkDao().deleteAll()
-                db.knowledgeDocDao().deleteAll()
-                db.experienceDao().deleteAll()
-                db.milestoneDao().deleteAll()
-                db.agentMessageDao().deleteAll()
-                // P0-10: 此前缺失的实体
-                db.quickNoteDao().deleteAll()
-                db.worldBookDao().deleteAll()
-                db.conversationEventDao().deleteAll()
-                db.conversationTurnDao().deleteAll()
-                db.conversationCommandReceiptDao().deleteAll()
-                db.conversationSelectionDao().deleteAll()
-                db.conversationDisplaySlotDao().deleteAll()
-                db.messagePartDao().deleteAll()
-                db.messageOutboxDao().deleteAll()
-                db.translateHistoryDao().deleteAll()
-                db.knowledgeBaseDao().deleteAll()
-                db.knowledgeFolderDao().deleteAll()
-                db.sessionTodoDao().deleteAll()
-                db.pendingThoughtWriteDao().deleteAll()
-                db.proactiveOutcomeDao().deleteAll()
-                db.proactiveRelationDao().deleteAll()
-                db.sessionProactivePreferenceDao().deleteAll()
-                db.sessionTermDao().deleteAll()
-                db.assistantRelationshipDao().deleteAll()
-                db.subagentThreadDao().deleteAll()
-                db.toolRoundDao().deleteAll()
-                db.sessionBranchHeadDao().deleteAll()
-                db.groupChatMemoryDao().deleteAll()
-                // v2.6.8: 卡片实体。
-                db.cardEntityDao().deleteAll()
-                // R9: 知识库 V2 真源清空(恢复前);旧表由既有 deleteAll 覆盖。
-                db.knowledgeJobDao().deleteAllGenLexical()
-                db.knowledgeJobDao().deleteAllGenChunks()
-                db.knowledgeJobDao().deleteAllGenerations()
-                db.knowledgeJobDao().deleteAllActiveGenerations()
-                db.knowledgeJobDao().deleteAllJobItems()
-                db.knowledgeJobDao().deleteAllJobs()
-                db.knowledgeV2Dao().deleteAllRevisions()
-                db.knowledgeV2Dao().deleteAllDocs()
-                db.knowledgeV2Dao().deleteAllEpochs()
-                db.knowledgeV2Dao().deleteAllLeases()
-                db.knowledgeFolderV2Dao().deleteAllFolders()
-                db.knowledgeFolderV2Dao().deleteAllBindings()
+                museImporter.clearAllTables()
 
                 // 2. 逐行解析 + 分批插入(仍在 db.withTransaction 事务内,任一失败整体回滚)
                 remaining.forEachIndexed { idx, line ->
@@ -1254,32 +1243,6 @@ class BackupService(
                             val content = obj["content"]?.let { (it as? JsonPrimitive)?.content }
                             if (!path.isNullOrBlank() && content != null) binaryFileBuf.offer(path, content)
                         }
-                        "session" -> obj["data"]?.let {
-                            val session = json.decodeFromJsonElement(SessionEntity.serializer(), it)
-                            if (session.isMiniPhone) {
-                                skippedMiniPhoneSessionIds += session.id
-                                skippedMiniPhoneSessions += 1
-                            } else {
-                                // v2.x 导入预热:恢复的会话首轮以全量历史构建上下文一次
-                                sessionBuf.add(session.copy(warmupPending = true))
-                                if (sessionBuf.size >= IMPORT_BATCH) {
-                                    sessionCount += sessionBuf.size
-                                    flushBatch(sessionBuf) { batch -> db.withTransaction { batch.forEach { db.sessionDao().insert(it) } } }
-                                }
-                            }
-                        }
-                        "message" -> obj["data"]?.let {
-                            val message = json.decodeFromJsonElement(MessageEntity.serializer(), it)
-                            if (message.sessionId in skippedMiniPhoneSessionIds) {
-                                skippedMiniPhoneMessages += 1
-                                return@let
-                            }
-                            messageBuf.add(message)
-                            if (messageBuf.size >= IMPORT_BATCH) {
-                                messageCount += messageBuf.size
-                                flushBatch(messageBuf) { batch -> db.withTransaction { batch.forEach { db.messageDao().upsert(it) } } }
-                            }
-                        }
                         "summary" -> obj["data"]?.let {
                             summaryBuf.add(json.decodeFromJsonElement(SessionSummaryEntity.serializer(), it))
                             // C-10: memory/fact 缓冲只在 MuseDb 事务成功后于各自独立事务内统一提交,
@@ -1302,445 +1265,6 @@ class BackupService(
                         "fact" -> obj["data"]?.let {
                             factBuf.add(json.decodeFromJsonElement(FactEntity.serializer(), it))
                         }
-                        // v3: 扩展表类型
-                        "assistant" -> obj["data"]?.let {
-                            assistantBuf.add(json.decodeFromJsonElement(AssistantEntity.serializer(), it))
-                            if (assistantBuf.size >= IMPORT_BATCH) {
-                                flushBatch(
-                                    assistantBuf,
-                                ) { batch -> db.withTransaction { db.assistantDao().insertAll(batch) } }
-                            }
-                        }
-                        "lorebook" -> obj["data"]?.let {
-                            lorebookBuf.add(json.decodeFromJsonElement(LorebookEntity.serializer(), it))
-                            if (lorebookBuf.size >= IMPORT_BATCH) {
-                                flushBatch(
-                                    lorebookBuf,
-                                ) { batch -> db.withTransaction { db.lorebookDao().insertAll(batch) } }
-                            }
-                        }
-                        "skill" -> obj["data"]?.let {
-                            skillBuf.add(json.decodeFromJsonElement(SkillEntity.serializer(), it))
-                            if (skillBuf.size >= IMPORT_BATCH) {
-                                flushBatch(
-                                    skillBuf,
-                                ) { batch -> db.withTransaction { batch.forEach { db.skillDao().upsert(it) } } }
-                            }
-                        }
-                        "artifact" -> obj["data"]?.let {
-                            artifactBuf.add(json.decodeFromJsonElement(ArtifactEntity.serializer(), it))
-                            if (artifactBuf.size >= IMPORT_BATCH) {
-                                flushBatch(artifactBuf) { batch ->
-                                    db.withTransaction {
-                                        batch.forEach { db.artifactDao().upsert(it) }
-                                    }
-                                }
-                            }
-                        }
-                        "quickMessage" -> obj["data"]?.let {
-                            quickMsgBuf.add(json.decodeFromJsonElement(QuickMessageEntity.serializer(), it))
-                            if (quickMsgBuf.size >= IMPORT_BATCH) {
-                                flushBatch(
-                                    quickMsgBuf,
-                                ) { batch -> db.withTransaction { db.quickMessageDao().insertAll(batch) } }
-                            }
-                        }
-                        "promptInjection" -> obj["data"]?.let {
-                            promptInjBuf.add(json.decodeFromJsonElement(PromptInjectionEntity.serializer(), it))
-                            if (promptInjBuf.size >= IMPORT_BATCH) {
-                                flushBatch(
-                                    promptInjBuf,
-                                ) { batch -> db.withTransaction { db.promptInjectionDao().insertAll(batch) } }
-                            }
-                        }
-                        "folder" -> obj["data"]?.let {
-                            folderBuf.add(json.decodeFromJsonElement(FolderEntity.serializer(), it))
-                            if (folderBuf.size >= IMPORT_BATCH) {
-                                flushBatch(
-                                    folderBuf,
-                                ) { batch -> db.withTransaction { batch.forEach { db.folderDao().insert(it) } } }
-                            }
-                        }
-                        "groupChat" -> obj["data"]?.let {
-                            groupChatBuf.add(json.decodeFromJsonElement(GroupChatEntity.serializer(), it))
-                            if (groupChatBuf.size >= IMPORT_BATCH) {
-                                flushBatch(groupChatBuf) { batch ->
-                                    db.withTransaction {
-                                        batch.forEach { db.groupChatDao().upsert(it) }
-                                    }
-                                }
-                            }
-                        }
-                        "groupChatMessage" -> obj["data"]?.let {
-                            groupChatMsgBuf.add(json.decodeFromJsonElement(GroupChatMessageEntity.serializer(), it))
-                            if (groupChatMsgBuf.size >= IMPORT_BATCH) {
-                                flushBatch(groupChatMsgBuf) { batch ->
-                                    db.withTransaction {
-                                        db.groupChatMessageDao().insertAll(batch)
-                                    }
-                                }
-                            }
-                        }
-                        "scheduledTask" -> obj["data"]?.let {
-                            schedTaskBuf.add(json.decodeFromJsonElement(ScheduledTaskEntity.serializer(), it))
-                            if (schedTaskBuf.size >= IMPORT_BATCH) {
-                                flushBatch(schedTaskBuf) { batch ->
-                                    db.withTransaction {
-                                        batch.forEach { db.scheduledTaskDao().upsert(it) }
-                                    }
-                                }
-                            }
-                        }
-                        "scheduledTaskExecution" -> obj["data"]?.let {
-                            schedExecBuf.add(json.decodeFromJsonElement(ScheduledTaskExecutionEntity.serializer(), it))
-                            if (schedExecBuf.size >= IMPORT_BATCH) {
-                                flushBatch(schedExecBuf) { batch ->
-                                    db.withTransaction {
-                                        batch.forEach { db.scheduledTaskExecutionDao().insert(it) }
-                                    }
-                                }
-                            }
-                        }
-                        "knowledgeDoc" -> obj["data"]?.let {
-                            knowDocBuf.add(json.decodeFromJsonElement(KnowledgeDocEntity.serializer(), it))
-                            if (knowDocBuf.size >= IMPORT_BATCH) {
-                                flushBatch(knowDocBuf) { batch ->
-                                    db.withTransaction {
-                                        batch.forEach { db.knowledgeDocDao().upsert(it) }
-                                    }
-                                }
-                            }
-                        }
-                        "knowledgeChunk" -> obj["data"]?.let {
-                            knowChunkBuf.add(json.decodeFromJsonElement(KnowledgeChunkEntity.serializer(), it))
-                            if (knowChunkBuf.size >= IMPORT_BATCH) {
-                                flushBatch(
-                                    knowChunkBuf,
-                                ) { batch -> db.withTransaction { db.knowledgeChunkDao().insertAll(batch) } }
-                            }
-                        }
-                        "knowledgeV2Portable" -> obj["data"]?.let {
-                            knowledgeV2PortableBuf = json.decodeFromJsonElement(
-                                io.zer0.muse.knowledge.backup.KnowledgePortableBackup.serializer(),
-                                it,
-                            )
-                        }
-                        "experience" -> obj["data"]?.let {
-                            experienceBuf.add(json.decodeFromJsonElement(ExperienceEntity.serializer(), it))
-                            if (experienceBuf.size >= IMPORT_BATCH) {
-                                flushBatch(experienceBuf) { batch ->
-                                    db.withTransaction {
-                                        batch.forEach { db.experienceDao().upsert(it) }
-                                    }
-                                }
-                            }
-                        }
-                        "milestone" -> obj["data"]?.let {
-                            milestoneBuf.add(json.decodeFromJsonElement(MilestoneEntity.serializer(), it))
-                            if (milestoneBuf.size >= IMPORT_BATCH) {
-                                flushBatch(milestoneBuf) { batch ->
-                                    db.withTransaction {
-                                        batch.forEach { db.milestoneDao().upsert(it) }
-                                    }
-                                }
-                            }
-                        }
-                        "agentMessage" -> obj["data"]?.let {
-                            agentMsgBuf.add(json.decodeFromJsonElement(AgentMessageEntity.serializer(), it))
-                            if (agentMsgBuf.size >= IMPORT_BATCH) {
-                                flushBatch(agentMsgBuf) { batch ->
-                                    db.withTransaction {
-                                        batch.forEach { db.agentMessageDao().upsert(it) }
-                                    }
-                                }
-                            }
-                        }
-                        // P0-10: 此前缺失的实体
-                        "quickNote" -> obj["data"]?.let {
-                            quickNoteBuf.add(json.decodeFromJsonElement(io.zer0.muse.data.quicknote.QuickNoteEntity.serializer(), it))
-                            if (quickNoteBuf.size >= IMPORT_BATCH) {
-                                flushBatch(quickNoteBuf) { batch ->
-                                    db.withTransaction {
-                                        batch.forEach { db.quickNoteDao().upsert(it) }
-                                    }
-                                }
-                            }
-                        }
-                        "worldBookEntry" -> obj["data"]?.let {
-                            worldBookBuf.add(json.decodeFromJsonElement(io.zer0.muse.worldbook.WorldBookEntryEntity.serializer(), it))
-                            if (worldBookBuf.size >= IMPORT_BATCH) {
-                                flushBatch(worldBookBuf) { batch ->
-                                    db.withTransaction {
-                                        batch.forEach { db.worldBookDao().upsert(it) }
-                                    }
-                                }
-                            }
-                        }
-                        "conversationEvent" -> obj["data"]?.let {
-                            convEventBuf.add(json.decodeFromJsonElement(ConversationEventEntity.serializer(), it))
-                            if (convEventBuf.size >= IMPORT_BATCH) {
-                                flushBatch(convEventBuf) { batch ->
-                                    db.withTransaction {
-                                        db.conversationEventDao().insertAll(batch)
-                                    }
-                                }
-                            }
-                        }
-                        "conversationTurn" -> obj["data"]?.let {
-                            convTurnBuf.add(json.decodeFromJsonElement(ConversationTurnEntity.serializer(), it))
-                            if (convTurnBuf.size >= IMPORT_BATCH) {
-                                flushBatch(convTurnBuf) { batch ->
-                                    db.withTransaction {
-                                        batch.forEach { db.conversationTurnDao().upsert(it) }
-                                    }
-                                }
-                            }
-                        }
-                        "conversationCommandReceipt" -> obj["data"]?.let {
-                            conversationCommandReceiptBuf.add(
-                                json.decodeFromJsonElement(
-                                    io.zer0.muse.data.conversation.ConversationCommandReceiptEntity.serializer(),
-                                    it,
-                                ),
-                            )
-                            if (conversationCommandReceiptBuf.size >= IMPORT_BATCH) {
-                                flushBatch(conversationCommandReceiptBuf) { batch ->
-                                    db.withTransaction {
-                                        batch.forEach { db.conversationCommandReceiptDao().insert(it) }
-                                    }
-                                }
-                            }
-                        }
-                        "conversationSelection" -> obj["data"]?.let {
-                            conversationSelectionBuf.add(
-                                json.decodeFromJsonElement(
-                                    io.zer0.muse.data.conversation.ConversationSelectionEntity.serializer(),
-                                    it,
-                                ),
-                            )
-                            if (conversationSelectionBuf.size >= IMPORT_BATCH) {
-                                flushBatch(conversationSelectionBuf) { batch ->
-                                    db.withTransaction {
-                                        batch.forEach { db.conversationSelectionDao().insert(it) }
-                                    }
-                                }
-                            }
-                        }
-                        "conversationDisplaySlot" -> obj["data"]?.let {
-                            conversationDisplaySlotBuf.add(
-                                json.decodeFromJsonElement(
-                                    io.zer0.muse.data.conversation.ConversationDisplaySlotEntity.serializer(),
-                                    it,
-                                ),
-                            )
-                            if (conversationDisplaySlotBuf.size >= IMPORT_BATCH) {
-                                flushBatch(conversationDisplaySlotBuf) { batch ->
-                                    db.withTransaction {
-                                        batch.forEach { db.conversationDisplaySlotDao().upsert(it) }
-                                    }
-                                }
-                            }
-                        }
-                        "messagePart" -> obj["data"]?.let {
-                            messagePartBuf.add(json.decodeFromJsonElement(MessagePartEntity.serializer(), it))
-                            if (messagePartBuf.size >= IMPORT_BATCH) {
-                                flushBatch(
-                                    messagePartBuf,
-                                ) { batch -> db.withTransaction { db.messagePartDao().upsertAll(batch) } }
-                            }
-                        }
-                        "messageOutbox" -> obj["data"]?.let {
-                            messageOutboxBuf.add(json.decodeFromJsonElement(MessageOutboxEntity.serializer(), it))
-                            if (messageOutboxBuf.size >= IMPORT_BATCH) {
-                                flushBatch(messageOutboxBuf) { batch ->
-                                    db.withTransaction {
-                                        batch.forEach { db.messageOutboxDao().upsert(it) }
-                                    }
-                                }
-                            }
-                        }
-                        "translateHistory" -> obj["data"]?.let {
-                            translateHistoryBuf.add(json.decodeFromJsonElement(TranslateHistoryEntity.serializer(), it))
-                            if (translateHistoryBuf.size >= IMPORT_BATCH) {
-                                flushBatch(translateHistoryBuf) { batch ->
-                                    db.withTransaction {
-                                        batch.forEach { db.translateHistoryDao().insert(it) }
-                                    }
-                                }
-                            }
-                        }
-                        "knowledgeBase" -> obj["data"]?.let {
-                            knowledgeBaseBuf.add(json.decodeFromJsonElement(KnowledgeBaseEntity.serializer(), it))
-                            if (knowledgeBaseBuf.size >= IMPORT_BATCH) {
-                                flushBatch(knowledgeBaseBuf) { batch ->
-                                    db.withTransaction {
-                                        batch.forEach { db.knowledgeBaseDao().upsert(it) }
-                                    }
-                                }
-                            }
-                        }
-                        // AUD-20261011-NDJSON-FOLDERS: 与导出侧 writeTypedLines("knowledgeFolder") 对应,
-                        // 先于 knowledgeDoc/knowledgeChunk flush,保证外键/关联语义与导出顺序一致。
-                        "knowledgeFolder" -> obj["data"]?.let {
-                            knowledgeFolderBuf.add(
-                                json.decodeFromJsonElement(
-                                    io.zer0.muse.data.knowledge.KnowledgeFolderEntity.serializer(),
-                                    it,
-                                ),
-                            )
-                            if (knowledgeFolderBuf.size >= IMPORT_BATCH) {
-                                flushBatch(knowledgeFolderBuf) { batch ->
-                                    db.withTransaction {
-                                        batch.forEach { db.knowledgeFolderDao().upsert(it) }
-                                    }
-                                }
-                            }
-                        }
-                        "subagentThread" -> obj["data"]?.let {
-                            subagentThreadBuf.add(json.decodeFromJsonElement(SubagentThreadEntity.serializer(), it))
-                            if (subagentThreadBuf.size >= IMPORT_BATCH) {
-                                flushBatch(subagentThreadBuf) { batch ->
-                                    db.withTransaction {
-                                        batch.forEach { db.subagentThreadDao().upsert(it) }
-                                    }
-                                }
-                            }
-                        }
-                        "toolRound" -> obj["data"]?.let {
-                            toolRoundBuf.add(json.decodeFromJsonElement(ToolRoundEntity.serializer(), it))
-                            if (toolRoundBuf.size >= IMPORT_BATCH) {
-                                flushBatch(
-                                    toolRoundBuf,
-                                ) { batch -> db.withTransaction { db.toolRoundDao().upsertAll(batch) } }
-                            }
-                        }
-                        "sessionBranchHead" -> obj["data"]?.let {
-                            sessionBranchHeadBuf.add(json.decodeFromJsonElement(SessionBranchHeadEntity.serializer(), it))
-                            if (sessionBranchHeadBuf.size >= IMPORT_BATCH) {
-                                flushBatch(sessionBranchHeadBuf) { batch ->
-                                    db.withTransaction {
-                                        batch.forEach { db.sessionBranchHeadDao().upsert(it) }
-                                    }
-                                }
-                            }
-                        }
-                        // v2.6.7 fix (AUDIT F1): 恢复待办与角色关系。
-                        // 清空阶段已 deleteAll，此处必须回填，否则导出内容被丢弃。
-                        "sessionTodo" -> obj["data"]?.let {
-                            sessionTodoBuf.add(
-                                json.decodeFromJsonElement(
-                                    io.zer0.muse.data.todo.SessionTodoEntity.serializer(),
-                                    it,
-                                ),
-                            )
-                            if (sessionTodoBuf.size >= IMPORT_BATCH) {
-                                flushBatch(sessionTodoBuf) { batch ->
-                                    db.withTransaction { batch.forEach { db.sessionTodoDao().upsert(it) } }
-                                }
-                            }
-                        }
-                        "sessionTerm" -> obj["data"]?.let {
-                            sessionTermBuf.add(
-                                json.decodeFromJsonElement(
-                                    io.zer0.muse.data.terms.SessionTermEntity.serializer(),
-                                    it,
-                                ),
-                            )
-                            if (sessionTermBuf.size >= IMPORT_BATCH) {
-                                flushBatch(sessionTermBuf) { batch ->
-                                    db.withTransaction { batch.forEach { db.sessionTermDao().upsert(it) } }
-                                }
-                            }
-                        }
-                        "pendingThought" -> obj["data"]?.let {
-                            pendingThoughtBuf.add(
-                                json.decodeFromJsonElement(
-                                    io.zer0.muse.data.proactive.PendingThoughtEntity.serializer(),
-                                    it,
-                                ),
-                            )
-                            if (pendingThoughtBuf.size >= IMPORT_BATCH) {
-                                flushBatch(pendingThoughtBuf) { batch ->
-                                    db.withTransaction { batch.forEach { db.pendingThoughtDao().upsert(it) } }
-                                }
-                            }
-                        }
-                        "proactiveOutcome" -> obj["data"]?.let {
-                            proactiveOutcomeBuf.add(
-                                json.decodeFromJsonElement(
-                                    io.zer0.muse.data.proactive.ProactiveOutcomeEntity.serializer(),
-                                    it,
-                                ),
-                            )
-                            if (proactiveOutcomeBuf.size >= IMPORT_BATCH) {
-                                flushBatch(proactiveOutcomeBuf) { batch ->
-                                    db.withTransaction { batch.forEach { db.proactiveOutcomeDao().upsert(it) } }
-                                }
-                            }
-                        }
-                        "proactiveRelation" -> obj["data"]?.let {
-                            proactiveRelationBuf.add(
-                                json.decodeFromJsonElement(
-                                    io.zer0.muse.data.proactive.ProactiveRelationEntity.serializer(),
-                                    it,
-                                ),
-                            )
-                            if (proactiveRelationBuf.size >= IMPORT_BATCH) {
-                                flushBatch(proactiveRelationBuf) { batch ->
-                                    db.withTransaction { batch.forEach { db.proactiveRelationDao().upsert(it) } }
-                                }
-                            }
-                        }
-                        "sessionProactivePreference" -> obj["data"]?.let {
-                            sessionProactivePreferenceBuf.add(
-                                json.decodeFromJsonElement(
-                                    io.zer0.muse.proactive.SessionProactivePreferenceEntity.serializer(),
-                                    it,
-                                ),
-                            )
-                            if (sessionProactivePreferenceBuf.size >= IMPORT_BATCH) {
-                                flushBatch(sessionProactivePreferenceBuf) { batch ->
-                                    db.withTransaction {
-                                        batch.forEach { db.sessionProactivePreferenceDao().upsert(it) }
-                                    }
-                                }
-                            }
-                        }
-                        "assistantRelationship" -> obj["data"]?.let {
-                            assistantRelationshipBuf.add(
-                                json.decodeFromJsonElement(
-                                    io.zer0.muse.data.relationship.AssistantRelationshipEntity.serializer(),
-                                    it,
-                                ),
-                            )
-                            if (assistantRelationshipBuf.size >= IMPORT_BATCH) {
-                                flushBatch(assistantRelationshipBuf) { batch ->
-                                    db.withTransaction {
-                                        batch.forEach { db.assistantRelationshipDao().upsert(it) }
-                                    }
-                                }
-                            }
-                        }
-                        "groupChatMemory" -> obj["data"]?.let {
-                            groupChatMemoryBuf.add(json.decodeFromJsonElement(GroupChatMemoryEntity.serializer(), it))
-                            if (groupChatMemoryBuf.size >= IMPORT_BATCH) {
-                                flushBatch(groupChatMemoryBuf) { batch ->
-                                    db.withTransaction {
-                                        batch.forEach { db.groupChatMemoryDao().insert(it) }
-                                    }
-                                }
-                            }
-                        }
-                        // v2.6.8: 卡片实体。停靠槽位有唯一索引，分批 flush 时要先校验重复，
-                        // 否则会在 SQLite 层抛 "UNIQUE constraint failed"，排障看不出是备份数据坏了。
-                        "cardEntity" -> obj["data"]?.let {
-                            cardEntityBuf.add(json.decodeFromJsonElement(CardEntityRecord.serializer(), it))
-                            if (cardEntityBuf.size >= IMPORT_BATCH) {
-                                flushBatch(cardEntityBuf) { batch ->
-                                    db.withTransaction { db.appendCardEntities(batch) }
-                                }
-                            }
-                        }
                         "scopedFact" -> {
                             val scope = (obj["scope"] as? JsonPrimitive)?.contentOrNull ?: return@forEachIndexed
                             val facts = obj["data"]?.let {
@@ -1760,6 +1284,7 @@ class BackupService(
                                 it,
                             )
                         }
+                        else -> museImporter.ingestRecord(type, obj)
                     }
                 }
 
@@ -1770,109 +1295,17 @@ class BackupService(
                         "备份记录数不一致: $key 声明 $expected, 实际 $actual"
                     }
                 }
-                // 跳过不是静默行为:旧小手机会话被丢弃时要留下痕迹
-                if (skippedMiniPhoneSessions > 0) {
-                    Logger.w(
-                        "BackupService",
-                        "跳过 $skippedMiniPhoneSessions 条旧小手机会话及其 $skippedMiniPhoneMessages 条消息" +
-                            "（该功能已下线，不再作为普通会话恢复）",
-                    )
-                }
+                museImporter.logSkippedMiniPhoneSummary()
 
                 // 3. flush 剩余 buffer(C-10: memory/fact 缓冲这里不再 flush,
                 // 统一在 MuseDb 事务成功后的独立事务内一次性 deleteAll + 插入)。
-                if (sessionBuf.isNotEmpty()) {
-                    sessionCount += sessionBuf.size
-                    flushBatch(sessionBuf) { batch -> db.withTransaction { batch.forEach { db.sessionDao().insert(it) } } }
-                }
-                if (messageBuf.isNotEmpty()) {
-                    messageCount += messageBuf.size
-                    flushBatch(messageBuf) { batch -> db.withTransaction { batch.forEach { db.messageDao().upsert(it) } } }
-                }
-                // v3: flush 扩展表
-                flushBatch(assistantBuf) { batch -> db.withTransaction { db.assistantDao().insertAll(batch) } }
-                flushBatch(lorebookBuf) { batch -> db.withTransaction { db.lorebookDao().insertAll(batch) } }
-                flushBatch(skillBuf) { batch -> db.withTransaction { batch.forEach { db.skillDao().upsert(it) } } }
-                flushBatch(artifactBuf) { batch -> db.withTransaction { batch.forEach { db.artifactDao().upsert(it) } } }
-                flushBatch(quickMsgBuf) { batch -> db.withTransaction { db.quickMessageDao().insertAll(batch) } }
-                flushBatch(promptInjBuf) { batch -> db.withTransaction { db.promptInjectionDao().insertAll(batch) } }
-                flushBatch(folderBuf) { batch -> db.withTransaction { batch.forEach { db.folderDao().insert(it) } } }
-                flushBatch(groupChatBuf) { batch -> db.withTransaction { batch.forEach { db.groupChatDao().upsert(it) } } }
-                flushBatch(groupChatMsgBuf) { batch -> db.withTransaction { db.groupChatMessageDao().insertAll(batch) } }
-                flushBatch(schedTaskBuf) { batch -> db.withTransaction { batch.forEach { db.scheduledTaskDao().upsert(it) } } }
-                flushBatch(schedExecBuf) { batch -> db.withTransaction { batch.forEach { db.scheduledTaskExecutionDao().insert(it) } } }
-                flushBatch(knowDocBuf) { batch -> db.withTransaction { batch.forEach { db.knowledgeDocDao().upsert(it) } } }
-                flushBatch(knowChunkBuf) { batch -> db.withTransaction { db.knowledgeChunkDao().insertAll(batch) } }
-                flushBatch(experienceBuf) { batch -> db.withTransaction { batch.forEach { db.experienceDao().upsert(it) } } }
-                flushBatch(milestoneBuf) { batch -> db.withTransaction { batch.forEach { db.milestoneDao().upsert(it) } } }
-                flushBatch(agentMsgBuf) { batch -> db.withTransaction { batch.forEach { db.agentMessageDao().upsert(it) } } }
-                // P0-10: 此前缺失的实体
-                flushBatch(quickNoteBuf) { batch -> db.withTransaction { batch.forEach { db.quickNoteDao().upsert(it) } } }
-                flushBatch(worldBookBuf) { batch -> db.withTransaction { batch.forEach { db.worldBookDao().upsert(it) } } }
-                flushBatch(convEventBuf) { batch -> db.withTransaction { db.conversationEventDao().insertAll(batch) } }
-                flushBatch(convTurnBuf) { batch -> db.withTransaction { batch.forEach { db.conversationTurnDao().upsert(it) } } }
-                flushBatch(messagePartBuf) { batch -> db.withTransaction { db.messagePartDao().upsertAll(batch) } }
-                flushBatch(messageOutboxBuf) { batch -> db.withTransaction { batch.forEach { db.messageOutboxDao().upsert(it) } } }
-                flushBatch(translateHistoryBuf) { batch -> db.withTransaction { batch.forEach { db.translateHistoryDao().insert(it) } } }
-                flushBatch(knowledgeBaseBuf) { batch -> db.withTransaction { batch.forEach { db.knowledgeBaseDao().upsert(it) } } }
-                // AUD-20261011-NDJSON-FOLDERS: 剩余缓冲 flush(与知识库同组,事务内落库)
-                flushBatch(knowledgeFolderBuf) { batch ->
-                    db.withTransaction { batch.forEach { db.knowledgeFolderDao().upsert(it) } }
-                }
-                flushBatch(subagentThreadBuf) { batch -> db.withTransaction { batch.forEach { db.subagentThreadDao().upsert(it) } } }
-                flushBatch(toolRoundBuf) { batch -> db.withTransaction { db.toolRoundDao().upsertAll(batch) } }
-                flushBatch(sessionBranchHeadBuf) { batch -> db.withTransaction { batch.forEach { db.sessionBranchHeadDao().upsert(it) } } }
-                flushBatch(conversationCommandReceiptBuf) { batch ->
-                    db.withTransaction { batch.forEach { db.conversationCommandReceiptDao().insert(it) } }
-                }
-                flushBatch(conversationSelectionBuf) { batch ->
-                    db.withTransaction { batch.forEach { db.conversationSelectionDao().insert(it) } }
-                }
-                flushBatch(conversationDisplaySlotBuf) { batch ->
-                    db.withTransaction { batch.forEach { db.conversationDisplaySlotDao().upsert(it) } }
-                }
-                flushBatch(groupChatMemoryBuf) { batch -> db.withTransaction { batch.forEach { db.groupChatMemoryDao().insert(it) } } }
-                // v2.6.7 fix (AUDIT F1): 尾部 flush 待办与角色关系。
-                flushBatch(sessionTodoBuf) { batch -> db.withTransaction { batch.forEach { db.sessionTodoDao().upsert(it) } } }
-                // v2.6.9: 主动消息三表尾部 flush。
-                // v2.7.x(E2): 术语尾部 flush —— 分批读到的尾巴必须落库，否则末批术语会丢。
-                flushBatch(sessionTermBuf) { batch -> db.withTransaction { batch.forEach { db.sessionTermDao().upsert(it) } } }
-                flushBatch(pendingThoughtBuf) { batch ->
-                    db.withTransaction { batch.forEach { db.pendingThoughtDao().upsert(it) } }
-                }
-                flushBatch(proactiveOutcomeBuf) { batch ->
-                    db.withTransaction { batch.forEach { db.proactiveOutcomeDao().upsert(it) } }
-                }
-                flushBatch(proactiveRelationBuf) { batch ->
-                    db.withTransaction { batch.forEach { db.proactiveRelationDao().upsert(it) } }
-                }
-                flushBatch(sessionProactivePreferenceBuf) { batch ->
-                    db.withTransaction {
-                        batch.forEach { db.sessionProactivePreferenceDao().upsert(it) }
-                    }
-                }
-                flushBatch(assistantRelationshipBuf) { batch ->
-                    db.withTransaction { batch.forEach { db.assistantRelationshipDao().upsert(it) } }
-                }
-                // v2.6.8: 卡片实体尾部 flush（停靠卡与未停靠卡同一顺序写回）。
-                flushBatch(cardEntityBuf) { batch ->
-                    db.withTransaction { db.appendCardEntities(batch) }
-                }
-
-                // R9: 恢复知识库 V2 便携备份(同一 MuseDb 事务;失败随整体回滚)。
-                knowledgeV2PortableBuf?.let { portable ->
-                    val report = io.zer0.muse.knowledge.backup.KnowledgePortableBackupService(
-                        v2Dao = db.knowledgeV2Dao(),
-                        folderDao = db.knowledgeFolderV2Dao(),
-                        jobDao = db.knowledgeJobDao(),
-                    ).restore(portable)
-                    check(report.success) { "知识库 V2 恢复失败: ${report.failureReason}" }
-                }
+                museImporter.flushAllRemaining()
 
                 // v2.6.0 (AUD-DATA-B34): 入库后对账 —— B-34 原先只核对“解析行数”，
                 // 而解析成功不等于落库成功（缓冲 flush 的 upsert 可能因约束冲突等丢记录）。
                 // 这里对可计数的核心表再核一次真实行数，缺口即整体回滚，
                 // 避免“导入成功但数据半缺失”被静默放行。
+                val skippedMiniPhoneSessions = museImporter.skippedMiniPhoneSessions
                 verifyInsertedCounts(expectedCounts, skippedSessionCount = skippedMiniPhoneSessions)
             } // 审计 0.5: MuseDb 大事务闭合(失败整体回滚,含清空)
 
@@ -1936,8 +1369,795 @@ class BackupService(
         }
         if (binaryFileBuf.toMap().isNotEmpty()) writeBinaryFiles(binaryFileBuf.toMap())
 
-        Logger.i("BackupService", "流式导入完成: $sessionCount 会话, $messageCount 消息")
-        return sessionCount to messageCount
+        Logger.i("BackupService", "流式导入完成: ${museImporter.sessionCount} 会话, ${museImporter.messageCount} 消息")
+        return museImporter.sessionCount to museImporter.messageCount
+    }
+
+    /**
+     * NDJSON 流式恢复的 MuseDb 表导入器。
+     *
+     * 将 40+ 张 MuseDb 表的清空、分批入库与尾部刷盘拆成独立挂起方法，
+     * 避免单协程状态机超过 JVM 64KB 方法字节码上限，同时统一维护外键父子刷盘顺序。
+     */
+    private inner class NdJsonMuseImporter(private val backlogRestoreAt: Long) {
+        var sessionCount = 0
+        var messageCount = 0
+        var knowledgeV2PortableBuf: io.zer0.muse.knowledge.backup.KnowledgePortableBackup? = null
+        val sessionBuf = mutableListOf<SessionEntity>()
+        val messageBuf = mutableListOf<MessageEntity>()
+        // 旧小手机已下线:备份里残留的 isMiniPhone 会话不再作为普通会话恢复。
+        // 过滤发生在写入前(不写库再删),其消息与其余外键子表也一并跳过,避免悬空外键。
+        val skippedMiniPhoneSessionIds = mutableSetOf<String>()
+        val skippedMiniPhoneMessageIds = mutableSetOf<String>()
+        val skippedMiniPhoneTurnIds = mutableSetOf<String>()
+        var skippedMiniPhoneSessions = 0
+        var skippedMiniPhoneMessages = 0
+        // v3: 扩展表 buffer
+        val assistantBuf = mutableListOf<AssistantEntity>()
+        val lorebookBuf = mutableListOf<LorebookEntity>()
+        val skillBuf = mutableListOf<SkillEntity>()
+        val artifactBuf = mutableListOf<ArtifactEntity>()
+        val quickMsgBuf = mutableListOf<QuickMessageEntity>()
+        val promptInjBuf = mutableListOf<PromptInjectionEntity>()
+        val folderBuf = mutableListOf<FolderEntity>()
+        val groupChatBuf = mutableListOf<GroupChatEntity>()
+        val groupChatMsgBuf = mutableListOf<GroupChatMessageEntity>()
+        val schedTaskBuf = mutableListOf<ScheduledTaskEntity>()
+        val schedExecBuf = mutableListOf<ScheduledTaskExecutionEntity>()
+        val knowDocBuf = mutableListOf<KnowledgeDocEntity>()
+        val knowChunkBuf = mutableListOf<KnowledgeChunkEntity>()
+        val experienceBuf = mutableListOf<ExperienceEntity>()
+        val milestoneBuf = mutableListOf<MilestoneEntity>()
+        val agentMsgBuf = mutableListOf<AgentMessageEntity>()
+        // P0-10: 此前缺失的实体
+        val quickNoteBuf = mutableListOf<io.zer0.muse.data.quicknote.QuickNoteEntity>()
+        val worldBookBuf = mutableListOf<io.zer0.muse.worldbook.WorldBookEntryEntity>()
+        val convEventBuf = mutableListOf<ConversationEventEntity>()
+        val convTurnBuf = mutableListOf<ConversationTurnEntity>()
+        val messagePartBuf = mutableListOf<MessagePartEntity>()
+        val messageOutboxBuf = mutableListOf<MessageOutboxEntity>()
+        val translateHistoryBuf = mutableListOf<TranslateHistoryEntity>()
+        val knowledgeBaseBuf = mutableListOf<KnowledgeBaseEntity>()
+        // AUD-20261011-NDJSON-FOLDERS: 知识库文件夹此前只有导出行、没有恢复分支,
+        // 清空阶段 deleteAll 后无法回填(每次 NDJSON 恢复清空全部文件夹)。
+        val knowledgeFolderBuf = mutableListOf<io.zer0.muse.data.knowledge.KnowledgeFolderEntity>()
+        val subagentThreadBuf = mutableListOf<SubagentThreadEntity>()
+        val toolRoundBuf = mutableListOf<ToolRoundEntity>()
+        val sessionBranchHeadBuf = mutableListOf<SessionBranchHeadEntity>()
+        val conversationCommandReceiptBuf =
+            mutableListOf<io.zer0.muse.data.conversation.ConversationCommandReceiptEntity>()
+        val conversationSelectionBuf =
+            mutableListOf<io.zer0.muse.data.conversation.ConversationSelectionEntity>()
+        val conversationDisplaySlotBuf =
+            mutableListOf<io.zer0.muse.data.conversation.ConversationDisplaySlotEntity>()
+        val groupChatMemoryBuf = mutableListOf<GroupChatMemoryEntity>()
+        // v2.6.7 fix (AUDIT F1): 待办与角色关系的恢复缓冲区。
+        val sessionTodoBuf = mutableListOf<io.zer0.muse.data.todo.SessionTodoEntity>()
+        // v2.6.9: 主动消息三表恢复缓冲。
+        val pendingThoughtBuf = mutableListOf<io.zer0.muse.data.proactive.PendingThoughtEntity>()
+        val sessionTermBuf = mutableListOf<io.zer0.muse.data.terms.SessionTermEntity>()
+        val proactiveOutcomeBuf = mutableListOf<io.zer0.muse.data.proactive.ProactiveOutcomeEntity>()
+        val proactiveRelationBuf = mutableListOf<io.zer0.muse.data.proactive.ProactiveRelationEntity>()
+        val sessionProactivePreferenceBuf =
+            mutableListOf<io.zer0.muse.proactive.SessionProactivePreferenceEntity>()
+        val assistantRelationshipBuf =
+            mutableListOf<io.zer0.muse.data.relationship.AssistantRelationshipEntity>()
+        // v2.6.8: 卡片实体恢复缓冲。
+        val cardEntityBuf = mutableListOf<CardEntityRecord>()
+
+        suspend fun clearAllTables() {
+            clearConversationStateForRestore(db)
+            db.assistantDao().deleteAll()
+            db.lorebookDao().deleteAll()
+            db.skillDao().deleteAll()
+            db.artifactDao().deleteAll()
+            db.quickMessageDao().deleteAll()
+            db.promptInjectionDao().deleteAll()
+            db.folderDao().deleteAll()
+            db.groupChatMessageDao().deleteAll()
+            db.groupChatDao().deleteAll()
+            db.scheduledTaskExecutionDao().deleteAll()
+            db.scheduledTaskDao().deleteAll()
+            db.knowledgeChunkDao().deleteAll()
+            db.knowledgeDocDao().deleteAll()
+            db.experienceDao().deleteAll()
+            db.milestoneDao().deleteAll()
+            db.agentMessageDao().deleteAll()
+            // P0-10: 此前缺失的实体
+            db.quickNoteDao().deleteAll()
+            db.worldBookDao().deleteAll()
+            db.conversationEventDao().deleteAll()
+            db.conversationTurnDao().deleteAll()
+            db.conversationCommandReceiptDao().deleteAll()
+            db.conversationSelectionDao().deleteAll()
+            db.conversationDisplaySlotDao().deleteAll()
+            db.messagePartDao().deleteAll()
+            db.messageOutboxDao().deleteAll()
+            db.translateHistoryDao().deleteAll()
+            db.knowledgeBaseDao().deleteAll()
+            db.knowledgeFolderDao().deleteAll()
+            db.sessionTodoDao().deleteAll()
+            db.pendingThoughtWriteDao().deleteAll()
+            db.proactiveOutcomeDao().deleteAll()
+            db.proactiveRelationDao().deleteAll()
+            db.proactiveBacklogDao().deleteAll()
+            db.proactiveBacklogScheduleDao().deleteAll()
+            db.sessionProactivePreferenceDao().deleteAll()
+            db.botRoutineDao().deleteAll()
+            db.botMessageCardDao().deleteAll()
+            db.botAnnotationDao().deleteAll()
+            db.publicationOutboxDao().deleteAll()
+            db.approvalRequestDao().deleteAll()
+            db.botEventDao().deleteAll()
+            db.taskStepDao().deleteAll()
+            db.taskRunDao().deleteAll()
+            db.botTaskDao().deleteAll()
+            db.botBindingDao().deleteAll()
+            db.sessionTermDao().deleteAll()
+            db.assistantRelationshipDao().deleteAll()
+            db.subagentThreadDao().deleteAll()
+            db.toolRoundDao().deleteAll()
+            db.sessionBranchHeadDao().deleteAll()
+            db.groupChatMemoryDao().deleteAll()
+            // v2.6.8: 卡片实体。
+            db.cardEntityDao().deleteAll()
+            // R9: 知识库 V2 真源清空(恢复前);旧表由既有 deleteAll 覆盖。
+            db.knowledgeJobDao().deleteAllGenLexical()
+            db.knowledgeJobDao().deleteAllGenChunks()
+            db.knowledgeJobDao().deleteAllGenerations()
+            db.knowledgeJobDao().deleteAllActiveGenerations()
+            db.knowledgeJobDao().deleteAllJobItems()
+            db.knowledgeJobDao().deleteAllJobs()
+            db.knowledgeV2Dao().deleteAllRevisions()
+            db.knowledgeV2Dao().deleteAllDocs()
+            db.knowledgeV2Dao().deleteAllEpochs()
+            db.knowledgeV2Dao().deleteAllLeases()
+            db.knowledgeFolderV2Dao().deleteAllFolders()
+            db.knowledgeFolderV2Dao().deleteAllBindings()
+        }
+
+        // 流式分批按外键依赖顺序先落父表再落子表：
+        // sessions -> messages -> message_parts；sessions -> conversation_turns -> tool_rounds；
+        // 以及其余直接引用 sessions(id) 的子表。若父表未满 IMPORT_BATCH 仍滞留内存，
+        // 子表先满批落库会触发 SQLITE_CONSTRAINT_FOREIGNKEY。
+        private suspend fun flushSessionsIfNeeded() {
+            if (sessionBuf.isNotEmpty()) {
+                sessionCount += sessionBuf.size
+                flushBatch(sessionBuf) { batch -> db.withTransaction { batch.forEach { db.sessionDao().insert(it) } } }
+            }
+        }
+
+        private suspend fun flushMessagesIfNeeded() {
+            flushSessionsIfNeeded()
+            if (messageBuf.isNotEmpty()) {
+                messageCount += messageBuf.size
+                flushBatch(messageBuf) { batch -> db.withTransaction { batch.forEach { db.messageDao().upsert(it) } } }
+            }
+        }
+
+        private suspend fun flushConversationTurnsIfNeeded() {
+            flushSessionsIfNeeded()
+            if (convTurnBuf.isNotEmpty()) {
+                flushBatch(convTurnBuf) { batch ->
+                    db.withTransaction {
+                        batch.forEach { db.conversationTurnDao().upsert(it) }
+                    }
+                }
+            }
+        }
+
+        suspend fun ingestRecord(type: String, obj: JsonObject) {
+            if (ingestPrimaryRecord(type, obj)) return
+            ingestExtendedRecord(type, obj)
+        }
+
+        private suspend fun ingestPrimaryRecord(type: String, obj: JsonObject): Boolean {
+            when (type) {
+                "session" -> obj["data"]?.let {
+                    val session = json.decodeFromJsonElement(SessionEntity.serializer(), it)
+                    if (session.isMiniPhone) {
+                        skippedMiniPhoneSessionIds += session.id
+                        skippedMiniPhoneSessions += 1
+                    } else {
+                        // v2.x 导入预热:恢复的会话首轮以全量历史构建上下文一次
+                        sessionBuf.add(session.copy(warmupPending = true))
+                        if (sessionBuf.size >= IMPORT_BATCH) {
+                            flushSessionsIfNeeded()
+                        }
+                    }
+                }
+                "message" -> obj["data"]?.let {
+                    val message = json.decodeFromJsonElement(MessageEntity.serializer(), it)
+                    if (message.sessionId in skippedMiniPhoneSessionIds) {
+                        skippedMiniPhoneMessageIds += message.id
+                        skippedMiniPhoneMessages += 1
+                        return@let
+                    }
+                    messageBuf.add(message)
+                    if (messageBuf.size >= IMPORT_BATCH) {
+                        flushMessagesIfNeeded()
+                    }
+                }
+                // v3: 扩展表类型
+                "assistant" -> obj["data"]?.let {
+                    assistantBuf.add(json.decodeFromJsonElement(AssistantEntity.serializer(), it))
+                    if (assistantBuf.size >= IMPORT_BATCH) {
+                        flushBatch(
+                            assistantBuf,
+                        ) { batch -> db.withTransaction { db.assistantDao().insertAll(batch) } }
+                    }
+                }
+                "lorebook" -> obj["data"]?.let {
+                    lorebookBuf.add(json.decodeFromJsonElement(LorebookEntity.serializer(), it))
+                    if (lorebookBuf.size >= IMPORT_BATCH) {
+                        flushBatch(
+                            lorebookBuf,
+                        ) { batch -> db.withTransaction { db.lorebookDao().insertAll(batch) } }
+                    }
+                }
+                "skill" -> obj["data"]?.let {
+                    skillBuf.add(json.decodeFromJsonElement(SkillEntity.serializer(), it))
+                    if (skillBuf.size >= IMPORT_BATCH) {
+                        flushBatch(
+                            skillBuf,
+                        ) { batch -> db.withTransaction { batch.forEach { db.skillDao().upsert(it) } } }
+                    }
+                }
+                "artifact" -> obj["data"]?.let {
+                    val artifact = json.decodeFromJsonElement(ArtifactEntity.serializer(), it)
+                    if (artifact.sessionId in skippedMiniPhoneSessionIds) return@let
+                    artifactBuf.add(artifact)
+                    if (artifactBuf.size >= IMPORT_BATCH) {
+                        flushSessionsIfNeeded()
+                        flushBatch(artifactBuf) { batch ->
+                            db.withTransaction {
+                                batch.forEach { db.artifactDao().upsert(it) }
+                            }
+                        }
+                    }
+                }
+                "quickMessage" -> obj["data"]?.let {
+                    quickMsgBuf.add(json.decodeFromJsonElement(QuickMessageEntity.serializer(), it))
+                    if (quickMsgBuf.size >= IMPORT_BATCH) {
+                        flushBatch(
+                            quickMsgBuf,
+                        ) { batch -> db.withTransaction { db.quickMessageDao().insertAll(batch) } }
+                    }
+                }
+                "promptInjection" -> obj["data"]?.let {
+                    promptInjBuf.add(json.decodeFromJsonElement(PromptInjectionEntity.serializer(), it))
+                    if (promptInjBuf.size >= IMPORT_BATCH) {
+                        flushBatch(
+                            promptInjBuf,
+                        ) { batch -> db.withTransaction { db.promptInjectionDao().insertAll(batch) } }
+                    }
+                }
+                "folder" -> obj["data"]?.let {
+                    folderBuf.add(json.decodeFromJsonElement(FolderEntity.serializer(), it))
+                    if (folderBuf.size >= IMPORT_BATCH) {
+                        flushBatch(
+                            folderBuf,
+                        ) { batch -> db.withTransaction { batch.forEach { db.folderDao().insert(it) } } }
+                    }
+                }
+                "groupChat" -> obj["data"]?.let {
+                    groupChatBuf.add(json.decodeFromJsonElement(GroupChatEntity.serializer(), it))
+                    if (groupChatBuf.size >= IMPORT_BATCH) {
+                        flushBatch(groupChatBuf) { batch ->
+                            db.withTransaction {
+                                batch.forEach { db.groupChatDao().upsert(it) }
+                            }
+                        }
+                    }
+                }
+                "groupChatMessage" -> obj["data"]?.let {
+                    groupChatMsgBuf.add(json.decodeFromJsonElement(GroupChatMessageEntity.serializer(), it))
+                    if (groupChatMsgBuf.size >= IMPORT_BATCH) {
+                        flushBatch(groupChatMsgBuf) { batch ->
+                            db.withTransaction {
+                                db.groupChatMessageDao().insertAll(batch)
+                            }
+                        }
+                    }
+                }
+                "scheduledTask" -> obj["data"]?.let {
+                    schedTaskBuf.add(json.decodeFromJsonElement(ScheduledTaskEntity.serializer(), it))
+                    if (schedTaskBuf.size >= IMPORT_BATCH) {
+                        flushBatch(schedTaskBuf) { batch ->
+                            db.withTransaction {
+                                batch.forEach { db.scheduledTaskDao().upsert(it) }
+                            }
+                        }
+                    }
+                }
+                "scheduledTaskExecution" -> obj["data"]?.let {
+                    schedExecBuf.add(json.decodeFromJsonElement(ScheduledTaskExecutionEntity.serializer(), it))
+                    if (schedExecBuf.size >= IMPORT_BATCH) {
+                        flushBatch(schedExecBuf) { batch ->
+                            db.withTransaction {
+                                batch.forEach { db.scheduledTaskExecutionDao().insert(it) }
+                            }
+                        }
+                    }
+                }
+                "knowledgeDoc" -> obj["data"]?.let {
+                    knowDocBuf.add(json.decodeFromJsonElement(KnowledgeDocEntity.serializer(), it))
+                    if (knowDocBuf.size >= IMPORT_BATCH) {
+                        flushBatch(knowDocBuf) { batch ->
+                            db.withTransaction {
+                                batch.forEach { db.knowledgeDocDao().upsert(it) }
+                            }
+                        }
+                    }
+                }
+                "knowledgeChunk" -> obj["data"]?.let {
+                    knowChunkBuf.add(json.decodeFromJsonElement(KnowledgeChunkEntity.serializer(), it))
+                    if (knowChunkBuf.size >= IMPORT_BATCH) {
+                        flushBatch(
+                            knowChunkBuf,
+                        ) { batch -> db.withTransaction { db.knowledgeChunkDao().insertAll(batch) } }
+                    }
+                }
+                "knowledgeV2Portable" -> obj["data"]?.let {
+                    knowledgeV2PortableBuf = json.decodeFromJsonElement(
+                        io.zer0.muse.knowledge.backup.KnowledgePortableBackup.serializer(),
+                        it,
+                    )
+                }
+                "experience" -> obj["data"]?.let {
+                    experienceBuf.add(json.decodeFromJsonElement(ExperienceEntity.serializer(), it))
+                    if (experienceBuf.size >= IMPORT_BATCH) {
+                        flushBatch(experienceBuf) { batch ->
+                            db.withTransaction {
+                                batch.forEach { db.experienceDao().upsert(it) }
+                            }
+                        }
+                    }
+                }
+                "milestone" -> obj["data"]?.let {
+                    milestoneBuf.add(json.decodeFromJsonElement(MilestoneEntity.serializer(), it))
+                    if (milestoneBuf.size >= IMPORT_BATCH) {
+                        flushBatch(milestoneBuf) { batch ->
+                            db.withTransaction {
+                                batch.forEach { db.milestoneDao().upsert(it) }
+                            }
+                        }
+                    }
+                }
+                "agentMessage" -> obj["data"]?.let {
+                    agentMsgBuf.add(json.decodeFromJsonElement(AgentMessageEntity.serializer(), it))
+                    if (agentMsgBuf.size >= IMPORT_BATCH) {
+                        flushBatch(agentMsgBuf) { batch ->
+                            db.withTransaction {
+                                batch.forEach { db.agentMessageDao().upsert(it) }
+                            }
+                        }
+                    }
+                }
+                else -> return false
+            }
+            return true
+        }
+
+        private suspend fun ingestExtendedRecord(type: String, obj: JsonObject) {
+            when (type) {
+                // P0-10: 此前缺失的实体
+                "quickNote" -> obj["data"]?.let {
+                    quickNoteBuf.add(json.decodeFromJsonElement(io.zer0.muse.data.quicknote.QuickNoteEntity.serializer(), it))
+                    if (quickNoteBuf.size >= IMPORT_BATCH) {
+                        flushBatch(quickNoteBuf) { batch ->
+                            db.withTransaction {
+                                batch.forEach { db.quickNoteDao().upsert(it) }
+                            }
+                        }
+                    }
+                }
+                "worldBookEntry" -> obj["data"]?.let {
+                    worldBookBuf.add(json.decodeFromJsonElement(io.zer0.muse.worldbook.WorldBookEntryEntity.serializer(), it))
+                    if (worldBookBuf.size >= IMPORT_BATCH) {
+                        flushBatch(worldBookBuf) { batch ->
+                            db.withTransaction {
+                                batch.forEach { db.worldBookDao().upsert(it) }
+                            }
+                        }
+                    }
+                }
+                "conversationEvent" -> obj["data"]?.let {
+                    val event = json.decodeFromJsonElement(ConversationEventEntity.serializer(), it)
+                    if (event.sessionId in skippedMiniPhoneSessionIds) return@let
+                    convEventBuf.add(event)
+                    if (convEventBuf.size >= IMPORT_BATCH) {
+                        flushSessionsIfNeeded()
+                        flushBatch(convEventBuf) { batch ->
+                            db.withTransaction {
+                                db.conversationEventDao().insertAll(batch)
+                            }
+                        }
+                    }
+                }
+                "conversationTurn" -> obj["data"]?.let {
+                    val turn = json.decodeFromJsonElement(ConversationTurnEntity.serializer(), it)
+                    if (turn.sessionId in skippedMiniPhoneSessionIds) {
+                        skippedMiniPhoneTurnIds += turn.turnId
+                        return@let
+                    }
+                    convTurnBuf.add(turn)
+                    if (convTurnBuf.size >= IMPORT_BATCH) {
+                        flushConversationTurnsIfNeeded()
+                    }
+                }
+                "conversationCommandReceipt" -> obj["data"]?.let {
+                    conversationCommandReceiptBuf.add(
+                        json.decodeFromJsonElement(
+                            io.zer0.muse.data.conversation.ConversationCommandReceiptEntity.serializer(),
+                            it,
+                        ),
+                    )
+                    if (conversationCommandReceiptBuf.size >= IMPORT_BATCH) {
+                        flushBatch(conversationCommandReceiptBuf) { batch ->
+                            db.withTransaction {
+                                batch.forEach { db.conversationCommandReceiptDao().insert(it) }
+                            }
+                        }
+                    }
+                }
+                "conversationSelection" -> obj["data"]?.let {
+                    conversationSelectionBuf.add(
+                        json.decodeFromJsonElement(
+                            io.zer0.muse.data.conversation.ConversationSelectionEntity.serializer(),
+                            it,
+                        ),
+                    )
+                    if (conversationSelectionBuf.size >= IMPORT_BATCH) {
+                        flushBatch(conversationSelectionBuf) { batch ->
+                            db.withTransaction {
+                                batch.forEach { db.conversationSelectionDao().insert(it) }
+                            }
+                        }
+                    }
+                }
+                "conversationDisplaySlot" -> obj["data"]?.let {
+                    val slot = json.decodeFromJsonElement(
+                        io.zer0.muse.data.conversation.ConversationDisplaySlotEntity.serializer(),
+                        it,
+                    )
+                    if (slot.sessionId in skippedMiniPhoneSessionIds) return@let
+                    conversationDisplaySlotBuf.add(slot)
+                    if (conversationDisplaySlotBuf.size >= IMPORT_BATCH) {
+                        flushSessionsIfNeeded()
+                        flushBatch(conversationDisplaySlotBuf) { batch ->
+                            db.withTransaction {
+                                batch.forEach { db.conversationDisplaySlotDao().upsert(it) }
+                            }
+                        }
+                    }
+                }
+                "messagePart" -> obj["data"]?.let {
+                    val part = json.decodeFromJsonElement(MessagePartEntity.serializer(), it)
+                    if (part.messageId in skippedMiniPhoneMessageIds) return@let
+                    messagePartBuf.add(part)
+                    if (messagePartBuf.size >= IMPORT_BATCH) {
+                        flushMessagesIfNeeded()
+                        flushBatch(
+                            messagePartBuf,
+                        ) { batch -> db.withTransaction { db.messagePartDao().upsertAll(batch) } }
+                    }
+                }
+                "messageOutbox" -> obj["data"]?.let {
+                    val outbox = json.decodeFromJsonElement(MessageOutboxEntity.serializer(), it)
+                    if (outbox.sessionId in skippedMiniPhoneSessionIds) return@let
+                    messageOutboxBuf.add(outbox)
+                    if (messageOutboxBuf.size >= IMPORT_BATCH) {
+                        flushSessionsIfNeeded()
+                        flushBatch(messageOutboxBuf) { batch ->
+                            db.withTransaction {
+                                batch.forEach { db.messageOutboxDao().upsert(it) }
+                            }
+                        }
+                    }
+                }
+                "translateHistory" -> obj["data"]?.let {
+                    translateHistoryBuf.add(json.decodeFromJsonElement(TranslateHistoryEntity.serializer(), it))
+                    if (translateHistoryBuf.size >= IMPORT_BATCH) {
+                        flushBatch(translateHistoryBuf) { batch ->
+                            db.withTransaction {
+                                batch.forEach { db.translateHistoryDao().insert(it) }
+                            }
+                        }
+                    }
+                }
+                "knowledgeBase" -> obj["data"]?.let {
+                    knowledgeBaseBuf.add(json.decodeFromJsonElement(KnowledgeBaseEntity.serializer(), it))
+                    if (knowledgeBaseBuf.size >= IMPORT_BATCH) {
+                        flushBatch(knowledgeBaseBuf) { batch ->
+                            db.withTransaction {
+                                batch.forEach { db.knowledgeBaseDao().upsert(it) }
+                            }
+                        }
+                    }
+                }
+                // AUD-20261011-NDJSON-FOLDERS: 与导出侧 writeTypedLines("knowledgeFolder") 对应,
+                // 先于 knowledgeDoc/knowledgeChunk flush,保证外键/关联语义与导出顺序一致。
+                "knowledgeFolder" -> obj["data"]?.let {
+                    knowledgeFolderBuf.add(
+                        json.decodeFromJsonElement(
+                            io.zer0.muse.data.knowledge.KnowledgeFolderEntity.serializer(),
+                            it,
+                        ),
+                    )
+                    if (knowledgeFolderBuf.size >= IMPORT_BATCH) {
+                        flushBatch(knowledgeFolderBuf) { batch ->
+                            db.withTransaction {
+                                batch.forEach { db.knowledgeFolderDao().upsert(it) }
+                            }
+                        }
+                    }
+                }
+                "subagentThread" -> obj["data"]?.let {
+                    subagentThreadBuf.add(json.decodeFromJsonElement(SubagentThreadEntity.serializer(), it))
+                    if (subagentThreadBuf.size >= IMPORT_BATCH) {
+                        flushBatch(subagentThreadBuf) { batch ->
+                            db.withTransaction {
+                                batch.forEach { db.subagentThreadDao().upsert(it) }
+                            }
+                        }
+                    }
+                }
+                "toolRound" -> obj["data"]?.let {
+                    val toolRound = json.decodeFromJsonElement(ToolRoundEntity.serializer(), it)
+                    if (toolRound.turnId in skippedMiniPhoneTurnIds) return@let
+                    toolRoundBuf.add(toolRound)
+                    if (toolRoundBuf.size >= IMPORT_BATCH) {
+                        flushConversationTurnsIfNeeded()
+                        flushBatch(
+                            toolRoundBuf,
+                        ) { batch -> db.withTransaction { db.toolRoundDao().upsertAll(batch) } }
+                    }
+                }
+                "sessionBranchHead" -> obj["data"]?.let {
+                    val head = json.decodeFromJsonElement(SessionBranchHeadEntity.serializer(), it)
+                    if (head.sessionId in skippedMiniPhoneSessionIds) return@let
+                    sessionBranchHeadBuf.add(head)
+                    if (sessionBranchHeadBuf.size >= IMPORT_BATCH) {
+                        flushSessionsIfNeeded()
+                        flushBatch(sessionBranchHeadBuf) { batch ->
+                            db.withTransaction {
+                                batch.forEach { db.sessionBranchHeadDao().upsert(it) }
+                            }
+                        }
+                    }
+                }
+                // v2.6.7 fix (AUDIT F1): 恢复待办与角色关系。
+                // 清空阶段已 deleteAll，此处必须回填，否则导出内容被丢弃。
+                "sessionTodo" -> obj["data"]?.let {
+                    sessionTodoBuf.add(
+                        json.decodeFromJsonElement(
+                            io.zer0.muse.data.todo.SessionTodoEntity.serializer(),
+                            it,
+                        ),
+                    )
+                    if (sessionTodoBuf.size >= IMPORT_BATCH) {
+                        flushBatch(sessionTodoBuf) { batch ->
+                            db.withTransaction { batch.forEach { db.sessionTodoDao().upsert(it) } }
+                        }
+                    }
+                }
+                "sessionTerm" -> obj["data"]?.let {
+                    sessionTermBuf.add(
+                        json.decodeFromJsonElement(
+                            io.zer0.muse.data.terms.SessionTermEntity.serializer(),
+                            it,
+                        ),
+                    )
+                    if (sessionTermBuf.size >= IMPORT_BATCH) {
+                        flushBatch(sessionTermBuf) { batch ->
+                            db.withTransaction { batch.forEach { db.sessionTermDao().upsert(it) } }
+                        }
+                    }
+                }
+                "pendingThought" -> obj["data"]?.let {
+                    pendingThoughtBuf.add(
+                        json.decodeFromJsonElement(
+                            io.zer0.muse.data.proactive.PendingThoughtEntity.serializer(),
+                            it,
+                        ),
+                    )
+                    if (pendingThoughtBuf.size >= IMPORT_BATCH) {
+                        flushBatch(pendingThoughtBuf) { batch ->
+                            db.withTransaction { batch.forEach { db.pendingThoughtDao().upsert(it) } }
+                        }
+                    }
+                }
+                "proactiveOutcome" -> obj["data"]?.let {
+                    proactiveOutcomeBuf.add(
+                        json.decodeFromJsonElement(
+                            io.zer0.muse.data.proactive.ProactiveOutcomeEntity.serializer(),
+                            it,
+                        ),
+                    )
+                    if (proactiveOutcomeBuf.size >= IMPORT_BATCH) {
+                        flushBatch(proactiveOutcomeBuf) { batch ->
+                            db.withTransaction { batch.forEach { db.proactiveOutcomeDao().upsert(it) } }
+                        }
+                    }
+                }
+                "proactiveRelation" -> obj["data"]?.let {
+                    proactiveRelationBuf.add(
+                        json.decodeFromJsonElement(
+                            io.zer0.muse.data.proactive.ProactiveRelationEntity.serializer(),
+                            it,
+                        ),
+                    )
+                    if (proactiveRelationBuf.size >= IMPORT_BATCH) {
+                        flushBatch(proactiveRelationBuf) { batch ->
+                            db.withTransaction { batch.forEach { db.proactiveRelationDao().upsert(it) } }
+                        }
+                    }
+                }
+                "sessionProactivePreference" -> obj["data"]?.let {
+                    val pref = json.decodeFromJsonElement(
+                        io.zer0.muse.proactive.SessionProactivePreferenceEntity.serializer(),
+                        it,
+                    )
+                    if (pref.sessionId in skippedMiniPhoneSessionIds) return@let
+                    sessionProactivePreferenceBuf.add(pref)
+                    if (sessionProactivePreferenceBuf.size >= IMPORT_BATCH) {
+                        flushSessionsIfNeeded()
+                        flushBatch(sessionProactivePreferenceBuf) { batch ->
+                            db.withTransaction {
+                                batch.forEach { db.sessionProactivePreferenceDao().upsert(it) }
+                            }
+                        }
+                    }
+                }
+                "assistantRelationship" -> obj["data"]?.let {
+                    assistantRelationshipBuf.add(
+                        json.decodeFromJsonElement(
+                            io.zer0.muse.data.relationship.AssistantRelationshipEntity.serializer(),
+                            it,
+                        ),
+                    )
+                    if (assistantRelationshipBuf.size >= IMPORT_BATCH) {
+                        flushBatch(assistantRelationshipBuf) { batch ->
+                            db.withTransaction {
+                                batch.forEach { db.assistantRelationshipDao().upsert(it) }
+                            }
+                        }
+                    }
+                }
+                "groupChatMemory" -> obj["data"]?.let {
+                    groupChatMemoryBuf.add(json.decodeFromJsonElement(GroupChatMemoryEntity.serializer(), it))
+                    if (groupChatMemoryBuf.size >= IMPORT_BATCH) {
+                        flushBatch(groupChatMemoryBuf) { batch ->
+                            db.withTransaction {
+                                batch.forEach { db.groupChatMemoryDao().insert(it) }
+                            }
+                        }
+                    }
+                }
+                // v2.6.8: 卡片实体。停靠槽位有唯一索引，分批 flush 时要先校验重复，
+                // 否则会在 SQLite 层抛 "UNIQUE constraint failed"，排障看不出是备份数据坏了。
+                "cardEntity" -> obj["data"]?.let {
+                    cardEntityBuf.add(json.decodeFromJsonElement(CardEntityRecord.serializer(), it))
+                    if (cardEntityBuf.size >= IMPORT_BATCH) {
+                        flushBatch(cardEntityBuf) { batch ->
+                            db.withTransaction { db.appendCardEntities(batch) }
+                        }
+                    }
+                }
+                else -> obj["data"]?.let { data ->
+                    restoreSupplementalMuseRecord(type, data, backlogRestoreAt)
+                }
+            }
+        }
+
+        fun logSkippedMiniPhoneSummary() {
+            // 跳过不是静默行为:旧小手机会话被丢弃时要留下痕迹
+            if (skippedMiniPhoneSessions > 0) {
+                Logger.w(
+                    "BackupService",
+                    "跳过 $skippedMiniPhoneSessions 条旧小手机会话及其 $skippedMiniPhoneMessages 条消息" +
+                        "（该功能已下线，不再作为普通会话恢复）",
+                )
+            }
+        }
+
+        suspend fun flushAllRemaining() {
+            flushCoreRemaining()
+            flushExtendedRemaining()
+            restoreKnowledgeV2Portable()
+        }
+
+        private suspend fun flushCoreRemaining() {
+            flushSessionsIfNeeded()
+            flushMessagesIfNeeded()
+            // v3: flush 扩展表
+            flushBatch(assistantBuf) { batch -> db.withTransaction { db.assistantDao().insertAll(batch) } }
+            flushBatch(lorebookBuf) { batch -> db.withTransaction { db.lorebookDao().insertAll(batch) } }
+            flushBatch(skillBuf) { batch -> db.withTransaction { batch.forEach { db.skillDao().upsert(it) } } }
+            flushBatch(artifactBuf) { batch -> db.withTransaction { batch.forEach { db.artifactDao().upsert(it) } } }
+            flushBatch(quickMsgBuf) { batch -> db.withTransaction { db.quickMessageDao().insertAll(batch) } }
+            flushBatch(promptInjBuf) { batch -> db.withTransaction { db.promptInjectionDao().insertAll(batch) } }
+            flushBatch(folderBuf) { batch -> db.withTransaction { batch.forEach { db.folderDao().insert(it) } } }
+            flushBatch(groupChatBuf) { batch -> db.withTransaction { batch.forEach { db.groupChatDao().upsert(it) } } }
+            flushBatch(groupChatMsgBuf) { batch -> db.withTransaction { db.groupChatMessageDao().insertAll(batch) } }
+            flushBatch(schedTaskBuf) { batch -> db.withTransaction { batch.forEach { db.scheduledTaskDao().upsert(it) } } }
+            flushBatch(schedExecBuf) { batch -> db.withTransaction { batch.forEach { db.scheduledTaskExecutionDao().insert(it) } } }
+            flushBatch(knowDocBuf) { batch -> db.withTransaction { batch.forEach { db.knowledgeDocDao().upsert(it) } } }
+            flushBatch(knowChunkBuf) { batch -> db.withTransaction { db.knowledgeChunkDao().insertAll(batch) } }
+            flushBatch(experienceBuf) { batch -> db.withTransaction { batch.forEach { db.experienceDao().upsert(it) } } }
+            flushBatch(milestoneBuf) { batch -> db.withTransaction { batch.forEach { db.milestoneDao().upsert(it) } } }
+            flushBatch(agentMsgBuf) { batch -> db.withTransaction { batch.forEach { db.agentMessageDao().upsert(it) } } }
+        }
+
+        private suspend fun flushExtendedRemaining() {
+            // P0-10: 此前缺失的实体
+            flushBatch(quickNoteBuf) { batch -> db.withTransaction { batch.forEach { db.quickNoteDao().upsert(it) } } }
+            flushBatch(worldBookBuf) { batch -> db.withTransaction { batch.forEach { db.worldBookDao().upsert(it) } } }
+            flushBatch(convEventBuf) { batch -> db.withTransaction { db.conversationEventDao().insertAll(batch) } }
+            flushConversationTurnsIfNeeded()
+            flushBatch(messagePartBuf) { batch -> db.withTransaction { db.messagePartDao().upsertAll(batch) } }
+            flushBatch(messageOutboxBuf) { batch -> db.withTransaction { batch.forEach { db.messageOutboxDao().upsert(it) } } }
+            flushBatch(translateHistoryBuf) { batch -> db.withTransaction { batch.forEach { db.translateHistoryDao().insert(it) } } }
+            flushBatch(knowledgeBaseBuf) { batch -> db.withTransaction { batch.forEach { db.knowledgeBaseDao().upsert(it) } } }
+            // AUD-20261011-NDJSON-FOLDERS: 剩余缓冲 flush(与知识库同组,事务内落库)
+            flushBatch(knowledgeFolderBuf) { batch ->
+                db.withTransaction { batch.forEach { db.knowledgeFolderDao().upsert(it) } }
+            }
+            flushBatch(subagentThreadBuf) { batch -> db.withTransaction { batch.forEach { db.subagentThreadDao().upsert(it) } } }
+            flushBatch(toolRoundBuf) { batch -> db.withTransaction { db.toolRoundDao().upsertAll(batch) } }
+            flushBatch(sessionBranchHeadBuf) { batch -> db.withTransaction { batch.forEach { db.sessionBranchHeadDao().upsert(it) } } }
+            flushBatch(conversationCommandReceiptBuf) { batch ->
+                db.withTransaction { batch.forEach { db.conversationCommandReceiptDao().insert(it) } }
+            }
+            flushBatch(conversationSelectionBuf) { batch ->
+                db.withTransaction { batch.forEach { db.conversationSelectionDao().insert(it) } }
+            }
+            flushBatch(conversationDisplaySlotBuf) { batch ->
+                db.withTransaction { batch.forEach { db.conversationDisplaySlotDao().upsert(it) } }
+            }
+            flushBatch(groupChatMemoryBuf) { batch -> db.withTransaction { batch.forEach { db.groupChatMemoryDao().insert(it) } } }
+            // v2.6.7 fix (AUDIT F1): 尾部 flush 待办与角色关系。
+            flushBatch(sessionTodoBuf) { batch -> db.withTransaction { batch.forEach { db.sessionTodoDao().upsert(it) } } }
+            // v2.6.9: 主动消息三表尾部 flush。
+            // v2.7.x(E2): 术语尾部 flush —— 分批读到的尾巴必须落库，否则末批术语会丢。
+            flushBatch(sessionTermBuf) { batch -> db.withTransaction { batch.forEach { db.sessionTermDao().upsert(it) } } }
+            flushBatch(pendingThoughtBuf) { batch ->
+                db.withTransaction { batch.forEach { db.pendingThoughtDao().upsert(it) } }
+            }
+            flushBatch(proactiveOutcomeBuf) { batch ->
+                db.withTransaction { batch.forEach { db.proactiveOutcomeDao().upsert(it) } }
+            }
+            flushBatch(proactiveRelationBuf) { batch ->
+                db.withTransaction { batch.forEach { db.proactiveRelationDao().upsert(it) } }
+            }
+            flushBatch(sessionProactivePreferenceBuf) { batch ->
+                db.withTransaction {
+                    batch.forEach { db.sessionProactivePreferenceDao().upsert(it) }
+                }
+            }
+            flushBatch(assistantRelationshipBuf) { batch ->
+                db.withTransaction { batch.forEach { db.assistantRelationshipDao().upsert(it) } }
+            }
+            // v2.6.8: 卡片实体尾部 flush（停靠卡与未停靠卡同一顺序写回）。
+            flushBatch(cardEntityBuf) { batch ->
+                db.withTransaction { db.appendCardEntities(batch) }
+            }
+
+        }
+
+        private suspend fun restoreKnowledgeV2Portable() {
+            // R9: 恢复知识库 V2 便携备份(同一 MuseDb 事务;失败随整体回滚)。
+            knowledgeV2PortableBuf?.let { portable ->
+                val report = io.zer0.muse.knowledge.backup.KnowledgePortableBackupService(
+                    v2Dao = db.knowledgeV2Dao(),
+                    folderDao = db.knowledgeFolderV2Dao(),
+                    jobDao = db.knowledgeJobDao(),
+                ).restore(portable)
+                check(report.success) { "知识库 V2 恢复失败: ${report.failureReason}" }
+            }
+
+        }
     }
 
     private suspend fun applyNdJsonStreamingWithImageCleanup(lines: Sequence<String>): Pair<Int, Int> {
@@ -2077,6 +2297,78 @@ class BackupService(
         if (buf.isEmpty()) return
         insert(buf.toList())
         buf.clear()
+    }
+
+    private suspend fun restoreSupplementalMuseRecord(type: String, data: JsonElement, now: Long) {
+        when (type) {
+            "proactiveBacklogDispatch" -> {
+                val source = json.decodeFromJsonElement(
+                    io.zer0.muse.data.proactive.ProactiveBacklogDispatchEntity.serializer(),
+                    data,
+                )
+                val wasClaimed = source.state == io.zer0.muse.data.proactive.BacklogDispatchState.CLAIMED
+                val safe = if (wasClaimed) {
+                    source.copy(
+                        state = io.zer0.muse.data.proactive.BacklogDispatchState.READY,
+                        claimToken = null,
+                        claimUntil = null,
+                        nextAttemptAt = maxOf(
+                            source.nextAttemptAt,
+                            now + io.zer0.muse.data.proactive.ProactiveBacklogRepository.DISPATCH_GAP_MS,
+                        ),
+                        updatedAt = now,
+                    )
+                } else {
+                    source.copy(claimToken = null, claimUntil = null)
+                }
+                db.proactiveBacklogDao().upsertAll(listOf(safe))
+                db.proactiveBacklogScheduleDao().deferUntil(safe.nextAttemptAt, now)
+            }
+            "proactiveBacklogSchedule" -> {
+                val schedule = json.decodeFromJsonElement(
+                    io.zer0.muse.data.proactive.ProactiveBacklogScheduleEntity.serializer(),
+                    data,
+                )
+                db.proactiveBacklogScheduleDao().deferUntil(schedule.nextBacklogDispatchAt, now)
+            }
+            "botBinding" -> db.botBindingDao().upsert(
+                json.decodeFromJsonElement(io.zer0.muse.data.agentbot.BotBindingEntity.serializer(), data),
+            )
+            "botTask" -> db.botTaskDao().upsert(
+                normalizeBotTaskForRestore(
+                    json.decodeFromJsonElement(io.zer0.muse.data.agentbot.BotTaskEntity.serializer(), data),
+                    now,
+                ),
+            )
+            "botTaskRun" -> db.taskRunDao().upsert(
+                normalizeBotRunForRestore(
+                    json.decodeFromJsonElement(io.zer0.muse.data.agentbot.TaskRunEntity.serializer(), data),
+                    now,
+                ),
+            )
+            "botTaskStep" -> db.taskStepDao().upsert(
+                json.decodeFromJsonElement(io.zer0.muse.data.agentbot.TaskStepEntity.serializer(), data),
+            )
+            "botEvent" -> db.botEventDao().upsert(
+                json.decodeFromJsonElement(io.zer0.muse.data.agentbot.BotEventEntity.serializer(), data),
+            )
+            "botApproval" -> db.approvalRequestDao().upsert(
+                json.decodeFromJsonElement(io.zer0.muse.data.agentbot.ApprovalRequestEntity.serializer(), data),
+            )
+            "botPublication" -> db.publicationOutboxDao().upsert(
+                json.decodeFromJsonElement(io.zer0.muse.data.agentbot.PublicationOutboxEntity.serializer(), data),
+            )
+            "botAnnotation" -> db.botAnnotationDao().upsert(
+                json.decodeFromJsonElement(io.zer0.muse.data.agentbot.BotAnnotationEntity.serializer(), data),
+            )
+            "botMessageCard" -> db.botMessageCardDao().upsert(
+                json.decodeFromJsonElement(io.zer0.muse.data.agentbot.BotMessageCardEntity.serializer(), data),
+            )
+            "botRoutine" -> db.botRoutineDao().upsert(
+                json.decodeFromJsonElement(io.zer0.muse.data.agentbot.BotRoutineEntity.serializer(), data),
+            )
+            else -> Unit
+        }
     }
 
     /** v2.0: 文件级导入后显式预热 Room,避免后续首次写入撞上 closed connection。 */
@@ -2348,7 +2640,9 @@ class BackupService(
         val config = settings.cloudBackupConfigFlow.first()
         if (!config.isConfigured) return null
         val data = cloudBackupService.downloadLatestBackup(config) ?: return null
-        return withBackupImportWriteGate { applyCloudBackupData(config, data) }
+        val imported = withBackupImportWriteGate { applyCloudBackupData(config, data) }
+        runAfterRestoreRecovery()
+        return imported
     }
 
     /**
@@ -2360,7 +2654,9 @@ class BackupService(
         val config = settings.cloudBackupConfigFlow.first()
         if (!config.isConfigured) return null
         val data = cloudBackupService.downloadBackup(config, fileName) ?: return null
-        return withBackupImportWriteGate { applyCloudBackupData(config, data) }
+        val imported = withBackupImportWriteGate { applyCloudBackupData(config, data) }
+        runAfterRestoreRecovery()
+        return imported
     }
 
     /**
@@ -2388,6 +2684,7 @@ class BackupService(
         require(io.zer0.common.ProcessWriteGate.begin()) { "已有备份恢复正在进行,请勿重复操作" }
         val tmpDir = File(context.cacheDir, "auto_restore_${UUID.randomUUID()}")
         tmpDir.mkdirs()
+        var restoreSucceeded = false
         try {
             // B-24: 兼容旧版单文件 .db 自动备份(当时仅 muse.db 一个库)。
             // 该文件本身就是 VACUUM 快照,直接作为 muse.db 源,不走 ZIP 解包。
@@ -2472,10 +2769,12 @@ class BackupService(
                 db.messageDao().observeBySession(session.id).first().size
             }
             Logger.i("BackupService", "restoreFromAutoBackup 完成: ${sessions.size} 会话, $messageCount 消息")
+            restoreSucceeded = true
             sessions.size to messageCount
         } finally {
             // B-7: 退出写入门控(无论成功与否都必须复位)
             io.zer0.common.ProcessWriteGate.end()
+            if (restoreSucceeded) runAfterRestoreRecovery()
             tmpDir.deleteRecursively()
         }
     }
@@ -2704,7 +3003,19 @@ class BackupService(
         val pendingThoughts: List<io.zer0.muse.data.proactive.PendingThoughtEntity>,
         val proactiveOutcomes: List<io.zer0.muse.data.proactive.ProactiveOutcomeEntity>,
         val proactiveRelations: List<io.zer0.muse.data.proactive.ProactiveRelationEntity>,
+        val proactiveBacklogDispatches: List<io.zer0.muse.data.proactive.ProactiveBacklogDispatchEntity>,
+        val proactiveBacklogSchedule: List<io.zer0.muse.data.proactive.ProactiveBacklogScheduleEntity>,
         val sessionProactivePreferences: List<io.zer0.muse.proactive.SessionProactivePreferenceEntity>,
+        val botBindings: List<io.zer0.muse.data.agentbot.BotBindingEntity>,
+        val botTasks: List<io.zer0.muse.data.agentbot.BotTaskEntity>,
+        val botTaskRuns: List<io.zer0.muse.data.agentbot.TaskRunEntity>,
+        val botTaskSteps: List<io.zer0.muse.data.agentbot.TaskStepEntity>,
+        val botEvents: List<io.zer0.muse.data.agentbot.BotEventEntity>,
+        val botApprovals: List<io.zer0.muse.data.agentbot.ApprovalRequestEntity>,
+        val botPublications: List<io.zer0.muse.data.agentbot.PublicationOutboxEntity>,
+        val botAnnotations: List<io.zer0.muse.data.agentbot.BotAnnotationEntity>,
+        val botMessageCards: List<io.zer0.muse.data.agentbot.BotMessageCardEntity>,
+        val botRoutines: List<io.zer0.muse.data.agentbot.BotRoutineEntity>,
         /** v2.7.x(E2): 术语表。 */
         val sessionTerms: List<io.zer0.muse.data.terms.SessionTermEntity>,
         /** v2.6.8: 卡片实体。 */
@@ -2749,10 +3060,49 @@ class BackupService(
         BackupBinaryFiles.restore(files = files, filesDir = context.filesDir)
     }
 
+    private suspend fun snapshotBacklogForBackup(now: Long): RestoredBacklogSnapshot {
+        val dispatches = db.proactiveBacklogDao().getAll()
+        val schedules = db.proactiveBacklogScheduleDao().getAll()
+        return prepareBacklogRestoreSnapshot(dispatches, schedules, now)
+    }
+
+    private fun prepareBacklogForRestore(backup: Backup, now: Long): RestoredBacklogSnapshot =
+        prepareBacklogRestoreSnapshot(backup.proactiveBacklogDispatches, backup.proactiveBacklogSchedule, now)
+
+    private fun normalizeBotTaskForRestore(
+        task: io.zer0.muse.data.agentbot.BotTaskEntity,
+        now: Long,
+    ): io.zer0.muse.data.agentbot.BotTaskEntity = if (
+        task.status == io.zer0.muse.data.agentbot.BotTaskStatus.RUNNING ||
+        task.status == io.zer0.muse.data.agentbot.BotTaskStatus.CANCEL_REQUESTED
+    ) {
+        task.copy(status = io.zer0.muse.data.agentbot.BotTaskStatus.UNKNOWN, updatedAt = now)
+    } else {
+        task
+    }
+
+    private fun normalizeBotRunForRestore(
+        run: io.zer0.muse.data.agentbot.TaskRunEntity,
+        now: Long,
+    ): io.zer0.muse.data.agentbot.TaskRunEntity = if (
+        run.status == io.zer0.muse.data.agentbot.TaskRunStatus.RUNNING
+    ) {
+        run.copy(
+            status = io.zer0.muse.data.agentbot.TaskRunStatus.UNKNOWN,
+            leaseOwner = "",
+            leaseUntil = 0L,
+            finishedAt = now,
+            errorCode = "restore_requires_user_review",
+        )
+    } else {
+        run
+    }
+
     private suspend fun buildBackup(includeSecrets: Boolean = false): Backup {
         // B-23: MuseDb 读取包事务,避免与并发写交织产生 torn 快照(回滚 recovery point 一致性)。
         // memory/fact 各库读取量小且为单表,由上层 recoverIncompleteRestore 分层处理跨库一致性。
         val snap = db.withTransaction {
+            val backlogSnapshot = snapshotBacklogForBackup(System.currentTimeMillis())
             DbSnapshot(
                 sessions = db.sessionDao().observeAll().first(),
                 allMessages = db.sessionDao().observeAll().first().flatMap { session ->
@@ -2795,7 +3145,19 @@ class BackupService(
                 pendingThoughts = db.pendingThoughtDao().getAll(),
                 proactiveOutcomes = db.proactiveOutcomeDao().getAll(),
                 proactiveRelations = db.proactiveRelationDao().getAll(),
+                proactiveBacklogDispatches = backlogSnapshot.dispatches,
+                proactiveBacklogSchedule = backlogSnapshot.schedule,
                 sessionProactivePreferences = db.sessionProactivePreferenceDao().getAll(),
+                botBindings = db.botBindingDao().getAll(),
+                botTasks = db.botTaskDao().getAll(),
+                botTaskRuns = db.taskRunDao().getAll(),
+                botTaskSteps = db.taskStepDao().getAll(),
+                botEvents = db.botEventDao().getAll(),
+                botApprovals = db.approvalRequestDao().getAll(),
+                botPublications = db.publicationOutboxDao().getAll(),
+                botAnnotations = db.botAnnotationDao().getAll(),
+                botMessageCards = db.botMessageCardDao().getAll(),
+                botRoutines = db.botRoutineDao().getAll(),
                 sessionTerms = db.sessionTermDao().getAll(),
                 groupChatMemories = db.groupChatMemoryDao().getAll(),
                 // v2.6.8 / v2.6.9: 卡片实体。走 DAO 全量查询（Room 生成的映射，
@@ -2856,6 +3218,18 @@ class BackupService(
         // v2.6.7 fix (AUDIT F2): DbSnapshot 已读到待办，但构造 Backup 时漏传。
         // 单 JSON 导出会丢；且本函数同时是恢复失败回滚的快照来源。
         val sessionTodos = snap.sessionTodos
+        val proactiveBacklogDispatches = snap.proactiveBacklogDispatches
+        val proactiveBacklogSchedule = snap.proactiveBacklogSchedule
+        val botBindings = snap.botBindings
+        val botTasks = snap.botTasks
+        val botTaskRuns = snap.botTaskRuns
+        val botTaskSteps = snap.botTaskSteps
+        val botEvents = snap.botEvents
+        val botApprovals = snap.botApprovals
+        val botPublications = snap.botPublications
+        val botAnnotations = snap.botAnnotations
+        val botMessageCards = snap.botMessageCards
+        val botRoutines = snap.botRoutines
         val sessionProactivePreferences = snap.sessionProactivePreferences
         val sessionTerms = snap.sessionTerms
         val groupChatMemories = snap.groupChatMemories
@@ -2874,7 +3248,7 @@ class BackupService(
         val binaryFiles = readBinaryFiles()
 
         return Backup(
-            version = 4,
+            version = 5,
             exportedAt = System.currentTimeMillis(),
             sessions = sessions,
             messages = allMessages,
@@ -2918,6 +3292,18 @@ class BackupService(
             sessionBranchHeads = sessionBranchHeads,
             assistantRelationships = assistantRelationships,
             sessionTodos = sessionTodos,
+            proactiveBacklogDispatches = proactiveBacklogDispatches,
+            proactiveBacklogSchedule = proactiveBacklogSchedule,
+            botBindings = botBindings,
+            botTasks = botTasks,
+            botTaskRuns = botTaskRuns,
+            botTaskSteps = botTaskSteps,
+            botEvents = botEvents,
+            botApprovals = botApprovals,
+            botPublications = botPublications,
+            botAnnotations = botAnnotations,
+            botMessageCards = botMessageCards,
+            botRoutines = botRoutines,
             sessionTerms = sessionTerms,
             sessionProactivePreferences = sessionProactivePreferences,
             groupChatMemories = groupChatMemories,
@@ -3137,21 +3523,22 @@ class BackupService(
     /**
      * 问题7.2: 备份版本迁移钩子。
      *
-     * - v4: 当前版本,无需迁移
-     * - v3: 无文件型存储,fileStores 走默认空值
+     * - v5: 当前版本,无需迁移
+     * - v3/v4: 新增文件与调度数据字段走默认空值
      * - v1/v2: 旧版备份仅含 sessions + messages + memory 数据(扩展表为空),
-     *   Backup data class 新增字段都有默认值,补 version=4 即可
+     *   Backup data class 新增字段都有默认值,补 version=5 即可
      * - 未知版本: 警告并按 v4 处理
      */
     private fun migrateBackup(backup: Backup): Backup = when (backup.version) {
-        4, 3 -> backup
+        5 -> backup
+        4, 3 -> backup.copy(version = 5)
         1, 2 -> {
-            Logger.i("BackupService", "迁移备份 v${backup.version} → v4:补默认扩展表字段")
-            backup.copy(version = 4)
+            Logger.i("BackupService", "迁移备份 v${backup.version} → v5:补默认扩展表字段")
+            backup.copy(version = 5)
         }
         else -> {
-            Logger.w("BackupService", "未知备份版本 v${backup.version},按当前版本 v4 处理")
-            backup.copy(version = 4)
+            Logger.w("BackupService", "未知备份版本 v${backup.version},按当前版本 v5 处理")
+            backup.copy(version = 5)
         }
     }
 
@@ -3161,6 +3548,8 @@ class BackupService(
      * 注意:此方法跨三个独立 DB 各自开事务,无法做到原子性;调用方([applyBackup])负责回滚。
      */
     private suspend fun applyBackupInternal(backup: Backup): Pair<Int, Int> {
+        val restoreAt = System.currentTimeMillis()
+        val restoredBacklog = prepareBacklogForRestore(backup, restoreAt)
         // 1. 导入 MuseDb 主表(sessions + messages)
         db.withTransaction {
             clearConversationStateForRestore(db)
@@ -3168,6 +3557,16 @@ class BackupService(
             // 旧小手机已下线:备份里残留的 isMiniPhone 会话与其消息在写入前就丢掉,
             // 不先写库再删(否则它们会以普通会话身份短暂出现在主列表)。
             val miniPhoneSessionIds = backup.sessions.filter { it.isMiniPhone }.map { it.id }.toSet()
+            val miniPhoneMessageIds = if (miniPhoneSessionIds.isEmpty()) {
+                emptySet()
+            } else {
+                backup.messages.filter { it.sessionId in miniPhoneSessionIds }.map { it.id }.toSet()
+            }
+            val miniPhoneTurnIds = if (miniPhoneSessionIds.isEmpty()) {
+                emptySet()
+            } else {
+                backup.conversationTurns.filter { it.sessionId in miniPhoneSessionIds }.map { it.turnId }.toSet()
+            }
             if (miniPhoneSessionIds.isNotEmpty()) {
                 Logger.w(
                     "BackupService",
@@ -3217,7 +3616,19 @@ class BackupService(
             db.pendingThoughtWriteDao().deleteAll()
             db.proactiveOutcomeDao().deleteAll()
             db.proactiveRelationDao().deleteAll()
+            db.proactiveBacklogDao().deleteAll()
+            db.proactiveBacklogScheduleDao().deleteAll()
             db.sessionProactivePreferenceDao().deleteAll()
+            db.botRoutineDao().deleteAll()
+            db.botMessageCardDao().deleteAll()
+            db.botAnnotationDao().deleteAll()
+            db.publicationOutboxDao().deleteAll()
+            db.approvalRequestDao().deleteAll()
+            db.botEventDao().deleteAll()
+            db.taskStepDao().deleteAll()
+            db.taskRunDao().deleteAll()
+            db.botTaskDao().deleteAll()
+            db.botBindingDao().deleteAll()
             db.sessionTermDao().deleteAll()
             db.assistantRelationshipDao().deleteAll()
             db.subagentThreadDao().deleteAll()
@@ -3231,7 +3642,7 @@ class BackupService(
             backup.assistants.forEach { db.assistantDao().upsert(it) }
             backup.lorebooks.forEach { db.lorebookDao().upsert(it) }
             backup.skills.forEach { db.skillDao().upsert(it) }
-            backup.artifacts.forEach { db.artifactDao().upsert(it) }
+            backup.artifacts.forEach { if (it.sessionId !in miniPhoneSessionIds) db.artifactDao().upsert(it) }
             backup.quickMessages.forEach { db.quickMessageDao().upsert(it) }
             backup.promptInjections.forEach { db.promptInjectionDao().upsert(it) }
             backup.folders.forEach { db.folderDao().insert(it) }
@@ -3247,18 +3658,22 @@ class BackupService(
             // P0-10: 此前缺失的实体
             backup.quickNotes.forEach { db.quickNoteDao().upsert(it) }
             backup.worldBookEntries.forEach { db.worldBookDao().upsert(it) }
-            if (backup.conversationEvents.isNotEmpty()) {
-                val insertedEventIds = db.conversationEventDao().insertAll(backup.conversationEvents)
+            val filteredConversationEvents = backup.conversationEvents.filter { it.sessionId !in miniPhoneSessionIds }
+            if (filteredConversationEvents.isNotEmpty()) {
+                val insertedEventIds = db.conversationEventDao().insertAll(filteredConversationEvents)
                 check(insertedEventIds.all { it != -1L }) {
                     "备份 conversation_events 存在 eventId/主键冲突，拒绝静默丢失事件"
                 }
             }
-            backup.conversationTurns.forEach { db.conversationTurnDao().upsert(it) }
+            backup.conversationTurns.forEach { if (it.sessionId !in miniPhoneSessionIds) db.conversationTurnDao().upsert(it) }
             backup.conversationCommandReceipts.forEach { db.conversationCommandReceiptDao().insert(it) }
             backup.conversationSelections.forEach { db.conversationSelectionDao().insert(it) }
-            backup.conversationDisplaySlots.forEach { db.conversationDisplaySlotDao().upsert(it) }
-            if (backup.messageParts.isNotEmpty()) db.messagePartDao().upsertAll(backup.messageParts)
-            backup.messageOutboxes.forEach { db.messageOutboxDao().upsert(it) }
+            backup.conversationDisplaySlots.forEach {
+                if (it.sessionId !in miniPhoneSessionIds) db.conversationDisplaySlotDao().upsert(it)
+            }
+            val filteredMessageParts = backup.messageParts.filter { it.messageId !in miniPhoneMessageIds }
+            if (filteredMessageParts.isNotEmpty()) db.messagePartDao().upsertAll(filteredMessageParts)
+            backup.messageOutboxes.forEach { if (it.sessionId !in miniPhoneSessionIds) db.messageOutboxDao().upsert(it) }
             backup.translateHistories.forEach { db.translateHistoryDao().insert(it) }
             backup.knowledgeBases.forEach { db.knowledgeBaseDao().upsert(it) }
             backup.knowledgeFolders.forEach { db.knowledgeFolderDao().upsert(it) }
@@ -3277,14 +3692,34 @@ class BackupService(
             backup.pendingThoughts.forEach { db.pendingThoughtDao().upsert(it) }
             backup.proactiveOutcomes.forEach { db.proactiveOutcomeDao().upsert(it) }
             backup.proactiveRelations.forEach { db.proactiveRelationDao().upsert(it) }
-            backup.sessionProactivePreferences.forEach { db.sessionProactivePreferenceDao().upsert(it) }
+            if (restoredBacklog.dispatches.isNotEmpty()) {
+                db.proactiveBacklogDao().upsertAll(restoredBacklog.dispatches)
+            }
+            restoredBacklog.schedule.forEach { db.proactiveBacklogScheduleDao().upsert(it) }
+            backup.sessionProactivePreferences.forEach {
+                if (it.sessionId !in miniPhoneSessionIds) db.sessionProactivePreferenceDao().upsert(it)
+            }
+            backup.botBindings.forEach { db.botBindingDao().upsert(it) }
+            backup.botTasks.forEach { db.botTaskDao().upsert(normalizeBotTaskForRestore(it, restoreAt)) }
+            if (backup.botTaskRuns.isNotEmpty()) {
+                db.taskRunDao().upsertAll(backup.botTaskRuns.map { normalizeBotRunForRestore(it, restoreAt) })
+            }
+            if (backup.botTaskSteps.isNotEmpty()) db.taskStepDao().upsertAll(backup.botTaskSteps)
+            if (backup.botEvents.isNotEmpty()) db.botEventDao().upsertAll(backup.botEvents)
+            if (backup.botApprovals.isNotEmpty()) db.approvalRequestDao().upsertAll(backup.botApprovals)
+            if (backup.botPublications.isNotEmpty()) db.publicationOutboxDao().upsertAll(backup.botPublications)
+            if (backup.botAnnotations.isNotEmpty()) db.botAnnotationDao().upsertAll(backup.botAnnotations)
+            if (backup.botMessageCards.isNotEmpty()) db.botMessageCardDao().upsertAll(backup.botMessageCards)
+            if (backup.botRoutines.isNotEmpty()) db.botRoutineDao().upsertAll(backup.botRoutines)
             // v2.7.x(E2): 只导出不恢复等于"备份了但没用"。
             backup.sessionTerms.forEach { db.sessionTermDao().upsert(it) }
             // v2.6.7: 角色关系此前只导出不恢复（既有缺口），换机后亲密度/关系标签全丢。
             backup.assistantRelationships.forEach { db.assistantRelationshipDao().upsert(it) }
             backup.subagentThreads.forEach { db.subagentThreadDao().upsert(it) }
-            backup.toolRounds.forEach { db.toolRoundDao().upsertAll(listOf(it)) }
-            backup.sessionBranchHeads.forEach { db.sessionBranchHeadDao().upsert(it) }
+            backup.toolRounds.forEach { if (it.turnId !in miniPhoneTurnIds) db.toolRoundDao().upsertAll(listOf(it)) }
+            backup.sessionBranchHeads.forEach {
+                if (it.sessionId !in miniPhoneSessionIds) db.sessionBranchHeadDao().upsert(it)
+            }
             backup.groupChatMemories.forEach { db.groupChatMemoryDao().insert(it) }
             // v2.6.8: 卡片按导出顺序逐条写回。停靠槽位有唯一索引，先校验重复再写，
             // 让坏数据报出可读原因而不是 "UNIQUE constraint failed"。

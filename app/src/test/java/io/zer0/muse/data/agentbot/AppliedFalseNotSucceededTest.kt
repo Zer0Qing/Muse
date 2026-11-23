@@ -21,13 +21,13 @@ class AppliedFalseNotSucceededTest {
 
     @Test
     fun `no candidate path does not transition to succeeded`() {
-        val at = applier.indexOf("if (candidate == null || stagedId == null) {");
+        val at = applier.indexOf("if (candidates.isEmpty()) {");
         assertTrue(at > 0);
-        val end = applier.indexOf("val write = writeTarget", at);
+        val end = applier.indexOf("if (writeTarget == null && workspaceManager == null)", at);
         val block = applier.substring(at, if (end > at) end else applier.length);
         assertTrue(
             "没有候选时不能落 SUCCEEDED",
-            !block.contains("applyTransition(task.taskId, decision)"),
+            !block.contains("transition = BotTaskStatusMachine.Event.REVIEW_ACCEPT"),
         );
         assertTrue(
             "要转成待处理，让用户知道结果没落地",
@@ -37,7 +37,7 @@ class AppliedFalseNotSucceededTest {
 
     @Test
     fun `no write capability path does not transition to succeeded`() {
-        val at = applier.indexOf("if (write == null) {");
+        val at = applier.indexOf("if (writeTarget == null && workspaceManager == null) {");
         assertTrue(at > 0);
         val end = applier.indexOf("val store = staging", at);
         val block = applier.substring(at, if (end > at) end else applier.length);
@@ -49,15 +49,15 @@ class AppliedFalseNotSucceededTest {
     }
 
     @Test
-    fun `scheduler observes the applied flag`() {
+    fun `scheduler observes the review settlement flag`() {
         val scheduler = File("src/main/java/io/zer0/muse/data/agentbot/BotTaskScheduler.kt").readText();
         assertTrue(
             "process 的返回值不能丢弃",
             scheduler.contains("val reviewOutcome = runCatching {"),
         );
         assertTrue(
-            "applied=false 要留痕",
-            scheduler.contains("reviewOutcome.applied"),
+            "未结算的审核结果要留痕",
+            scheduler.contains("reviewOutcome.accepted"),
         );
     }
 }

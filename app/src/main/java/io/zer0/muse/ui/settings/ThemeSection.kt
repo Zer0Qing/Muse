@@ -50,6 +50,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.core.graphics.ColorUtils
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.common.AppJson
@@ -57,6 +58,7 @@ import io.zer0.common.Logger
 import io.zer0.muse.R
 import io.zer0.muse.data.AppearanceSettingsStore
 import io.zer0.muse.data.SettingsRepository
+import io.zer0.muse.data.ThemeSolarCondition
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
@@ -79,6 +81,9 @@ import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.PresetTheme
 import io.zer0.muse.ui.theme.PresetThemes
+import io.zer0.muse.ui.theme.ThemeAutoPolicy
+import io.zer0.muse.ui.theme.ThemeReconcileReason
+import io.zer0.muse.ui.theme.ThemeReconcileWorker
 import io.zer0.muse.ui.theme.semiLarge
 import io.zer0.muse.ui.theme.tiny
 import io.zer0.muse.util.AppLocales
@@ -86,6 +91,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.text.DateFormat
+import java.util.Date
+import android.content.pm.PackageManager
+import android.Manifest
 import kotlin.math.roundToInt
 
 /**
@@ -107,6 +116,8 @@ internal fun ThemeSection(themeMode: String, fontSizeScale: String, settings: Se
     // v1.65: 动态取色开关(代码早已就绪,此前 UI 无开关导致永远不可用)
     val dynamicColor by settings.dynamicColorFlow.collectAsStateWithLifecycle(initialValue = false)
     val context = LocalContext.current
+    val schedule by settings.themeScheduleFlow.collectAsStateWithLifecycle(initialValue = io.zer0.muse.data.ThemeScheduleConfig())
+    val scheduleDiagnostic by settings.themeScheduleDiagnosticFlow.collectAsStateWithLifecycle(initialValue = null)
     // Android 12+ 才支持动态取色,低版本灰显(版本号在设备生命周期内不变,用 remember 缓存避免重组时重复读取)
     val dynamicColorSupported = remember { android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S }
     // v1.97 gap7: 用户自定义主题列表 + 编辑/删除弹窗状态
@@ -132,6 +143,21 @@ internal fun ThemeSection(themeMode: String, fontSizeScale: String, settings: Se
             } else {
                 MuseToast.show(context.getString(R.string.settings_font_import_failed))
             }
+        }
+    }
+    val solarPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        scope.launch {
+            settings.saveThemeSchedule(
+                schedule.copy(
+                    autoPolicy = ThemeAutoPolicy.SUNRISE_SUNSET,
+                    solarUnavailableReason = if (granted) {
+                        null
+                    } else {
+                        io.zer0.muse.data.ThemeSolarUnavailableReason.LOCATION_PERMISSION_REQUIRED
+                    },
+                ),
+            )
+            ThemeReconcileWorker.enqueue(context, ThemeReconcileReason.SETTINGS_CHANGED)
         }
     }
     var editingTheme by remember { mutableStateOf<CustomTheme?>(null) }
@@ -359,8 +385,7 @@ internal fun ThemeSection(themeMode: String, fontSizeScale: String, settings: Se
     // v1.0.92: 深色模式独立主题入口已下线 — 固定跟随亮色主题的暗色版,
     // 不再向用户展示深色主题选择(用户要求:只保留亮色主题体系)。
 
-    // ── 主题定时切换(Feature 4) ──
-    val schedule by settings.themeScheduleFlow.collectAsStateWithLifecycle(initialValue = io.zer0.muse.data.ThemeScheduleConfig())
+    // ── 自动主题策略 ──
     SectionLabel(
         stringResource(R.string.settings_theme_schedule),
         modifier = Modifier.padding(top = MusePaddings.cardGap),
@@ -368,15 +393,65 @@ internal fun ThemeSection(themeMode: String, fontSizeScale: String, settings: Se
     SettingsGroup(
         modifier = Modifier.padding(top = 8.dp),
     ) {
-        SettingsSwitchRow(
-            icon = MuseIcons.sun,
-            title = stringResource(R.string.settings_theme_schedule_auto),
-            checked = schedule.enabled,
-            onCheckedChange = { v ->
-                scope.launch { settings.saveThemeSchedule(schedule.copy(enabled = v)) }
-            },
+        val policyOptions = listOf(
+            stringResource(R.string.settings_theme_policy_off),
+            stringResource(R.string.settings_theme_policy_custom_time),
+            stringResource(R.string.settings_theme_policy_sunrise_sunset),
         )
-        if (schedule.enabled) {
+        val selectedPolicy = when (schedule.autoPolicy) {
+            ThemeAutoPolicy.OFF -> 0
+            ThemeAutoPolicy.CUSTOM_TIME -> 1
+            ThemeAutoPolicy.SUNRISE_SUNSET -> 2
+        }
+        MuseCapsuleTab(
+            tabs = policyOptions,
+            selectedIndex = selectedPolicy,
+            onSelect = { index ->
+                when (index) {
+                    0 -> saveThemePolicy(
+                        settings = settings,
+                        schedule = schedule,
+                        policy = ThemeAutoPolicy.OFF,
+                        context = context,
+                        scope = scope,
+                    )
+                    1 -> saveThemePolicy(
+                        settings = settings,
+                        schedule = schedule,
+                        policy = ThemeAutoPolicy.CUSTOM_TIME,
+                        context = context,
+                        scope = scope,
+                    )
+                    2 -> {
+                        val permissionGranted = ContextCompat.checkSelfPermission(
+                            context,
+                            Manifest.permission.ACCESS_COARSE_LOCATION,
+                        ) == PackageManager.PERMISSION_GRANTED
+                        if (permissionGranted) {
+                            saveThemePolicy(
+                                settings = settings,
+                                schedule = schedule,
+                                policy = ThemeAutoPolicy.SUNRISE_SUNSET,
+                                context = context,
+                                scope = scope,
+                            )
+                        } else {
+                            solarPermissionLauncher.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
+                        }
+                    }
+                }
+            },
+            modifier = Modifier.padding(MusePaddings.cardInner),
+        )
+        if (scheduleDiagnostic != null) {
+            Text(
+                text = stringResource(R.string.settings_theme_schedule_parse_error),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(horizontal = MusePaddings.screen, vertical = MusePaddings.tightGap),
+            )
+        }
+        if (schedule.autoPolicy == ThemeAutoPolicy.CUSTOM_TIME) {
             SettingsItemRow(
                 icon = MuseIcons.sun,
                 title = stringResource(R.string.settings_theme_wake_time_title),
@@ -393,6 +468,45 @@ internal fun ThemeSection(themeMode: String, fontSizeScale: String, settings: Se
                     sleepTimeDialog = true
                 },
             )
+        }
+        if (schedule.autoPolicy == ThemeAutoPolicy.SUNRISE_SUNSET) {
+            val locationCache = schedule.locationCache
+            val solarCache = schedule.solarCache
+            val statusText = when {
+                schedule.solarUnavailableReason == io.zer0.muse.data.ThemeSolarUnavailableReason.LOCATION_PERMISSION_REQUIRED ->
+                    stringResource(R.string.settings_theme_solar_permission_required)
+                schedule.solarUnavailableReason == io.zer0.muse.data.ThemeSolarUnavailableReason.LOCATION_UNAVAILABLE ->
+                    stringResource(R.string.settings_theme_solar_location_unavailable)
+                schedule.solarUnavailableReason == io.zer0.muse.data.ThemeSolarUnavailableReason.SOLAR_EVENTS_UNAVAILABLE ->
+                    stringResource(R.string.settings_theme_solar_events_unavailable)
+                solarCache == null -> stringResource(R.string.settings_theme_solar_cache_unavailable)
+                solarCache.condition == ThemeSolarCondition.POLAR_DAY -> stringResource(R.string.settings_theme_solar_polar_day)
+                solarCache.condition == ThemeSolarCondition.POLAR_NIGHT -> stringResource(R.string.settings_theme_solar_polar_night)
+                solarCache.condition == ThemeSolarCondition.NORMAL && solarCache.sunriseAt != null && solarCache.sunsetAt != null -> {
+                    val sunrise = DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(solarCache.sunriseAt))
+                    val sunset = DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(solarCache.sunsetAt))
+                    stringResource(R.string.settings_theme_solar_times, sunrise, sunset)
+                }
+                else -> stringResource(R.string.settings_theme_solar_cache_unavailable)
+            }
+            Column(
+                modifier = Modifier.padding(
+                    horizontal = MusePaddings.screen,
+                    vertical = MusePaddings.contentGap,
+                ),
+                verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
+            ) {
+                Text(statusText, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+                if (locationCache != null) {
+                    val updatedAt = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
+                        .format(Date(locationCache.updatedAt))
+                    Text(
+                        text = stringResource(R.string.settings_theme_solar_location_updated, updatedAt),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
         }
     }
 
@@ -411,6 +525,7 @@ internal fun ThemeSection(themeMode: String, fontSizeScale: String, settings: Se
                     settings.saveThemeSchedule(
                         schedule.copy(wakeUpHour = timeState.hour, wakeUpMinute = timeState.minute),
                     )
+                    ThemeReconcileWorker.enqueue(context, ThemeReconcileReason.SETTINGS_CHANGED)
                 }
                 wakeTimeDialog = false
             },
@@ -433,6 +548,7 @@ internal fun ThemeSection(themeMode: String, fontSizeScale: String, settings: Se
                     settings.saveThemeSchedule(
                         schedule.copy(sleepHour = timeState.hour, sleepMinute = timeState.minute),
                     )
+                    ThemeReconcileWorker.enqueue(context, ThemeReconcileReason.SETTINGS_CHANGED)
                 }
                 sleepTimeDialog = false
             },
@@ -1712,5 +1828,23 @@ private suspend fun importFontFile(context: android.content.Context, uri: Uri): 
             Logger.w("ThemeSection", "字体文件读取被拒绝: ${e.message}")
             null
         }
+    }
+}
+
+private fun saveThemePolicy(
+    settings: SettingsRepository,
+    schedule: io.zer0.muse.data.ThemeScheduleConfig,
+    policy: ThemeAutoPolicy,
+    context: android.content.Context,
+    scope: kotlinx.coroutines.CoroutineScope,
+) {
+    scope.launch {
+        settings.saveThemeSchedule(
+            schedule.copy(
+                autoPolicy = policy,
+                solarUnavailableReason = null,
+            ),
+        )
+        ThemeReconcileWorker.enqueue(context, ThemeReconcileReason.SETTINGS_CHANGED)
     }
 }

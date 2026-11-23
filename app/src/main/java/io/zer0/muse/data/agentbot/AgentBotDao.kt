@@ -29,6 +29,27 @@ interface BotTaskDao {
     @Query("SELECT * FROM bot_tasks WHERE botId = :botId ORDER BY updatedAt DESC")
     suspend fun listByBot(botId: String): List<BotTaskEntity>
 
+    @Query("SELECT * FROM bot_tasks WHERE originSessionId = :sessionId")
+    suspend fun listByOriginSession(sessionId: String): List<BotTaskEntity>
+
+    @Query(
+        "SELECT * FROM bot_tasks WHERE botId IN " +
+            "(SELECT botId FROM bot_bindings WHERE assistantId = :assistantId)",
+    )
+    suspend fun listByAssistant(assistantId: String): List<BotTaskEntity>
+
+    @Query("SELECT * FROM bot_tasks WHERE status = 'REVIEWING' ORDER BY updatedAt ASC")
+    suspend fun listReviewing(): List<BotTaskEntity>
+
+    /**
+     * 页面投影用：只观察当前 assistant 与 canonical 会话的任务。
+     *
+     * 与 [listByBot] 分开是刻意的：调度器按 Bot 领任务（跨会话），
+     * 页面只看当前会话；两者混用会让别的会话的任务出现在看板上。
+     */
+    @Query("SELECT * FROM bot_tasks WHERE botId = :botId AND originSessionId = :sessionId ORDER BY updatedAt DESC")
+    fun observeByScope(botId: String, sessionId: String): Flow<List<BotTaskEntity>>
+
     @Query("SELECT * FROM bot_tasks WHERE botId = :botId AND status IN (:statuses) ORDER BY priority DESC, createdAt ASC")
     fun observeByStatuses(botId: String, statuses: List<String>): Flow<List<BotTaskEntity>>
 
@@ -54,6 +75,9 @@ interface BotTaskDao {
 
     @Query("DELETE FROM bot_tasks WHERE taskId = :taskId")
     suspend fun deleteById(taskId: String)
+
+    @Query("DELETE FROM bot_tasks WHERE taskId IN (:taskIds)")
+    suspend fun deleteByIds(taskIds: List<String>)
 
     @Query("DELETE FROM bot_tasks")
     suspend fun deleteAll()
@@ -81,7 +105,7 @@ interface TaskRunDao {
     suspend fun listRunning(): List<TaskRunEntity>
 
     /** 租约到期的 run：重启后对账用。 */
-    @Query("SELECT * FROM bot_task_runs WHERE status IN ('RUNNING','WAITING_APPROVAL','WAITING_RESOURCE') AND leaseUntil < :now")
+    @Query("SELECT * FROM bot_task_runs WHERE status = 'RUNNING' AND leaseUntil < :now")
     suspend fun listStale(now: Long): List<TaskRunEntity>
 
     @Query("SELECT * FROM bot_task_runs")
@@ -89,6 +113,9 @@ interface TaskRunDao {
 
     @Query("DELETE FROM bot_task_runs WHERE taskId = :taskId")
     suspend fun deleteByTask(taskId: String)
+
+    @Query("DELETE FROM bot_task_runs WHERE taskId IN (:taskIds)")
+    suspend fun deleteByTasks(taskIds: List<String>)
 
     @Query("DELETE FROM bot_task_runs")
     suspend fun deleteAll()
@@ -106,11 +133,32 @@ interface TaskStepDao {
     @Query("SELECT * FROM bot_task_steps WHERE runId = :runId ORDER BY stepIndex ASC")
     suspend fun listByRun(runId: String): List<TaskStepEntity>
 
+    /** 按作用域观察当前会话所有任务的步骤记录，用于重启后完整还原动态任务卡时间线。 */
+    @Query(
+        "SELECT s.* FROM bot_task_steps s " +
+            "INNER JOIN bot_task_runs r ON s.runId = r.runId " +
+            "INNER JOIN bot_tasks t ON r.taskId = t.taskId " +
+            "WHERE t.botId = :botId AND t.originSessionId = :sessionId " +
+            "ORDER BY s.startedAt ASC, s.stepIndex ASC",
+    )
+    fun observeByScope(botId: String, sessionId: String): Flow<List<TaskStepEntity>>
+
+    @Query(
+        "SELECT s.* FROM bot_task_steps s " +
+            "INNER JOIN bot_task_runs r ON s.runId = r.runId " +
+            "WHERE r.taskId = :taskId " +
+            "ORDER BY r.attempt DESC, s.stepIndex ASC",
+    )
+    suspend fun listByTask(taskId: String): List<TaskStepEntity>
+
     @Query("SELECT * FROM bot_task_steps")
     suspend fun getAll(): List<TaskStepEntity>
 
     @Query("DELETE FROM bot_task_steps WHERE runId = :runId")
     suspend fun deleteByRun(runId: String)
+
+    @Query("DELETE FROM bot_task_steps WHERE runId IN (:runIds)")
+    suspend fun deleteByRuns(runIds: List<String>)
 
     @Query("DELETE FROM bot_task_steps")
     suspend fun deleteAll()
@@ -134,12 +182,49 @@ interface BotEventDao {
     @Query("SELECT * FROM bot_events WHERE dedupeKey = :dedupeKey LIMIT 1")
     suspend fun findByDedupeKey(dedupeKey: String): BotEventEntity?
 
+    /**
+     * 某个任务某一轮里最后一次某类事件。
+     *
+     * 发布前要拿它复核"审核结论仍是允许发布的那一份" —— 消费方不能只信
+     * 发布事实自己带的结论，否则一条过期的发布事实会以审核名义发出去。
+     */
+    @Query(
+        "SELECT * FROM bot_events WHERE taskId = :taskId AND runId = :runId AND kind = :kind " +
+            "ORDER BY sequence DESC LIMIT 1",
+    )
+    suspend fun latestOfKind(taskId: String, runId: String, kind: String): BotEventEntity?
+
     /** 未消费事件，按序号升序 —— 顺序对"先接单后汇报"是语义要求。 */
     @Query("SELECT * FROM bot_events WHERE botId = :botId AND consumedAt = 0 ORDER BY sequence ASC LIMIT :limit")
     suspend fun pending(botId: String, limit: Int): List<BotEventEntity>
 
+    @Query(
+        "SELECT * FROM bot_events WHERE botId = :botId AND consumedAt = 0 AND sequence > :afterSequence " +
+            "ORDER BY sequence ASC LIMIT :limit",
+    )
+    suspend fun pendingAfter(botId: String, afterSequence: Long, limit: Int): List<BotEventEntity>
+
+    @Query(
+        "SELECT MAX(sequence) FROM bot_events WHERE botId = :botId AND originSessionId = :sessionId " +
+            "AND kind = 'UserInputReceived'",
+    )
+    suspend fun latestUserInputSequence(botId: String, sessionId: String): Long?
+
     @Query("SELECT * FROM bot_events WHERE botId = :botId AND consumedAt = 0 ORDER BY sequence ASC LIMIT :limit")
     fun observePending(botId: String, limit: Int): Flow<List<BotEventEntity>>
+
+    /**
+     * 页面投影用：当前作用域里带暂存候选标记的事件 payload。
+     *
+     * 候选本体是暂存区里的文件，没有独立的 Room 表；它与所属页面的唯一持久联系
+     * 就是事件 payload 末尾的 `[staged=...]`。按作用域读 payload 是唯一能把
+     * 别的 Bot 的候选挡在页面之外的办法。
+     */
+    @Query(
+        "SELECT payloadRef FROM bot_events " +
+            "WHERE botId = :botId AND originSessionId = :sessionId AND payloadRef LIKE '%[staged=%'",
+    )
+    fun observeStagedPayloads(botId: String, sessionId: String): Flow<List<String>>
 
     /** 消费确认：只把 consumedAt 从 0 改成时间戳，重复调用无副作用。 */
     @Query("UPDATE bot_events SET consumedAt = :at WHERE eventId = :eventId AND consumedAt = 0")
@@ -151,12 +236,43 @@ interface BotEventDao {
     @Query("SELECT * FROM bot_events")
     suspend fun getAll(): List<BotEventEntity>
 
-    /** 保留策略：只删已消费且早于 cutoff 的。未消费的永不删除。 */
-    @Query("DELETE FROM bot_events WHERE consumedAt > 0 AND consumedAt < :cutoff")
+    /**
+     * 保留策略：只删已消费且早于 cutoff 的。未消费的永不删除。
+     *
+     * 带暂存标记的行**不在**清理范围内：页面靠它找到候选，删掉就等于让一个
+     * 仍 PENDING 的候选从页面上消失（文件还在磁盘上，用户却再也看不到）。
+     * 这些行由 [consumedStagedBefore] + [deleteByIds] 在候选文件消失后收走。
+     */
+    @Query(
+        "DELETE FROM bot_events WHERE consumedAt > 0 AND consumedAt < :cutoff " +
+            "AND payloadRef NOT LIKE '%[staged=%'",
+    )
     suspend fun deleteConsumedBefore(cutoff: Long): Int
+
+    /**
+     * 带暂存标记、已消费且早于 cutoff 的事件。
+     *
+     * 文件系统不在 SQL 的视野内，所以这里只负责"排出候选"，文件是否还在
+     * 由调用方核对后再决定删哪几条。
+     */
+    @Query(
+        "SELECT * FROM bot_events WHERE consumedAt > 0 AND consumedAt < :cutoff " +
+            "AND payloadRef LIKE '%[staged=%'",
+    )
+    suspend fun consumedStagedBefore(cutoff: Long): List<BotEventEntity>
+
+    /** 按 id 删除。只给"候选已不在暂存区"的引用清理用。 */
+    @Query("DELETE FROM bot_events WHERE eventId IN (:eventIds)")
+    suspend fun deleteByIds(eventIds: List<String>): Int
 
     @Query("DELETE FROM bot_events WHERE taskId = :taskId AND consumedAt > 0")
     suspend fun deleteConsumedByTask(taskId: String)
+
+    @Query("DELETE FROM bot_events WHERE originSessionId = :sessionId")
+    suspend fun deleteBySession(sessionId: String)
+
+    @Query("DELETE FROM bot_events WHERE taskId IN (:taskIds)")
+    suspend fun deleteByTasks(taskIds: List<String>)
 
     @Query("DELETE FROM bot_events")
     suspend fun deleteAll()
@@ -180,6 +296,15 @@ interface ApprovalRequestDao {
     @Query("SELECT * FROM bot_approvals WHERE status = 'PENDING' ORDER BY readyAt ASC")
     fun observePending(): Flow<List<ApprovalRequestEntity>>
 
+    /**
+     * 页面投影用：当前 assistant 与 canonical 会话的全部审批（含已结算）。
+     *
+     * 已结算的行不能丢：NEEDS_USER 的两条来源（审批通过待重跑 / 执行需要决策）
+     * 只能靠"该任务有没有已结算批准且已无待审批"来区分。
+     */
+    @Query("SELECT * FROM bot_approvals WHERE botId = :botId AND originSessionId = :sessionId ORDER BY readyAt ASC")
+    fun observeByScope(botId: String, sessionId: String): Flow<List<ApprovalRequestEntity>>
+
     @Query("SELECT * FROM bot_approvals WHERE status = 'PENDING'")
     suspend fun listPending(): List<ApprovalRequestEntity>
 
@@ -195,6 +320,21 @@ interface ApprovalRequestDao {
     )
     suspend fun settle(approvalId: String, status: String, at: Long, actor: String, reason: String): Int
 
+    @Query(
+        "UPDATE bot_approvals SET decisionReason = 'consumed_for_resume' " +
+            "WHERE approvalId = :approvalId AND taskId = :taskId AND taskRevision = :taskRevision " +
+            "AND toolName = :toolName AND argumentsHash = :argumentsHash AND resourceVersion = :resourceVersion " +
+            "AND status = 'APPROVED' AND decisionReason = ''",
+    )
+    suspend fun consumeApproved(
+        approvalId: String,
+        taskId: String,
+        taskRevision: Int,
+        toolName: String,
+        argumentsHash: String,
+        resourceVersion: String,
+    ): Int
+
     /** 过期扫描：把超过 expiresAt 的 PENDING 标成 EXPIRED。 */
     @Query(
         "UPDATE bot_approvals SET status = 'EXPIRED', resolvedAt = :now, " +
@@ -208,6 +348,12 @@ interface ApprovalRequestDao {
 
     @Query("DELETE FROM bot_approvals WHERE taskId = :taskId")
     suspend fun deleteByTask(taskId: String)
+
+    @Query("DELETE FROM bot_approvals WHERE originSessionId = :sessionId")
+    suspend fun deleteBySession(sessionId: String)
+
+    @Query("DELETE FROM bot_approvals WHERE taskId IN (:taskIds)")
+    suspend fun deleteByTasks(taskIds: List<String>)
 
     @Query("DELETE FROM bot_approvals")
     suspend fun deleteAll()
@@ -265,6 +411,18 @@ interface BotBindingDao {
 
     @Query("SELECT * FROM bot_bindings")
     suspend fun getAll(): List<BotBindingEntity>
+
+    @Query("SELECT * FROM bot_bindings WHERE canonicalAgentSessionId = :sessionId")
+    suspend fun listBySession(sessionId: String): List<BotBindingEntity>
+
+    @Query("SELECT * FROM bot_bindings WHERE assistantId = :assistantId")
+    suspend fun listByAssistant(assistantId: String): List<BotBindingEntity>
+
+    @Query("DELETE FROM bot_bindings WHERE canonicalAgentSessionId = :sessionId")
+    suspend fun deleteBySession(sessionId: String)
+
+    @Query("DELETE FROM bot_bindings WHERE assistantId = :assistantId")
+    suspend fun deleteByAssistant(assistantId: String)
 
     @Query("DELETE FROM bot_bindings")
     suspend fun deleteAll()

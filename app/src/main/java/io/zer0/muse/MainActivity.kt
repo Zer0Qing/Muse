@@ -118,6 +118,8 @@ private const val RUNTIME_NOTICE_KEY = "runtime_upgrade_notice_shown"
 
 class MainActivity : ComponentActivity() {
 
+    private val themeScheduler: io.zer0.muse.ui.theme.ThemeScheduler by inject()
+
     /** Phase 8.10: 分享/Deep Link 处理器(SAF 解析需 Context)。 */
     private val shareIntentHandler: ShareIntentHandler by lazy {
         ShareIntentHandler(applicationContext)
@@ -199,6 +201,17 @@ class MainActivity : ComponentActivity() {
         systemDarkState.value =
             (newConfig.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) ==
             android.content.res.Configuration.UI_MODE_NIGHT_YES
+        if (GlobalContext.getOrNull() != null) {
+            lifecycleScope.launch {
+                try {
+                    themeScheduler.reconcile(io.zer0.muse.ui.theme.ThemeReconcileReason.TIME_CHANGED)
+                } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                    throw cancelled
+                } catch (error: Exception) {
+                    Logger.w("MainActivity", "主题系统模式刷新失败: ${error.message}", error)
+                }
+            }
+        }
     }
 
     // Activity 启动初始化(系统栏/安全模式/通知权限/字体/主题等)为屏幕级固有聚合结构,
@@ -315,7 +328,8 @@ class MainActivity : ComponentActivity() {
                     // 监听 onConfigurationChanged 的 systemDarkState。
                     val systemDark = systemDarkState.value
                     val themeMode by settings.themeModeFlow.collectAsStateWithLifecycle(initialValue = "system")
-                    val darkTheme = when (themeMode) {
+                    val themeDecision by themeScheduler.decisionFlow.collectAsStateWithLifecycle(initialValue = null)
+                    val darkTheme = themeDecision?.isDark ?: when (themeMode) {
                         "light" -> false
                         "dark" -> true
                         else -> systemDark

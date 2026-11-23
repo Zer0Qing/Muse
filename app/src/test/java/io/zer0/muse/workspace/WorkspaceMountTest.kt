@@ -152,6 +152,31 @@ class WorkspaceMountTest {
     }
 
     @Test
+    fun `writeIfSnapshot refuses to overwrite a changed file`() = runTest {
+        manager.writeFile("notes.md", "original")
+        val expected = WorkspaceManager.WriteSnapshot.Existing("original")
+        manager.writeFile("notes.md", "changed by user")
+
+        val result = manager.writeFileIfSnapshot("notes.md", expected, "candidate")
+
+        assertTrue("changed snapshot must be refused: $result", result is WorkspaceManager.OpResult.Error)
+        val current = manager.readFile("notes.md") as WorkspaceManager.ReadResult.Success
+        assertEquals("changed by user", current.content)
+    }
+
+    @Test
+    fun `writeIfSnapshot creates a file only while it is still missing`() = runTest {
+        val expected = WorkspaceManager.WriteSnapshot.Missing
+        val first = manager.writeFileIfSnapshot("new.md", expected, "candidate")
+        val retry = manager.writeFileIfSnapshot("new.md", expected, "stale candidate")
+
+        assertTrue("missing target should accept the candidate", first is WorkspaceManager.OpResult.Success)
+        assertTrue("the same missing snapshot cannot overwrite a newly created file", retry is WorkspaceManager.OpResult.Error)
+        val current = manager.readFile("new.md") as WorkspaceManager.ReadResult.Success
+        assertEquals("candidate", current.content)
+    }
+
+    @Test
     fun readOnlyMountRejectsWrite() = runTest {
         mountReadOnly()
         val result = manager.writeFile("docs:/a.txt", "x")

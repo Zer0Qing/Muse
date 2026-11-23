@@ -29,6 +29,9 @@ class BotInboxProcessor(
     /** botId → 该 Bot 的回合锁。一个 Bot 一把，互不影响。 */
     private val botLocks = mutableMapOf<String, Mutex>()
 
+    /** botId → 最近扫描到的 sequence；失败事件不能永远挡住后续队列。 */
+    private val scanCursors = mutableMapOf<String, Long>()
+
     private fun lockFor(botId: String): Mutex = synchronized(botLocks) {
         botLocks.getOrPut(botId) { Mutex() }
     }
@@ -54,26 +57,19 @@ class BotInboxProcessor(
         maxEvents: Int = DEFAULT_MAX_EVENTS_PER_TURN,
         handler: suspend (BotEventEntity) -> Boolean,
     ): TurnResult = lockFor(botId).withLock {
-        // 先按优先级排序，再截断。
-        //
-        // 审查前 `pendingEvents` 只按 `sequence ASC` 取前 N 条，`priorityOf`
-        // **从未被调用** —— 它是一段死代码。后果：
-        //
-        //   - 用户说"停下"（TASK_CANCELLED，优先级 1）可能排在
-        //     一条闲聊（TASK_ACCEPTED，优先级 8）后面，要等 8 条才轮到；
-        //   - 结果事件堆积后会把用户输入挤出单轮上限。
-        //
-        // 排序放在内存里而不是 SQL：优先级是 Kotlin 侧的 `when` 表，
-        // 搬进 SQL 就要在数据库里再写一份同样的映射，两份必然漂移。
-        //
-        // 代价：`pendingEvents` 的 limit 变成"取多少来排序"，不是"处理多少"。
-        // 取 `maxEvents * PRIORITY_WINDOW_FACTOR` 条足以让高优先级事件进入视野。
+        require(maxEvents > 0) { "maxEvents 必须大于 0" }
         val window = maxEvents * PRIORITY_WINDOW_FACTOR
-        val pending = repository.pendingEvents(botId, window)
-            .sortedWith(compareBy({ priorityOf(it.kind) }, { it.sequence }))
-            .take(maxEvents)
+        var cursor = scanCursors[botId] ?: 0L
+        var pending = repository.pendingEventsAfter(botId, cursor, window)
+        if (pending.isEmpty() && cursor > 0L) {
+            cursor = 0L
+            pending = repository.pendingEventsAfter(botId, cursor, window)
+        }
+        val ordered = pending.sortedWith(compareBy({ priorityOf(it.kind) }, { it.sequence }))
         var consumed = 0
-        for (event in pending) {
+        var scannedThrough = cursor
+        for (event in ordered) {
+            scannedThrough = maxOf(scannedThrough, event.sequence)
             val handled = try {
                 handler(event)
             } catch (e: Exception) {
@@ -83,7 +79,9 @@ class BotInboxProcessor(
             }
             if (!handled) continue
             if (repository.markConsumed(event.eventId)) consumed++
+            if (consumed >= maxEvents) break
         }
+        if (pending.isEmpty()) scanCursors.remove(botId) else scanCursors[botId] = scannedThrough
         val backlog = repository.pendingEvents(botId, 1).isNotEmpty()
         TurnResult(consumed = consumed, hasBacklog = backlog)
     }
@@ -101,6 +99,9 @@ class BotInboxProcessor(
         BotEventKind.USER_INPUT_RECEIVED -> 3
         BotEventKind.TASK_FAILED -> 4
         BotEventKind.TASK_RESULT_READY -> 5
+        // 可发布事实与结果事件同级：都代表"这件事有结论了"。
+        // 排在进度之前，否则用户要先看完一串心跳才等到真正的结论。
+        BotEventKind.TASK_PUBLICATION_READY -> 5
         BotEventKind.REVIEW_READY -> 6
         BotEventKind.TASK_PROGRESSED -> 7
         BotEventKind.TASK_ACCEPTED -> 8

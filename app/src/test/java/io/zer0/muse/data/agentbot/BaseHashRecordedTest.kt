@@ -30,19 +30,21 @@ class BaseHashRecordedTest {
 
     @Test
     fun `both recordStep calls read the baseline from the target`() {
-        val calls = Regex("baseHash = baselineHashFor\\(").findAll(scheduler).count();
+        val calls = Regex("baselineHashFor\\(").findAll(scheduler).count();
         assertTrue(
-            "两处 recordStep（工具执行 + 审批）都要读基线，实际 " + calls + " 处",
-            calls >= 2,
+            "工具执行与审批都要按实际目标读取基线，实际 " + calls + " 处",
+            calls >= 2 && scheduler.contains("baseHash = baselineHashFor(") &&
+                scheduler.contains("toolTargetPath(toolName, argsJson"),
         );
     }
 
     @Test
-    fun `baseline helper reads through workspace io`() {
+    fun `baseline helper uses session scoped workspace snapshots`() {
         val at = scheduler.indexOf("private suspend fun baselineHashFor(");
         assertTrue("辅助函数必须存在", at > 0);
-        val body = scheduler.substring(at, minOf(at + 700, scheduler.length));
-        assertTrue("必须真的读目标内容", body.contains("io.read("));
-        assertTrue("读不到时要降级成空串而不是崩溃", body.contains("getOrDefault(\"\")"));
+        val body = scheduler.substring(at, minOf(at + 1600, scheduler.length));
+        assertTrue("必须按会话挂载读取目标", body.contains("manager.readSnapshotForWrite(targetRef, mountScope)"));
+        assertTrue("读取失败不能伪装成空文件", body.contains("UNREADABLE_TARGET_HASH"));
+        assertTrue("未注入挂载管理器时走工作区读口", body.contains("io.read(targetRef)"));
     }
 }

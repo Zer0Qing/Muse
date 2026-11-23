@@ -1,10 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- ==================== Common ==================== -->
-    <string name="settings_common_cancel">Cancelar</string>
-    <string name="settings_common_save">Salvar</string>
-    <string name="settings_common_delete">Excluir</string>
-    <string name="settings_common_close">Fechar</string>
     <string name="settings_common_add">Adicionar</string>
     <string name="settings_common_show">Mostrar</string>
     <string name="settings_common_hide">Esconder</string>
@@ -347,7 +343,6 @@
     <string name="cloud_backup_delete_failed">Falha ao excluir</string>
     <string name="cloud_backup_delete_consequence">Esta versão na nuvem será excluída permanentemente. Se for a única cópia, você perde a alternativa de recuperação na nuvem.</string>
     <string name="cloud_backup_delete_success">Excluído</string>
-    <string name="cloud_backup_delete_this">Excluir</string>
     <string name="cloud_backup_enable">Ativar backup na nuvem</string>
     <string name="cloud_backup_hide_secret">Ocultar</string>
     <string name="cloud_backup_interval_hint">Intervalos menores significam envios mais frequentes, consumindo mais dados e bateria; para bases grandes, recomenda-se ≥ 3 dias</string>

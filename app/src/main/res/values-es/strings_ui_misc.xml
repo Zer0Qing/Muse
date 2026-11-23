@@ -139,7 +139,6 @@ Toca actualizar para obtener la lista</string>
     <string name="favorites_tag_edit_hint">Nombre del grupo (vacío = desagrupado)</string>
     <string name="favorites_tag_edit_clear">Quitar grupo</string>
     <string name="favorites_tag_edit_confirm">Aceptar</string>
-    <string name="favorites_tag_edit_cancel">Cancelar</string>
     <string name="favorites_tag_label">Grupo: %1$s</string>
     <string name="favorites_empty_in_filter">No hay favoritos en este grupo.</string>
     <string name="favorites_stale_variant_badge">Existe una versión más reciente</string>
@@ -218,6 +217,7 @@ Toca actualizar para obtener la lista</string>
     <string name="agent_bot_status_cancelled">Cancelado</string>
     <string name="agent_bot_status_needs_user">Necesita tu decisión</string>
     <string name="agent_bot_status_unknown">Resultado desconocido</string>
+    <string name="agent_bot_error_binding_unreadable">No se pudo leer la conversación guardada de este asistente, así que no se envió nada. Inténtalo más tarde</string>
     <string name="agent_bot_error_no_session">Aún no hay una conversación disponible</string>
     <string name="agent_bot_error_save_failed">El mensaje no se guardó. Inténtalo de nuevo</string>
     <string name="agent_bot_error_already_decided">Ya decidiste este paso</string>

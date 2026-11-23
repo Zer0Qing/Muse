@@ -98,6 +98,19 @@ interface PendingThoughtDao {
     @Query("SELECT * FROM pending_thought WHERE assistantId = :assistantId AND status = 'OPEN'")
     suspend fun getOpen(assistantId: String): List<PendingThoughtEntity>
 
+    @Query(
+        "SELECT * FROM pending_thought WHERE assistantId = :assistantId AND status = 'OPEN' " +
+            "AND lastSurfacedAt IS NULL AND createdAt <= :createdBefore " +
+            "AND (expiresAt IS NULL OR expiresAt > :now) ORDER BY createdAt ASC, id ASC",
+    )
+    suspend fun getBacklogEligible(assistantId: String, createdBefore: Long, now: Long): List<PendingThoughtEntity>
+
+    @Query(
+        "UPDATE pending_thought SET status = 'EXPIRED' WHERE assistantId = :assistantId " +
+            "AND status = 'OPEN' AND expiresAt IS NOT NULL AND expiresAt <= :now",
+    )
+    suspend fun expireForAssistant(assistantId: String, now: Long): Int
+
     /** 全部 OPEN（跨助手），供设置页展示账本。 */
     @Query("SELECT * FROM pending_thought WHERE status = 'OPEN' ORDER BY createdAt DESC")
     suspend fun getAllOpen(): List<PendingThoughtEntity>
@@ -154,6 +167,12 @@ interface PendingThoughtWriteDao {
             "WHERE id = :id",
     )
     suspend fun markSurfaced(id: String, at: Long)
+
+    @Query(
+        "UPDATE pending_thought SET lastSurfacedAt = :at, surfaceCount = surfaceCount + 1 " +
+            "WHERE id = :id AND status = 'OPEN' AND lastSurfacedAt IS NULL",
+    )
+    suspend fun markSurfacedIfOpen(id: String, at: Long): Int
 
     /** 清理已过期但状态还停在 OPEN 的行。 */
     @Query(

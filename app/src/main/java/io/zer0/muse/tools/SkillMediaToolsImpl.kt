@@ -476,7 +476,7 @@ class SkillMediaToolsImpl(
      * 与 JS 分支的差异：
      *  - 无 WebView 沙盒，也无 __bridge__ 桥接（Python 子进程自身已有完整能力，
      *    文件读写/网络/标准库直接用；高风险仍由插件工具的整体审批链兜底）；
-     *  - 首次调用前确保 Python 运行时数据（stdlib/CA bundle）已就绪。
+     *  - 首次调用前检查 Ubuntu rootfs 内的 Python 标准库可用。
      *  - 返回值直接作为工具结果（字符串）；返回非字符串时 JSON 序列化。
      */
     private suspend fun execPythonPluginTool(

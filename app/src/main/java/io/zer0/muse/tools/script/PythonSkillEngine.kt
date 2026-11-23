@@ -12,7 +12,7 @@ import java.io.File
 import java.util.UUID
 
 /**
- * v2.7 扩展运行时（Python）：基于内置 Python 运行时的 [SkillEngine] 实现。
+ * 通过 proot Ubuntu rootfs 执行 Python 插件的 [SkillEngine] 实现。
  *
  * 与 [ProcessSkillEngine]（Node）同构：把脚本包一层 → 子进程执行 → 解析 stdout 的
  * 结构化结果。输出协议保持一致（单行 JSON：`{ ok, value, logs, error }`），
@@ -21,7 +21,7 @@ import java.util.UUID
  * ## 与 Node 版的差异
  *
  *  - 包装脚本是 Python 而非 JS（捕获 stdout、注入结果协议）；
- *  - 用 [PythonRuntime.execPython] 执行；
+ *  - 用 [PythonRuntime.execPython] 在 proot rootfs 中执行；
  *  - `host.getConfig` 桥接以 Python 函数形式注入（对齐 Node 版语义）。
  *
  * ## 输出协议

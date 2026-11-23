@@ -10,6 +10,8 @@ import io.zer0.ai.core.UIMessage
 import io.zer0.common.Logger
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 
 /**
  * F-20: 子代理取消句柄。
@@ -179,10 +181,8 @@ class SubagentRunner(
             "send_sticker",
             // 生成图片(子 agent 不应生成图片,耗时且占用资源)
             "generate_image",
-            // v2.6.2（工具审计）: 需要宿主会话上下文的工具（registered via registerWithContext）。
-            // 子 agent 执行时调 routeGuard.executeFromJson 没有 ToolExecutionContext，
-            // 模型看得到、执行必然报“需要会话执行上下文”，白占工具轮次并可能触发失败熔断。
-            // v2.6.7 fix (AUDIT F5): todo_write 改为宿主注入会话 id，同样属于本类。
+            // 这些操作需要明确的用户会话上下文或可能改变跨会话状态；
+            // 后台任务只接收它的 resourceScope，不继承前台的记忆与交互权限。
             "todo_write",
             "pin_memory",
             "unpin_memory",
@@ -266,7 +266,7 @@ class SubagentRunner(
          *
          * 默认 null：旧调用方行为不变（走原有 ToolCallGate 路径）。
          */
-        val onApprovalRequired: (suspend (toolName: String, toolCallId: String, argsJson: String) -> String)? = null,
+        val onApprovalRequired: (suspend (toolName: String, toolCallId: String, argsJson: String, stepId: String) -> ApprovalRequestResult)? = null,
         /**
          * 是否按"后台任务"取并发槽位。
          *
@@ -275,12 +275,28 @@ class SubagentRunner(
          * 用户发新消息不必等后台任务跑完。
          */
         val background: Boolean = false,
+        /** 宿主身份和资源范围；空表示调用方未提供可传播的执行上下文。 */
+        val toolExecutionContext: ToolExecutionContext? = null,
+        /** 每轮工具循环开始前拉取用户实时插话指令，实现运行中热纠偏。 */
+        val pollSteeringInstructions: (() -> List<String>)? = null,
+        /** 工具执行完成后的结果摘要回调，用于驱动实时步骤时间线与沙盒日志。 */
+        val onToolOutput: (suspend (stepId: String, toolName: String, summary: String, success: Boolean) -> Unit)? = null,
+        /** 可选模型路由覆盖；为空时沿用既有子代理模型解析逻辑。 */
+        val modelOverride: Pair<io.zer0.ai.core.ProviderConfig?, io.zer0.ai.core.Model?>? = null,
     )
+
+    sealed interface ApprovalRequestResult {
+        data class Approved(val approvalId: String) : ApprovalRequestResult
+        data class Created(val approvalId: String) : ApprovalRequestResult
+        data class Failed(val reason: String) : ApprovalRequestResult
+    }
 
     /** 子 agent 运行结果。 */
     data class Result(
         /** 是否成功完成(无异常且产出了总结文本)。 */
         val success: Boolean,
+        /** 已创建持久审批并暂停；调度器应保留等待审批状态。 */
+        val approvalPending: Boolean = false,
         /** 最终总结文本(子 agent 最后一次非工具调用的输出)。 */
         val summary: String,
         /** 失败原因(success=false 时非空)。 */
@@ -439,12 +455,15 @@ class SubagentRunner(
         var tokenBudgetExhausted = false
         // F-20: 用户请求中止标记
         var cancelled = false
+        var approvalPending = false
+        var approvalFailure = ""
         // 记账失败导致的中止。与 cancelled 分开：取消是用户意图，
         // 这个是系统故障，后续处理不同（不标 CANCELLED，标 NEEDS_USER）。
         var abortedForLedger = false
         // v2.0: 子代理模型(设置为空时跟随主对话模型)
         // v2.x: 改走辅助模型路由「大工具」档,同时携带 ProviderConfig 精确命中绑定渠道
-        val (subagentProvider, subagentModel) = resolveSubagentModel()
+        val (subagentProvider, subagentModel) = params.modelOverride?.takeIf { it.second != null }
+            ?: resolveSubagentModel()
 
         // v1.0.53 Phase 3: 总结轮次(预算/配额耗尽时强制让 LLM 产出总结文本,保证有输出)。
         // 不带 tools,强制纯文本输出;同时累加 token 消耗(总结轮也计费)。
@@ -488,6 +507,20 @@ class SubagentRunner(
                     if (cancellation?.isCancelled == true) {
                         cancelled = true
                         break
+                    }
+                    // 活体插话热注入：在每轮推理前检查用户是否补充了新约束，直接并入上下文。
+                    val steerLines = runCatching { params.pollSteeringInstructions?.invoke().orEmpty() }
+                        .onFailure { Logger.w(TAG, "读取插话约束失败: ${it.message}") }
+                        .getOrDefault(emptyList())
+                    if (steerLines.isNotEmpty()) {
+                        val mergedSteer = UIMessage(
+                            role = MessageRole.USER,
+                            content = steerLines.joinToString("\n") { "[实时补充要求] $it" },
+                        )
+                        history.add(mergedSteer)
+                        if (params.persistSession) {
+                            threadStore.appendMessages(threadId, listOf(mergedSteer))
+                        }
                     }
                     // v1.0.74 fix: 预算前置 — 上一轮已耗尽时直接总结退出,
                     // 此前检查在 completeText 之后,每个超支点多白耗一轮完整请求
@@ -617,10 +650,24 @@ class SubagentRunner(
                             abortedForLedger = true
                             break
                         }
-                        val toolResult = executeAllowedTool(tc, access, params.onApprovalRequired)
+                        val toolResult = executeAllowedTool(
+                            tc,
+                            access,
+                            params.onApprovalRequired,
+                            stepId,
+                            params.toolExecutionContext?.copy(stepId = stepId),
+                        )
                         if (stepId.isNotBlank()) {
                             runCatching { params.onToolFinished?.invoke(stepId, toolResult.success) }
                                 .onFailure { Logger.w(TAG, "工具结束回调失败: ${it.message}") }
+                            runCatching {
+                                params.onToolOutput?.invoke(
+                                    stepId,
+                                    tc.name,
+                                    toolResult.result.trim().take(280),
+                                    toolResult.success,
+                                )
+                            }.onFailure { Logger.w(TAG, "工具输出回调失败: ${it.message}") }
                         }
                         progressEntries.add(
                             ProgressEntry(
@@ -640,6 +687,15 @@ class SubagentRunner(
                         history.add(toolMsg)
                         roundMessages.add(toolMsg)
 
+                        if (toolResult.approvalPending) {
+                            approvalPending = true
+                            break
+                        }
+                        if (toolResult.approvalFailure.isNotBlank()) {
+                            approvalFailure = toolResult.approvalFailure
+                            break
+                        }
+
                         // 达到配额立即停止(不再执行剩余 toolCalls)
                         if (totalToolCalls >= maxToolCalls) {
                             budgetExhausted = true
@@ -652,12 +708,38 @@ class SubagentRunner(
                         threadStore.appendMessages(threadId, roundMessages)
                     }
 
+                    if (approvalPending || approvalFailure.isNotBlank()) break
+
                     if (budgetExhausted) {
                         // 配额耗尽,调一次 LLM 总结(不带 tools,强制纯文本输出)
                         summarize()
                         break
                     }
                 }
+            }
+
+            if (approvalPending) {
+                recordRunAndMaybeClose(params, threadId, status = "aborted", summary = lastText)
+                return Result(
+                    success = false,
+                    summary = lastText,
+                    rounds = rounds,
+                    toolCalls = totalToolCalls,
+                    progressEntries = progressEntries,
+                    threadId = threadId,
+                    approvalPending = true,
+                )
+            }
+            if (approvalFailure.isNotBlank()) {
+                recordRunAndMaybeClose(params, threadId, status = "aborted", summary = lastText)
+                return Result(
+                    success = false,
+                    summary = lastText,
+                    error = approvalFailure,
+                    rounds = rounds,
+                    toolCalls = totalToolCalls,
+                    progressEntries = progressEntries,
+                )
             }
 
             // 记账失败导致的中止：账本不完整，不能当成功。
@@ -737,6 +819,7 @@ class SubagentRunner(
                 toolCalls = totalToolCalls,
                 budgetExhausted = budgetExhausted,
                 progressEntries = progressEntries,
+                threadId = threadId,
                 tokenBudgetExhausted = tokenBudgetExhausted,
             )
         } catch (e: kotlin.coroutines.cancellation.CancellationException) {
@@ -798,7 +881,9 @@ class SubagentRunner(
     private suspend fun executeAllowedTool(
         tc: ToolCall,
         access: SubagentAccess,
-        onApprovalRequired: (suspend (String, String, String) -> String)? = null,
+        onApprovalRequired: (suspend (String, String, String, String) -> ApprovalRequestResult)? = null,
+        stepId: String,
+        toolExecutionContext: ToolExecutionContext? = null,
     ): ToolExecOutcome {
         val allowedNames = buildAllowedToolNames(access)
         if (tc.name !in allowedNames) {
@@ -807,11 +892,30 @@ class SubagentRunner(
                 success = false,
             )
         }
+        if (tc.name == "write_file" && toolExecutionContext?.resourceScope != null) {
+            val path = runCatching {
+                kotlinx.serialization.json.Json.parseToJsonElement(tc.arguments)
+                    .jsonObject["path"]
+                    ?.jsonPrimitive
+                    ?.content
+            }.getOrNull().orEmpty()
+            val scopeError = io.zer0.muse.tools.WorkspaceTool.resourceScopeError(
+                name = io.zer0.muse.tools.WorkspaceTool.NAME_WRITE,
+                args = mapOf("path" to path),
+                declaredScope = toolExecutionContext.resourceScope,
+                knownMountIds = setOf(io.zer0.muse.workspace.WorkspacePathParser.DEFAULT_MOUNT_ID),
+            )
+            if (scopeError != null) return ToolExecOutcome("Error: $scopeError", success = false)
+        }
         // 审批闸门:结论不是「放行」就把拒绝原因交回主 agent,让它改用其他合法工具
         // 或向用户说明需手动处理。判定入口是 [ToolPermissionResolver],与会话审批链同一条。
-        gateToolCall(tc, onApprovalRequired)?.let { return it }
+        gateToolCall(tc, onApprovalRequired, stepId)?.let { return it }
         return try {
-            val result = routeGuard.executeFromJson(tc.name, tc.arguments)
+            val result = routeGuard.executeFromJson(
+                tc.name,
+                tc.arguments,
+                executionContext = toolExecutionContext,
+            )
             // P2-22: 成败判定复用生产共享判定器 ToolResultJudge(与任务卡同一实现),
             // 替代本地中文子串清单,避免"子代理判成功、任务卡判失败"的判定漂移
             val success = ToolResultJudge.isSuccess(result)
@@ -837,7 +941,8 @@ class SubagentRunner(
     private suspend fun gateToolCall(
         tc: ToolCall,
         /** 中枢的持久审批回调；null 表示走原有同步桥接路径。 */
-        onApprovalRequired: (suspend (String, String, String) -> String)? = null,
+        onApprovalRequired: (suspend (String, String, String, String) -> ApprovalRequestResult)? = null,
+        stepId: String,
     ): ToolExecOutcome? {
         // 中枢路径：不阻塞等 UI，而是建持久审批卡并让本轮停下。
         //
@@ -847,13 +952,18 @@ class SubagentRunner(
             val risk = runCatching { toolRegistry.getToolRiskLevel(tc.name) }.getOrNull();
             val needsApproval = risk != null && risk != io.zer0.muse.tools.ToolRiskLevel.SAFE;
             if (needsApproval) {
-                val approvalId = onApprovalRequired(tc.name, tc.id, tc.arguments);
-                if (approvalId.isNotBlank()) {
-                    // 返回非 null 让调用方认为"这一步没执行"，同时本轮应当终止。
-                    return ToolExecOutcome(
-                        result = "Error: 已创建审批卡（$approvalId），本轮暂停等待用户批准",
+                when (val approvalResult = onApprovalRequired(tc.name, tc.id, tc.arguments, stepId)) {
+                    is ApprovalRequestResult.Approved -> return null
+                    is ApprovalRequestResult.Created -> return ToolExecOutcome(
+                        result = "等待用户审批（${approvalResult.approvalId}）",
                         success = false,
-                    );
+                        approvalPending = true,
+                    )
+                    is ApprovalRequestResult.Failed -> return ToolExecOutcome(
+                        result = "审批请求未能保存，工具没有执行",
+                        success = false,
+                        approvalFailure = approvalResult.reason,
+                    )
                 }
             }
         }
@@ -887,6 +997,8 @@ class SubagentRunner(
     private data class ToolExecOutcome(
         val result: String,
         val success: Boolean,
+        val approvalPending: Boolean = false,
+        val approvalFailure: String = "",
     )
 
     /**

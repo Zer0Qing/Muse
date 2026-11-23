@@ -13,15 +13,12 @@
     <string name="quick_msg_scope_global">グローバル</string>
     <string name="quick_msg_scope_assistant">アシスタント: %1$s</string>
     <string name="quick_msg_scope_label">範囲: %1$s</string>
-    <string name="quick_msg_edit_cd">編集</string>
-    <string name="quick_msg_delete_cd">消去</string>
     <!-- Edit page -->
     <string name="quick_msg_unsaved_title">未保存の変更</string>
     <string name="quick_msg_unsaved_content">終了すると、現在の編集内容が破棄されます。</string>
     <string name="quick_msg_discard">破棄</string>
     <string name="quick_msg_new_title">新しいクイックメッセージ</string>
     <string name="quick_msg_edit_title">クイックメッセージの編集</string>
-    <string name="quick_msg_save">保存</string>
     <string name="quick_msg_section_basic">基本</string>
     <string name="quick_msg_section_content">テンプレートの内容</string>
     <string name="quick_msg_field_content">コンテンツ ({{input}} / {{clipboard}} / {{date}} 変数をサポート)</string>
@@ -44,15 +41,12 @@
     <string name="lorebook_new_default_name">新規エントリー</string>
     <string name="lorebook_unnamed">(名前なし)</string>
     <string name="lorebook_keywords_label">キーワード: %1$s</string>
-    <string name="lorebook_edit_cd">編集</string>
-    <string name="lorebook_delete_cd">消去</string>
     <!-- Edit page -->
     <string name="lorebook_unsaved_title">未保存の変更</string>
     <string name="lorebook_unsaved_content">終了すると、現在の編集内容が破棄されます。</string>
     <string name="lorebook_discard">破棄</string>
     <string name="lorebook_new_title">新しい伝承書</string>
     <string name="lorebook_edit_title">伝承書の編集</string>
-    <string name="lorebook_save">保存</string>
     <string name="lorebook_section_basic">基本</string>
     <string name="lorebook_field_keywords">トリガーキーワード (カンマ区切り)</string>
     <string name="lorebook_field_keywords_placeholder">例えば</string>
@@ -81,15 +75,12 @@
     <string name="prompt_injection_new_default_name">新しいインジェクション</string>
     <string name="prompt_injection_unnamed">(名前なし)</string>
     <string name="prompt_injection_mode_label">モード: %1$s</string>
-    <string name="prompt_injection_edit_cd">編集</string>
-    <string name="prompt_injection_delete_cd">消去</string>
     <!-- Edit page -->
     <string name="prompt_injection_unsaved_title">未保存の変更</string>
     <string name="prompt_injection_unsaved_content">終了すると、現在の編集内容が破棄されます。</string>
     <string name="prompt_injection_discard">破棄</string>
     <string name="prompt_injection_new_title">新しいプロンプトインジェクション</string>
     <string name="prompt_injection_edit_title">プロンプトインジェクションの編集</string>
-    <string name="prompt_injection_save">保存</string>
     <string name="prompt_injection_section_basic">基本</string>
     <string name="prompt_injection_field_mode">モード</string>
     <string name="prompt_injection_field_display_name">表示名 (UI に表示されます。モードのデフォルトを使用するには空白のままにします)</string>
@@ -122,8 +113,6 @@
     <string name="assistant_move_down">下に移動</string>
     <string name="assistant_clone">クローン</string>
     <string name="assistant_export_card">キャラクターカードのエクスポート</string>
-    <string name="assistant_delete">消去</string>
-    <string name="assistant_close">近い</string>
     <string name="assistant_delete_title">アシスタントの削除</string>
     <!-- Toast -->
     <string name="assistant_toast_exported">エクスポートされたキャラクター カード: %1$s</string>

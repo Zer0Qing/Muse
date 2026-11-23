@@ -30,20 +30,23 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.theme.MuseActionColors
+import io.zer0.muse.ui.theme.MuseAlpha
+import io.zer0.muse.ui.theme.MuseButtonSize
+import io.zer0.muse.ui.theme.MuseButtonSizes
 import io.zer0.muse.ui.theme.MuseIconSizes
-import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
-import io.zer0.muse.ui.theme.huge
+import io.zer0.muse.ui.theme.MuseSpacing
+import io.zer0.muse.ui.theme.pill
 
 /**
  * 胶囊形按钮 — 替代 Material3 [Button]/[OutlinedButton]/[TextButton]。
  *
- * 视觉:全宽或 hug 内容、48dp 最小高度、24dp 圆角([MuseShapes.huge])、
- * 按压时轻微缩放(0.97x)并无涟漪。主按钮用品牌色/黑色背景 + 白字，
- * 次按钮用主题容器色 + 其反相色，文字按钮透明背景 + primary 色。
+ * 尺寸分三档（[MuseButtonSize]）：
+ *  - [MuseButtonSize.Large]：46dp 视觉高，用于整页主 CTA / 引导主按钮；
+ *  - [MuseButtonSize.Medium]（默认）：38dp 视觉高，常规表单与面板按钮；
+ *  - [MuseButtonSize.Compact]：32dp 视觉高，卡片内联操作与次要小按钮。
  *
- * 业务页面需要「图标 + 文字」「删除类红按钮」「进行中」三种形态时，
- * 一律用本组件的 [leadingIcon] / [destructive] / [loading]，不要退回原生按钮。
+ * 所有档位统一使用 [MuseShapes.pill] 全胶囊圆角与专属按钮内边距令牌，不再借用列表间距。
  *
  * @param text 按钮文字
  * @param onClick 点击回调
@@ -55,6 +58,7 @@ import io.zer0.muse.ui.theme.huge
  * @param trailingIcon 可选的后置图标（选中勾选、状态指示等）
  * @param loading 进行中:显示小转圈并禁止点击
  * @param destructive 危险操作(删除/清除):容器走主题错误色，覆盖 [variant] 的底色
+ * @param size 尺寸档位（默认 [MuseButtonSize.Medium]）
  */
 @Composable
 fun MuseCapsuleButton(
@@ -68,12 +72,11 @@ fun MuseCapsuleButton(
     trailingIcon: ImageVector? = null,
     loading: Boolean = false,
     destructive: Boolean = false,
+    size: MuseButtonSize = MuseButtonSize.Medium,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
-    // 主题色口径：主按钮走高饱和主题主色；次要按钮走低饱和主题容器色；
-    // destructive 覆盖前两者，走主题错误色（删除/清除类操作）。
     val (backgroundColor, contentColor) = when {
         destructive -> MuseActionColors.dangerContainer to MuseActionColors.dangerContent
         variant == IosCapsuleButtonVariant.Primary -> MuseActionColors.container to MuseActionColors.content
@@ -83,11 +86,38 @@ fun MuseCapsuleButton(
     val transparentContainer = variant == IosCapsuleButtonVariant.Text && !destructive
 
     val clickable = enabled && !loading
-    // 进行中不是禁用：仍然显示为可用的高饱和外观，只是不接受点击。
-    // v1.0.92: 禁用态拆分背景/内容透明度 — 旧实现两者同乘低 alpha,
-    // 浅色主题下按钮显示为一个纯灰块、文字几乎不可见(用户反馈:翻译按钮禁用态像黑块)。
     val containerAlpha = if (clickable || loading) 1f else MuseActionColors.disabledAlpha
-    val contentAlpha = if (clickable || loading) 1f else 0.75f
+    val contentAlpha = if (clickable || loading) 1f else MuseAlpha.disabledContent
+
+    val minHeight = when (size) {
+        MuseButtonSize.Large -> MuseButtonSizes.largeHeight
+        MuseButtonSize.Medium -> MuseButtonSizes.mediumHeight
+        MuseButtonSize.Compact -> MuseButtonSizes.compactHeight
+    }
+    val padH = when {
+        transparentContainer && size == MuseButtonSize.Compact -> MuseSpacing.sm
+        transparentContainer -> MuseSpacing.md
+        size == MuseButtonSize.Large -> MuseButtonSizes.largePaddingH
+        size == MuseButtonSize.Medium -> MuseButtonSizes.mediumPaddingH
+        else -> MuseButtonSizes.compactPaddingH
+    }
+    val padV = when (size) {
+        MuseButtonSize.Large -> MuseButtonSizes.largePaddingV
+        MuseButtonSize.Medium -> MuseButtonSizes.mediumPaddingV
+        MuseButtonSize.Compact -> MuseButtonSizes.compactPaddingV
+    }
+    val iconSize = when (size) {
+        MuseButtonSize.Large -> MuseIconSizes.iconSmall
+        MuseButtonSize.Medium -> MuseIconSizes.iconSmallTiny
+        MuseButtonSize.Compact -> MuseIconSizes.iconTiny
+    }
+    val iconGap = if (size == MuseButtonSize.Compact) MuseButtonSizes.compactIconGap else MuseButtonSizes.iconGap
+    val textStyle = when (size) {
+        MuseButtonSize.Compact -> MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold)
+        MuseButtonSize.Large,
+        MuseButtonSize.Medium,
+        -> MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
+    }
 
     val boxModifier = if (fillWidth) {
         modifier.fillMaxWidth()
@@ -97,24 +127,23 @@ fun MuseCapsuleButton(
 
     Box(
         modifier = boxModifier
-            .heightIn(min = MuseIconSizes.touchTarget)
-            .clip(MuseShapes.huge)
+            .heightIn(min = minHeight)
+            .clip(MuseShapes.pill)
             .background(
                 color = if (transparentContainer) {
                     Color.Transparent
                 } else {
                     backgroundColor.copy(alpha = containerAlpha)
                 },
-                shape = MuseShapes.huge,
+                shape = MuseShapes.pill,
             )
-            // 2.6.24: 按压反馈改为「整面遮罩」——不再缩小按钮，按压时在胶囊上叠一层淡色。
             .background(
                 color = if (isPressed && clickable) {
-                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
+                    MaterialTheme.colorScheme.onSurface.copy(alpha = MuseAlpha.pressedOverlay)
                 } else {
                     Color.Transparent
                 },
-                shape = MuseShapes.huge,
+                shape = MuseShapes.pill,
             )
             .clickable(
                 interactionSource = interactionSource,
@@ -123,7 +152,7 @@ fun MuseCapsuleButton(
                 enabled = clickable,
                 onClick = onClick,
             )
-            .padding(horizontal = MusePaddings.messageGap, vertical = MusePaddings.itemGap),
+            .padding(horizontal = padH, vertical = padV),
         contentAlignment = Alignment.Center,
     ) {
         Row(
@@ -132,38 +161,35 @@ fun MuseCapsuleButton(
         ) {
             if (loading) {
                 MuseSpinner(
-                    size = MuseIconSizes.iconSmall,
+                    size = iconSize,
                     color = contentColor.copy(alpha = contentAlpha),
                 )
-                Spacer(Modifier.width(MusePaddings.contentGap))
+                Spacer(Modifier.width(iconGap))
             } else if (leadingIcon != null) {
                 Icon(
                     imageVector = leadingIcon,
                     contentDescription = null,
                     tint = contentColor.copy(alpha = contentAlpha),
-                    modifier = Modifier.size(MuseIconSizes.iconSmall),
+                    modifier = Modifier.size(iconSize),
                 )
-                Spacer(Modifier.width(MusePaddings.contentGap))
+                Spacer(Modifier.width(iconGap))
             }
             Text(
                 text = text,
-                style = MaterialTheme.typography.labelLarge.copy(
-                    fontWeight = FontWeight.SemiBold,
-                ),
+                style = textStyle,
                 color = contentColor.copy(alpha = contentAlpha),
                 textAlign = TextAlign.Center,
-                // 胶囊按钮永远是单行：窄屏 / 大字号下宁可省略号，也不要把文字挤成竖排。
                 maxLines = 1,
                 softWrap = false,
                 overflow = TextOverflow.Ellipsis,
             )
             if (trailingIcon != null) {
-                Spacer(Modifier.width(MusePaddings.contentGap))
+                Spacer(Modifier.width(iconGap))
                 Icon(
                     imageVector = trailingIcon,
                     contentDescription = null,
                     tint = contentColor.copy(alpha = contentAlpha),
-                    modifier = Modifier.size(MuseIconSizes.iconSmall),
+                    modifier = Modifier.size(iconSize),
                 )
             }
         }

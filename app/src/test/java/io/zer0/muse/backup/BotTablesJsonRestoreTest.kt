@@ -48,16 +48,26 @@ class BotTablesJsonRestoreTest {
     fun `all eight bot tables are written back`() {
         val body = applyInternalBody();
         listOf(
-            "backup.botBindings.forEach",
-            "backup.botTasks.forEach",
-            "backup.botTaskRuns.forEach",
-            "backup.botTaskSteps.forEach",
-            "backup.botEvents.forEach",
-            "backup.botApprovals.forEach",
-            "backup.botPublications.forEach",
-            "backup.botAnnotations.forEach",
+            "backup.botBindings.forEach { db.botBindingDao().upsert(it) }",
+            "backup.botTasks.forEach { db.botTaskDao().upsert(normalizeBotTaskForRestore(it, restoreAt)) }",
+            "db.taskRunDao().upsertAll(backup.botTaskRuns.map",
+            "db.taskStepDao().upsertAll(backup.botTaskSteps)",
+            "db.botEventDao().upsertAll(backup.botEvents)",
+            "db.approvalRequestDao().upsertAll(backup.botApprovals)",
+            "db.publicationOutboxDao().upsertAll(backup.botPublications)",
+            "db.botAnnotationDao().upsertAll(backup.botAnnotations)",
         ).forEach { call ->
             assertTrue("缺写回：" + call + " —— 导出了但导不回", body.contains(call));
         };
+    }
+
+    @Test
+    fun `backlog restore clears dispatch state and writes claim safe snapshot`() {
+        val body = applyInternalBody()
+        assertTrue(body.contains("db.proactiveBacklogDao().deleteAll()"))
+        assertTrue(body.contains("db.proactiveBacklogScheduleDao().deleteAll()"))
+        assertTrue(body.contains("prepareBacklogForRestore(backup, restoreAt)"))
+        assertTrue(body.contains("db.proactiveBacklogDao().upsertAll(restoredBacklog.dispatches)"))
+        assertTrue(body.contains("restoredBacklog.schedule.forEach"))
     }
 }

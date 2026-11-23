@@ -42,7 +42,6 @@
     <string name="assistant_detail_allow_group_chat">Разрешить присоединение к групповому чату</string>
     <string name="assistant_detail_allow_group_chat_desc">Если этот параметр отключен, этот помощник не будет отображаться при выборе участников группового чата.</string>
     <string name="assistant_detail_select_model">Выбрать эксклюзивную модель</string>
-    <string name="assistant_detail_close">Закрыть</string>
     <string name="assistant_detail_global_default_selected">Глобальный по умолчанию (выбрано)</string>
     <string name="assistant_detail_model_selected">%1$s (выбрано)</string>
     <!-- Phase 6: Model picker UX improvements -->
@@ -78,14 +77,11 @@
     <string name="assistant_detail_global_pinned_disabled">Только просмотр. Общая память отключена, поэтому эти записи не добавляются в контекст этого ассистента.</string>
     <string name="assistant_detail_saved_memory_interaction_hint">Нажмите, чтобы развернуть · Удерживайте для редактирования</string>
     <string name="assistant_detail_no_memory">Пока нет воспоминаний</string>
-    <string name="assistant_detail_delete_cd">Удалить</string>
     <string name="assistant_detail_delete_memory">Удалить память</string>
     <string name="assistant_detail_add_memory_dialog_title">Добавить память</string>
     <string name="assistant_detail_memory_edit_missing">Это воспоминание не найдено или его содержимое недопустимо</string>
     <string name="assistant_detail_edit_memory_dialog_title">Изменить воспоминание</string>
     <string name="assistant_detail_input_fact">Введите факт/знание</string>
-    <string name="assistant_detail_save">Сохранить</string>
-    <string name="assistant_detail_cancel">Отмена</string>
     <string name="assistant_detail_custom_headers_label">Пользовательские заголовки JSON (напр. {\"X-Custom\":\"value\"})</string>
     <string name="assistant_detail_custom_bodies_label">Пользовательское тело JSON (напр. {\"user\":\"abc\"})</string>
     <string name="assistant_detail_tags_label">Теги (через запятую, напр. Письмо, Перевод, Код)</string>
@@ -97,20 +93,16 @@
     <string name="memory_screen_add_fact_cd">Добавить метафакт</string>
     <string name="memory_tab_facts">Факты</string>
     <!-- v1.0.51: memory backfill migration progress -->
-    <string name="memory_screen_cancel">Отмена</string>
     <string name="memory_screen_edit_fact">Изменить метафакт</string>
     <string name="memory_screen_edit_summary">Изменить сводку сессии</string>
     <string name="memory_open_conversation">Открыть исходный диалог</string>
     <string name="memory_conversation_meta">Ассистент %1$s · Пространство %2$s</string>
     <string name="memory_screen_no_fact">Пока нет метафактов</string>
     <string name="memory_screen_collapse">Свернуть</string>
-    <string name="memory_screen_edit_cd">Изменить</string>
-    <string name="memory_screen_delete_cd">Удалить</string>
     <string name="memory_screen_load_failed">Сбой загрузки — полные детали ошибки</string>
     <string name="memory_screen_copied_trace">Полный стек-трейс скопирован в буфер обмена</string>
     <string name="memory_screen_copy_trace_cd">Копировать полный стек-трейс</string>
     <string name="memory_screen_input_content">Введите содержание…</string>
-    <string name="memory_screen_save">Сохранить</string>
     <string name="memory_screen_normal">Нормально</string>
     <string name="memory_screen_failed_times">Сбой %1$d раз</string>
     <string name="memory_screen_last_success">Последний успех: %1$s</string>
@@ -165,16 +157,16 @@
     <!-- ===== Settings screen SettingsScreen ===== -->
     <string name="settings_screen_title">Настройки</string>
     <!-- Категории настроек (первый уровень) -->
-    <string name="settings_group_assistants">Ассистенты</string>
-    <string name="settings_group_models">Модели и провайдеры</string>
-    <string name="settings_group_tools">Инструменты и права</string>
-    <string name="settings_group_voice">Голос</string>
-    <string name="settings_group_image">Изображения и зрение</string>
+    <string name="settings_group_general">Общие и оформление</string>
+    <string name="settings_group_assistants">Ассистенты и чат</string>
+    <string name="settings_group_models">Модели и среда</string>
+    <string name="settings_group_media">Голос и зрение</string>
     <string name="settings_group_memory">Память и знания</string>
-    <string name="settings_group_connection">Подключения</string>
-    <string name="settings_group_automation">Автоматизация</string>
+    <string name="settings_group_tools">Инструменты и расширения</string>
+    <string name="settings_group_connection">Каналы и сеть</string>
+    <string name="settings_group_automation">Автоматизация и фон</string>
     <string name="settings_group_data_storage">Данные и резервные копии</string>
-    <string name="settings_group_privacy_security">Приватность и безопасность</string>
+    <string name="settings_group_privacy_security">Приватность и права</string>
     <string name="settings_group_about">О приложении</string>
     <string name="settings_group_developer">Разработчику</string>
     <string name="settings_screen_appearance_label">Внешний вид</string>
@@ -235,10 +227,8 @@
     <string name="channel_intro">Учётные данные шифруются и хранятся только на этом устройстве.</string>
     <string name="channel_add">Добавить канал</string>
     <string name="channel_edit_title">Изменить канал</string>
-    <string name="channel_edit">Изменить</string>
     <string name="channel_delete_confirm">Удалить этот канал?</string>
     <string name="channel_empty">Каналов пока нет. Добавьте кнопкой выше.</string>
-    <string name="channel_save">Сохранить</string>
     <string name="channel_field_platform">Платформа</string>
     <string name="channel_field_app_id">App ID</string>
     <string name="channel_field_app_secret">App Secret</string>
@@ -298,7 +288,6 @@
     <string name="vision_assist_done">Vision Assist · Готово</string>
 
     <!-- ===== Search screen SearchScreen ===== -->
-    <string name="search_cancel">Отмена</string>
     <string name="search_placeholder">Поиск сессий/сообщений/настроек...</string>
     <string name="search_empty_hint">Введите ключевые слова для поиска сессий, сообщений или настроек</string>
     <string name="search_tab_sessions">Сессии</string>
@@ -345,7 +334,6 @@
     <string name="skill_label_category">Категория</string>
     <string name="skill_label_implementation">Реализация</string>
     <string name="skill_label_source">Источник</string>
-    <string name="skill_close">Закрыть</string>
     <string name="skill_row_cd">%1$s, %2$s, нажмите для просмотра подробностей</string>
     <string name="skill_use_case_read_file">Когда нужно прочитать заметки, конфиги или кэшированные файлы в приложении, LLM вызывает это автоматически.</string>
     <string name="skill_use_case_write_file">Когда нужно сохранить заметки, создать документы или сохранить данные, LLM вызывает это автоматически.</string>
@@ -556,7 +544,6 @@
     <!-- Shortcut descriptions (shown in settings/help pages) -->
     <!-- Right-click context menu items -->
     <string name="desktop_context_regenerate">Перегенерировать</string>
-    <string name="desktop_context_delete">Удалить</string>
 
     <!-- P2-12 Rich Text Input -->
     <string name="chat_compressing_banner">Сжатие истории разговора…</string>
@@ -577,7 +564,6 @@
     <string name="settings_vision_probe_success">Успешно: модель зрения вернула описание из %1$d символов.</string>
     <string name="settings_vision_show_all_models">Показать все модели</string>
     <string name="settings_vision_show_all_models_subtitle">Расширенный режим реле: показывает все модели, можно вручную выбрать модель зрения, не обнаруженную автоматически</string>
-    <string name="skill_delete">Удалить</string>
     <string name="skill_delete_confirm_message">Удалить «%1$s»? Это действие нельзя отменить.</string>
     <string name="skill_delete_confirm_title">Подтверждение удаления</string>
     <string name="skill_delete_failed_ui">Ошибка удаления: %1$s</string>
@@ -616,9 +602,7 @@
     <string name="chat_fork_success">Создан новый диалог из текущей беседы</string>
     <string name="chat_list_archived_entry">В архиве (%1$d)</string>
     <string name="chat_list_archived_toast">Архивировано. Восстановить можно в разделе \"Архив\".</string>
-    <string name="chat_list_edit">Изменить</string>
     <string name="chat_list_edit_archive">В архив</string>
-    <string name="chat_list_edit_delete">Удалить</string>
     <plurals name="chat_list_edit_delete_confirm">
         <item quantity="one">Удалить %1$d выбранную беседу и все её сообщения? Это действие необратимо.</item>
         <item quantity="few">Удалить %1$d выбранные беседы и все их сообщения? Это действие необратимо.</item>
@@ -716,7 +700,6 @@
     <string name="settings_preference_desc">Когда вы говорите ассистенту «впредь не…», он сохраняет это здесь как жёсткое правило и соблюдает во всех беседах.</string>
     <string name="settings_preference_empty">Предпочтения пока не записаны</string>
     <string name="settings_preference_disable">Отключить</string>
-    <string name="settings_preference_delete">Удалить</string>
     <string name="settings_preference_delete_confirm">После удаления этого предпочтения ассистент перестанет его соблюдать.</string>
     <string name="settings_preference_disabled_tag">Отключено</string>
     <string name="settings_preference_source">Исходные слова: %1$s</string>

@@ -24,6 +24,10 @@ class AcceptanceGStopCancelTest {
         File("src/main/java/io/zer0/muse/ui/agentbot/AgentBotViewModel.kt").readText();
     }
 
+    private val rows: String by lazy {
+        File("src/main/java/io/zer0/muse/ui/agentbot/AgentBotRowSection.kt").readText();
+    }
+
     @Test
     fun `G1 stop reply has a UI entry`() {
         assertTrue(
@@ -36,7 +40,7 @@ class AcceptanceGStopCancelTest {
     fun `G1 and G2 are two different actions`() {
         // 两个动作必须调用不同的方法，不能共用一个入口。
         assertTrue("停止回复走 stopReply", screen.contains("stopReply"));
-        assertTrue("取消任务走 onCancel/cancelTask", screen.contains("onCancel(row.taskId)"));
+        assertTrue("取消任务走 onCancel/cancelTask", rows.contains("onCancel(row.taskId)"));
         assertTrue(
             "两者不能是同一个方法",
             !screen.contains("stopReply(row.taskId)"),

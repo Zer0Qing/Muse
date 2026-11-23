@@ -45,6 +45,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -102,6 +103,10 @@ class MuseApp : Application(), ImageLoaderFactory {
 
     /** v2.6.9: 主动消息重建版调度器（牵挂账本模型）。 */
     private val proactiveScheduler: io.zer0.muse.proactive.ProactiveScheduler by inject()
+    private val proactiveBacklogRepository: io.zer0.muse.data.proactive.ProactiveBacklogRepository by inject()
+    private val proactiveBacklogWorkScheduler: io.zer0.muse.proactive.ProactiveBacklogWorkScheduler by inject()
+    private val proactiveNotificationRecovery: io.zer0.muse.proactive.ProactiveNotificationRecovery by inject()
+    private val themeScheduler: io.zer0.muse.ui.theme.ThemeScheduler by inject()
     private val modelCatalogRepository: io.zer0.muse.data.catalog.ModelCatalogRepository by inject()
 
     /** B14-4: 本地模型目录（内置 + 用户 + 远端三层）—— 远端层默认关闭，仅当装配处传入 URL 时才拉取。 */
@@ -427,12 +432,6 @@ class MuseApp : Application(), ImageLoaderFactory {
                 resultOf { groupChatScheduler.recoverInterruptedGenerations() }
                     .onError { msg, t -> Logger.w("MuseApp", "恢复群聊账本失败: $msg", t) }
             }
-            // Agent 中枢：重启后对账。租约过期的在途 run 一律标 UNKNOWN ——
-            // 副作用可能已经发生，自动重放比"停下来问用户"危险得多。
-            appScope.launch {
-                resultOf { botTaskScheduler.reconcileAfterRestart() }
-                    .onError { msg, t -> Logger.w("MuseApp", "中枢任务对账失败: ${t?.message ?: msg}", t) }
-            }
             // 中枢的驱动循环与关开对账都只在开关打开时跑。
             //
             // 之前 start() 写在这个 if 外面：开关关着时它也照样每 5 秒醒一次
@@ -440,6 +439,13 @@ class MuseApp : Application(), ImageLoaderFactory {
             // 一个整功能都没启用的用户平白承担一份常驻轮询开销。
             // 与下面这句注释说的"关着的时候中枢不该有任何后台动作"直接冲突。
             if (io.zer0.muse.feature.FeatureFlags.AGENT_BOT) {
+                // 重启对账只在中枢启用时运行，关闭功能时保持该子系统静止。
+                appScope.launch {
+                    resultOf { botTaskScheduler.reconcileAfterRestart() }
+                        .onError { msg, t -> Logger.w("MuseApp", "中枢任务对账失败: ${t?.message ?: msg}", t) }
+                    resultOf { botTaskScheduler.resumeRuntimeMissingTasks() }
+                        .onError { msg, t -> Logger.w("MuseApp", "运行环境任务续跑失败: ${t?.message ?: msg}", t) }
+                }
                 // 领任务、巡检超时、扫过期审批。
                 // 之前 tick()/sweepOverdue() 都实现完整但没有调用方，队列里的任务永远不会被领走。
                 botTaskScheduler.start()
@@ -783,10 +789,23 @@ class MuseApp : Application(), ImageLoaderFactory {
                     request,
                 )
             }.onError { msg, t -> Logger.w("MuseApp", "ScheduledTaskWorker 注册失败", t) }
-            // v2.6.9: 主动消息重建版 — 牵挂账本驱动，不再按固定 tick 轮询。
-            // 账上有事时 20 分钟复查一次，没事就 1 小时一次；没话说时整轮都是本地操作。
+            // 正常主动消息 lane 保持原有调度；积压消息由独立的唯一 WorkManager lane 逐条处理。
             resultOf { proactiveScheduler.start() }
                 .onError { msg, t -> Logger.w("MuseApp", "ProactiveScheduler 启动失败", t) }
+            startProactiveBacklogRecovery()
+            appScope.launch {
+                combine(
+                    settings.scheduleWorkEnabledFlow,
+                    settings.proactiveMessageConfigFlow,
+                ) { workEnabled, config -> workEnabled && config.enabled }
+                    .distinctUntilChanged()
+                    .collect { enabled ->
+                        if (enabled) {
+                            resultOf { proactiveBacklogWorkScheduler.enqueueIfNeeded() }
+                                .onError { msg, t -> Logger.w("MuseApp", "主动 backlog 排期失败: ${t?.message ?: msg}", t) }
+                        }
+                    }
+            }
             // 模型能力目录:先注入现有目录(缓存/内置)保证立即可用,再静默刷新一次;
             // 刷新成功后重新注入(拉取失败绝不动现有缓存)。
             appScope.launch {
@@ -911,10 +930,7 @@ class MuseApp : Application(), ImageLoaderFactory {
                     keepAwake && (chat.isNotEmpty() || group?.isResponding == true)
                 }.collect { active -> updateWakeLock(active) }
             }
-            // 主题定时切换(每 30 秒检查一次)
-            appScope.launch {
-                startThemeScheduler()
-            }
+            startThemeScheduler()
             // v0.32: autoLaunch — 订阅开机自启开关,启用/禁用 BootReceiver 组件
             // (manifest 默认 enabled=false,这里根据用户设置切换)
             appScope.launch {
@@ -1059,45 +1075,47 @@ class MuseApp : Application(), ImageLoaderFactory {
         }
     }
 
-    /**
-     * 主题定时切换协程 — 每 30 秒检查当前时间,到起床时间切浅色,到睡觉时间切深色。
-     *
-     * v1.134 P0-2: 改用 while(isActive) + GlobalCoroutineExceptionHandler,与其他 Runner
-     * 风格对齐;原 while(true) 在协程被取消时不会退出,且内部异常会终止协程无兜底。
-     */
-    private suspend fun startThemeScheduler() {
-        var currentSchedule = settings.themeScheduleFlow.first()
-        // 并行收集 schedule 变化
-        appScope.launch(io.zer0.muse.util.GlobalCoroutineExceptionHandler) {
-            settings.themeScheduleFlow.collect { currentSchedule = it }
-        }
-        while (coroutineContext.isActive) {
-            try {
-                if (currentSchedule.enabled) {
-                    val now = java.util.Calendar.getInstance()
-                    val currentMinute = now.get(java.util.Calendar.HOUR_OF_DAY) * 60 + now.get(java.util.Calendar.MINUTE)
-                    val wakeUpMin = currentSchedule.wakeUpHour * 60 + currentSchedule.wakeUpMinute
-                    val sleepMin = currentSchedule.sleepHour * 60 + currentSchedule.sleepMinute
-
-                    val desiredMode =
-                        if (sleepMin > wakeUpMin) {
-                            if (currentMinute in wakeUpMin until sleepMin) "light" else "dark"
-                        } else {
-                            if (currentMinute >= sleepMin || currentMinute < wakeUpMin) "dark" else "light"
-                        }
-
-                    val currentMode = settings.themeModeFlow.first()
-                    if (currentMode != desiredMode && (desiredMode == "light" || desiredMode == "dark")) {
-                        settings.saveThemeMode(desiredMode)
-                        Logger.i("MuseApp", "主题定时切换: → $desiredMode ($currentMinute 分)")
-                    }
+    private fun startThemeScheduler() {
+        appScope.launch(GlobalCoroutineExceptionHandler) {
+            var firstReconcile = true
+            combine(settings.baseThemeModeFlow, settings.themeScheduleFlow) { baseMode, schedule ->
+                baseMode to schedule
+            }.distinctUntilChanged().collect { (baseMode, schedule) ->
+                val reason = if (firstReconcile) {
+                    firstReconcile = false
+                    io.zer0.muse.ui.theme.ThemeReconcileReason.APP_START
+                } else {
+                    io.zer0.muse.ui.theme.ThemeReconcileReason.SETTINGS_CHANGED
                 }
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e // 协程取消,正常退出
-            } catch (e: Exception) {
-                Logger.w("MuseApp", "ThemeScheduler tick error: ${e.message}")
+                Logger.i("MuseApp", "应用主题策略: base=$baseMode, policy=${schedule.autoPolicy}")
+                try {
+                    themeScheduler.reconcile(reason)
+                } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                    throw cancelled
+                } catch (error: Exception) {
+                    Logger.w("MuseApp", "主题策略对账失败: ${error.message}", error)
+                }
             }
-            kotlinx.coroutines.delay(30_000)
+        }
+    }
+
+    private fun startProactiveBacklogRecovery() {
+        proactiveBacklogWorkScheduler.start()
+        appScope.launch(GlobalCoroutineExceptionHandler) {
+            if (io.zer0.common.ProcessWriteGate.restoring) return@launch
+            try {
+                val now = System.currentTimeMillis()
+                proactiveBacklogRepository.releaseExpiredClaims(now)
+                proactiveNotificationRecovery.recover(now)
+                assistantRepository.getAll().forEach { assistant ->
+                    proactiveBacklogRepository.reconcile(now, assistant.id, "")
+                }
+                proactiveBacklogWorkScheduler.enqueueIfNeeded()
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                Logger.w("MuseApp", "主动 backlog 启动恢复失败: ${error.message}", error)
+            }
         }
     }
 

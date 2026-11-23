@@ -126,19 +126,16 @@ internal fun AgentDirectivesContent(
     SettingsSubPageScaffold(title = stringResource(R.string.settings_screen_agent_directives), onBack = onBack) {
         if (assistants.size > 1) {
             item {
-                Column(modifier = Modifier.padding(top = 8.dp)) {
-                    SectionLabel(stringResource(R.string.agent_directives_hint))
-                    Row(
-                        modifier = Modifier.padding(top = 6.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        assistants.forEach { assistant ->
-                            MuseChip(
-                                label = assistant.name,
-                                selected = assistant.id == agentId,
-                                onClick = { onSelectAgent(assistant.id) },
-                            )
-                        }
+                Row(
+                    modifier = Modifier.padding(top = MusePaddings.contentGap),
+                    horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+                ) {
+                    assistants.forEach { assistant ->
+                        MuseChip(
+                            label = assistant.name,
+                            selected = assistant.id == agentId,
+                            onClick = { onSelectAgent(assistant.id) },
+                        )
                     }
                 }
             }

@@ -11,7 +11,9 @@
     "sizeBytes": 77984489,
     "sha256": "f6026268cb7e221ab809433908060c18423ed37c77082be50d52cb35f895ea54",
     "urls": [
-      "http://10.0.2.2:8777/rootfs-x86_64.tar.gz"
+      "https://gh-proxy.com/https://github.com/Zer0Qing/Muse/releases/download/runtime-r1/rootfs-x86_64.tar.gz",
+      "https://ghproxy.net/https://github.com/Zer0Qing/Muse/releases/download/runtime-r1/rootfs-x86_64.tar.gz",
+      "https://github.com/Zer0Qing/Muse/releases/download/runtime-r1/rootfs-x86_64.tar.gz"
     ]
   },
   "installedBytes": 214433166,

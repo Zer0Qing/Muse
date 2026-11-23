@@ -31,6 +31,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
+import io.zer0.muse.ui.theme.MuseAlpha
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseHaptics
 import io.zer0.muse.ui.theme.MuseListItemSizes
@@ -97,7 +98,7 @@ fun MuseListItem(
     val pressed by interactionSource.collectIsPressedAsState()
     val rowBgColor by animateColorAsState(
         targetValue = if (pressed && onClick != null) {
-            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f)
+            MaterialTheme.colorScheme.onSurface.copy(alpha = MuseAlpha.rowPressed)
         } else {
             Color.Transparent
         },

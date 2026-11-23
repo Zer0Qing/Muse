@@ -108,6 +108,79 @@ class WorkspaceEditToolTest {
     }
 
     @Test
+    fun `agent workspace write stages structured content without changing the target`() {
+        seed("staged.md", "before")
+        var stagedTarget = ""
+        var stagedContent = ""
+        var stagedBase: String? = null
+
+        val receipt = WorkspaceTool.execute(
+            name = WorkspaceTool.NAME_WRITE,
+            args = mapOf("path" to "staged.md", "content" to "after"),
+            manager = manager,
+            resourceScope = "staged.md",
+            stepId = "step-1",
+            stageWorkspaceArtifact = { stepId, targetPath, content, baseContent ->
+                assertEquals("step-1", stepId)
+                stagedTarget = targetPath
+                stagedContent = content
+                stagedBase = baseContent
+                "candidate-1"
+            },
+        )
+
+        assertTrue(receipt, receipt.startsWith("OK:"))
+        assertEquals("staged.md", stagedTarget)
+        assertEquals("after", stagedContent)
+        assertEquals("before", stagedBase)
+        assertEquals("staging must not mutate the user file", "before", contentOf("staged.md"))
+    }
+
+    @Test
+    fun `agent workspace write can stage a new file against a missing base`() {
+        var stagedBase: String? = "unexpected"
+        val receipt = WorkspaceTool.execute(
+            name = WorkspaceTool.NAME_WRITE,
+            args = mapOf("path" to "new.md", "content" to "created later"),
+            manager = manager,
+            resourceScope = "new.md",
+            stepId = "step-new",
+            stageWorkspaceArtifact = { _, _, _, baseContent ->
+                stagedBase = baseContent
+                "candidate-new"
+            },
+        )
+
+        assertTrue(receipt, receipt.startsWith("OK:"))
+        assertNull(stagedBase)
+        assertTrue(
+            "目标应等审核和基线检查后再创建",
+            runBlocking { manager.readFile("new.md") } is WorkspaceManager.ReadResult.Error,
+        )
+    }
+
+    @Test
+    fun `agent write outside resource scope is rejected before staging`() {
+        seed("private.md", "unchanged")
+        var stageCalled = false
+        val receipt = WorkspaceTool.execute(
+            name = WorkspaceTool.NAME_WRITE,
+            args = mapOf("path" to "private.md", "content" to "changed"),
+            manager = manager,
+            resourceScope = "notes.md",
+            stepId = "step-outside",
+            stageWorkspaceArtifact = { _, _, _, _ ->
+                stageCalled = true
+                "candidate-outside"
+            },
+        )
+
+        assertTrue(receipt.startsWith("Error:"))
+        assertTrue("越界前不能创建候选", !stageCalled)
+        assertEquals("越界写入不能更改目标", "unchanged", contentOf("private.md"))
+    }
+
+    @Test
     fun `跨行片段整体替换`() {
         val original = "header\nfun a() {\n    return 1\n}\nfooter\n"
         seed("e.txt", original)

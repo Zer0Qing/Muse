@@ -42,7 +42,6 @@
     <string name="assistant_detail_allow_group_chat">그룹 채팅 참여 허용</string>
     <string name="assistant_detail_allow_group_chat_desc">꺼져 있으면 이 도우미는 그룹 채팅 멤버 선택에 표시되지 않습니다.</string>
     <string name="assistant_detail_select_model">전용 모델 선택</string>
-    <string name="assistant_detail_close">닫기</string>
     <string name="assistant_detail_global_default_selected">전역 기본(선택됨)</string>
     <string name="assistant_detail_model_selected">%1$s(선택됨)</string>
     <!-- Phase 6: Model picker UX improvements -->
@@ -78,14 +77,11 @@
     <string name="assistant_detail_global_pinned_disabled">보기 전용입니다. 전역 기억이 꺼져 있어 이 도우미에는 포함되지 않습니다.</string>
     <string name="assistant_detail_saved_memory_interaction_hint">탭하여 펼치기 · 길게 눌러 편집</string>
     <string name="assistant_detail_no_memory">아직 기억이 없습니다</string>
-    <string name="assistant_detail_delete_cd">삭제</string>
     <string name="assistant_detail_delete_memory">기억 삭제</string>
     <string name="assistant_detail_add_memory_dialog_title">기억 추가</string>
     <string name="assistant_detail_memory_edit_missing">이 기억이 없거나 내용이 올바르지 않습니다</string>
     <string name="assistant_detail_edit_memory_dialog_title">기억 편집</string>
     <string name="assistant_detail_input_fact">사실/지식 입력</string>
-    <string name="assistant_detail_save">저장</string>
-    <string name="assistant_detail_cancel">취소</string>
     <string name="assistant_detail_custom_headers_label">사용자 지정 헤더 JSON(예: {\"X-Custom\":\"value\"})</string>
     <string name="assistant_detail_custom_bodies_label">사용자 지정 본문 JSON(예: {\"user\":\"abc\"})</string>
     <string name="assistant_detail_tags_label">태그(쉼표 구분, 예: 작문, 번역, 코드)</string>
@@ -97,20 +93,16 @@
     <string name="memory_screen_add_fact_cd">메타 사실 추가</string>
     <string name="memory_tab_facts">사리</string>
     <!-- v1.0.51: memory backfill migration progress -->
-    <string name="memory_screen_cancel">취소</string>
     <string name="memory_screen_edit_fact">메타 사실 편집</string>
     <string name="memory_screen_edit_summary">세션 요약 편집</string>
     <string name="memory_open_conversation">원래 대화 열기</string>
     <string name="memory_conversation_meta">어시스턴트 %1$s · 공간 %2$s</string>
     <string name="memory_screen_no_fact">아직 메타 사실이 없습니다</string>
     <string name="memory_screen_collapse">접기</string>
-    <string name="memory_screen_edit_cd">편집</string>
-    <string name="memory_screen_delete_cd">삭제</string>
     <string name="memory_screen_load_failed">불러오기 실패 — 전체 오류 정보</string>
     <string name="memory_screen_copied_trace">전체 스택 트레이스를 클립보드에 복사했습니다</string>
     <string name="memory_screen_copy_trace_cd">전체 스택 트레이스 복사</string>
     <string name="memory_screen_input_content">내용 입력…</string>
-    <string name="memory_screen_save">저장</string>
     <string name="memory_screen_normal">정상</string>
     <string name="memory_screen_failed_times">%1$d회 실패</string>
     <string name="memory_screen_last_success">이전 성공: %1$s</string>
@@ -165,16 +157,16 @@
     <!-- ===== Settings screen SettingsScreen ===== -->
     <string name="settings_screen_title">설정</string>
     <!-- 설정 첫 단계 분류 -->
-    <string name="settings_group_assistants">어시스턴트</string>
-    <string name="settings_group_models">모델 및 공급자</string>
-    <string name="settings_group_tools">도구 및 권한</string>
-    <string name="settings_group_voice">음성</string>
-    <string name="settings_group_image">이미지 및 비전</string>
+    <string name="settings_group_general">일반 및 화면</string>
+    <string name="settings_group_assistants">어시스턴트 및 대화</string>
+    <string name="settings_group_models">모델 및 런타임</string>
+    <string name="settings_group_media">음성 및 비전</string>
     <string name="settings_group_memory">기억 및 지식</string>
-    <string name="settings_group_connection">연결</string>
-    <string name="settings_group_automation">자동화</string>
+    <string name="settings_group_tools">도구 및 확장</string>
+    <string name="settings_group_connection">채널 및 네트워크</string>
+    <string name="settings_group_automation">자동화 및 백그라운드</string>
     <string name="settings_group_data_storage">데이터 및 백업</string>
-    <string name="settings_group_privacy_security">개인정보 및 보안</string>
+    <string name="settings_group_privacy_security">개인정보 및 권한</string>
     <string name="settings_group_about">앱 정보</string>
     <string name="settings_group_developer">개발자</string>
     <string name="settings_screen_appearance_label">외형</string>
@@ -235,10 +227,8 @@
     <string name="channel_intro">자격 증명은 이 기기에만 암호화 저장됩니다.</string>
     <string name="channel_add">채널 추가</string>
     <string name="channel_edit_title">채널 편집</string>
-    <string name="channel_edit">편집</string>
     <string name="channel_delete_confirm">이 채널을 삭제할까요?</string>
     <string name="channel_empty">아직 채널이 없습니다. 위 버튼으로 추가하세요.</string>
-    <string name="channel_save">저장</string>
     <string name="channel_field_platform">플랫폼</string>
     <string name="channel_field_app_id">App ID</string>
     <string name="channel_field_app_secret">App Secret</string>
@@ -298,7 +288,6 @@
     <string name="vision_assist_done">비전 어시스트 · 완료</string>
 
     <!-- ===== Search screen SearchScreen ===== -->
-    <string name="search_cancel">취소</string>
     <string name="search_placeholder">세션/메시지/설정 검색...</string>
     <string name="search_empty_hint">키워드를 입력하여 세션, 메시지, 설정을 검색하세요</string>
     <string name="search_tab_sessions">세션</string>
@@ -345,7 +334,6 @@
     <string name="skill_label_category">분류</string>
     <string name="skill_label_implementation">구현</string>
     <string name="skill_label_source">소스</string>
-    <string name="skill_close">닫기</string>
     <string name="skill_row_cd">%1$s, %2$s, 탭하여 상세 보기</string>
     <string name="skill_use_case_read_file">앱 내 노트, 설정, 캐시 파일을 읽어야 할 때 LLM이 자동으로 호출합니다.</string>
     <string name="skill_use_case_write_file">노트 저장, 문서 생성, 데이터 영속화가 필요할 때 LLM이 자동으로 호출합니다.</string>
@@ -559,7 +547,6 @@
     <!-- Shortcut descriptions (shown in settings/help pages) -->
     <!-- Right-click context menu items -->
     <string name="desktop_context_regenerate">재생성</string>
-    <string name="desktop_context_delete">삭제</string>
 
     <!-- P2-12 Rich Text Input -->
     <string name="chat_compressing_banner">대화 기록 압축 중…</string>
@@ -580,7 +567,6 @@
     <string name="settings_vision_probe_success">테스트 성공: 비전 모델이 %1$d자 설명을 반환했습니다.</string>
     <string name="settings_vision_show_all_models">모든 모델 표시</string>
     <string name="settings_vision_show_all_models_subtitle">릴레이 고급 모드: 모든 모델 표시, 자동 감지되지 않은 비전 모델을 수동 선택 가능</string>
-    <string name="skill_delete">삭제</string>
     <string name="skill_delete_confirm_message">«%1$s»을(를) 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.</string>
     <string name="skill_delete_confirm_title">삭제 확인</string>
     <string name="skill_delete_failed_ui">삭제 실패: %1$s</string>
@@ -617,9 +603,7 @@
     <string name="chat_fork_success">현재 대화에서 새 대화를 만들었습니다</string>
     <string name="chat_list_archived_entry">보관됨 (%1$d)</string>
     <string name="chat_list_archived_toast">보관했습니다. \"보관함\"에서 복원할 수 있습니다</string>
-    <string name="chat_list_edit">편집</string>
     <string name="chat_list_edit_archive">보관</string>
-    <string name="chat_list_edit_delete">삭제</string>
     <plurals name="chat_list_edit_delete_confirm">
         <item quantity="other">선택한 %1$d개의 대화와 모든 메시지를 삭제합니다. 이 작업은 되돌릴 수 없습니다. 삭제하시겠습니까?</item>
     </plurals>
@@ -752,7 +736,6 @@
     <string name="settings_preference_desc">「앞으로는 …하지 마」라고 말하면 여기에 하드 제약으로 저장되어 모든 대화에서 지켜집니다.</string>
     <string name="settings_preference_empty">아직 기록된 선호가 없습니다</string>
     <string name="settings_preference_disable">사용 안 함</string>
-    <string name="settings_preference_delete">삭제</string>
     <string name="settings_preference_delete_confirm">삭제하면 어시스턴트가 이 선호를 더 이상 지키지 않습니다.</string>
     <string name="settings_preference_disabled_tag">사용 안 함</string>
     <string name="settings_preference_source">원래 말: %1$s</string>

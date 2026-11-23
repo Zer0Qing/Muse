@@ -46,6 +46,18 @@
     <string name="settings_agent_offset_hours_minutes">± %1$d 時間 %2$d 分</string>
 
     <!-- Appearance / Theme -->
+    <string name="settings_theme_policy_off">オフ</string>
+    <string name="settings_theme_policy_custom_time">時刻を指定</string>
+    <string name="settings_theme_policy_sunrise_sunset">日の出 / 日の入り</string>
+    <string name="settings_theme_schedule_parse_error">自動テーマ設定を読み込めませんでした。自動切り替えを停止し、基本テーマ設定は維持しています。</string>
+    <string name="settings_theme_solar_permission_required">おおよその位置情報への許可が必要です。基本テーマを使用しています。</string>
+    <string name="settings_theme_solar_location_unavailable">位置情報のキャッシュがありません。基本テーマを使用しています。</string>
+    <string name="settings_theme_solar_events_unavailable">今日の日の出と日の入りを計算できません。基本テーマを使用しています。</string>
+    <string name="settings_theme_solar_cache_unavailable">今日の日の出と日の入りは利用できません。</string>
+    <string name="settings_theme_solar_polar_day">今日は太陽が一日中地平線の上にあります。</string>
+    <string name="settings_theme_solar_polar_night">今日は太陽が一日中地平線の下にあります。</string>
+    <string name="settings_theme_solar_times">日の出 %1$s · 日の入り %2$s</string>
+    <string name="settings_theme_solar_location_updated">位置情報キャッシュの更新: %1$s</string>
     <string name="settings_theme_appearance">外観</string>
     <string name="settings_theme_follow_system">フォローシステム</string>
     <string name="settings_theme_light">ライト</string>
@@ -125,8 +137,6 @@
     <string name="prompt_template_manager_built_in">組み込み</string>
     <string name="prompt_template_manager_move_up">上へ</string>
     <string name="prompt_template_manager_move_down">下へ</string>
-    <string name="prompt_template_manager_edit">編集</string>
-    <string name="prompt_template_manager_delete">削除</string>
     <string name="prompt_template_manager_delete_confirm">テンプレート「%1$s」を削除しますか?</string>
     <string name="prompt_template_manager_add">新規テンプレート</string>
     <string name="prompt_template_manager_category">カテゴリ</string>
@@ -310,8 +320,6 @@
     <string name="settings_rag_manage_kbs">ナレッジベースの管理</string>
     <string name="kb_manage_create">新しい知識ベース</string>
     <string name="kb_manage_desc_label">説明 (オプション)</string>
-    <string name="kb_manage_edit">編集</string>
-    <string name="kb_manage_delete">消去</string>
     <string name="kb_manage_delete_confirm">ナレッジベース「%1$s」を削除しますか?</string>
     <string name="kb_manage_default_no_delete">デフォルトのナレッジベースは削除できません</string>
     <string name="kb_manage_doc_count">%1$d ドキュメント</string>
@@ -422,8 +430,6 @@
     <string name="settings_theme_custom_secondary_color">二次色 (オプション)</string>
     <string name="settings_theme_custom_tertiary_color">三次色 (オプション)</string>
     <string name="settings_theme_custom_preview">カラープレビュー</string>
-    <string name="settings_theme_custom_save">保存</string>
-    <string name="settings_theme_custom_delete">消去</string>
     <string name="settings_theme_custom_delete_confirm">このテーマを削除しますか?</string>
     <string name="settings_theme_custom_delete_confirm_msg">これを元に戻すことはできません。</string>
     <string name="settings_theme_custom_export">テーマをエクスポート</string>

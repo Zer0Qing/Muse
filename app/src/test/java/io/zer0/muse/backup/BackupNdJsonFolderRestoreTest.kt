@@ -65,6 +65,18 @@ class BackupNdJsonFolderRestoreTest {
         "proactiveOutcome" to "proactiveOutcomeBuf",
         "proactiveRelation" to "proactiveRelationBuf",
         "sessionProactivePreference" to "sessionProactivePreferenceBuf",
+        "proactiveBacklogDispatch" to "proactiveBacklogDao().upsertAll",
+        "proactiveBacklogSchedule" to "proactiveBacklogScheduleDao().deferUntil",
+        "botBinding" to "botBindingDao().upsert(",
+        "botTask" to "botTaskDao().upsert(",
+        "botTaskRun" to "taskRunDao().upsert(",
+        "botTaskStep" to "taskStepDao().upsert(",
+        "botEvent" to "botEventDao().upsert(",
+        "botApproval" to "approvalRequestDao().upsert(",
+        "botPublication" to "publicationOutboxDao().upsert(",
+        "botAnnotation" to "botAnnotationDao().upsert(",
+        "botMessageCard" to "botMessageCardDao().upsert(",
+        "botRoutine" to "botRoutineDao().upsert(",
         // v2.7.x(E2): 术语表。用户的确认不可从历史重新推导，恢复分支必须有对应缓冲。
         "sessionTerm" to "sessionTermBuf",
     )
@@ -87,7 +99,10 @@ class BackupNdJsonFolderRestoreTest {
             startIndex = start,
         )
         require(start >= 0 && end > start) { "无法定位 NDJSON 恢复方法边界" }
-        val dispatch = source.substring(start, end)
+        val supplementalStart = source.indexOf("private suspend fun restoreSupplementalMuseRecord(")
+        val supplementalEnd = source.indexOf("private fun warmUpRoomAfterImport", supplementalStart)
+        require(supplementalStart >= 0 && supplementalEnd > supplementalStart) { "无法定位附加表恢复函数" }
+        val dispatch = source.substring(start, end) + source.substring(supplementalStart, supplementalEnd)
 
         val missing = exportedTypes()
             .filter { it != "meta" && it != "settings" && it != "scopedFact" && it != "fileStore" }
@@ -109,9 +124,9 @@ class BackupNdJsonFolderRestoreTest {
 
     @Test
     fun `ndjson meta map covers every individually exported type`() {
-        val source = File("src/main/java/io/zer0/muse/backup/BackupService.kt").readText()
+        val source = File("src/main/java/io/zer0/muse/backup/BackupReadBackValidation.kt").readText()
         val mappingBlock =
-            source.substringAfter("private val ndjsonTypeToMetaKey: Map<String, String> = mapOf(")
+            source.substringAfter("internal val ndjsonTypeToMetaKey: Map<String, String> = mapOf(")
                 .substringBefore(")")
         val mappedTypes =
             Regex("\"([a-zA-Z]+)\"\\s+to\\s+\"")

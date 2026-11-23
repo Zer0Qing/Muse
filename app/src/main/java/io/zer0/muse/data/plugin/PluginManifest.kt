@@ -109,7 +109,7 @@ data class PluginManifest(
     /** JS 入口文件名(相对包根目录,默认 main.js)。 */
     val entry: String = "main.js",
     /**
-     * v2.7 插件运行时：`js`（默认，WebView V8 沙盒）或 `python`（内置 Python 运行时）。
+     * 插件运行时：`js`（默认，WebView V8 沙盒）或 `python`（Ubuntu rootfs via proot）。
      *
      * 为 `python` 时 [entry] 应指向 `.py` 文件，[tools] 的 [ToolDeclaration.functionName]
      * 对应 Python 入口模块内定义的函数（接受一个 dict 参数）。

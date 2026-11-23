@@ -168,14 +168,16 @@ object RuntimeSelfCheckTool {
         )
     }
 
-    /** v2.7: 追加内置 Python 运行时自检段（拆出以控制单函数长度与复杂度）。 */
+    /** 追加 rootfs Python 自检段，保持主自检流程长度有界。 */
     private suspend fun appendPythonSection(context: Context, sb: StringBuilder) {
-        sb.append("【内置 Python 运行时自检】")
-        val pyBin = PythonRuntime.pythonBinary(context)
-        sb.append("\n- Python stub: ").append(
-            if (pyBin.isFile) "存在 (${pyBin.length() / 1024}KB)" else "缺失 (${PythonRuntime.nativeLibDir(context)})",
-        )
-        val pyV = runCatching { PythonRuntime.execPython(context, listOf("-V"), timeoutMs = 30_000) }.getOrNull()
+        sb.append("【Ubuntu Python 运行时自检】")
+        val pythonAvailable = PythonRuntime.isReady(context)
+        sb.append("\n- rootfs Python 路径: ").append(if (pythonAvailable) "存在" else "缺失")
+        val pyV = if (pythonAvailable) {
+            runCatching { PythonRuntime.execPython(context, listOf("-V"), timeoutMs = 30_000) }.getOrNull()
+        } else {
+            null
+        }
         sb.append("\n- python -V: ").append(
             when {
                 pyV == null -> "执行异常"
@@ -185,7 +187,7 @@ object RuntimeSelfCheckTool {
         )
         val pyData = PythonRuntime.ensureData(context)
         sb.append("\n- Python 数据: ").append(
-            if (pyData.isSuccess) "已就绪 (${PythonRuntime.PYTHON_DATA_VERSION})" else "解压失败 (${pyData.exceptionOrNull()?.message})",
+            if (pyData.isSuccess) "已就绪 (Ubuntu rootfs)" else "自检失败 (${pyData.exceptionOrNull()?.message})",
         )
         if (pyV?.exitCode == 0 && pyData.isSuccess) {
             val probe = runCatching {

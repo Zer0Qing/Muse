@@ -44,7 +44,6 @@
     <string name="translate_page_batch_title">バッチ翻訳</string>
     <string name="translate_page_batch_input_hint">1 行に 1 つのテキストがバッチ翻訳されます</string>
     <string name="translate_page_batch_run">バッチ翻訳を実行する</string>
-    <string name="translate_page_batch_cancel">キャンセル</string>
     <string name="translate_page_batch_translating">バッチ翻訳中…</string>
     <string name="translate_page_batch_results_title">バッチ結果 (%1$d アイテム)</string>
 
@@ -52,8 +51,6 @@
     <string name="translate_page_custom_style_add">スタイルを追加する</string>
     <string name="translate_page_custom_style_name">スタイル名</string>
     <string name="translate_page_custom_style_prompt">スタイルの指示 (例: 「古典中国語で翻訳」)</string>
-    <string name="translate_page_custom_style_save">保存</string>
-    <string name="translate_page_custom_style_remove">取り除く</string>
     <string name="translate_page_custom_style_added">カスタムスタイルが追加されました</string>
     <string name="translate_page_custom_style_removed">カスタム スタイルが削除されました</string>
     <string name="translate_page_custom_style_empty_name">名前を空にすることはできません</string>
@@ -64,7 +61,6 @@
     <string name="translate_page_glossary_original">ソース用語</string>
     <string name="translate_page_glossary_translated">対象期間</string>
     <string name="translate_page_glossary_add">追加</string>
-    <string name="translate_page_glossary_remove">取り除く</string>
     <string name="translate_page_glossary_empty">用語集の項目はありません</string>
     <string name="translate_page_glossary_count">用語集 (%1$d エントリ)</string>
     <string name="translate_page_glossary_added">用語集の項目が追加されました</string>

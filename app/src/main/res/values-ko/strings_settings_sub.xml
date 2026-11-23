@@ -46,6 +46,18 @@
     <string name="settings_agent_offset_hours_minutes">± %1$d 시간 %2$d 분</string>
 
     <!-- Appearance / Theme -->
+    <string name="settings_theme_policy_off">사용 안 함</string>
+    <string name="settings_theme_policy_custom_time">사용자 지정 시간</string>
+    <string name="settings_theme_policy_sunrise_sunset">일출 / 일몰</string>
+    <string name="settings_theme_schedule_parse_error">자동 테마 설정을 읽을 수 없습니다. 자동 전환을 중지했으며 기본 테마 설정은 유지됩니다.</string>
+    <string name="settings_theme_solar_permission_required">대략적인 위치 권한이 필요합니다. 기본 테마를 사용합니다.</string>
+    <string name="settings_theme_solar_location_unavailable">위치 캐시가 없습니다. 기본 테마를 사용합니다.</string>
+    <string name="settings_theme_solar_events_unavailable">오늘의 일출과 일몰을 계산할 수 없습니다. 기본 테마를 사용합니다.</string>
+    <string name="settings_theme_solar_cache_unavailable">오늘의 일출과 일몰을 사용할 수 없습니다.</string>
+    <string name="settings_theme_solar_polar_day">오늘은 해가 하루 종일 지평선 위에 있습니다.</string>
+    <string name="settings_theme_solar_polar_night">오늘은 해가 하루 종일 지평선 아래에 있습니다.</string>
+    <string name="settings_theme_solar_times">일출 %1$s · 일몰 %2$s</string>
+    <string name="settings_theme_solar_location_updated">위치 캐시 업데이트: %1$s</string>
     <string name="settings_theme_appearance">외관</string>
     <string name="settings_theme_follow_system">시스템 따르기</string>
     <string name="settings_theme_light">라이트</string>
@@ -125,8 +137,6 @@
     <string name="prompt_template_manager_built_in">내장</string>
     <string name="prompt_template_manager_move_up">위로</string>
     <string name="prompt_template_manager_move_down">아래로</string>
-    <string name="prompt_template_manager_edit">편집</string>
-    <string name="prompt_template_manager_delete">삭제</string>
     <string name="prompt_template_manager_delete_confirm">템플릿 "%1$s"을(를) 삭제할까요?</string>
     <string name="prompt_template_manager_add">새 템플릿</string>
     <string name="prompt_template_manager_category">카테고리</string>
@@ -310,8 +320,6 @@
     <string name="settings_rag_manage_kbs">기술 자료 관리</string>
     <string name="kb_manage_create">새로운 기술 자료</string>
     <string name="kb_manage_desc_label">설명(선택사항)</string>
-    <string name="kb_manage_edit">편집하다</string>
-    <string name="kb_manage_delete">삭제</string>
     <string name="kb_manage_delete_confirm">기술 자료 "%1$s"을 삭제하시겠습니까?</string>
     <string name="kb_manage_default_no_delete">기본 기술 자료는 삭제할 수 없습니다.</string>
     <string name="kb_manage_doc_count">%1$d 문서</string>
@@ -422,8 +430,6 @@
     <string name="settings_theme_custom_secondary_color">보조 색상(선택 사항)</string>
     <string name="settings_theme_custom_tertiary_color">3차 색상(선택사항)</string>
     <string name="settings_theme_custom_preview">색상 미리보기</string>
-    <string name="settings_theme_custom_save">저장</string>
-    <string name="settings_theme_custom_delete">삭제</string>
     <string name="settings_theme_custom_delete_confirm">이 테마를 삭제하시겠습니까?</string>
     <string name="settings_theme_custom_delete_confirm_msg">이 작업은 취소할 수 없습니다.</string>
     <string name="settings_theme_custom_export">테마 내보내기</string>

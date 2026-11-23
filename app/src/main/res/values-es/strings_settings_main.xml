@@ -1,10 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- ==================== Common ==================== -->
-    <string name="settings_common_cancel">Cancelar</string>
-    <string name="settings_common_save">Guardar</string>
-    <string name="settings_common_delete">Eliminar</string>
-    <string name="settings_common_close">Cerrar</string>
     <string name="settings_common_add">Agregar</string>
     <string name="settings_common_show">Mostrar</string>
     <string name="settings_common_hide">Ocultar</string>
@@ -347,7 +343,6 @@
     <string name="cloud_backup_delete_failed">Error al eliminar</string>
     <string name="cloud_backup_delete_consequence">Esta versión en la nube se elimina de forma permanente. Si es la única copia, pierdes el respaldo en la nube.</string>
     <string name="cloud_backup_delete_success">Eliminado</string>
-    <string name="cloud_backup_delete_this">Eliminar</string>
     <string name="cloud_backup_enable">Activar copia de seguridad en la nube</string>
     <string name="cloud_backup_hide_secret">Ocultar</string>
     <string name="cloud_backup_interval_hint">Intervalos más cortos significan subidas más frecuentes y más consumo de datos y batería; para bases grandes, se recomienda ≥ 3 días</string>

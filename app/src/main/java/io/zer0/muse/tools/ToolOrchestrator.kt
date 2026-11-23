@@ -1708,6 +1708,9 @@ class ToolOrchestrator(
         // runtime_missing 是「前置条件缺失」，不是工具执行失败：不计失败连击、
         // 不进入失败引导与重试预算，UI 由安装卡接管。
         val runtimeMissing = !isSuccess && RuntimeMissing.isRuntimeMissingPayload(toolResult)
+        if (runtimeMissing) {
+            params.toolExecutionContext?.onRuntimeMissing?.invoke()
+        }
         val effectiveSuccess = isSuccess || runtimeMissing
         // Phase 3: 工具执行终态在任务卡上与 ToolExecStatus 保持一致 —
         // 超时 → TaskStepStatus.TIMED_OUT(不再被 isSuccess=false 折叠成 FAILED)。

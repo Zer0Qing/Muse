@@ -341,9 +341,14 @@ android {
         // 使沙盒可从 nativeLibraryDir 直接 exec 内置 Node 运行时（libmuse_node.so）
         jniLibs {
             useLegacyPackaging = true
+            excludes += listOf(
+                "**/libmuse_python.so",
+                "**/libpython*.so",
+                "**/*_python.so",
+                "**/*.cpython-*.so",
+            )
             if (!bundleNodeRuntime) {
                 // 外置运行环境已覆盖 Node；这些库只服务包内 Node，不进包可以少 ~106MB/架构。
-                // Python 继续留在包内（rootfs 目前只有 Ubuntu + Node），所以 libz / libc++_shared 保留。
                 excludes += listOf(
                     "**/libmuse_node.so",
                     "**/libicudata.so",

@@ -44,7 +44,6 @@
     <string name="translate_page_batch_title">Пакетный перевод</string>
     <string name="translate_page_batch_input_hint">Один текст в строке, будет переведен пакетно.</string>
     <string name="translate_page_batch_run">Запустить пакетный перевод</string>
-    <string name="translate_page_batch_cancel">Отмена</string>
     <string name="translate_page_batch_translating">Пакетный перевод…</string>
     <string name="translate_page_batch_results_title">Пакетные результаты (%1$d элементов)</string>
 
@@ -52,8 +51,6 @@
     <string name="translate_page_custom_style_add">Добавить стиль</string>
     <string name="translate_page_custom_style_name">Название стиля</string>
     <string name="translate_page_custom_style_prompt">Инструкция по стилю (например, «Перевести на классический китайский»)</string>
-    <string name="translate_page_custom_style_save">Сохранять</string>
-    <string name="translate_page_custom_style_remove">Удалять</string>
     <string name="translate_page_custom_style_added">Добавлен собственный стиль</string>
     <string name="translate_page_custom_style_removed">Пользовательский стиль удален.</string>
     <string name="translate_page_custom_style_empty_name">Имя не может быть пустым</string>
@@ -64,7 +61,6 @@
     <string name="translate_page_glossary_original">Исходный термин</string>
     <string name="translate_page_glossary_translated">Целевой срок</string>
     <string name="translate_page_glossary_add">Добавлять</string>
-    <string name="translate_page_glossary_remove">Удалять</string>
     <string name="translate_page_glossary_empty">Нет записей в глоссарии</string>
     <string name="translate_page_glossary_count">Глоссарий (%1$d записей)</string>
     <string name="translate_page_glossary_added">Добавлена ​​запись в словаре</string>

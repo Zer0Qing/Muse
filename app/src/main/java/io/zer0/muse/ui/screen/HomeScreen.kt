@@ -604,7 +604,21 @@ fun HomeScreen(
                                     originSessionId = state.agentSessionId.orEmpty(),
                                 )
                             }
-                            io.zer0.muse.ui.agentbot.AgentBotScreen(viewModel = botViewModel)
+                            io.zer0.muse.ui.agentbot.AgentBotScreen(
+                                viewModel = botViewModel,
+                                assistantName = state.currentAssistant?.name.orEmpty(),
+                                avatarUri = state.currentAssistant?.avatarImageUrl?.takeIf { it.isNotBlank() },
+                                modelName = state.selectedModelId.orEmpty(),
+                                providers = state.providers,
+                                onOpenModel = { showModelSheet = true },
+                                onOpenProviderSettings = onOpenProviderSettings,
+                                onSwitchAssistant = { assistantId ->
+                                    viewModel.switchAgentAssistant(assistantId)
+                                },
+                                onOpenGroupChats = {
+                                    scope.launch { pagerState.animateScrollToPage(2) }
+                                },
+                            )
                         } else {
                             ChatScreen(
                                 onOpenAssistants = onOpenAssistants,

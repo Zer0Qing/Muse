@@ -7,6 +7,7 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.util.Locale
 import java.util.zip.GZIPOutputStream
 
 /**
@@ -163,8 +164,7 @@ class TarGzExtractorTest {
         put(263, "00")
         // 校验和：所有字节相加
         val sum = h.sumOf { (it.toInt() and 0xff) }
-        put(148, octal(sum.toLong(), 8))
-        h[154] = 0                        // 校验和字段以 NUL 结尾
+        put(148, String.format(Locale.ROOT, "%06o\u0000 ", sum))
         return h
     }
 

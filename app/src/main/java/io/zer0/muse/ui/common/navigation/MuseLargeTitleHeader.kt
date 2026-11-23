@@ -1,7 +1,9 @@
 package io.zer0.muse.ui.common.navigation
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -13,9 +15,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.theme.MuseSpacing
 
 /**
  * v2.0.1: 可滚动大标题头部（设置首页 / 设置子页共用）。
@@ -88,11 +92,17 @@ fun MuseStickyBackButton(onBack: () -> Unit, modifier: Modifier = Modifier) {
  * @param onBack 返回回调；为 null（平板双列右栏）时只渲染标题、不占返回键位。
  */
 @Composable
-fun MuseCompactTitleHeader(title: String, onBack: (() -> Unit)? = null, modifier: Modifier = Modifier) {
+fun MuseCompactTitleHeader(
+    title: String,
+    onBack: (() -> Unit)? = null,
+    modifier: Modifier = Modifier,
+    horizontalPadding: Dp = MusePaddings.pageMargin,
+    actions: (@Composable RowScope.() -> Unit)? = null,
+) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = MusePaddings.pageMargin, vertical = MusePaddings.tightGap),
+            .padding(horizontal = horizontalPadding, vertical = MusePaddings.tightGap),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (onBack != null) {
@@ -112,5 +122,13 @@ fun MuseCompactTitleHeader(title: String, onBack: (() -> Unit)? = null, modifier
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )
+        if (actions != null) {
+            Spacer(Modifier.width(MuseSpacing.sm))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
+                content = actions,
+            )
+        }
     }
 }

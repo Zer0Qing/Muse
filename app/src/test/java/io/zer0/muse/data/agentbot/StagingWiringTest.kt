@@ -29,14 +29,17 @@ class StagingWiringTest {
     }
 
     @Test
-    fun `finished run stages its output before reporting`() {
-        val stageAt = scheduler.indexOf("staging?.stage(");
-        assertTrue("产出必须先落暂存区", stageAt > 0);
-        val eventAt = scheduler.indexOf("BotEventKind.TASK_RESULT_READY", stageAt);
+    fun `workspace tool proposals stage structured content before reporting`() {
+        val stageAt = scheduler.indexOf("stageWorkspaceArtifact = {");
+        assertTrue("候选必须来自工具产生的结构化内容", stageAt > 0);
+        assertTrue("摘要不能作为文件内容", !scheduler.contains("content = result.summary"));
+        val eventAt = scheduler.indexOf("repository.finishExecution(", stageAt);
         assertTrue(
             "暂存要早于结果事件，否则审核阶段拿不到候选",
             stageAt < eventAt,
         )
+        val repository = File("src/main/java/io/zer0/muse/data/agentbot/AgentBotRepository.kt").readText()
+        assertTrue(repository.contains("kind = BotEventKind.TASK_RESULT_READY"))
     }
 
     @Test
@@ -45,17 +48,20 @@ class StagingWiringTest {
             "审核阶段要靠事件里的 staged id 找到候选（用常量而不是字面量，避免两处不一致）",
             scheduler.contains("BotResultApplier.STAGED_MARKER"),
         )
+        assertTrue("结果事件应保留同一回合的全部候选", scheduler.contains("stagedIds.joinToString(\",\")"))
+        assertTrue("后续写入也必须尝试暂存", !scheduler.contains("stagedArtifactRefs.isNotEmpty()"))
     }
 
     @Test
-    fun `baseline hash comes from the step not the run`() {
-        // 一个 run 可能碰多个文件，各步基线不同；run 上根本没有 baseHash 字段。
-        assertTrue(scheduler.contains("repository.listSteps(run.runId)"));
+    fun `staged artifact keeps its actual content and base hashes`() {
+        assertTrue(scheduler.contains("baseHash = StagedArtifactStore.hashSnapshot(baseContent)"))
+        assertTrue(scheduler.contains("sourceRunId = run.runId"))
+        assertTrue("模型摘要不再作为文件正文", !scheduler.contains("content = result.summary"))
     }
 
     @Test
     fun `staging is optional so pure JVM tests still run`() {
-        assertTrue(scheduler.contains("staging?.stage("));
+        assertTrue(scheduler.contains("staging == null"));
     }
 
     @Test

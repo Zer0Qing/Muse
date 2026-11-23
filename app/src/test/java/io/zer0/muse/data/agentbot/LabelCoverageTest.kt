@@ -17,12 +17,17 @@ class LabelCoverageTest {
         File("src/main/java/io/zer0/muse/ui/agentbot/AgentBotScreen.kt").readText()
     }
 
-    private fun blockOf(fnName: String): String {
-        val start = screen.indexOf("private fun $fnName(");
-        require(start > 0) { "找不到 $fnName" };
-        val marker = Character.toString(10.toChar()) + "private fun ";
-        val end = screen.indexOf(marker, start + 10);
-        return screen.substring(start, if (end > 0) end else screen.length);
+    private val cards: String by lazy {
+        File("src/main/java/io/zer0/muse/ui/agentbot/AgentStreamCards.kt").readText()
+    }
+
+    private fun blockOf(source: String, visibility: String, fnName: String): String {
+        val signature = "$visibility fun $fnName("
+        val start = source.indexOf(signature)
+        require(start >= 0) { "找不到 $signature" }
+        val marker = "\n$visibility fun "
+        val end = source.indexOf(marker, start + signature.length)
+        return source.substring(start, if (end > 0) end else source.length)
     }
 
     @Test
@@ -33,7 +38,7 @@ class LabelCoverageTest {
             BotTaskStatus.SUCCEEDED, BotTaskStatus.PARTIAL, BotTaskStatus.FAILED,
             BotTaskStatus.CANCELLED, BotTaskStatus.NEEDS_USER, BotTaskStatus.UNKNOWN,
         );
-        val block = blockOf("statusLabel");
+        val block = blockOf(cards, "internal", "agentStatusLabel");
         val missing = statuses.filter { !block.contains(it) };
         assertTrue(
             "这些状态没有用户可读的文案，内部词会漏到界面上：" + missing,
@@ -43,23 +48,22 @@ class LabelCoverageTest {
 
     @Test
     fun `every error has a user facing label`() {
-        val block = blockOf("errorLabel");
+        val block = blockOf(screen, "private", "agentErrorLabel");
         val missing = AgentBotError.entries.filter { !block.contains(it.name) };
         assertTrue("这些错误没有文案：" + missing, missing.isEmpty());
     }
 
     @Test
     fun `every prompt has a user facing label`() {
-        val block = blockOf("promptLabel");
+        val block = blockOf(cards, "internal", "agentPromptLabel");
         val missing = AgentBotPrompt.entries.filter { !block.contains(it.name) };
         assertTrue("这些提示没有文案：" + missing, missing.isEmpty());
     }
 
     @Test
     fun `no status leaks an internal constant into the ui`() {
-        // 兜底：statusLabel 必须有一个 else 分支返回 status 本身，
-        // 但那条路径不该被走到 —— 上面的穷尽测试保证了这一点。
-        val block = blockOf("statusLabel");
+        // 兜底：agentStatusLabel 必须有一个 else 分支，避免未知状态漏到界面或崩溃。
+        val block = blockOf(cards, "internal", "agentStatusLabel");
         assertTrue(
             "必须有 else 兜底，否则未知状态会崩溃",
             block.contains("else ->"),

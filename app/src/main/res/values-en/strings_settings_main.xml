@@ -1,10 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- ==================== Common ==================== -->
-    <string name="settings_common_cancel">Cancel</string>
-    <string name="settings_common_save">Save</string>
-    <string name="settings_common_delete">Delete</string>
-    <string name="settings_common_close">Close</string>
     <string name="settings_common_add">Add</string>
     <string name="settings_common_show">Show</string>
     <string name="settings_common_hide">Hide</string>
@@ -347,7 +343,6 @@
     <string name="cloud_backup_delete_failed">Delete failed</string>
     <string name="cloud_backup_delete_consequence">This cloud version is removed permanently. If it is your only copy, you lose the cloud fallback.</string>
     <string name="cloud_backup_delete_success">Deleted</string>
-    <string name="cloud_backup_delete_this">Delete</string>
     <string name="cloud_backup_enable">Enable cloud backup</string>
     <string name="cloud_backup_hide_secret">Hide</string>
     <string name="cloud_backup_interval_hint">Shorter intervals mean more frequent uploads, using more data and battery; for large knowledge bases, ≥ 3 days is recommended</string>

@@ -203,7 +203,7 @@ val appModule = module {
     single { SessionRepository(get(), get(), get(), androidContext(), get(), get(), get(), get(), get(), get()) }
     single { io.zer0.muse.data.artifact.ArtifactRepository(get()) } // v1.43: 会话产物仓库
     single {
-        AssistantRepository(get(), androidContext(), get(), get(), get())
+        AssistantRepository(get(), androidContext(), get(), get(), get(), get())
     } // Phase 8.2 + v1.0.51 注入 SettingsRepository;P0-10 注入 FactDbProvider(删助手清分库);删除时连带清记忆
     single { LorebookRepository(get()) } // Phase 8.5
     single { io.zer0.muse.worldbook.WorldBookRepository(get()) } // P1-2: Worldbook 动态世界书
@@ -272,6 +272,8 @@ val appModule = module {
     single { get<MuseDb>().pendingThoughtWriteDao() }
     single { get<MuseDb>().proactiveOutcomeDao() }
     single { get<MuseDb>().proactiveRelationDao() }
+    single { get<MuseDb>().proactiveBacklogDao() }
+    single { get<MuseDb>().proactiveBacklogScheduleDao() }
     // 三张表各自的读写口（读写分离：读在巡检热路径，写在记账冷路径）
     single { io.zer0.muse.data.proactive.ProactiveRelationRepository(get()) }
     single {
@@ -311,6 +313,67 @@ val appModule = module {
             proactiveSessionPreferences = get(),
         )
     }
+    single { io.zer0.muse.data.proactive.ProactiveBacklogRepository(get(), get(), get()) }
+    single {
+        io.zer0.muse.data.proactive.ProactiveBacklogPublisher(
+            database = get<MuseDb>(),
+            sessions = get(),
+            relations = get(),
+            schedule = get(),
+        )
+    }
+    single {
+        io.zer0.muse.proactive.ProactiveBacklogDispatcher(
+            backlog = get(),
+            stores = get(),
+            runtime = get(),
+            loader = get(),
+            composer = get(),
+            publisher = get(),
+            onCuePublished = { assistantId, sessionId, title, content ->
+                if (io.zer0.muse.feature.FeatureFlags.AGENT_BOT) {
+                    val repo = get<io.zer0.muse.data.agentbot.AgentBotRepository>()
+                    val targetSession = repo.getBindingForAssistant(assistantId)
+                        ?.canonicalAgentSessionId
+                        ?.takeIf { it.isNotBlank() }
+                        ?: sessionId
+                    val actions = listOf(
+                        io.zer0.muse.data.agentbot.AgentStreamCoordinator.ChoiceOption(
+                            id = "cue_follow_up",
+                            label = "展开处理这件事",
+                            prompt = "继续跟进你刚才提到的「$title」，给我一个可直接执行的方案。",
+                        ),
+                    )
+                    repo.upsertMessageCard(
+                        io.zer0.muse.data.agentbot.BotMessageCardEntity(
+                            cardId = "cue:${java.util.UUID.randomUUID()}",
+                            botId = assistantId,
+                            originSessionId = targetSession,
+                            cardKind = io.zer0.muse.data.agentbot.BotCardKind.CUE_BRIEFING,
+                            title = title,
+                            subtitle = content.take(220),
+                            payloadJson = io.zer0.common.AppJson.encodeToString(
+                                kotlinx.serialization.builtins.ListSerializer(
+                                    io.zer0.muse.data.agentbot.AgentStreamCoordinator.ChoiceOption.serializer(),
+                                ),
+                                actions,
+                            ),
+                        ),
+                    )
+                }
+            },
+        )
+    }
+    single { io.zer0.muse.proactive.ProactiveNotificationRecovery(get(), get()) }
+    single {
+        io.zer0.muse.proactive.ProactiveBacklogWorkScheduler(
+            context = androidContext(),
+            dispatcher = get(),
+            notifications = get(),
+            scope = get(),
+        )
+    }
+    single { io.zer0.muse.ui.theme.ThemeScheduler.create(androidContext(), get<SettingsRepository>()) }
     single { io.zer0.muse.data.assistant.AgentDirectiveStore.of(androidContext()) }
     single {
         io.zer0.muse.proactive.ProactiveComposer(
@@ -337,6 +400,8 @@ val appModule = module {
             loader = get(),
             composer = get(),
             guard = get(),
+            backlog = get(),
+            backlogWorkScheduler = get(),
         )
     }
     single {
@@ -522,18 +587,90 @@ val appModule = module {
     // ── Agent 中枢（Task 1 账本 + Task 2 执行器）────────────────────────
     // 仓储是唯一写入口：状态转移、事件生成、审批 CAS 全在这里。
     single {
+        val database = get<io.zer0.muse.data.session.MuseDb>()
         io.zer0.muse.data.agentbot.AgentBotRepository(
-            taskDao = get<io.zer0.muse.data.session.MuseDb>().botTaskDao(),
-            runDao = get<io.zer0.muse.data.session.MuseDb>().taskRunDao(),
-            stepDao = get<io.zer0.muse.data.session.MuseDb>().taskStepDao(),
-            eventDao = get<io.zer0.muse.data.session.MuseDb>().botEventDao(),
-            approvalDao = get<io.zer0.muse.data.session.MuseDb>().approvalRequestDao(),
-            publicationDao = get<io.zer0.muse.data.session.MuseDb>().publicationOutboxDao(),
-            bindingDao = get<io.zer0.muse.data.session.MuseDb>().botBindingDao(),
+            taskDao = database.botTaskDao(),
+            runDao = database.taskRunDao(),
+            stepDao = database.taskStepDao(),
+            eventDao = database.botEventDao(),
+            approvalDao = database.approvalRequestDao(),
+            publicationDao = database.publicationOutboxDao(),
+            bindingDao = database.botBindingDao(),
+            database = database,
+            annotationDao = database.botAnnotationDao(),
+            cardDao = database.botMessageCardDao(),
+            routineDao = database.botRoutineDao(),
         )
     }
 
-    // 中枢页面 ViewModel。分片状态 + 输入接纳 + 任务看板，不持有生成状态。
+    single {
+        io.zer0.muse.data.agentbot.BotAnnotationService(
+            dao = get<io.zer0.muse.data.session.MuseDb>().botAnnotationDao(),
+        )
+    }
+
+    single { io.zer0.muse.data.agentbot.LiveMissionProgressBus() }
+    single { io.zer0.muse.data.agentbot.AgentModelRouter(androidContext()) }
+    single { io.zer0.muse.data.agentbot.AgentSquadIdentityStore(androidContext()) }
+    single { io.zer0.muse.data.agentbot.AgentTeachRecorder() }
+
+    single {
+        io.zer0.muse.data.agentbot.AgentCapabilityPromptBuilder(
+            runtimeReadyProvider = { io.zer0.muse.runtime.RuntimeBridge.isReady(androidContext()) },
+            deviceProfileProvider = {
+                runCatching {
+                    val perm = getOrNull<io.zer0.muse.automation.core.AutomationManager>()?.permissionState?.value
+                    val runtimeReady = io.zer0.muse.runtime.RuntimeBridge.isReady(androidContext())
+                    val vdActive = io.zer0.muse.automation.vdisplay.VirtualDisplayHandoffRegistry
+                        .list(System.currentTimeMillis()).isNotEmpty()
+                    io.zer0.muse.automation.capability.DeviceCapabilityProfile.fromFlags(
+                        accessibility = perm?.accessibilityEnabled == true,
+                        shizuku = perm?.shellEnabled == true,
+                        root = perm?.rootEnabled == true,
+                        virtualDisplay = vdActive || perm?.shellEnabled == true || perm?.rootEnabled == true,
+                        nodeRuntime = runtimeReady,
+                        sandboxAvailable = runtimeReady,
+                    )
+                }.getOrNull()
+            },
+            activeChannelsProvider = {
+                getOrNull<io.zer0.muse.channel.ChannelManager>()?.channels?.value
+                    ?.filter { it.enabled }
+                    ?.map { it.name.ifBlank { it.platform.name } }
+                    .orEmpty()
+            },
+            squadRosterProvider = {
+                val identities = get<io.zer0.muse.data.agentbot.AgentSquadIdentityStore>()
+                getOrNull<io.zer0.muse.data.assistant.AssistantRepository>()?.getAll().orEmpty().map { a ->
+                    io.zer0.muse.data.agentbot.AgentCapabilityPromptBuilder.SquadMemberSummary(
+                        id = a.id,
+                        name = a.name,
+                        roleHint = identities.specialtyOf(a.id),
+                    )
+                }
+            },
+        )
+    }
+
+    single {
+        io.zer0.muse.data.agentbot.AgentStreamCoordinator(
+            streamingClient = io.zer0.muse.data.agentbot.AgentStreamCoordinator.fromChatService(
+                get<io.zer0.ai.ChatService>(),
+            ),
+            publication = get(),
+            governor = get(),
+        )
+    }
+
+    single {
+        io.zer0.muse.data.agentbot.AgentRoutineEngine(
+            repository = get(),
+            scheduler = get(),
+            scheduledTaskDao = get<io.zer0.muse.data.session.MuseDb>().scheduledTaskDao(),
+        )
+    }
+
+    // 中枢页面 ViewModel。分片状态 + 原生流式双轨 + 气泡角标 + 实时工作台。
     viewModel {
         io.zer0.muse.ui.agentbot.AgentBotViewModel(
             repository = get(),
@@ -548,6 +685,18 @@ val appModule = module {
             resultApplier = get(),
             restorer = get(),
             results = get(),
+            streamCoordinator = get(),
+            promptBuilder = get(),
+            annotationService = get(),
+            progressBus = get(),
+            modelRouter = get(),
+            configStore = get(),
+            routineEngine = get(),
+            squadIdentities = get(),
+            teachRecorder = get(),
+            assistantRepository = getOrNull(),
+            channelManager = getOrNull(),
+            artifactRepository = getOrNull(),
         )
     }
     // 候选产物暂存区。任务产出先落这里，审核通过且版本最新才应用到目标 ——
@@ -571,15 +720,17 @@ val appModule = module {
             repository = get(),
             staging = get(),
             reviewer = get(),
-            readTarget = { ref -> get<io.zer0.muse.data.agentbot.WorkspaceArtifactIO>().read(ref) },
-            writeTarget = { ref, content ->
-                get<io.zer0.muse.data.agentbot.WorkspaceArtifactIO>().write(ref, content)
-            },
+            workspaceManager = get(),
         )
     }
     // 关闭再启用中枢时的对账（V22）。不是重启对账 —— 语义不同：
     // 关掉期间没人跑，所以 RUNNING 的 run 一定是死租约。
-    single { io.zer0.muse.data.agentbot.AgentBotModeReconciler(repository = get()) }
+    single {
+        io.zer0.muse.data.agentbot.AgentBotModeReconciler(
+            repository = get(),
+            approvalService = get(),
+        )
+    }
 
     // 对话流重建器。规则多（两段读 / 会话切换 / 内存合并 / 稳定排序），
     // 抽成独立组件才能逐条断言。
@@ -612,10 +763,10 @@ val appModule = module {
     single {
         io.zer0.muse.data.agentbot.ApprovalService(
             repository = get(),
-            onSettled = { taskId, approvalId, approved ->
+            onSettled = { taskId, approvalId, status ->
                 val repo = get<io.zer0.muse.data.agentbot.AgentBotRepository>()
-                // 批准 → 回队列重跑；拒绝 → 交回给用户决定（NEEDS_USER）。
-                val event = if (approved) {
+                // 批准后等待用户确认继续；拒绝、过期和参数失效都转交用户决定。
+                val event = if (status == io.zer0.muse.data.agentbot.ApprovalStatus.APPROVED) {
                     io.zer0.muse.data.agentbot.BotTaskStatusMachine.Event.RESUME_FROM_APPROVAL
                 } else {
                     io.zer0.muse.data.agentbot.BotTaskStatusMachine.Event.REVIEW_NEEDS_USER
@@ -626,13 +777,9 @@ val appModule = module {
                     originSessionId = repo.getTask(taskId)?.originSessionId.orEmpty(),
                     taskId = taskId,
                     runId = "",
-                    kind = if (approved) {
-                        io.zer0.muse.data.agentbot.BotEventKind.APPROVAL_RESOLVED
-                    } else {
-                        io.zer0.muse.data.agentbot.BotEventKind.APPROVAL_RESOLVED
-                    },
+                    kind = io.zer0.muse.data.agentbot.BotEventKind.APPROVAL_RESOLVED,
                     dedupeKey = "approval-settled:" + approvalId,
-                    payloadRef = if (approved) "approved" else "denied",
+                    payloadRef = status.lowercase(),
                 )
             },
         )
@@ -690,7 +837,13 @@ val appModule = module {
             applier = get(),
             toolRegistryRef = get(),
             workspaceIO = get(),
+            workspaceManager = get(),
             context = androidContext(),
+            approvalService = get(),
+            progressBus = get(),
+            modelRouter = get(),
+            configStore = get(),
+            annotationService = get(),
         )
     }
 

@@ -22,6 +22,7 @@ import io.zer0.common.Logger
  */
 class AgentBotModeReconciler(
     private val repository: AgentBotRepository,
+    private val approvalService: ApprovalService = ApprovalService(repository),
 ) {
 
     /** 对账结果，供界面提示用户。 */
@@ -59,7 +60,7 @@ class AgentBotModeReconciler(
 
         // 2) 挂着的审批：用户关掉功能期间看不到卡片，期限已过。
         //    用 EXPIRED 而不是 DENIED —— 用户没拒绝，只是没机会看见。
-        val expired = repository.expireApprovals()
+        val expired = approvalService.sweepExpired()
 
         // 3) 数剩余。
         val tasks = repository.listTasks(botId)

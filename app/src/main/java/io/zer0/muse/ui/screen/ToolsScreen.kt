@@ -141,14 +141,7 @@ fun ToolsScreen(onBack: () -> Unit) {
                     CardGroup(
                         modifier = Modifier.padding(horizontal = MusePaddings.screen),
                         title = {
-                            Column {
-                                Text(text = stringResource(R.string.tools_plugins_section))
-                                Text(
-                                    text = stringResource(R.string.tools_plugins_desc),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    modifier = Modifier.padding(top = 2.dp),
-                                )
-                            }
+                            Text(text = stringResource(R.string.tools_plugins_section))
                         },
                     ) {
                         PluginManifest.BUILT_IN.forEach { plugin ->

@@ -18,15 +18,20 @@ class AgentBotWiringContractTest {
     private val viewModel: String by lazy {
         File("src/main/java/io/zer0/muse/ui/agentbot/AgentBotViewModel.kt").readText()
     }
+    private val repository: String by lazy {
+        File("src/main/java/io/zer0/muse/data/agentbot/AgentBotRepository.kt").readText()
+    }
 
     @Test
     fun `input is released before the model call`() {
         val sendStart = viewModel.indexOf("fun send()")
         assertTrue("send() 必须存在", sendStart > 0);
-        val body = viewModel.substring(sendStart, minOf(sendStart + 3200, viewModel.length));
+        val sendEnd = viewModel.indexOf("private suspend fun runForegroundTurn(", sendStart)
+        val body = viewModel.substring(sendStart, if (sendEnd > sendStart) sendEnd else viewModel.length)
 
-        val releaseAt = body.indexOf("ui.setSending(false)");
-        val modelAt = body.indexOf("runForegroundTurn(");
+        val composerAt = body.indexOf("ui.setComposerText(\"\")");
+        val releaseAt = body.indexOf("ui.setSending(false)", composerAt)
+        val modelAt = body.indexOf("foregroundTurnJob = viewModelScope.launch")
         assertTrue(
             "必须先放开输入再调模型，否则发送中会一直亮到模型答完",
             releaseAt in 0 until modelAt,
@@ -68,7 +73,7 @@ class AgentBotWiringContractTest {
     fun `dispatch records which message triggered it`() {
         assertTrue(
             "派工必须记住来源消息，审核阶段要能回溯",
-            viewModel.contains("requestMessageId = acceptedMessageId"),
+            viewModel.contains("requestId = accepted.messageId") && repository.contains("requestMessageId = identity.requestId"),
         )
         assertFalse(
             "不能留空字符串",
@@ -77,10 +82,10 @@ class AgentBotWiringContractTest {
     }
 
     @Test
-    fun `message id comes from the accepted batch not from a guess`() {
+    fun `message id comes from the accepted input not from a guess`() {
         assertTrue(
             "来源消息 id 必须来自 facade 的接纳结果",
-            viewModel.contains("accepted.batchId"),
+            viewModel.contains("accepted.messageId"),
         )
     }
 

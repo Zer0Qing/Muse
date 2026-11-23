@@ -51,6 +51,18 @@
     <string name="settings_agent_offset_hours_minutes">± %1$d h %2$d min</string>
 
     <!-- Appearance / Theme -->
+    <string name="settings_theme_policy_off">Off</string>
+    <string name="settings_theme_policy_custom_time">Custom time</string>
+    <string name="settings_theme_policy_sunrise_sunset">Sunrise / sunset</string>
+    <string name="settings_theme_schedule_parse_error">Automatic theme settings could not be read. Automation is off; your base theme setting is unchanged.</string>
+    <string name="settings_theme_solar_permission_required">Approximate location permission is required. The base theme is being used.</string>
+    <string name="settings_theme_solar_location_unavailable">No location cache is available. The base theme is being used.</string>
+    <string name="settings_theme_solar_events_unavailable">The sunrise and sunset for today could not be calculated. The base theme is being used.</string>
+    <string name="settings_theme_solar_cache_unavailable">The sunrise and sunset for today are unavailable.</string>
+    <string name="settings_theme_solar_polar_day">The sun stays above the horizon all day.</string>
+    <string name="settings_theme_solar_polar_night">The sun stays below the horizon all day.</string>
+    <string name="settings_theme_solar_times">Sunrise %1$s · Sunset %2$s</string>
+    <string name="settings_theme_solar_location_updated">Location cache updated %1$s</string>
     <string name="settings_theme_appearance">Appearance</string>
     <string name="settings_theme_follow_system">Follow System</string>
     <string name="settings_theme_light">Light</string>
@@ -130,8 +142,6 @@
     <string name="prompt_template_manager_built_in">Built-in</string>
     <string name="prompt_template_manager_move_up">Move up</string>
     <string name="prompt_template_manager_move_down">Move down</string>
-    <string name="prompt_template_manager_edit">Edit</string>
-    <string name="prompt_template_manager_delete">Delete</string>
     <string name="prompt_template_manager_delete_confirm">Delete template "%1$s"?</string>
     <string name="prompt_template_manager_add">New Template</string>
     <string name="prompt_template_manager_category">Category</string>
@@ -322,8 +332,6 @@
     <string name="settings_rag_manage_kbs">Manage Knowledge Bases</string>
     <string name="kb_manage_create">New Knowledge Base</string>
     <string name="kb_manage_desc_label">Description (optional)</string>
-    <string name="kb_manage_edit">Edit</string>
-    <string name="kb_manage_delete">Delete</string>
     <string name="kb_manage_delete_confirm">Delete knowledge base "%1$s"?</string>
     <string name="kb_manage_default_no_delete">The default knowledge base cannot be deleted</string>
     <string name="kb_manage_doc_count">%1$d documents</string>
@@ -435,8 +443,6 @@
     <string name="settings_theme_custom_secondary_color">Secondary color (optional)</string>
     <string name="settings_theme_custom_tertiary_color">Tertiary color (optional)</string>
     <string name="settings_theme_custom_preview">Color preview</string>
-    <string name="settings_theme_custom_save">Save</string>
-    <string name="settings_theme_custom_delete">Delete</string>
     <string name="settings_theme_custom_delete_confirm">Delete this theme?</string>
     <string name="settings_theme_custom_delete_confirm_msg">This cannot be undone. Interfaces using this theme will fall back to the default theme.</string>
     <string name="settings_theme_custom_export">Export theme</string>

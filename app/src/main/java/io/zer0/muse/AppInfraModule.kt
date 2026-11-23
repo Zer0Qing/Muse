@@ -40,6 +40,25 @@ val appInfraModule = module {
         BackupService(
             get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(),
             ragIndexInvalidator = { get<io.zer0.muse.rag.RagService>().invalidateAfterRestore() },
+            afterRestore = {
+                val container = org.koin.core.context.GlobalContext.getOrNull()
+                if (container != null) {
+                    val now = System.currentTimeMillis()
+                    val backlog = container.get<io.zer0.muse.data.proactive.ProactiveBacklogRepository>()
+                    backlog.releaseExpiredClaims(now)
+                    container.get<io.zer0.muse.proactive.ProactiveNotificationRecovery>().recover(now)
+                    container.get<io.zer0.muse.data.assistant.AssistantRepository>().getAll().forEach { assistant ->
+                        backlog.reconcile(now, assistant.id, "")
+                    }
+                    container.get<io.zer0.muse.proactive.ProactiveBacklogWorkScheduler>().enqueueIfNeeded()
+                    if (io.zer0.muse.feature.FeatureFlags.AGENT_BOT) {
+                        container.get<io.zer0.muse.data.agentbot.BotTaskScheduler>().reconcileAfterRestart()
+                    }
+                    container.get<io.zer0.muse.ui.theme.ThemeScheduler>().reconcile(
+                        io.zer0.muse.ui.theme.ThemeReconcileReason.APP_START,
+                    )
+                }
+            },
         )
     }
 

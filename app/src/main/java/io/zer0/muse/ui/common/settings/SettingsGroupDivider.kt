@@ -5,8 +5,9 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import io.zer0.muse.ui.common.surface.museDividerStartIndent
+import io.zer0.muse.ui.theme.MuseAlpha
+import io.zer0.muse.ui.theme.MuseBorderWidth
 
 /**
  * 分组内分隔线 — 用在 [SettingsGroup] 的两个 item 之间。
@@ -26,7 +27,7 @@ fun SettingsGroupDivider(hasLeading: Boolean = true, visible: Boolean = false) {
     if (!visible) return
     HorizontalDivider(
         modifier = Modifier.padding(start = museDividerStartIndent(hasLeading)),
-        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.08f),
-        thickness = 0.6.dp,
+        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = MuseAlpha.pressedOverlay),
+        thickness = MuseBorderWidth.hairline,
     )
 }

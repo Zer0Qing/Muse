@@ -40,6 +40,7 @@ enum class OutcomeState {
         Index(value = ["assistantId", "sentAt"], name = "index_proactive_outcome_assistant"),
         Index(value = ["thoughtId"], name = "index_proactive_outcome_thought"),
         Index(value = ["state"], name = "index_proactive_outcome_state"),
+        Index(value = ["notificationState", "notificationNextAttemptAt"], name = "index_proactive_outcome_notification"),
     ],
 )
 data class ProactiveOutcomeEntity(
@@ -58,8 +59,22 @@ data class ProactiveOutcomeEntity(
     @ColumnInfo(defaultValue = "NULL") val dismissedAt: Long? = null,
     /** [OutcomeState] 的 name。 */
     @ColumnInfo(defaultValue = "PENDING") val state: String = OutcomeState.PENDING.name,
+    @ColumnInfo(defaultValue = "NONE") val notificationState: String = ProactiveNotificationState.NONE,
+    @ColumnInfo(defaultValue = "0") val notificationId: Int = 0,
+    @ColumnInfo(defaultValue = "") val notificationTitle: String = "",
+    @ColumnInfo(defaultValue = "") val notificationPreview: String = "",
+    @ColumnInfo(defaultValue = "NULL") val notificationError: String? = null,
+    @ColumnInfo(defaultValue = "0") val notificationAttempts: Int = 0,
+    @ColumnInfo(defaultValue = "0") val notificationNextAttemptAt: Long = 0L,
 ) {
     fun stateEnum(): OutcomeState = OutcomeState.entries.firstOrNull { it.name == state } ?: OutcomeState.PENDING
+}
+
+object ProactiveNotificationState {
+    const val NONE = "NONE"
+    const val PENDING = "PENDING"
+    const val POSTED = "POSTED"
+    const val FAILED = "FAILED"
 }
 
 @Dao
@@ -68,8 +83,45 @@ interface ProactiveOutcomeDao {
     @Upsert
     suspend fun upsert(outcome: ProactiveOutcomeEntity)
 
+    @androidx.room.Insert(onConflict = androidx.room.OnConflictStrategy.IGNORE)
+    suspend fun insertIfAbsent(outcome: ProactiveOutcomeEntity): Long
+
     @Query("SELECT * FROM proactive_outcome WHERE id = :id")
     suspend fun getById(id: String): ProactiveOutcomeEntity?
+
+    @Query(
+        "UPDATE proactive_outcome SET state = :nextState, " +
+            "openedAt = CASE WHEN :nextState = 'OPENED' THEN :at ELSE openedAt END, " +
+            "repliedAt = CASE WHEN :nextState = 'REPLIED' THEN :at ELSE repliedAt END, " +
+            "dismissedAt = CASE WHEN :nextState = 'DISMISSED' THEN :at ELSE dismissedAt END " +
+            "WHERE id = :id AND state = :expectedState",
+    )
+    suspend fun transition(id: String, expectedState: String, nextState: String, at: Long): Int
+
+    @Query(
+        "SELECT * FROM proactive_outcome WHERE notificationState IN ('PENDING', 'FAILED') " +
+            "AND notificationNextAttemptAt <= :now ORDER BY sentAt ASC, id ASC LIMIT :limit",
+    )
+    suspend fun getNotificationRecoveryBatch(now: Long, limit: Int): List<ProactiveOutcomeEntity>
+
+    @Query(
+        "SELECT MIN(notificationNextAttemptAt) FROM proactive_outcome " +
+            "WHERE notificationState IN ('PENDING', 'FAILED')",
+    )
+    suspend fun getNextNotificationRecoveryAt(): Long?
+
+    @Query(
+        "UPDATE proactive_outcome SET notificationState = 'POSTED', notificationError = NULL " +
+            "WHERE id = :id AND notificationState IN ('PENDING', 'FAILED')",
+    )
+    suspend fun markNotificationPosted(id: String): Int
+
+    @Query(
+        "UPDATE proactive_outcome SET notificationState = 'FAILED', notificationError = :error, " +
+            "notificationAttempts = notificationAttempts + 1, notificationNextAttemptAt = :nextAttemptAt " +
+            "WHERE id = :id AND notificationState IN ('PENDING', 'FAILED')",
+    )
+    suspend fun markNotificationFailed(id: String, error: String, nextAttemptAt: Long): Int
 
     /**
      * 找最近一条还在等反应的消息。

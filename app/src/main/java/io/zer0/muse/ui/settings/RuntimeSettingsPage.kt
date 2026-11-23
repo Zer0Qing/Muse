@@ -1,6 +1,9 @@
 package io.zer0.muse.ui.settings
 
 import android.text.format.Formatter
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,8 +17,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -25,16 +30,24 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
 import io.zer0.muse.runtime.RuntimeInstallService
 import io.zer0.muse.runtime.RuntimeInstallStatus
+import io.zer0.muse.runtime.RuntimeInstallOperation
+import io.zer0.muse.runtime.RuntimeInstallPhase
 import io.zer0.muse.runtime.RuntimeInstaller
 import io.zer0.muse.runtime.RuntimeManager
 import io.zer0.muse.runtime.RuntimeState
 import io.zer0.muse.runtime.RuntimeStore
+import io.zer0.muse.runtime.RuntimeVersion
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.settings.SectionLabel
 import io.zer0.muse.ui.common.settings.SettingsGroup
-import io.zer0.muse.ui.common.settings.SettingsGroupDivider
+import io.zer0.muse.ui.runtime.RuntimeVersionPicker
+import io.zer0.muse.ui.runtime.RuntimeCustomUrlDialog
 import io.zer0.muse.ui.theme.MusePaddings
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.IOException
 
 /**
  * 运行时设置页：显示安装状态、占用空间，并提供安装 / 卸载入口。
@@ -55,8 +68,36 @@ fun RuntimeSettingsPage(onBack: () -> Unit) {
             installer = RuntimeInstaller(context, RuntimeStore(context)),
         )
     }
+    var versions by remember { mutableStateOf<List<RuntimeVersion>>(emptyList()) }
+    var operation by remember { mutableStateOf<RuntimeInstallOperation?>(null) }
+    var showVersionPicker by remember { mutableStateOf(false) }
+    var customUrlVersion by remember { mutableStateOf<RuntimeVersion?>(null) }
+    var localInstallRevision by remember { mutableStateOf<String?>(null) }
+    val localArchivePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        val revision = localInstallRevision
+        val version = versions.firstOrNull { it.revision == revision }
+        if (uri != null && version != null) {
+            scope.launch {
+                try {
+                    val archive = copySelectedArchive(context, uri, version)
+                    RuntimeInstallService.startLocal(context, version.revision, archive)
+                } catch (error: Exception) {
+                    RuntimeInstallStatus.fail(error.message)
+                }
+            }
+        }
+        localInstallRevision = null
+    }
 
-    LaunchedEffect(Unit) { RuntimeInstallStatus.refresh(context) }
+    LaunchedEffect(manager) {
+        versions = runCatching { manager.versions() }.getOrElse { error ->
+            RuntimeInstallStatus.fail(error.message)
+            emptyList()
+        }
+        RuntimeInstallStatus.refresh(context)
+        operation = manager.operation()
+    }
+    LaunchedEffect(state, progress, error) { operation = manager.operation() }
 
     SettingsSubPageScaffold(
         title = stringResource(R.string.offline_resources_title),
@@ -107,14 +148,42 @@ fun RuntimeSettingsPage(onBack: () -> Unit) {
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Button(
-                        onClick = { RuntimeInstallService.start(context) },
-                        enabled = progress == null && state !is RuntimeState.Ready,
-                    ) {
-                        Text(stringResource(R.string.runtime_card_install))
+                    if (progress != null) {
+                        TextButton(onClick = { RuntimeInstallService.cancel(context) }) {
+                            Text(stringResource(R.string.runtime_action_cancel))
+                        }
+                    } else {
+                        Button(onClick = { showVersionPicker = true }) {
+                            Text(
+                                stringResource(
+                                    if (state is RuntimeState.Ready) R.string.runtime_action_update
+                                    else R.string.runtime_card_install,
+                                ),
+                            )
+                        }
                     }
                     if (state is RuntimeState.Ready) {
                         TextButton(
+                            enabled = progress == null,
+                            onClick = { RuntimeInstallService.startRepair(context) },
+                        ) {
+                            Text(stringResource(R.string.runtime_action_repair))
+                        }
+                        if (manager.hasRollbackVersion()) {
+                            TextButton(
+                                enabled = progress == null,
+                                onClick = {
+                                    scope.launch {
+                                        manager.rollback()
+                                        RuntimeInstallStatus.refresh(context)
+                                    }
+                                },
+                            ) {
+                                Text(stringResource(R.string.runtime_action_rollback))
+                            }
+                        }
+                        TextButton(
+                            enabled = progress == null,
                             onClick = {
                                 scope.launch {
                                     manager.uninstall()
@@ -122,7 +191,16 @@ fun RuntimeSettingsPage(onBack: () -> Unit) {
                                 }
                             },
                         ) {
-                            Text(stringResource(R.string.runtime_card_later))
+                            Text(stringResource(R.string.runtime_action_uninstall))
+                        }
+                    }
+                    if (
+                        progress == null &&
+                            (operation?.phase == RuntimeInstallPhase.CANCELLED ||
+                                operation?.phase == RuntimeInstallPhase.FAILED_RETRYABLE)
+                    ) {
+                        TextButton(onClick = { RuntimeInstallService.startResume(context) }) {
+                            Text(stringResource(R.string.runtime_action_resume))
                         }
                     }
                 }
@@ -157,6 +235,43 @@ fun RuntimeSettingsPage(onBack: () -> Unit) {
             }
         }
 
+        item {
+            if (showVersionPicker) {
+                RuntimeVersionPicker(
+                    versions = versions,
+                    currentRevision = manager.currentRevision(),
+                    onDismiss = { showVersionPicker = false },
+                    onInstallRemote = { version ->
+                        showVersionPicker = false
+                        RuntimeInstallService.startSelected(context, version.revision)
+                    },
+                    onInstallLocal = { version ->
+                        showVersionPicker = false
+                        localInstallRevision = version.revision
+                        localArchivePicker.launch(
+                            arrayOf("application/gzip", "application/x-gzip", "application/octet-stream"),
+                        )
+                    },
+                    onInstallCustom = { version ->
+                        showVersionPicker = false
+                        customUrlVersion = version
+                    },
+                )
+            }
+        }
+        item {
+            customUrlVersion?.let { version ->
+                RuntimeCustomUrlDialog(
+                    version = version,
+                    onDismiss = { customUrlVersion = null },
+                    onInstall = { url, sha256 ->
+                        customUrlVersion = null
+                        RuntimeInstallService.startCustomUrl(context, version.revision, url, sha256)
+                    },
+                )
+            }
+        }
+
         // 语音模型和运行环境是同一类东西（都是几百 MB 的按需下载），
         // 以前一个在语音设置页里再点一层、一个在数据与备份里，用户得记住两处。
         // 现在统一在这页：先看清单，再决定下哪个。
@@ -177,3 +292,35 @@ fun RuntimeSettingsPage(onBack: () -> Unit) {
         }
     }
 }
+
+private suspend fun copySelectedArchive(context: android.content.Context, uri: Uri, version: RuntimeVersion): File =
+    withContext(Dispatchers.IO) {
+        val directory = File(context.filesDir, "runtime/imports").apply { mkdirs() }
+        if (!directory.isDirectory) throw IOException("无法创建本地归档目录")
+        val destination = File(directory, "import-${version.revision}-${System.currentTimeMillis()}.tar.gz")
+        try {
+            val input = context.contentResolver.openInputStream(uri)
+                ?: throw IOException("无法读取所选文件")
+            input.use { source ->
+                destination.outputStream().use { output ->
+                    val buffer = ByteArray(64 * 1024)
+                    var copied = 0L
+                    while (true) {
+                        val read = source.read(buffer)
+                        if (read < 0) break
+                        if (read == 0) continue
+                        copied += read
+                        if (copied > version.archive.sizeBytes) throw IOException("本地归档大于所选版本的声明大小")
+                        output.write(buffer, 0, read)
+                    }
+                    if (copied != version.archive.sizeBytes) {
+                        throw IOException("本地归档大小不匹配：$copied/${version.archive.sizeBytes} bytes")
+                    }
+                }
+            }
+            destination
+        } catch (error: Exception) {
+            destination.delete()
+            throw error
+        }
+    }

@@ -27,6 +27,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -77,6 +78,7 @@ import io.zer0.muse.ui.common.settings.SettingsSwitchRow
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.common.surface.museSafeTopInsetPadding
 import io.zer0.muse.ui.theme.MuseAnimation
+import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
@@ -106,6 +108,7 @@ fun SettingsSubPageScaffold(
     onBack: (() -> Unit)? = null,
     /** 搜索直达时先滚到的 item 下标(null 表示普通进组,保持顶部)。 */
     focusItemIndex: Int? = null,
+    headerActions: (@Composable androidx.compose.foundation.layout.RowScope.() -> Unit)? = null,
     content: LazyListScope.() -> Unit,
 ) {
     // 双平面翻新: 子页改用紧凑标题（item 0，圆底返回键 + 22sp 同排），随滚动推出。
@@ -173,11 +176,12 @@ fun SettingsSubPageScaffold(
                     verticalArrangement = Arrangement.spacedBy(MusePaddings.cardGap),
                 ) {
                     item(key = "settings_large_header") {
-                        // offset 抵消列表的水平内边距：紧凑标题/圆底返回键与卡片同一水平基准(pageMargin)。
+                        // LazyColumn 已有 pageMargin 水平内边距，头部设 0.dp 让左右按钮与卡片边缘严格对齐。
                         MuseCompactTitleHeader(
                             title = title,
                             onBack = onBack,
-                            modifier = Modifier.offset(x = -MusePaddings.pageMargin),
+                            horizontalPadding = 0.dp,
+                            actions = headerActions,
                         )
                     }
                     content()
@@ -280,21 +284,47 @@ fun SettingsModelPage(
                     coroutineScope {
                         list.map { config ->
                             async(Dispatchers.IO) {
-                                val status: ProviderTestStatus = if (config.apiKey.isBlank()) {
-                                    // 无 API Key 直接判失败,不发网络请求
+                                val isLocalEndpoint = config.baseUrl.contains("localhost", ignoreCase = true) ||
+                                    config.baseUrl.contains("127.0.0.1") ||
+                                    config.baseUrl.contains("10.0.2.2") ||
+                                    config.baseUrl.contains("::1")
+                                val status: ProviderTestStatus = if (config.apiKey.isBlank() && !isLocalEndpoint) {
+                                    // 无 API Key 且非本地端点，直接判失败，不发网络请求
                                     ProviderTestStatus.Failed(
                                         context.getString(R.string.settings_provider_test_skip_no_key),
                                     )
                                 } else {
                                     val start = System.currentTimeMillis()
-                                    val result = resultOf {
-                                        ProviderRegistry.create(config).listModels(config)
+                                    val provider = ProviderRegistry.create(config)
+                                    val probeModelId = config.models.firstOrNull { it.id.isNotBlank() }?.id
+                                    val outcome: Result<Int> = if (probeModelId != null) {
+                                        val health = resultOf {
+                                            provider.healthCheck(
+                                                io.zer0.ai.core.Model(id = probeModelId, providerId = config.id),
+                                            )
+                                        }
+                                        when (health) {
+                                            is Result.Success -> if (health.data.success) {
+                                                Result.Success(config.models.size)
+                                            } else {
+                                                Result.Error(
+                                                    message = health.data.message ?: "health check failed",
+                                                    throwable = IllegalStateException(health.data.message ?: "health check failed"),
+                                                )
+                                            }
+                                            is Result.Error -> health
+                                        }
+                                    } else {
+                                        when (val listed = resultOf { provider.listModels(config) }) {
+                                            is Result.Success -> Result.Success(listed.data.size)
+                                            is Result.Error -> listed
+                                        }
                                     }
                                     val latency = System.currentTimeMillis() - start
-                                    when (result) {
-                                        is Result.Success -> ProviderTestStatus.Success(latency, result.data.size)
+                                    when (outcome) {
+                                        is Result.Success -> ProviderTestStatus.Success(latency, outcome.data)
                                         is Result.Error -> {
-                                            val msg = result.throwable?.message.orEmpty()
+                                            val msg = outcome.throwable?.message ?: outcome.message
                                             val classified = when {
                                                 msg.contains("401") || msg.contains("403") ->
                                                     context.getString(R.string.settings_provider_test_error_auth)
@@ -373,6 +403,10 @@ fun SettingsModelPage(
                 config = config,
                 isNew = isNewProvider,
                 isFromPreset = isFromPreset,
+                isActive = !isNewProvider && config.id == activeProviderId,
+                onActivate = {
+                    scope.launch { settings.setActiveProvider(config.id) }
+                },
                 onDismiss = { editingConfig = null },
                 onSave = { saved ->
                     scope.launch {
@@ -541,7 +575,26 @@ fun SettingsModelPage(
         return
     }
 
-    SettingsSubPageScaffold(title = stringResource(R.string.settings_group_models), onBack = onBack) {
+    var mediaServicesExpanded by remember { mutableStateOf(false) }
+
+    SettingsSubPageScaffold(
+        title = stringResource(R.string.common_provider),
+        onBack = onBack,
+        headerActions = {
+            io.zer0.muse.ui.common.navigation.MuseTopBarIconButton(
+                icon = MuseIcons.qrcode,
+                contentDescription = stringResource(R.string.qr_scan_btn),
+                onClick = { showQrScanDialog = true },
+                solid = true,
+            )
+            io.zer0.muse.ui.common.navigation.MuseTopBarIconButton(
+                icon = MuseIcons.plus,
+                contentDescription = stringResource(R.string.settings_provider_add),
+                onClick = { showPresetPicker = true },
+                solid = true,
+            )
+        },
+    ) {
         val providersList = visibleProviders
         if (providersList == null) {
             // v1.48: h13 首次加载显示居中加载指示器,避免 providers 列表闪空状态
@@ -565,34 +618,79 @@ fun SettingsModelPage(
                     isNewProvider = false
                     isFromPreset = false
                 },
-                onDelete = {
-                        id ->
+                onDelete = { id ->
                     scope.launch {
                         settings.deleteProvider(id)
                         assistantRepository.removeProviderBinding(id)
                     }
                 },
                 onAddProvider = { showPresetPicker = true },
-                // v1.97: 扫描二维码导入 Provider
                 onScanQr = { showQrScanDialog = true },
-                // v1.133: 批量健康检测(列表头部"全部检测"按钮)
                 testStatuses = providerTestStatuses,
                 isTestingAll = isTestingAllProviders,
                 onTestAll = onTestAllProviders,
             )
         }
 
-        // v1.x: 媒体生成模型配置 — 从设置二级页移入供应商页
-        item { SectionLabel(stringResource(R.string.settings_provider_media_gen_section)) }
-        item { ImageGenSection(settings = settings, scope = scope) }
-        item { VideoGenSection(settings = settings, scope = scope) }
-        // v1.x: 语音识别引擎(供应商模型体系外的独立引擎,入口收拢到供应商页)
-        item {
-            SettingsItemRow(
-                icon = MuseIcons.microphone,
-                title = stringResource(R.string.settings_asr_entry_title),
-                onClick = onOpenAsr,
-            )
+        // 媒体生成与语音识别折叠收口在列表底部，保持主屏聚焦对话模型供应商
+        item(key = "provider_media_services_toggle") {
+            io.zer0.muse.ui.common.surface.CardGroup {
+                item(
+                    key = "media_gen_expand_row",
+                    onClick = { mediaServicesExpanded = !mediaServicesExpanded },
+                    leadingContent = {
+                        Icon(
+                            imageVector = MuseIcons.video,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
+                    },
+                    headlineContent = {
+                        Text(
+                            text = stringResource(R.string.settings_provider_media_gen_section),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    },
+                    trailingContent = {
+                        Icon(
+                            imageVector = if (mediaServicesExpanded) MuseIcons.chevronUp else MuseIcons.chevronDown,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.outline,
+                            modifier = Modifier.size(MuseIconSizes.iconSmall),
+                        )
+                    },
+                )
+            }
+        }
+        if (mediaServicesExpanded) {
+            item(key = "provider_image_gen") { ImageGenSection(settings = settings, scope = scope) }
+            item(key = "provider_video_gen") { VideoGenSection(settings = settings, scope = scope) }
+            item(key = "provider_asr_entry") {
+                io.zer0.muse.ui.common.surface.CardGroup {
+                    item(
+                        key = "asr_entry",
+                        onClick = onOpenAsr,
+                        leadingContent = {
+                            Icon(
+                                imageVector = MuseIcons.microphone,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(MuseIconSizes.iconMedium),
+                            )
+                        },
+                        headlineContent = {
+                            Text(
+                                text = stringResource(R.string.settings_asr_entry_title),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                        },
+                        trailingContent = { ChevronRight() },
+                    )
+                }
+            }
         }
     }
 }

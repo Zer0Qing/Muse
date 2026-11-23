@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# 构建 Muse 的「运行环境」包：Ubuntu base + Node，通过 Termux proot 运行。
+# 构建 Muse 的「运行环境」包：Ubuntu base + Node + Python，通过 Termux proot 运行。
 #
 # 为什么这么做：Node/Python 的 native 库原本打进 APK（arm64 单架构就有 98MB 是 Node 加 ICU），
 # 而且 Android 10+ 不允许执行应用可写目录里的二进制。proot 自己加载 ELF，绕开这条限制，
@@ -9,7 +9,6 @@
 # 用法：
 #   runtime/build.sh arm64      # 产出 arm64-v8a
 #   runtime/build.sh x86_64     # 产出 x86_64（模拟器验证用）
-#   RUNTIME_BASE_URL=https://example.com/runtime runtime/build.sh arm64   # 写进清单的下载前缀
 #
 # 产物（runtime/out/<abi>/）：
 #   rootfs.tar.gz      解压后即 rootfs
@@ -29,18 +28,15 @@ case "$ARCH" in
 esac
 
 # ── 版本固定 ──────────────────────────────────────────────────────────
-RUNTIME_REVISION="${RUNTIME_REVISION:-r1}"
+RUNTIME_REVISION="${RUNTIME_REVISION:-r2}"
 UBUNTU_VERSION="${UBUNTU_VERSION:-24.04.5}"
 NODE_VERSION="${NODE_VERSION:-24.22.1}"
 SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH:-1767225600}"   # 2026-01-01T00:00:00Z，固定 tar mtime 以复现
-RUNTIME_BASE_URL="${RUNTIME_BASE_URL:-https://museai.ltd/rt}"
-# 备用源：主源挂了的时候客户端按顺序重试。
-# 换源不需要发新版：服务端把 /rt/ 做 302 就好，这里的列表只是兵底。
-RUNTIME_FALLBACK_URL="${RUNTIME_FALLBACK_URL:-}"
+RUNTIME_RELEASE_URL="https://github.com/Zer0Qing/Muse/releases/download/runtime-${RUNTIME_REVISION}/rootfs-${ABI}.tar.gz"
 
 # ── 镜像（国内直连）────────────────────────────────────────────────────
 TUNA_UBUNTU="https://mirrors.tuna.tsinghua.edu.cn/ubuntu-cdimage/ubuntu-base/releases/24.04/release"
-TUNA_TERMUX="https://mirrors.tuna.tsinghua.edu.cn/termux/apt/termux-main"
+TUNA_TERMUX="${MUSE_RT_TERMUX_MIRROR:-https://mirrors.tuna.tsinghua.edu.cn/termux/apt/termux-main}"
 NODE_MIRROR="https://npmmirror.com/mirrors/node"
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -90,7 +86,10 @@ fetch_deb() { # $1=包名 -> 本地 deb 路径
   rel="$(pkg_path "$name")"
   [ -n "$rel" ] || die "Termux 索引里没有 $name"
   deb="$CACHE/$name-$TERMUX_ARCH.deb"
-  [ -f "$deb" ] || curl -fL --retry 3 --connect-timeout 20 -sS -o "$deb.part" "$TUNA_TERMUX/$rel" && mv "$deb.part" "$deb"
+  if [ ! -f "$deb" ]; then
+    curl -fL --retry 3 --connect-timeout 20 -sS -o "$deb.part" "$TUNA_TERMUX/$rel"
+    mv "$deb.part" "$deb"
+  fi
   echo "$deb"
 }
 
@@ -118,6 +117,52 @@ chmod +x "$OUT/bin/proot" "$OUT/bin/loader"
 say "3/6 铺 Ubuntu base"
 rm -rf "$WORK/rootfs"; mkdir -p "$WORK/rootfs"
 tar xzf "$UB_BALL" -C "$WORK/rootfs"
+
+say "安装目标架构的 Ubuntu Python 包"
+command -v apt-get >/dev/null || die "需要 apt-get 下载 Ubuntu 包"
+command -v dpkg-deb >/dev/null || die "需要 dpkg-deb 解包 Ubuntu 包"
+PY_APT="$CACHE/python-apt-$UBUNTU_ARCH"
+mkdir -p "$PY_APT/lists/partial" "$PY_APT/archives/partial" "$PY_APT/cache"
+if [ "$UBUNTU_ARCH" = "arm64" ]; then
+  APT_MIRROR="https://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports"
+else
+  APT_MIRROR="https://mirrors.tuna.tsinghua.edu.cn/ubuntu"
+fi
+printf 'deb [arch=%s] %s noble main universe\n' "$UBUNTU_ARCH" "$APT_MIRROR" > "$PY_APT/sources.list"
+APT_OPTIONS=(
+  -o "Dir::Etc::sourcelist=$PY_APT/sources.list"
+  -o "Dir::Etc::sourceparts=-"
+  -o "Dir::State::lists=$PY_APT/lists"
+  -o "Dir::State::status=$WORK/rootfs/var/lib/dpkg/status"
+  -o "Dir::Cache::archives=$PY_APT/archives"
+  -o "Dir::Cache::pkgcache=$PY_APT/cache/pkgcache.bin"
+  -o "Dir::Cache::srcpkgcache=$PY_APT/cache/srcpkgcache.bin"
+  -o "APT::Architecture=$UBUNTU_ARCH"
+  -o "APT::Architectures=$UBUNTU_ARCH"
+)
+apt-get "${APT_OPTIONS[@]}" update
+apt-get "${APT_OPTIONS[@]}" --download-only --yes --no-install-recommends install \
+  python3-minimal python3 python3-pip ca-certificates
+for deb in "$PY_APT"/archives/*.deb; do
+  [ -f "$deb" ] || continue
+  dpkg-deb -x "$deb" "$WORK/rootfs"
+done
+PYTHON_MINOR=3.12
+PYTHON_VERSIONED="$WORK/rootfs/usr/bin/python$PYTHON_MINOR"
+[ -x "$PYTHON_VERSIONED" ] || die "Ubuntu Python 3.12 二进制缺失"
+ln -sfn "python$PYTHON_MINOR" "$WORK/rootfs/usr/bin/python3"
+CERT_SOURCE_DIR="$WORK/rootfs/usr/share/ca-certificates"
+CERT_BUNDLE="$WORK/rootfs/etc/ssl/certs/ca-certificates.crt"
+mkdir -p "$(dirname "$CERT_BUNDLE")" "$WORK/rootfs/usr/lib/ssl"
+: > "$CERT_BUNDLE"
+while IFS= read -r -d '' cert_file; do
+  cat "$cert_file" >> "$CERT_BUNDLE"
+  printf '\n' >> "$CERT_BUNDLE"
+done < <(find "$CERT_SOURCE_DIR" -type f -name '*.crt' -print0 | sort -z)
+[ -s "$CERT_BUNDLE" ] || die "Ubuntu CA 证书 bundle 为空"
+ln -sfn /etc/ssl/certs/ca-certificates.crt "$WORK/rootfs/usr/lib/ssl/cert.pem"
+rm -rf "$PY_APT/lists" "$PY_APT/cache"
+[ -x "$WORK/rootfs/usr/bin/python3" ] || die "Ubuntu Python 3 入口缺失"
 
 # ── 4. Node + 瘦身 ────────────────────────────────────────────────────
 say "4/6 装入 Node 并瘦身"
@@ -165,14 +210,17 @@ SHMEM_SHA="$(sha256sum "$OUT/bin/libandroid-shmem.so" | cut -d' ' -f1)"
 
 python3 - "$OUT/manifest.json" <<JSON
 import json, sys
-urls = ["$RUNTIME_BASE_URL/$ABI/rootfs.tar.gz"]
-if "$RUNTIME_FALLBACK_URL":
-    urls.append("$RUNTIME_FALLBACK_URL/$ABI/rootfs.tar.gz")
+release_url = "$RUNTIME_RELEASE_URL"
+urls = [
+    "https://gh-proxy.org/" + release_url,
+    "https://museai.ltd/api/runtime/rootfs-$ABI.tar.gz",
+    release_url,
+]
 manifest = {
     "runtimeId": "ubuntu-node",
     "revision": "$RUNTIME_REVISION",
     "abi": "$ABI",
-    "upstream": {"ubuntu": "$UBUNTU_VERSION", "node": "$NODE_VERSION"},
+    "upstream": {"ubuntu": "$UBUNTU_VERSION", "node": "$NODE_VERSION", "python": "$PYTHON_MINOR"},
     "archive": {
         "name": "rootfs.tar.gz",
         "sizeBytes": int("$ARCHIVE_BYTES"),

@@ -205,16 +205,16 @@
     <!-- 设置页主列表按 14 组组织，每组不超过 5 项。以下键沿用旧键名，文案已改为新组名；
          chat_display / data_privacy / proactive / storage / migrate 已不再使用，仅保留键。 -->
     <!-- ===== 设置一级分类（首页 12 行；顺序与 SettingsCatalog 一致） ===== -->
-    <string name="settings_group_assistants">助手</string>
-    <string name="settings_group_models">模型与供应商</string>
-    <string name="settings_group_tools">工具与权限</string>
-    <string name="settings_group_voice">语音</string>
-    <string name="settings_group_image">图像与视觉</string>
+    <string name="settings_group_general">通用与外观</string>
+    <string name="settings_group_assistants">助手与对话</string>
+    <string name="settings_group_models">模型与运行环境</string>
+    <string name="settings_group_media">语音与视觉</string>
     <string name="settings_group_memory">记忆与知识</string>
-    <string name="settings_group_connection">连接</string>
-    <string name="settings_group_automation">自动化</string>
+    <string name="settings_group_tools">工具与扩展</string>
+    <string name="settings_group_connection">渠道与网络</string>
+    <string name="settings_group_automation">自动化与后台</string>
     <string name="settings_group_data_storage">数据与备份</string>
-    <string name="settings_group_privacy_security">隐私与安全</string>
+    <string name="settings_group_privacy_security">隐私与权限</string>
     <string name="settings_group_about">关于</string>
     <string name="settings_group_developer">开发者</string>
     <string name="settings_screen_appearance_label">外观</string>

@@ -8,6 +8,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -49,6 +50,7 @@ class BotResultApplierTest {
             approvalDao = db.approvalRequestDao(),
             publicationDao = db.publicationOutboxDao(),
             bindingDao = db.botBindingDao(),
+            database = db,
             now = { clock },
         );
         dir = File(System.getProperty("java.io.tmpdir"), "applier-" + System.nanoTime());
@@ -72,18 +74,19 @@ class BotResultApplierTest {
         writeTarget = write,
     );
 
-    private suspend fun newTaskAndRun(): Pair<BotTaskEntity, TaskRunEntity> {
+    private suspend fun newTaskAndRun(resourceScope: String = "notes.md"): Pair<BotTaskEntity, TaskRunEntity> {
         val task = repo.createTask(
             botId = "bot-1",
             originSessionId = "s1",
             requestMessageId = "m1",
             goal = "改错字",
             acceptanceCriteria = "只改错字",
-            resourceScope = "notes.md",
+            resourceScope = resourceScope,
         );
         val run = repo.openRun(task.taskId)!!;
         repo.transition(task.taskId, BotTaskStatusMachine.Event.START);
         repo.transition(task.taskId, BotTaskStatusMachine.Event.EXECUTE_DONE);
+        repo.closeRun(run.runId, TaskRunStatus.COMPLETED)
         return task to run;
     }
 
@@ -106,6 +109,54 @@ class BotResultApplierTest {
 
         assertTrue("审核通过应真的写目标", outcome.applied);
         assertEquals("改好的内容", targets["notes.md"]);
+        assertNull("审核事务完成后才清理候选", staging.read(stagedId))
+    }
+
+    @Test
+    fun `multiple distinct candidates apply and publish as one reviewed result`() = runTest {
+        targets["notes.md"] = "notes-v1"
+        targets["todo.md"] = "todo-v1"
+        val (task, run) = newTaskAndRun("notes.md,todo.md")
+        val notesId = staging.stage(
+            StagedArtifactStore.Candidate(
+                targetRef = "notes.md",
+                content = "notes-v2",
+                baseHash = StagedArtifactStore.hashSnapshot(targets["notes.md"]),
+                taskRevision = run.taskRevision,
+                sourceRunId = run.runId,
+            ),
+        )
+        val todoId = staging.stage(
+            StagedArtifactStore.Candidate(
+                targetRef = "todo.md",
+                content = "todo-v2",
+                baseHash = StagedArtifactStore.hashSnapshot(targets["todo.md"]),
+                taskRevision = run.taskRevision,
+                sourceRunId = run.runId,
+            ),
+        )
+
+        val outcome = applier().process(
+            task = task,
+            run = run,
+            payloadRef = "两份文件已更新\n${BotResultApplier.STAGED_MARKER}$notesId,$todoId]",
+            expectedBaseHash = "",
+            criteria = "只改错字",
+        )
+
+        assertTrue(outcome.applied)
+        assertTrue(outcome.accepted)
+        assertEquals("notes-v2", targets["notes.md"])
+        assertEquals("todo-v2", targets["todo.md"])
+        assertEquals(BotTaskStatus.SUCCEEDED, repo.getTask(task.taskId)?.status)
+        val publication = db.botEventDao().latestOfKind(
+            task.taskId,
+            run.runId,
+            BotEventKind.TASK_PUBLICATION_READY,
+        )
+        assertEquals(2, ReviewDecision.decode(publication?.payloadRef.orEmpty())?.candidateRefs?.size)
+        assertNull(staging.read(notesId))
+        assertNull(staging.read(todoId))
     }
 
     @Test

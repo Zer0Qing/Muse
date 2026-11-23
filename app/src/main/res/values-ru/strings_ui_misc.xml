@@ -139,7 +139,6 @@
     <string name="favorites_tag_edit_hint">Имя группы (пусто = разгруппировано)</string>
     <string name="favorites_tag_edit_clear">Очистить группу</string>
     <string name="favorites_tag_edit_confirm">ХОРОШО</string>
-    <string name="favorites_tag_edit_cancel">Отмена</string>
     <string name="favorites_tag_label">Группа: %1$s</string>
     <string name="favorites_empty_in_filter">В этой группе нет избранных</string>
     <string name="favorites_stale_variant_badge">Есть более новая версия</string>
@@ -218,6 +217,7 @@
     <string name="agent_bot_status_cancelled">Отменено</string>
     <string name="agent_bot_status_needs_user">Нужно ваше решение</string>
     <string name="agent_bot_status_unknown">Результат неизвестен</string>
+    <string name="agent_bot_error_binding_unreadable">Не удалось прочитать сохранённую беседу этого помощника, поэтому сообщение не отправлено. Повторите позже</string>
     <string name="agent_bot_error_no_session">Пока нет доступного разговора</string>
     <string name="agent_bot_error_save_failed">Сообщение не сохранилось. Попробуйте ещё раз</string>
     <string name="agent_bot_error_already_decided">Этот шаг уже решён</string>

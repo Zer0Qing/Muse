@@ -27,7 +27,6 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import io.zer0.muse.ui.theme.MuseActionColors
 import io.zer0.muse.ui.theme.MuseAnimation
@@ -35,6 +34,7 @@ import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.MuseTabSizes
 import io.zer0.muse.ui.theme.semiLarge
 import kotlin.math.abs
 
@@ -83,10 +83,8 @@ fun MuseCapsuleTab(
         shape = MuseShapes.extraLarge,
         color = MuseActionColors.neutralContainer,
         modifier = modifier
-            .widthIn(min = (tabs.size * 60).dp)
-            // UI-FIX: 48dp 视觉高度在移动端顶栏显得过高(用户反馈"按键太高");
-            // 收到 40dp 视觉高度,行内触摸区仍由外层 Row 的更大命中域兜底。
-            .heightIn(min = 40.dp, max = 44.dp),
+            .widthIn(min = MuseTabSizes.minSegmentWidth * tabs.size)
+            .heightIn(min = MuseTabSizes.minHeight, max = MuseTabSizes.maxHeight),
     ) {
         Row(
             modifier = Modifier

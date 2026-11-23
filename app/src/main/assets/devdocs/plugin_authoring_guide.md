@@ -28,7 +28,7 @@ my-plugin.muse-plugin (ZIP)
 | description | ✅ | 功能描述(给 LLM 看,决定何时调用) |
 | version | 可选 | 版本号,默认 0.1.0 |
 | entry | 可选 | 入口文件,默认 main.js(runtime=python 时应为 .py) |
-| runtime | 可选 | 运行时: js(默认,WebView V8 沙盒) / python(内置 Python 3.14) |
+| runtime | 可选 | 运行时: js(默认,WebView V8 沙盒) / python(已安装的 Ubuntu rootfs,通过 proot 运行) |
 | kind | 可选 | 插件类型: tool(默认) / ui-skin / provider |
 | trust | 可选 | 信任级别;外部 ZIP 必须为 sandboxed |
 | capabilities | 可选 | 声明的能力(resource.read / resource.write / network / ui / ui.mood) |
@@ -62,11 +62,11 @@ my-plugin.muse-plugin (ZIP)
 |---|---|
 | WebViewSkillEngine | WebView V8 沙盒执行(生产 JS 技能引擎,实现 SkillEngine 接口) |
 | ProcessSkillEngine | 内置 Node.js 运行时执行(runtime=js 时可选用,完整能力) |
-| PythonSkillEngine | 内置 Python 3.14 运行时执行(runtime=python 时使用;子进程隔离) |
+| PythonSkillEngine | 在 Ubuntu rootfs 中通过 proot 执行 Python(runtime=python 时使用) |
 | SkillBridge | `__bridge__` 桥接执行器: JS 返回桥接请求 → Kotlin 执行安全实现 |
 
 插件运行时选择: manifest 的 `runtime` 字段决定用哪套引擎。`js`(默认)走 WebView V8
-沙盒 + `__bridge__` 桥接;`python` 走内置 Python 运行时(子进程,完整标准库 + pip 第三方包,
+沙盒 + `__bridge__` 桥接;`python` 走 Ubuntu rootfs 的 Python 运行时(子进程,完整标准库 + pip 第三方包,
 无 WebView 沙盒限制也无桥接层——子进程自身已有完整能力)。
 
 安全边界（v2.x 沙盒已放开）:

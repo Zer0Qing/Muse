@@ -60,6 +60,18 @@
     <string name="settings_agent_offset_hours_minutes">± %1$d 小时 %2$d 分钟</string>
 
     <!-- 外观 / 主题 -->
+    <string name="settings_theme_policy_off">关闭</string>
+    <string name="settings_theme_policy_custom_time">自定义时间</string>
+    <string name="settings_theme_policy_sunrise_sunset">日出日落</string>
+    <string name="settings_theme_schedule_parse_error">自动主题配置无法读取，已停用自动策略；基础主题设置保持不变。</string>
+    <string name="settings_theme_solar_permission_required">需要粗略位置权限；当前将按基础主题显示。</string>
+    <string name="settings_theme_solar_location_unavailable">没有可用的位置缓存；当前将按基础主题显示。</string>
+    <string name="settings_theme_solar_events_unavailable">无法计算今天的日出日落；当前将按基础主题显示。</string>
+    <string name="settings_theme_solar_cache_unavailable">今天的日出日落时间暂不可用。</string>
+    <string name="settings_theme_solar_polar_day">今天太阳全天在地平线上方。</string>
+    <string name="settings_theme_solar_polar_night">今天太阳全天在地平线下方。</string>
+    <string name="settings_theme_solar_times">日出 %1$s · 日落 %2$s</string>
+    <string name="settings_theme_solar_location_updated">位置缓存更新于 %1$s</string>
     <string name="settings_theme_appearance">外观</string>
     <string name="settings_theme_follow_system">跟随系统</string>
     <string name="settings_theme_light">浅色</string>

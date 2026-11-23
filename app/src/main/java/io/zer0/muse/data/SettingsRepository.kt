@@ -30,6 +30,13 @@ import io.zer0.muse.data.routing.UtilityModelBinding
 import io.zer0.muse.rag.RagConfig
 import io.zer0.muse.tools.SessionPermissionMode
 import io.zer0.muse.ui.theme.CustomTheme
+import io.zer0.muse.ui.theme.BaseThemeMode
+import io.zer0.muse.ui.theme.SolarSchedule
+import io.zer0.muse.ui.theme.ThemeDecision
+import io.zer0.muse.ui.theme.ThemeDecisionCalculator
+import io.zer0.muse.ui.theme.toSolarScheduleOrNull
+import java.time.Instant
+import java.time.ZoneId
 import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import io.zer0.muse.web.WebSearchConfig
 import io.zer0.muse.web.WebServerConfig
@@ -427,6 +434,7 @@ class SettingsRepository(
      */
     val currentSpaceIdFlow: Flow<String> = store.data.mapDistinct { prefs -> prefs[KEY_CURRENT_SPACE_ID] ?: "default" }
     val themeModeFlow: Flow<String> get() = appearance.themeModeFlow
+    val baseThemeModeFlow: Flow<BaseThemeMode> get() = appearance.baseThemeModeFlow
 
     /** H5: 高对比主题开关(增强前景/背景对比,面向弱视用户)。 */
     val highContrastFlow: Flow<Boolean> get() = appearance.highContrastFlow
@@ -444,6 +452,31 @@ class SettingsRepository(
 
     /** 主题定时切换配置。 */
     val themeScheduleFlow: Flow<ThemeScheduleConfig> get() = appearance.themeScheduleFlow
+    val themeScheduleDiagnosticFlow: Flow<String?> get() = appearance.themeScheduleDiagnosticFlow
+
+    /** Effective theme decisions use the saved base mode without mutating it. */
+    fun themeDecisionFlow(
+        systemIsDark: Flow<Boolean>,
+        nowMillis: Flow<Long>,
+        solarSchedule: Flow<SolarSchedule?>,
+        zoneId: () -> ZoneId = ZoneId::systemDefault,
+    ): Flow<ThemeDecision> = combine(
+        baseThemeModeFlow,
+        themeScheduleFlow,
+        systemIsDark,
+        nowMillis,
+        solarSchedule,
+    ) { baseMode, schedule, systemDark, now, solar ->
+        ThemeDecisionCalculator.evaluate(
+            baseMode = baseMode,
+            autoPolicy = schedule.autoPolicy,
+            schedule = schedule,
+            now = Instant.ofEpochMilli(now),
+            systemIsDark = systemDark,
+            solar = solar ?: schedule.solarCache?.toSolarScheduleOrNull(),
+            zoneId = zoneId(),
+        )
+    }
 
     /** v1.65: Material You 动态取色开关(Android 12+)。 */
     val dynamicColorFlow: Flow<Boolean> get() = appearance.dynamicColorFlow

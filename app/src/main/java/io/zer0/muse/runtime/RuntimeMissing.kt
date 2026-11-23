@@ -2,6 +2,11 @@ package io.zer0.muse.runtime
 
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.put
 
 /**
@@ -14,6 +19,8 @@ object RuntimeMissing {
 
     /** 错误码。工具编排层按它识别。 */
     const val CODE = "runtime_missing"
+
+    class RequiresInstallException : IllegalStateException(CODE)
 
     /**
      * 生成结构化错误 JSON。
@@ -35,10 +42,68 @@ object RuntimeMissing {
         put("message", JsonPrimitive(guidance(id)))
     }.toString()
 
-    /** 判断一段工具输出是不是 runtime_missing 回执（兼容有无空格两种 JSON 写法）。 */
-    fun isRuntimeMissingPayload(output: String): Boolean =
-        output.contains("\"error\":\"runtime_missing\"") ||
-            output.contains("\"error\": \"runtime_missing\"")
+    /** 只按 JSON 字段识别错误码，也支持被 JSON 字符串包裹的工具输出。 */
+    fun isRuntimeMissingPayload(output: String): Boolean {
+        val root = runCatching { Json.parseToJsonElement(output) }.getOrNull()
+        if (root != null && containsRuntimeMissing(root)) return true
+        return containsEmbeddedRuntimeMissing(output)
+    }
+
+    private fun containsRuntimeMissing(element: JsonElement): Boolean = when (element) {
+        is JsonObject -> {
+            (element["error"] as? JsonPrimitive)?.contentOrNull == CODE ||
+                element.values.any(::containsRuntimeMissing)
+        }
+        is JsonArray -> element.any(::containsRuntimeMissing)
+        is JsonPrimitive -> {
+            if (!element.isString) {
+                false
+            } else {
+                val nested = element.contentOrNull
+                nested?.let { runCatching { containsRuntimeMissing(Json.parseToJsonElement(it)) }.getOrDefault(false) }
+                    ?: false
+            }
+        }
+    }
+
+    private fun containsEmbeddedRuntimeMissing(text: String): Boolean {
+        var start = -1
+        var depth = 0
+        var inString = false
+        var escaped = false
+        text.forEachIndexed { index, character ->
+            if (start < 0) {
+                if (character == '{' || character == '[') {
+                    start = index
+                    depth = 1
+                }
+                return@forEachIndexed
+            }
+            if (inString) {
+                when {
+                    escaped -> escaped = false
+                    character == '\\' -> escaped = true
+                    character == '"' -> inString = false
+                }
+                return@forEachIndexed
+            }
+            when (character) {
+                '"' -> inString = true
+                '{', '[' -> depth++
+                '}', ']' -> {
+                    depth--
+                    if (depth == 0) {
+                        val embedded = runCatching {
+                            Json.parseToJsonElement(text.substring(start, index + 1))
+                        }.getOrNull()
+                        if (embedded != null && containsRuntimeMissing(embedded)) return true
+                        start = -1
+                    }
+                }
+            }
+        }
+        return false
+    }
 
     /** 给模型的引导语：一句话说清缺什么、装完能干什么、去哪装。 */
     fun guidance(id: RuntimeId = RuntimeId.UBUNTU_NODE): String =

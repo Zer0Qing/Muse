@@ -44,7 +44,6 @@
     <string name="translate_page_batch_title">Batch translate</string>
     <string name="translate_page_batch_input_hint">One text per line, will be batch translated</string>
     <string name="translate_page_batch_run">Run batch translate</string>
-    <string name="translate_page_batch_cancel">Cancel</string>
     <string name="translate_page_batch_translating">Batch translating…</string>
     <string name="translate_page_batch_results_title">Batch results (%1$d items)</string>
 
@@ -52,8 +51,6 @@
     <string name="translate_page_custom_style_add">Add style</string>
     <string name="translate_page_custom_style_name">Style name</string>
     <string name="translate_page_custom_style_prompt">Style instruction (e.g. \"Translate in classical Chinese\")</string>
-    <string name="translate_page_custom_style_save">Save</string>
-    <string name="translate_page_custom_style_remove">Remove</string>
     <string name="translate_page_custom_style_added">Custom style added</string>
     <string name="translate_page_custom_style_removed">Custom style removed</string>
     <string name="translate_page_custom_style_empty_name">Name cannot be empty</string>
@@ -64,7 +61,6 @@
     <string name="translate_page_glossary_original">Source term</string>
     <string name="translate_page_glossary_translated">Target term</string>
     <string name="translate_page_glossary_add">Add</string>
-    <string name="translate_page_glossary_remove">Remove</string>
     <string name="translate_page_glossary_empty">No glossary entries</string>
     <string name="translate_page_glossary_count">Glossary (%1$d entries)</string>
     <string name="translate_page_glossary_added">Glossary entry added</string>

@@ -48,6 +48,7 @@ class AgentBotRepositoryTest {
             approvalDao = db.approvalRequestDao(),
             publicationDao = db.publicationOutboxDao(),
             bindingDao = db.botBindingDao(),
+            database = db,
             now = { clock },
         )
     }
@@ -117,6 +118,215 @@ class AgentBotRepositoryTest {
             "旧 run 的 taskRevision 不变，审核据此判 stale",
             1,
             repo.listRuns(task.taskId).single().taskRevision,
+        )
+    }
+
+    @Test
+    fun `approval request atomically records the step and pauses its task`() = runTest {
+        val task = newTask()
+        val run = repo.openRun(task.taskId)!!
+        repo.transition(task.taskId, BotTaskStatusMachine.Event.START)
+        val step = repo.recordStep(
+            runId = run.runId,
+            stepIndex = 0,
+            toolName = "workspace_write",
+            argumentsHash = "hash-1",
+            baseHash = "",
+            approvalId = "",
+            sideEffect = StepSideEffect.RETRY_SAFE,
+        )
+
+        val approval = repo.requestApproval(
+            taskId = task.taskId,
+            runId = run.runId,
+            taskRevision = run.taskRevision,
+            stepId = step.stepId,
+            toolCallId = "call-1",
+            toolName = "workspace_write",
+            arguments = "{\"path\":\"notes.md\"}",
+            argumentsHash = "hash-1",
+            baseHash = "base-1",
+            sideEffect = StepSideEffect.RETRY_SAFE,
+            risk = "NORMAL",
+        )
+
+        assertNotNull(approval)
+        assertEquals(BotTaskStatus.WAITING_APPROVAL, repo.getTask(task.taskId)?.status)
+        val recordedStep = repo.listSteps(run.runId).single()
+        assertEquals(approval!!.approvalId, recordedStep.approvalId)
+        assertEquals("hash-1", recordedStep.argumentsHash)
+        assertEquals(approval.approvalId, repo.getApproval(approval.approvalId)?.approvalId)
+        assertTrue(repo.pendingEvents("bot-1").any { it.kind == BotEventKind.APPROVAL_REQUIRED })
+    }
+
+    @Test
+    fun `stale run cannot create a pending approval`() = runTest {
+        val task = newTask()
+        val run = repo.openRun(task.taskId)!!
+        repo.transition(task.taskId, BotTaskStatusMachine.Event.START)
+        val step = repo.recordStep(
+            runId = run.runId,
+            stepIndex = 0,
+            toolName = "workspace_write",
+            argumentsHash = "hash-1",
+            baseHash = "",
+            approvalId = "",
+            sideEffect = StepSideEffect.RETRY_SAFE,
+        )
+        repo.bumpRevision(task.taskId)
+
+        val approval = repo.requestApproval(
+            taskId = task.taskId,
+            runId = run.runId,
+            taskRevision = run.taskRevision,
+            stepId = step.stepId,
+            toolCallId = "call-1",
+            toolName = "workspace_write",
+            arguments = "{}",
+            argumentsHash = "hash-1",
+            baseHash = "base-1",
+            sideEffect = StepSideEffect.RETRY_SAFE,
+            risk = "NORMAL",
+        )
+
+        assertNull(approval)
+        assertEquals(BotTaskStatus.RUNNING, repo.getTask(task.taskId)?.status)
+        assertEquals("原步骤保持未授权状态", "", repo.listSteps(run.runId).single().approvalId)
+        assertTrue(repo.pendingApprovals().isEmpty())
+        assertTrue(repo.pendingEvents("bot-1").none { it.kind == BotEventKind.APPROVAL_REQUIRED })
+    }
+
+    @Test
+    fun `task dispatch rejects a stale input and preserves scope on current input`() = runTest {
+        val first = repo.appendEvent(
+            botId = "bot-1",
+            originSessionId = "agent-session-1",
+            taskId = "",
+            runId = "",
+            kind = BotEventKind.USER_INPUT_RECEIVED,
+            dedupeKey = "input:first",
+        )
+        val firstIdentity = AgentTurnIdentity("bot-1", "agent-session-1", "message-first", first.sequence)
+        val latest = repo.appendEvent(
+            botId = "bot-1",
+            originSessionId = "agent-session-1",
+            taskId = "",
+            runId = "",
+            kind = BotEventKind.USER_INPUT_RECEIVED,
+            dedupeKey = "input:latest",
+        )
+
+        assertNull(
+            repo.createTaskForInput(
+                identity = firstIdentity,
+                goal = "旧目标",
+                acceptanceCriteria = "旧条件",
+                resourceScope = "old.md",
+                dedupeKey = "task-dispatch:message-first",
+            ),
+        )
+        val current = repo.createTaskForInput(
+            TaskCreationInput(
+                identity = AgentTurnIdentity("bot-1", "agent-session-1", "message-latest", latest.sequence),
+                goal = "新目标",
+                acceptanceCriteria = "新条件",
+                resourceScope = "new.md",
+                permissionScopeId = "permission-a",
+            ),
+        )
+
+        assertNotNull(current)
+        assertEquals("message-latest", current!!.requestMessageId)
+        assertEquals("new.md", current.resourceScope)
+        assertEquals("新条件", current.acceptanceCriteria)
+        assertEquals("permission-a", current.permissionScopeId)
+    }
+
+    @Test
+    fun `approved tool grant is consumed once only for the exact resumed step`() = runTest {
+        val task = newTask()
+        repo.transition(task.taskId, BotTaskStatusMachine.Event.START)
+        val firstRun = repo.openRun(task.taskId)!!
+        repo.attachRunThread(firstRun.runId, "thread-task-a")
+        val firstStep = repo.recordStep(
+            runId = firstRun.runId,
+            stepIndex = 0,
+            toolName = "workspace_write",
+            argumentsHash = "hash-write",
+            baseHash = "base-v1",
+            approvalId = "",
+            sideEffect = StepSideEffect.NO_BLIND_REPLAY,
+        )
+        val approval = repo.createApproval(
+            botId = task.botId,
+            originSessionId = task.originSessionId,
+            taskId = task.taskId,
+            runId = firstRun.runId,
+            stepId = firstStep.stepId,
+            taskRevision = firstRun.taskRevision,
+            toolCallId = "call-write",
+            toolName = "workspace_write",
+            argumentsRef = "args",
+            argumentsHash = "hash-write",
+            resourceVersion = "base-v1",
+            risk = "HIGH",
+        )
+        repo.transition(task.taskId, BotTaskStatusMachine.Event.WAIT_APPROVAL)
+        repo.closeRun(firstRun.runId, TaskRunStatus.WAITING_APPROVAL)
+        repo.settleApproval(approval.approvalId, ApprovalStatus.APPROVED, "user")
+        repo.transition(task.taskId, BotTaskStatusMachine.Event.RESUME_FROM_APPROVAL)
+        repo.transition(task.taskId, BotTaskStatusMachine.Event.USER_CONFIRMED_CONTINUE)
+        repo.transition(task.taskId, BotTaskStatusMachine.Event.START)
+        val resumedRun = repo.openRun(task.taskId)!!
+        val resumedStep = repo.recordStep(
+            runId = resumedRun.runId,
+            stepIndex = 0,
+            toolName = "workspace_write",
+            argumentsHash = "hash-write",
+            baseHash = "base-v1",
+            approvalId = "",
+            sideEffect = StepSideEffect.NO_BLIND_REPLAY,
+        )
+
+        assertEquals("续跑必须沿用原 Agent 线程", "thread-task-a", resumedRun.threadId)
+        assertNull(
+            repo.consumeApprovedApproval(
+                taskId = task.taskId,
+                runId = resumedRun.runId,
+                taskRevision = resumedRun.taskRevision,
+                stepId = resumedStep.stepId,
+                toolName = "workspace_write",
+                argumentsHash = "changed-hash",
+                resourceVersion = "base-v1",
+                sideEffect = StepSideEffect.NO_BLIND_REPLAY,
+            ),
+        )
+        val consumed = repo.consumeApprovedApproval(
+            taskId = task.taskId,
+            runId = resumedRun.runId,
+            taskRevision = resumedRun.taskRevision,
+            stepId = resumedStep.stepId,
+            toolName = "workspace_write",
+            argumentsHash = "hash-write",
+            resourceVersion = "base-v1",
+            sideEffect = StepSideEffect.NO_BLIND_REPLAY,
+        )
+
+        assertEquals(approval.approvalId, consumed?.approvalId)
+        assertEquals("consumed_for_resume", repo.getApproval(approval.approvalId)?.decisionReason)
+        assertEquals(approval.approvalId, repo.listSteps(resumedRun.runId).single().approvalId)
+        assertNull(
+            "一次性批准不能重复授权",
+            repo.consumeApprovedApproval(
+                taskId = task.taskId,
+                runId = resumedRun.runId,
+                taskRevision = resumedRun.taskRevision,
+                stepId = resumedStep.stepId,
+                toolName = "workspace_write",
+                argumentsHash = "hash-write",
+                resourceVersion = "base-v1",
+                sideEffect = StepSideEffect.NO_BLIND_REPLAY,
+            ),
         )
     }
 

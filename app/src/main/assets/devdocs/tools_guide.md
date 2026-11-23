@@ -167,7 +167,7 @@ ToolRegistry 是 Muse 的本地工具注册表(简化版 MCP 框架)。工具可
 |---|---|---|---|
 | execute_javascript | code | 沙盒 JS 执行 | NORMAL |
 | execute_node_script | code / timeout_ms | 内置 Node.js 运行时执行 JS（完整能力：文件/网络/子进程；可 require npm 包） | HIGH |
-| execute_python_script | code / timeout_ms | 内置 Python 3.14 运行时执行脚本（完整标准库：ssl/sqlite3/zlib/json/re；文件读写、网络；可 pip 装第三方纯 Python 包）。结果赋给变量 `result` | HIGH |
+| execute_python_script | code / timeout_ms | 通过 proot 在已安装的 Ubuntu rootfs 中运行 Python 3（完整标准库、文件读写、网络；可 pip 安装 Python 包）。结果赋给变量 `result` | HIGH |
 | execute_shell | command | Shell 命令执行(**默认不在白名单**,HIGH 风险,需用户在工具管理页手动启用) | HIGH |
 | read_file / write_file | path/content | 沙盒文件读写(见 Skill 节) | - |
 

@@ -45,6 +45,8 @@ import io.zer0.muse.R
 import io.zer0.muse.ui.common.surface.MuseDialogWindowEffect
 import io.zer0.muse.ui.common.surface.museModalScrim
 import io.zer0.muse.ui.theme.MuseActionColors
+import io.zer0.muse.ui.theme.MuseAlpha
+import io.zer0.muse.ui.theme.MuseCapsuleButtonSizes
 import io.zer0.muse.ui.theme.MuseDialogSizes
 import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MuseIconSizes
@@ -54,6 +56,7 @@ import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.MuseSpringTier
 import io.zer0.muse.ui.theme.huge
 import io.zer0.muse.ui.theme.labelLargeStrong
+import io.zer0.muse.ui.theme.pill
 
 internal const val MUSE_DIALOG_SCRIM_TAG = "muse-dialog-scrim"
 internal const val MUSE_DIALOG_CARD_TAG = "muse-dialog-card"
@@ -189,7 +192,7 @@ private fun MuseDialogButton(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.97f else 1f,
+        targetValue = if (isPressed) MuseCapsuleButtonSizes.pressScale else 1f,
         animationSpec = MuseMotion.spring(MuseSpringTier.RESPONSIVE),
         label = "dialogBtnScale",
     )
@@ -208,7 +211,7 @@ private fun MuseDialogButton(
     ) {
         Box(
             modifier = Modifier.fillMaxWidth().heightIn(min = MuseDialogSizes.buttonVisualHeight)
-                .background(if (enabled) backgroundColor else backgroundColor.copy(alpha = 0.4f), MuseShapes.huge)
+                .background(if (enabled) backgroundColor else backgroundColor.copy(alpha = MuseAlpha.disabled), MuseShapes.pill)
                 .padding(horizontal = MusePaddings.contentGap, vertical = MusePaddings.contentGap),
             contentAlignment = Alignment.Center,
         ) {

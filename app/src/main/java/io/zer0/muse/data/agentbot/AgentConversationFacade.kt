@@ -47,6 +47,8 @@ class AgentConversationFacade(
         val texts: List<String>,
         val eventId: String,
         val acceptedAt: Long,
+        val messageId: String,
+        val requestRevision: Long,
     ) {
         val mergedCount: Int get() = texts.size
     }
@@ -79,26 +81,28 @@ class AgentConversationFacade(
             previous.originSessionId == originSessionId &&
             ts - previous.acceptedAt <= mergeWindowMs
 
-        if (canMerge && previous != null) {
-            // 合并：追加到同一批，事件仍是同一条 —— 不重复唤醒 Coordinator。
-            val merged = previous.copy(
-                texts = previous.texts + trimmed,
-                acceptedAt = ts,
-            )
-            lastBatch[botId] = merged
-            return@withLock merged
-        }
-
         val event = repository.appendEvent(
             botId = botId,
             originSessionId = originSessionId,
             taskId = "",
             runId = "",
             kind = BotEventKind.USER_INPUT_RECEIVED,
-            // 幂等键按消息 id：同一条消息重复投递只唤醒一次。
+            // 每条用户消息都有自己的稳定事件与版本；合并只影响批次唤醒。
             dedupeKey = "input:$messageId",
             payloadRef = trimmed.take(MAX_INPUT_CHARS),
         )
+
+        if (canMerge) {
+            // 合并批次保留每条消息的独立事件；回合仍可以按具体 requestId 隔离。
+            val merged = previous.copy(
+                texts = previous.texts + trimmed,
+                acceptedAt = ts,
+                messageId = messageId,
+                requestRevision = event.sequence,
+            )
+            lastBatch[botId] = merged
+            return@withLock merged
+        }
         val batch = AcceptedBatch(
             batchId = event.eventId,
             botId = botId,
@@ -106,6 +110,8 @@ class AgentConversationFacade(
             texts = listOf(trimmed),
             eventId = event.eventId,
             acceptedAt = ts,
+            messageId = messageId,
+            requestRevision = event.sequence,
         )
         lastBatch[botId] = batch
         batch

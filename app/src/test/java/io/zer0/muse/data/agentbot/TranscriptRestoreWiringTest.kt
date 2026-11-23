@@ -64,13 +64,16 @@ class TranscriptRestoreWiringTest {
     }
 
     @Test
-    fun `first paint is smaller than the display limit`() {
+    fun `transcript pages can load earlier messages`() {
         val display = Regex("TRANSCRIPT_DISPLAY_LIMIT = (\\d+)").find(vm)?.groupValues?.get(1)?.toIntOrNull();
-        val first = Regex("TRANSCRIPT_FIRST_PAINT = (\\d+)").find(vm)?.groupValues?.get(1)?.toIntOrNull();
-        assertTrue("两个常量都必须存在", display != null && first != null);
+        val page = Regex("TRANSCRIPT_PAGE_SIZE = (\\d+)").find(vm)?.groupValues?.get(1)?.toIntOrNull();
+        assertTrue("显示页与分页量都必须存在", display != null && page != null);
         assertTrue(
-            "首屏必须明显小于总量。实际 first=" + first + " display=" + display,
-            first!! < display!!,
+            "单次对话投影必须有限",
+            display!! <= 100,
         );
+        assertTrue("较早消息使用 SessionRepository 的序列分页", vm.contains("restorer.readOlder(sessionAtStart"));
+        assertTrue("旧消息加载后合并而非覆盖最新尾部", vm.contains("restorer.merge(page.messages, ui.transcript.value)"));
+        assertTrue("分页按钮由可继续加载状态驱动", vm.contains("hasOlderTranscript"));
     }
 }

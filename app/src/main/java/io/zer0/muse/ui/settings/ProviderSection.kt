@@ -26,42 +26,46 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import io.zer0.ai.core.ProviderCategory
 import io.zer0.ai.core.ProviderConfig
 import io.zer0.muse.R
 import io.zer0.muse.data.ProviderCollisionDetector
 import io.zer0.muse.data.catalog.ModelCatalogRepository
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseAnchoredMenu
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.settings.ConfirmDeleteDialog
-import io.zer0.muse.ui.common.settings.SectionLabel
-import io.zer0.muse.ui.common.settings.SettingsGroup
-import io.zer0.muse.ui.common.settings.SettingsGroupDivider
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.common.surface.MuseListItem
+import io.zer0.muse.ui.theme.MuseButtonSize
 import io.zer0.muse.ui.theme.MuseIconSizes
+import io.zer0.muse.ui.theme.MuseListItemSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.MuseSpacing
+import io.zer0.muse.ui.theme.statusColors
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.koin.compose.koinInject
 
 /**
- * v1.133: 供应商批量健康检测状态(列表头部"全部检测"按钮触发)。
+ * 供应商批量健康检测状态。
  *
- * - [Idle]: 未测试(默认),不显示状态 chip
- * - [Testing]: 检测进行中(显示 CircularProgressIndicator)
- * - [Success]: 检测通过(显示延迟 ms,绿色 ✓)
- * - [Failed]: 检测失败(显示错误简述,红色 ✗)
- *
- * 与 [ModelTestStatus] 区分:本状态针对整个 provider 的 /models 端点连通性,
- * 不发真实 chat 消息;且携带延迟数据用于排序/对比。
+ * - [Idle]: 未测试，不占视觉空间
+ * - [Testing]: 检测进行中
+ * - [Success]: 检测通过，携带延迟与可用模型数
+ * - [Failed]: 检测失败，携带分类错误原因
  */
 sealed class ProviderTestStatus {
     data object Idle : ProviderTestStatus()
@@ -71,15 +75,11 @@ sealed class ProviderTestStatus {
 }
 
 /**
- * Provider 列表 section — 分组列表。
+ * 供应商分组列表。
  *
- * 用 [SettingsGroup] 包裹所有 Provider,每个 Provider 一行。
- * 行内左侧品牌图标、中间名称与类型、右侧启用/禁用状态标签 + 右箭头。
- *
- * v1.133: 新增 [testStatuses] / [isTestingAll] / [onTestAll] 用于"全部检测"批量并发
- * 健康检查(按 [ProviderEditPage] 的 testConnection 单测逻辑,提升为批量并发)。
+ * 按官方 / 中转站 / 自定义以圆角分组卡片呈现；顶部仅在存在冲突时展示警告，
+ * 能力目录作为低干扰工具行沉底放置。添加与扫码入口已收拢至页面顶栏。
  */
-// 列表项 helper 的固有参数面(回调 + 批量检测状态)，与站内同类 helper 一致就地豁免
 @Suppress("LongParameterList")
 internal fun LazyListScope.providerListSection(
     providers: List<ProviderConfig>,
@@ -88,295 +88,244 @@ internal fun LazyListScope.providerListSection(
     onEdit: (ProviderConfig) -> Unit,
     onDelete: (String) -> Unit,
     onAddProvider: () -> Unit = {},
-    onScanQr: () -> Unit = {},
-    // v1.133: 批量健康检测(列表头部"全部检测"按钮触发)
+    @Suppress("UNUSED_PARAMETER") onScanQr: () -> Unit = {},
     testStatuses: Map<String, ProviderTestStatus> = emptyMap(),
     isTestingAll: Boolean = false,
     onTestAll: () -> Unit = {},
-    // 列表本身会藏掉内置免费网关，空态却要说清"现在到底能不能用"，所以把闸门判断单独传进来。
     hasUsableProvider: Boolean = false,
 ) {
-    item {
-        ProviderListHeader(
-            totalCount = providers.size,
-            isTestingAll = isTestingAll,
-            onTestAll = onTestAll,
-        )
-    }
-
-    // 按 category 分组渲染(官方 / 中转站 / 自定义)
-    val officialProviders = providers.filter { it.category == io.zer0.ai.core.ProviderCategory.OFFICIAL }
-    val relayProviders = providers.filter { it.category == io.zer0.ai.core.ProviderCategory.RELAY }
-    val customProviders = providers.filter { it.category == io.zer0.ai.core.ProviderCategory.CUSTOM }
-
     if (providers.isEmpty()) {
-        item {
-            Column(
+        item(key = "providers_empty") {
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 64.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
+                    .padding(horizontal = MuseSpacing.xxl, vertical = MuseSpacing.xxxl),
+                contentAlignment = Alignment.Center,
             ) {
-                // 只剩内置免费网关时列表是空的，但它足以开始聊天；
-                // 这时候再喊"先添加供应商才能工作"就是在否认自己刚跑通的路径。
-                if (hasUsableProvider) {
-                    MuseEmptyState(
-                        icon = MuseIcons.atom,
-                        title = stringResource(R.string.settings_provider_free_ready_title),
-                        actionText = stringResource(R.string.settings_provider_empty_action),
-                        onAction = onAddProvider,
-                    )
-                } else {
-                    MuseEmptyState(
-                        icon = MuseIcons.atom,
-                        title = stringResource(R.string.settings_provider_empty_title),
-                        actionText = stringResource(R.string.settings_provider_empty_action),
-                        onAction = onAddProvider,
-                    )
-                }
+                // 内置免费网关在列表中隐藏，但用户已可直接对话，空态标题须区分可用状态。
+                MuseEmptyState(
+                    icon = MuseIcons.atom,
+                    title = stringResource(
+                        if (hasUsableProvider) {
+                            R.string.settings_provider_free_ready_title
+                        } else {
+                            R.string.settings_provider_empty_title
+                        },
+                    ),
+                    actionText = stringResource(R.string.settings_provider_empty_action),
+                    onAction = onAddProvider,
+                )
             }
         }
         return
     }
 
-    // P2-1: Provider 冲突检测 — 在列表顶部展示警告卡片(仅当存在重复配置时)
-    item { ModelCatalogRow() }
-    item { ProviderCollisionWarning(providers) }
+    item(key = "provider_collision_warning") {
+        ProviderCollisionWarning(providers)
+    }
 
-    // "添加 Provider" 入口 —— 置顶（用户反馈：自定义分组多时每次都要滚到底）
-    // 两个入口同构（图标 + 主色文字 + 点击），抽成数据 + 一次渲染，
-    // 不再各写一份 Row。
-    val addEntries = listOf(
-        ProviderAddEntry(MuseIcons.plus, R.string.settings_provider_add, onAddProvider),
-        // v1.97: 扫描二维码导入 Provider
-        ProviderAddEntry(MuseIcons.qrcode, R.string.qr_scan_btn, onScanQr),
-    )
-    item {
-        CardGroup(modifier = Modifier.padding(top = MusePaddings.itemGap)) {
-            addEntries.forEach { entry ->
-                item(
-                    key = entry.labelRes,
-                    onClick = entry.onClick,
-                    leadingContent = {
-                        Icon(
-                            imageVector = entry.icon,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.size(MuseIconSizes.iconMedium),
-                        )
-                    },
-                    headlineContent = {
-                        Text(
-                            text = stringResource(entry.labelRes),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Medium,
-                        )
-                    },
+    val sections = listOf(
+        ProviderCategorySection(
+            key = "official",
+            titleRes = R.string.settings_provider_category_official,
+            items = providers.filter { it.category == ProviderCategory.OFFICIAL },
+        ),
+        ProviderCategorySection(
+            key = "relay",
+            titleRes = R.string.settings_provider_category_relay,
+            items = providers.filter { it.category == ProviderCategory.RELAY },
+        ),
+        ProviderCategorySection(
+            key = "custom",
+            titleRes = R.string.settings_provider_category_custom,
+            items = providers.filter { it.category == ProviderCategory.CUSTOM },
+        ),
+    ).filter { it.items.isNotEmpty() }
+
+    sections.forEachIndexed { index, section ->
+        item(key = "provider_section_${section.key}") {
+            Column(verticalArrangement = Arrangement.spacedBy(MuseSpacing.smTight)) {
+                ProviderCategoryHeader(
+                    title = stringResource(section.titleRes),
+                    showTestAll = index == 0,
+                    isTestingAll = isTestingAll,
+                    onTestAll = onTestAll,
                 )
-            }
-        }
-    }
-
-    // 官方厂商分组
-    if (officialProviders.isNotEmpty()) {
-        item { ProviderCategoryHeader(stringResource(R.string.settings_provider_category_official), officialProviders.size) }
-        item {
-            CardGroup {
-                officialProviders.forEach { config ->
-                    item(key = config.id) {
-                        ProviderRow(
-                            config = config,
-                            isActive = config.id == activeProviderId,
-                            onEdit = { onEdit(config) },
-                            onActivate = { onActivate(config.id) },
-                            onDelete = { onDelete(config.id) },
-                            testStatus = testStatuses[config.id] ?: ProviderTestStatus.Idle,
-                        )
+                CardGroup {
+                    section.items.forEach { config ->
+                        item(key = config.id) {
+                            ProviderRow(
+                                config = config,
+                                isActive = config.id == activeProviderId,
+                                onEdit = { onEdit(config) },
+                                onActivate = { onActivate(config.id) },
+                                onDelete = { onDelete(config.id) },
+                                testStatus = testStatuses[config.id] ?: ProviderTestStatus.Idle,
+                            )
+                        }
                     }
                 }
             }
         }
     }
 
-    // 中转站分组
-    if (relayProviders.isNotEmpty()) {
-        item { ProviderCategoryHeader(stringResource(R.string.settings_provider_category_relay), relayProviders.size) }
-        item {
-            CardGroup {
-                relayProviders.forEach { config ->
-                    item(key = config.id) {
-                        ProviderRow(
-                            config = config,
-                            isActive = config.id == activeProviderId,
-                            onEdit = { onEdit(config) },
-                            onActivate = { onActivate(config.id) },
-                            onDelete = { onDelete(config.id) },
-                            testStatus = testStatuses[config.id] ?: ProviderTestStatus.Idle,
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-    // 自定义分组
-    if (customProviders.isNotEmpty()) {
-        item { ProviderCategoryHeader(stringResource(R.string.settings_provider_category_custom), customProviders.size) }
-        item {
-            CardGroup {
-                customProviders.forEach { config ->
-                    item(key = config.id) {
-                        ProviderRow(
-                            config = config,
-                            isActive = config.id == activeProviderId,
-                            onEdit = { onEdit(config) },
-                            onActivate = { onActivate(config.id) },
-                            onDelete = { onDelete(config.id) },
-                            testStatus = testStatuses[config.id] ?: ProviderTestStatus.Idle,
-                        )
-                    }
-                }
-            }
-        }
+    // 模型能力目录作为低频维护项放在供应商列表下方，避免首屏噪声。
+    item(key = "provider_model_catalog") {
+        ModelCatalogCard()
     }
 }
 
-/**
- * P2-1: Provider 冲突(重复配置)警告卡片。
- *
- * 调用 [ProviderCollisionDetector.detect] 检测当前 provider 列表中的重复配置,
- * 仅当检测到冲突时渲染警告卡片。卡片样式:
- *  - 形状:[MuseShapes.medium] 圆角
- *  - 背景:MaterialTheme.colorScheme.errorContainer
- *  - 图标:MuseIcons.alertTriangle(着色 onErrorContainer)
- *  - 文案:provider_collision_warning(带冲突数量 %1$d)
- *
- * 仅提示,不展开详情,不阻断用户操作。
- */
+private data class ProviderCategorySection(
+    val key: String,
+    val titleRes: Int,
+    val items: List<ProviderConfig>,
+)
+
 @Composable
 private fun ProviderCollisionWarning(providers: List<ProviderConfig>) {
     val collisions = remember(providers) { ProviderCollisionDetector.detect(providers) }
     if (collisions.isEmpty()) return
 
+    val statusColors = MaterialTheme.statusColors
     Surface(
         shape = MuseShapes.medium,
-        color = MaterialTheme.colorScheme.errorContainer,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = MusePaddings.itemGap),
+        color = statusColors.warningContainer,
+        modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(MusePaddings.cardInner),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(MusePaddings.iconPadding),
+            horizontalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
         ) {
             Icon(
                 imageVector = MuseIcons.alertTriangle,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onErrorContainer,
-                modifier = Modifier.size(MuseIconSizes.iconMedium),
+                tint = statusColors.warning,
+                modifier = Modifier.size(MuseIconSizes.iconSmall),
             )
             Text(
                 text = stringResource(R.string.provider_collision_warning, collisions.size),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onErrorContainer,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface,
             )
         }
     }
 }
 
 @Composable
-private fun ProviderCategoryHeader(title: String, count: Int) {
+private fun ProviderCategoryHeader(
+    title: String,
+    showTestAll: Boolean,
+    isTestingAll: Boolean,
+    onTestAll: () -> Unit,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 12.dp, start = 4.dp, end = 4.dp),
+            .padding(horizontal = MuseSpacing.xs),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             text = title,
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.primary,
-        )
-        Spacer(Modifier.weight(1f))
-        Text(
-            text = "$count",
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f),
         )
+        if (showTestAll) {
+            if (isTestingAll) {
+                MuseSpinner(
+                    size = MuseIconSizes.iconTiny,
+                    strokeWidth = 1.5.dp,
+                )
+                Spacer(Modifier.width(MuseSpacing.smTight))
+            }
+            MuseCapsuleButton(
+                text = stringResource(R.string.settings_provider_test_all),
+                onClick = onTestAll,
+                enabled = !isTestingAll,
+                variant = IosCapsuleButtonVariant.Text,
+                size = MuseButtonSize.Compact,
+                fillWidth = false,
+            )
+        }
     }
 }
 
-/**
- * 模型能力目录行 —— 展示当前目录版本,并支持手动拉取更新。
- *
- * 目录来源见 [ModelCatalogRepository]:缓存优先,拉取失败退回内置 asset。
- */
 @Composable
-private fun ModelCatalogRow() {
-    val repository: ModelCatalogRepository = org.koin.compose.koinInject()
+private fun ModelCatalogCard() {
+    val repository: ModelCatalogRepository = koinInject()
     var status by remember { mutableStateOf(repository.status()) }
     var refreshing by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val context = LocalContext.current
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(MusePaddings.cardInner),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = stringResource(R.string.settings_model_catalog_title),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                text = buildString {
-                    append(formatCatalogTimestamp(status.publishedAt))
-                    append(" · ")
-                    append(
-                        context.getString(
-                            R.string.settings_model_catalog_counts,
-                            status.providerCount,
-                            status.modelCount,
-                        ),
+    CardGroup {
+        item(key = "catalog_row") {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = MuseListItemSizes.minHeight)
+                    .padding(MusePaddings.cardInner),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(MuseSpacing.md),
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(MuseSpacing.xxs),
+                ) {
+                    Text(
+                        text = stringResource(R.string.settings_model_catalog_title),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
-                },
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        MuseCapsuleButton(
-            text = stringResource(
-                if (refreshing) {
-                    R.string.settings_model_catalog_refreshing
-                } else {
-                    R.string.settings_model_catalog_refresh
-                },
-            ),
-            onClick = {
-                if (!refreshing) {
-                    refreshing = true
-                    scope.launch {
-                        val result = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                            repository.refresh()
-                        }
-                        status = repository.status()
-                        refreshing = false
-                        MuseToast.show(result.message)
-                    }
+                    Text(
+                        text = buildString {
+                            append(
+                                context.getString(
+                                    R.string.settings_model_catalog_counts,
+                                    status.providerCount,
+                                    status.modelCount,
+                                ),
+                            )
+                            val ts = formatCatalogTimestamp(status.publishedAt)
+                            if (ts != "—") {
+                                append(" · ")
+                                append(ts)
+                            }
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
-            },
-            variant = IosCapsuleButtonVariant.Text,
-            fillWidth = false,
-        )
+                MuseCapsuleButton(
+                    text = stringResource(
+                        if (refreshing) {
+                            R.string.settings_model_catalog_refreshing
+                        } else {
+                            R.string.settings_model_catalog_refresh
+                        },
+                    ),
+                    onClick = {
+                        if (!refreshing) {
+                            refreshing = true
+                            scope.launch {
+                                val result = withContext(Dispatchers.IO) { repository.refresh() }
+                                status = repository.status()
+                                refreshing = false
+                                MuseToast.show(result.message)
+                            }
+                        }
+                    },
+                    variant = IosCapsuleButtonVariant.Text,
+                    size = MuseButtonSize.Compact,
+                    fillWidth = false,
+                )
+            }
+        }
     }
 }
 
@@ -385,15 +334,11 @@ internal fun ProviderRow(
     config: ProviderConfig,
     isActive: Boolean,
     onEdit: () -> Unit,
-    // 激活(设为当前供应商)与删除 —— 此前 providerListSection 收下这两个回调却从不使用,
-    // 导致供应商列表既不能激活也不能删除。
     onActivate: () -> Unit,
     onDelete: () -> Unit,
-    // v1.133: 批量健康检测状态(由列表头部"全部检测"按钮触发,写入后行内显示)
     testStatus: ProviderTestStatus = ProviderTestStatus.Idle,
 ) {
     var actionsOpen by remember { mutableStateOf(false) }
-    // 删除供应商会连带丢掉 API Key 与模型清单,且不可恢复 —— 与所有破坏性操作一样先确认。
     var confirmDelete by remember { mutableStateOf(false) }
     if (confirmDelete) {
         ConfirmDeleteDialog(
@@ -408,75 +353,100 @@ internal fun ProviderRow(
         )
     }
 
+    val typeLabel = providerDisplayTypeName(config.type)
+    val modelCountLabel = if (config.models.isNotEmpty()) {
+        stringResource(R.string.settings_preset_model_count, config.models.size)
+    } else {
+        null
+    }
+    val disabledLabel = stringResource(R.string.settings_provider_status_disabled)
+    val subtitleText = buildString {
+        if (!config.enabled) {
+            append(disabledLabel)
+            append(" · ")
+        }
+        append(typeLabel)
+        if (modelCountLabel != null) {
+            append(" · ")
+            append(modelCountLabel)
+        }
+    }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 56.dp)
-            .clickable { onEdit() }
+            .heightIn(min = MuseListItemSizes.minHeight)
+            .clickable(onClick = onEdit)
             .padding(MusePaddings.cardInner),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+        horizontalArrangement = Arrangement.spacedBy(MuseSpacing.md),
     ) {
-        // 左侧:品牌 logo 砖(线性图标/字标,圆角方形)
         ProviderLogo(
             type = config.type,
             name = config.displayName,
-            size = 44.dp,
+            size = 36.dp,
+            cornerRadius = 10.dp,
         )
 
-        // 中间:名称 + 类型
-        Column(modifier = Modifier.weight(1f)) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(MuseSpacing.xxs),
+        ) {
             Text(
                 text = config.displayName.ifBlank { config.id },
-                style = MaterialTheme.typography.titleMedium,
-                color = if (isActive) {
-                    MaterialTheme.colorScheme.primary
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
+                color = if (!config.enabled) {
+                    MaterialTheme.colorScheme.onSurfaceVariant
                 } else {
                     MaterialTheme.colorScheme.onSurface
                 },
-                maxLines = 2,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
             Text(
-                text = providerDisplayTypeName(config.type),
+                text = subtitleText,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = if (!config.enabled) {
+                    MaterialTheme.colorScheme.outline
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
                 maxLines = 1,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                overflow = TextOverflow.Ellipsis,
             )
-            androidx.compose.foundation.layout.FlowRow(
-                modifier = Modifier.fillMaxWidth().padding(top = MusePaddings.tightGap),
-                horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
-                verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
-            ) {
-                Text(
-                    text = stringResource(
-                        if (config.enabled) R.string.common_enable else R.string.settings_provider_status_disabled,
-                    ),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (config.enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
-                    maxLines = 1,
-                )
-                ProviderTestStatusChip(testStatus)
+            if (testStatus !is ProviderTestStatus.Idle) {
+                Box(modifier = Modifier.padding(top = MuseSpacing.xxs)) {
+                    ProviderTestStatusChip(testStatus)
+                }
             }
         }
-        // 整行点击进入编辑，右侧只留一个独立操作入口，状态不再挤占标题。
+
+        if (isActive) {
+            Icon(
+                imageVector = MuseIcons.check,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(MuseIconSizes.iconSmall),
+            )
+        }
+
         Box {
             MuseTactileButton(
-                icon = MuseIcons.moreVertical,
+                icon = MuseIcons.moreHorizontal,
                 onClick = { actionsOpen = true },
                 contentDescription = stringResource(R.string.action_more),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                iconSize = MuseIconSizes.iconMedium,
+                compact = true,
             )
-            io.zer0.muse.ui.common.form.MuseAnchoredMenu(
+            MuseAnchoredMenu(
                 expanded = actionsOpen,
                 onDismissRequest = { actionsOpen = false },
                 alignEnd = true,
             ) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                    verticalArrangement = Arrangement.spacedBy(MuseSpacing.xxs),
                 ) {
                     if (!isActive) {
                         MuseListItem(
@@ -495,7 +465,10 @@ internal fun ProviderRow(
                             confirmDelete = true
                         },
                         headlineContent = {
-                            Text(stringResource(R.string.settings_provider_delete_title))
+                            Text(
+                                text = stringResource(R.string.settings_provider_delete_title),
+                                color = MaterialTheme.colorScheme.error,
+                            )
                         },
                     )
                 }
@@ -504,76 +477,22 @@ internal fun ProviderRow(
     }
 }
 
-/**
- * v1.133: 供应商列表头部 — section 标题 + "全部检测"按钮。
- *
- * 替代原 [SectionLabel] 单文本。检测进行中按钮内显示 CircularProgressIndicator,
- * 点击触发 [onTestAll] 并发测试所有已配置的供应商。
- *
- * 按 UI:
- * ```
- * Row {
- *     Text("Provider 列表")
- *     Spacer(Modifier.weight(1f))
- *     if (testing) { CircularProgressIndicator(...) }
- *     TextButton(onClick = onTestAll) { Text("全部检测") }
- * }
- * ```
- */
-@Composable
-private fun ProviderListHeader(totalCount: Int, isTestingAll: Boolean, onTestAll: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 4.dp, end = 4.dp, top = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        SectionLabel(stringResource(R.string.settings_provider_list_title))
-        Spacer(Modifier.weight(1f))
-        // v1.133: 检测进行中显示转圈(尺寸 14dp,与按钮文字高度匹配)
-        if (isTestingAll) {
-            MuseSpinner(
-                size = 14.dp,
-                strokeWidth = 1.5.dp,
-            )
-            Spacer(Modifier.width(8.dp))
-        }
-        MuseCapsuleButton(
-            text = stringResource(R.string.settings_provider_test_all),
-            onClick = onTestAll,
-            enabled = !isTestingAll && totalCount > 0,
-            variant = IosCapsuleButtonVariant.Text,
-            fillWidth = false,
-        )
-    }
-}
-
-/**
- * v1.133: 单个供应商检测结果 chip。
- *
- * - [ProviderTestStatus.Idle]: 不渲染(保持行内整洁)
- * - [ProviderTestStatus.Testing]: 小转圈 + "检测中"
- * - [ProviderTestStatus.Success]: 绿色 ✓ + "{latency} ms"(展示延迟)
- * - [ProviderTestStatus.Failed]: 红色 ✗ + "失败"(短文案,详情点入编辑页查看)
- */
 @Composable
 private fun ProviderTestStatusChip(status: ProviderTestStatus) {
+    val statusColors = MaterialTheme.statusColors
     when (status) {
         ProviderTestStatus.Idle -> Unit
         ProviderTestStatus.Testing -> {
             Surface(
-                color = MaterialTheme.colorScheme.surfaceVariant,
+                color = statusColors.neutralContainer,
                 shape = MuseShapes.small,
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                    modifier = Modifier.padding(horizontal = MuseSpacing.sm, vertical = MuseSpacing.xxs),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(MuseSpacing.xs),
                 ) {
-                    MuseSpinner(
-                        size = 10.dp,
-                        strokeWidth = 1.5.dp,
-                    )
+                    MuseSpinner(size = 10.dp, strokeWidth = 1.5.dp)
                     Text(
                         text = stringResource(R.string.settings_provider_test_row_testing),
                         style = MaterialTheme.typography.labelSmall,
@@ -584,48 +503,48 @@ private fun ProviderTestStatusChip(status: ProviderTestStatus) {
         }
         is ProviderTestStatus.Success -> {
             Surface(
-                color = MaterialTheme.colorScheme.primaryContainer,
+                color = statusColors.successContainer,
                 shape = MuseShapes.small,
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                    modifier = Modifier.padding(horizontal = MuseSpacing.sm, vertical = MuseSpacing.xxs),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(MuseSpacing.xs),
                 ) {
                     Icon(
                         imageVector = MuseIcons.check,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.size(12.dp),
+                        tint = statusColors.success,
+                        modifier = Modifier.size(MuseIconSizes.iconTiny),
                     )
                     Text(
                         text = stringResource(R.string.settings_provider_test_result_ok, status.latencyMs.toInt()),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        color = statusColors.success,
                     )
                 }
             }
         }
         is ProviderTestStatus.Failed -> {
             Surface(
-                color = MaterialTheme.colorScheme.errorContainer,
+                color = statusColors.errorContainer,
                 shape = MuseShapes.small,
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                    modifier = Modifier.padding(horizontal = MuseSpacing.sm, vertical = MuseSpacing.xxs),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(MuseSpacing.xs),
                 ) {
                     Icon(
                         imageVector = MuseIcons.x,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onErrorContainer,
-                        modifier = Modifier.size(12.dp),
+                        tint = statusColors.error,
+                        modifier = Modifier.size(MuseIconSizes.iconTiny),
                     )
                     Text(
                         text = stringResource(R.string.settings_provider_test_result_failed),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        color = statusColors.error,
                     )
                 }
             }
@@ -633,26 +552,13 @@ private fun ProviderTestStatusChip(status: ProviderTestStatus) {
     }
 }
 
-/**
- * 把后端返回的 ISO 时间戳格式化为本地可读日期。
- *
- * 上游给的是 2026-09-30T06:11:52.268Z 这类字符串，直接展示会让用户看到一串
- * 带 T 和 Z 的机器格式。解析失败时回退到原串，避免整行为空。
- */
 private fun formatCatalogTimestamp(raw: String): String {
     if (raw.isBlank()) return "—"
     return runCatching {
         val instant = java.time.Instant.parse(raw)
         val local = instant.atZone(java.time.ZoneId.systemDefault())
         java.time.format.DateTimeFormatter
-            .ofPattern("yyyy-MM-dd HH:mm")
+            .ofPattern("yyyy-MM-dd")
             .format(local)
     }.getOrDefault(raw)
 }
-
-/** 「添加 Provider / 扫码导入」两个入口的元信息（图标 + 文案 + 点击）。 */
-private data class ProviderAddEntry(
-    val icon: androidx.compose.ui.graphics.vector.ImageVector,
-    val labelRes: Int,
-    val onClick: () -> Unit,
-)

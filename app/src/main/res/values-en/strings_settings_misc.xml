@@ -133,7 +133,6 @@
     <string name="settings_multi_agent_delete_team">Delete Team</string>
     <string name="settings_multi_agent_unnamed_team">Untitled Team</string>
     <string name="settings_multi_agent_no_members">No members</string>
-    <string name="settings_multi_agent_delete">Delete</string>
     <string name="settings_multi_agent_edit_team">Edit Team</string>
     <string name="settings_multi_agent_team_name">Team Name</string>
     <string name="settings_multi_agent_team_name_hint">e.g. Writing Group</string>
@@ -142,8 +141,6 @@
     <string name="settings_multi_agent_description_hint">Team purpose or collaboration scenario</string>
     <string name="settings_multi_agent_select_members">Select Members</string>
     <string name="settings_multi_agent_no_assistants">No assistants available. Please create one in the Assistant page first.</string>
-    <string name="settings_multi_agent_save">Save</string>
-    <string name="settings_multi_agent_cancel">Cancel</string>
 
     <!-- SettingsTutorialPage.kt -->
     <string name="settings_tutorial_title">Tutorial</string>

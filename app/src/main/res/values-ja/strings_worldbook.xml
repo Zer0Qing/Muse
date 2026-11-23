@@ -7,13 +7,10 @@
     <string name="worldbook_new_default_name">新規エントリー</string>
     <string name="worldbook_new_title">新しい世界書</string>
     <string name="worldbook_edit_title">ワールドブックの編集</string>
-    <string name="worldbook_save">保存</string>
     <string name="worldbook_unsaved_title">未保存の変更</string>
     <string name="worldbook_unsaved_content">未保存の変更があります。</string>
     <string name="worldbook_discard">破棄</string>
     <string name="worldbook_unnamed">無名</string>
-    <string name="worldbook_edit_cd">編集</string>
-    <string name="worldbook_delete_cd">消去</string>
     <string name="worldbook_delete_title">ワールドブックの削除</string>
     <string name="worldbook_empty_title">ワールドブックのエントリはありません</string>
     <string name="worldbook_keywords_label">キーワード: %1$s</string>

@@ -575,6 +575,8 @@ class SessionRepository(
                 // 表现就是「往文件夹里加一个会话再删掉，计数变成 -1」。
                 val folderId = sessionDao.getById(id)?.folderId
                 syncFtsDeleteBySession(id)
+                io.zer0.muse.data.agentbot.AgentBotDataCleanup(database)
+                    .deleteSessionRowsInCurrentTransaction(id)
                 sessionDao.deleteById(id)
                 // 在同一个事务里递减：放到事务外一旦进程被杀，会话没了但计数还挂着。
                 if (folderId != null && folderId != CARD_FAVORITE_SESSION_MARKER) {
@@ -994,6 +996,29 @@ class SessionRepository(
                 database.withTransaction {
                     appendMessageInternal(sessionId, message)
                 }
+            }
+        }
+    }
+
+    /** 主动消息的结果账必须和会话消息、FTS 及计数投影一起提交。 */
+    suspend fun appendMessageWithTransaction(
+        sessionId: String,
+        message: UIMessage,
+        commitAdditionalRows: suspend (messageId: String) -> Unit,
+    ): String? = withDatabaseRecovery("appendMessageWithTransaction") {
+        withContext(Dispatchers.IO) {
+            database.withTransaction {
+                val session = sessionDao.getById(sessionId)
+                if (session == null || session.deletedAt != null) return@withTransaction null
+                val messageId = appendMessageInternal(sessionId, message)
+                check(messageDao.getById(sessionId, messageId) != null) {
+                    "会话消息在事务中写入后无法读回: $messageId"
+                }
+                commitAdditionalRows(messageId)
+                check(messageDao.getById(sessionId, messageId) != null) {
+                    "附加事务写入后会话消息缺失: $messageId"
+                }
+                messageId
             }
         }
     }

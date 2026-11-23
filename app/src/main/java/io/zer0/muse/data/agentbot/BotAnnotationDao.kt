@@ -27,6 +27,13 @@ interface BotAnnotationDao {
     @Query("SELECT * FROM bot_annotations WHERE originSessionId = :sessionId ORDER BY createdAt ASC")
     suspend fun listBySession(sessionId: String): List<BotAnnotationEntity>
 
+    /** 响应式观察当前会话内所有活跃的消息角标标注，供对话流气泡一次性渲染。 */
+    @Query(
+        "SELECT * FROM bot_annotations " +
+            "WHERE originSessionId = :sessionId AND status = 'ACTIVE' ORDER BY createdAt ASC",
+    )
+    fun observeActiveBySession(sessionId: String): Flow<List<BotAnnotationEntity>>
+
     /** 同一条消息上、同一类型的标注：用于"改表情"而不是"再挂一个"。 */
     @Query(
         "SELECT * FROM bot_annotations WHERE targetMessageId = :messageId " +

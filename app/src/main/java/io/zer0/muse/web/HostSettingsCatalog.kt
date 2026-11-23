@@ -52,88 +52,60 @@ internal object HostSettingsCatalog {
     /** 分组 key 是分组标题的字符串资源名,按界面从上到下排列。 */
     val groups: List<HostSettingsGroup> = listOf(
         group(
-            "settings_group_assistants",
-            link("user_profile", "settings_user_profile_title", "user"),
-            link("assistants", "settings_screen_assistant", "atom"),
-            link("assistant_resources", "settings_screen_assistant_resources", "stars"),
-            link("agent", "chat_agent_tab_title", "users"),
-            // 2026-11-22: CHAT / APPEARANCE 原本各自成组（各 1 条），并入助手组。
-            link("chat", "settings_screen_chat", "chat"),
+            "settings_group_general",
             link("appearance", "settings_screen_appearance_label", "palette"),
+            link("chat", "settings_screen_chat", "chat"),
+            link("user_profile", "settings_user_profile_title", "user"),
+            link("stats", "settings_screen_stats", "chartBar"),
+        ),
+        group(
+            "settings_group_assistants",
+            link("assistants", "settings_screen_assistant", "atom"),
+            link("agent", "chat_agent_tab_title", "users"),
+            link("agent_directives", "settings_screen_agent_directives", "bell", enabled = false),
+            link("assistant_resources", "settings_screen_assistant_resources", "stars"),
+            link("miniphone", "settings_miniphone_title", "deviceMobile", enabled = FeatureFlags.MINI_PHONE),
         ),
         group(
             "settings_group_models",
             link("provider", "common_provider", "provider"),
             link("task_routing", "settings_task_routing_title", "taskRouting"),
-            link("provider_plugins", "provider_plugins_title", "affiliate"),
+            link("runtime", "offline_resources_entry_title", "download"),
         ),
         group(
-            "settings_group_tools",
-            link("tools", "settings_screen_tools", "wrench"),
-            link("permission_wizard", "permission_wizard_title", "shieldCheck"),
-            link("web_search", "settings_screen_web_search", "globe"),
-            // 与 App 侧 1:1 镜像：单工具审批策略页。Web 端还没有对应子页，
-            // 因此列出但不进子页（enabled = false），不留一个点了没反应的假入口。
-            link(
-                "tool_approval",
-                "settings_screen_entry_tool_approval",
-                "shieldCheck",
-                enabled = false,
-            ),
-        ),
-        group(
-            "settings_group_voice",
+            "settings_group_media",
             link("tts", "settings_screen_media", "microphone"),
             link("asr", "settings_screen_asr", "microphone"),
             link("voice_cloning", "voice_cloning_title", "play"),
-        ),
-        group(
-            "settings_group_image",
-            link("image_video_gen", "video_gen_title", "video"),
             link("vision", "settings_vision_title", "image"),
+            link("image_video_gen", "video_gen_title", "video"),
         ),
         group(
             "settings_group_memory",
             link("memory", "settings_screen_memory_notification", "atom"),
             link("rag", "settings_screen_rag", "book"),
-            // v2.7.x(E2): 术语页目前只有 App 侧子页(要读写本机 Room)。
-            // 1:1 镜像要求这里同步有条目，但 Web 端补出对应页之前保持 enabled = false，
-            // 不造一个点了没反应的假入口(S4 的 diagnostics 走的正是同一套做法)。
             link("session_terms", "settings_screen_session_terms", "book", enabled = false),
+        ),
+        group(
+            "settings_group_tools",
+            link("tools", "settings_screen_tools", "wrench"),
+            link("web_search", "settings_screen_web_search", "globe"),
+            link("provider_plugins", "provider_plugins_title", "affiliate"),
+            link("mcp", "settings_screen_mcp", "plug"),
         ),
         group(
             "settings_group_connection",
             link("channel", "channel_page_title", "wifi"),
-            // 内置浏览器设置只有 App 侧有页面（WebView 的引擎与 Cookies 行为没法从网页驱动），
-            // 所以这里 enabled = false：Web 端列出但不进子页，不造一个点了没反应的假入口。
             link("browser", "settings_screen_browser", "globe", enabled = false),
             link("web_access", "settings_screen_web_access", "router"),
-            link("mcp", "settings_screen_mcp", "plug"),
-            // 代理条目的说明由运行时拼(未启用 / type host:port),没有固定资源。
             link("proxy", "proxy_title", "proxy"),
-            // 2026-11-22: KEEP_ALIVE / MINI_PHONE 原本各自成组（各 1 条），并入连接组。
-            link("keep_alive", "settings_keep_alive_title", "battery"),
-            link(
-                "miniphone",
-                "settings_miniphone_title",
-                "deviceMobile",
-                enabled = FeatureFlags.MINI_PHONE),
         ),
         group(
             "settings_group_automation",
             link("proactive", "settings_agent_proactive_title", "bell"),
-            // 用户约定只有 App 侧有页面（编辑与注入都在 App 内），Web 端列出但不进子页，
-            // 不留一个点了没反应的死行；理由同步登记在 HostSettingsEntryAvailabilityTest。
-            link(
-                "agent_directives",
-                "settings_screen_agent_directives",
-                "bell",
-                enabled = false),
-            link(
-                "notification_listener",
-                "settings_screen_notification_listener",
-                "bell"),
+            link("notification_listener", "settings_screen_notification_listener", "bell"),
             link("ui_automation", "automation_settings_title", "computer"),
+            link("keep_alive", "settings_keep_alive_title", "battery"),
         ),
         group(
             "settings_group_data_storage",
@@ -142,17 +114,14 @@ internal object HostSettingsCatalog {
             link("backup", "settings_screen_data_backup", "cloud"),
             link("data_import", "settings_screen_data_import", "cloudUpload"),
             link("archived_chats", "settings_screen_entry_archived", "archive"),
-            // 2026-11-22: OFFLINE 原本独立成组（1 条），并入数据组。
-            link("runtime", "offline_resources_entry_title", "download"),
         ),
         group(
             "settings_group_privacy_security",
-            toggle(
-                "pii_guard",
-                "settings_screen_pii_guard",
-                "shield",
-                HostSettingKeys.PII_GUARD),
+            toggle("pii_guard", "settings_screen_pii_guard", "shield", HostSettingKeys.PII_GUARD),
+            link("permission_wizard", "permission_wizard_title", "shieldCheck"),
+            link("tool_approval", "settings_screen_entry_tool_approval", "shieldCheck", enabled = false),
             link("share", "common_share", "lock"),
+            link("audit_log", "settings_audit_log", "history"),
         ),
         group(
             "settings_group_about",
@@ -162,15 +131,10 @@ internal object HostSettingsCatalog {
         ),
         group(
             "settings_group_developer",
-            // 「运行诊断」在 App 侧已移入开发者组，协议侧必须同步，
-            // 否则 Web 设置页的分类归属与 App 不一致。
-            // S5 已在 Web 端补出「运行」三 Tab 页(runtime.logs / runtime.diagnostics / runtime.stats)。
             link("diagnostics", "settings_screen_diagnostics", "bug"),
-            link("stats", "settings_screen_stats", "chartBar"),
             link("experiments", "settings_screen_experiments", "flask"),
             link("debug_log", "settings_screen_debug_log", "bug"),
             link("crash_report", "settings_crash_page_title", "shieldCheck"),
-            link("audit_log", "settings_audit_log", "history"),
         ),
     ).let(::visibleGroups)
 

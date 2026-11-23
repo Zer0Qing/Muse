@@ -87,6 +87,8 @@ class ForegroundCoordinator(
          * 调用方应当明确告诉用户"当前 Provider 不支持工具调用，主 Bot 无法派工"。
          */
         val providerToolBlind: Boolean = false,
+        val publishedMessageId: String = "",
+        val requestSuperseded: Boolean = false,
     ) {
         val shouldDispatch: Boolean get() = dispatchGoal.isNotBlank()
 
@@ -107,12 +109,36 @@ class ForegroundCoordinator(
         history: List<UIMessage>,
         userText: String,
         requestRevision: Long,
+    ): Turn? = runTurn(
+        identity = AgentTurnIdentity(
+            assistantId = botId,
+            sessionId = originSessionId,
+            requestId = "legacy-request-$requestRevision",
+            requestRevision = requestRevision.coerceAtLeast(1L),
+        ),
+        history = history,
+        userText = userText,
+        currentRequestRevision = { requestRevision.coerceAtLeast(1L) },
+    )
+
+    suspend fun runTurn(
+        identity: AgentTurnIdentity,
+        history: List<UIMessage>,
+        userText: String,
+        currentRequestRevision: suspend () -> Long,
+        inputImageBase64List: List<String> = emptyList(),
     ): Turn? {
         if (userText.isBlank()) return null
+        val identityError = identity.validate()
+        if (identityError != null) {
+            Logger.e("ForegroundCoordinator", "前台回合身份无效: $identityError")
+            return null
+        }
 
         val messages = history + UIMessage(
             role = MessageRole.USER,
             content = userText,
+            imageBase64List = inputImageBase64List,
         )
 
         val completion = runCatching {
@@ -174,17 +200,22 @@ class ForegroundCoordinator(
             }
         }
 
+        if (currentRequestRevision() > identity.requestRevision) {
+            Logger.i("ForegroundCoordinator", "输入版本已更新，丢弃旧回合: ${identity.requestId}")
+            return Turn(requestSuperseded = true)
+        }
+
         // 派工前先问配额：配额满就不派，但仍然说话（说明在排队）。
         if (turn.shouldDispatch) {
             when (val verdict = governor.admit(runningCount = 0)) {
-                is BotResourceGovernor.Verdict.Go -> governor.recordDispatch()
+                is BotResourceGovernor.Verdict.Go -> Unit
                 is BotResourceGovernor.Verdict.Queue -> {
                     Logger.i("ForegroundCoordinator", "配额满，任务留在队列: ${verdict.reason}")
                 }
                 is BotResourceGovernor.Verdict.Reject -> {
                     // 拒绝要如实说，不能假装在处理。
                     Logger.w("ForegroundCoordinator", "配额拒绝: ${verdict.reason}")
-                    return Turn(say = turn.say, clarification = turn.clarification)
+                    turn = turn.copy(dispatchGoal = "", acceptance = "", resourceScope = "")
                 }
             }
         }
@@ -193,24 +224,25 @@ class ForegroundCoordinator(
         //
         // 这一步不能省：模型正文只有经显式 bot_say 与发布通道提交才算对外表达，
         // 直接塞进界面等于绕过了整条输出边界（计划 §8.3 的固定前提）。
-        if (turn.say.isNotBlank()) {
-            runCatching {
+        var publishedMessageId = ""
+        if (turn.say.isNotBlank() && !turn.shouldDispatch) {
+            val publicationResult = runCatching {
                 publication.publish(
-                    botId = botId,
-                    originSessionId = originSessionId,
-                    causeEventIds = "",
-                    requestRevision = requestRevision,
+                    botId = identity.assistantId,
+                    originSessionId = identity.sessionId,
+                    causeEventIds = identity.requestId,
+                    requestRevision = identity.requestRevision,
                     taskRevision = 1,
                     items = listOf(PublicationService.Item(PublicationKind.TEXT, turn.say)),
-                    // 本轮输入版本；新输入到达时旧批次会被放弃。
-                    currentRequestRevision = requestRevision,
+                    currentRequestRevision = currentRequestRevision(),
                 )
             }.onFailure {
                 Logger.w("ForegroundCoordinator", "发布失败: ${it.message}")
-            }
+            }.getOrNull()
+            publishedMessageId = publicationResult?.messageIds?.firstOrNull().orEmpty()
         }
 
-        return turn
+        return turn.copy(publishedMessageId = publishedMessageId)
     }
 
     /**
@@ -336,7 +368,7 @@ class ForegroundCoordinator(
                     {"type":"object","properties":{
                       "goal":{"type":"string","description":"要完成的事，一句话说清"},
                       "acceptance":{"type":"string","description":"怎样算做完，可核验的标准"},
-                      "resource_scope":{"type":"string","description":"可改动的范围，空表示只读"}
+                      "resource_scope":{"type":"string","description":"可写文件或目录路径；多项用逗号分隔，空表示只读"}
                     },"required":["goal"]}
                 """.trimIndent(),
             ),

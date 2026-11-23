@@ -22,8 +22,9 @@ class BackupFileStoreCoverageTest {
     @Test
     fun `ndjson declares and counts file store records`() {
         val source = File("src/main/java/io/zer0/muse/backup/BackupService.kt").readText()
+        val readBackSource = File("src/main/java/io/zer0/muse/backup/BackupReadBackValidation.kt").readText()
 
         assertTrue(source.contains("""put("fileStores", fileStores.size)"""))
-        assertTrue(source.contains(""""fileStore" to "fileStores""""))
+        assertTrue(readBackSource.contains(""""fileStore" to "fileStores""""))
     }
 }

@@ -31,7 +31,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 
-internal fun isMuseProactiveNotificationId(id: Int): Boolean = id in 0x1000_0000..0x1000_0FFF
+internal fun isMuseProactiveNotificationId(id: Int): Boolean = MuseNotificationIdPolicy.isProactiveId(id)
 
 /**
  * Phase 8.10: 消息生成通知管理器。
@@ -100,10 +100,6 @@ class MuseNotificationManager(private val context: Context) {
             }
         }
     }
-
-    // 问题6.4: 主动消息通知 ID 自增序列,保证每条主动消息分配唯一 ID(不覆盖旧通知)。
-    // 与 NOTIF_ID_PROACTIVE_MESSAGE_BASE 做 OR 运算生成最终 ID,取低 12 位避免溢出范围。
-    private val proactiveNotifIdSeq = java.util.concurrent.atomic.AtomicInteger(0)
 
     /** 一次性创建全部渠道(幂等,Android 8.0+ 必需)。 */
     fun ensureChannels() {
@@ -279,16 +275,49 @@ class MuseNotificationManager(private val context: Context) {
         preview: String,
         target: MuseNotificationTarget = MuseNotificationTarget.Chat,
         outcomeId: String? = null,
-    ) {
+        notificationId: Int = outcomeId?.let { MuseNotificationIdPolicy.notificationIdForOutcome(it) }
+            ?: MuseNotificationIdPolicy.notificationIdForOutcome(assistant.id),
+    ): Boolean = notifyProactiveMessage(
+        assistantName = assistant.name,
+        avatarAssistant = assistant,
+        preview = preview,
+        target = target,
+        outcomeId = outcomeId,
+        notificationId = notificationId,
+    )
+
+    suspend fun notifyProactiveMessage(
+        assistantName: String,
+        preview: String,
+        target: MuseNotificationTarget,
+        outcomeId: String,
+        notificationId: Int,
+    ): Boolean = notifyProactiveMessage(
+        assistantName = assistantName,
+        avatarAssistant = null,
+        preview = preview,
+        target = target,
+        outcomeId = outcomeId,
+        notificationId = notificationId,
+    )
+
+    private suspend fun notifyProactiveMessage(
+        assistantName: String,
+        avatarAssistant: AssistantEntity?,
+        preview: String,
+        target: MuseNotificationTarget,
+        outcomeId: String?,
+        notificationId: Int,
+    ): Boolean {
         // v1.0.80: 主动消息是"助手主动联系用户",即使前台也应走系统通知 —
         // 用户可能没盯着会话(在看别的页面/别的 app),即时消息式通知不能被前台判断拦截。
         // 原 B-15 前台拦截导致:设置页"测试主动消息"时 App 必然前台,通知永远不发,
         // 用户无法验证(反馈:主动消息有了但通知栏没有)。主动消息有每日上限+评分引擎,不会高频打扰。
-        val assistantName = assistant.name.ifBlank { "muse" }
-        val avatar = loadAssistantAvatar(assistant)
+        val safeAssistantName = assistantName.ifBlank { "muse" }
+        val avatar = avatarAssistant?.let { loadAssistantAvatar(it) }
         val builder = NotificationCompat.Builder(context, CHANNEL_PROACTIVE_MESSAGE)
             .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle(context.getString(R.string.notif_proactive_message_title, assistantName))
+            .setContentTitle(context.getString(R.string.notif_proactive_message_title, safeAssistantName))
             .setContentText(preview.take(NOTIF_PREVIEW_MAX_LEN))
             .setStyle(NotificationCompat.BigTextStyle().bigText(preview))
             .setContentIntent(buildMainActivityPendingIntent(target))
@@ -296,34 +325,31 @@ class MuseNotificationManager(private val context: Context) {
             .setPriority(NotificationCompat.PRIORITY_HIGH)
         // v0.44: 头像加载成功才设 largeIcon,否则用默认小图标
         if (avatar != null) builder.setLargeIcon(avatar)
-        // 问题6.4: 每条主动消息分配唯一 ID(基于助手 id hash + 自增序列),
-        // 避免与 notifyReminder 的固定 ID 冲突,且不让新通知覆盖旧通知。
-        // 范围 [NOTIF_ID_PROACTIVE_MESSAGE_BASE, NOTIF_ID_PROACTIVE_MESSAGE_BASE + 0x0FFF],
-        // 与 NOTIF_ID_PROACTIVE_MESSAGE(1004)/NOTIF_ID_CHAT_COMPLETED(1001) 等固定 ID 错开。
-        val notifId = NOTIF_ID_PROACTIVE_MESSAGE_BASE or
-            (proactiveNotifIdSeq.getAndIncrement() and 0x0FFF)
         // 「这次不用」：通知被划掉只是「现在不想看」，点这个按钮才是「这条不该发」。
         // 两者在结果账里是不同的信号，所以不能靠 setAutoCancel 顺带处理。
         if (outcomeId != null) {
             builder.addAction(
                 R.drawable.ic_quick_capture_close,
                 context.getString(R.string.notif_proactive_action_dismiss),
-                buildDismissIntent(outcomeId, notifId),
+                buildDismissIntent(outcomeId, notificationId),
             )
         }
         val notif = builder.build()
-        // M2-1: 改用 resultOf{}
-        resultOf { nm.notify(notifId, notif) }
-            .onError { msg, t ->
-                // B-15: Android 13+ 通知权限被拒时会抛 SecurityException。
-                // 不能像普通失败那样只记 W 静默降级——记 ERROR 日志,便于设置页据此提示用户授权 POST_NOTIFICATIONS。
-                if (t is SecurityException) {
-                    Logger.e(TAG, "notifyProactiveMessage denied (通知权限被拒, Android 13+ 需 POST_NOTIFICATIONS): $msg", t)
-                    NotificationPermissionBus.needed.value = true
-                } else {
-                    Logger.w(TAG, "notifyProactiveMessage failed: $msg")
-                }
+        return try {
+            nm.notify(notificationId, notif)
+            true
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            val msg = e.message ?: e::class.java.simpleName
+            // Android 13+ may reject notification posting when runtime permission is denied.
+            if (e is SecurityException) {
+                Logger.e(TAG, "notifyProactiveMessage denied (通知权限被拒, Android 13+ 需 POST_NOTIFICATIONS): $msg", e)
+                NotificationPermissionBus.needed.value = true
+            } else {
+                Logger.w(TAG, "notifyProactiveMessage failed: $msg")
             }
+            false
+        }
     }
 
     /**
@@ -655,9 +681,6 @@ class MuseNotificationManager(private val context: Context) {
         // Keep auto-backup separate from the pending-approval notification.
         private const val NOTIF_ID_AUTO_BACKUP = 1006
 
-        // 问题6.4: 主动消息唯一通知 ID 的基址,与上面固定 ID 错开。
-        // 最终 ID = BASE or (seq & 0x0FFF),范围 [0x10000000, 0x10000FFF],不会与固定 ID(1001~1004)冲突。
-        private const val NOTIF_ID_PROACTIVE_MESSAGE_BASE = 0x1000_0000
         private const val NOTIF_PREVIEW_MAX_LEN = 200
 
         // L2-1: 头像尺寸(像素),用于 Coil 加载与 Canvas 绘制

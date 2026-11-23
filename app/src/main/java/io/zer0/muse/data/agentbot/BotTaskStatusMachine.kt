@@ -110,6 +110,7 @@ object BotTaskStatusMachine {
              * 由他决定。体验上多一次点击，但不会悄悄做第二遍。
              */
             Event.RESUME_FROM_APPROVAL -> BotTaskStatus.NEEDS_USER
+            Event.REVIEW_NEEDS_USER -> BotTaskStatus.NEEDS_USER
             Event.CANCEL_REQUEST -> BotTaskStatus.CANCEL_REQUESTED
             Event.MARK_UNKNOWN -> BotTaskStatus.UNKNOWN
             else -> null

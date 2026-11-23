@@ -44,7 +44,6 @@
     <string name="translate_page_batch_title">Traducir por lotes</string>
     <string name="translate_page_batch_input_hint">Un texto por línea, se traducirá por lotes</string>
     <string name="translate_page_batch_run">Ejecutar traducción por lotes</string>
-    <string name="translate_page_batch_cancel">Cancelar</string>
     <string name="translate_page_batch_translating">Traduciendo por lotes…</string>
     <string name="translate_page_batch_results_title">Resultados de lotes (%1$d elementos)</string>
 
@@ -52,8 +51,6 @@
     <string name="translate_page_custom_style_add">Agregar estilo</string>
     <string name="translate_page_custom_style_name">Nombre del estilo</string>
     <string name="translate_page_custom_style_prompt">Instrucción de estilo (por ejemplo, \"Traducir al chino clásico\")</string>
-    <string name="translate_page_custom_style_save">Guardar</string>
-    <string name="translate_page_custom_style_remove">Eliminar</string>
     <string name="translate_page_custom_style_added">Estilo personalizado agregado</string>
     <string name="translate_page_custom_style_removed">Estilo personalizado eliminado</string>
     <string name="translate_page_custom_style_empty_name">El nombre no puede estar vacío</string>
@@ -64,7 +61,6 @@
     <string name="translate_page_glossary_original">Término fuente</string>
     <string name="translate_page_glossary_translated">Término traducido</string>
     <string name="translate_page_glossary_add">Agregar</string>
-    <string name="translate_page_glossary_remove">Eliminar</string>
     <string name="translate_page_glossary_empty">No hay entradas en el glosario</string>
     <string name="translate_page_glossary_count">Glosario (%1$d entradas)</string>
     <string name="translate_page_glossary_added">Entrada del glosario agregada</string>

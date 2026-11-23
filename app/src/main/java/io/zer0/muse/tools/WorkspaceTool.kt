@@ -9,6 +9,7 @@ import io.zer0.muse.workspace.WorkspaceFileKind
 import io.zer0.muse.workspace.WorkspaceManager
 import io.zer0.muse.workspace.WorkspaceMediaReport
 import io.zer0.muse.workspace.WorkspaceMount
+import io.zer0.muse.workspace.WorkspacePathParser
 import kotlinx.coroutines.runBlocking
 
 /**
@@ -100,6 +101,7 @@ object WorkspaceTool {
 
     /** diff 回执里改动块前后各带几行上下文。 */
     private const val DIFF_CONTEXT_LINES = 3
+    private val MUTATING_TOOL_NAMES = setOf(NAME_WRITE, NAME_EDIT, NAME_DELETE, NAME_MKDIR, NAME_MOVE, NAME_COPY)
 
     private fun listToolDef(): ToolRegistry.ToolDef = ToolRegistry.ToolDef(
         name = NAME_LIST,
@@ -416,14 +418,26 @@ object WorkspaceTool {
      * @param sessionId 当前会话 id，用于取会话可见的挂载范围；为空表示不限制
      * @return 执行结果字符串（失败返回 "Error: ..." 前缀的消息）
      */
-    fun execute(name: String, args: Map<String, String>, manager: WorkspaceManager, sessionId: String? = null): String = runBlocking {
+    fun execute(
+        name: String,
+        args: Map<String, String>,
+        manager: WorkspaceManager,
+        sessionId: String? = null,
+        resourceScope: String? = null,
+        stepId: String? = null,
+        stageWorkspaceArtifact: (suspend (stepId: String, targetPath: String, content: String, baseContent: String?) -> String?)? = null,
+    ): String = runBlocking {
         val scope = manager.sessionMountIds(sessionId)
+        if (resourceScope != null && name in MUTATING_TOOL_NAMES) {
+            val mountIds = manager.mounts().mapTo(mutableSetOf()) { it.id }
+            resourceScopeError(name, args, resourceScope, mountIds)?.let { return@runBlocking "Error: $it" }
+        }
         when (name) {
             NAME_MOUNTS -> renderMounts(manager.mounts())
             NAME_LIST -> executeList(args, manager, scope)
             NAME_READ -> executeRead(args, manager, scope)
-            NAME_WRITE -> executeWrite(args, manager, scope)
-            NAME_EDIT -> executeEdit(args, manager, scope)
+            NAME_WRITE -> executeWrite(args, manager, scope, stepId, stageWorkspaceArtifact)
+            NAME_EDIT -> executeEdit(args, manager, scope, stepId, stageWorkspaceArtifact)
             NAME_DELETE -> executeDelete(args, manager, scope)
             NAME_MKDIR -> executeMkdir(args, manager, scope)
             NAME_MOVE -> executeMove(args, manager, scope)
@@ -431,6 +445,46 @@ object WorkspaceTool {
             NAME_GREP -> executeGrep(args, manager, scope)
             else -> "Error: 未知工具名 $name"
         }
+    }
+
+    internal fun resourceScopeError(
+        name: String,
+        args: Map<String, String>,
+        declaredScope: String,
+        knownMountIds: Set<String>,
+    ): String? {
+        if (declaredScope.isBlank()) return "任务未声明可写资源范围"
+        val targets = when (name) {
+            NAME_MOVE -> listOfNotNull(args["from"], args["to"])
+            NAME_COPY -> listOfNotNull(args["to"])
+            NAME_WRITE, NAME_EDIT, NAME_DELETE, NAME_MKDIR -> listOfNotNull(args["path"])
+            else -> return null
+        }
+        if (targets.isEmpty()) return null
+
+        val declaredPaths = declaredScope.split(',', ';', '\n')
+            .map { WorkspacePathParser.parse(it.trim(), knownMountIds) }
+            .filterNot { WorkspacePathParser.hasParentSegment(it.relative) }
+            .mapNotNull { declared ->
+                val path = WorkspacePathParser.normalize(declared.relative)
+                if (path.isBlank()) null else (declared.mountId ?: WorkspacePathParser.DEFAULT_MOUNT_ID) to path
+            }
+        if (declaredPaths.isEmpty()) return "资源范围不是有效的工作区路径"
+
+        for (target in targets) {
+            val parsed = WorkspacePathParser.parse(target, knownMountIds)
+            if (WorkspacePathParser.hasParentSegment(parsed.relative)) return "目标包含越界路径: $target"
+            val targetMount = parsed.mountId ?: WorkspacePathParser.DEFAULT_MOUNT_ID
+            val targetPath = WorkspacePathParser.normalize(parsed.relative)
+            val allowed = declaredPaths.any { (declaredMount, declaredPath) ->
+                targetMount == declaredMount &&
+                    (targetPath == declaredPath || targetPath.startsWith("$declaredPath/"))
+            }
+            if (!allowed) {
+                return "目标超出任务声明范围: $target"
+            }
+        }
+        return null
     }
 
     /** 把挂载表渲染成给模型看的一行一条。 */
@@ -490,11 +544,31 @@ object WorkspaceTool {
     }
 
     /** workspace_write 的执行体。 */
-    private suspend fun executeWrite(args: Map<String, String>, manager: WorkspaceManager, scope: Set<String>?): String {
+    private suspend fun executeWrite(
+        args: Map<String, String>,
+        manager: WorkspaceManager,
+        scope: Set<String>?,
+        stepId: String?,
+        stageWorkspaceArtifact: (suspend (String, String, String, String?) -> String?)?,
+    ): String {
         val path = args["path"]?.trim()?.takeIf { it.isNotEmpty() }
             ?: return "Error: 参数 path 必填"
         val content = args["content"] ?: return "Error: 参数 content 必填"
         val append = args["append"]?.toBoolean() ?: false
+        if (stageWorkspaceArtifact != null) {
+            val current = when (val snapshot = manager.readSnapshotForWrite(path, scope)) {
+                is WorkspaceManager.WriteSnapshot.Existing -> snapshot.content
+                WorkspaceManager.WriteSnapshot.Missing -> null
+                is WorkspaceManager.WriteSnapshot.Refused -> return "Error: ${snapshot.reason}"
+            }
+            val updated = if (append) current.orEmpty() + content else content
+            if (updated.toByteArray(Charsets.UTF_8).size > WorkspaceManager.MAX_WRITE_BYTES) {
+                return "Error: 内容过大，无法暂存"
+            }
+            val id = stepId?.let { stageWorkspaceArtifact(it, path, updated, current) }
+                ?: return "Error: 候选未能暂存，目标未修改"
+            return "OK: 候选已暂存 $path ($id)，目标尚未修改"
+        }
         val r = if (append) {
             manager.appendFile(path, content, scope)
         } else {
@@ -508,7 +582,13 @@ object WorkspaceTool {
     }
 
     /** workspace_edit 的执行体：在全文快照上判唯一片段 → 替换 → 落盘 → 回行级 diff。 */
-    private suspend fun executeEdit(args: Map<String, String>, manager: WorkspaceManager, scope: Set<String>?): String {
+    private suspend fun executeEdit(
+        args: Map<String, String>,
+        manager: WorkspaceManager,
+        scope: Set<String>?,
+        stepId: String?,
+        stageWorkspaceArtifact: (suspend (String, String, String, String?) -> String?)?,
+    ): String {
         val path = args["path"]?.trim()?.takeIf { it.isNotEmpty() }
         val oldString = args["old_string"]
         val newString = args["new_string"]
@@ -519,6 +599,20 @@ object WorkspaceTool {
                 "new_string".takeIf { newString == null },
             )
             return "Error: 参数 ${missing.joinToString("/")} 必填"
+        }
+        if (stageWorkspaceArtifact != null) {
+            val current = when (val snapshot = manager.readSnapshotForWrite(path, scope)) {
+                is WorkspaceManager.WriteSnapshot.Existing -> snapshot.content
+                WorkspaceManager.WriteSnapshot.Missing -> return "Error: 文件不存在: $path"
+                is WorkspaceManager.WriteSnapshot.Refused -> return "Error: ${snapshot.reason}"
+            }
+            val edit = when (val plan = planEdit(current, oldString, newString, path)) {
+                is EditPlan.Rejected -> return "Error: ${plan.message}"
+                is EditPlan.Applied -> plan.updated
+            }
+            val id = stepId?.let { stageWorkspaceArtifact(it, path, edit, current) }
+                ?: return "Error: 候选未能暂存，目标未修改"
+            return "OK: 候选已暂存 $path ($id)，目标尚未修改"
         }
         // 必须整份读：片段匹配要跑在对全文的一份快照上，分页读到的一半内容匹配不上。
         // 读与写被包在同一把路径锁里完成（[WorkspaceManager.editFile]）：
@@ -734,7 +828,15 @@ class WorkspaceToolsRegistrar(
     fun registerAll() {
         WorkspaceTool.toolDefs().forEach { def ->
             toolRegistry.registerWithContext(def) { args, context ->
-                WorkspaceTool.execute(def.name, args, workspaceManager, context.sessionId)
+                WorkspaceTool.execute(
+                    def.name,
+                    args,
+                    workspaceManager,
+                    context.sessionId,
+                    context.resourceScope,
+                    context.stepId,
+                    context.stageWorkspaceArtifact,
+                )
             }
         }
     }

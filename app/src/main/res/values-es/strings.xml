@@ -49,11 +49,6 @@
     <string name="proxy_username">Nombre de usuario</string>
     <string name="proxy_password">Contraseña</string>
     <string name="proxy_restart_hint">Se aplica a las conexiones nuevas de inmediato; las conexiones keep-alive existentes duran hasta su reciclaje</string>
-    <string name="action_save">Guardar</string>
-    <string name="action_cancel">Cancelar</string>
-    <string name="action_delete">Eliminar</string>
-    <string name="action_edit">Editar</string>
-    <string name="action_close">Cerrar</string>
     <string name="action_more">Más</string>
     <string name="action_send">Enviar</string>
     <string name="action_collapse">Colapsar</string>
@@ -106,7 +101,6 @@
     <string name="asr_local_download_title">Modelo de voz sin conexión</string>
     <string name="asr_local_download_desc">Tras descargarlo, el reconocimiento se hace en el dispositivo, sin conexión a internet; el modelo ocupa unos 241 MB</string>
     <string name="asr_local_download_action">Descargar</string>
-    <string name="asr_local_download_cancel">Cancelar</string>
     <string name="asr_local_download_delete">Eliminar modelo</string>
     <string name="asr_local_download_use">Usar reconocimiento local</string>
     <string name="asr_local_download_use_done">Se ha cambiado al reconocimiento local</string>
@@ -255,7 +249,6 @@
     <string name="chat_favorite_selected_all_exist">Los %1$d ya están en favoritos</string>
     <string name="settings_chat_prefer_card_output">Preferir salida en tarjetas</string>
     <string name="chat_card_state_only">(contenido de la tarjeta actualizado)</string>
-    <string name="moment_action_edit">Editar</string>
     <string name="groupchat_stop_generating">Detener la generación</string>
     <string name="translate_page_stop_speaking">Detener la lectura</string>
     <string name="settings_screen_group_cards">Tarjetas e interfaz generativa</string>

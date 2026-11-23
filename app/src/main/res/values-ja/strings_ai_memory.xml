@@ -80,7 +80,6 @@
     <string name="memory_space_create_title">新しいメモリ空間</string>
     <string name="memory_space_rename">名前の変更</string>
     <string name="memory_space_rename_title">メモリ空間の名前を変更する</string>
-    <string name="memory_space_delete">消去</string>
     <string name="memory_space_name_label">スペース名</string>
     <string name="memory_space_fact_count">%1$d 事実</string>
     <string name="memory_space_entry">メモリ空間</string>
@@ -107,8 +106,6 @@
     <string name="memory_menu_pin">固定</string>
     <string name="memory_menu_unpin">固定を解除</string>
     <string name="memory_menu_importance">重要度を設定</string>
-    <string name="memory_menu_edit">編集</string>
-    <string name="memory_menu_delete">削除</string>
     <string name="memory_center_fact_count">件の事実</string>
     <string name="memory_center_empty_title">まだ記憶はありません</string>
     <string name="memory_center_empty_subtitle">Muse と話し続けるか、「これを覚えて」と伝えてください。</string>

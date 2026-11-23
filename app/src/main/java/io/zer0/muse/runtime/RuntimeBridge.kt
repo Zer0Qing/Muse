@@ -27,9 +27,14 @@ object RuntimeBridge {
     }
 
     /** 宿主路径 → guest 路径；不在 filesDir 下就原样返回（调用方负责只传合法路径）。 */
-    fun toGuestPath(context: Context, hostPath: String): String {
-        val root = context.filesDir.absolutePath
-        return if (hostPath.startsWith(root)) {
+    fun toGuestPath(context: Context, hostPath: String): String =
+        toGuestPath(context.filesDir.absolutePath, hostPath)
+
+    internal fun toGuestPath(filesRoot: String, hostPath: String): String {
+        val root = filesRoot.trimEnd('/', '\\')
+        return if (hostPath == root) {
+            GUEST_FILES
+        } else if (hostPath.startsWith("$root/")) {
             GUEST_FILES + hostPath.removePrefix(root)
         } else {
             hostPath
@@ -64,6 +69,7 @@ object RuntimeBridge {
             timeoutMs = timeoutMs,
             binds = listOf(guestFiles),
             env = guestEnv,
+            workdirGuest = workdir?.let { toGuestPath(context, it.absolutePath) } ?: "/",
         )
         Logger.i(TAG, "guest node 执行完成: exit=${result.exitCode} timeout=${result.timedOut}")
         return MuseRuntime.ExecResult(

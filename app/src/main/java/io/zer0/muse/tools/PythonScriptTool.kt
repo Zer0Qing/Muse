@@ -1,6 +1,7 @@
 package io.zer0.muse.tools
 
 import android.content.Context
+import io.zer0.muse.runtime.RuntimeBridge
 import io.zer0.muse.runtime.PythonRuntime
 import io.zer0.muse.runtime.RuntimeMissing
 import io.zer0.muse.tools.script.PythonSkillEngine
@@ -13,11 +14,9 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
 /**
- * v2.7 扩展运行时（Python）：Python 脚本执行工具（execute_python_script）。
+ * Python 脚本执行工具（execute_python_script）。
  *
- * 在内置 Python 运行时中执行 Python 脚本：完整标准库（含 ssl/sqlite3/ctypes 等
- * C 扩展）、文件读写、网络。可 `import` 运行时 site-packages 区
- * （filesDir/muse-python/lib/python3.14/site-packages）中的第三方纯 Python 包。
+ * 通过 proot 在已安装的 Ubuntu rootfs 中运行 Python 3，并把应用 filesDir 挂载到 guest。
  *
  * 与 [NodeScriptTool]（execute_node_script）同构：高风险工具，ASK / STRICT 模式
  * 要求审批；TRUSTED 模式依用户明确选择免确认。
@@ -37,12 +36,10 @@ object PythonScriptTool {
 
     fun toolDef() = ToolRegistry.ToolDef(
         name = TOOL_NAME,
-        description = "在内置 Python 3.14 运行时中执行 Python 脚本(完整标准库:ssl/sqlite3/" +
-            "ctypes/json/re 等;文件读写、网络;可 import 第三方纯 Python 包)。" +
+        description = "通过 proot 在已安装的 Ubuntu 运行环境中执行 Python 3 脚本(标准库、文件读写与网络)。" +
             "把要返回的结果赋给变量 result。返回 JSON(result/logs/error)。超时默认 30 秒。" +
-            "这是运行 Python 的唯一入口:内置运行时没有 python/python3 命令,别用 " +
-            "terminal_exec/execute_shell 去找解释器或翻 bin 目录(那里是空的);" +
-            "脚本内需要起子进程时用 sys.executable 或 os.environ['MUSE_PYTHON_BIN']。",
+            "应用 filesDir 会映射到 guest 的 /muse-files;脚本内需要起子进程时使用 " +
+            "sys.executable 或 os.environ['MUSE_PYTHON_BIN']。",
         parameters = mapOf(
             "code" to "Python 脚本代码(可 import 标准库;结果赋给变量 result)",
             "timeout_ms" to "超时毫秒数,默认 30000,最大 300000",
@@ -59,7 +56,7 @@ object PythonScriptTool {
         return when {
             code.isBlank() -> errorJson("参数 code 缺失或为空")
             code.length > MAX_SCRIPT_CHARS -> errorJson("脚本超过最大长度($MAX_SCRIPT_CHARS 字符)")
-            !PythonRuntime.pythonBinary(context).isFile -> RuntimeMissing.toJson()
+            !RuntimeBridge.isReady(context) -> RuntimeMissing.toJson()
             else -> formatResultJson(evaluate(context, code, timeoutMs))
         }
     }
@@ -69,9 +66,9 @@ object PythonScriptTool {
         return when {
             code.isBlank() -> SkillEngineResult.Error("参数 code 缺失或为空")
             code.length > MAX_SCRIPT_CHARS -> SkillEngineResult.Error("脚本超过最大长度($MAX_SCRIPT_CHARS 字符)")
-            !PythonRuntime.pythonBinary(context).isFile -> SkillEngineResult.Error(RuntimeMissing.toJson())
+            !RuntimeBridge.isReady(context) -> SkillEngineResult.Error(RuntimeMissing.toJson())
+            !PythonRuntime.isReady(context) -> SkillEngineResult.Error("已安装的运行环境没有 Ubuntu Python 3")
             else -> {
-                // 确保运行时数据（stdlib）已解压；首次调用会解压一次。
                 PythonRuntime.ensureData(context).getOrElse { e ->
                     return SkillEngineResult.Error("Python 运行时数据未就绪: ${e.message}")
                 }

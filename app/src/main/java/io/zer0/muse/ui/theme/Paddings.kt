@@ -1,163 +1,154 @@
 package io.zer0.muse.ui.theme
 
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
- * Phase 12: muse 间距令牌(MusePaddings)。
+ * 纯数字刻度间距令牌（不绑定具体业务语义，消除「想写 12dp 找不到令牌只能硬编码或乱借语义令牌」的问题）。
  *
- * 根治"padding 8/12/14/16/24 混用"的不一致问题。
- * 全项目统一引用 [MusePaddings] 令牌。
+ * 4dp 基准网格 + 紧凑微调档（2/6/10dp）：
+ *  - [xxs] = 2dp, [xs] = 4dp, [smTight] = 6dp, [sm] = 8dp, [mdTight] = 10dp,
+ *  - [md] = 12dp, [lg] = 16dp, [xl] = 20dp, [xxl] = 24dp, [xxxl] = 32dp
+ */
+object MuseSpacing {
+    val xxs: Dp = 2.dp
+    val xs: Dp = 4.dp
+    val smTight: Dp = 6.dp
+    val sm: Dp = 8.dp
+    val mdTight: Dp = 10.dp
+    val md: Dp = 12.dp
+    val lg: Dp = 16.dp
+    val xl: Dp = 20.dp
+    val xxl: Dp = 24.dp
+    val xxxl: Dp = 32.dp
+}
+
+/**
+ * 语义间距令牌([MusePaddings])。
  *
- * 令牌层级(留白节奏):
- *  - [screen]:         16.dp — 屏幕水平边距(Scaffold padding)
- *  - [pageMargin]:     20.dp — 设置类页面水平外边距(比 screen 宽一档,只用于设置族)
- *  - [cardInner]:      horizontal=16, vertical=12 — 卡片内边距
- *  - [cardInnerLoose]: horizontal=16, vertical=14 — 略松的卡片内边距
- *  - [sectionGap]:     16.dp — section 之间间距
- *  - [itemGap]:        16.dp — 列表项之间间距(LazyColumn spacedBy;v2.0.1 由 12 上调)
- *  - [cardGap]:        24.dp — 卡片组之间的间距(设置类页面;双平面翻新由 20 上调)
- *  - [contentGap]:     8.dp — 卡片内组件之间间距
- *  - [tightGap]:       4.dp — 紧凑间距(图标 + 文字)
- *  - [tinyGap]:        2.dp — 徽标 / 行间极紧间距
- *  - [labelVerticalGap]: 6.dp — 小徽标 / 紧凑行间距
- *  - [auxGap]:         10.dp — 中等徽标 / 卡片内辅助间距
- *  - [largeGap]:       24.dp — BottomSheet 内部 / 空状态大间距
- *  - [emptyStateGap]:  32.dp — 空状态 / 大留白
- *  v1.0.17 扩展(复合 PaddingValues 令牌,收敛高频组合模式):
- *  - [cardInnerSpaced]: horizontal=16, vertical=8 — 屏幕宽 + contentGap 垂直
- *  - [bubbleInner]:     horizontal=12, vertical=8 — 气泡/紧凑卡片内边距
- *  CMP-02: 其余复合组合(cardInnerTight / cardInnerMedium / cardInnerAux / chipInner)
- *  与文档档位重复,已**删除**;调用点一律由上方单值档位显式组合,不保留第二套组合令牌。
+ * 相比 [MuseSpacing] 的纯数值刻度，此处给出页面/卡片/列表等场景语义档位，
+ * 并保持「组内项距([itemGap]=12dp) < 节间距([sectionGap]=16dp) = 卡片组距([cardGap]=16dp)」的紧致层级。
  */
 object MusePaddings {
     /** 屏幕水平边距(Scaffold padding)。 */
-    val screen = 16.dp
+    val screen = MuseSpacing.lg
 
     /**
-     * 设置类页面水平外边距(卡片/搜索栏/账户卡左右留白)。
-     * 比通用 [screen] 宽一档(20dp),对齐系统级设置页的卡片外边距节奏;
-     * 只用于设置族页面,聊天/首页等仍用 [screen],避免全站节奏被一处改动波及。
+     * 设置类页面水平外边距(对齐 [screen]=16dp，避免小屏两侧过度压缩内容宽度)。
      */
-    val pageMargin = 20.dp
+    val pageMargin = MuseSpacing.lg
 
-    /** 卡片内边距(统一所有 Card 的 padding)。 */
-    val cardInner = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
-
-
+    /** 卡片内边距(统一所有 Card 的 padding：紧致但不局促)。 */
+    val cardInner = PaddingValues(horizontal = 14.dp, vertical = 10.dp)
 
     /** section 之间间距。 */
-    val sectionGap = 16.dp
+    val sectionGap = MuseSpacing.lg
 
-    /** 卡片组之间的间距（设置类页面，双平面翻新上调到 24dp，组间距明显大于组内行距）。 */
-    val cardGap = 24.dp
+    /** 卡片组之间的间距（收紧至 16dp，消除过宽空沟）。 */
+    val cardGap = MuseSpacing.lg
 
-    /** 搜索栏胶囊高度。吸顶页需按同值给列表补偿顶部空间，故与组件共享此令牌。 */
-    val searchBarHeight = 48.dp
+    /** 搜索栏胶囊高度（对齐顶栏胶囊节奏）。 */
+    val searchBarHeight = 42.dp
 
-    /** 列表项之间间距(LazyColumn spacedBy)。v2.0.1: 12 → 16（"松一点"结构方向）。 */
-    val itemGap = 16.dp
+    /** 列表项之间间距(LazyColumn spacedBy：12dp，与 sectionGap=16dp 拉开清晰层级)。 */
+    val itemGap = MuseSpacing.md
 
     /** 卡片内组件之间间距。 */
-    val contentGap = 8.dp
+    val contentGap = MuseSpacing.sm
 
     /** 紧凑间距(图标 + 文字)。 */
-    val tightGap = 4.dp
+    val tightGap = MuseSpacing.xs
 
-    /** v1.0.15: 徽标 / 行间极紧间距。 */
-    val tinyGap = 2.dp
+    /** 徽标 / 行间极紧间距。 */
+    val tinyGap = MuseSpacing.xxs
 
-    /** v1.0.15: 小徽标 / 紧凑行间距。 */
-    val labelVerticalGap = 6.dp
+    /** 小徽标 / 紧凑行间距。 */
+    val labelVerticalGap = MuseSpacing.smTight
 
-    /** v1.0.15: 中等徽标 / 卡片内辅助间距。 */
-    val auxGap = 10.dp
+    /** 中等徽标 / 卡片内辅助间距。 */
+    val auxGap = MuseSpacing.mdTight
 
-    /** v1.0.15: BottomSheet 内部 / 空状态大间距。 */
-    val largeGap = 24.dp
+    /** BottomSheet 内部 / 空状态大间距。 */
+    val largeGap = MuseSpacing.xl
 
-    /** v1.0.15: 空状态 / 大留白。 */
-    val emptyStateGap = 32.dp
+    /** 可滚动的详情对话框正文视口高度。 */
+    val dialogContentMaxHeight = 320.dp
+
+    /** 空状态 / 大留白。 */
+    val emptyStateGap = MuseSpacing.xxxl
 
     /**
-     * 触摸目标尺寸(MD3 红线,IconButton / 行高最小值)。
-     * L-PD1: 统一以 [MuseIconSizes.touchTarget] 为唯一数据源,此处委托引用,
-     * 避免两处分别定义 48.dp 造成双数据源漂移。
+     * 触摸目标尺寸(最小触控区，统一委托 [MuseIconSizes.touchTarget] 为单一真源)。
      */
-    val touchTarget: androidx.compose.ui.unit.Dp get() = MuseIconSizes.touchTarget
+    val touchTarget: Dp get() = MuseIconSizes.touchTarget
 
     /** 输入框内边距。 */
-    val inputPadding = 12.dp
+    val inputPadding = MuseSpacing.md
 
-    /** B7-07: 输入栏横向/纵向外边距。 */
-    val inputHorizontal = 24.dp
-    val inputVertical = 2.dp
+    /** 输入栏横向/纵向外边距。 */
+    val inputHorizontal = MuseSpacing.lg
+    val inputVertical = MuseSpacing.xxs
 
-    /** B7-07: 输入栏内部紧凑行距(快捷入口/文档/视频预览)。 */
-    val inputStackGap = 6.dp
+    /** 输入栏内部紧凑行距(快捷入口/文档/视频预览)。 */
+    val inputStackGap = MuseSpacing.smTight
 
-    /** B7-07: 待发送预览缩略图尺寸。 */
+    /** 待发送预览缩略图尺寸。 */
     val previewThumb = 72.dp
 
-    /** B7-07: 小圆点移除按钮内边距。 */
+    /** 小圆点移除按钮内边距。 */
     val removeDotPadding = 3.dp
 
-    /** B7-07: 内联预览最大宽度。 */
+    /** 内联预览最大宽度。 */
     val maxInlineWidth = 120.dp
 
-    /** B7-07: 紧凑 chip 垂直内边距。 */
+    /** 紧凑 chip 垂直内边距。 */
     val compactChipVertical = 1.dp
 
-    /** v2.4.5: 聊天输入岛外边距,让胶囊更轻量且略抬高。 */
-    val inputIslandHorizontal = 12.dp
-    val inputIslandVertical = 2.dp
+    /** 聊天输入岛外边距,让胶囊更轻量且略抬高。 */
+    val inputIslandHorizontal = MuseSpacing.md
+    val inputIslandVertical = MuseSpacing.xxs
 
-    /** v2.4.5 (参考图对齐): 输入岛底部悬浮间距(抬高输入岛,不贴底边)。 */
-    val inputIslandBottomGap = 10.dp
+    /** 输入岛底部悬浮间距(抬高输入岛,不贴底边)。 */
+    val inputIslandBottomGap = MuseSpacing.mdTight
 
-    /** v2.4.5 (参考图对齐): 输入岛行内左右内边距(比 contentGap 更紧)。 */
-    val inputIslandInnerHorizontal = 6.dp
+    /** 输入岛行内左右内边距(比 contentGap 更紧)。 */
+    val inputIslandInnerHorizontal = MuseSpacing.smTight
 
-    /** v2.4.5: 输入岛内部行垂直间距;触控目标仍由 IconSizes.touchTarget 保证。 */
+    /** 输入岛内部行垂直间距;触控目标仍由 IconSizes.touchTarget 保证。 */
     val inputIslandRowVertical = 0.dp
 
-    /** B7-07: 消息输入框最大高度。 */
+    /** 消息输入框最大高度。 */
     val maxMessageFieldHeight = 160.dp
 
-    /** B7-07: 工具面板分隔线宽度/厚度。 */
+    /** 工具面板分隔线宽度/厚度。 */
     val dividerWidth = 1.dp
     val dividerThickness = 0.5.dp
 
-    /** B7-07: 加号工具面板列表最大高度。 */
+    /** 加号工具面板列表最大高度。 */
     val maxToolSheetListHeight = 360.dp
 
-    /** B7-07: 工具列表行垂直内边距。 */
-
     /** 图标内边距(图标与相邻文字间距)。 */
-    val iconPadding = 8.dp
+    val iconPadding = MuseSpacing.sm
 
-    /** M-CS5: 消息间距(聊天列表 LazyColumn spacedBy,呼吸感)。 */
-    val messageGap = 20.dp
+    /** 消息间距(聊天列表 LazyColumn spacedBy，紧致自然的对话节奏)。 */
+    val messageGap = 14.dp
 
-    /** v1.0.17: 屏幕宽 + contentGap 垂直(气泡/卡片)。 */
+    /** 屏幕宽 + contentGap 垂直(气泡/卡片)。 */
     val cardInnerSpaced = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
 
-    /** v1.0.17: 气泡/紧凑卡片内边距。 */
+    /** 气泡/紧凑卡片内边距。 */
     val bubbleInner = PaddingValues(horizontal = 10.dp, vertical = 8.dp)
-    /**
-     * CMP-02: 复合组合别名(cardInnerTight / cardInnerMedium / cardInnerAux / chipInner)
-     * 已全部删除 — 调用点改为由上方单值档位显式组合
-     * (例:`padding(horizontal = itemGap, vertical = auxGap)`),不再保留第二套组合令牌。
-     */
+
     /** 较宽松的 Chip 内边距(含图标+文本的复合标签,如视觉辅助/语速标签)。 */
     val chipInnerLoose = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
 
     /** 较紧凑的 Chip 内边距(如 TopBar 行内边距)。 */
     val chipInnerTight = PaddingValues(horizontal = 4.dp, vertical = 1.dp)
 
-    /** CHAT-18: 列表底部留白(FAB / 输入栏让位)。 */
-    val listBottomClearance = 88.dp
+    /** 列表底部留白(FAB / 输入栏让位)。 */
+    val listBottomClearance = 76.dp
 
-    /** CHAT-18: section 标题起始缩进 — 对齐会话行标题文字列(行内边距 16dp + 图标列 26dp = 42dp)。 */
+    /** section 标题起始缩进 — 对齐会话行标题文字列(行内边距 16dp + 图标列 26dp = 42dp)。 */
     val sectionTitleIndent = 42.dp
 }

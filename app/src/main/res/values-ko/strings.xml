@@ -49,11 +49,6 @@
     <string name="proxy_username">사용자 이름</string>
     <string name="proxy_password">비밀번호</string>
     <string name="proxy_restart_hint">새 연결에 즉시 적용됩니다. 이미 성립된 장기 연결은 회수될 때까지 유지됩니다</string>
-    <string name="action_save">구하다</string>
-    <string name="action_cancel">취소</string>
-    <string name="action_delete">삭제</string>
-    <string name="action_edit">편집하다</string>
-    <string name="action_close">닫다</string>
     <string name="action_more">더</string>
     <string name="action_send">보내다</string>
     <string name="action_collapse">무너지다</string>
@@ -227,7 +222,6 @@
     <string name="chat_favorite_selected_all_exist">%1$d개 모두 이미 즐겨찾기에 있습니다</string>
     <string name="settings_chat_prefer_card_output">카드 출력 우선</string>
     <string name="chat_card_state_only">(카드 내용을 업데이트했습니다)</string>
-    <string name="moment_action_edit">편집</string>
     <string name="groupchat_stop_generating">생성 중지</string>
     <string name="translate_page_stop_speaking">읽기 중지</string>
     <string name="settings_screen_group_cards">카드 및 생성형 UI</string>

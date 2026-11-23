@@ -1,6 +1,7 @@
 package io.zer0.muse.data.agentbot
 
 import io.zer0.common.Logger
+import kotlinx.coroutines.CancellationException
 
 /**
  * 审批服务 —— 把"要不要允许这一步"变成一次可核验、只结算一次的决定。
@@ -29,7 +30,7 @@ class ApprovalService(
      *
      * 为 null 时跳过（纯 JVM 测试）。
      */
-    private val onSettled: (suspend (taskId: String, approvalId: String, approved: Boolean) -> Unit)? = null,
+    private val onSettled: (suspend (taskId: String, approvalId: String, status: String) -> Unit)? = null,
 ) {
 
     /**
@@ -82,11 +83,7 @@ class ApprovalService(
         if (ok) {
             // 拒绝也要复位任务：让它从 WAITING_APPROVAL 出来，
             // 由上层决定是改道、重试还是如实告诉用户"这一步没做"。
-            runCatching {
-                onSettled?.invoke(current.taskId, approvalId, false)
-            }.onFailure {
-                Logger.w("ApprovalService", "审批已拒绝但任务复位失败: ${current.taskId}", it)
-            }
+            settleAndNotify(current.taskId, approvalId, ApprovalStatus.DENIED)
         }
         return if (ok) Outcome.Settled(ApprovalStatus.DENIED) else Outcome.AlreadySettled(current.status)
     }
@@ -116,7 +113,7 @@ class ApprovalService(
         if (approval.expiresAt > 0 && approval.expiresAt < now()) {
             repository.settleApproval(approvalId, ApprovalStatus.EXPIRED, ACTOR_SYSTEM, "expired_before_approval")
             // 过期不等于用户拒绝，但任务同样要复位 —— 否则它永远停在 WAITING_APPROVAL。
-            settleAndNotify(approval.taskId, approvalId, approved = false)
+            settleAndNotify(approval.taskId, approvalId, ApprovalStatus.EXPIRED)
             return Outcome.Expired(ApprovalStatus.EXPIRED)
         }
 
@@ -128,7 +125,7 @@ class ApprovalService(
                 ACTOR_SYSTEM,
                 "arguments_changed",
             )
-            settleAndNotify(approval.taskId, approvalId, approved = false)
+            settleAndNotify(approval.taskId, approvalId, ApprovalStatus.INVALIDATED)
             return Outcome.Stale("参数已变更，旧的批准失效")
         }
         if (approval.resourceVersion.isNotBlank() &&
@@ -141,7 +138,7 @@ class ApprovalService(
                 ACTOR_SYSTEM,
                 "resource_changed",
             )
-            settleAndNotify(approval.taskId, approvalId, approved = false)
+            settleAndNotify(approval.taskId, approvalId, ApprovalStatus.INVALIDATED)
             return Outcome.Stale("资源已变更，旧的批准失效")
         }
 
@@ -151,11 +148,7 @@ class ApprovalService(
             //
             // 注意这里是 fire-and-forget：即便回调失败，审批本身已经结算成功，
             // 不能因为"拉不回任务"就告诉用户"审批失败"。
-            runCatching {
-                onSettled?.invoke(approval.taskId, approvalId, target == ApprovalStatus.APPROVED)
-            }.onFailure {
-                Logger.w("ApprovalService", "审批已结算但任务复位失败: ${approval.taskId}", it)
-            }
+            settleAndNotify(approval.taskId, approvalId, target)
         }
         return if (ok) {
             Outcome.Settled(target)
@@ -181,7 +174,16 @@ class ApprovalService(
      * 由定时对账调用，不依赖界面存活 —— 用户可能已经退后台。
      */
     suspend fun sweepExpired(): Int {
+        val currentTime = now()
+        val overdue = repository.pendingApprovals().filter { approval ->
+            approval.expiresAt > 0 && approval.expiresAt < currentTime
+        }
         val count = repository.expireApprovals()
+        for (approval in overdue) {
+            if (repository.getApproval(approval.approvalId)?.status == ApprovalStatus.EXPIRED) {
+                settleAndNotify(approval.taskId, approval.approvalId, ApprovalStatus.EXPIRED)
+            }
+        }
         if (count > 0) Logger.i("ApprovalService", "过期审批 ${count} 条")
         return count
     }
@@ -207,9 +209,13 @@ class ApprovalService(
      *
      * 用户看到"参数已变更"，然后这个任务只能取消。
      */
-    private suspend fun settleAndNotify(taskId: String, approvalId: String, approved: Boolean) {
-        runCatching { onSettled?.invoke(taskId, approvalId, approved) }.onFailure {
-            Logger.w("ApprovalService", "审批已结算但任务复位失败: $taskId", it)
+    private suspend fun settleAndNotify(taskId: String, approvalId: String, status: String) {
+        try {
+            onSettled?.invoke(taskId, approvalId, status)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Logger.w("ApprovalService", "审批已结算但任务复位失败: $taskId", e)
         }
     }
     companion object {

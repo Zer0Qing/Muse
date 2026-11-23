@@ -155,6 +155,22 @@
     <string name="runtime_card_install">실행 환경 설치</string>
     <string name="runtime_card_later">나중에</string>
     <string name="runtime_card_failed_detail">설치 실패: %1$s</string>
+    <string name="runtime_version_picker_title">실행 환경 버전 선택</string>
+    <string name="runtime_version_download_size">다운로드 크기: %1$s</string>
+    <string name="runtime_version_current">현재 버전</string>
+    <string name="runtime_version_list_empty">사용 가능한 버전이 없습니다</string>
+    <string name="runtime_action_local_install">파일에서 설치</string>
+    <string name="runtime_action_update">실행 환경 업데이트</string>
+    <string name="runtime_action_repair">실행 환경 복구</string>
+    <string name="runtime_action_rollback">이전 버전으로 롤백</string>
+    <string name="runtime_action_uninstall">실행 환경 제거</string>
+    <string name="runtime_action_resume">설치 재개</string>
+    <string name="runtime_action_cancel">설치 취소</string>
+    <string name="runtime_action_custom_url">사용자 지정 URL 사용</string>
+    <string name="runtime_custom_url_title">사용자 지정 소스(%1$s)</string>
+    <string name="runtime_custom_url_address">HTTPS 다운로드 URL</string>
+    <string name="runtime_custom_url_sha256">SHA-256(선택 사항)</string>
+    <string name="runtime_custom_url_unverified_warning">SHA-256이 없으면 검증되지 않은 소스로 설치됩니다.</string>
     <string name="runtime_upgrade_title">실행 환경이 분리되었습니다</string>
     <string name="runtime_upgrade_desc">이 버전은 Node 실행 환경을 APK에서 분리해 앱 크기를 크게 줄였습니다. 스크립트, MCP, 터미널을 사용하기 전에 한 번 설치하세요(약 76MB 다운로드, 설치 후 약 230MB).</string>
     <string name="terminal_send_to_ai_cd">이 결과를 AI에 보내기</string>
@@ -167,5 +183,4 @@
     <string name="offline_resources_title">오프라인 리소스</string>
     <string name="offline_resources_runtime">실행 환경(Node / Python)</string>
     <string name="offline_resources_asr">로컬 음성 모델(SenseVoice)</string>
-    <string name="offline_resources_delete">삭제</string>
 </resources>

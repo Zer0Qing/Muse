@@ -24,75 +24,69 @@ import io.zer0.muse.ui.screen.ToolsScreen
 @Config(sdk = [35])
 class SettingsGroupLayoutTest {
 
-    /** 12 个分类，按首页从上到下的顺序；每类的条目按分类页从上到下的顺序。 */
+    /** 12 个均衡分类，按首页 4 区块从上到下的顺序；每类的条目按分类页从上到下的顺序。 */
     private val expectedLayout: List<Pair<SettingsGroupKind, List<SettingsEntryId>>> = listOf(
-        SettingsGroupKind.ASSISTANTS to listOf(
-            SettingsEntryId.USER_PROFILE,
-            SettingsEntryId.ASSISTANTS,
-            SettingsEntryId.ASSISTANT_RESOURCES,
-            SettingsEntryId.AGENT,
-            // 2026-11-22: CHAT / APPEARANCE 原本各自成组（各 1 条），并入助手组。
-            // 一个分组只有一条时，「分组」没有提供任何信息 —— 它就是一条带标题的行。
-            SettingsEntryId.CHAT,
+        SettingsGroupKind.GENERAL to listOf(
             SettingsEntryId.APPEARANCE,
+            SettingsEntryId.CHAT,
+            SettingsEntryId.USER_PROFILE,
+            SettingsEntryId.STATS,
+        ),
+        SettingsGroupKind.ASSISTANTS to listOf(
+            SettingsEntryId.ASSISTANTS,
+            SettingsEntryId.AGENT,
+            SettingsEntryId.AGENT_DIRECTIVES,
+            SettingsEntryId.ASSISTANT_RESOURCES,
+            SettingsEntryId.MINIPHONE,
         ),
         SettingsGroupKind.MODELS to listOf(
             SettingsEntryId.PROVIDER,
             SettingsEntryId.TASK_ROUTING,
-            SettingsEntryId.PROVIDER_PLUGINS,
+            SettingsEntryId.RUNTIME,
         ),
-        SettingsGroupKind.TOOLS to listOf(
-            SettingsEntryId.TOOLS,
-            SettingsEntryId.PERMISSION_WIZARD,
-            SettingsEntryId.WEB_SEARCH,
-            // 可写的单工具审批策略页：此前只有搜索索引指向只读的 ToolsScreen。
-            SettingsEntryId.TOOL_APPROVAL,
-        ),
-        SettingsGroupKind.VOICE to listOf(
+        SettingsGroupKind.MEDIA to listOf(
             SettingsEntryId.TTS,
             SettingsEntryId.ASR,
             SettingsEntryId.VOICE_CLONING,
-        ),
-        SettingsGroupKind.IMAGE to listOf(
-            SettingsEntryId.IMAGE_VIDEO_GEN,
             SettingsEntryId.VISION,
+            SettingsEntryId.IMAGE_VIDEO_GEN,
         ),
         SettingsGroupKind.MEMORY to listOf(
             SettingsEntryId.MEMORY,
             SettingsEntryId.RAG,
-            // v2.7.x(E2): 术语页 —— 新词与黑话在这里被确认或忽略
             SettingsEntryId.SESSION_TERMS,
+        ),
+        SettingsGroupKind.TOOLS to listOf(
+            SettingsEntryId.TOOLS,
+            SettingsEntryId.WEB_SEARCH,
+            SettingsEntryId.PROVIDER_PLUGINS,
+            SettingsEntryId.MCP,
         ),
         SettingsGroupKind.CONNECTION to listOf(
             SettingsEntryId.CHANNEL,
             SettingsEntryId.BROWSER,
             SettingsEntryId.WEB_ACCESS,
-            SettingsEntryId.MCP,
             SettingsEntryId.PROXY,
-            // 2026-11-22: KEEP_ALIVE / MINI_PHONE 原本各自成组（各 1 条），并入连接组。
-            SettingsEntryId.KEEP_ALIVE,
-            SettingsEntryId.MINIPHONE,
         ),
         SettingsGroupKind.AUTOMATION to listOf(
             SettingsEntryId.PROACTIVE,
-            SettingsEntryId.AGENT_DIRECTIVES,
             SettingsEntryId.NOTIFICATION_LISTENER,
             SettingsEntryId.UI_AUTOMATION,
+            SettingsEntryId.KEEP_ALIVE,
         ),
-
         SettingsGroupKind.DATA_STORAGE to listOf(
             SettingsEntryId.DATA_MANAGEMENT,
             SettingsEntryId.WORKSPACE,
             SettingsEntryId.BACKUP,
             SettingsEntryId.DATA_IMPORT,
             SettingsEntryId.ARCHIVED_CHATS,
-            // 2026-11-22: OFFLINE 原本独立成组（1 条），并入数据组。
-            // 「还有一个几百 MB 的东西要下」在数据组里同样看得见。
-            SettingsEntryId.RUNTIME,
         ),
         SettingsGroupKind.PRIVACY_SECURITY to listOf(
             SettingsEntryId.PII_GUARD,
+            SettingsEntryId.PERMISSION_WIZARD,
+            SettingsEntryId.TOOL_APPROVAL,
             SettingsEntryId.SHARE,
+            SettingsEntryId.AUDIT_LOG,
         ),
         SettingsGroupKind.ABOUT to listOf(
             SettingsEntryId.TUTORIAL,
@@ -100,13 +94,10 @@ class SettingsGroupLayoutTest {
             SettingsEntryId.CHECK_UPDATE,
         ),
         SettingsGroupKind.DEVELOPER to listOf(
-            // 运行诊断已从「关于」移入开发者组。
             SettingsEntryId.DIAGNOSTICS,
-            SettingsEntryId.STATS,
             SettingsEntryId.EXPERIMENTS,
             SettingsEntryId.DEBUG_LOG,
             SettingsEntryId.CRASH_REPORT,
-            SettingsEntryId.AUDIT_LOG,
         ),
     )
 
@@ -173,11 +164,9 @@ class SettingsGroupLayoutTest {
             ),
             SettingsGroupKind.DEVELOPER to listOf(
                 SettingsEntryId.DIAGNOSTICS,
-                SettingsEntryId.STATS,
                 SettingsEntryId.EXPERIMENTS,
                 SettingsEntryId.DEBUG_LOG,
                 SettingsEntryId.CRASH_REPORT,
-                SettingsEntryId.AUDIT_LOG,
             ),
         ).forEach { (kind, expected) ->
             val group = SettingsCatalog.group(kind)
@@ -222,15 +211,7 @@ class SettingsGroupLayoutTest {
         const val SETTINGS_GROUP_COUNT = 12
         const val EXPECTED_ENTRY_COUNT = 49
 
-        /** 与上方 expectedLayout 一一对应的条目数，用来锁住分布均衡、没有过大的单类。 */
-        // v2.7.x(E2): 记忆类 +1（术语页）；2.6.24: 表情包库并入聊天设置，聊天类 -1
-        /**
-     * 12 个分类各自的条目数。
-     *
-     * 2026-11-22 合并前是 17 组 [4,1,1,3,4,3,2,3,5,4,1,1,5,1,2,3,6]，
-     * 五个单条目分类并入相邻组后：ASSISTANTS 4+1+1=6、CONNECTION 5+1+1=7、
-     * DATA_STORAGE 5+1=6。总数仍是 [EXPECTED_ENTRY_COUNT]，只是重新分配。
-     */
-    val EXPECTED_GROUP_SIZES: List<Int> = listOf(6, 3, 4, 3, 2, 3, 7, 4, 6, 2, 3, 6)
+        /** 12 个均衡分类各自的条目数（每类 3–5 项，分布均衡，无巨型杂物组或单条目组）。 */
+        val EXPECTED_GROUP_SIZES: List<Int> = listOf(4, 5, 3, 5, 3, 4, 4, 4, 5, 5, 3, 4)
     }
 }

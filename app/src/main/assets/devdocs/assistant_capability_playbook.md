@@ -14,14 +14,12 @@
 - 设备操作: 闹钟、日历、提醒、通知、剪贴板、短信 / 电话（需审批）、打开应用、亮度音量、天气定位等
 - 浏览器自动化;终端与虚拟屏 GUI Agent（视用户授权与就绪状态）
 - 自我扩展: install_skill 创建技能;author_plugin 起草插件（需用户签名启用后才生效）
-- 执行环境: 内置 Node.js（execute_node_script）与内置 Python 3.14（execute_python_script，完整标准库 + 可 pip 装纯 Python 包）；均需审批
+- 执行环境: Ubuntu rootfs 中的 Node.js 与 Python 3（通过 proot 运行；安装环境后可用）；均需审批
 
-> **内置 Python 运行时的形态（重要）**: 它不是一个可命令行调用的 `python` 命令，也没有 `bin/python3`。
-> 解释器入口是随 APK 分发的原生 stub（nativeLibraryDir 下的 `libmuse_python.so`），标准库首次
-> 使用时从 assets 解压到 `filesDir/muse-python/`。因此：
+> **Python 运行环境**: Python 位于可下载的 Ubuntu rootfs，通过 proot 执行；安装包不携带 Python 解释器、标准库或扩展库。应用 `filesDir` 在 guest 中挂载为 `/muse-files`。因此：
 > - 跑 Python **只能**用 `execute_python_script` 工具；
-> - **不要**用 terminal_exec / execute_shell 去 `which python3`、`ls bin/`、`find` 查找解释器或 libpython，那里根本没有，查了也是白查；
-> - 脚本内需要起子进程时用 `sys.executable`（指向 stub）或 `os.environ['MUSE_PYTHON_BIN']`，不要写字符串 `'python'`；
+> - 安装运行环境后，可在 guest 中用 `/usr/bin/python3`；
+> - 脚本内需要起子进程时用 `sys.executable` 或 `os.environ['MUSE_PYTHON_BIN']`；
 > - 需排查运行时就绪情况时用 `runtime_selfcheck`（只读，恒可见）。
 - 协作: delegate_agent 委托其他助手、subagent 子任务、群聊 channel_* 工具
 - 自动化: scheduled_task_* 定时任务、todo_write 任务清单、pin_memory 等记忆工具
@@ -54,8 +52,8 @@
 | "怎么做 XX 功能" | knowledge_search 传 include_internal=true 查对应 devdoc,按文档逐步说明 |
 | "帮我做个技能" | 主动用 install_skill 创建,不要只给步骤;指出可在 设置 → Skill 查看/停用 |
 | "帮我做个插件" | author_plugin 起草草稿,提醒用户到 设置 → 插件管理 审阅并签名启用 |
-| "跑个 Python 脚本 / 用 Python 处理数据" | execute_python_script（内置 Python 3.14；结果赋给变量 result；需审批）。**这是运行 Python 的唯一入口**：内置运行时**没有** python/python3 命令，不要用 terminal_exec / execute_shell 去找解释器、翻 bin 目录或探查 libpython（那里是空的），否则就是白费功夫 |
-| "装个 Python 包" | execute_python_script 里 `import subprocess, sys; subprocess.run([sys.executable,'-m','pip','install','包名'])`（**不要写 `'python'`**，PATH 里没有该命令）；纯 Python 包也可直接 import 运行时 site-packages |
+| "跑个 Python 脚本 / 用 Python 处理数据" | execute_python_script（Ubuntu rootfs 中的 Python 3；结果赋给变量 result；需审批）。运行环境未安装时先安装 |
+| "装个 Python 包" | execute_python_script 里用 `sys.executable -m pip install 包名`；高信任 Python 操作仍需审批 |
 | "发消息到微信 / QQ" | 渠道需先在 设置 → 连接中心 配置;已配置时用渠道工具发送 |
 | "备份数据" | 引导 设置 → 数据与隐私 → 备份（本地 / WebDAV / S3）,说明加密方式 |
 | "帮我看看这个图片 / 文件" | 对话里直接发附件即可读;沙盒文件用 read_file;公共文件先用 list_public_files 取 uri |

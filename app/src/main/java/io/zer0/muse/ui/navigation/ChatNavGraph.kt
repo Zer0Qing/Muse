@@ -36,16 +36,11 @@ import io.zer0.muse.ui.chat.ChatListScreen
  * 定时任务、Agent 私信、里程碑、表情包、翻译、HTML 预览共 12 个 composable。
  *
  * 从 MainActivity 抽取以解决后者过载问题(原 1804 行 → 目标 ≤ 800 行)。
- * HOME 使用垂直过渡,其余页面统一使用 [MuseTransitions.horizontalPushEnter] / [horizontalPushPopExit]。
+ * 首页与所有二级页统一沿水平轴 push/pop，避免首页纵向退出与子页横向进入冲突。
  */
 fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewModel: ChatViewModel) {
-    // v0.22: 首页 — 顶部 Tab 导航(垂直过渡,HOME 专属)
-    composable<HomeRoute>(
-        enterTransition = { MuseTransitions.verticalPushEnter() },
-        exitTransition = { MuseTransitions.verticalPushExit() },
-        popEnterTransition = { MuseTransitions.verticalPopEnter() },
-        popExitTransition = { MuseTransitions.verticalPushPopExit() },
-    ) {
+    // 首页继承 NavHost 统一的水平 push/pop 转场，进入子页与返回首页保持同一轴向。
+    composable<HomeRoute> {
         CompositionLocalProvider(LocalMuseAnimatedVisibilityScope provides this) {
             HomeScreen(
                 onOpenSettings = { navController.navigate(SettingsRoute) },

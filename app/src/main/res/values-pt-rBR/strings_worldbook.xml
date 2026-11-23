@@ -7,13 +7,10 @@
     <string name="worldbook_new_default_name">Nova entrada</string>
     <string name="worldbook_new_title">Livro do Novo Mundo</string>
     <string name="worldbook_edit_title">Editar Livro Mundial</string>
-    <string name="worldbook_save">Salvar</string>
     <string name="worldbook_unsaved_title">Alterações não salvas</string>
     <string name="worldbook_unsaved_content">Você tem alterações não salvas.</string>
     <string name="worldbook_discard">Descartar</string>
     <string name="worldbook_unnamed">Sem nome</string>
-    <string name="worldbook_edit_cd">Editar</string>
-    <string name="worldbook_delete_cd">Excluir</string>
     <string name="worldbook_delete_title">Excluir Livro Mundial</string>
     <string name="worldbook_empty_title">Nenhuma entrada no livro mundial</string>
     <string name="worldbook_keywords_label">Palavras-chave: %1$s</string>

@@ -787,6 +787,191 @@ class MuseDbMigrationTest {
         }
     }
 
+    /**
+     * v134 → latest：新增主动消息 backlog 派发表，并复核发布发件箱的幂等键。
+     *
+     * 断言到「最新版」而不是写死 135：这条用例承诺的是「v134 起点能升到当前最新，
+     * 且新表结构与实体一致」，写死版本号会在下一次加表时准时腐坏。
+     */
+    @Test
+    fun migrateV134ToLatest_addsProactiveBacklogDispatchAndKeepsPublicationDedupeKey() {
+        assertTrue("134 schema snapshot must exist for real migration validation", schemaExists(134))
+        val dbFile = context.getDatabasePath("muse_migration_v134_backlog.db").apply {
+            parentFile?.mkdirs()
+            if (exists()) delete()
+        }
+        try {
+            createSchemaAtVersion(134, dbFile.absolutePath)
+            insertLegacyRow(dbFile.absolutePath, 134)
+            seedV134PendingThought(dbFile.absolutePath)
+
+            val db = Room.databaseBuilder(context, MuseDb::class.java, dbFile.absolutePath)
+                .addMigrations(*migrationsFrom(134).toTypedArray())
+                .allowMainThreadQueries()
+                .build()
+            try {
+                val raw = db.openHelper.writableDatabase
+                raw.query("PRAGMA user_version").use {
+                    assertTrue(it.moveToFirst())
+                    assertEquals(MuseDb.LATEST_SCHEMA_VERSION, it.getInt(0))
+                }
+
+                raw.query(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name='proactive_backlog_dispatch'",
+                ).use {
+                    assertEquals("迁移后应恰好有一张 proactive_backlog_dispatch", 1, it.count)
+                }
+
+                val defaults = columnDefaults(raw, "proactive_backlog_dispatch")
+                assertEquals(
+                    "列集合必须与 ProactiveBacklogDispatchEntity 一致（列名漂移会让 Room 在真机升级时崩）",
+                    setOf(
+                        "dispatchId",
+                        "thoughtId",
+                        "assistantId",
+                        "sessionId",
+                        "state",
+                        "claimToken",
+                        "claimUntil",
+                        "attemptCount",
+                        "nextAttemptAt",
+                        "lastError",
+                        "outcomeId",
+                        "createdAt",
+                        "updatedAt",
+                    ),
+                    defaults.keys,
+                )
+                assertDefaults(
+                    defaults,
+                    mapOf(
+                        "thoughtId" to "''",
+                        "assistantId" to "''",
+                        "sessionId" to "''",
+                        "state" to "'READY'",
+                        "claimToken" to "NULL",
+                        "claimUntil" to "NULL",
+                        "attemptCount" to "0",
+                        "nextAttemptAt" to "0",
+                        "lastError" to "NULL",
+                        "outcomeId" to "NULL",
+                        "createdAt" to "0",
+                        "updatedAt" to "0",
+                    ),
+                    "v134→latest",
+                )
+
+                assertEquals(
+                    "thoughtId 必须有唯一索引：一条牵挂最多一条派发",
+                    listOf(listOf("thoughtId")),
+                    uniqueIndexColumns(raw, "proactive_backlog_dispatch").values.filter { it == listOf("thoughtId") },
+                )
+                val backlogIndices = indexNames(raw, "proactive_backlog_dispatch")
+                assertTrue(
+                    "待发查询要能走 state+nextAttemptAt 索引，否则每轮巡检都是全表扫（实际 $backlogIndices）",
+                    "index_proactive_backlog_dispatch_ready" in backlogIndices,
+                )
+                assertTrue(
+                    "范围订阅要能走 assistantId+sessionId 索引（实际 $backlogIndices）",
+                    "index_proactive_backlog_dispatch_scope" in backlogIndices,
+                )
+                assertTrue(
+                    "租约回收要能走 state+claimUntil 索引（实际 $backlogIndices）",
+                    "index_proactive_backlog_dispatch_claim" in backlogIndices,
+                )
+
+                raw.execSQL(
+                    "INSERT INTO proactive_backlog_dispatch (dispatchId, thoughtId) VALUES ('probe-a', 'thought-probe')",
+                )
+                assertTrue(
+                    "同一条牵挂写入第二条派发必须被唯一索引拒绝",
+                    rejectsDuplicate {
+                        raw.execSQL(
+                            "INSERT INTO proactive_backlog_dispatch (dispatchId, thoughtId) VALUES ('probe-b', 'thought-probe')",
+                        )
+                    },
+                )
+
+                assertEquals(
+                    "bot_publications 已有稳定幂等键 (publicationId, itemIndex)，不再新增第二个去重列",
+                    listOf(listOf("publicationId", "itemIndex")),
+                    uniqueIndexColumns(raw, "bot_publications").values
+                        .filter { it == listOf("publicationId", "itemIndex") },
+                )
+                raw.execSQL("INSERT INTO bot_publications (id, publicationId, itemIndex) VALUES ('p1', 'pub-1', 0)")
+                assertTrue(
+                    "同一批次的同一条 item 重投必须撞上唯一键（恢复时只重投未发出的）",
+                    rejectsDuplicate {
+                        raw.execSQL(
+                            "INSERT INTO bot_publications (id, publicationId, itemIndex) VALUES ('p2', 'pub-1', 0)",
+                        )
+                    },
+                )
+
+                raw.query("SELECT title FROM sessions WHERE id='legacy-session'").use {
+                    assertTrue("迁移不应清掉既有会话", it.moveToFirst())
+                    assertEquals("迁移测试", it.getString(0))
+                }
+                raw.query("SELECT content FROM messages WHERE id='legacy-msg'").use {
+                    assertTrue("迁移不应清掉既有消息", it.moveToFirst())
+                    assertEquals("迁移前的历史消息", it.getString(0))
+                }
+                raw.query(
+                    "SELECT assistantId, seed, status FROM pending_thought WHERE id='legacy-thought'",
+                ).use {
+                    assertTrue(
+                        "134→135 只新增 backlog 表，迁移前记下的牵挂不能丢（丢了等于关系记忆清零）",
+                        it.moveToFirst(),
+                    )
+                    assertEquals("default", it.getString(0))
+                    assertEquals("迁移前记下的牵挂", it.getString(1))
+                    assertEquals("OPEN", it.getString(2))
+                }
+
+                assertRoomValidatedLatestSchema(raw, "v134→latest")
+            } finally {
+                db.close()
+            }
+        } finally {
+            if (dbFile.exists()) dbFile.delete()
+            context.deleteDatabase(dbFile.name)
+        }
+    }
+
+    /**
+     * 唯一索引是否真的拒写。
+     *
+     * 只断言"表上有个唯一索引"不够：SQLite 允许建了索引却没人用错写路径绕过，
+     * 这里真插一行重复值，看它到底有没有被拦住。
+     */
+    private fun rejectsDuplicate(insert: () -> Unit): Boolean = try {
+        insert()
+        false
+    } catch (e: android.database.sqlite.SQLiteConstraintException) {
+        assertTrue("应为唯一约束冲突，实际 ${e.message}", e.message.orEmpty().contains("UNIQUE", ignoreCase = true))
+        true
+    }
+
+    /** 唯一索引 → 列清单。PRAGMA index_list 只给名字与是否唯一，列名要再查 index_info。 */
+    private fun uniqueIndexColumns(db: SupportSQLiteDatabase, table: String): Map<String, List<String>> {
+        val result = mutableMapOf<String, List<String>>()
+        db.query("PRAGMA index_list(`$table`)").use { cursor ->
+            val nameIndex = cursor.getColumnIndex("name")
+            val uniqueIndex = cursor.getColumnIndex("unique")
+            while (cursor.moveToNext()) {
+                if (cursor.getInt(uniqueIndex) != 1) continue
+                val name = cursor.getString(nameIndex)
+                val columns = mutableListOf<String>()
+                db.query("PRAGMA index_info(`$name`)").use { info ->
+                    val columnIndex = info.getColumnIndex("name")
+                    while (info.moveToNext()) columns += info.getString(columnIndex)
+                }
+                result[name] = columns
+            }
+        }
+        return result
+    }
+
     /** 单个 113..117 起点：建旧库 → Room 打开触发迁移 → 断言终态。 */
     private fun assertV113StartUpgradesToLatest(fromVersion: Int) {
         val dbFile = context.getDatabasePath("muse_migration_v26x_$fromVersion.db").apply {
@@ -1384,6 +1569,24 @@ class MuseDbMigrationTest {
                 "VALUES (${messageValues.joinToString(", ")})",
         )
         helper.close()
+    }
+
+    /**
+     * 在 v134 库上补一条既有牵挂行。
+     *
+     * 与 [insertLegacyRow] 分开，避免影响其它迁移用例（它们建库的版本上这批表还不存在，
+     * 或者表结构不同）；只有 134→135 这条用例才需要钉「迁移只加表、不动主动消息数据」。
+     */
+    private fun seedV134PendingThought(dbPath: String) {
+        val db = android.database.sqlite.SQLiteDatabase.openOrCreateDatabase(File(dbPath), null)
+        try {
+            db.execSQL(
+                "INSERT INTO pending_thought (id, assistantId, seed, createdAt, status) " +
+                    "VALUES ('legacy-thought', 'default', '迁移前记下的牵挂', 100, 'OPEN')",
+            )
+        } finally {
+            db.close()
+        }
     }
 
     private fun loadSchema(version: Int): JSONObject {

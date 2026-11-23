@@ -1,10 +1,14 @@
 package io.zer0.muse.data.agentbot
 
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.update
 import android.content.Context
+import io.zer0.common.Logger
 import io.zer0.muse.ui.chat.ChatUiState
 
 /**
@@ -19,6 +23,15 @@ import io.zer0.muse.ui.chat.ChatUiState
 enum class AgentBotError {
     /** 还没有可用的会话（宿主没绑定）。 */
     NO_SESSION,
+
+    /**
+     * 会话绑定存在但读不出来（数据库/磁盘读失败）。
+     *
+     * 与 [NO_SESSION] 严格分开：那个是"确实还没绑过"，可以新建；
+     * 这个是"读不出来" —— 此刻新建会话会把之前的 canonical 会话从绑定里挤掉，
+     * 用户的历史看起来就像"消失"了。必须中止本次发送并让用户重试。
+     */
+    BINDING_UNREADABLE,
 
     /** 消息落盘失败。内容已留在输入框。 */
     SAVE_FAILED,
@@ -49,6 +62,12 @@ enum class AgentBotError {
      * 而原因（换一个 Provider 就能好）完全无从得知。
      */
     PROVIDER_TOOL_BLIND,
+
+    ATTACHMENT_FAILED,
+
+    ATTACHMENT_LIMIT,
+
+    HISTORY_LOAD_FAILED,
 }
 
 /**
@@ -107,11 +126,56 @@ class AgentBotUiState {
         val role: Role,
         val text: String,
         val createdAt: Long,
+        val seq: Long = 0L,
+        val imageUrls: List<String> = emptyList(),
+        val imageBase64List: List<String> = emptyList(),
         /** 这条消息属于哪次 bot_say 批次；用于"部分发布恢复"。 */
         val publicationId: String = "",
     )
 
     enum class Role { USER, BOT }
+
+    /** 单条气泡上的角标反应（Emoji / 贴纸）。 */
+    data class MessageReactionUi(
+        val id: String,
+        val emoji: String,
+        val actorType: String,
+        val kind: String = AnnotationKind.REACTION,
+    )
+
+    /** 任务单步执行时间线条目。 */
+    data class TaskStepUi(
+        val stepId: String,
+        val stepIndex: Int,
+        val toolName: String,
+        val displayLabel: String,
+        val status: String = StepExecutionStatus.RUNNING,
+        val summary: String = "",
+        val assigneeBotId: String = "",
+    )
+
+    /** 锚定在对话流里的结构化交互卡片。 */
+    data class MessageCardUi(
+        val cardId: String,
+        val anchorMessageId: String,
+        val taskId: String,
+        val kind: String,
+        val title: String,
+        val subtitle: String,
+        val options: List<AgentStreamCoordinator.ChoiceOption> = emptyList(),
+        val status: String = BotCardStatus.ACTIVE,
+        val selectedOptionId: String = "",
+        val createdAt: Long = 0L,
+        val payloadJson: String = "{}",
+    )
+
+    /** 正在流式输出的回复草稿；与 Composer/TaskBoard 隔离，避免流式打字引发整页重组。 */
+    data class StreamingBubble(
+        val active: Boolean = false,
+        val text: String = "",
+        val reasoning: String = "",
+        val citationUrls: List<String> = emptyList(),
+    )
 
     /** 任务看板上的一行。只放用户需要知道的部分，不放子 Agent 与工具流水。 */
     data class TaskRow(
@@ -134,6 +198,11 @@ class AgentBotUiState {
          * 所以由构造方（ViewModel，它知道事件来源）显式给出。
          */
         val actions: Set<TaskAction> = emptySet(),
+        val requestMessageId: String = "",
+        val steps: List<TaskStepUi> = emptyList(),
+        val pendingSteerCount: Int = 0,
+        val createdAt: Long = 0L,
+        val updatedAt: Long = 0L,
     )
 
     /** 任务行上可用的操作。 */
@@ -148,6 +217,12 @@ class AgentBotUiState {
          * 所以必须由用户显式同意。
          */
         CONTINUE,
+
+        /** 已失败的任务由用户明确重新派发。 */
+        RETRY,
+
+        /** 结果无法确认时打开核验入口。 */
+        VERIFY,
     }
 
     /** 待审批的一行。 */
@@ -174,6 +249,7 @@ class AgentBotUiState {
         val resourceVersion: String,
         /** 过期时刻。卡片据此显示倒计时，过期不伪造用户拒绝。 */
         val expiresAt: Long,
+        val resourceScope: String = "",
     )
 
     /** 暂存区里的一条候选（V04 的审计入口）。 */
@@ -183,6 +259,27 @@ class AgentBotUiState {
         val targetRef: String,
         /** 产出时对应的任务版本。 */
         val taskRevision: Int,
+    )
+
+    data class TaskDetails(
+        val taskId: String,
+        val goal: String,
+        val acceptanceCriteria: String,
+        val status: String,
+        val summary: String = "",
+        val findings: List<String> = emptyList(),
+        val verifiedChecks: List<String> = emptyList(),
+        val sideEffects: List<String> = emptyList(),
+        val candidateRefs: List<String> = emptyList(),
+    )
+
+    data class CandidatePreview(
+        val stagedId: String,
+        val targetRef: String,
+        val content: String,
+        val verificationState: String,
+        val taskRevision: Int,
+        val truncated: Boolean,
     )
 
     data class TaskBoard(
@@ -217,9 +314,31 @@ class AgentBotUiState {
     private val _busy = MutableStateFlow(Busy())
     val busy: StateFlow<Busy> = _busy.asStateFlow()
 
+    private val _streaming = MutableStateFlow(StreamingBubble())
+    val streaming: StateFlow<StreamingBubble> = _streaming.asStateFlow()
+
     // ── 写入口（全部是值语义，StateFlow 可合并）────────────────────────
 
     fun setComposerText(text: String) = _composer.update { it.copy(text = text) }
+
+    fun addPendingImage(imageBase64: String): Boolean {
+        val current = _composer.value
+        if (imageBase64.isBlank() || imageBase64 in current.pendingImages ||
+            current.pendingImages.size >= MAX_PENDING_IMAGES
+        ) {
+            return false
+        }
+        _composer.value = current.copy(pendingImages = current.pendingImages + imageBase64)
+        return true
+    }
+
+    fun removePendingImages(images: List<String>) = _composer.update { state ->
+        state.copy(pendingImages = state.pendingImages.filterNot { it in images })
+    }
+
+    fun replacePendingImages(images: List<String>) = _composer.update { state ->
+        state.copy(pendingImages = images.distinct().take(MAX_PENDING_IMAGES))
+    }
 
     fun setComposerBot(botId: String) = _composer.update {
         // 换 Bot 时草稿不串：上一个 Bot 的草稿属于上一个 Bot。
@@ -240,4 +359,129 @@ class AgentBotUiState {
     fun setSending(sending: Boolean) = _busy.update { it.copy(sending = sending) }
 
     fun setError(error: AgentBotError?) = _busy.update { it.copy(error = error) }
+
+    fun setStreaming(bubble: StreamingBubble) {
+        _streaming.value = bubble
+    }
+
+    fun clearStreaming() {
+        _streaming.value = StreamingBubble()
+    }
+
+    companion object {
+        const val MAX_PENDING_IMAGES = 10
+    }
+}
+
+/**
+ * 当前页面的完整投影。
+ *
+ * ## 为什么分成三段任务
+ *
+ * 用户打开页面要回答三个问题：在做什么（[inProgress]）、等我做什么
+ * （[needsAction]，包括需要核验的终态）、最近做完了什么（[recent]）。混成一个列表时，
+ * 待办会被历史完成项挤到下面 —— 那正是用户最容易漏掉审批的形态。
+ *
+ * [assistantId] 与 [sessionId] 是这一份投影的作用域键：界面用它做列表 key
+ * 前缀，切换 Bot 时旧内容不会与新内容共用 key。
+ */
+data class AgentBotProjection(
+    val assistantId: String,
+    val sessionId: String,
+    val inProgress: List<AgentBotUiState.TaskRow> = emptyList(),
+    val needsAction: List<AgentBotUiState.TaskRow> = emptyList(),
+    val recent: List<AgentBotUiState.TaskRow> = emptyList(),
+    val pendingApprovals: List<AgentBotUiState.ApprovalRow> = emptyList(),
+    val candidates: List<AgentBotUiState.CandidateRow> = emptyList(),
+    val transcript: List<AgentBotUiState.PublishedMessage> = emptyList(),
+    val annotationsByMessage: Map<String, List<AgentBotUiState.MessageReactionUi>> = emptyMap(),
+    val cards: List<AgentBotUiState.MessageCardUi> = emptyList(),
+    val stepsByTask: Map<String, List<AgentBotUiState.TaskStepUi>> = emptyMap(),
+) {
+
+    /** 三段时间顺序：在做什么 → 等我做什么 → 最近做完的。 */
+    val taskRows: List<AgentBotUiState.TaskRow> get() = inProgress + needsAction + recent
+
+    /** 没有任何可显示的东西。用来区分"空"与"还在加载"。 */
+    val isEmpty: Boolean
+        get() = taskRows.isEmpty() &&
+            pendingApprovals.isEmpty() &&
+            candidates.isEmpty() &&
+            transcript.isEmpty() &&
+            cards.isEmpty()
+}
+
+/**
+ * 页面数据四态。
+ *
+ * [Error] 必须带 [lastContent]：一次读取失败不能让已经显示的任务凭空消失，
+ * 否则用户会以为任务被删了。[retryToken] 每次重试递增，界面据此判断
+ * "这是新一轮失败"，而不是同一条错误重新渲染。
+ */
+sealed interface AgentBotScopeState {
+    data object Loading : AgentBotScopeState
+
+    data object Empty : AgentBotScopeState
+
+    data class Content(val projection: AgentBotProjection) : AgentBotScopeState
+
+    data class Error(
+        val message: String,
+        val retryToken: Long,
+        val lastContent: AgentBotProjection? = null,
+    ) : AgentBotScopeState
+}
+
+/**
+ * 暂存候选读取失败。
+ *
+ * 用它把故障送进 [AgentBotScopeState.Error]，而不是让上游发一个空候选列表：
+ * 空列表会被折叠成 [AgentBotScopeState.Empty]，用户看到的是"候选没了"，
+ * 也没有任何重试入口 —— 而文件其实还在磁盘上。
+ */
+class StagedCandidatesUnavailableException(
+    message: String,
+    cause: Throwable? = null,
+) : java.io.IOException(message, cause)
+
+/**
+ * 把投影流折叠成四态。
+ *
+ * 读失败**不降级成空列表**：空列表与"这个会话真的没有任务"无法区分，
+ * 用户看到的是"刚才的任务没了"，也没有重试入口。这里保留最后一次成功内容，
+ * 把异常作为 [AgentBotScopeState.Error] 显式交出去。
+ *
+ * @param retryToken 本次尝试的 token，由重试入口递增。
+ * @param previous 重试开始时已知的上一次成功投影；跨重试也要保住内容。
+ */
+fun Flow<AgentBotProjection>.asScopeStates(
+    retryToken: Long,
+    previous: AgentBotProjection? = null,
+): Flow<AgentBotScopeState> = flow {
+    emit(AgentBotScopeState.Loading)
+    var lastContent = previous
+    try {
+        collect { projection ->
+            lastContent = projection
+            emit(
+                if (projection.isEmpty) {
+                    AgentBotScopeState.Empty
+                } else {
+                    AgentBotScopeState.Content(projection)
+                },
+            )
+        }
+    } catch (cause: CancellationException) {
+        // 作用域切换 / 页面销毁是正常取消，不能当成读取失败上报。
+        throw cause
+    } catch (cause: Exception) {
+        Logger.e("AgentBotScope", "页面投影读取失败，保留上次内容: ${cause.message}", cause)
+        emit(
+            AgentBotScopeState.Error(
+                message = cause.message ?: "scope_read_failed",
+                retryToken = retryToken,
+                lastContent = lastContent,
+            ),
+        )
+    }
 }

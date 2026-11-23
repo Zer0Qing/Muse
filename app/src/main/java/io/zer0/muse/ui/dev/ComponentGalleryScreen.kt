@@ -140,11 +140,6 @@ fun ComponentGalleryScreen(onBack: () -> Unit) {
                 ),
             verticalArrangement = Arrangement.spacedBy(MusePaddings.sectionGap),
         ) {
-            Text(
-                text = stringResource(R.string.gallery_subtitle),
-                style = MaterialTheme.typography.bodySmall,
-                color = MuseActionColors.mutedContent,
-            )
             GalleryFontScaleRow(
                 fontScale = fontScale,
                 onSelect = { fontScale = it },

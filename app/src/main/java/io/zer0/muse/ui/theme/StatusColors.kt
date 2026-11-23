@@ -30,6 +30,12 @@ data class MuseStatusColors(
     val neutral: Color,
     /** 半透明高亮底色(搜索命中 / 调试标记),深浅通用。 */
     val highlight: Color,
+    /** 成对状态容器浅底色，避免业务层手动用 alpha 拼凑浅底导致深浅色对比度失衡。 */
+    val successContainer: Color,
+    val warningContainer: Color,
+    val errorContainer: Color,
+    val infoContainer: Color,
+    val neutralContainer: Color,
 )
 
 /** 浅色主题状态色 — Material 深档,浅底可读。 */
@@ -40,6 +46,11 @@ val LightStatusColors = MuseStatusColors(
     info = Color(0xFF1976D2),
     neutral = Color(0xFF616161),
     highlight = Color(0x66FFEB3B),
+    successContainer = Color(0xFFE6F4EA),
+    warningContainer = Color(0xFFFFF3E0),
+    errorContainer = Color(0xFFFDECEA),
+    infoContainer = Color(0xFFE8F1FC),
+    neutralContainer = Color(0xFFF0F0EE),
 )
 
 /** 深色主题状态色 — Material 亮档,深底可读。 */
@@ -50,6 +61,11 @@ val DarkStatusColors = MuseStatusColors(
     info = Color(0xFF64B5F6),
     neutral = Color(0xFF9E9E9E),
     highlight = Color(0x66FFEB3B),
+    successContainer = Color(0xFF1B3322),
+    warningContainer = Color(0xFF3A2812),
+    errorContainer = Color(0xFF3D1A1A),
+    infoContainer = Color(0xFF172B42),
+    neutralContainer = Color(0xFF28282A),
 )
 
 val LocalStatusColors = compositionLocalOf { LightStatusColors }

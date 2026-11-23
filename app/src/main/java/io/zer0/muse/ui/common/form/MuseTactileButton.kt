@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
 import io.zer0.muse.ui.theme.MuseActionColors
+import io.zer0.muse.ui.theme.MuseAlpha
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMotion
@@ -72,6 +73,7 @@ fun MuseTactileButton(
     enabled: Boolean = true,
     container: MuseIconContainer = MuseIconContainer.None,
     visualSize: Dp? = null,
+    compact: Boolean = false,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
@@ -83,7 +85,6 @@ fun MuseTactileButton(
         MuseIconContainer.Neutral -> MuseActionColors.neutralContainer to MuseActionColors.neutralContent
     }
 
-    // 按压色偏移方向取决于「实际压着的底色」：无底色看页面表面，有底色看容器色。
     val pressBase = if (container == MuseIconContainer.None) {
         MaterialTheme.colorScheme.surface
     } else {
@@ -107,12 +108,22 @@ fun MuseTactileButton(
     )
 
     val hasContainer = container != MuseIconContainer.None
+    val resolvedSize = if (compact && size == MuseIconSizes.touchTarget) {
+        MuseIconSizes.controlTouch
+    } else {
+        size
+    }
+    val resolvedIconSize = if (compact && iconSize == MuseIconSizes.icon) {
+        MuseIconSizes.iconSmall
+    } else {
+        iconSize
+    }
+    val effectiveVisual = visualSize ?: if (hasContainer) {
+        if (compact) MuseIconSizes.iconVideo else MuseIconSizes.topBarSolid
+    } else {
+        resolvedSize
+    }
 
-    val effectiveVisual = visualSize ?: if (hasContainer) MuseIconSizes.topBarSolid else size
-
-    // 注意：不能对 Color.Transparent 直接 copy(alpha) —— Transparent 是“黑色 + alpha 0”，
-    // copy(alpha = 1f) 会把它变成不透明黑，无底色的图标按钮就会变成黑实心圆。
-    // 因此无底色时必须原样使用（保持真正透明）；只有带底色时才做禁用降透明度。
     val boxColor = if (!enabled && rawContainer != Color.Transparent) {
         rawContainer.copy(alpha = MuseActionColors.disabledAlpha)
     } else {
@@ -121,7 +132,7 @@ fun MuseTactileButton(
 
     Box(
         modifier = modifier
-            .size(size)
+            .size(resolvedSize)
             .clip(CircleShape)
             .clickable(
                 interactionSource = interactionSource,
@@ -137,10 +148,9 @@ fun MuseTactileButton(
                 .size(effectiveVisual)
                 .clip(CircleShape)
                 .background(boxColor)
-                // 2.6.24: 按压反馈改为整面遮罩，不再缩小图标按钮。
                 .background(
                     color = if (isPressed && enabled) {
-                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = MuseAlpha.pressedOverlay)
                     } else {
                         Color.Transparent
                     },
@@ -151,7 +161,7 @@ fun MuseTactileButton(
             Icon(
                 imageVector = icon,
                 contentDescription = contentDescription,
-                modifier = Modifier.size(iconSize),
+                modifier = Modifier.size(resolvedIconSize),
                 tint = animatedTint,
             )
         }

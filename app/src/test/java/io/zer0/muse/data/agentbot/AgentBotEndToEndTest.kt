@@ -52,6 +52,7 @@ class AgentBotEndToEndTest {
             approvalDao = db.approvalRequestDao(),
             publicationDao = db.publicationOutboxDao(),
             bindingDao = db.botBindingDao(),
+            database = db,
         );
         sessions = SessionRepository(
             sessionDao = db.sessionDao(),
@@ -148,6 +149,37 @@ class AgentBotEndToEndTest {
     }
 
     @Test
+    fun `foreground reply is discarded after a newer input arrives`() = runTest {
+        val sessionId = sessions.createAgentSession("default")
+        val facade = AgentConversationFacade(repo, mergeWindowMs = 0)
+        val accepted = facade.acceptUserInput("bot-1", sessionId, "旧请求")!!
+        val coordinator = ForegroundCoordinator(
+            modelCaller = ForegroundCoordinator.ModelCaller {
+                facade.acceptUserInput("bot-1", sessionId, "新请求")
+                ChatCompletion(
+                    text = "",
+                    toolCalls = listOf(
+                        ToolCall("say-old", ForegroundCoordinator.TOOL_SAY, """{"text":"旧回复"}"""),
+                    ),
+                )
+            },
+            publication = PublicationService(db, repo, sessions),
+            governor = BotResourceGovernor(),
+        )
+
+        val turn = coordinator.runTurn(
+            identity = AgentTurnIdentity("bot-1", sessionId, accepted.messageId, accepted.requestRevision),
+            history = emptyList(),
+            userText = "旧请求",
+            currentRequestRevision = { repo.latestUserInputSequence("bot-1", sessionId) },
+        )
+
+        assertNotNull(turn)
+        assertTrue("旧回合应标记为已失效", turn!!.requestSuperseded)
+        assertTrue("旧回复不能写入会话", db.messageDao().getRecentBySession(sessionId, 10).isEmpty())
+    }
+
+    @Test
     fun `no bot_say means no message and the turn says so`() = runTest {
         val sessionId = sessions.createAgentSession("default");
         val coordinator = ForegroundCoordinator(
@@ -181,6 +213,7 @@ class AgentBotEndToEndTest {
         val run = repo.openRun(task.taskId)!!;
         repo.transition(task.taskId, BotTaskStatusMachine.Event.START);
         repo.transition(task.taskId, BotTaskStatusMachine.Event.EXECUTE_DONE);
+        repo.closeRun(run.runId, TaskRunStatus.COMPLETED)
         val baseHash = StagedArtifactStore.hashOf("原内容");
         val stagedId = staging.stage(
             StagedArtifactStore.Candidate("notes.md", "改好的内容", baseHash, run.taskRevision),

@@ -13,15 +13,12 @@
     <string name="quick_msg_scope_global">Глобальный</string>
     <string name="quick_msg_scope_assistant">Ассистент: %1$s</string>
     <string name="quick_msg_scope_label">Область: %1$s</string>
-    <string name="quick_msg_edit_cd">Редактировать</string>
-    <string name="quick_msg_delete_cd">Удалить</string>
     <!-- Edit page -->
     <string name="quick_msg_unsaved_title">Несохраненные изменения</string>
     <string name="quick_msg_unsaved_content">При выходе текущие изменения будут отменены.</string>
     <string name="quick_msg_discard">Отказаться</string>
     <string name="quick_msg_new_title">Новое быстрое сообщение</string>
     <string name="quick_msg_edit_title">Редактировать быстрое сообщение</string>
-    <string name="quick_msg_save">Сохранять</string>
     <string name="quick_msg_section_basic">Базовый</string>
     <string name="quick_msg_section_content">Содержимое шаблона</string>
     <string name="quick_msg_field_content">Содержимое (поддерживает переменные {{input}}/{{clipboard}}/{{date}}</string>
@@ -44,15 +41,12 @@
     <string name="lorebook_new_default_name">Новая запись</string>
     <string name="lorebook_unnamed">(Безымянный)</string>
     <string name="lorebook_keywords_label">Ключевые слова: %1$s</string>
-    <string name="lorebook_edit_cd">Редактировать</string>
-    <string name="lorebook_delete_cd">Удалить</string>
     <!-- Edit page -->
     <string name="lorebook_unsaved_title">Несохраненные изменения</string>
     <string name="lorebook_unsaved_content">При выходе текущие изменения будут отменены.</string>
     <string name="lorebook_discard">Отказаться</string>
     <string name="lorebook_new_title">Новая книга знаний</string>
     <string name="lorebook_edit_title">Редактировать книгу истории</string>
-    <string name="lorebook_save">Сохранять</string>
     <string name="lorebook_section_basic">Базовый</string>
     <string name="lorebook_field_keywords">Ключевые слова-триггеры (через запятую)</string>
     <string name="lorebook_field_keywords_placeholder">например</string>
@@ -81,15 +75,12 @@
     <string name="prompt_injection_new_default_name">Новая инъекция</string>
     <string name="prompt_injection_unnamed">(Безымянный)</string>
     <string name="prompt_injection_mode_label">Режим: %1$s</string>
-    <string name="prompt_injection_edit_cd">Редактировать</string>
-    <string name="prompt_injection_delete_cd">Удалить</string>
     <!-- Edit page -->
     <string name="prompt_injection_unsaved_title">Несохраненные изменения</string>
     <string name="prompt_injection_unsaved_content">При выходе текущие изменения будут отменены.</string>
     <string name="prompt_injection_discard">Отказаться</string>
     <string name="prompt_injection_new_title">Новая PromptInjection</string>
     <string name="prompt_injection_edit_title">Редактировать PromptInjection</string>
-    <string name="prompt_injection_save">Сохранять</string>
     <string name="prompt_injection_section_basic">Базовый</string>
     <string name="prompt_injection_field_mode">Режим</string>
     <string name="prompt_injection_field_display_name">Отображаемое имя (отображается в пользовательском интерфейсе; оставьте поле пустым, чтобы использовать режим по умолчанию)</string>
@@ -122,8 +113,6 @@
     <string name="assistant_move_down">Вниз</string>
     <string name="assistant_clone">Клонировать</string>
     <string name="assistant_export_card">Экспортировать карту персонажа</string>
-    <string name="assistant_delete">Удалить</string>
-    <string name="assistant_close">Закрывать</string>
     <string name="assistant_delete_title">Удалить помощника</string>
     <!-- Toast -->
     <string name="assistant_toast_exported">Экспортирована карточка персонажа: %1$s</string>

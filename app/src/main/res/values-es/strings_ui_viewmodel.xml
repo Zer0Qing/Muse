@@ -13,15 +13,12 @@
     <string name="quick_msg_scope_global">Global</string>
     <string name="quick_msg_scope_assistant">Asistente: %1$s</string>
     <string name="quick_msg_scope_label">Alcance: %1$s</string>
-    <string name="quick_msg_edit_cd">Editar</string>
-    <string name="quick_msg_delete_cd">Eliminar</string>
     <!-- Edit page -->
     <string name="quick_msg_unsaved_title">Cambios no guardados</string>
     <string name="quick_msg_unsaved_content">Si sales, perderás los cambios actuales. ¿Quieres descartarlos?</string>
     <string name="quick_msg_discard">Descartar</string>
     <string name="quick_msg_new_title">Nuevo mensaje rápido</string>
     <string name="quick_msg_edit_title">Editar mensaje rápido</string>
-    <string name="quick_msg_save">Guardar</string>
     <string name="quick_msg_section_basic">Básico</string>
     <string name="quick_msg_section_content">Contenido de la plantilla</string>
     <string name="quick_msg_field_content">Contenido (admite variables {{input}} / {{clipboard}} / {{date}})</string>
@@ -44,15 +41,12 @@
     <string name="lorebook_new_default_name">Nueva entrada</string>
     <string name="lorebook_unnamed">(Sin nombre)</string>
     <string name="lorebook_keywords_label">Palabras clave: %1$s</string>
-    <string name="lorebook_edit_cd">Editar</string>
-    <string name="lorebook_delete_cd">Eliminar</string>
     <!-- Edit page -->
     <string name="lorebook_unsaved_title">Cambios no guardados</string>
     <string name="lorebook_unsaved_content">Si sales, perderás los cambios actuales. ¿Quieres descartarlos?</string>
     <string name="lorebook_discard">Descartar</string>
     <string name="lorebook_new_title">Nuevo libro de trasfondo</string>
     <string name="lorebook_edit_title">Editar libro de trasfondo</string>
-    <string name="lorebook_save">Guardar</string>
     <string name="lorebook_section_basic">Básico</string>
     <string name="lorebook_field_keywords">Palabras clave de activación (separadas por comas)</string>
     <string name="lorebook_field_keywords_placeholder">p. ej., magia, hechizo, conjuro</string>
@@ -81,15 +75,12 @@
     <string name="prompt_injection_new_default_name">Nueva inyección</string>
     <string name="prompt_injection_unnamed">(Sin nombre)</string>
     <string name="prompt_injection_mode_label">Modo: %1$s</string>
-    <string name="prompt_injection_edit_cd">Editar</string>
-    <string name="prompt_injection_delete_cd">Eliminar</string>
     <!-- Edit page -->
     <string name="prompt_injection_unsaved_title">Cambios no guardados</string>
     <string name="prompt_injection_unsaved_content">Si sales, perderás los cambios actuales. ¿Quieres descartarlos?</string>
     <string name="prompt_injection_discard">Descartar</string>
     <string name="prompt_injection_new_title">Nueva inyección de prompt</string>
     <string name="prompt_injection_edit_title">Editar inyección de prompt</string>
-    <string name="prompt_injection_save">Guardar</string>
     <string name="prompt_injection_section_basic">Básico</string>
     <string name="prompt_injection_field_mode">Modo</string>
     <string name="prompt_injection_field_display_name">Nombre visible (se muestra en la interfaz; déjalo vacío para usar el nombre predeterminado del modo)</string>
@@ -122,8 +113,6 @@
     <string name="assistant_move_down">Mover hacia abajo</string>
     <string name="assistant_clone">Clonar</string>
     <string name="assistant_export_card">Exportar tarjeta de personaje</string>
-    <string name="assistant_delete">Eliminar</string>
-    <string name="assistant_close">Cerrar</string>
     <string name="assistant_delete_title">Eliminar asistente</string>
     <!-- Toast -->
     <string name="assistant_toast_exported">Tarjeta de personaje exportada: %1$s</string>

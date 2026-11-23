@@ -62,6 +62,18 @@ class BackupEntityCoverageTest {
         "io.zer0.muse.data.proactive.ProactiveOutcomeEntity" to "proactiveOutcomes",
         // v2.6.9: 关系亲密度与等级
         "io.zer0.muse.data.proactive.ProactiveRelationEntity" to "proactiveRelations",
+        "io.zer0.muse.data.proactive.ProactiveBacklogDispatchEntity" to "proactiveBacklogDispatches",
+        "io.zer0.muse.data.proactive.ProactiveBacklogScheduleEntity" to "proactiveBacklogSchedule",
+        "io.zer0.muse.data.agentbot.BotBindingEntity" to "botBindings",
+        "io.zer0.muse.data.agentbot.BotTaskEntity" to "botTasks",
+        "io.zer0.muse.data.agentbot.TaskRunEntity" to "botTaskRuns",
+        "io.zer0.muse.data.agentbot.TaskStepEntity" to "botTaskSteps",
+        "io.zer0.muse.data.agentbot.BotEventEntity" to "botEvents",
+        "io.zer0.muse.data.agentbot.ApprovalRequestEntity" to "botApprovals",
+        "io.zer0.muse.data.agentbot.PublicationOutboxEntity" to "botPublications",
+        "io.zer0.muse.data.agentbot.BotAnnotationEntity" to "botAnnotations",
+        "io.zer0.muse.data.agentbot.BotMessageCardEntity" to "botMessageCards",
+        "io.zer0.muse.data.agentbot.BotRoutineEntity" to "botRoutines",
         // v2.6.21: 单个对话的主动消息静音偏好，换机后必须保留。
         "io.zer0.muse.proactive.SessionProactivePreferenceEntity" to "sessionProactivePreferences",
         // v2.7.x(E2): 术语表 —— 用户确认过的既定说法，不可从历史重新推导

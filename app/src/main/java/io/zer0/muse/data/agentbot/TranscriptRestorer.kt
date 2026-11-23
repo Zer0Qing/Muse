@@ -4,6 +4,9 @@ import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.UIMessage
 import io.zer0.common.Logger
 import io.zer0.muse.data.session.SessionRepository
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 
 /**
  * 对话流重建器。
@@ -71,6 +74,31 @@ class TranscriptRestorer(
         return Page(restored.map(::toPublished), sessionId)
     }
 
+    suspend fun readOlder(sessionId: String, beforeSeq: Long, limit: Int): Page {
+        val repo = sessions ?: run {
+            Logger.e("TranscriptRestorer", "没有注入 SessionRepository，对话历史无法分页")
+            return Page(emptyList(), sessionId)
+        }
+        val restored = repo.getOlderMessages(sessionId, beforeSeq, limit)
+        return Page(restored.map(::toPublished), sessionId)
+    }
+
+    /**
+     * 持续观察 canonical 会话的消息流。
+     *
+     * 与 [read] 的降级策略相反：这里**不**把读失败折成空列表。
+     * 页面有四态，读取失败必须显式成为错误并保留可重试入口；
+     * 折成空列表的话，用户看到的是"对话记录凭空消失"。
+     *
+     * 没有注入仓储时同样让它失败：那是装配缺陷，不是"这个会话没有消息"。
+     */
+    fun observe(sessionId: String): Flow<List<AgentBotUiState.PublishedMessage>> {
+        val repo = sessions ?: return flow {
+            throw IllegalStateException("transcript_source_missing")
+        }
+        return repo.observeMessages(sessionId).map { messages -> messages.map(::toPublished) }
+    }
+
     /**
      * 合并"库里的全量"与"内存里独有的"。
      *
@@ -90,7 +118,7 @@ class TranscriptRestorer(
     ): List<AgentBotUiState.PublishedMessage> {
         val persistedIds = persisted.mapTo(mutableSetOf()) { it.messageId }
         val extra = inMemory.filter { it.messageId !in persistedIds }
-        return (persisted + extra).sortedWith(compareBy({ it.createdAt }, { it.messageId }))
+        return (persisted + extra).sortedWith(compareBy({ it.createdAt }, { it.seq }, { it.messageId }))
     }
 
     private fun toPublished(message: UIMessage) = AgentBotUiState.PublishedMessage(
@@ -102,5 +130,8 @@ class TranscriptRestorer(
         },
         text = message.content,
         createdAt = message.createdAt,
+        seq = message.seq,
+        imageUrls = message.imageUrls,
+        imageBase64List = message.imageBase64List,
     )
 }

@@ -13,15 +13,12 @@
     <string name="quick_msg_scope_global">Global</string>
     <string name="quick_msg_scope_assistant">Assistant: %1$s</string>
     <string name="quick_msg_scope_label">Scope: %1$s</string>
-    <string name="quick_msg_edit_cd">Edit</string>
-    <string name="quick_msg_delete_cd">Delete</string>
     <!-- Edit page -->
     <string name="quick_msg_unsaved_title">Unsaved changes</string>
     <string name="quick_msg_unsaved_content">Exiting will discard current edits. Confirm discard?</string>
     <string name="quick_msg_discard">Discard</string>
     <string name="quick_msg_new_title">New Quick Message</string>
     <string name="quick_msg_edit_title">Edit Quick Message</string>
-    <string name="quick_msg_save">Save</string>
     <string name="quick_msg_section_basic">Basic</string>
     <string name="quick_msg_section_content">Template Content</string>
     <string name="quick_msg_field_content">Content (supports {{input}} / {{clipboard}} / {{date}} variables)</string>
@@ -44,15 +41,12 @@
     <string name="lorebook_new_default_name">New Entry</string>
     <string name="lorebook_unnamed">(Unnamed)</string>
     <string name="lorebook_keywords_label">Keywords: %1$s</string>
-    <string name="lorebook_edit_cd">Edit</string>
-    <string name="lorebook_delete_cd">Delete</string>
     <!-- Edit page -->
     <string name="lorebook_unsaved_title">Unsaved changes</string>
     <string name="lorebook_unsaved_content">Exiting will discard current edits. Confirm discard?</string>
     <string name="lorebook_discard">Discard</string>
     <string name="lorebook_new_title">New Lorebook</string>
     <string name="lorebook_edit_title">Edit Lorebook</string>
-    <string name="lorebook_save">Save</string>
     <string name="lorebook_section_basic">Basic</string>
     <string name="lorebook_field_keywords">Trigger keywords (comma-separated)</string>
     <string name="lorebook_field_keywords_placeholder">e.g. magic, spell, incantation</string>
@@ -81,15 +75,12 @@
     <string name="prompt_injection_new_default_name">New Injection</string>
     <string name="prompt_injection_unnamed">(Unnamed)</string>
     <string name="prompt_injection_mode_label">Mode: %1$s</string>
-    <string name="prompt_injection_edit_cd">Edit</string>
-    <string name="prompt_injection_delete_cd">Delete</string>
     <!-- Edit page -->
     <string name="prompt_injection_unsaved_title">Unsaved changes</string>
     <string name="prompt_injection_unsaved_content">Exiting will discard current edits. Confirm discard?</string>
     <string name="prompt_injection_discard">Discard</string>
     <string name="prompt_injection_new_title">New PromptInjection</string>
     <string name="prompt_injection_edit_title">Edit PromptInjection</string>
-    <string name="prompt_injection_save">Save</string>
     <string name="prompt_injection_section_basic">Basic</string>
     <string name="prompt_injection_field_mode">Mode</string>
     <string name="prompt_injection_field_display_name">Display name (shown in UI; leave blank to use the mode default)</string>
@@ -122,8 +113,6 @@
     <string name="assistant_move_down">Move Down</string>
     <string name="assistant_clone">Clone</string>
     <string name="assistant_export_card">Export Character Card</string>
-    <string name="assistant_delete">Delete</string>
-    <string name="assistant_close">Close</string>
     <string name="assistant_delete_title">Delete Assistant</string>
     <!-- Toast -->
     <string name="assistant_toast_exported">Character card exported: %1$s</string>

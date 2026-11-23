@@ -22,11 +22,11 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import io.zer0.muse.ui.theme.MuseActionColors
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMotion
+import io.zer0.muse.ui.theme.MuseSpacing
 
 /**
  * 局部进度组件 — 按钮里、卡片角上、行内的小转圈和进度条。
@@ -189,7 +189,7 @@ fun MuseIndeterminateProgressBar(
 /** 进度组件的尺寸常量。 */
 object MuseProgressDefaults {
     /** 轨道高度。 */
-    val trackHeight: Dp = 4.dp
+    val trackHeight: Dp = MuseSpacing.xs
 
     /** 不确定进度条滑动段的宽度占比。 */
     const val segmentFraction: Float = 0.3f

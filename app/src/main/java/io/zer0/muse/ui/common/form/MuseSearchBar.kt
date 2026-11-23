@@ -15,13 +15,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
 import io.zer0.muse.ui.common.icons.MuseIcons
+import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.theme.MuseSpacing
 import io.zer0.muse.ui.theme.pill
 
 /**
@@ -52,7 +53,7 @@ fun MuseSearchBar(text: String, onClick: () -> Unit, modifier: Modifier = Modifi
                 // 保留模糊质感，但不再透出可辨认的文字。
                 backgroundColor = surfaceColor.copy(alpha = 0.86f),
                 tint = HazeTint(surfaceColor.copy(alpha = 0.12f)),
-                blurRadius = 16.dp,
+                blurRadius = MuseSpacing.lg,
                 noiseFactor = 0f,
             ),
         )
@@ -61,27 +62,25 @@ fun MuseSearchBar(text: String, onClick: () -> Unit, modifier: Modifier = Modifi
     }
     Box(
         modifier = surfaceModifier.clickable(onClick = onClick),
-        // v2.0.1 fix: 内容必须显式垂直居中——Box 默认 TopStart，Row 仅 fillMaxWidth 时
-        // 图标与文字会贴到胶囊顶部（搜索栏文字位置上偏的缺陷）。
         contentAlignment = Alignment.Center,
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = MuseSpacing.lg),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
                 imageVector = MuseIcons.search,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(20.dp),
+                modifier = Modifier.size(MuseIconSizes.iconMedium),
             )
             Text(
                 text = text,
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 8.dp),
+                modifier = Modifier.padding(start = MuseSpacing.sm),
             )
         }
     }

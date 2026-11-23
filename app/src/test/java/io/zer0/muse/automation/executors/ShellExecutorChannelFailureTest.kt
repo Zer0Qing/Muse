@@ -2,6 +2,7 @@ package io.zer0.muse.automation.executors
 
 import io.zer0.common.Logger
 import io.zer0.muse.tools.system.ShizukuAuthorizer
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -22,9 +23,17 @@ import org.robolectric.annotation.Config
 @Config(sdk = [33])
 class ShellExecutorChannelFailureTest {
 
+    private var previousLoggerEnabled = true
+
     @Before
     fun setUp() {
+        previousLoggerEnabled = Logger.enabled
         Logger.enabled = false
+    }
+
+    @After
+    fun tearDown() {
+        Logger.enabled = previousLoggerEnabled
     }
 
     private val context get() = org.robolectric.RuntimeEnvironment.application

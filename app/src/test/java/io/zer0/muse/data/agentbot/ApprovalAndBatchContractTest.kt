@@ -56,7 +56,8 @@ class ApprovalAndBatchContractTest {
         val svc = source("io/zer0/muse/data/agentbot/PublicationService.kt");
         assertTrue(
             "输入版本变了就不能继续发旧批次",
-            svc.contains("currentRequestRevision != requestRevision"),
+            svc.contains("latestRevision != requestRevision") &&
+                svc.contains("latestUserInputSequence(botId, originSessionId)"),
         );
     }
 
@@ -81,16 +82,18 @@ class ApprovalAndBatchContractTest {
     @Test
     fun `approval section renders independently of the chat flow`() {
         val screen = source("io/zer0/muse/ui/agentbot/AgentBotScreen.kt");
+        val workbench = source("io/zer0/muse/ui/agentbot/AgentWorkbenchSheet.kt");
         assertTrue(
-            "审批卡要在页面上独立呈现，不依赖主 Bot 正在说话",
-            screen.contains("ApprovalSection("),
+            "审批卡要在主对话流上独立呈现，不依赖主 Bot 正在说话",
+            screen.contains("items(pendingApprovals, key = { \"approval:\${it.approvalId}\" })") &&
+                screen.contains("AgentInlineApprovalCard("),
         );
-        // 审批区块必须在对话流之外渲染：看它出现的位置是否早于 LazyColumn。
-        val approvalAt = screen.indexOf("ApprovalSection(");
-        val lazyAt = screen.indexOf("LazyColumn(");
+        val liveTabAt = workbench.indexOf("private fun WorkbenchLiveTab(");
+        val approvalAt = workbench.indexOf("projection?.pendingApprovals", liveTabAt);
+        val activeTasksAt = workbench.indexOf("val activeTasks =", approvalAt);
         assertTrue(
-            "审批要在对话流之前，确保连续聊天不会把它挤出视野",
-            approvalAt in 0 until lazyAt,
+            "工作台实况页中待审批区必须排在普通任务列表前",
+            liveTabAt >= 0 && approvalAt in (liveTabAt + 1) until activeTasksAt,
         );
     }
 

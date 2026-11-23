@@ -14,7 +14,6 @@
     <string name="agent_directives_text_limit">Up to 200 characters each</string>
     <string name="agent_directives_move_up">Move up</string>
     <string name="agent_directives_move_down">Move down</string>
-    <string name="agent_directives_delete">Delete</string>
     <string name="agent_directives_omitted">Too much to fit; these didn’t apply this time: %1$s</string>
     <string name="agent_directives_switch">Enable this rule</string>
 </resources>

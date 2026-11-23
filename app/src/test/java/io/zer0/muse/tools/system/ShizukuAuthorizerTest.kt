@@ -1,6 +1,7 @@
 package io.zer0.muse.tools.system
 
 import io.zer0.common.Logger
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -33,9 +34,17 @@ import java.lang.reflect.Field
 @Config(sdk = [33])
 class ShizukuAuthorizerTest {
 
+    private var previousLoggerEnabled = true
+
     @Before
     fun setUp() {
+        previousLoggerEnabled = Logger.enabled
         Logger.enabled = false
+    }
+
+    @After
+    fun tearDown() {
+        Logger.enabled = previousLoggerEnabled
     }
 
     private val context get() = org.robolectric.RuntimeEnvironment.application

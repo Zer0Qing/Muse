@@ -8,10 +8,13 @@ import io.zer0.muse.data.ProactiveMessageConfig
 import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.proactive.ProactiveRelationEntity
 import io.zer0.muse.data.proactive.ProactiveTimingEngine
+import io.zer0.muse.data.proactive.PendingThoughtEntity
+import io.zer0.muse.data.proactive.ProactiveBacklogRepository
 import io.zer0.muse.notification.MuseNotificationTarget
 import io.zer0.muse.schedule.GenerationGate
 import io.zer0.muse.schedule.readScheduleWorkEnabledOrFalse
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.withTimeoutOrNull
 
 /**
@@ -42,6 +45,8 @@ class ProactiveCycleRunner(
      * 走发送/不发送两条分支，而不必去追求一个统计上的伪断言。
      */
     private val rollPercent: () -> Int = { kotlin.random.Random.nextInt(ProactiveSendProbability.ROLL_BOUND) },
+    private val backlog: ProactiveBacklogRepository? = null,
+    private val backlogWorkScheduler: ProactiveBacklogWorkScheduler? = null,
 ) {
 
     companion object {
@@ -87,6 +92,7 @@ class ProactiveCycleRunner(
          * 是另一个问题，由用户选的等级决定。
          */
         val relation: ProactiveRelationEntity,
+        var selectedThought: PendingThoughtEntity? = null,
     )
 
     /**
@@ -312,6 +318,16 @@ class ProactiveCycleRunner(
             } else {
                 loader.resolveSession(assistant)
             }
+        if (backlog != null) {
+            try {
+                backlog.reconcile(now, assistant.id, sessionId.orEmpty())
+                backlogWorkScheduler?.enqueueIfNeeded()
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                Logger.w(TAG, "backlog 对账失败，正常巡检继续: ${error.message}", error)
+            }
+        }
         val context = sessionId?.let { loader.loadSessionContext(it, assistant.id) }
         val decision = context?.let {
             ProactiveTimingEngine.evaluate(
@@ -385,6 +401,7 @@ class ProactiveCycleRunner(
             ledger.mapTo(mutableSetOf()) { it.kindEnum() },
         )
         val candidates = ProactiveCandidateFilter.select(ledger, intensity, banned)
+        ready.selectedThought = candidates.firstOrNull()
         if (banned.isNotEmpty()) {
             Logger.i(TAG, "候选过滤 | 已不感兴趣的类型=${banned.joinToString { it.name }} | 剩=${candidates.size}")
         }
@@ -412,7 +429,7 @@ class ProactiveCycleRunner(
                 composer.compose(
                     input = ProactiveComposer.Input(
                         assistant = ready.assistant,
-                        candidates = candidates,
+                        candidates = listOfNotNull(ready.selectedThought),
                         sessionId = ready.sessionId,
                         recentMessages = ready.context.recentMessages,
                         recentProactiveMessages = ready.context.recentProactiveTexts,
@@ -434,24 +451,58 @@ class ProactiveCycleRunner(
     // ══════════════════════════════════════════════════════════════
 
     /**
-     * 落库 + 记账 + 通知。
+     * 消息、thought 归属、额度和通知发件箱共用一次 Room 提交；系统通知在提交后发送。
      *
-     * 顺序有讲究：**先落库，成功了才扣额度、标记已说**。
-     * 落库失败时什么都不动，这轮当作没发生，下次重试 ——
-     * 宁可重试也不丢消息，更不能扣了额度却没发出去。
+     * 跨表事务避免 thought 同时被 backlog lane 发布，也避免消息已写而结果账或额度缺失。
      */
     private suspend fun publish(trigger: String, ready: Prepared, message: ProactiveReplyParser.Result.Message): Boolean {
         val now = System.currentTimeMillis()
-        val written = runCatching {
-            runtime.sessions.appendMessage(
+        val selectedThoughtId = ready.selectedThought?.id
+        var actual: PendingThoughtEntity? = null
+        var outcomeId: String? = null
+        val proactiveMessage = UIMessage(
+            role = MessageRole.ASSISTANT,
+            content = message.content,
+            createdAt = now,
+        )
+        val written = try {
+            runtime.sessions.appendMessageWithTransaction(
                 sessionId = ready.sessionId,
-                message = UIMessage(
-                    role = MessageRole.ASSISTANT,
-                    content = message.content,
-                    createdAt = now,
-                ),
-            )
-        }.onFailure { e -> Logger.e(TAG, "落库失败，本次放弃: ${e.message}", e) }.getOrNull()
+                message = proactiveMessage,
+            ) { messageId ->
+                val selected = selectedThoughtId?.let { id ->
+                    stores.thoughts.getOpen(ready.assistant.id).firstOrNull { it.id == id && it.lastSurfacedAt == null }
+                }
+                if (selectedThoughtId != null && selected == null) throw ThoughtAlreadyHandled()
+                if (selected != null && stores.thoughts.markSurfacedIfOpen(selected.id, now) != 1) {
+                    throw ThoughtAlreadyHandled()
+                }
+                actual = selected
+                val stableOutcomeId = java.util.UUID.nameUUIDFromBytes(
+                    "muse-proactive:normal:$messageId".toByteArray(Charsets.UTF_8),
+                ).toString()
+                val outcome = stores.outcomes.recordSentDetailed(
+                    thought = selected,
+                    sessionId = ready.sessionId,
+                    now = now,
+                    assistantId = ready.assistant.id,
+                    messageId = messageId,
+                    outcomeId = stableOutcomeId,
+                    notificationTitle = ready.assistant.name,
+                    notificationPreview = message.content,
+                )
+                if (outcome.inserted) stores.relations.consume(ready.assistant.id)
+                outcomeId = outcome.outcomeId
+            }
+        } catch (e: ThoughtAlreadyHandled) {
+            Logger.i(TAG, "主动消息候选已由其他 lane 处理，本轮回滚 | thoughtId=$selectedThoughtId")
+            return false
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Logger.e(TAG, "落库失败，本次放弃: ${e.message}", e)
+            null
+        }
 
         if (written == null) {
             Logger.i(TAG, "主动消息落库 | sessionId=${ready.sessionId} | messageId=null(写入失败) | trigger=$trigger")
@@ -468,26 +519,13 @@ class ProactiveCycleRunner(
                 "targetSessionId=${ready.sessionId} | currentSessionId=${currentSessionId ?: "无"}",
         )
 
-        // 这次开口可能来自某条牵挂，也可能单纯是接着对话说的。
-        // 有就标记，没有也不影响记账 —— 牵挂只是配菜。
-        val actual = message.thoughtId
-            ?.let { id -> stores.thoughts.getOpen(ready.assistant.id).firstOrNull { it.id == id } }
-        actual?.let { stores.thoughts.markSurfaced(it.id, now) }
-
-        stores.relations.consume(ready.assistant.id)
-        // 结果账的 id 要一直带到通知上：「这次不用」按钮靠它回到同一条记录。
-        val outcomeId = stores.outcomes.recordSent(
-            thought = actual,
-            sessionId = ready.sessionId,
-            now = now,
-            assistantId = ready.assistant.id,
-            messageId = written,
-        )
-
-        notifyProactive(trigger, ready, message, currentSessionId, outcomeId)
+        val persistedOutcomeId = outcomeId ?: return false
+        notifyProactive(trigger, ready, message, currentSessionId, persistedOutcomeId)
         Logger.i(TAG, "已发送: thought=${actual?.id ?: "无(接话)"} tone=${message.tone}")
         return true
     }
+
+    private class ThoughtAlreadyHandled : RuntimeException()
 
     /**
      * 发通知，并把「到底送出去了没有」写进日志。
@@ -503,20 +541,37 @@ class ProactiveCycleRunner(
         currentSessionId: String?,
         outcomeId: String,
     ) {
-        val blocker: String? = runCatching { runtime.notifier.proactiveNotificationBlocker() }.getOrNull()
-        val failure = runCatching {
+        val blocker = try {
+            runtime.notifier.proactiveNotificationBlocker()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            e.message ?: e::class.java.simpleName
+        }
+        val notified = try {
             runtime.notifier.notifyProactiveMessage(
                 assistant = ready.assistant,
                 preview = message.content,
                 target = MuseNotificationTarget.ProactiveOutcome(ready.sessionId, outcomeId),
                 outcomeId = outcomeId,
+                notificationId = io.zer0.muse.notification.MuseNotificationIdPolicy.notificationIdForOutcome(outcomeId),
             )
-        }.exceptionOrNull()
-        val posted = failure == null && blocker == null
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Logger.w(TAG, "主动消息通知异常: ${e.message}")
+            false
+        }
+        val posted = notified && blocker == null
         val reason = when {
-            failure != null -> failure.message ?: failure::class.java.simpleName
             blocker != null -> blocker
+            !posted -> "通知系统未接受通知"
             else -> "无"
+        }
+        if (posted) {
+            stores.outcomes.markNotificationPosted(outcomeId)
+        } else {
+            stores.outcomes.markNotificationFailed(outcomeId, reason, System.currentTimeMillis() + 300_000L)
         }
         Logger.i(
             TAG,

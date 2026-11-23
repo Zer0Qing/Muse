@@ -1,10 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- ==================== Common ==================== -->
-    <string name="settings_common_cancel">Отмена</string>
-    <string name="settings_common_save">Сохранять</string>
-    <string name="settings_common_delete">Удалить</string>
-    <string name="settings_common_close">Закрывать</string>
     <string name="settings_common_add">Добавлять</string>
     <string name="settings_common_show">Показывать</string>
     <string name="settings_common_hide">Скрывать</string>
@@ -347,7 +343,6 @@
     <string name="cloud_backup_delete_failed">Ошибка удаления</string>
     <string name="cloud_backup_delete_consequence">Эта облачная версия будет удалена безвозвратно. Если она единственная, вы потеряете облачный запасной вариант.</string>
     <string name="cloud_backup_delete_success">Удалено</string>
-    <string name="cloud_backup_delete_this">Удалить</string>
     <string name="cloud_backup_enable">Включить облачное резервное копирование</string>
     <string name="cloud_backup_hide_secret">Скрыть</string>
     <string name="cloud_backup_interval_hint">Чем короче интервал, тем чаще загрузки и больше расход трафика и батареи; для больших баз знаний рекомендуется ≥ 3 дней</string>

@@ -37,11 +37,12 @@ class StepRecordingWiringTest {
     @Test
     fun `callback fires before the tool executes`() {
         val startAt = runner.indexOf("params.onToolStarted");
-        val execAt = runner.indexOf("executeAllowedTool(tc, access, params.onApprovalRequired)", startAt);
+        val execAt = runner.indexOf("executeAllowedTool(", startAt);
         assertTrue(
             "记账要早于执行，否则工具失败时这一步就丢了",
             startAt > 0 && startAt < execAt,
         );
+        assertTrue("宿主工具上下文必须跟随执行", runner.contains("params.toolExecutionContext"));
     }
 
     @Test

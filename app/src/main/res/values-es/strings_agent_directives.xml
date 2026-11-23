@@ -14,7 +14,6 @@
     <string name="agent_directives_text_limit">Hasta 200 caracteres por regla</string>
     <string name="agent_directives_move_up">Subir</string>
     <string name="agent_directives_move_down">Bajar</string>
-    <string name="agent_directives_delete">Eliminar</string>
     <string name="agent_directives_omitted">Demasiado contenido; esto no se aplicó esta vez: %1$s</string>
     <string name="agent_directives_switch">Activar esta regla</string>
 </resources>

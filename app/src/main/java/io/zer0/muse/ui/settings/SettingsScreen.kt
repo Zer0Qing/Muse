@@ -77,10 +77,13 @@ import io.zer0.muse.ui.settings.isAvailable
 import io.zer0.muse.ui.settings.rememberSettingsActionHost
 import io.zer0.muse.ui.settings.settingsBreadcrumb
 import io.zer0.muse.ui.theme.MuseAnimation
+import io.zer0.muse.ui.theme.MuseButtonSizes
+import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.MuseSpacing
 import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.ui.theme.semiLarge
 
@@ -224,7 +227,7 @@ private fun SettingsHomeList(
                         .padding(
                             start = MusePaddings.pageMargin,
                             end = MusePaddings.pageMargin,
-                            top = 6.dp,
+                            top = MuseSpacing.smTight,
                             bottom = MusePaddings.contentGap,
                         )
                         .alpha(searchStuckProgress),
@@ -237,8 +240,6 @@ private fun SettingsHomeList(
 /** 占位搜索栏：随内容滚动，吸顶后由外层玻璃搜索栏接管。 */
 @Composable
 private fun SettingsStickySearchBar(progress: Float, onOpenSearch: () -> Unit) {
-    // 吸顶时这层会脱离内容流，下方条目从它下面穿过，因此需要一层背景遮住。
-    // 背景只铺胶囊本体高度（不含上下 6dp 呼吸位），避免顶栏白带过厚。
     Box(
         modifier = Modifier.fillMaxWidth(),
         contentAlignment = Alignment.Center,
@@ -247,23 +248,21 @@ private fun SettingsStickySearchBar(progress: Float, onOpenSearch: () -> Unit) {
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = MusePaddings.searchBarHeight, max = MusePaddings.searchBarHeight)
-                .padding(vertical = 6.dp)
+                .padding(vertical = MuseSpacing.smTight)
                 .background(MaterialTheme.colorScheme.background.copy(alpha = progress)),
         )
         MuseSearchBar(
             text = stringResource(R.string.settings_search_hint),
             onClick = onOpenSearch,
             modifier = Modifier
-                .padding(horizontal = MusePaddings.pageMargin, vertical = 6.dp)
+                .padding(horizontal = MusePaddings.pageMargin, vertical = MuseSpacing.smTight)
                 .alpha(1f - progress),
         )
     }
 }
 
 /**
- * 首页的 14 个分类行。
- *
- * 单独成一个组合函数，测试可以脱开 DI 与搜索浮层直接渲染它，数分类行、点分类行。
+ * 首页分类区块：按 4 个心智区块分卡排列，用留白代替多余标题文字。
  */
 @Composable
 internal fun SettingsGroupCards(
@@ -271,19 +270,27 @@ internal fun SettingsGroupCards(
     modifier: Modifier = Modifier,
     groups: List<SettingsGroupSpec> = SettingsCatalog.groups,
 ) {
-    // 分类卡与条目同一套可达性判定：整组条目都不可达时（例如关闸的小手机），
-    // 首页不该再留一张点进去什么都没有的分类卡。
     val visibleGroups = groups.filter { group -> group.entries.any { it.isAvailable() } }
-    CardGroup(modifier = modifier.padding(horizontal = MusePaddings.pageMargin)) {
-        visibleGroups.forEach { group ->
-            item(
-                key = group.kind,
-                modifier = Modifier.testTag(SETTINGS_GROUP_ROW_TAG),
-                onClick = { onOpenGroup(group.kind, null) },
-                leadingContent = { MuseSettingsIcon(group.icon) },
-                headlineContent = { Text(stringResource(group.titleRes)) },
-                trailingContent = { ChevronRight() },
-            )
+    val blocks = SettingsHomeBlock.entries.mapNotNull { block ->
+        visibleGroups.filter { it.block == block }.takeIf { it.isNotEmpty() }
+    }
+    Column(
+        modifier = modifier.padding(horizontal = MusePaddings.pageMargin),
+        verticalArrangement = Arrangement.spacedBy(MusePaddings.cardGap),
+    ) {
+        blocks.forEach { blockGroups ->
+            CardGroup {
+                blockGroups.forEach { group ->
+                    item(
+                        key = group.kind,
+                        modifier = Modifier.testTag(SETTINGS_GROUP_ROW_TAG),
+                        onClick = { onOpenGroup(group.kind, null) },
+                        leadingContent = { MuseSettingsIcon(group.icon) },
+                        headlineContent = { Text(stringResource(group.titleRes)) },
+                        trailingContent = { ChevronRight() },
+                    )
+                }
+            }
         }
     }
 }
@@ -375,13 +382,18 @@ private fun SettingsSearchField(query: String, onQueryChange: (String) -> Unit) 
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.pill,
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.86f),
-        tonalElevation = 0.dp,
+        tonalElevation = MuseElevation.none,
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 52.dp)
-                .padding(start = 16.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
+                .heightIn(min = MuseButtonSizes.largeHeight)
+                .padding(
+                    start = MuseSpacing.lg,
+                    end = MuseSpacing.sm,
+                    top = MuseSpacing.smTight,
+                    bottom = MuseSpacing.smTight,
+                ),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
         ) {
@@ -441,10 +453,10 @@ private fun SettingsSearchResults(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 12.dp),
+            .padding(top = MuseSpacing.md),
         shape = MuseShapes.semiLarge,
         color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 6.dp,
+        tonalElevation = MuseElevation.high,
     ) {
         if (results.isEmpty()) {
             Text(

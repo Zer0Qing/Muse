@@ -82,7 +82,8 @@ class AgentBotEntryReachabilityTest {
 
     @Test
     fun `every status has a user facing label`() {
-        val screen = File("src/main/java/io/zer0/muse/ui/agentbot/AgentBotScreen.kt").readText()
+        val uiSource = File("src/main/java/io/zer0/muse/ui/agentbot/AgentBotScreen.kt").readText() +
+            "\n" + File("src/main/java/io/zer0/muse/ui/agentbot/AgentStreamCards.kt").readText()
         val statuses = listOf(
             BotTaskStatus.QUEUED, BotTaskStatus.RUNNING, BotTaskStatus.REVIEWING,
             BotTaskStatus.WAITING_APPROVAL, BotTaskStatus.WAITING_RESOURCE,
@@ -93,7 +94,7 @@ class AgentBotEntryReachabilityTest {
         statuses.forEach { status ->
             assertTrue(
                 "状态 " + status + " 没有用户可读的文案，内部词会漏到界面上",
-                screen.contains(status),
+                uiSource.contains(status),
             )
         }
     }

@@ -133,7 +133,6 @@
     <string name="settings_multi_agent_delete_team">팀 삭제</string>
     <string name="settings_multi_agent_unnamed_team">제목 없는 팀</string>
     <string name="settings_multi_agent_no_members">회원 없음</string>
-    <string name="settings_multi_agent_delete">삭제</string>
     <string name="settings_multi_agent_edit_team">팀 편집</string>
     <string name="settings_multi_agent_team_name">팀 이름</string>
     <string name="settings_multi_agent_team_name_hint">예를 들어</string>
@@ -142,8 +141,6 @@
     <string name="settings_multi_agent_description_hint">팀 목적 또는 협업 시나리오</string>
     <string name="settings_multi_agent_select_members">회원 선택</string>
     <string name="settings_multi_agent_no_assistants">보조자가 없습니다.</string>
-    <string name="settings_multi_agent_save">구하다</string>
-    <string name="settings_multi_agent_cancel">취소</string>
 
     <!-- SettingsTutorialPage.kt -->
     <string name="settings_tutorial_title">지도 시간</string>

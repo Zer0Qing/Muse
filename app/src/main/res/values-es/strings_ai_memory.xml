@@ -80,7 +80,6 @@
     <string name="memory_space_create_title">Nuevo espacio de memoria</string>
     <string name="memory_space_rename">Cambiar nombre</string>
     <string name="memory_space_rename_title">Cambiar el nombre del espacio de memoria</string>
-    <string name="memory_space_delete">Eliminar</string>
     <string name="memory_space_name_label">Nombre del espacio</string>
     <string name="memory_space_fact_count">%1$d hechos</string>
     <string name="memory_space_entry">Espacios de memoria</string>
@@ -107,8 +106,6 @@
     <string name="memory_menu_pin">Fijar</string>
     <string name="memory_menu_unpin">Desfijar</string>
     <string name="memory_menu_importance">Definir importancia</string>
-    <string name="memory_menu_edit">Editar</string>
-    <string name="memory_menu_delete">Eliminar</string>
     <string name="memory_center_fact_count">hechos</string>
     <string name="memory_center_empty_title">Aún no hay recuerdos</string>
     <string name="memory_center_empty_subtitle">Sigue hablando con Muse o di “recuerda esto” para añadir un hecho.</string>

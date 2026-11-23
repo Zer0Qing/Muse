@@ -133,7 +133,6 @@
     <string name="settings_multi_agent_delete_team">Удалить команду</string>
     <string name="settings_multi_agent_unnamed_team">Безымянная команда</string>
     <string name="settings_multi_agent_no_members">Нет участников</string>
-    <string name="settings_multi_agent_delete">Удалить</string>
     <string name="settings_multi_agent_edit_team">Редактировать команду</string>
     <string name="settings_multi_agent_team_name">Название команды</string>
     <string name="settings_multi_agent_team_name_hint">например</string>
@@ -142,8 +141,6 @@
     <string name="settings_multi_agent_description_hint">Цель команды или сценарий сотрудничества</string>
     <string name="settings_multi_agent_select_members">Выберите участников</string>
     <string name="settings_multi_agent_no_assistants">Помощников нет.</string>
-    <string name="settings_multi_agent_save">Сохранять</string>
-    <string name="settings_multi_agent_cancel">Отмена</string>
 
     <!-- SettingsTutorialPage.kt -->
     <string name="settings_tutorial_title">Учебное пособие</string>

@@ -11,6 +11,10 @@ data class ToolExecutionContext(
     val assistantId: String? = null,
     /** v2.x: 宿主会话 id(find_tools 动态装载等按会话生效的逻辑使用);旧调用点缺省 null。 */
     val sessionId: String? = null,
+    /** 子任务允许修改的工作区路径；空字符串表示不允许写入。 */
+    val resourceScope: String? = null,
+    val stepId: String? = null,
+    val stageWorkspaceArtifact: (suspend (stepId: String, targetPath: String, content: String, baseContent: String?) -> String?)? = null,
     /**
      * 本轮正在生成的助手消息 id。
      *
@@ -35,4 +39,6 @@ data class ToolExecutionContext(
      * 为 true 时，host 侧应限制长期记忆写入口（pin/unpin/save/delete/record_experience）。
      */
     val isSubagentContext: Boolean = false,
+    /** Host callback for pausing a durable task when its required runtime is absent. */
+    val onRuntimeMissing: (suspend () -> Unit)? = null,
 )

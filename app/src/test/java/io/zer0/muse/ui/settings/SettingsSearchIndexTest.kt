@@ -120,17 +120,22 @@ class SettingsSearchIndexTest {
     @Test
     fun `moved entries are indexed in their new categories`() {
         assertEquals(
-            "代理应挂在「连接」下",
+            "外观应挂在「通用与外观」下，不再混入助手组",
+            SettingsGroupKind.GENERAL,
+            records.single { it.titleRes == R.string.settings_screen_appearance_label }.group,
+        )
+        assertEquals(
+            "代理应挂在「渠道与网络」下",
             SettingsGroupKind.CONNECTION,
             records.single { it.titleRes == R.string.proxy_title }.group,
         )
         assertEquals(
-            "分享与安全应挂在「隐私与安全」下",
+            "分享与安全应挂在「隐私与权限」下",
             SettingsGroupKind.PRIVACY_SECURITY,
             records.single { it.titleRes == R.string.common_share }.group,
         )
         assertEquals(
-            "PII 守护应挂在「隐私与安全」下",
+            "PII 守护应挂在「隐私与权限」下",
             SettingsGroupKind.PRIVACY_SECURITY,
             records.single { it.titleRes == R.string.settings_screen_pii_guard }.group,
         )
@@ -140,19 +145,12 @@ class SettingsSearchIndexTest {
             records.single { it.titleRes == R.string.data_management_entry }.group,
         )
         assertEquals(
-            "统计应挂在「开发者」下",
-            SettingsGroupKind.DEVELOPER,
+            "使用统计应归回「通用与外观」下",
+            SettingsGroupKind.GENERAL,
             records.single { it.titleRes == R.string.settings_screen_stats }.group,
         )
     }
 
-    /**
-     * 「工具批准」必须直达可写页。
-     *
-     * 此前这条索引指向 ToolsScreenRoute —— 那一页自述"只做展示与说明"，
-     * 用户搜到"工具批准"点进去改不了任何东西；真正可写的 ToolsSettingsPage
-     * 只挂在一条全仓 0 处 navigate 的死路由上。这条断言钉住"搜到就能改"。
-     */
     @Test
     fun `tool approval record opens the writable policy page`() {
         val record = records.single { it.titleRes == R.string.settings_screen_entry_tool_approval }
@@ -161,7 +159,7 @@ class SettingsSearchIndexTest {
             SettingsEntryAction.Navigate(io.zer0.muse.ui.navigation.ToolsSettingsRoute),
             record.action,
         )
-        assertEquals(SettingsGroupKind.TOOLS, record.group)
+        assertEquals(SettingsGroupKind.PRIVACY_SECURITY, record.group)
     }
 
     @Test

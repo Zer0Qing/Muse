@@ -23,7 +23,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
+import io.zer0.muse.ui.theme.MuseAlpha
 import io.zer0.muse.ui.theme.MuseIconSizes
+import io.zer0.muse.ui.theme.MuseListItemSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 
@@ -55,13 +57,13 @@ fun MuseActionSheetRow(
     onClick: () -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    val effectiveColor = if (enabled) contentColor else contentColor.copy(alpha = 0.38f)
+    val effectiveColor = if (enabled) contentColor else contentColor.copy(alpha = MuseAlpha.disabled)
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = MuseIconSizes.touchTarget)
+            .heightIn(min = MuseListItemSizes.compactMinHeight)
             .clip(MuseShapes.medium)
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = MuseAlpha.mutedSurface))
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,

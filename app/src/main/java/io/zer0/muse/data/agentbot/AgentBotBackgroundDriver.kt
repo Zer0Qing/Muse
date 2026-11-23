@@ -22,8 +22,11 @@ import kotlinx.coroutines.launch
  *
  * ## 它做什么、不做什么
  *
- * 只负责**已经产出的结果**：把 `TASK_RESULT_READY` / `TASK_FAILED` 发布成对话正文，
- * 并在应用不在前台时补一条通知。
+ * 只负责**已经审核通过的结果**：把 `TASK_PUBLICATION_READY` 发布成对话正文，
+ * `TASK_FAILED` 补一条失败状态，并在应用不在前台时补一条通知。
+ *
+ * 执行结果（`TASK_RESULT_READY`）与审核事实（`REVIEW_READY`）只在这里确认消费，
+ * 不对外发言 —— 正文必须先经过审核。
  *
  * 不推进任何需要模型的事（新输入、进度、审核）：那些要有前台回合才能跑，
  * 属于页面里的 [io.zer0.muse.ui.agentbot.AgentBotViewModel.runTurnOnce]。
@@ -63,15 +66,33 @@ class AgentBotBackgroundDriver(
             var landed: String? = null
             inbox.runTurn(binding.botId) { event ->
                 when (event.kind) {
-                    BotEventKind.TASK_RESULT_READY, BotEventKind.TASK_FAILED -> {
-                        val ok = results.publish(
+                    // 审核允许之后才存在的事实：正文来自审核结论。
+                    BotEventKind.TASK_PUBLICATION_READY,
+                    BotEventKind.TASK_FAILED,
+                    -> when (
+                        results.dispatch(
                             event = event,
                             fallbackBotId = binding.botId,
                             fallbackSessionId = binding.canonicalAgentSessionId,
                         )
-                        if (ok) landed = results.textOf(event)
-                        ok
+                    ) {
+                        // 只有真的产生了一条消息才补通知。
+                        // "被拒绝"也是有结论的处理结果，但用户不该收到一条
+                        // 声称完成、实际没发的通知。
+                        AgentBotResultPublisher.Outcome.PUBLISHED -> {
+                            landed = results.textOf(event)
+                            true
+                        }
+                        AgentBotResultPublisher.Outcome.HANDLED,
+                        AgentBotResultPublisher.Outcome.REFUSED,
+                        -> true
+                        AgentBotResultPublisher.Outcome.RETRY -> false
                     }
+                    // 执行结果等着审核、审核事实是内部判据：都不对外发言。
+                    // 但必须在这里确认消费，否则它们会一直排在收件箱里占配额。
+                    BotEventKind.TASK_RESULT_READY,
+                    BotEventKind.REVIEW_READY,
+                    -> true
                     // 其余事件交给前台回合：它们要么需要模型调用，要么只是进度心跳。
                     else -> false
                 }
