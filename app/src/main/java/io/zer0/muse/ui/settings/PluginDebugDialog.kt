@@ -5,7 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -47,7 +47,7 @@ fun PluginDebugDialog(onDismiss: () -> Unit) {
                         .heightIn(max = 320.dp),
                     verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
                 ) {
-                    items(entries) { entry ->
+                    itemsIndexed(entries, key = { index, entry -> "${entry.pluginId}_${entry.action}_$index" }) { _, entry ->
                         Column {
                             Text(
                                 text = "${if (entry.allowed) "✓" else "✗"} ${entry.pluginId} · ${entry.action}",

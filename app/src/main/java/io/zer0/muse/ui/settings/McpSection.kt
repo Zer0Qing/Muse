@@ -1181,14 +1181,19 @@ private fun InlineError(message: String, onDismiss: () -> Unit) {
                 color = MaterialTheme.colorScheme.onErrorContainer,
                 modifier = Modifier.weight(1f),
             )
-            Icon(
-                imageVector = MuseIcons.x,
-                contentDescription = stringResource(R.string.common_close),
-                tint = MaterialTheme.colorScheme.error,
+            Box(
                 modifier = Modifier
-                    .size(16.dp)
+                    .size(40.dp)
                     .clickable { onDismiss() },
-            )
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = MuseIcons.x,
+                    contentDescription = stringResource(R.string.common_close),
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
         }
     }
 }

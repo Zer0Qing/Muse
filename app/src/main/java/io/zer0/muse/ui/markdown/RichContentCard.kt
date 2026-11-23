@@ -20,7 +20,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -567,7 +567,7 @@ private fun rememberCardPushToken(
     if (store == null || cardId.isNullOrBlank()) return null
     val value by remember(store, cardId) {
         store.data.map { it[cardId] }.distinctUntilChanged()
-    }.collectAsState(initial = store.get(cardId))
+    }.collectAsStateWithLifecycle(initialValue = store.get(cardId))
     return remember(value) { CardPushToken(value) }
 }
 

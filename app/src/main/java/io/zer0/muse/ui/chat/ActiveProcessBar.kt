@@ -160,7 +160,10 @@ internal fun ActiveProcessSheet(
                 )
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    itemsIndexed(records) { index, record ->
+                    itemsIndexed(
+                        items = records,
+                        key = { index, record -> "${record.toolName}_${record.startedAt ?: 0L}_$index" },
+                    ) { index, record ->
                         ProcessRecordRow(record = record, index = index + 1)
                     }
                 }

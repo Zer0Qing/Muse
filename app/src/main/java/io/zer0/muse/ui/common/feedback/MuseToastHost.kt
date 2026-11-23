@@ -12,7 +12,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,7 +42,7 @@ import io.zer0.muse.ui.theme.huge
  */
 @Composable
 fun MuseToastHost() {
-    val toastData by MuseToast.message.collectAsState()
+    val toastData by MuseToast.message.collectAsStateWithLifecycle()
     // 应用级 Toast 宿主常驻,无需随页面 Lifecycle 启停,保持普通 collectAsState。
 
     // M-MTH1: 缓存上一次非空的 toast 文本。

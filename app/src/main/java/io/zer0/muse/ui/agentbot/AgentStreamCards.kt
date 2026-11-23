@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -41,11 +40,13 @@ import io.zer0.muse.data.agentbot.BotCardStatus
 import io.zer0.muse.data.agentbot.BotTaskStatus
 import io.zer0.muse.data.agentbot.StepExecutionStatus
 import io.zer0.muse.tools.WorkspaceTool
+import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
+import io.zer0.muse.ui.common.settings.ConfirmDeleteDialog
 import io.zer0.muse.ui.theme.MuseAlpha
 import io.zer0.muse.ui.theme.MuseBorderWidth
 import io.zer0.muse.ui.theme.MuseButtonSize
@@ -339,45 +340,32 @@ fun AgentLiveMissionCard(
 
     confirmingAction?.let { action ->
         val continuing = action == AgentBotUiState.TaskAction.CONTINUE
-        AlertDialog(
+        MuseDialog(
             onDismissRequest = { confirmingAction = null },
-            title = {
+            title = stringResource(
+                if (continuing) R.string.agent_bot_prompt_approved_retry
+                else R.string.agent_screen_retry_task_confirm,
+            ),
+            content = {
                 Text(
-                    stringResource(
-                        if (continuing) R.string.agent_bot_prompt_approved_retry
-                        else R.string.agent_screen_retry_task_confirm,
-                    ),
-                )
-            },
-            text = {
-                Text(
-                    stringResource(
+                    text = stringResource(
                         if (continuing) R.string.agent_bot_continue_confirm
                         else R.string.agent_screen_retry_task_confirm_body,
                     ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             },
-            confirmButton = {
-                MuseCapsuleButton(
-                    text = stringResource(
-                        if (continuing) R.string.agent_bot_continue_confirm
-                        else R.string.agent_screen_retry_task,
-                    ),
-                    onClick = {
-                        confirmingAction = null
-                        if (continuing) onContinue(row.taskId) else onRetry(row.taskId)
-                    },
-                    fillWidth = false,
-                )
+            confirmText = stringResource(
+                if (continuing) R.string.agent_bot_continue_confirm
+                else R.string.agent_screen_retry_task,
+            ),
+            onConfirm = {
+                confirmingAction = null
+                if (continuing) onContinue(row.taskId) else onRetry(row.taskId)
             },
-            dismissButton = {
-                MuseCapsuleButton(
-                    text = stringResource(R.string.common_cancel),
-                    onClick = { confirmingAction = null },
-                    variant = IosCapsuleButtonVariant.Text,
-                    fillWidth = false,
-                )
-            },
+            dismissText = stringResource(R.string.common_cancel),
+            onDismiss = { confirmingAction = null },
         )
     }
 }
@@ -674,6 +662,18 @@ fun AgentArtifactDeliveryCard(
     onDiscard: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var confirmDiscard by remember(candidate.stagedId) { mutableStateOf(false) }
+    if (confirmDiscard) {
+        ConfirmDeleteDialog(
+            title = stringResource(R.string.agent_bot_discard),
+            itemName = candidate.targetRef,
+            onConfirm = {
+                confirmDiscard = false
+                onDiscard(candidate.stagedId)
+            },
+            onDismiss = { confirmDiscard = false },
+        )
+    }
     Surface(
         shape = MuseShapes.semiLarge,
         color = MaterialTheme.colorScheme.surface,
@@ -722,7 +722,7 @@ fun AgentArtifactDeliveryCard(
             MuseTactileButton(
                 icon = MuseIcons.trash,
                 contentDescription = stringResource(R.string.agent_bot_discard),
-                onClick = { onDiscard(candidate.stagedId) },
+                onClick = { confirmDiscard = true },
                 compact = true,
             )
         }

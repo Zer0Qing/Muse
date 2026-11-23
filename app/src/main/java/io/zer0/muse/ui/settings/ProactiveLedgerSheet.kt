@@ -78,11 +78,12 @@ fun ProactiveLedgerSheet(
                 )
                 // 试过「黏人」想回默认时不该自己一格一格往回点，而且今天已经花掉的
                 // 额度也得跟着回满 —— 这是用户要的「重置」。
-                Text(
+                io.zer0.muse.ui.common.form.MuseCapsuleButton(
                     text = stringResource(R.string.settings_proactive_v2_reset),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.clickable(onClick = onResetIntensity).padding(4.dp),
+                    onClick = onResetIntensity,
+                    variant = io.zer0.muse.ui.common.form.IosCapsuleButtonVariant.Text,
+                    size = io.zer0.muse.ui.theme.MuseButtonSize.Compact,
+                    fillWidth = false,
                 )
             }
             Spacer(Modifier.size(6.dp))

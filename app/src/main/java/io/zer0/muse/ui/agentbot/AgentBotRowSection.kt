@@ -179,45 +179,32 @@ fun AgentBotTaskRow(
 
     confirming?.let { action ->
         val continuing = action == AgentBotUiState.TaskAction.CONTINUE
-        AlertDialog(
+        io.zer0.muse.ui.common.feedback.MuseDialog(
             onDismissRequest = { confirming = null },
-            title = {
+            title = stringResource(
+                if (continuing) R.string.agent_bot_prompt_approved_retry
+                else R.string.agent_screen_retry_task_confirm,
+            ),
+            content = {
                 Text(
-                    stringResource(
-                        if (continuing) R.string.agent_bot_prompt_approved_retry
-                        else R.string.agent_screen_retry_task_confirm,
-                    ),
-                )
-            },
-            text = {
-                Text(
-                    stringResource(
+                    text = stringResource(
                         if (continuing) R.string.agent_bot_continue_confirm
                         else R.string.agent_screen_retry_task_confirm_body,
                     ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             },
-            confirmButton = {
-                MuseCapsuleButton(
-                    text = stringResource(
-                        if (continuing) R.string.agent_bot_continue_confirm
-                        else R.string.agent_screen_retry_task,
-                    ),
-                    onClick = {
-                        confirming = null
-                        if (continuing) onContinue(row.taskId) else onRetry(row.taskId)
-                    },
-                    fillWidth = false,
-                )
+            confirmText = stringResource(
+                if (continuing) R.string.agent_bot_continue_confirm
+                else R.string.agent_screen_retry_task,
+            ),
+            onConfirm = {
+                confirming = null
+                if (continuing) onContinue(row.taskId) else onRetry(row.taskId)
             },
-            dismissButton = {
-                MuseCapsuleButton(
-                    text = stringResource(R.string.common_cancel),
-                    onClick = { confirming = null },
-                    variant = IosCapsuleButtonVariant.Text,
-                    fillWidth = false,
-                )
-            },
+            dismissText = stringResource(R.string.common_cancel),
+            onDismiss = { confirming = null },
         )
     }
 }

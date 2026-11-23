@@ -110,16 +110,11 @@ fun MuseEmptyState(
             }
             // 操作按钮（如果有）
             if (actionText != null && onAction != null) {
-                Button(
+                io.zer0.muse.ui.common.form.MuseCapsuleButton(
+                    text = actionText,
                     onClick = onAction,
-                    shape = MuseShapes.pill,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                    ),
-                ) {
-                    Text(actionText)
-                }
+                    fillWidth = false,
+                )
             }
         }
     }

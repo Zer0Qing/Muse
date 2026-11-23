@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -32,17 +33,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseCapsuleTab
 import io.zer0.muse.ui.common.form.MuseChip
 import io.zer0.muse.ui.common.icons.MuseIcons
@@ -51,8 +56,10 @@ import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import io.zer0.muse.ui.common.state.MuseLoadingState
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.common.surface.MusePageScaffold
+import io.zer0.muse.ui.theme.MuseButtonSize
 import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.MuseElevation
+import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.bodyMediumStrong
@@ -114,12 +121,11 @@ fun SearchScreen(
     // v1.0.74 fix: 等一帧再请求,避免焦点系统未就绪时崩溃(华为 Android 10 实测)
     io.zer0.muse.ui.common.focus.SafeAutoFocusEffect(focusRequester)
 
-    // 输入变化时(去抖 300ms)更新查询并触发搜索
-    // v2.x: 根据 searchTab 切换走 searchSessions() 或 searchMessageContent()
+    // 输入变化时(去抖 300ms)触发搜索
+    // v2.x: 根据 searchTab 切换走 search() 或 searchMessageContent()
     LaunchedEffect(query, searchTab) {
         if (query.isNotBlank()) {
             delay(300)
-            viewModel.updateSearchQuery(query)
             if (searchTab == 1) {
                 viewModel.searchMessageContent()
             } else {
@@ -133,7 +139,7 @@ fun SearchScreen(
     MusePageScaffold(
         topBarHandlesInsets = false,
         topBar = {
-            // 凹槽式搜索栏:Surface 凹槽 + 搜索图标 + BasicTextField + 取消文字
+            // 凹槽式搜索栏:Surface 凹槽 + 搜索图标 + BasicTextField + 一键清除 + 取消按钮
             Surface(
                 color = MaterialTheme.colorScheme.background,
                 modifier = Modifier
@@ -169,6 +175,8 @@ fun SearchScreen(
                                     .weight(1f)
                                     .focusRequester(focusRequester),
                                 singleLine = true,
+                                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                                 textStyle = MaterialTheme.typography.bodyMedium.copy(
                                     color = MaterialTheme.colorScheme.onSurface,
                                     fontWeight = FontWeight.Normal,
@@ -186,13 +194,29 @@ fun SearchScreen(
                                     }
                                 },
                             )
+                            if (query.isNotEmpty()) {
+                                Box(
+                                    modifier = Modifier
+                                        .clickable { viewModel.clearSearch() }
+                                        .padding(MusePaddings.tightGap),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Icon(
+                                        imageVector = MuseIcons.x,
+                                        contentDescription = stringResource(R.string.common_clear),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(MuseIconSizes.iconMedium),
+                                    )
+                                }
+                            }
                         }
                     }
-                    Text(
+                    MuseCapsuleButton(
                         text = stringResource(R.string.common_cancel),
-                        style = MaterialTheme.typography.bodyMediumStrong,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.clickable { onBack() },
+                        onClick = onBack,
+                        variant = IosCapsuleButtonVariant.Text,
+                        size = MuseButtonSize.Compact,
+                        fillWidth = false,
                     )
                 }
             }

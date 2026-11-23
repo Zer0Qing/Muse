@@ -923,14 +923,22 @@ private fun MemoryDreamCard(
                 if (running) {
                     MuseSpinner(size = MuseIconSizes.iconSmall)
                 } else {
-                    TextButton(onClick = onStart) {
-                        Text(stringResource(R.string.memory_dream_start))
-                    }
+                    MuseCapsuleButton(
+                        text = stringResource(R.string.memory_dream_start),
+                        onClick = onStart,
+                        variant = IosCapsuleButtonVariant.Secondary,
+                        size = io.zer0.muse.ui.theme.MuseButtonSize.Compact,
+                        fillWidth = false,
+                    )
                 }
                 if (!lastRevisionId.isNullOrBlank() && !running) {
-                    TextButton(onClick = { onRestore(lastRevisionId) }) {
-                        Text(stringResource(R.string.memory_dream_rollback))
-                    }
+                    MuseCapsuleButton(
+                        text = stringResource(R.string.memory_dream_rollback),
+                        onClick = { onRestore(lastRevisionId) },
+                        variant = IosCapsuleButtonVariant.Text,
+                        size = io.zer0.muse.ui.theme.MuseButtonSize.Compact,
+                        fillWidth = false,
+                    )
                 }
             }
         }

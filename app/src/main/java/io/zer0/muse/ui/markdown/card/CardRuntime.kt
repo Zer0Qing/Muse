@@ -10,7 +10,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -90,7 +90,7 @@ internal fun CardRuntime(
     // 36: tap-to-focus。未聚焦的 Auto 卡保持原样（外层列表滚），仅「聚焦且溢出」才卡内滚，
     // 故不会回退 39②（卡内滚抢手势）——聚焦是用户点出来的，不是默认状态。
     val focusController = LocalCardFocusController.current
-    val focusedId by focusController.state.collectAsState()
+    val focusedId by focusController.state.collectAsStateWithLifecycle()
     val cardId = host.cardId
     val focused = cardId != null && focusedId == cardId
     val capPx = with(LocalDensity.current) { MAX_INLINE_CARD_DP.dp.roundToPx() }

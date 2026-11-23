@@ -342,64 +342,49 @@ internal fun LocalModelDownloadCard(modifier: Modifier = Modifier) {
     }
 
     if (showMeteredConfirm) {
-        AlertDialog(
+        io.zer0.muse.ui.common.feedback.MuseDialog(
             onDismissRequest = { showMeteredConfirm = false },
-            title = { Text(stringResource(R.string.asr_local_download_title)) },
-            text = {
+            title = stringResource(R.string.asr_local_download_title),
+            content = {
                 Text(
-                    stringResource(
+                    text = stringResource(
                         R.string.asr_local_download_metered_confirm,
                         Formatter.formatShortFileSize(context, LocalModelDownloader.TOTAL_BYTES),
                     ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             },
-            confirmButton = {
-                MuseCapsuleButton(
-                    text = stringResource(R.string.asr_local_download_action),
-                    onClick = {
-                        showMeteredConfirm = false
-                        scope.launch { LocalModelDownloader.start(context) }
-                    },
-                    variant = IosCapsuleButtonVariant.Primary,
-                    fillWidth = false,
-                )
+            confirmText = stringResource(R.string.asr_local_download_action),
+            onConfirm = {
+                showMeteredConfirm = false
+                scope.launch { LocalModelDownloader.start(context) }
             },
-            dismissButton = {
-                MuseCapsuleButton(
-                    text = stringResource(R.string.common_cancel),
-                    onClick = { showMeteredConfirm = false },
-                    variant = IosCapsuleButtonVariant.Text,
-                    fillWidth = false,
-                )
-            },
+            dismissText = stringResource(R.string.common_cancel),
+            onDismiss = { showMeteredConfirm = false },
         )
     }
 
     if (showDeleteConfirm) {
-        AlertDialog(
+        io.zer0.muse.ui.common.feedback.MuseDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            title = { Text(stringResource(R.string.asr_local_download_title)) },
-            text = { Text(stringResource(R.string.asr_local_download_delete_confirm)) },
-            confirmButton = {
-                MuseCapsuleButton(
-                    text = stringResource(R.string.asr_local_download_delete),
-                    onClick = {
-                        showDeleteConfirm = false
-                        LocalModelStore.delete(context)
-                        refreshFs()
-                    },
-                    variant = IosCapsuleButtonVariant.Primary,
-                    fillWidth = false,
+            title = stringResource(R.string.asr_local_download_title),
+            content = {
+                Text(
+                    text = stringResource(R.string.asr_local_download_delete_confirm),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             },
-            dismissButton = {
-                MuseCapsuleButton(
-                    text = stringResource(R.string.common_cancel),
-                    onClick = { showDeleteConfirm = false },
-                    variant = IosCapsuleButtonVariant.Text,
-                    fillWidth = false,
-                )
+            confirmText = stringResource(R.string.asr_local_download_delete),
+            destructive = true,
+            onConfirm = {
+                showDeleteConfirm = false
+                LocalModelStore.delete(context)
+                refreshFs()
             },
+            dismissText = stringResource(R.string.common_cancel),
+            onDismiss = { showDeleteConfirm = false },
         )
     }
 }

@@ -18,13 +18,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -56,11 +53,15 @@ import io.zer0.muse.data.agentbot.RoutineTriggerType
 import io.zer0.muse.data.artifact.ArtifactEntity
 import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseAnchoredMenu
 import io.zer0.muse.ui.common.form.MuseBottomSheet
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
+import io.zer0.muse.ui.common.form.MuseSwitch
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
+import io.zer0.muse.ui.common.settings.ConfirmDeleteDialog
+import io.zer0.muse.ui.common.surface.MuseListItem
 import io.zer0.muse.ui.theme.MuseAlpha
 import io.zer0.muse.ui.theme.MuseBorderWidth
 import io.zer0.muse.ui.theme.MuseButtonSize
@@ -126,6 +127,8 @@ fun AgentWorkbenchSheet(
     onRevokeAllowance: (String) -> Unit,
 ) {
     var selectedTab by rememberSaveable { mutableStateOf(initialTab) }
+    var deleteRoutineTarget by remember { mutableStateOf<BotRoutineEntity?>(null) }
+    var discardCandidateTarget by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(selectedTab) {
         if (selectedTab == AgentWorkbenchTab.SQUAD) {
@@ -136,118 +139,143 @@ fun AgentWorkbenchSheet(
     MuseBottomSheet(
         onDismissRequest = onDismiss,
         maxHeightFraction = 0.86f,
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
-        ) {
-            // 单行四域胶囊 + 关闭按钮（砍掉多余大标题行）
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(MusePaddings.labelVerticalGap),
-            ) {
-                WorkbenchTabChip(
-                    label = stringResource(R.string.agent_hub_tab_live),
-                    selected = selectedTab == AgentWorkbenchTab.LIVE,
-                    onClick = { selectedTab = AgentWorkbenchTab.LIVE },
-                    modifier = Modifier.weight(1f),
-                )
-                WorkbenchTabChip(
-                    label = stringResource(R.string.agent_hub_tab_routines),
-                    selected = selectedTab == AgentWorkbenchTab.ROUTINES,
-                    onClick = { selectedTab = AgentWorkbenchTab.ROUTINES },
-                    modifier = Modifier.weight(1f),
-                )
-                WorkbenchTabChip(
-                    label = stringResource(R.string.agent_hub_tab_squad),
-                    selected = selectedTab == AgentWorkbenchTab.SQUAD,
-                    onClick = { selectedTab = AgentWorkbenchTab.SQUAD },
-                    modifier = Modifier.weight(1f),
-                )
-                WorkbenchTabChip(
-                    label = stringResource(R.string.agent_hub_tab_artifacts),
-                    selected = selectedTab == AgentWorkbenchTab.ARTIFACTS,
-                    onClick = { selectedTab = AgentWorkbenchTab.ARTIFACTS },
-                    modifier = Modifier.weight(1f),
-                )
-                MuseTactileButton(
-                    icon = MuseIcons.x,
-                    contentDescription = stringResource(R.string.common_close),
-                    onClick = onDismiss,
-                    compact = true,
-                )
-            }
-
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-
+        headerContent = {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .padding(bottom = MusePaddings.largeGap),
-                verticalArrangement = Arrangement.spacedBy(MusePaddings.sectionGap),
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
             ) {
-                when (selectedTab) {
-                    AgentWorkbenchTab.LIVE -> WorkbenchLiveTab(
-                        projection = projection,
-                        sandboxLogs = sandboxLogs,
-                        activeVirtualDisplay = activeVirtualDisplay,
-                        modelRoutes = modelRoutes,
-                        providers = providers,
-                        onOpenTask = onOpenTask,
-                        onSteerTask = onSteerTask,
-                        onSaveTaskAsRoutine = onSaveTaskAsRoutine,
-                        onContinueTask = onContinueTask,
-                        onRetryTask = onRetryTask,
-                        onCancelTask = onCancelTask,
-                        onApprove = onApprove,
-                        onDeny = onDeny,
-                        onClearSandboxLogs = onClearSandboxLogs,
-                        onSetModelRoute = onSetModelRoute,
-                        onClearModelRoute = onClearModelRoute,
+                // 单行四域胶囊 + 关闭按钮固定在面板顶部，长内容下滑时不会滚走
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(MusePaddings.labelVerticalGap),
+                ) {
+                    WorkbenchTabChip(
+                        label = stringResource(R.string.agent_hub_tab_live),
+                        selected = selectedTab == AgentWorkbenchTab.LIVE,
+                        onClick = { selectedTab = AgentWorkbenchTab.LIVE },
+                        modifier = Modifier.weight(1f),
                     )
-                    AgentWorkbenchTab.ROUTINES -> WorkbenchRoutinesTab(
-                        routines = routines,
-                        teachState = teachState,
-                        onCreateRoutine = onCreateRoutine,
-                        onRunRoutine = onRunRoutine,
-                        onToggleRoutine = onToggleRoutine,
-                        onDeleteRoutine = onDeleteRoutine,
-                        onStartTeach = onStartTeach,
-                        onUpdateTeachTitle = onUpdateTeachTitle,
-                        onAddTeachStep = onAddTeachStep,
-                        onFinishTeach = onFinishTeach,
-                        onCancelTeach = onCancelTeach,
+                    WorkbenchTabChip(
+                        label = stringResource(R.string.agent_hub_tab_routines),
+                        selected = selectedTab == AgentWorkbenchTab.ROUTINES,
+                        onClick = { selectedTab = AgentWorkbenchTab.ROUTINES },
+                        modifier = Modifier.weight(1f),
                     )
-                    AgentWorkbenchTab.SQUAD -> WorkbenchSquadTab(
-                        currentBotId = currentBotId,
-                        assistants = assistants,
-                        channels = channels,
-                        squadIdentities = squadIdentities,
-                        onSwitchAssistant = { id ->
-                            onSwitchAssistant(id)
-                            onDismiss()
-                        },
-                        onToggleChannelForBot = onToggleChannelForBot,
-                        onOpenGroupChats = onOpenGroupChats?.let { open ->
-                            {
-                                onDismiss()
-                                open()
-                            }
-                        },
+                    WorkbenchTabChip(
+                        label = stringResource(R.string.agent_hub_tab_squad),
+                        selected = selectedTab == AgentWorkbenchTab.SQUAD,
+                        onClick = { selectedTab = AgentWorkbenchTab.SQUAD },
+                        modifier = Modifier.weight(1f),
                     )
-                    AgentWorkbenchTab.ARTIFACTS -> WorkbenchArtifactsTab(
-                        projection = projection,
-                        allowedTools = allowedTools,
-                        artifacts = artifacts,
-                        onOpenCandidate = onOpenCandidate,
-                        onDiscardCandidate = onDiscardCandidate,
-                        onRevokeAllowance = onRevokeAllowance,
+                    WorkbenchTabChip(
+                        label = stringResource(R.string.agent_hub_tab_artifacts),
+                        selected = selectedTab == AgentWorkbenchTab.ARTIFACTS,
+                        onClick = { selectedTab = AgentWorkbenchTab.ARTIFACTS },
+                        modifier = Modifier.weight(1f),
+                    )
+                    MuseTactileButton(
+                        icon = MuseIcons.x,
+                        contentDescription = stringResource(R.string.common_close),
+                        onClick = onDismiss,
+                        compact = true,
                     )
                 }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            }
+        },
+    ) {
+        // MuseBottomSheet 外层已带 verticalScroll，此处不得再嵌套无界 verticalScroll（会触发 Compose 无限高度崩溃）
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = MusePaddings.largeGap),
+            verticalArrangement = Arrangement.spacedBy(MusePaddings.sectionGap),
+        ) {
+            when (selectedTab) {
+                AgentWorkbenchTab.LIVE -> WorkbenchLiveTab(
+                    projection = projection,
+                    sandboxLogs = sandboxLogs,
+                    activeVirtualDisplay = activeVirtualDisplay,
+                    modelRoutes = modelRoutes,
+                    providers = providers,
+                    onOpenTask = onOpenTask,
+                    onSteerTask = onSteerTask,
+                    onSaveTaskAsRoutine = onSaveTaskAsRoutine,
+                    onContinueTask = onContinueTask,
+                    onRetryTask = onRetryTask,
+                    onCancelTask = onCancelTask,
+                    onApprove = onApprove,
+                    onDeny = onDeny,
+                    onClearSandboxLogs = onClearSandboxLogs,
+                    onSetModelRoute = onSetModelRoute,
+                    onClearModelRoute = onClearModelRoute,
+                )
+                AgentWorkbenchTab.ROUTINES -> WorkbenchRoutinesTab(
+                    routines = routines,
+                    teachState = teachState,
+                    onCreateRoutine = onCreateRoutine,
+                    onRunRoutine = onRunRoutine,
+                    onToggleRoutine = onToggleRoutine,
+                    onDeleteRoutine = { deleteRoutineTarget = it },
+                    onStartTeach = onStartTeach,
+                    onUpdateTeachTitle = onUpdateTeachTitle,
+                    onAddTeachStep = onAddTeachStep,
+                    onFinishTeach = onFinishTeach,
+                    onCancelTeach = onCancelTeach,
+                )
+                AgentWorkbenchTab.SQUAD -> WorkbenchSquadTab(
+                    currentBotId = currentBotId,
+                    assistants = assistants,
+                    channels = channels,
+                    squadIdentities = squadIdentities,
+                    onSwitchAssistant = { id ->
+                        onSwitchAssistant(id)
+                        onDismiss()
+                    },
+                    onToggleChannelForBot = onToggleChannelForBot,
+                    onOpenGroupChats = onOpenGroupChats?.let { open ->
+                        {
+                            onDismiss()
+                            open()
+                        }
+                    },
+                )
+                AgentWorkbenchTab.ARTIFACTS -> WorkbenchArtifactsTab(
+                    projection = projection,
+                    allowedTools = allowedTools,
+                    artifacts = artifacts,
+                    onOpenCandidate = onOpenCandidate,
+                    onDiscardCandidate = { discardCandidateTarget = it },
+                    onRevokeAllowance = onRevokeAllowance,
+                )
             }
         }
+    }
+
+    deleteRoutineTarget?.let { target ->
+        ConfirmDeleteDialog(
+            title = stringResource(R.string.common_delete),
+            itemName = target.title,
+            onConfirm = {
+                deleteRoutineTarget = null
+                onDeleteRoutine(target)
+            },
+            onDismiss = { deleteRoutineTarget = null },
+        )
+    }
+
+    discardCandidateTarget?.let { stagedId ->
+        ConfirmDeleteDialog(
+            title = stringResource(R.string.agent_bot_discard),
+            itemName = stagedId,
+            onConfirm = {
+                discardCandidateTarget = null
+                onDiscardCandidate(stagedId)
+            },
+            onDismiss = { discardCandidateTarget = null },
+        )
     }
 }
 
@@ -552,26 +580,38 @@ private fun ModelRouteRow(
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(MuseIconSizes.iconSmallTiny),
             )
-            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                DropdownMenuItem(
-                    text = { Text(followDefault) },
+            MuseAnchoredMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                alignEnd = true,
+            ) {
+                MuseListItem(
                     onClick = {
                         expanded = false
                         onReset()
                     },
+                    headlineContent = {
+                        Text(
+                            text = followDefault,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    },
                 )
                 allModels.take(30).forEach { (providerId, providerName, modelId) ->
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                text = "$modelId · $providerName",
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        },
+                    MuseListItem(
                         onClick = {
                             expanded = false
                             onSelect(providerId, modelId)
+                        },
+                        headlineContent = {
+                            Text(
+                                text = "$modelId · $providerName",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
                         },
                     )
                 }
@@ -830,7 +870,7 @@ private fun WorkbenchRoutinesTab(
                                 color = MaterialTheme.colorScheme.primary,
                             )
                         }
-                        Switch(
+                        MuseSwitch(
                             checked = routine.enabled,
                             onCheckedChange = { onToggleRoutine(routine, it) },
                         )

@@ -464,7 +464,7 @@ private fun TimeRangeFilterRow(currentRange: StatsTimeRange, onRangeChange: (Sta
         contentPadding = PaddingValues(vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        items(ranges.size) { index ->
+        items(ranges.size, key = { ranges[it].first.name }) { index ->
             val (range, labelRes) = ranges[index]
             val label = stringResource(labelRes)
             MuseChip(
@@ -802,7 +802,7 @@ private fun TrendCard(messagesPerDay: Map<LocalDate, Int>, modifier: Modifier = 
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                items(windowOptions.size) { idx ->
+                items(windowOptions.size, key = { windowOptions[it].first }) { idx ->
                     val (days, labelRes) = windowOptions[idx]
                     MuseChip(
                         selected = windowDays == days,

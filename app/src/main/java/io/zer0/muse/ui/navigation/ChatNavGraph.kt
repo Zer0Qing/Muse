@@ -43,34 +43,35 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
     composable<HomeRoute> {
         CompositionLocalProvider(LocalMuseAnimatedVisibilityScope provides this) {
             HomeScreen(
-                onOpenSettings = { navController.navigate(SettingsRoute) },
-                onOpenAssistants = { navController.navigate(AssistantsRoute) },
-                onOpenScheduledTasks = { navController.navigate(ScheduledTasksRoute) },
-                onOpenQuickNotes = { navController.navigate(QuickNotesRoute) },
-                onOpenQuickTranslate = { navController.navigate(TranslateRoute) },
-                onOpenKnowledgeBase = { navController.navigate(KnowledgeRoute) },
-                onOpenMiniPhone = { navController.navigate(MiniPhoneRoute) },
+                onOpenSettings = { navController.navigateSingleTop(SettingsRoute) },
+                onOpenAssistants = { navController.navigateSingleTop(AssistantsRoute) },
+                onOpenScheduledTasks = { navController.navigateSingleTop(ScheduledTasksRoute) },
+                onOpenQuickNotes = { navController.navigateSingleTop(QuickNotesRoute) },
+                onOpenQuickTranslate = { navController.navigateSingleTop(TranslateRoute) },
+                onOpenKnowledgeBase = { navController.navigateSingleTop(KnowledgeRoute) },
+                onOpenMiniPhone = { navController.navigateSingleTop(MiniPhoneRoute) },
                 // v0.27: 点击任务项 / 新建任务 → push 到独立聊天详情页(右滑入场,滑动式 push 过渡)
-                onOpenChat = { navController.navigate(ChatDetailRoute) },
+                onOpenChat = { navController.navigateSingleTop(ChatDetailRoute) },
                 // v0.45: 右上角搜索 → 独立全局搜索页
-                onOpenSearch = { navController.navigate(SearchRoute) },
-                onOpenWorkspace = { path -> navController.navigate(WorkspaceRoute(path)) },
+                onOpenSearch = { navController.navigateSingleTop(SearchRoute) },
+                onOpenWorkspace = { path -> navController.navigateSingleTop(WorkspaceRoute(path)) },
                 // v1.30: 群聊卡片点击 → 群聊详情页(右滑入场)
                 onOpenGroupChat = { chatId ->
-                    navController.navigate(GroupChatDetailRoute(chatId))
+                    navController.navigateSingleTop(GroupChatDetailRoute(chatId))
                 },
-                onOpenRecentlyDeleted = { navController.navigate(RecentlyDeletedRoute) },
-                onOpenArchivedChats = { navController.navigate(ArchivedChatsRoute) },
-                onOpenArchivedGroupChats = { navController.navigate(ArchivedGroupChatsRoute) },
-                onOpenFolder = { id -> navController.navigate(FolderDetailRoute(id)) },
+                onOpenRecentlyDeleted = { navController.navigateSingleTop(RecentlyDeletedRoute) },
+                onOpenArchivedChats = { navController.navigateSingleTop(ArchivedChatsRoute) },
+                onOpenArchivedGroupChats = { navController.navigateSingleTop(ArchivedGroupChatsRoute) },
+                onOpenFolder = { id -> navController.navigateSingleTop(FolderDetailRoute(id)) },
                 // HTML/SVG 代码块全屏预览:URL 编码后跳转 HtmlPreviewScreen
                 onHtmlPreview = { html ->
-                    navController.navigate(HtmlPreviewRoute(html))
+                    navController.navigateSingleTop(HtmlPreviewRoute(html))
                 },
-                onOpenSkills = { navController.navigate(SkillsRoute) },
-                onOpenPromptTemplateManager = { navController.navigate(PromptTemplateManagerRoute) },
+                onOpenSkills = { navController.navigateSingleTop(SkillsRoute) },
+                onOpenPromptTemplateManager = { navController.navigateSingleTop(PromptTemplateManagerRoute) },
                 // 首页与 Agent Tab 的「未配置模型」横幅要靠它给出可点的自救出口。
-                onOpenProviderSettings = { navController.navigate(SettingsModelRoute) },
+                onOpenProviderSettings = { navController.navigateSingleTop(SettingsModelRoute) },
+                onOpenRuntimeInstall = { navController.navigateSingleTop(SettingsRuntimeRoute) },
             )
         } // 关闭共享元素作用域注入（目的地级 AnimatedVisibilityScope，见 F2 基建）
     }
@@ -81,7 +82,7 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         SearchScreen(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
             onOpenSession = { sessionId ->
                 // 切换会话后回到首页(任务列表会高亮该会话)
                 sharedViewModel.switchSession(sessionId)
@@ -93,7 +94,7 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
                 // v2.x: 先切会话再定位(避免竞态丢定位),然后进入对话页
                 sharedViewModel.openMessageFromSearch(sessionId, messageId, query)
                 navController.popBackStack(HomeRoute, inclusive = false)
-                navController.navigate(ChatDetailRoute)
+                navController.navigateSingleTop(ChatDetailRoute)
             },
         )
     }
@@ -103,7 +104,7 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         io.zer0.muse.ui.settings.KeepAliveSettingsPage(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
         )
     }
 
@@ -121,12 +122,12 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
             popExitTransition = { MuseTransitions.horizontalPushPopExit() },
         ) {
             ChatScreen(
-                onOpenProviderSettings = { navController.navigate(io.zer0.muse.ui.navigation.SettingsModelRoute) },
-                onBack = { navController.popBackStack() },
+                onOpenProviderSettings = { navController.navigateSingleTop(io.zer0.muse.ui.navigation.SettingsModelRoute) },
+                onBack = { navController.popBackStackSafe() },
                 surface = io.zer0.muse.ui.chat.ChatSurface.MINI_PHONE,
                 viewModel = sharedViewModel,
                 onHtmlPreview = { html ->
-                    navController.navigate(HtmlPreviewRoute(html))
+                    navController.navigateSingleTop(HtmlPreviewRoute(html))
                 },
             )
         }
@@ -139,7 +140,7 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
         val state by sharedViewModel.state.collectAsStateWithLifecycle()
         ArchivedChatsScreen(
             sessions = state.archivedSessions,
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
             onUnarchive = { id -> sharedViewModel.setSessionArchived(id, false) },
             onOpenSession = { id ->
                 sharedViewModel.switchSession(id)
@@ -162,9 +163,9 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
         val groupState by groupChatViewModel.state.collectAsStateWithLifecycle()
         ArchivedGroupChatsScreen(
             chats = groupState.archivedChats,
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
             onUnarchive = { id -> groupChatViewModel.toggleArchive(id, false) },
-            onOpenChat = { id -> navController.navigate(GroupChatDetailRoute(id)) },
+            onOpenChat = { id -> navController.navigateSingleTop(GroupChatDetailRoute(id)) },
             // 与 ArchivedChatsScreen 的 ST-02 一致:撤销 = 重新归档
             onUnarchiveUndo = { id -> groupChatViewModel.toggleArchive(id, true) },
         )
@@ -182,14 +183,14 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
             folderName = folder?.name.orEmpty(),
             sessions = state.sessions.filter { it.folderId == folderId },
             ungroupedSessions = state.sessions.filter { it.folderId == null },
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
             onOpenSession = { id ->
                 sharedViewModel.switchSession(id)
-                navController.navigate(ChatDetailRoute)
+                navController.navigateSingleTop(ChatDetailRoute)
             },
             onCreateInFolder = {
                 sharedViewModel.createNewSession(folderId = folderId)
-                navController.navigate(ChatDetailRoute)
+                navController.navigateSingleTop(ChatDetailRoute)
             },
             onAddSession = { id -> sharedViewModel.moveSessionToFolder(id, folderId) },
             onRemoveSession = { id -> sharedViewModel.moveSessionToFolder(id, null) },
@@ -232,18 +233,18 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
                             onRenameFolder = sharedViewModel::renameFolder,
                             onDeleteFolder = sharedViewModel::deleteFolder,
                             onToggleFolderExpanded = sharedViewModel::toggleFolderExpanded,
-                            onOpenFolder = { id -> navController.navigate(FolderDetailRoute(id)) },
+                            onOpenFolder = { id -> navController.navigateSingleTop(FolderDetailRoute(id)) },
                             assistants = state.assistants,
                             currentAssistant = state.currentAssistant,
                             archivedSessions = state.archivedSessions,
                             onArchive = { id -> sharedViewModel.setSessionArchived(id, true) },
-                            onOpenArchivedChats = { navController.navigate(ArchivedChatsRoute) },
-                            onOpenScheduledTasks = { navController.navigate(ScheduledTasksRoute) },
-                            onOpenQuickNotes = { navController.navigate(QuickNotesRoute) },
-                            onOpenQuickTranslate = { navController.navigate(TranslateRoute) },
-                            onOpenKnowledgeBase = { navController.navigate(KnowledgeRoute) },
-                            onOpenRecentlyDeleted = { navController.navigate(RecentlyDeletedRoute) },
-                            onOpenAssistants = { navController.navigate(AssistantsRoute) },
+                            onOpenArchivedChats = { navController.navigateSingleTop(ArchivedChatsRoute) },
+                            onOpenScheduledTasks = { navController.navigateSingleTop(ScheduledTasksRoute) },
+                            onOpenQuickNotes = { navController.navigateSingleTop(QuickNotesRoute) },
+                            onOpenQuickTranslate = { navController.navigateSingleTop(TranslateRoute) },
+                            onOpenKnowledgeBase = { navController.navigateSingleTop(KnowledgeRoute) },
+                            onOpenRecentlyDeleted = { navController.navigateSingleTop(RecentlyDeletedRoute) },
+                            onOpenAssistants = { navController.navigateSingleTop(AssistantsRoute) },
                             isSessionsLoading = state.isSessionsLoading,
                             modifier = Modifier.fillMaxSize(),
                         )
@@ -251,24 +252,24 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
                     // 右列:聊天页(onBack=null,列表常驻无需返回按钮)
                     Box(modifier = Modifier.weight(0.6f).fillMaxSize()) {
                         ChatScreen(
-                            onOpenProviderSettings = { navController.navigate(io.zer0.muse.ui.navigation.SettingsModelRoute) },
-                            onOpenAssistants = { navController.navigate(AssistantsRoute) },
+                            onOpenProviderSettings = { navController.navigateSingleTop(io.zer0.muse.ui.navigation.SettingsModelRoute) },
+                            onOpenAssistants = { navController.navigateSingleTop(AssistantsRoute) },
                             onBack = null,
                             isAgentMode = state.isAgentMode,
                             viewModel = sharedViewModel,
                             onHtmlPreview = { html ->
-                                navController.navigate(HtmlPreviewRoute(html))
+                                navController.navigateSingleTop(HtmlPreviewRoute(html))
                             },
-                            onOpenSkills = { navController.navigate(SkillsRoute) },
-                            onOpenWorkspace = { path -> navController.navigate(WorkspaceRoute(path)) },
-                            onOpenPromptTemplateManager = { navController.navigate(PromptTemplateManagerRoute) },
+                            onOpenSkills = { navController.navigateSingleTop(SkillsRoute) },
+                            onOpenWorkspace = { path -> navController.navigateSingleTop(WorkspaceRoute(path)) },
+                            onOpenPromptTemplateManager = { navController.navigateSingleTop(PromptTemplateManagerRoute) },
                         )
                     }
                 }
             } else {
                 ChatScreen(
-                    onOpenProviderSettings = { navController.navigate(io.zer0.muse.ui.navigation.SettingsModelRoute) },
-                    onOpenAssistants = { navController.navigate(AssistantsRoute) },
+                    onOpenProviderSettings = { navController.navigateSingleTop(io.zer0.muse.ui.navigation.SettingsModelRoute) },
+                    onOpenAssistants = { navController.navigateSingleTop(AssistantsRoute) },
                     onBack = {
                         // 退出对话时触发 AI 摘要命名(仅当标题仍为默认值且有至少一轮完整对话)
                         val currentSessionId = sharedViewModel.state.value.currentSessionId
@@ -278,16 +279,16 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
                         if (sharedViewModel.state.value.isAgentMode) {
                             sharedViewModel.setAgentMode(false)
                         }
-                        navController.popBackStack()
+                        navController.popBackStackSafe()
                     },
                     isAgentMode = state.isAgentMode,
                     // HTML/SVG 代码块全屏预览:URL 编码后跳转 HtmlPreviewScreen
                     onHtmlPreview = { html ->
-                        navController.navigate(HtmlPreviewRoute(html))
+                        navController.navigateSingleTop(HtmlPreviewRoute(html))
                     },
-                    onOpenSkills = { navController.navigate(SkillsRoute) },
-                    onOpenWorkspace = { path -> navController.navigate(WorkspaceRoute(path)) },
-                    onOpenPromptTemplateManager = { navController.navigate(PromptTemplateManagerRoute) },
+                    onOpenSkills = { navController.navigateSingleTop(SkillsRoute) },
+                    onOpenWorkspace = { path -> navController.navigateSingleTop(WorkspaceRoute(path)) },
+                    onOpenPromptTemplateManager = { navController.navigateSingleTop(PromptTemplateManagerRoute) },
                 )
             }
         } // 关闭共享元素作用域注入
@@ -299,7 +300,7 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         PromptTemplateManagerPage(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
         )
     }
     composable<GroupChatDetailRoute>(
@@ -309,14 +310,14 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
         val chatId = backStackEntry.arguments?.getString("chatId").orEmpty()
         io.zer0.muse.ui.groupchat.GroupChatDetailScreen(
             chatId = chatId,
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
             // HTML/SVG 代码块全屏预览:URL 编码后跳转 HtmlPreviewScreen
             onHtmlPreview = { html ->
-                navController.navigate(HtmlPreviewRoute(html))
+                navController.navigateSingleTop(HtmlPreviewRoute(html))
             },
-            onOpenPromptTemplateManager = { navController.navigate(PromptTemplateManagerRoute) },
+            onOpenPromptTemplateManager = { navController.navigateSingleTop(PromptTemplateManagerRoute) },
             // v1.0.72: 编辑助手供应商 → 模型与服务设置页
-            onEditAssistantProvider = { navController.navigate(io.zer0.muse.ui.navigation.SettingsModelRoute) },
+            onEditAssistantProvider = { navController.navigateSingleTop(io.zer0.muse.ui.navigation.SettingsModelRoute) },
         )
     }
     // 定时任务(首页大方块入口)
@@ -325,7 +326,7 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         io.zer0.muse.ui.schedule.ScheduledTasksScreen(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
         )
     }
     // 通知点击:打开指定定时任务并自动展开最近执行记录。
@@ -335,7 +336,7 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
     ) { backStackEntry ->
         val route = backStackEntry.toRoute<ScheduledTaskRoute>()
         io.zer0.muse.ui.schedule.ScheduledTasksScreen(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
             initialTaskId = route.taskId,
         )
     }
@@ -347,11 +348,11 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
     ) {
         val quickNotesViewModel: QuickNotesViewModel = koinViewModel()
         QuickNotesScreen(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
             viewModel = quickNotesViewModel,
             onSendToNewChat = { text ->
                 sharedViewModel.sendToNewChat(text)
-                navController.navigate(ChatDetailRoute)
+                navController.navigateSingleTop(ChatDetailRoute)
             },
         )
     }
@@ -363,12 +364,12 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
         val route = backStackEntry.toRoute<QuickNoteRoute>()
         val quickNotesViewModel: QuickNotesViewModel = koinViewModel()
         QuickNotesScreen(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
             viewModel = quickNotesViewModel,
             initialNoteId = route.noteId,
             onSendToNewChat = { text ->
                 sharedViewModel.sendToNewChat(text)
-                navController.navigate(ChatDetailRoute)
+                navController.navigateSingleTop(ChatDetailRoute)
             },
         )
     }
@@ -378,7 +379,7 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         io.zer0.muse.ui.agentdm.AgentDmScreen(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
         )
     }
     // v1.127: 表情包管理页
@@ -388,7 +389,7 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         io.zer0.muse.ui.translate.TranslateScreen(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
             onSendToNewChat = { text ->
                 // 创建新会话并发送文本,然后跳转到聊天详情页
                 sharedViewModel.sendToNewChat(text)
@@ -404,7 +405,7 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         RecentlyDeletedScreen(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
         )
     }
     // HTML 全屏预览页 — 从消息气泡内 HTML/SVG 代码块入口进入
@@ -416,7 +417,7 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
         val html = backStackEntry.toRoute<HtmlPreviewRoute>().html
         HtmlPreviewScreen(
             html = html,
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
         )
     }
 }

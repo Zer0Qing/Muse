@@ -72,18 +72,18 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         SettingsScreen(
-            onBack = { navController.popBackStack() },
-            onOpenAccount = { navController.navigate(AccountRoute) },
+            onBack = { navController.popBackStackSafe() },
+            onOpenAccount = { navController.navigateSingleTop(AccountRoute) },
             onOpenGroup = { kind, focus ->
                 // 只有一个条目的分类不再套一层二级列表：首页那一下直接进它唯一的页面。
                 val directRoute = io.zer0.muse.ui.settings.SettingsCatalog.group(kind).directEntryRoute()
                 if (focus == null && directRoute != null) {
-                    navController.navigate(directRoute)
+                    navController.navigateSingleTop(directRoute)
                 } else {
-                    navController.navigate(SettingsGroupRoute(kind.name, focus?.name.orEmpty()))
+                    navController.navigateSingleTop(SettingsGroupRoute(kind.name, focus?.name.orEmpty()))
                 }
             },
-            onNavigate = { route -> navController.navigate(route) },
+            onNavigate = { route -> navController.navigateSingleTop(route) },
         )
     }
     // 设置一级分类页：首页 14 个分类点进来后的条目列表
@@ -96,13 +96,13 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         val kind = io.zer0.muse.ui.settings.SettingsGroupKind.entries
             .firstOrNull { it.name == route.kind }
         if (kind == null) {
-            navController.popBackStack()
+            navController.popBackStackSafe()
         } else {
             SettingsGroupPage(
                 kind = kind,
                 focusEntry = route.focusEntry.ifBlank { null },
-                onBack = { navController.popBackStack() },
-                onNavigate = { target -> navController.navigate(target) },
+                onBack = { navController.popBackStackSafe() },
+                onNavigate = { target -> navController.navigateSingleTop(target) },
             )
         }
     }
@@ -112,8 +112,8 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         AccountScreen(
-            onBack = { navController.popBackStack() },
-            onOpenUserProfile = { navController.navigate(UserProfileEditRoute) },
+            onBack = { navController.popBackStackSafe() },
+            onOpenUserProfile = { navController.navigateSingleTop(UserProfileEditRoute) },
         )
     }
     // v0.26: 设置二级页 — 模型与服务(v1.133: 仅供应商列表,其他拆为独立二级页)
@@ -122,9 +122,9 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         SettingsModelPage(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
             // v1.0.74 fix: 字符串路由已废弃且未注册,必崩;改用类型安全路由
-            onOpenAsr = { navController.navigate(SettingsAsrRoute) },
+            onOpenAsr = { navController.navigateSingleTop(SettingsAsrRoute) },
         )
     }
     // v1.133: 设置二级页 — 联网搜索(从 SettingsModelPage 拆出)
@@ -134,9 +134,9 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         TaskRoutingSettingsPage(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
             // v2.x: 辅助模型区块的视觉入口 → 视觉辅助独立页
-            onOpenVision = { navController.navigate(SettingsVisionRoute) },
+            onOpenVision = { navController.navigateSingleTop(SettingsVisionRoute) },
         )
     }
     composable<SettingsWebSearchRoute>(
@@ -144,8 +144,8 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         SettingsWebSearchPage(
-            onBack = { navController.popBackStack() },
-            onOpenProviderList = { navController.navigate(SettingsWebSearchProviderListRoute) },
+            onBack = { navController.popBackStackSafe() },
+            onOpenProviderList = { navController.navigateSingleTop(SettingsWebSearchProviderListRoute) },
         )
     }
     composable<SettingsWebSearchProviderListRoute>(
@@ -153,9 +153,9 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         SettingsWebSearchProviderListPage(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
             onOpenProvider = { providerKey ->
-                navController.navigate(SettingsWebSearchProviderRoute(providerKey))
+                navController.navigateSingleTop(SettingsWebSearchProviderRoute(providerKey))
             },
         )
     }
@@ -166,7 +166,7 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         val route = backStackEntry.toRoute<SettingsWebSearchProviderRoute>()
         SettingsWebSearchProviderDetailPage(
             providerKey = route.providerKey,
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
         )
     }
     // v1.133: 设置二级页 — 语音识别 ASR(从 SettingsModelPage 拆出)
@@ -175,11 +175,11 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         SettingsAsrPage(
-            onBack = { navController.popBackStack() },
-            onOpenProviderSettings = { navController.navigate(SettingsModelRoute) },
+            onBack = { navController.popBackStackSafe() },
+            onOpenProviderSettings = { navController.navigateSingleTop(SettingsModelRoute) },
             // 模型下载统一收在「离线资源」页：语音页不再有独立的三级下载页，
             // 避免用户为了下一个模型要记住「在语音设置里再点一层」。
-            onOpenLocalModel = { navController.navigate(SettingsRuntimeRoute) },
+            onOpenLocalModel = { navController.navigateSingleTop(SettingsRuntimeRoute) },
         )
     }
     // v1.133: 设置二级页 — MCP 服务器(从 SettingsModelPage 拆出)
@@ -188,7 +188,7 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         SettingsMcpPage(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
         )
     }
     // v1.133: 设置二级页 — 助手资源(从 SettingsModelPage 拆出:收藏夹/世界书/快捷消息/模式注入/Skills/记忆开关)
@@ -197,14 +197,14 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         SettingsAssistantResourcesPage(
-            onBack = { navController.popBackStack() },
-            onOpenAssistants = { navController.navigate(AssistantsRoute) },
-            onOpenFavorites = { navController.navigate(FavoritesRoute) },
-            onOpenLorebooks = { navController.navigate(LorebooksRoute) },
-            onOpenWorldbook = { navController.navigate(WorldbookRoute) },
-            onOpenQuickMessages = { navController.navigate(QuickMessagesRoute) },
-            onOpenPromptInjections = { navController.navigate(PromptInjectionsRoute) },
-            onOpenSkills = { navController.navigate(SkillsRoute) },
+            onBack = { navController.popBackStackSafe() },
+            onOpenAssistants = { navController.navigateSingleTop(AssistantsRoute) },
+            onOpenFavorites = { navController.navigateSingleTop(FavoritesRoute) },
+            onOpenLorebooks = { navController.navigateSingleTop(LorebooksRoute) },
+            onOpenWorldbook = { navController.navigateSingleTop(WorldbookRoute) },
+            onOpenQuickMessages = { navController.navigateSingleTop(QuickMessagesRoute) },
+            onOpenPromptInjections = { navController.navigateSingleTop(PromptInjectionsRoute) },
+            onOpenSkills = { navController.navigateSingleTop(SkillsRoute) },
         )
     }
     // P3-3: 权限配置向导(无障碍 / Shizuku / Root 三通道)
@@ -213,7 +213,7 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         PermissionWizardScreen(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
         )
     }
     // 用户画像编辑页(年龄/城市/MBTI 等)
@@ -222,7 +222,7 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         UserProfileEditPage(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
         )
     }
     // v0.26: 设置二级页 — 数据与备份
@@ -231,8 +231,8 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         SettingsDataPage(
-            onBack = { navController.popBackStack() },
-            onOpenCloudBackup = { navController.navigate(SettingsCloudBackupRoute) },
+            onBack = { navController.popBackStackSafe() },
+            onOpenCloudBackup = { navController.navigateSingleTop(SettingsCloudBackupRoute) },
         )
     }
     // 运行时安装与状态（数据与备份上方）
@@ -241,7 +241,7 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         RuntimeSettingsPage(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
         )
     }
     // v1.132: 设置二级页 — 云备份独立配置页(WebDAV/S3 表单 + 远端备份列表)
@@ -250,7 +250,7 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         CloudBackupPage(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
         )
     }
     // v0.26: 设置二级页 — 外观
@@ -259,7 +259,7 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         SettingsAppearancePage(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
         )
     }
     // v0.26: 设置二级页 — 关于
@@ -268,10 +268,10 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         SettingsAboutPage(
-            onBack = { navController.popBackStack() },
-            onOpenLicenses = { navController.navigate(LicensesRoute) },
+            onBack = { navController.popBackStackSafe() },
+            onOpenLicenses = { navController.navigateSingleTop(LicensesRoute) },
             // v2.x: 崩溃上报设置页入口(此前页面存在但无任何入口)
-            onOpenCrashReport = { navController.navigate(SettingsCrashReportRoute) },
+            onOpenCrashReport = { navController.navigateSingleTop(SettingsCrashReportRoute) },
         )
     }
     // v2.7.x(E2): 助手术语页 —「记忆」组入口 + 搜索直达
@@ -280,7 +280,7 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         SettingsSessionTermsPage(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
         )
     }
     // v2.6.23(S4): 运行诊断子页 —「关于」组入口 + 搜索直达
@@ -289,7 +289,7 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         SettingsDiagnosticsPage(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
         )
     }
     // v2.x: 崩溃上报设置页 — 从「关于 → 反馈」进入,搜索索引同名可达
@@ -298,7 +298,7 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         io.zer0.muse.ui.settings.CrashReportSettingsPage(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
         )
     }
     // v0.31: 设置二级页 — 聊天行为
@@ -307,8 +307,8 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         ChatSettingsPage(
-            onBack = { navController.popBackStack() },
-            onOpenQuickActions = { navController.navigate(SettingsQuickActionsRoute) },
+            onBack = { navController.popBackStackSafe() },
+            onOpenQuickActions = { navController.navigateSingleTop(SettingsQuickActionsRoute) },
         )
     }
     // v2.6.0: 设置三级页 — 消息快捷按钮自定义（Via 式）
@@ -317,7 +317,7 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         QuickActionsSettingsPage(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
         )
     }
     // v1.0.51: 记忆中心 — 4 Tab 查看+编辑(当下/短期/长期/事实)
@@ -326,8 +326,8 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         MemoryScreen(
-            onBack = { navController.popBackStack() },
-            onOpenSettings = { navController.navigate(SettingsMemoryConfigRoute) },
+            onBack = { navController.popBackStackSafe() },
+            onOpenSettings = { navController.navigateSingleTop(SettingsMemoryConfigRoute) },
             onOpenSession = { sessionId ->
                 sharedViewModel.switchSession(sessionId)
                 navController.navigate(ChatDetailRoute) { launchSingleTop = true }
@@ -340,8 +340,8 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         MemorySettingsPage(
-            onBack = { navController.popBackStack() },
-            onOpenMemorySpace = { navController.navigate(SettingsMemorySpaceRoute) },
+            onBack = { navController.popBackStackSafe() },
+            onOpenMemorySpace = { navController.navigateSingleTop(SettingsMemorySpaceRoute) },
         )
     }
     // v1.0.52 P2-2: 记忆空间管理页(Space CRUD)
@@ -350,7 +350,7 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         io.zer0.muse.ui.memory.MemorySpaceManageScreen(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
         )
     }
     // v2.6.10: 表情包库独立页
@@ -359,7 +359,7 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         io.zer0.muse.ui.settings.StickerSettingsPage(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
         )
     }
     // v0.32: 设置二级页 — 媒体
@@ -368,10 +368,10 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         MediaSettingsPage(
-            onBack = { navController.popBackStack() },
-            onOpenVoiceCloning = { navController.navigate(VoiceCloningRoute) },
+            onBack = { navController.popBackStackSafe() },
+            onOpenVoiceCloning = { navController.navigateSingleTop(VoiceCloningRoute) },
             // 模型只在供应商里维护：候选为空时出口指回供应商列表
-            onOpenProviderSettings = { navController.navigate(SettingsModelRoute) },
+            onOpenProviderSettings = { navController.navigateSingleTop(SettingsModelRoute) },
         )
     }
     // v0.32: 设置二级页 — 实验性
@@ -380,7 +380,7 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         ExperimentsSettingsPage(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
         )
     }
     // v1.56: 设置二级页 — RAG 知识库检索配置
@@ -389,8 +389,8 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         RagSettingsPage(
-            onBack = { navController.popBackStack() },
-            onManageKbs = { navController.navigate(KnowledgeBaseManageRoute) },
+            onBack = { navController.popBackStackSafe() },
+            onManageKbs = { navController.navigateSingleTop(KnowledgeBaseManageRoute) },
         )
     }
     // v2.4.6: 三级页 — 知识库管理
@@ -401,7 +401,7 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         io.zer0.muse.ui.knowledge.KnowledgeScreen(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
         )
     }
     // v1.25: 设置二级页 — 视觉辅助
@@ -410,7 +410,7 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         VisionSettingsPage(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
         )
     }
     // v1.61: 设置二级页 — 数据导入
@@ -419,7 +419,7 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         SettingsDataImportPage(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
         )
     }
     // v1.61: 设置二级页 — 使用教程(新手引导)
@@ -428,7 +428,7 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         SettingsTutorialPage(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
         )
     }
     // v0.32: 设置二级页 — 安全与分享
@@ -437,7 +437,7 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         SecuritySettingsPage(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
         )
     }
     // 设置二级页 — 网络代理
@@ -446,7 +446,7 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         ProxySettingsPage(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
         )
     }
     // v1.25: 设置二级页 — 多 Agent 协作
@@ -455,7 +455,7 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         MultiAgentSettingsPage(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
 
         )
     }
@@ -465,17 +465,17 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
-        ProactiveMessageSettingsPage(onBack = { navController.popBackStack() })
+        ProactiveMessageSettingsPage(onBack = { navController.popBackStackSafe() })
     }
     composable<SettingsAgentRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         AgentSettingsPage(
-            onBack = { navController.popBackStack() },
-            onOpenMultiAgentSettings = { navController.navigate(SettingsMultiAgentRoute) },
-            onOpenAgentDm = { navController.navigate(AgentDmRoute) },
-            onOpenPreferences = { navController.navigate(SettingsPreferenceRoute) },
+            onBack = { navController.popBackStackSafe() },
+            onOpenMultiAgentSettings = { navController.navigateSingleTop(SettingsMultiAgentRoute) },
+            onOpenAgentDm = { navController.navigateSingleTop(AgentDmRoute) },
+            onOpenPreferences = { navController.navigateSingleTop(SettingsPreferenceRoute) },
         )
     }
     // v2.6.7 fix (AUDIT F9): 用户偏好管理页。
@@ -483,7 +483,7 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
-        UserPreferencePage(onBack = { navController.popBackStack() })
+        UserPreferencePage(onBack = { navController.popBackStackSafe() })
     }
     // v1.25: 开源许可页 — 修复 LICENSES 路由断链
     composable<LicensesRoute>(
@@ -491,7 +491,7 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         LicensesScreen(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
         )
     }
     // 调试日志页 — 从设置 → 关于 → 调试日志 进入,展示最近 Logger 调用
@@ -500,7 +500,7 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         DebugScreen(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
         )
     }
     // v2.x 终端一期 — 从设置 → 工具 → 终端 进入,应用沙盒内的交互式 shell
@@ -509,7 +509,7 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         TerminalScreen(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
             onSendToAi = { text -> sharedViewModel.sendFromCard(text) },
         )
     }
@@ -519,7 +519,7 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         ComponentGalleryScreen(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
         )
     }
     // P2-4: 审计日志页 — 从设置 → 数据与隐私 → 审计日志 进入
@@ -528,7 +528,7 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         AuditLogPage(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
         )
     }
     // P2-7: 工作区页 — 从设置 → 数据与隐私 → 工作区 进入
@@ -539,8 +539,8 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         val route = entry.toRoute<WorkspaceRoute>()
         WorkspaceScreen(
             initialPath = route.initialPath,
-            onBack = { navController.popBackStack() },
-            onOpenArtifacts = { navController.navigate(ArtifactCenterRoute) },
+            onBack = { navController.popBackStackSafe() },
+            onOpenArtifacts = { navController.navigateSingleTop(ArtifactCenterRoute) },
         )
     }
     // v2.0.1: 产物中心 — 从工作区页顶栏进入
@@ -549,7 +549,7 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         io.zer0.muse.ui.artifact.ArtifactCenterScreen(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
         )
     }
     // v2.0.1: 连接中心 — 从设置首页进入（连接总览）
@@ -558,12 +558,12 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         io.zer0.muse.ui.settings.ConnectionCenterScreen(
-            onBack = { navController.popBackStack() },
-            onOpenChannels = { navController.navigate(ChannelSettingsRoute) },
-            onOpenMcp = { navController.navigate(SettingsMcpRoute) },
-            onOpenPlugins = { navController.navigate(PluginManageRoute) },
-            onOpenSkills = { navController.navigate(SkillsRoute) },
-            onOpenToolPermissions = { navController.navigate(ToolsSettingsRoute) },
+            onBack = { navController.popBackStackSafe() },
+            onOpenChannels = { navController.navigateSingleTop(ChannelSettingsRoute) },
+            onOpenMcp = { navController.navigateSingleTop(SettingsMcpRoute) },
+            onOpenPlugins = { navController.navigateSingleTop(PluginManageRoute) },
+            onOpenSkills = { navController.navigateSingleTop(SkillsRoute) },
+            onOpenToolPermissions = { navController.navigateSingleTop(ToolsSettingsRoute) },
         )
     }
     // 网页版访问 — 设置 → 连接 → 网页版访问（地址 / PIN / 二维码）
@@ -571,7 +571,7 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
-        WebAccessPage(onBack = { navController.popBackStack() })
+        WebAccessPage(onBack = { navController.popBackStackSafe() })
     }
     // 它该做与不该做的事（用户约定）— 设置 → 自动化 分组
     composable<SettingsAgentDirectivesRoute>(
@@ -579,9 +579,9 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         AgentDirectivesPage(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
             // 音色沿用「设置 → 多媒体」那一处配置，这里只是跳过去，不另存一份
-            onOpenVoiceSettings = { navController.navigate(SettingsMediaRoute) },
+            onOpenVoiceSettings = { navController.navigateSingleTop(SettingsMediaRoute) },
         )
     }
     // 内置浏览器设置 — 地址栏搜索引擎 / Cookies 行为
@@ -589,7 +589,7 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
-        BrowserSettingsPage(onBack = { navController.popBackStack() })
+        BrowserSettingsPage(onBack = { navController.popBackStackSafe() })
     }
     // 统一插件管理页（外部插件 + Provider 插件合并），旧入口已收敛到 PluginManageRoute
     composable<PluginManageRoute>(
@@ -597,7 +597,7 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         PluginManagePage(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
         )
     }
     // v1.0.20: 工具批准管理页 — 从设置 → 聊天 → 工具调用批准 进入
@@ -607,7 +607,7 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         ToolsSettingsPage(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
         )
     }
     // v1.0.80: UI 自动化权限设置(三层梯度)
@@ -620,11 +620,11 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         io.zer0.muse.automation.ui.AutomationSettingsPage(
             manager = manager,
             settings = settings,
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
             // v1.xxx: F-24 一键跳到定时任务页编排自动化动作(同 NavHost,直接 navigate 跨图可达)
-            onOpenScheduledTasks = { navController.navigate(ScheduledTasksRoute) },
+            onOpenScheduledTasks = { navController.navigateSingleTop(ScheduledTasksRoute) },
             // v2.x: 权限配置向导 — 三通道权限配置已收敛到向导页
-            onOpenPermissionWizard = { navController.navigate(SettingsPermissionWizardRoute) },
+            onOpenPermissionWizard = { navController.navigateSingleTop(SettingsPermissionWizardRoute) },
         )
     }
 }

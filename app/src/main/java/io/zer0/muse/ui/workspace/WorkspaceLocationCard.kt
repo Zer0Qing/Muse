@@ -6,7 +6,8 @@ import android.content.ClipboardManager
 import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
@@ -21,9 +22,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
+import io.zer0.muse.ui.theme.MuseButtonSize
 import io.zer0.muse.ui.theme.MuseMonoFontFamily
 import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.theme.MuseSpacing
 import io.zer0.muse.workspace.WorkspaceLocation
 
 /**
@@ -37,6 +41,7 @@ import io.zer0.muse.workspace.WorkspaceLocation
  * 迁移必须重启才生效：工作区根目录在应用启动时就被各处持有（终端、文件工具、挂载表），
  * 中途换路径会让正在用的那批对象指向旧目录 —— 那种"一半新一半旧"的状态比不搬更糟。
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun WorkspaceLocationCard(modifier: Modifier = Modifier) {
     val context = LocalContext.current
@@ -70,10 +75,16 @@ fun WorkspaceLocationCard(modifier: Modifier = Modifier) {
             style = MaterialTheme.typography.bodySmall.copy(fontFamily = MuseMonoFontFamily),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap)) {
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
+        ) {
             if (!usingDownloads) {
                 MuseCapsuleButton(
                     text = stringResource(R.string.workspace_location_move_downloads),
+                    size = MuseButtonSize.Compact,
+                    fillWidth = false,
                     onClick = {
                         if (!WorkspaceLocation.hasBroadStorageAccess(context)) {
                             // 没权限就别装作能搬：直接把用户送到系统授权页
@@ -104,6 +115,8 @@ fun WorkspaceLocationCard(modifier: Modifier = Modifier) {
             } else {
                 MuseCapsuleButton(
                     text = stringResource(R.string.workspace_location_move_internal),
+                    size = MuseButtonSize.Compact,
+                    fillWidth = false,
                     onClick = {
                         when (val result = WorkspaceLocation.migrateBackInternal(context)) {
                             is WorkspaceLocation.Migration.Failed ->
@@ -118,11 +131,16 @@ fun WorkspaceLocationCard(modifier: Modifier = Modifier) {
             }
             MuseCapsuleButton(
                 text = stringResource(R.string.workspace_location_copy_path),
+                variant = IosCapsuleButtonVariant.Secondary,
+                size = MuseButtonSize.Compact,
+                fillWidth = false,
                 onClick = { copyPath(context, currentPath) },
             )
             if (needsRestart) {
                 MuseCapsuleButton(
                     text = stringResource(R.string.workspace_location_restart),
+                    size = MuseButtonSize.Compact,
+                    fillWidth = false,
                     onClick = {
                         (context as? Activity)?.finishAffinity()
                         android.os.Process.killProcess(android.os.Process.myPid())

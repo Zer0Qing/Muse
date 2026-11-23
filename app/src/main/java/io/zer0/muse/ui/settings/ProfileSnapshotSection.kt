@@ -77,7 +77,7 @@ internal fun ProfileSnapshotSection() {
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    Switch(
+                    io.zer0.muse.ui.common.form.MuseSwitch(
                         checked = enabled,
                         onCheckedChange = { on ->
                             scope.launch { settings.updateChatPreferences { it.copy(profileSnapshotEnabled = on) } }

@@ -20,7 +20,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -98,10 +98,10 @@ internal fun browserPageLabel(title: String, url: String): String {
 @Composable
 fun BrowserStatusCapsule(manager: BrowserManager?, modifier: Modifier = Modifier) {
     if (manager == null) return
-    val isActive by manager.isActive.collectAsState()
-    val isLoading by manager.isLoading.collectAsState()
-    val url by manager.currentUrl.collectAsState()
-    val title by manager.currentTitle.collectAsState()
+    val isActive by manager.isActive.collectAsStateWithLifecycle()
+    val isLoading by manager.isLoading.collectAsStateWithLifecycle()
+    val url by manager.currentUrl.collectAsStateWithLifecycle()
+    val title by manager.currentTitle.collectAsStateWithLifecycle()
     var showViewer by remember(manager) { mutableStateOf(false) }
     val displayState = browserDisplayState(isActive, isLoading, url)
     if (!shouldShowBrowserCapsule(displayState) && !showViewer) return
@@ -174,12 +174,12 @@ fun BrowserStatusCapsule(manager: BrowserManager?, modifier: Modifier = Modifier
 fun BrowserViewerDialog(manager: BrowserManager, onDismiss: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val url by manager.currentUrl.collectAsState()
-    val title by manager.currentTitle.collectAsState()
-    val isActive by manager.isActive.collectAsState()
-    val isLoading by manager.isLoading.collectAsState()
-    val canGoBack by manager.canGoBack.collectAsState()
-    val canGoForward by manager.canGoForward.collectAsState()
+    val url by manager.currentUrl.collectAsStateWithLifecycle()
+    val title by manager.currentTitle.collectAsStateWithLifecycle()
+    val isActive by manager.isActive.collectAsStateWithLifecycle()
+    val isLoading by manager.isLoading.collectAsStateWithLifecycle()
+    val canGoBack by manager.canGoBack.collectAsStateWithLifecycle()
+    val canGoForward by manager.canGoForward.collectAsStateWithLifecycle()
     val displayState = browserDisplayState(isActive, isLoading, url)
 
     // 地址栏:用户没在编辑时跟随当前页 URL;编辑时不打断输入。

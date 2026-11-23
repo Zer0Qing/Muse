@@ -23,8 +23,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -50,7 +48,9 @@ import io.zer0.common.Logger
 import io.zer0.muse.R
 import io.zer0.muse.data.agentbot.AgentBotUiState
 import io.zer0.muse.data.agentbot.BotAnnotationEntity
+import io.zer0.muse.ui.common.form.MuseAnchoredMenu
 import io.zer0.muse.ui.common.icons.MuseIcons
+import io.zer0.muse.ui.common.surface.MuseListItem
 import io.zer0.muse.ui.markdown.MarkdownText
 import io.zer0.muse.ui.theme.MuseAlpha
 import io.zer0.muse.ui.theme.MuseBorderWidth
@@ -229,9 +229,10 @@ fun AgentMessageBubble(
             }
 
             // 长按操作菜单：顶部快捷 Emoji 反应条 + 复制 / 重试 / 删除
-            DropdownMenu(
+            MuseAnchoredMenu(
                 expanded = menuExpanded,
                 onDismissRequest = { menuExpanded = false },
+                alignEnd = isUser,
             ) {
                 Row(
                     modifier = Modifier.padding(
@@ -262,30 +263,69 @@ fun AgentMessageBubble(
                     }
                 }
                 HorizontalDivider(modifier = Modifier.padding(vertical = MusePaddings.tightGap))
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.agent_screen_copy)) },
-                    leadingIcon = { Icon(MuseIcons.copy, contentDescription = null) },
+                MuseListItem(
                     onClick = {
                         menuExpanded = false
                         onCopy()
                     },
+                    leadingContent = {
+                        Icon(
+                            imageVector = MuseIcons.copy,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(MuseIconSizes.iconSmall),
+                        )
+                    },
+                    headlineContent = {
+                        Text(
+                            text = stringResource(R.string.agent_screen_copy),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    },
                 )
                 if (!isUser) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.agent_screen_retry_message)) },
-                        leadingIcon = { Icon(MuseIcons.refresh, contentDescription = null) },
+                    MuseListItem(
                         onClick = {
                             menuExpanded = false
                             onRetry()
                         },
+                        leadingContent = {
+                            Icon(
+                                imageVector = MuseIcons.refresh,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(MuseIconSizes.iconSmall),
+                            )
+                        },
+                        headlineContent = {
+                            Text(
+                                text = stringResource(R.string.agent_screen_retry_message),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                        },
                     )
                 }
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.agent_screen_delete_message)) },
-                    leadingIcon = { Icon(MuseIcons.trash, contentDescription = null) },
+                MuseListItem(
                     onClick = {
                         menuExpanded = false
                         onDelete()
+                    },
+                    leadingContent = {
+                        Icon(
+                            imageVector = MuseIcons.trash,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(MuseIconSizes.iconSmall),
+                        )
+                    },
+                    headlineContent = {
+                        Text(
+                            text = stringResource(R.string.agent_screen_delete_message),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.error,
+                        )
                     },
                 )
             }

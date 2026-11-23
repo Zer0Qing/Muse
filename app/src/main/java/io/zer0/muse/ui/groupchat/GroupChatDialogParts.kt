@@ -146,7 +146,7 @@ fun PendingAttachmentsRow(attachments: List<FileAttachment>, onRemove: (Int) -> 
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         contentPadding = PaddingValues(horizontal = 2.dp),
     ) {
-        itemsIndexed(attachments) { index, file ->
+        itemsIndexed(attachments, key = { index, file -> "${file.name}_$index" }) { index, file ->
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp),

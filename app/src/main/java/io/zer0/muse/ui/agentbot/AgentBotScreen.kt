@@ -6,7 +6,6 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -23,7 +22,6 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -35,7 +33,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -44,6 +41,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -52,10 +50,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import io.zer0.ai.core.ProviderConfig
 import io.zer0.common.Logger
 import io.zer0.muse.R
@@ -64,7 +66,8 @@ import io.zer0.muse.data.agentbot.AgentBotScopeState
 import io.zer0.muse.data.agentbot.AgentBotUiState
 import io.zer0.muse.data.agentbot.AgentStreamCoordinator
 import io.zer0.muse.data.agentbot.BotCardKind
-import io.zer0.muse.data.agentbot.BotTaskStatus
+import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.icons.MuseIcons
@@ -173,11 +176,14 @@ fun AgentBotScreen(
         }.collect { shouldFollowTranscript = it }
     }
 
-    LaunchedEffect(Unit) {
-        while (true) {
-            viewModel.tickScheduler()
-            viewModel.runTurnOnce()
-            delay(3_000)
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            while (true) {
+                viewModel.tickScheduler()
+                viewModel.runTurnOnce()
+                delay(3_000)
+            }
         }
     }
 
@@ -261,68 +267,44 @@ fun AgentBotScreen(
     }
 
     val isWelcomeEmpty = transcript.isEmpty() && allTasks.isEmpty() && cueCards.isEmpty() && !streaming.active
+    val density = LocalDensity.current
+    var topOverlayHeightPx by remember { mutableIntStateOf(0) }
+    var bottomOverlayHeightPx by remember { mutableIntStateOf(0) }
+    val topOverlayPadding = with(density) { topOverlayHeightPx.toDp() }
+    val bottomOverlayPadding = with(density) { bottomOverlayHeightPx.toDp() }
 
+    // 全屏叠层画布：对话流铺满整屏，顶栏与底部输入岛全部独立悬浮在其上方，不切分页面。
     Box(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background),
     ) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-        ) {
-            AgentFloatingHeader(
-                assistantName = resolvedName,
-                avatarUri = resolvedAvatar,
-                modelLabel = visibleModel,
-                activeBadgeCount = activeBadgeCount,
-                hasPendingApproval = pendingApprovals.isNotEmpty(),
-                onOpenIdentitySwitch = { workbenchTab = AgentWorkbenchTab.SQUAD },
+        if (isWelcomeEmpty) {
+            AgentWelcomeCanvas(
+                hasConfiguredModel = modelName.isNotBlank() && providers.any { it.enabled },
+                onTriggerBriefing = triggerBriefing,
+                onOpenTeach = {
+                    viewModel.startTeachRecording()
+                    workbenchTab = AgentWorkbenchTab.ROUTINES
+                },
                 onOpenWorkbench = { workbenchTab = AgentWorkbenchTab.LIVE },
-            )
-
-            if (isLoading) {
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-            }
-            if (scopeError) {
-                ScopeErrorRow(onRetry = viewModel::retryScope)
-            }
-
-            AgentLiveActivityStrip(
-                runningCount = inProgressTasks.size,
-                approvalCount = pendingApprovals.size,
-                latestRunningNote = latestRunningNote,
-                activeVirtualDisplay = activeVirtualDisplay,
-                onClick = { workbenchTab = AgentWorkbenchTab.LIVE },
-            )
-
-            // 100% 沉浸式对话流主画布
-            Box(
+                onOpenProviderSettings = onOpenProviderSettings,
                 modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
+                    .align(Alignment.Center)
+                    .padding(top = topOverlayPadding, bottom = bottomOverlayPadding),
+            )
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                state = transcriptListState,
+                contentPadding = PaddingValues(
+                    start = MusePaddings.screen,
+                    end = MusePaddings.screen,
+                    top = topOverlayPadding + MusePaddings.contentGap,
+                    bottom = bottomOverlayPadding + MusePaddings.contentGap,
+                ),
+                verticalArrangement = Arrangement.spacedBy(MusePaddings.auxGap),
             ) {
-                if (isWelcomeEmpty) {
-                    AgentWelcomeCanvas(
-                        assistantName = resolvedName,
-                        avatarUri = resolvedAvatar,
-                        onTriggerBriefing = triggerBriefing,
-                        onOpenTeach = {
-                            viewModel.startTeachRecording()
-                            workbenchTab = AgentWorkbenchTab.ROUTINES
-                        },
-                        onOpenWorkbench = { workbenchTab = AgentWorkbenchTab.LIVE },
-                        modifier = Modifier.align(Alignment.Center),
-                    )
-                } else {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        state = transcriptListState,
-                        contentPadding = PaddingValues(
-                            horizontal = MusePaddings.screen,
-                            vertical = MusePaddings.contentGap,
-                        ),
-                        verticalArrangement = Arrangement.spacedBy(MusePaddings.auxGap),
-                    ) {
                         if (hasOlderTranscript) {
                             item(key = "load-older") {
                                 Box(
@@ -438,14 +420,17 @@ fun AgentBotScreen(
                         }
                     }
 
-                    // 上滑历史时浮现的回到底部悬浮圆按钮
+                    // 上滑历史时浮现的回到底部悬浮圆按钮（避让底部悬浮输入岛）
                     androidx.compose.animation.AnimatedVisibility(
                         visible = !shouldFollowTranscript && transcript.isNotEmpty(),
                         enter = fadeIn() + scaleIn(),
                         exit = fadeOut() + scaleOut(),
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
-                            .padding(MusePaddings.screen),
+                            .padding(
+                                end = MusePaddings.screen,
+                                bottom = bottomOverlayPadding + MusePaddings.contentGap,
+                            ),
                     ) {
                         Surface(
                             onClick = {
@@ -474,43 +459,78 @@ fun AgentBotScreen(
                             }
                         }
                     }
-                }
+        }
+
+        // 顶部透明镂空悬浮层：头像名牌 + 右侧工作台按钮 + 按需浮现的状态条
+        Column(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .fillMaxWidth()
+                .onSizeChanged { topOverlayHeightPx = it.height },
+        ) {
+            AgentFloatingHeader(
+                assistantName = resolvedName,
+                avatarUri = resolvedAvatar,
+                modelLabel = visibleModel,
+                activeBadgeCount = activeBadgeCount,
+                hasPendingApproval = pendingApprovals.isNotEmpty(),
+                onOpenIdentitySwitch = { workbenchTab = AgentWorkbenchTab.SQUAD },
+                onOpenWorkbench = { workbenchTab = AgentWorkbenchTab.LIVE },
+            )
+
+            if (isLoading) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            }
+            if (scopeError) {
+                ScopeErrorRow(onRetry = viewModel::retryScope)
             }
 
-            // 底部悬浮药丸输入栏
-            AgentFloatingComposer(
-                composer = composer,
-                busy = busy,
-                isStreaming = streaming.active,
-                errorText = busy.error?.let { agentErrorLabel(it) },
-                onTextChange = viewModel::onComposerTextChange,
-                onSend = viewModel::send,
-                onStopReply = viewModel::stopReply,
-                onPickImages = { imagePicker.launch(arrayOf("image/*")) },
-                onRemoveImage = viewModel::removePendingImage,
-                onVoiceInput = {
-                    if (SpeechInput.isAvailable(context)) {
-                        runCatching {
-                            voiceLauncher.launch(SpeechInput.createIntent(voiceRecordingPrompt))
-                        }.onFailure {
-                            Logger.w("AgentBotScreen", "拉起语音输入失败: ${it.message}")
-                            Toast.makeText(context, voiceUnavailableText, Toast.LENGTH_SHORT).show()
-                        }
-                    } else {
-                        Toast.makeText(context, voiceUnavailableText, Toast.LENGTH_SHORT).show()
-                    }
-                },
-                onOpenWorkbench = { workbenchTab = AgentWorkbenchTab.LIVE },
-                onTriggerBriefing = triggerBriefing,
-                onStartTeach = {
-                    viewModel.startTeachRecording()
-                    workbenchTab = AgentWorkbenchTab.ROUTINES
-                },
-                onOpenModel = onOpenModel,
-                onOpenProviderSettings = onOpenProviderSettings,
-                onOpenRuntimeInstall = onOpenRuntimeInstall,
+            AgentLiveActivityStrip(
+                runningCount = inProgressTasks.size,
+                approvalCount = pendingApprovals.size,
+                latestRunningNote = latestRunningNote,
+                activeVirtualDisplay = activeVirtualDisplay,
+                onClick = { workbenchTab = AgentWorkbenchTab.LIVE },
             )
         }
+
+        // 底部独立悬浮药丸输入岛
+        AgentFloatingComposer(
+            composer = composer,
+            busy = busy,
+            isStreaming = streaming.active,
+            errorText = busy.error?.let { agentErrorLabel(it) },
+            onTextChange = viewModel::onComposerTextChange,
+            onSend = viewModel::send,
+            onStopReply = viewModel::stopReply,
+            onPickImages = { imagePicker.launch(arrayOf("image/*")) },
+            onPickGalleryImage = { uri -> viewModel.addPendingImage(uri, context) },
+            onRemoveImage = viewModel::removePendingImage,
+            onVoiceInput = {
+                if (SpeechInput.isAvailable(context)) {
+                    runCatching {
+                        voiceLauncher.launch(SpeechInput.createIntent(voiceRecordingPrompt))
+                    }.onFailure {
+                        Logger.w("AgentBotScreen", "拉起语音输入失败: ${it.message}")
+                        MuseToast.show(voiceUnavailableText)
+                    }
+                } else {
+                    MuseToast.show(voiceUnavailableText)
+                }
+            },
+            onOpenWorkbench = { workbenchTab = AgentWorkbenchTab.LIVE },
+            onTriggerBriefing = triggerBriefing,
+            onStartTeach = {
+                viewModel.startTeachRecording()
+                workbenchTab = AgentWorkbenchTab.ROUTINES
+            },
+            onOpenModel = onOpenModel,
+            onOpenProviderSettings = onOpenProviderSettings,
+            onOpenRuntimeInstall = onOpenRuntimeInstall,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .onSizeChanged { bottomOverlayHeightPx = it.height },
+        )
     }
 
     // 四域智能体工作台 BottomSheet
@@ -578,10 +598,10 @@ fun AgentBotScreen(
     }
 
     taskDetails?.let { details ->
-        AlertDialog(
+        MuseDialog(
             onDismissRequest = viewModel::closeTaskDetails,
-            title = { Text(stringResource(R.string.agent_screen_task_details)) },
-            text = {
+            title = stringResource(R.string.agent_screen_task_details),
+            content = {
                 Column(
                     modifier = Modifier
                         .heightIn(max = MusePaddings.dialogContentMaxHeight)
@@ -615,21 +635,16 @@ fun AgentBotScreen(
                     }
                 }
             },
-            confirmButton = {
-                MuseCapsuleButton(
-                    text = stringResource(R.string.common_close),
-                    onClick = viewModel::closeTaskDetails,
-                    fillWidth = false,
-                )
-            },
+            confirmText = stringResource(R.string.common_close),
+            onConfirm = viewModel::closeTaskDetails,
         )
     }
 
     candidatePreview?.let { preview ->
-        AlertDialog(
+        MuseDialog(
             onDismissRequest = viewModel::closeCandidatePreview,
-            title = { Text(stringResource(R.string.agent_screen_artifact_preview)) },
-            text = {
+            title = stringResource(R.string.agent_screen_artifact_preview),
+            content = {
                 Column(
                     modifier = Modifier
                         .heightIn(max = MusePaddings.dialogContentMaxHeight)
@@ -656,13 +671,8 @@ fun AgentBotScreen(
                     MarkdownText(text = preview.content, style = MaterialTheme.typography.bodySmall)
                 }
             },
-            confirmButton = {
-                MuseCapsuleButton(
-                    text = stringResource(R.string.common_close),
-                    onClick = viewModel::closeCandidatePreview,
-                    fillWidth = false,
-                )
-            },
+            confirmText = stringResource(R.string.common_close),
+            onConfirm = viewModel::closeCandidatePreview,
         )
     }
 }
@@ -670,13 +680,14 @@ fun AgentBotScreen(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun AgentWelcomeCanvas(
-    assistantName: String,
-    avatarUri: String?,
+    hasConfiguredModel: Boolean,
     onTriggerBriefing: () -> Unit,
     onOpenTeach: () -> Unit,
     onOpenWorkbench: () -> Unit,
+    onOpenProviderSettings: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
+    // 顶部 AgentFloatingHeader 已有悬浮头像与名字，空态不再重复画第二套头像与名字
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -684,15 +695,15 @@ private fun AgentWelcomeCanvas(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
     ) {
-        AgentAvatarCircle(name = assistantName, avatarUri = avatarUri)
-        Spacer(modifier = Modifier.size(MusePaddings.tightGap))
-        Text(
-            text = assistantName,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            textAlign = TextAlign.Center,
-        )
-        Spacer(modifier = Modifier.size(MusePaddings.contentGap))
+        if (!hasConfiguredModel && onOpenProviderSettings != null) {
+            MuseCapsuleButton(
+                text = stringResource(R.string.agent_screen_provider_settings),
+                onClick = onOpenProviderSettings,
+                leadingIcon = MuseIcons.sliders,
+                fillWidth = false,
+                size = MuseButtonSize.Compact,
+            )
+        }
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(
                 MusePaddings.contentGap,

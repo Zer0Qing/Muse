@@ -440,7 +440,7 @@ fun GroupChatDetailScreen(
     // v1.0.74: 群聊自定义背景(与聊天背景共用设置)
     val chatBackground by org.koin.compose.koinInject<io.zer0.muse.data.SettingsRepository>()
         .chatBackgroundFlow
-        .collectAsState(initial = null)
+        .collectAsStateWithLifecycle(initialValue = null)
 
     Box(modifier = Modifier.fillMaxSize()) {
         // v2.6: 页面级玻璃背景层 —— 与单聊同构。
@@ -668,17 +668,20 @@ fun GroupChatDetailScreen(
                                         text = stringResource(R.string.groupchat_round_pause),
                                         onClick = { viewModel.pauseRound() },
                                         variant = IosCapsuleButtonVariant.Text,
+                                        fillWidth = false,
                                     )
                                 } else {
                                     MuseCapsuleButton(
                                         text = stringResource(R.string.groupchat_round_resume),
                                         onClick = { viewModel.resumeRound() },
                                         variant = IosCapsuleButtonVariant.Primary,
+                                        fillWidth = false,
                                     )
                                     MuseCapsuleButton(
                                         text = stringResource(R.string.groupchat_round_skip),
                                         onClick = { viewModel.skipRoundRemaining() },
                                         variant = IosCapsuleButtonVariant.Text,
+                                        fillWidth = false,
                                     )
                                 }
                                 // v2.x: 队列可视化 — 本轮剩余待发言成员

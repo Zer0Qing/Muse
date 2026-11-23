@@ -39,6 +39,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -829,28 +830,36 @@ internal fun GroupSummaryCard(
                 modifier = Modifier.padding(MusePaddings.cardInner),
             )
         }
-        // 落地动作行
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        // 落地动作行：FlowRow + fillWidth = false 防止第一颗按钮占满整行挤掉后续操作。
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
+            verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
+        ) {
             MuseCapsuleButton(
                 text = stringResource(R.string.common_copy),
                 onClick = onCopy,
                 variant = IosCapsuleButtonVariant.Text,
+                fillWidth = false,
             )
             MuseCapsuleButton(
                 text = stringResource(R.string.common_share),
                 onClick = onShare,
                 variant = IosCapsuleButtonVariant.Text,
+                fillWidth = false,
             )
             MuseCapsuleButton(
                 text = stringResource(R.string.groupchat_summary_save_doc),
                 onClick = onSaveAsSharedDoc,
                 variant = IosCapsuleButtonVariant.Secondary,
+                fillWidth = false,
             )
             // v2.x: 继续落实 — 把总结带回输入框,用户可补充指令或 @成员后继续推进
             MuseCapsuleButton(
                 text = stringResource(R.string.groupchat_summary_continue),
                 onClick = onContinue,
                 variant = IosCapsuleButtonVariant.Text,
+                fillWidth = false,
             )
         }
     }

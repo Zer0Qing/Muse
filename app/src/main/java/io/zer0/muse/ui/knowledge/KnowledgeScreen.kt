@@ -911,6 +911,7 @@ fun KnowledgeScreen(
                             value = searchQuery,
                             onValueChange = { searchQuery = it },
                             singleLine = true,
+                            cursorBrush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.primary),
                             textStyle = MaterialTheme.typography.bodyLarge.copy(
                                 color = MaterialTheme.colorScheme.onSurface,
                             ),
@@ -1299,6 +1300,7 @@ fun KnowledgeScreen(
                     BasicTextField(
                         value = draft,
                         onValueChange = { draft = it },
+                        cursorBrush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.primary),
                         modifier = Modifier
                             .fillMaxWidth()
                             .heightIn(min = 160.dp, max = 320.dp)
@@ -1307,7 +1309,9 @@ fun KnowledgeScreen(
                                 MuseShapes.small,
                             )
                             .padding(10.dp),
-                        textStyle = MaterialTheme.typography.bodySmall,
+                        textStyle = MaterialTheme.typography.bodySmall.copy(
+                            color = MaterialTheme.colorScheme.onSurface,
+                        ),
                     )
                 }
             },

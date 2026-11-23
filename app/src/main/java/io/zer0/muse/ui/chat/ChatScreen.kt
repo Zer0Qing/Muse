@@ -604,7 +604,7 @@ fun ChatScreen(
     // 会话级浏览器注册表：UI 只观察已实际创建的 session manager，避免新会话
     // 在 Compose 期间产生副作用并在标题栏显示“未启动”入口。
     val browserRegistry: io.zer0.muse.tools.BrowserManagerRegistry = koinInject()
-    val activeBrowserSessions by browserRegistry.activeSessionIds.collectAsState()
+    val activeBrowserSessions by browserRegistry.activeSessionIds.collectAsStateWithLifecycle()
     // Agent 使用 agentSessionId，普通聊天使用 currentSessionId，避免会话串页。
     val browserSessionId = if (isAgentMode) state.agentSessionId else state.currentSessionId
     val currentBrowserManager =
@@ -1320,12 +1320,12 @@ fun ChatScreen(
     // v1.0.74: 聊天背景(聊天/Agent 共用) — 设置页可自定义,背景图铺在消息层下面
     // v2.6.2（用户反馈）: 三层回落 — 会话级 > 助手级 > 全局默认。
     val settingsRepo = org.koin.compose.koinInject<io.zer0.muse.data.SettingsRepository>()
-    val globalChatBackground by settingsRepo.chatBackgroundFlow.collectAsState(initial = null)
+    val globalChatBackground by settingsRepo.chatBackgroundFlow.collectAsStateWithLifecycle(initialValue = null)
     // v2.6.2（用户反馈）: 深色模式专用背景（可选）
-    val darkChatBackground by settingsRepo.chatBackgroundDarkFlow.collectAsState(initial = null)
+    val darkChatBackground by settingsRepo.chatBackgroundDarkFlow.collectAsStateWithLifecycle(initialValue = null)
     val isDarkTheme = io.zer0.muse.ui.theme.LocalIsDarkTheme.current
-    val assistantBackgrounds by settingsRepo.assistantChatBackgroundFlow.collectAsState(initial = emptyMap())
-    val sessionBackgrounds by settingsRepo.sessionChatBackgroundFlow.collectAsState(initial = emptyMap())
+    val assistantBackgrounds by settingsRepo.assistantChatBackgroundFlow.collectAsStateWithLifecycle(initialValue = emptyMap<String, String>())
+    val sessionBackgrounds by settingsRepo.sessionChatBackgroundFlow.collectAsStateWithLifecycle(initialValue = emptyMap<String, String>())
     // 当前生效会话 id(Agent 模式用 agentSessionId)
     val effectiveSessionIdForBg = if (isAgentMode) state.agentSessionId else state.currentSessionId
     val effectiveAssistantIdForBg = state.currentAssistant?.id ?: "default"
@@ -1373,7 +1373,7 @@ fun ChatScreen(
     // E3: 动态渐变背景 — 仅在未设置背景图时生效(背景图优先)
     val chatGradient by org.koin.compose.koinInject<io.zer0.muse.data.SettingsRepository>()
         .chatGradientFlow
-        .collectAsState(initial = null)
+        .collectAsStateWithLifecycle(initialValue = null)
 
     // v2.6: 液态玻璃 — 全应用统一配置。
     // 关键:backdrop 层必须只包“背景本身”,内容是它的兄弟节点。
@@ -1901,7 +1901,7 @@ fun ChatScreen(
                                         }
                                     }
                                 },
-                                collapsed = runtimeBannerDismissed,
+                                collapsed = runtimeBannerDismissed || state.isStreaming,
                             )
                         }
                         // v1.97: 计算工具/任务进度 — 优先用活跃 agentPlan,否则用 toolCallHistory

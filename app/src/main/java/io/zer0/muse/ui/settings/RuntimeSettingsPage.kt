@@ -6,14 +6,14 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -25,7 +25,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
 import io.zer0.muse.runtime.RuntimeInstallService
@@ -37,12 +36,16 @@ import io.zer0.muse.runtime.RuntimeManager
 import io.zer0.muse.runtime.RuntimeState
 import io.zer0.muse.runtime.RuntimeStore
 import io.zer0.muse.runtime.RuntimeVersion
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.icons.MuseIcons
+import io.zer0.muse.ui.common.settings.ConfirmDeleteDialog
 import io.zer0.muse.ui.common.settings.SectionLabel
 import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.runtime.RuntimeVersionPicker
 import io.zer0.muse.ui.runtime.RuntimeCustomUrlDialog
 import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.theme.MuseSpacing
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -54,6 +57,7 @@ import java.io.IOException
  *
  * 安装走 [RuntimeInstallService]，与聊天里的安装卡同源；此处只读 [RuntimeInstallStatus]。
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun RuntimeSettingsPage(onBack: () -> Unit) {
     val context = LocalContext.current
@@ -71,6 +75,7 @@ fun RuntimeSettingsPage(onBack: () -> Unit) {
     var versions by remember { mutableStateOf<List<RuntimeVersion>>(emptyList()) }
     var operation by remember { mutableStateOf<RuntimeInstallOperation?>(null) }
     var showVersionPicker by remember { mutableStateOf(false) }
+    var showUninstallConfirm by remember { mutableStateOf(false) }
     var customUrlVersion by remember { mutableStateOf<RuntimeVersion?>(null) }
     var localInstallRevision by remember { mutableStateOf<String?>(null) }
     val localArchivePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -111,7 +116,7 @@ fun RuntimeSettingsPage(onBack: () -> Unit) {
                         .fillMaxWidth()
                         .padding(MusePaddings.cardInner),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(MuseSpacing.md),
                 ) {
                     Icon(
                         imageVector = MuseIcons.terminal,
@@ -137,71 +142,83 @@ fun RuntimeSettingsPage(onBack: () -> Unit) {
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = 4.dp),
+                            modifier = Modifier.padding(top = MuseSpacing.xs),
                         )
                     }
                 }
-                Row(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(MusePaddings.cardInner),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
                 ) {
-                    if (progress != null) {
-                        TextButton(onClick = { RuntimeInstallService.cancel(context) }) {
-                            Text(stringResource(R.string.runtime_action_cancel))
-                        }
-                    } else {
-                        Button(onClick = { showVersionPicker = true }) {
-                            Text(
-                                stringResource(
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
+                        verticalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
+                    ) {
+                        if (progress != null) {
+                            MuseCapsuleButton(
+                                text = stringResource(R.string.runtime_action_cancel),
+                                onClick = { RuntimeInstallService.cancel(context) },
+                                variant = IosCapsuleButtonVariant.Secondary,
+                                fillWidth = false,
+                            )
+                        } else {
+                            MuseCapsuleButton(
+                                text = stringResource(
                                     if (state is RuntimeState.Ready) R.string.runtime_action_update
                                     else R.string.runtime_card_install,
                                 ),
+                                onClick = { showVersionPicker = true },
+                                fillWidth = false,
+                            )
+                        }
+                        if (state is RuntimeState.Ready) {
+                            MuseCapsuleButton(
+                                text = stringResource(R.string.runtime_action_repair),
+                                enabled = progress == null,
+                                onClick = { RuntimeInstallService.startRepair(context) },
+                                variant = IosCapsuleButtonVariant.Secondary,
+                                fillWidth = false,
+                            )
+                            if (manager.hasRollbackVersion()) {
+                                MuseCapsuleButton(
+                                    text = stringResource(R.string.runtime_action_rollback),
+                                    enabled = progress == null,
+                                    onClick = {
+                                        scope.launch {
+                                            manager.rollback()
+                                            RuntimeInstallStatus.refresh(context)
+                                        }
+                                    },
+                                    variant = IosCapsuleButtonVariant.Secondary,
+                                    fillWidth = false,
+                                )
+                            }
+                        }
+                        if (
+                            progress == null &&
+                                (operation?.phase == RuntimeInstallPhase.CANCELLED ||
+                                    operation?.phase == RuntimeInstallPhase.FAILED_RETRYABLE)
+                        ) {
+                            MuseCapsuleButton(
+                                text = stringResource(R.string.runtime_action_resume),
+                                onClick = { RuntimeInstallService.startResume(context) },
+                                variant = IosCapsuleButtonVariant.Secondary,
+                                fillWidth = false,
                             )
                         }
                     }
+                    // 卸载单独成行，与更新/修复保持同一胶囊样式，避免三键并排把文字压成竖排，并带二次确认防误删 230MB 环境。
                     if (state is RuntimeState.Ready) {
-                        TextButton(
+                        MuseCapsuleButton(
+                            text = stringResource(R.string.runtime_action_uninstall),
                             enabled = progress == null,
-                            onClick = { RuntimeInstallService.startRepair(context) },
-                        ) {
-                            Text(stringResource(R.string.runtime_action_repair))
-                        }
-                        if (manager.hasRollbackVersion()) {
-                            TextButton(
-                                enabled = progress == null,
-                                onClick = {
-                                    scope.launch {
-                                        manager.rollback()
-                                        RuntimeInstallStatus.refresh(context)
-                                    }
-                                },
-                            ) {
-                                Text(stringResource(R.string.runtime_action_rollback))
-                            }
-                        }
-                        TextButton(
-                            enabled = progress == null,
-                            onClick = {
-                                scope.launch {
-                                    manager.uninstall()
-                                    RuntimeInstallStatus.refresh(context)
-                                }
-                            },
-                        ) {
-                            Text(stringResource(R.string.runtime_action_uninstall))
-                        }
-                    }
-                    if (
-                        progress == null &&
-                            (operation?.phase == RuntimeInstallPhase.CANCELLED ||
-                                operation?.phase == RuntimeInstallPhase.FAILED_RETRYABLE)
-                    ) {
-                        TextButton(onClick = { RuntimeInstallService.startResume(context) }) {
-                            Text(stringResource(R.string.runtime_action_resume))
-                        }
+                            onClick = { showUninstallConfirm = true },
+                            destructive = true,
+                            fillWidth = false,
+                        )
                     }
                 }
                 val currentProgress = progress
@@ -221,7 +238,7 @@ fun RuntimeSettingsPage(onBack: () -> Unit) {
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = MusePaddings.screen, vertical = 8.dp),
+                        modifier = Modifier.padding(horizontal = MusePaddings.screen, vertical = MuseSpacing.sm),
                     )
                 }
                 error?.let { message ->
@@ -229,12 +246,28 @@ fun RuntimeSettingsPage(onBack: () -> Unit) {
                         text = stringResource(R.string.runtime_card_failed_detail, message),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(horizontal = MusePaddings.screen, vertical = 8.dp),
+                        modifier = Modifier.padding(horizontal = MusePaddings.screen, vertical = MuseSpacing.sm),
                     )
                 }
             }
         }
 
+        item {
+            if (showUninstallConfirm) {
+                ConfirmDeleteDialog(
+                    title = stringResource(R.string.runtime_action_uninstall),
+                    itemName = stringResource(R.string.offline_resources_runtime),
+                    onConfirm = {
+                        showUninstallConfirm = false
+                        scope.launch {
+                            manager.uninstall()
+                            RuntimeInstallStatus.refresh(context)
+                        }
+                    },
+                    onDismiss = { showUninstallConfirm = false },
+                )
+            }
+        }
         item {
             if (showVersionPicker) {
                 RuntimeVersionPicker(

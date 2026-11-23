@@ -7,6 +7,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -148,10 +150,11 @@ internal fun ModelsTab(
                 verticalArrangement = Arrangement.spacedBy(MuseSpacing.md),
             ) {
                 item(key = "models_toolbar") {
-                    Row(
+                    @OptIn(ExperimentalLayoutApi::class)
+                    FlowRow(
                         modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
+                        verticalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
                     ) {
                         MuseCapsuleButton(
                             text = stringResource(R.string.settings_provider_refresh_models),
@@ -171,7 +174,6 @@ internal fun ModelsTab(
                             size = MuseButtonSize.Compact,
                             fillWidth = false,
                         )
-                        Spacer(Modifier.weight(1f))
                         MuseCapsuleButton(
                             text = stringResource(R.string.settings_provider_clear_models),
                             onClick = { showClearConfirm = true },

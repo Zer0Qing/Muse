@@ -139,6 +139,8 @@ fun HomeScreen(
      * 于是「未配置模型」横幅上唯一的自救按钮点了没有任何反应。
      */
     onOpenProviderSettings: () -> Unit = {},
+    /** 打开离线资源 / 运行环境设置页。 */
+    onOpenRuntimeInstall: () -> Unit = {},
     // v1.131: ChatViewModel 在 AppKoinModule 中以 `single { }` 注册(见 v1.92 注释),
     // 全应用共享同一实例,故用 koinInject() 直接取单例即可。
     // koinViewModel() 对 single 注册也会返回同一实例,但语义上 koinInject 更准确。
@@ -612,6 +614,7 @@ fun HomeScreen(
                                 providers = state.providers,
                                 onOpenModel = { showModelSheet = true },
                                 onOpenProviderSettings = onOpenProviderSettings,
+                                onOpenRuntimeInstall = onOpenRuntimeInstall,
                                 onSwitchAssistant = { assistantId ->
                                     viewModel.switchAgentAssistant(assistantId)
                                 },

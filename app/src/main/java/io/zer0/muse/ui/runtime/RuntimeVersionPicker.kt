@@ -1,22 +1,20 @@
 package io.zer0.muse.ui.runtime
 
 import android.text.format.Formatter
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,8 +26,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import io.zer0.muse.R
 import io.zer0.muse.runtime.RuntimeVersion
+import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
+import io.zer0.muse.ui.common.form.MuseTextField
+import io.zer0.muse.ui.theme.MuseButtonSize
 import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.theme.MuseSpacing
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun RuntimeVersionPicker(
     versions: List<RuntimeVersion>,
@@ -40,13 +45,18 @@ fun RuntimeVersionPicker(
     onInstallCustom: (RuntimeVersion) -> Unit,
 ) {
     val context = LocalContext.current
-    var selectedRevision by remember(versions) { mutableStateOf<String?>(null) }
+    var selectedRevision by remember(versions, currentRevision) {
+        mutableStateOf(
+            versions.firstOrNull { it.revision == currentRevision }?.revision
+                ?: versions.firstOrNull()?.revision,
+        )
+    }
     val selectedVersion = versions.firstOrNull { it.revision == selectedRevision }
 
-    AlertDialog(
+    MuseDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.runtime_version_picker_title)) },
-        text = {
+        title = stringResource(R.string.runtime_version_picker_title),
+        content = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
@@ -92,36 +102,39 @@ fun RuntimeVersionPicker(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                } else {
+                    HorizontalDivider(modifier = Modifier.padding(vertical = MuseSpacing.xs))
+                    // 次要安装方式放在正文 FlowRow，避免把多个按钮塞进弹窗底部导致与取消按钮重叠。
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
+                        verticalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
+                    ) {
+                        MuseCapsuleButton(
+                            text = stringResource(R.string.runtime_action_local_install),
+                            onClick = { selectedVersion?.let(onInstallLocal) },
+                            enabled = selectedVersion != null,
+                            variant = IosCapsuleButtonVariant.Secondary,
+                            size = MuseButtonSize.Compact,
+                            fillWidth = false,
+                        )
+                        MuseCapsuleButton(
+                            text = stringResource(R.string.runtime_action_custom_url),
+                            onClick = { selectedVersion?.let(onInstallCustom) },
+                            enabled = selectedVersion != null,
+                            variant = IosCapsuleButtonVariant.Secondary,
+                            size = MuseButtonSize.Compact,
+                            fillWidth = false,
+                        )
+                    }
                 }
             }
         },
-        confirmButton = {
-            Column(horizontalAlignment = Alignment.End) {
-                TextButton(
-                    onClick = { selectedVersion?.let(onInstallCustom) },
-                    enabled = selectedVersion != null,
-                ) { Text(stringResource(R.string.runtime_action_custom_url)) }
-                Row(horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap)) {
-                    TextButton(
-                        onClick = { selectedVersion?.let(onInstallLocal) },
-                        enabled = selectedVersion != null,
-                    ) {
-                        Text(stringResource(R.string.runtime_action_local_install))
-                    }
-                    Button(
-                        onClick = { selectedVersion?.let(onInstallRemote) },
-                        enabled = selectedVersion != null,
-                    ) {
-                        Text(stringResource(R.string.runtime_card_install))
-                    }
-                }
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.common_cancel))
-            }
-        },
+        confirmText = stringResource(R.string.runtime_card_install),
+        onConfirm = { selectedVersion?.let(onInstallRemote) },
+        confirmEnabled = selectedVersion != null,
+        dismissText = stringResource(R.string.common_cancel),
+        onDismiss = onDismiss,
     )
 }
 
@@ -134,22 +147,24 @@ fun RuntimeCustomUrlDialog(
     var url by remember(version.revision) { mutableStateOf("") }
     var sha256 by remember(version.revision) { mutableStateOf("") }
 
-    AlertDialog(
+    MuseDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.runtime_custom_url_title, version.revision)) },
-        text = {
+        title = stringResource(R.string.runtime_custom_url_title, version.revision),
+        content = {
             Column(verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap)) {
-                OutlinedTextField(
+                MuseTextField(
                     value = url,
                     onValueChange = { url = it },
                     label = { Text(stringResource(R.string.runtime_custom_url_address)) },
                     singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
                 )
-                OutlinedTextField(
+                MuseTextField(
                     value = sha256,
                     onValueChange = { sha256 = it },
                     label = { Text(stringResource(R.string.runtime_custom_url_sha256)) },
                     singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
                 )
                 if (sha256.isBlank()) {
                     Text(
@@ -160,18 +175,10 @@ fun RuntimeCustomUrlDialog(
                 }
             }
         },
-        confirmButton = {
-            Button(
-                onClick = { onInstall(url.trim(), sha256.trim().takeIf(String::isNotEmpty)) },
-                enabled = url.isNotBlank(),
-            ) {
-                Text(stringResource(R.string.runtime_card_install))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.common_cancel))
-            }
-        },
+        confirmText = stringResource(R.string.runtime_card_install),
+        onConfirm = { onInstall(url.trim(), sha256.trim().takeIf(String::isNotEmpty)) },
+        confirmEnabled = url.isNotBlank(),
+        dismissText = stringResource(R.string.common_cancel),
+        onDismiss = onDismiss,
     )
 }

@@ -8,8 +8,30 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
+import androidx.navigation.NavHostController
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseMotion
+
+/**
+ * 防重复压栈导航扩展：默认开启 `launchSingleTop = true`，
+ * 避免快速双击列表项或入口按钮时把同一目的地压入返回栈两次。
+ */
+fun <T : Any> NavHostController.navigateSingleTop(route: T) {
+    navigate(route) {
+        launchSingleTop = true
+    }
+}
+
+/**
+ * 防空栈安全回退扩展：仅在存在上一级回退项时执行 `popBackStack()`，
+ * 防止快速连点顶部返回按钮把根页面（HomeRoute）误弹出栈。
+ */
+fun NavHostController.popBackStackSafe(): Boolean =
+    if (previousBackStackEntry != null) {
+        popBackStack()
+    } else {
+        false
+    }
 
 /**
  * 导航过渡动画 helper — 全站统一收敛到干脆、单轴的水平 push / pop 推滑。

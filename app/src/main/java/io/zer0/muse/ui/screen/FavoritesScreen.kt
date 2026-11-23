@@ -8,6 +8,8 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -56,8 +58,10 @@ import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.common.surface.MuseSurface
 import io.zer0.muse.ui.markdown.MarkdownPreviewTruncation
 import io.zer0.muse.ui.markdown.MarkdownText
+import io.zer0.muse.ui.theme.MuseButtonSize
 import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.MuseIconSizes
+import io.zer0.muse.ui.theme.MuseSpacing
 import io.zer0.muse.ui.theme.MuseShapes
 import org.koin.androidx.compose.koinViewModel
 import java.text.SimpleDateFormat
@@ -325,22 +329,47 @@ private fun FavoritesListArea(
 }
 
 /** 12: 多选态批量操作栏。 */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun FavoriteBatchBar(selectedCount: Int, onSelectAll: () -> Unit, onBatchGroup: () -> Unit, onBatchUnfavorite: () -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = MuseSpacing.lg, vertical = MuseSpacing.sm),
+        verticalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
     ) {
         Text(
             text = stringResource(R.string.favorites_selected_count, selectedCount),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Spacer(Modifier.weight(1f))
-        MuseCapsuleButton(text = stringResource(R.string.favorites_select_all), onClick = onSelectAll)
-        MuseCapsuleButton(text = stringResource(R.string.favorites_batch_group), onClick = onBatchGroup)
-        MuseCapsuleButton(text = stringResource(R.string.favorites_batch_unfavorite), onClick = onBatchUnfavorite)
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(MuseSpacing.xs),
+        ) {
+            MuseCapsuleButton(
+                text = stringResource(R.string.favorites_select_all),
+                onClick = onSelectAll,
+                variant = IosCapsuleButtonVariant.Secondary,
+                size = MuseButtonSize.Compact,
+                fillWidth = false,
+            )
+            MuseCapsuleButton(
+                text = stringResource(R.string.favorites_batch_group),
+                onClick = onBatchGroup,
+                variant = IosCapsuleButtonVariant.Secondary,
+                size = MuseButtonSize.Compact,
+                fillWidth = false,
+            )
+            MuseCapsuleButton(
+                text = stringResource(R.string.favorites_batch_unfavorite),
+                onClick = onBatchUnfavorite,
+                destructive = true,
+                size = MuseButtonSize.Compact,
+                fillWidth = false,
+            )
+        }
     }
 }
 

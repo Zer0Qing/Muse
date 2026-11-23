@@ -105,20 +105,20 @@ fun MuseErrorStateBox(message: String, onRetry: (() -> Unit)? = null, onDismiss:
                     horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
                 ) {
                     if (onRetry != null) {
-                        FilledTonalButton(
+                        io.zer0.muse.ui.common.form.MuseCapsuleButton(
+                            text = stringResource(R.string.common_retry),
                             onClick = onRetry,
-                            shape = MuseShapes.pill,
-                        ) {
-                            Text(stringResource(R.string.common_retry))
-                        }
+                            variant = io.zer0.muse.ui.common.form.IosCapsuleButtonVariant.Secondary,
+                            fillWidth = false,
+                        )
                     }
                     if (onDismiss != null) {
-                        FilledTonalButton(
+                        io.zer0.muse.ui.common.form.MuseCapsuleButton(
+                            text = stringResource(R.string.common_close),
                             onClick = onDismiss,
-                            shape = MuseShapes.pill,
-                        ) {
-                            Text(stringResource(R.string.common_close))
-                        }
+                            variant = io.zer0.muse.ui.common.form.IosCapsuleButtonVariant.Secondary,
+                            fillWidth = false,
+                        )
                     }
                 }
             }

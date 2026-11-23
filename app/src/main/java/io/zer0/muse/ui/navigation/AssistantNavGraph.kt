@@ -58,7 +58,7 @@ fun NavGraphBuilder.assistantNavGraph(navController: NavHostController, sharedVi
                     Box(modifier = Modifier.weight(0.4f).fillMaxSize()) {
                         AssistantScreen(
                             viewModel = sharedViewModel,
-                            onBack = { navController.popBackStack() },
+                            onBack = { navController.popBackStackSafe() },
                             onOpenDetail = { id -> selectedAssistantId = id },
                         )
                     }
@@ -69,11 +69,11 @@ fun NavGraphBuilder.assistantNavGraph(navController: NavHostController, sharedVi
                             AssistantDetailPage(
                                 assistantId = currentId,
                                 onBack = null,
-                                onOpenBasic = { navController.navigate(AssistantBasicRoute(currentId)) },
-                                onOpenPrompt = { navController.navigate(AssistantPromptRoute(currentId)) },
-                                onOpenExtensions = { navController.navigate(AssistantExtensionsRoute(currentId)) },
-                                onOpenMemory = { navController.navigate(AssistantMemoryRoute(currentId)) },
-                                onOpenAdvanced = { navController.navigate(AssistantAdvancedRoute(currentId)) },
+                                onOpenBasic = { navController.navigateSingleTop(AssistantBasicRoute(currentId)) },
+                                onOpenPrompt = { navController.navigateSingleTop(AssistantPromptRoute(currentId)) },
+                                onOpenExtensions = { navController.navigateSingleTop(AssistantExtensionsRoute(currentId)) },
+                                onOpenMemory = { navController.navigateSingleTop(AssistantMemoryRoute(currentId)) },
+                                onOpenAdvanced = { navController.navigateSingleTop(AssistantAdvancedRoute(currentId)) },
                             )
                         } else {
                             // P1-4: 未选中助手时的占位空状态(右侧详情区空提示)
@@ -88,8 +88,8 @@ fun NavGraphBuilder.assistantNavGraph(navController: NavHostController, sharedVi
             } else {
                 AssistantScreen(
                     viewModel = sharedViewModel,
-                    onBack = { navController.popBackStack() },
-                    onOpenDetail = { id -> navController.navigate(AssistantDetailRoute(id)) },
+                    onBack = { navController.popBackStackSafe() },
+                    onOpenDetail = { id -> navController.navigateSingleTop(AssistantDetailRoute(id)) },
                 )
             }
         } // 关闭共享元素作用域注入
@@ -103,12 +103,12 @@ fun NavGraphBuilder.assistantNavGraph(navController: NavHostController, sharedVi
         CompositionLocalProvider(LocalMuseAnimatedVisibilityScope provides this) {
             AssistantDetailPage(
                 assistantId = assistantId,
-                onBack = { navController.popBackStack() },
-                onOpenBasic = { navController.navigate(AssistantBasicRoute(assistantId)) },
-                onOpenPrompt = { navController.navigate(AssistantPromptRoute(assistantId)) },
-                onOpenExtensions = { navController.navigate(AssistantExtensionsRoute(assistantId)) },
-                onOpenMemory = { navController.navigate(AssistantMemoryRoute(assistantId)) },
-                onOpenAdvanced = { navController.navigate(AssistantAdvancedRoute(assistantId)) },
+                onBack = { navController.popBackStackSafe() },
+                onOpenBasic = { navController.navigateSingleTop(AssistantBasicRoute(assistantId)) },
+                onOpenPrompt = { navController.navigateSingleTop(AssistantPromptRoute(assistantId)) },
+                onOpenExtensions = { navController.navigateSingleTop(AssistantExtensionsRoute(assistantId)) },
+                onOpenMemory = { navController.navigateSingleTop(AssistantMemoryRoute(assistantId)) },
+                onOpenAdvanced = { navController.navigateSingleTop(AssistantAdvancedRoute(assistantId)) },
             )
         } // 关闭共享元素作用域注入
     }
@@ -120,7 +120,7 @@ fun NavGraphBuilder.assistantNavGraph(navController: NavHostController, sharedVi
         val assistantId = backStackEntry.arguments?.getString("assistantId").orEmpty()
         AssistantBasicPage(
             assistantId = assistantId,
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
         )
     }
     // v0.37: 助手提示词子页
@@ -131,7 +131,7 @@ fun NavGraphBuilder.assistantNavGraph(navController: NavHostController, sharedVi
         val assistantId = backStackEntry.arguments?.getString("assistantId").orEmpty()
         AssistantPromptPage(
             assistantId = assistantId,
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
         )
     }
     // v0.37: 助手扩展子页
@@ -142,7 +142,7 @@ fun NavGraphBuilder.assistantNavGraph(navController: NavHostController, sharedVi
         val assistantId = backStackEntry.arguments?.getString("assistantId").orEmpty()
         AssistantExtensionsPage(
             assistantId = assistantId,
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
         )
     }
     // v0.37: 助手记忆子页
@@ -153,7 +153,7 @@ fun NavGraphBuilder.assistantNavGraph(navController: NavHostController, sharedVi
         val assistantId = backStackEntry.arguments?.getString("assistantId").orEmpty()
         AssistantMemoryPage(
             assistantId = assistantId,
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
         )
     }
     // v0.37: 助手高级子页
@@ -164,7 +164,7 @@ fun NavGraphBuilder.assistantNavGraph(navController: NavHostController, sharedVi
         val assistantId = backStackEntry.arguments?.getString("assistantId").orEmpty()
         AssistantAdvancedPage(
             assistantId = assistantId,
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
         )
     }
     composable<MemoryRoute>(
@@ -172,8 +172,8 @@ fun NavGraphBuilder.assistantNavGraph(navController: NavHostController, sharedVi
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         MemoryScreen(
-            onBack = { navController.popBackStack() },
-            onOpenSettings = { navController.navigate(SettingsMemoryConfigRoute) },
+            onBack = { navController.popBackStackSafe() },
+            onOpenSettings = { navController.navigateSingleTop(SettingsMemoryConfigRoute) },
             onOpenSession = { sessionId ->
                 sharedViewModel.switchSession(sessionId)
                 navController.navigate(ChatDetailRoute) { launchSingleTop = true }
@@ -186,7 +186,7 @@ fun NavGraphBuilder.assistantNavGraph(navController: NavHostController, sharedVi
     ) {
         FavoritesScreen(
             viewModel = sharedViewModel,
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
         )
     }
     composable<LorebooksRoute>(
@@ -195,7 +195,7 @@ fun NavGraphBuilder.assistantNavGraph(navController: NavHostController, sharedVi
     ) {
         LorebookScreen(
             viewModel = sharedViewModel,
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
         )
     }
     // P1-2: Worldbook 动态世界书(独立 ViewModel,不依赖 ChatViewModel)
@@ -204,7 +204,7 @@ fun NavGraphBuilder.assistantNavGraph(navController: NavHostController, sharedVi
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         io.zer0.muse.ui.worldbook.WorldBookScreen(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
         )
     }
     composable<QuickMessagesRoute>(
@@ -213,7 +213,7 @@ fun NavGraphBuilder.assistantNavGraph(navController: NavHostController, sharedVi
     ) {
         QuickMessageScreen(
             viewModel = sharedViewModel,
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
         )
     }
     composable<PromptInjectionsRoute>(
@@ -222,7 +222,7 @@ fun NavGraphBuilder.assistantNavGraph(navController: NavHostController, sharedVi
     ) {
         PromptInjectionScreen(
             viewModel = sharedViewModel,
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
         )
     }
     composable<SkillsRoute>(
@@ -230,7 +230,7 @@ fun NavGraphBuilder.assistantNavGraph(navController: NavHostController, sharedVi
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         SkillScreen(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
         )
     }
 }

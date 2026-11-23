@@ -6,13 +6,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -27,6 +25,9 @@ import io.zer0.muse.R
 import io.zer0.muse.runtime.RuntimeInstallStatus
 import io.zer0.muse.runtime.RuntimeInstaller
 import io.zer0.muse.runtime.RuntimeState
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
+import io.zer0.muse.ui.theme.MuseButtonSize
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 
@@ -81,9 +82,13 @@ fun RuntimeInstallBanner(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                TextButton(onClick = onInstall) {
-                    Text(stringResource(R.string.runtime_card_install))
-                }
+                MuseCapsuleButton(
+                    text = stringResource(R.string.runtime_card_install),
+                    onClick = onInstall,
+                    variant = IosCapsuleButtonVariant.Text,
+                    size = MuseButtonSize.Compact,
+                    fillWidth = false,
+                )
             }
         }
         return
@@ -116,9 +121,13 @@ fun RuntimeInstallBanner(
                     color = scheme.onSurface,
                     modifier = Modifier.weight(1f),
                 )
-                TextButton(onClick = onDismiss) {
-                    Text(stringResource(R.string.runtime_card_later))
-                }
+                MuseCapsuleButton(
+                    text = stringResource(R.string.runtime_card_later),
+                    onClick = onDismiss,
+                    variant = IosCapsuleButtonVariant.Text,
+                    size = MuseButtonSize.Compact,
+                    fillWidth = false,
+                )
             }
 
             if (state is RuntimeState.Ready) {
@@ -157,9 +166,12 @@ fun RuntimeInstallBanner(
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
-                Button(onClick = onInstall) {
-                    Text(stringResource(R.string.runtime_card_install))
-                }
+                MuseCapsuleButton(
+                    text = stringResource(R.string.runtime_card_install),
+                    onClick = onInstall,
+                    size = MuseButtonSize.Compact,
+                    fillWidth = false,
+                )
             }
         }
     }

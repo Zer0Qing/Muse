@@ -124,6 +124,7 @@ fun MuseBottomSheet(
     maxHeightFraction: Float = 0.78f,
     horizontalPadding: androidx.compose.ui.unit.Dp = MusePaddings.screen,
     bottomContentSpacing: androidx.compose.ui.unit.Dp = MusePaddings.contentGap,
+    headerContent: (@Composable ColumnScope.() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val latestOnDismiss by rememberUpdatedState(onDismissRequest)
@@ -251,6 +252,14 @@ fun MuseBottomSheet(
                                 },
                             ) { SheetHandle() }
                             CompositionLocalProvider(LocalMuseCompactList provides true) {
+                                if (headerContent != null) {
+                                    Column(
+                                        Modifier.fillMaxWidth()
+                                            .padding(horizontal = horizontalPadding),
+                                    ) {
+                                        headerContent()
+                                    }
+                                }
                                 Column(
                                     Modifier.fillMaxWidth().weight(1f, fill = false)
                                         .verticalScroll(rememberScrollState())

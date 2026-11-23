@@ -10,6 +10,8 @@ import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -464,7 +466,11 @@ fun MemoryGraphView(
                             )
                         }
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    @OptIn(ExperimentalLayoutApi::class)
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(MusePaddings.tinyGap),
+                        verticalArrangement = Arrangement.spacedBy(MusePaddings.tinyGap),
+                    ) {
                         onNodeAction?.let { action ->
                             val actionModifier = Modifier.heightIn(min = 44.dp)
                             MuseCapsuleButton(

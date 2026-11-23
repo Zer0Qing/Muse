@@ -29,7 +29,7 @@ fun NavGraphBuilder.toolsNavGraph(navController: NavHostController, sharedViewMo
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         ToolsScreen(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
         )
     }
     // P2-6: 浏览器自动化演示页 — 全屏 WebView + 顶部地址栏 + 底部操作栏
@@ -39,7 +39,7 @@ fun NavGraphBuilder.toolsNavGraph(navController: NavHostController, sharedViewMo
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         VideoGenerationPage(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
         )
     }
     // P2-9: 语音克隆页 — 从设置 → 媒体 → 语音克隆 进入
@@ -48,7 +48,7 @@ fun NavGraphBuilder.toolsNavGraph(navController: NavHostController, sharedViewMo
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         VoiceCloningPage(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
         )
     }
     // v0.46: 统计页(热力图 + 使用概览,右滑入场)
@@ -57,7 +57,7 @@ fun NavGraphBuilder.toolsNavGraph(navController: NavHostController, sharedViewMo
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         StatsScreen(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
             onOpenSession = { sessionId ->
                 // v1.66: 统计页点击会话跳转 — 切换会话后回到首页
                 sharedViewModel.switchSession(sessionId)
@@ -71,7 +71,7 @@ fun NavGraphBuilder.toolsNavGraph(navController: NavHostController, sharedViewMo
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         NotificationListenerScreen(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
         )
     }
     // v1.0.92: 消息渠道配置页(飞书/QQ 等外部 IM 桥接)
@@ -80,9 +80,9 @@ fun NavGraphBuilder.toolsNavGraph(navController: NavHostController, sharedViewMo
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         io.zer0.muse.ui.settings.ChannelSettingsScreen(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
             onOpenConversations = { channelId ->
-                navController.navigate(ChannelConversationsRoute(channelId))
+                navController.navigateSingleTop(ChannelConversationsRoute(channelId))
             },
         )
     }
@@ -94,9 +94,9 @@ fun NavGraphBuilder.toolsNavGraph(navController: NavHostController, sharedViewMo
         val route = backStackEntry.toRoute<ChannelConversationsRoute>()
         io.zer0.muse.ui.settings.ChannelConversationsScreen(
             channelId = route.channelId,
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
             onOpenConversation = { from ->
-                navController.navigate(ChannelChatRoute(route.channelId, from))
+                navController.navigateSingleTop(ChannelChatRoute(route.channelId, from))
             },
         )
     }
@@ -109,7 +109,7 @@ fun NavGraphBuilder.toolsNavGraph(navController: NavHostController, sharedViewMo
         io.zer0.muse.ui.settings.ChannelChatScreen(
             channelId = route.channelId,
             from = route.from,
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
         )
     }
     // v1.0.92: OAuth 连接器页(通用 OAuth2 接入)
@@ -118,7 +118,7 @@ fun NavGraphBuilder.toolsNavGraph(navController: NavHostController, sharedViewMo
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         io.zer0.muse.ui.settings.ConnectorSettingsPage(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
         )
     }
     // v2.0: 数据管理页(从设置进入)
@@ -127,7 +127,7 @@ fun NavGraphBuilder.toolsNavGraph(navController: NavHostController, sharedViewMo
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         DataManagementScreen(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
         )
     }
     // 知识库(首页大方块入口)
@@ -136,8 +136,8 @@ fun NavGraphBuilder.toolsNavGraph(navController: NavHostController, sharedViewMo
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         KnowledgeScreen(
-            onBack = { navController.popBackStack() },
-            onOpenCoverManager = { navController.navigate(CoverManagerRoute) },
+            onBack = { navController.popBackStackSafe() },
+            onOpenCoverManager = { navController.navigateSingleTop(CoverManagerRoute) },
         )
     }
 
@@ -147,7 +147,7 @@ fun NavGraphBuilder.toolsNavGraph(navController: NavHostController, sharedViewMo
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         CoverManagerScreen(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popBackStackSafe() },
         )
     }
 }

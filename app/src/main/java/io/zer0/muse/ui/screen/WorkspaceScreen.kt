@@ -43,6 +43,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -891,15 +893,18 @@ fun WorkspaceScreen(
                                 )
                             }
                             if (!mount.system) {
-                                androidx.compose.material3.TextButton(
+                                MuseCapsuleButton(
+                                    text = stringResource(R.string.workspace_mount_remove),
                                     onClick = { removeMountTarget = mount },
-                                ) {
-                                    Text(stringResource(R.string.workspace_mount_remove))
-                                }
+                                    variant = IosCapsuleButtonVariant.Text,
+                                    size = io.zer0.muse.ui.theme.MuseButtonSize.Compact,
+                                    fillWidth = false,
+                                )
                             }
                         }
                     }
-                    androidx.compose.material3.TextButton(
+                    MuseCapsuleButton(
+                        text = stringResource(R.string.workspace_mount_add),
                         onClick = {
                             mountSheetOpen = false
                             runCatching { mountDirectoryLauncher.launch(null) }
@@ -909,9 +914,10 @@ fun WorkspaceScreen(
                                     )
                                 }
                         },
-                    ) {
-                        Text(stringResource(R.string.workspace_mount_add))
-                    }
+                        variant = IosCapsuleButtonVariant.Secondary,
+                        size = io.zer0.muse.ui.theme.MuseButtonSize.Compact,
+                        fillWidth = false,
+                    )
                 }
             },
             confirmText = stringResource(R.string.common_close),

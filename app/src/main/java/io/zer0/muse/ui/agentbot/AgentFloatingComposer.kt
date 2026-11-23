@@ -1,5 +1,6 @@
 package io.zer0.muse.ui.agentbot
 
+import android.net.Uri
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,8 +18,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -33,6 +32,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -40,20 +41,24 @@ import androidx.compose.ui.text.input.ImeAction
 import coil.compose.AsyncImage
 import io.zer0.muse.R
 import io.zer0.muse.data.agentbot.AgentBotUiState
+import io.zer0.muse.ui.chat.MuseToolSheet
+import io.zer0.muse.ui.chat.ToolEntry
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.theme.MuseAlpha
 import io.zer0.muse.ui.theme.MuseBorderWidth
 import io.zer0.muse.ui.theme.MuseElevation
+import io.zer0.muse.ui.theme.MuseHaptics
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.pill
 
 /**
- * 底部悬浮药丸输入栏。
+ * 底部独立悬浮药丸输入岛。
  *
- * 后台任务执行和前台流式回复期间均不锁定输入框，保证“做事时随时继续说话”的核心体验。
+ * 外层不铺背景底条，直接叠浮在全屏对话流之上；
+ * 后台任务执行和前台流式回复期间均不锁定输入框，加号菜单复用普通对话的 [MuseToolSheet]。
  */
 @Composable
 fun AgentFloatingComposer(
@@ -65,6 +70,7 @@ fun AgentFloatingComposer(
     onSend: () -> Unit,
     onStopReply: () -> Unit,
     onPickImages: () -> Unit,
+    onPickGalleryImage: (Uri) -> Unit,
     onRemoveImage: (String) -> Unit,
     onVoiceInput: () -> Unit,
     onOpenWorkbench: () -> Unit,
@@ -75,7 +81,9 @@ fun AgentFloatingComposer(
     onOpenRuntimeInstall: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
-    var plusMenuExpanded by rememberSaveable { mutableStateOf(false) }
+    var showToolSheet by rememberSaveable { mutableStateOf(false) }
+    val context = LocalContext.current
+    val hapticFeedback = LocalHapticFeedback.current
     val hasText = composer.text.isNotBlank()
     val plusCd = stringResource(R.string.agent_hub_plus_cd)
     val voiceCd = stringResource(R.string.agent_hub_voice_cd)
@@ -146,7 +154,7 @@ fun AgentFloatingComposer(
         Surface(
             shape = MuseShapes.pill,
             color = MaterialTheme.colorScheme.surface,
-            shadowElevation = MuseElevation.medium,
+            shadowElevation = MuseElevation.high,
             border = BorderStroke(
                 width = MuseBorderWidth.hairline,
                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = MuseAlpha.subtleBorder),
@@ -163,81 +171,15 @@ fun AgentFloatingComposer(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
             ) {
-                // 左侧 [+] 快捷工具抽屉
-                Box {
-                    MuseTactileButton(
-                        icon = MuseIcons.plus,
-                        contentDescription = plusCd,
-                        onClick = { plusMenuExpanded = true },
-                    )
-                    DropdownMenu(
-                        expanded = plusMenuExpanded,
-                        onDismissRequest = { plusMenuExpanded = false },
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.agent_screen_add_image)) },
-                            leadingIcon = { Icon(MuseIcons.image, contentDescription = null) },
-                            onClick = {
-                                plusMenuExpanded = false
-                                onPickImages()
-                            },
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.agent_hub_cue_trigger_briefing)) },
-                            leadingIcon = { Icon(MuseIcons.sun, contentDescription = null) },
-                            onClick = {
-                                plusMenuExpanded = false
-                                onTriggerBriefing()
-                            },
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.agent_hub_quick_teach)) },
-                            leadingIcon = { Icon(MuseIcons.handFinger, contentDescription = null) },
-                            onClick = {
-                                plusMenuExpanded = false
-                                onStartTeach()
-                            },
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.agent_hub_quick_workbench)) },
-                            leadingIcon = { Icon(MuseIcons.computer, contentDescription = null) },
-                            onClick = {
-                                plusMenuExpanded = false
-                                onOpenWorkbench()
-                            },
-                        )
-                        if (onOpenModel != null) {
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.chat_select_provider)) },
-                                leadingIcon = { Icon(MuseIcons.brain, contentDescription = null) },
-                                onClick = {
-                                    plusMenuExpanded = false
-                                    onOpenModel()
-                                },
-                            )
-                        }
-                        if (onOpenProviderSettings != null) {
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.agent_screen_provider_settings)) },
-                                leadingIcon = { Icon(MuseIcons.sliders, contentDescription = null) },
-                                onClick = {
-                                    plusMenuExpanded = false
-                                    onOpenProviderSettings()
-                                },
-                            )
-                        }
-                        if (onOpenRuntimeInstall != null) {
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.agent_screen_runtime_install)) },
-                                leadingIcon = { Icon(MuseIcons.terminal, contentDescription = null) },
-                                onClick = {
-                                    plusMenuExpanded = false
-                                    onOpenRuntimeInstall()
-                                },
-                            )
-                        }
-                    }
-                }
+                // 左侧 [+] 按钮：沿用普通对话的 MuseToolSheet 底部面板
+                MuseTactileButton(
+                    icon = MuseIcons.plus,
+                    contentDescription = plusCd,
+                    onClick = {
+                        MuseHaptics.light(hapticFeedback)
+                        showToolSheet = true
+                    },
+                )
 
                 // 中间自适应输入框
                 Box(
@@ -320,5 +262,112 @@ fun AgentFloatingComposer(
                 }
             }
         }
+    }
+
+    if (showToolSheet) {
+        val workbenchTitle = stringResource(R.string.agent_hub_quick_workbench)
+        val briefingTitle = stringResource(R.string.agent_hub_cue_trigger_briefing)
+        val teachTitle = stringResource(R.string.agent_hub_quick_teach)
+        val modelTitle = stringResource(R.string.chat_select_provider)
+        val providerTitle = stringResource(R.string.agent_screen_provider_settings)
+        val runtimeTitle = stringResource(R.string.agent_screen_runtime_install)
+        val toolEntries = buildList {
+            add(
+                ToolEntry(
+                    icon = MuseIcons.computer,
+                    title = workbenchTitle,
+                    titleRes = R.string.agent_hub_quick_workbench,
+                    onClick = {
+                        MuseHaptics.light(hapticFeedback)
+                        showToolSheet = false
+                        onOpenWorkbench()
+                    },
+                ),
+            )
+            add(
+                ToolEntry(
+                    icon = MuseIcons.sun,
+                    title = briefingTitle,
+                    titleRes = R.string.agent_hub_cue_trigger_briefing,
+                    onClick = {
+                        MuseHaptics.light(hapticFeedback)
+                        showToolSheet = false
+                        onTriggerBriefing()
+                    },
+                ),
+            )
+            add(
+                ToolEntry(
+                    icon = MuseIcons.handFinger,
+                    title = teachTitle,
+                    titleRes = R.string.agent_hub_quick_teach,
+                    onClick = {
+                        MuseHaptics.light(hapticFeedback)
+                        showToolSheet = false
+                        onStartTeach()
+                    },
+                ),
+            )
+            if (onOpenModel != null) {
+                add(
+                    ToolEntry(
+                        icon = MuseIcons.brain,
+                        title = modelTitle,
+                        titleRes = R.string.chat_select_provider,
+                        onClick = {
+                            MuseHaptics.light(hapticFeedback)
+                            showToolSheet = false
+                            onOpenModel()
+                        },
+                    ),
+                )
+            }
+            if (onOpenProviderSettings != null) {
+                add(
+                    ToolEntry(
+                        icon = MuseIcons.sliders,
+                        title = providerTitle,
+                        titleRes = R.string.agent_screen_provider_settings,
+                        onClick = {
+                            MuseHaptics.light(hapticFeedback)
+                            showToolSheet = false
+                            onOpenProviderSettings()
+                        },
+                    ),
+                )
+            }
+            if (onOpenRuntimeInstall != null) {
+                add(
+                    ToolEntry(
+                        icon = MuseIcons.terminal,
+                        title = runtimeTitle,
+                        titleRes = R.string.agent_screen_runtime_install,
+                        onClick = {
+                            MuseHaptics.light(hapticFeedback)
+                            showToolSheet = false
+                            onOpenRuntimeInstall()
+                        },
+                    ),
+                )
+            }
+        }
+        MuseToolSheet(
+            context = context,
+            hapticFeedback = hapticFeedback,
+            onPickImage = {
+                showToolSheet = false
+                onPickImages()
+            },
+            onPickGalleryImage = { uri ->
+                showToolSheet = false
+                onPickGalleryImage(uri)
+            },
+            entries = toolEntries,
+            onDismiss = { showToolSheet = false },
+            featuredTitleRes = listOf(
+                R.string.agent_hub_quick_workbench,
+                R.string.agent_hub_cue_trigger_briefing,
+            ),
+        )
     }
 }

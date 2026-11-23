@@ -436,6 +436,19 @@ fun NotificationListenerScreen(onBack: () -> Unit) {
                             leadingIcon = MuseIcons.externalLink,
                             modifier = Modifier.fillMaxWidth(),
                         )
+                        var showClearRecordsConfirm by remember { mutableStateOf(false) }
+                        if (showClearRecordsConfirm) {
+                            io.zer0.muse.ui.common.settings.ConfirmDeleteDialog(
+                                title = stringResource(R.string.notif_listener_clear_records),
+                                itemName = stringResource(R.string.notif_listener_clear_records),
+                                onConfirm = {
+                                    showClearRecordsConfirm = false
+                                    MuseNotificationListenerService.clearAll()
+                                    MuseToast.show(context.getString(R.string.notif_listener_cleared_toast))
+                                },
+                                onDismiss = { showClearRecordsConfirm = false },
+                            )
+                        }
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -444,10 +457,7 @@ fun NotificationListenerScreen(onBack: () -> Unit) {
                             // 均分宽度，文字被截成「清…/全…」。全宽场景图标价值低，文字优先。
                             MuseCapsuleButton(
                                 text = stringResource(R.string.notif_listener_clear_records),
-                                onClick = {
-                                    MuseNotificationListenerService.clearAll()
-                                    MuseToast.show(context.getString(R.string.notif_listener_cleared_toast))
-                                },
+                                onClick = { showClearRecordsConfirm = true },
                                 enabled = notifications.isNotEmpty(),
                                 variant = IosCapsuleButtonVariant.Secondary,
                                 modifier = Modifier.weight(1f),

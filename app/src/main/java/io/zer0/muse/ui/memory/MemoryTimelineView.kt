@@ -145,20 +145,24 @@ private fun TimelineNode(
         modifier = Modifier.width(24.dp),
     ) {
         if (selectionMode) {
-            Icon(
-                imageVector = if (isSelected) MuseIcons.circleCheck else MuseIcons.circle,
-                contentDescription = null,
-                tint =
-                if (isSelected) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.outline
-                },
-                modifier =
-                Modifier
-                    .size(16.dp)
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
                     .then(if (onToggleSelect != null) Modifier.clickable { onToggleSelect() } else Modifier),
-            )
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = if (isSelected) MuseIcons.circleCheck else MuseIcons.circle,
+                    contentDescription = null,
+                    tint =
+                    if (isSelected) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.outline
+                    },
+                    modifier = Modifier.size(16.dp),
+                )
+            }
         } else {
             Icon(
                 imageVector = nodeIcon,

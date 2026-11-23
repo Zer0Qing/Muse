@@ -36,8 +36,6 @@ import androidx.compose.ui.input.key.isCtrlPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -769,30 +767,16 @@ private fun MuseNavGraph(
                     // 返回交给 NavHost 自带的 Navigation Compose 回调：
                     // 子页面由导航栈回退，根页面没有可回退栈时交给 Activity 默认行为退出。
                     // 页面级 BackHandler、Dialog 和 Popup 仍按 Compose 的内层优先级先消费。
-
-                    // 整屏覆盖滑动期间的输入门控：转场进行中(visibleEntries>1)在 Initial pass
-                    // 先于子节点吞掉所有触摸，避免用户快点命中尚未归位的页面；转场结束(size==1)
-                    // 即恢复交互。系统返回键不走触摸通路，不受影响。
-                    val navVisibleEntries by navController.visibleEntries.collectAsStateWithLifecycle()
-                    val navTransitioning = navVisibleEntries.size > 1
-
+                    // 不在 NavHost 上挂载基于 visibleEntries 的全屏 Initial-pass 触摸吞噬门控：
+                    // 快速导航/共享元素或重组中断过渡时 visibleEntries 可能滞留在 >1，
+                    // 导致新页面所有触摸被永久锁死，只能靠系统返回键解除。
                     MuseFluidSharedHost {
                         NavHost(
                             navController = navController,
                             startDestination = startDestination,
                             modifier = Modifier
                                 .fillMaxSize()
-                                .background(MaterialTheme.colorScheme.background)
-                                .pointerInput(navTransitioning) {
-                                    if (navTransitioning) {
-                                        awaitPointerEventScope {
-                                            while (true) {
-                                                awaitPointerEvent(PointerEventPass.Initial)
-                                                    .changes.forEach { it.consume() }
-                                            }
-                                        }
-                                    }
-                                },
+                                .background(MaterialTheme.colorScheme.background),
                             // 默认过渡与各子 NavGraph 复用同一套 helper，避免根图和二级图的
                             // 时长/位移/淡入淡出语义漂移。
                             enterTransition = { MuseTransitions.horizontalPushEnter() },

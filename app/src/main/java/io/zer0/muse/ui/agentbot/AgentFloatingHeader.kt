@@ -27,8 +27,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -49,9 +47,9 @@ import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.ui.theme.statusColors
 
 /**
- * 沉浸式单层浮层顶栏：中央悬浮圆形头像 + 下方压边胶囊名牌，右侧工作台入口带活跃徽章。
+ * 沉浸式透明镂空悬浮顶栏：中央悬浮圆形头像 + 下方压边胶囊名牌，右侧工作台圆形按钮带活跃徽章。
  *
- * 顶部采用柔和背景渐变蒙版，消息向上滚动时自然淡入顶栏下方，避免硬分割线与双层导航拥挤。
+ * 头像两侧完全透明镂空，不铺背景色或渐变条，消息流可从顶栏后方自然滑过。
  */
 @Composable
 fun AgentFloatingHeader(
@@ -64,74 +62,60 @@ fun AgentFloatingHeader(
     onOpenWorkbench: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val bgColor = MaterialTheme.colorScheme.background
     val switchCd = stringResource(R.string.agent_hub_switch_bot)
     val workbenchCd = stringResource(R.string.agent_hub_open_workbench)
 
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .background(
-                Brush.verticalGradient(
-                    colorStops = arrayOf(
-                        0.0f to bgColor,
-                        0.72f to bgColor.copy(alpha = 0.92f),
-                        1.0f to Color.Transparent,
-                    ),
-                ),
-            )
             .padding(
                 horizontal = MusePaddings.screen,
-                vertical = MusePaddings.contentGap,
+                vertical = MusePaddings.tightGap,
             ),
     ) {
-        // 中央：圆形头像 + 下方压边悬浮名牌胶囊
-        Column(
+        // 中央：紧凑横向悬浮头像名牌胶囊，两侧完全透明镂空，不与上方首页 Tab 栏叠出双层高顶栏
+        Surface(
+            onClick = onOpenIdentitySwitch,
+            shape = MuseShapes.pill,
+            color = MaterialTheme.colorScheme.surface,
+            shadowElevation = MuseElevation.high,
+            border = BorderStroke(
+                width = MuseBorderWidth.hairline,
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = MuseAlpha.subtleBorder),
+            ),
             modifier = Modifier
                 .align(Alignment.Center)
-                .semantics { contentDescription = switchCd }
-                .clickable(onClick = onOpenIdentitySwitch),
-            horizontalAlignment = Alignment.CenterHorizontally,
+                .semantics { contentDescription = switchCd },
         ) {
-            Box(contentAlignment = Alignment.BottomCenter) {
+            Row(
+                modifier = Modifier.padding(
+                    start = MusePaddings.tightGap,
+                    end = MusePaddings.auxGap,
+                    top = MusePaddings.tinyGap,
+                    bottom = MusePaddings.tinyGap,
+                ),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+            ) {
                 AgentAvatarCircle(
                     name = assistantName,
                     avatarUri = avatarUri,
-                    modifier = Modifier.padding(bottom = MusePaddings.auxGap),
+                    compact = true,
                 )
-                Surface(
-                    shape = MuseShapes.pill,
-                    color = MaterialTheme.colorScheme.surface,
-                    shadowElevation = MuseElevation.medium,
-                    border = BorderStroke(
-                        width = MuseBorderWidth.hairline,
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = MuseAlpha.subtleBorder),
-                    ),
-                ) {
-                    Row(
-                        modifier = Modifier.padding(
-                            horizontal = MusePaddings.auxGap,
-                            vertical = MusePaddings.tinyGap,
-                        ),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(MusePaddings.tinyGap),
-                    ) {
-                        Text(
-                            text = assistantName.ifBlank { stringResource(R.string.agent_screen_title) },
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.widthIn(max = MusePaddings.maxInlineWidth),
-                        )
-                        Icon(
-                            imageVector = MuseIcons.chevronRight,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(MuseIconSizes.iconTiny),
-                        )
-                    }
-                }
+                Text(
+                    text = assistantName.ifBlank { stringResource(R.string.agent_screen_title) },
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.widthIn(max = MusePaddings.maxInlineWidth),
+                )
+                Icon(
+                    imageVector = MuseIcons.chevronRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(MuseIconSizes.iconTiny),
+                )
             }
         }
 
@@ -195,12 +179,14 @@ internal fun AgentAvatarCircle(
     name: String,
     avatarUri: String?,
     modifier: Modifier = Modifier,
+    compact: Boolean = false,
 ) {
+    val avatarSize = if (compact) MuseAvatarSize.inline else MuseAvatarSize.detail
     Surface(
         shape = CircleShape,
         color = MaterialTheme.colorScheme.primaryContainer,
-        shadowElevation = MuseElevation.card,
-        modifier = modifier.size(MuseAvatarSize.detail),
+        shadowElevation = if (compact) MuseElevation.none else MuseElevation.card,
+        modifier = modifier.size(avatarSize),
     ) {
         if (!avatarUri.isNullOrBlank()) {
             AsyncImage(
@@ -208,7 +194,7 @@ internal fun AgentAvatarCircle(
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
-                    .size(MuseAvatarSize.detail)
+                    .size(avatarSize)
                     .clip(CircleShape),
             )
         } else {
@@ -216,7 +202,7 @@ internal fun AgentAvatarCircle(
                 val initial = name.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "M"
                 Text(
                     text = initial,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = if (compact) MaterialTheme.typography.labelMedium else MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
             }

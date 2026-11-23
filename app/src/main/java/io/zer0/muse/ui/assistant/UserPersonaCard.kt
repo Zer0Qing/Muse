@@ -1,7 +1,9 @@
 package io.zer0.muse.ui.assistant
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
@@ -13,20 +15,22 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import io.zer0.muse.data.assistant.UserPersona
 import io.zer0.muse.data.assistant.UserPersonaStore
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseBottomSheet
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseSettingsIcon
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.settings.ChevronRight
+import io.zer0.muse.ui.common.settings.ConfirmDeleteDialog
 import io.zer0.muse.ui.common.surface.CardGroup
+import io.zer0.muse.ui.theme.MuseButtonSize
+import io.zer0.muse.ui.theme.MuseSpacing
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import java.util.UUID
@@ -71,6 +75,7 @@ internal fun UserPersonaCard(assistantId: String, modifier: Modifier = Modifier)
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun UserPersonaSheet(
     personas: List<UserPersona>,
@@ -81,39 +86,82 @@ private fun UserPersonaSheet(
     onDismiss: () -> Unit,
 ) {
     var editing by remember { mutableStateOf<UserPersona?>(null) }
+    var deleteTarget by remember { mutableStateOf<UserPersona?>(null) }
     var name by remember { mutableStateOf("") }
     var text by remember { mutableStateOf("") }
 
+    deleteTarget?.let { target ->
+        ConfirmDeleteDialog(
+            title = stringResource(R.string.common_delete),
+            itemName = target.name,
+            onConfirm = {
+                deleteTarget = null
+                onDelete(target.id)
+            },
+            onDismiss = { deleteTarget = null },
+        )
+    }
+
     MuseBottomSheet(onDismissRequest = onDismiss) {
-        Column(Modifier.fillMaxWidth().padding(16.dp)) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(MuseSpacing.lg),
+            verticalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
+        ) {
             Text(stringResource(R.string.user_persona_section), style = MaterialTheme.typography.titleMedium)
-            Row(Modifier.fillMaxWidth().padding(top = 8.dp)) {
-                MuseCapsuleButton(text = stringResource(R.string.user_persona_use_global), onClick = { onSelect(null) })
-            }
+            MuseCapsuleButton(
+                text = stringResource(R.string.user_persona_use_global),
+                onClick = { onSelect(null) },
+                variant = IosCapsuleButtonVariant.Secondary,
+            )
             personas.forEach { p ->
-                Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text((if (p.id == selectedId) "✓ " else "") + p.name, style = MaterialTheme.typography.bodyLarge)
-                        Text(
-                            p.text.take(60),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 2,
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(top = MuseSpacing.xs),
+                    verticalArrangement = Arrangement.spacedBy(MuseSpacing.xs),
+                ) {
+                    Text((if (p.id == selectedId) "✓ " else "") + p.name, style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        p.text.take(60),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                    )
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
+                        verticalArrangement = Arrangement.spacedBy(MuseSpacing.xs),
+                    ) {
+                        MuseCapsuleButton(
+                            text = stringResource(R.string.user_persona_select),
+                            onClick = { onSelect(p.id) },
+                            variant = IosCapsuleButtonVariant.Secondary,
+                            size = MuseButtonSize.Compact,
+                            fillWidth = false,
+                        )
+                        MuseCapsuleButton(
+                            text = stringResource(R.string.common_edit),
+                            onClick = {
+                                editing = p
+                                name = p.name
+                                text = p.text
+                            },
+                            variant = IosCapsuleButtonVariant.Text,
+                            size = MuseButtonSize.Compact,
+                            fillWidth = false,
+                        )
+                        MuseCapsuleButton(
+                            text = stringResource(R.string.common_delete),
+                            onClick = { deleteTarget = p },
+                            destructive = true,
+                            size = MuseButtonSize.Compact,
+                            fillWidth = false,
                         )
                     }
-                    MuseCapsuleButton(text = stringResource(R.string.user_persona_select), onClick = { onSelect(p.id) })
-                    MuseCapsuleButton(text = stringResource(R.string.common_edit), onClick = {
-                        editing = p
-                        name = p.name
-                        text = p.text
-                    })
-                    MuseCapsuleButton(text = stringResource(R.string.common_delete), onClick = { onDelete(p.id) })
                 }
             }
             Text(
                 stringResource(if (editing == null) R.string.user_persona_new else R.string.common_edit),
                 style = MaterialTheme.typography.titleSmall,
-                modifier = Modifier.padding(top = 16.dp),
+                modifier = Modifier.padding(top = MuseSpacing.sm),
             )
             MuseTextField(
                 value = name,
@@ -126,19 +174,17 @@ private fun UserPersonaSheet(
                 placeholder = { Text(stringResource(R.string.user_persona_text)) },
                 minLines = 3,
             )
-            Row(Modifier.fillMaxWidth().padding(top = 8.dp)) {
-                MuseCapsuleButton(
-                    text = stringResource(R.string.common_save),
-                    onClick = {
-                        if (name.isNotBlank() && text.isNotBlank()) {
-                            onSave(UserPersona(id = editing?.id ?: UUID.randomUUID().toString(), name = name.trim(), text = text.trim()))
-                            editing = null
-                            name = ""
-                            text = ""
-                        }
-                    },
-                )
-            }
+            MuseCapsuleButton(
+                text = stringResource(R.string.common_save),
+                onClick = {
+                    if (name.isNotBlank() && text.isNotBlank()) {
+                        onSave(UserPersona(id = editing?.id ?: UUID.randomUUID().toString(), name = name.trim(), text = text.trim()))
+                        editing = null
+                        name = ""
+                        text = ""
+                    }
+                },
+            )
         }
     }
 }

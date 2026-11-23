@@ -118,6 +118,7 @@ internal fun MuseToolSheet(
     onPickGalleryImage: (Uri) -> Unit,
     entries: List<ToolEntry>,
     onDismiss: () -> Unit,
+    featuredTitleRes: List<Int> = listOf(R.string.chat_web_search_cd, R.string.chat_deep_thinking_cd),
 ) {
     MuseBottomSheet(
         onDismissRequest = onDismiss,
@@ -289,39 +290,30 @@ internal fun MuseToolSheet(
         // 三个分区之间拉开同级的"组间距",组内仍用 contentGap 保持紧凑。
         Spacer(Modifier.height(MusePaddings.cardGap))
 
-        // ── 第二行:联网搜索 + 深度思考 ──
-        val webSearchEntry = entries.findToolEntry(R.string.chat_web_search_cd)
-        val deepThinkingEntry = entries.findToolEntry(R.string.chat_deep_thinking_cd)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
-        ) {
-            webSearchEntry?.let { entry ->
-                QuickAttachTab(
-                    icon = entry.icon,
-                    label = entry.title,
-                    isActive = entry.isActive,
-                    onClick = entry.onClick,
-                    compact = true,
-                    dense = true,
-                    modifier = Modifier.weight(1f),
-                )
+        // ── 第二行:核心主操作双胶囊（默认联网搜索 + 深度思考，支持调用方自定义主入口） ──
+        val featuredEntries = featuredTitleRes.mapNotNull { entries.findToolEntry(it) }
+        val featuredTitles = featuredEntries.map { it.title }.toSet()
+        if (featuredEntries.isNotEmpty()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+            ) {
+                featuredEntries.forEach { entry ->
+                    QuickAttachTab(
+                        icon = entry.icon,
+                        label = entry.title,
+                        isActive = entry.isActive,
+                        onClick = entry.onClick,
+                        onLongClick = entry.onLongClick,
+                        compact = true,
+                        dense = true,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
             }
-            deepThinkingEntry?.let { entry ->
-                QuickAttachTab(
-                    icon = entry.icon,
-                    label = entry.title,
-                    isActive = entry.isActive,
-                    onClick = entry.onClick,
-                    onLongClick = entry.onLongClick,
-                    compact = true,
-                    dense = true,
-                    modifier = Modifier.weight(1f),
-                )
-            }
-        }
 
-        Spacer(Modifier.height(MusePaddings.cardGap))
+            Spacer(Modifier.height(MusePaddings.cardGap))
+        }
 
         // ── 第三行:相册、附件、引用知识库及其余杂项，保持小胶囊并横向滚动 ──
         val miscEntries = buildList {
@@ -342,11 +334,11 @@ internal fun MuseToolSheet(
                 add(QuickAttachEntry(entry.icon, entry.title, onClick = entry.onClick))
             }
             // 第三层容纳所有剩余杂项：提示词、技能、绘图、委托、重启上下文等。
-            // 只排除第二层的两个核心开关，以及已经放入本行的入口，避免重复。
+            // 只排除第二层的核心入口，以及已经放入本行的入口，避免重复。
             val usedTitles = map { it.label }.toSet()
             entries
                 .filter { it.title !in usedTitles }
-                .filter { it.title != webSearchEntry?.title && it.title != deepThinkingEntry?.title }
+                .filter { it.title !in featuredTitles }
                 .forEach { entry ->
                     add(
                         QuickAttachEntry(

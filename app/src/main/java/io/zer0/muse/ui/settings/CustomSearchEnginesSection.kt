@@ -207,10 +207,9 @@ private fun CustomEngineRow(engine: CustomSearchEngine, enabled: Boolean, onTogg
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        Switch(
+        io.zer0.muse.ui.common.form.MuseSwitch(
             checked = enabled,
             onCheckedChange = onToggle,
-            modifier = Modifier.size(40.dp),
         )
     }
 }
