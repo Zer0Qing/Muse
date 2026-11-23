@@ -148,6 +148,7 @@ internal class ChatSessionController(
      *  v2.x: [assistantIdOverride] 非空时以指定助手创建(伙伴横排快捷开聊用)。 */
     @Suppress("CyclomaticComplexMethod")
     fun createNewSession(onReady: (() -> Unit)? = null, assistantIdOverride: String? = null, folderId: String? = null) {
+        val switchToken = switchGuard.begin()
         if (accessor.snapshot.isStreaming) bridge.detachStreaming()
         // Phase 8.7: 切换会话时停止 TTS(避免跨会话继续朗读)
         sessionDeps.onStopTts()
@@ -181,6 +182,11 @@ internal class ChatSessionController(
                     sessionDeps.settings.defaultSessionPermissionModeFlow.first(),
                 )
             sessionDeps.sessionManager.acquire(id)
+            if (switchGuard.isStale(switchToken)) {
+                sessionDeps.sessionManager.release(id)
+                Logger.i("ChatVM", "createNewSession 过期,丢弃: $id")
+                return@launch
+            }
             val assistant =
                 sessionDeps.assistantRepository.getById(currentAssistantId)
                     ?: sessionDeps.assistantRepository.getById("default")
@@ -217,6 +223,7 @@ internal class ChatSessionController(
 
     /** 重启上下文:释放旧会话 → 新建任务/Agent 会话 → 重置 UI 状态。 */
     fun restartContext() {
+        val switchToken = switchGuard.begin()
         if (accessor.snapshot.isStreaming) bridge.detachStreaming()
         sessionDeps.onStopTts()
         sessionDeps.onNotifySessionEnd()
@@ -234,6 +241,11 @@ internal class ChatSessionController(
                     sessionRepository.createSession(assistantId = currentAssistantId)
                 }
             sessionDeps.sessionManager.acquire(id)
+            if (switchGuard.isStale(switchToken)) {
+                sessionDeps.sessionManager.release(id)
+                Logger.i("ChatVM", "restartContext 过期,丢弃: $id")
+                return@launch
+            }
             val assistant =
                 sessionDeps.assistantRepository.getById(currentAssistantId)
                     ?: sessionDeps.assistantRepository.getById("default")
@@ -282,6 +294,7 @@ internal class ChatSessionController(
 
     /** v1.97 gap8: 将文本发送到新会话(原子创建新会话 + 填充输入 + 触发发送)。 */
     fun sendToNewChat(text: String, onReady: (() -> Unit)? = null) {
+        val switchToken = switchGuard.begin()
         if (accessor.snapshot.isStreaming) bridge.detachStreaming()
         sessionDeps.onStopTts()
         sessionDeps.onDisposeAsr()
@@ -310,6 +323,11 @@ internal class ChatSessionController(
                     sessionDeps.settings.defaultSessionPermissionModeFlow.first(),
                 )
             sessionDeps.sessionManager.acquire(id)
+            if (switchGuard.isStale(switchToken)) {
+                sessionDeps.sessionManager.release(id)
+                Logger.i("ChatVM", "sendToNewChat 过期,丢弃: $id")
+                return@launch
+            }
             val assistant =
                 sessionDeps.assistantRepository.getById(currentAssistantId)
                     ?: sessionDeps.assistantRepository.getById("default")
@@ -728,6 +746,11 @@ internal class ChatSessionController(
                     .lastOrNull { it.role == MessageRole.USER }
                     ?.content
                 dropAlreadySentDraft(draft, pendingTexts, lastSentUserText)
+            }
+            if (switchGuard.isStale(switchToken)) {
+                sessionDeps.sessionManager.release(sessionId)
+                Logger.i("ChatVM", "switchSession 在加载期间被更新的切换取代,丢弃: $sessionId")
+                return@launch
             }
             accessor.update {
                 sessionDeps.stateStore.messages.value = messages

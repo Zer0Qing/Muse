@@ -41,6 +41,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -124,14 +126,40 @@ fun MuseBottomSheet(
     maxHeightFraction: Float = 0.78f,
     horizontalPadding: androidx.compose.ui.unit.Dp = MusePaddings.screen,
     bottomContentSpacing: androidx.compose.ui.unit.Dp = MusePaddings.contentGap,
+    canDismiss: () -> Boolean = { true },
     headerContent: (@Composable ColumnScope.() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val latestOnDismiss by rememberUpdatedState(onDismissRequest)
+    val latestCanDismiss by rememberUpdatedState(canDismiss)
     val visible = remember { MutableTransitionState(false).apply { targetState = true } }
-    val dismiss = { visible.targetState = false }
+    val sheetScope = rememberCoroutineScope()
+    val dragOffsetY = remember { Animatable(0f) }
+    val dismiss: () -> Unit = {
+        if (latestCanDismiss()) {
+            visible.targetState = false
+        } else {
+            latestOnDismiss()
+            sheetScope.launch {
+                dragOffsetY.animateTo(
+                    0f,
+                    androidx.compose.animation.core.spring(
+                        dampingRatio = MuseAnimation.BOUNCY_DAMPING,
+                        stiffness = MuseAnimation.BOUNCY_STIFFNESS,
+                    ),
+                )
+            }
+        }
+    }
     LaunchedEffect(visible.isIdle, visible.currentState, visible.targetState) {
-        if (visible.isIdle && !visible.currentState && !visible.targetState) latestOnDismiss()
+        if (visible.isIdle && !visible.currentState && !visible.targetState) {
+            latestOnDismiss()
+            // 兜底防线：若调用方拦截退出、保留了 MuseBottomSheet（例如弹二次确认框），
+            // 不能留下已退隐的透明全屏 Dialog 吞掉全部触控；稍后将面板恢复可见。
+            delay(160L)
+            dragOffsetY.snapTo(0f)
+            visible.targetState = true
+        }
     }
     Dialog(
         onDismissRequest = dismiss,
@@ -158,9 +186,6 @@ fun MuseBottomSheet(
             }
             BoxWithConstraints(Modifier.fillMaxSize().statusBarsPadding().imePadding()) {
                 val sheetMaxHeight = calculateBottomSheetHeight(maxHeight, maxHeightFraction, bottomInset) + bottomInset
-                // F3.2: 面板拖拽位移（正=向下跟手）。上越界由手势里的橡胶带阻尼后写入。
-                val dragOffsetY = remember { Animatable(0f) }
-                val sheetScope = rememberCoroutineScope()
                 AnimatedVisibility(
                     visibleState = visible,
                     modifier = Modifier.align(Alignment.BottomCenter),

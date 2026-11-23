@@ -115,6 +115,7 @@ import io.zer0.muse.ui.chat.ThinkingIndicator
 import io.zer0.muse.ui.chat.HistoryLoadMorePlaceholder
 import io.zer0.muse.ui.chat.ChatSelectionBar
 import io.zer0.muse.ui.chat.InputBar
+import io.zer0.muse.util.launchSafely
 
 /**
  * 群聊详情页 — 消息流 + 输入栏 + Agent 轮转回复。
@@ -358,14 +359,19 @@ fun GroupChatDetailScreen(
 
     // 拍照入口:创建 FileProvider uri 并调系统相机
     fun startCameraCapture() {
-        val file = java.io.File.createTempFile("muse_group_capture_", ".jpg", context.cacheDir)
-        val uri = androidx.core.content.FileProvider.getUriForFile(
-            context,
-            "${context.packageName}.fileprovider",
-            file,
-        )
-        pendingCameraUri = uri
-        takePictureLauncher.launch(uri)
+        runCatching {
+            val file = java.io.File.createTempFile("muse_group_capture_", ".jpg", context.cacheDir)
+            val uri = androidx.core.content.FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                file,
+            )
+            pendingCameraUri = uri
+            takePictureLauncher.launch(uri)
+        }.onFailure { error ->
+            io.zer0.common.Logger.w("GroupChatDetail", "启动拍照失败: ${error.message}", error)
+            io.zer0.muse.ui.common.feedback.MuseToast.show(context.getString(R.string.chat_camera_unavailable_hint))
+        }
     }
 
     // 进入页面时选中该群聊(加载消息流)
@@ -392,16 +398,31 @@ fun GroupChatDetailScreen(
     // 用户主动上滑查看历史时不打断。
     // v1.53-GC: 列表头部多了一个"加载更多"指示器 item,自动滚到底部仍以消息 lastIndex 为准
     // (思考指示器在消息之后,不影响"已到底部"判断)。
-    LaunchedEffect(state.currentMessages.size, state.isAgentResponding, state.streamingContent?.length) {
+    LaunchedEffect(state.currentMessages.size, state.isAgentResponding) {
         if (state.currentMessages.isEmpty()) return@LaunchedEffect
         val lastIndex = state.currentMessages.lastIndex
         val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
         val isNearBottom = lastVisible >= lastIndex - 2 || lastVisible < 0
         if (isNearBottom) {
-            // v1.0.74 fix (前端审计 1.6): streamingContent 长度加入 key 后,
-            // 流式输出逐 token 增长时也会触发滚动,用户能看到生成中的内容。
             listState.animateScrollToItem(lastIndex)
         }
+    }
+    LaunchedEffect(state.isAgentResponding) {
+        if (!state.isAgentResponding) return@LaunchedEffect
+        var lastScrolledAt = 0L
+        snapshotFlow { state.streamingContent?.length ?: 0 }
+            .collect { length ->
+                if (length <= 0 || state.currentMessages.isEmpty()) return@collect
+                val now = android.os.SystemClock.uptimeMillis()
+                if (now - lastScrolledAt >= 280L) {
+                    val lastIndex = state.currentMessages.lastIndex
+                    val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
+                    if (lastVisible >= lastIndex - 2 || lastVisible < 0) {
+                        lastScrolledAt = now
+                        listState.animateScrollToItem(lastIndex)
+                    }
+                }
+            }
     }
 
     // v1.53-GC: 上滑加载更多历史消息 — 到达列表顶部(firstVisibleItemIndex==0)且满足条件时触发。
@@ -1010,7 +1031,9 @@ fun GroupChatDetailScreen(
             // 加号菜单(工具面板)
             if (showToolSheet) {
                 GroupChatToolSheet(
-                    onPickImage = { imageLauncher.launch("image/*") },
+                    onPickImage = {
+                        imageLauncher.launchSafely("image/*", context)
+                    },
                     onPickDocument = {
                         runCatching {
                             documentLauncher.launch(arrayOf("text/*", "application/pdf"))
@@ -1027,7 +1050,9 @@ fun GroupChatDetailScreen(
                     onPickPromptTemplate = { showPromptTemplateSheet = true },
                     // v1.0.72: 媒体区参数
                     hasGalleryPermission = hasGalleryPermission,
-                    onRequestGalleryPermission = { galleryPermissionLauncher.launch(galleryPermission) },
+                    onRequestGalleryPermission = {
+                        galleryPermissionLauncher.launchSafely(galleryPermission, context)
+                    },
                     onPickGalleryImage = { uri -> loadUriToPending(uri) },
                     onCaptureImage = { startCameraCapture() },
                     onDismiss = { showToolSheet = false },
@@ -1098,15 +1123,16 @@ fun GroupChatDetailScreen(
                             }
                         }
                     }
+                    Spacer(Modifier.height(MusePaddings.contentGap))
+                    MuseCapsuleButton(
+                        text = stringResource(R.string.prompt_template_manage_entry),
+                        onClick = {
+                            showPromptTemplateSheet = false
+                            onOpenPromptTemplateManager()
+                        },
+                        variant = IosCapsuleButtonVariant.Text,
+                    )
                 }
-                MuseCapsuleButton(
-                    text = stringResource(R.string.prompt_template_manage_entry),
-                    onClick = {
-                        showPromptTemplateSheet = false
-                        onOpenPromptTemplateManager()
-                    },
-                    variant = IosCapsuleButtonVariant.Text,
-                )
             }
 
             // v1.97: 编辑群聊对话框(改名 / 改成员)

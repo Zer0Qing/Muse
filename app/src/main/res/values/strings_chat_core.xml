@@ -585,4 +585,5 @@
     <string name="sticker_category_default">默认</string>
     <string name="chat_hold_to_record_hint">按住说话，松手结束</string>
     <string name="chat_input_action_fullscreen_subtitle">全屏输入</string>
+    <string name="chat_camera_unavailable_hint">无法打开系统相机，请检查设备相机或权限设置</string>
 </resources>

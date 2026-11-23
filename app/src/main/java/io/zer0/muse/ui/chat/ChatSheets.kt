@@ -1198,15 +1198,19 @@ private fun ToolCallRecordItem(index: Int, record: ToolCallRecord) {
  * @param content 要分享的文本内容
  */
 private fun shareText(context: android.content.Context, mime: String, content: String) {
-    val shareIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-        type = mime
-        putExtra(android.content.Intent.EXTRA_TEXT, content)
-        putExtra(android.content.Intent.EXTRA_SUBJECT, context.getString(R.string.chat_share_subject))
+    val fileExt = when {
+        mime.contains("json", ignoreCase = true) -> "json"
+        mime.contains("markdown", ignoreCase = true) -> "md"
+        else -> "txt"
     }
-    context.startActivity(
-        android.content.Intent.createChooser(shareIntent, context.getString(R.string.chat_share_chooser_title)).apply {
-            addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-        },
+    io.zer0.muse.util.ShareIntentHelper.shareTextOrFileSafely(
+        context = context,
+        mime = mime,
+        content = content,
+        subject = context.getString(R.string.chat_share_subject),
+        chooserTitle = context.getString(R.string.chat_share_chooser_title),
+        filePrefix = "muse-chat",
+        fileExtension = fileExt,
     )
 }
 
@@ -1254,10 +1258,10 @@ private fun shareFile(context: android.content.Context, file: java.io.File, mime
             putExtra(android.content.Intent.EXTRA_SUBJECT, context.getString(R.string.chat_share_subject))
             addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-        context.startActivity(
-            android.content.Intent.createChooser(shareIntent, context.getString(R.string.chat_share_chooser_title)).apply {
-                addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-            },
+        io.zer0.muse.util.ShareIntentHelper.startChooserSafely(
+            context = context,
+            shareIntent = shareIntent,
+            chooserTitle = context.getString(R.string.chat_share_chooser_title),
         )
     }.onFailure {
         MuseToast.show(context.getString(R.string.chat_share_failed_no_uri))

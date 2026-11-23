@@ -99,7 +99,6 @@ fun PluginInteractiveUiView(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
             .padding(MusePaddings.screen),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {

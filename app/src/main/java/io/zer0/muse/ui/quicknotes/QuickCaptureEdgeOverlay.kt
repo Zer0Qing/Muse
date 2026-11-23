@@ -1,5 +1,6 @@
 package io.zer0.muse.ui.quicknotes
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -7,6 +8,7 @@ import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -106,11 +108,15 @@ internal fun QuickCaptureEdgeOverlay(enabled: Boolean, viewModel: QuickNotesView
         closePanel()
     }
 
-    Box(
+    BackHandler(enabled = expanded) { closePanel() }
+
+    BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
             .navigationBarsPadding(),
     ) {
+        val maxDragX = (-constraints.maxWidth * 0.65f).toInt().coerceAtMost(-100)
+        val maxDragY = (constraints.maxHeight * 0.4f).toInt().coerceAtLeast(150)
         if (!expanded) {
             QuickCaptureEdgeHandle(
                 onOpen = { expanded = true },
@@ -149,10 +155,11 @@ internal fun QuickCaptureEdgeOverlay(enabled: Boolean, viewModel: QuickNotesView
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .pointerInput(Unit) {
+                            .pointerInput(maxDragX, maxDragY) {
                                 detectDragGestures { change, dragAmount ->
-                                    panelOffsetX = (panelOffsetX + dragAmount.x.toInt()).coerceIn(-600, 0)
-                                    panelOffsetY = (panelOffsetY + dragAmount.y.toInt()).coerceIn(-900, 900)
+                                    change.consume()
+                                    panelOffsetX = (panelOffsetX + dragAmount.x.toInt()).coerceIn(maxDragX, 0)
+                                    panelOffsetY = (panelOffsetY + dragAmount.y.toInt()).coerceIn(-maxDragY, maxDragY)
                                 }
                             },
                         verticalAlignment = Alignment.CenterVertically,

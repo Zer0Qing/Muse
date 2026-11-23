@@ -138,6 +138,7 @@ import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import java.io.ByteArrayOutputStream
 import io.zer0.muse.ui.chat.ThinkingIndicator
+import io.zer0.muse.util.launchSafely
 
 /**
  * 群聊消息气泡 — 区分 user(右侧)/ assistant(左侧 + 头像)。
@@ -191,7 +192,7 @@ internal fun GroupChatMessageBubble(
             } else {
                 io.zer0.muse.ui.theme.BubbleRole.GROUP_ASSISTANT
             },
-            darkTheme = androidx.compose.foundation.isSystemInDarkTheme(),
+            darkTheme = io.zer0.muse.ui.theme.LocalIsDarkTheme.current,
         )
     }
     val haptic = LocalHapticFeedback.current
@@ -293,7 +294,8 @@ internal fun GroupChatMessageBubble(
                         Text(
                             text = message.body,
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
+                            color = resolvedSkin?.let { androidx.compose.ui.graphics.Color(it.style.contentArgb) }
+                                ?: MaterialTheme.colorScheme.onSurface,
                         )
                         // 图片附件
                         MessageImageGrid(
@@ -456,7 +458,8 @@ internal fun GroupChatMessageBubble(
                             text = message.body,
                             stickerSeed = message.id.hashCode().toLong(),
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
+                            color = resolvedSkin?.let { androidx.compose.ui.graphics.Color(it.style.contentArgb) }
+                                ?: MaterialTheme.colorScheme.onSurface,
                             onHtmlPreview = onHtmlPreview,
                             onCardAction = onCardAction,
                             cardId = message.id,
@@ -515,7 +518,7 @@ internal fun MoodCapsule(mood: String, expanded: Boolean, onToggle: () -> Unit) 
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "MOOD",
+                    text = stringResource(R.string.chat_mood_label),
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -625,7 +628,7 @@ internal fun MessageImageGrid(imageBase64Json: String, modifier: Modifier = Modi
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         contentPadding = PaddingValues(horizontal = 2.dp),
     ) {
-        items(images, key = { it }) { image ->
+        itemsIndexed(images, key = { idx, image -> "$idx:${image.hashCode()}" }) { _, image ->
             SmartImage(
                 model = image,
                 contentDescription = stringResource(R.string.groupchat_image),
@@ -1281,7 +1284,9 @@ internal fun GroupChatToolSheet(
                     icon = MuseIcons.camera,
                     label = stringResource(R.string.chat_tool_camera),
                     modifier = Modifier.size(128.dp),
-                ) { cameraPermissionLauncher.launch(cameraPermission) }
+                ) {
+                    cameraPermissionLauncher.launchSafely(cameraPermission, context)
+                }
             }
             // 相册最近图片缩略图
             if (hasGalleryPermission) {

@@ -96,6 +96,7 @@ import java.util.Date
 import android.content.pm.PackageManager
 import android.Manifest
 import kotlin.math.roundToInt
+import io.zer0.muse.util.launchSafely
 
 /**
  * 阶段 7: 外观 section — 分组列表。
@@ -170,7 +171,7 @@ internal fun ThemeSection(themeMode: String, fontSizeScale: String, settings: Se
     val isDark = when (themeMode) {
         "light" -> false
         "dark" -> true
-        else -> isSystemInDarkTheme()
+        else -> io.zer0.muse.ui.theme.LocalIsDarkTheme.current
     }
 
     // ── 主题模式 ──
@@ -266,13 +267,14 @@ internal fun ThemeSection(themeMode: String, fontSizeScale: String, settings: Se
     // E1: 主题 JSON 导出/导入 — 分享为文本分享(ACTION_SEND),导入走 SAF 选文件
     val shareTheme: (CustomTheme) -> Unit = { theme ->
         val json = AppJson.encodeToString(CustomTheme.serializer(), theme)
-        val sendIntent = Intent(Intent.ACTION_SEND).apply {
-            type = "text/plain"
-            putExtra(Intent.EXTRA_SUBJECT, "Muse Theme: ${theme.name}")
-            putExtra(Intent.EXTRA_TEXT, json)
-        }
-        context.startActivity(
-            Intent.createChooser(sendIntent, context.getString(R.string.settings_theme_custom_export)),
+        io.zer0.muse.util.ShareIntentHelper.shareTextOrFileSafely(
+            context = context,
+            mime = "text/plain",
+            content = json,
+            subject = "Muse Theme: ${theme.name}",
+            chooserTitle = context.getString(R.string.settings_theme_custom_export),
+            filePrefix = "muse-theme",
+            fileExtension = "json",
         )
     }
     val importThemeLauncher = rememberLauncherForActivityResult(
@@ -325,9 +327,10 @@ internal fun ThemeSection(themeMode: String, fontSizeScale: String, settings: Se
         },
         onDelete = { theme -> deletingTheme = theme },
         onImport = {
-            importThemeLauncher.launch(
-                arrayOf("application/json", "text/plain", "application/octet-stream"),
-            )
+            importThemeLauncher.launchSafely(
+                    arrayOf("application/json", "text/plain", "application/octet-stream"),
+                    context,
+                )
         },
         onExport = shareTheme,
     )
@@ -436,7 +439,10 @@ internal fun ThemeSection(themeMode: String, fontSizeScale: String, settings: Se
                                 scope = scope,
                             )
                         } else {
-                            solarPermissionLauncher.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
+                            solarPermissionLauncher.launchSafely(
+                                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                                    context,
+                                )
                         }
                     }
                 }
@@ -616,7 +622,12 @@ internal fun ThemeSection(themeMode: String, fontSizeScale: String, settings: Se
     // ── E2: 自定义正文字体导入/清除 ──
     FontSection(
         customFontPath = customFontPath,
-        onImport = { fontImportLauncher.launch(arrayOf("font/ttf", "font/otf", "application/octet-stream")) },
+        onImport = {
+            fontImportLauncher.launchSafely(
+                    arrayOf("font/ttf", "font/otf", "application/octet-stream"),
+                    context,
+                )
+        },
         onClear = {
             scope.launch {
                 // 清除路径后旧文件保留在 filesDir/fonts/,下次导入覆盖同名文件,无需主动删除

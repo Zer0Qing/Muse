@@ -357,7 +357,7 @@ fun AgentLiveMissionCard(
                 )
             },
             confirmText = stringResource(
-                if (continuing) R.string.agent_bot_continue_confirm
+                if (continuing) R.string.agent_bot_continue
                 else R.string.agent_screen_retry_task,
             ),
             onConfirm = {
@@ -379,6 +379,16 @@ fun AgentInlineApprovalCard(
     onOpenTask: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var argsExpanded by rememberSaveable(row.approvalId) { mutableStateOf(false) }
+    val nowMillis by androidx.compose.runtime.produceState(
+        initialValue = System.currentTimeMillis(),
+        key1 = row.expiresAt,
+    ) {
+        while (value < row.expiresAt) {
+            kotlinx.coroutines.delay(15_000L)
+            value = System.currentTimeMillis()
+        }
+    }
     val (riskColor, riskContainer) = when (row.risk.uppercase()) {
         "HIGH", "CRITICAL" -> MaterialTheme.statusColors.error to MaterialTheme.statusColors.errorContainer
         "NORMAL" -> MaterialTheme.statusColors.warning to MaterialTheme.statusColors.warningContainer
@@ -439,14 +449,15 @@ fun AgentInlineApprovalCard(
             }
             if (row.argumentsPreview.isNotBlank()) {
                 Surface(
+                    onClick = { argsExpanded = !argsExpanded },
                     shape = MuseShapes.small,
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = MuseAlpha.subtleBorder),
                 ) {
                     Text(
                         text = stringResource(R.string.agent_screen_approval_arguments, row.argumentsPreview),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 4,
+                        maxLines = if (argsExpanded) 24 else 4,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -466,7 +477,7 @@ fun AgentInlineApprovalCard(
                     R.string.agent_screen_approval_expiry,
                     DateUtils.getRelativeTimeSpanString(
                         row.expiresAt,
-                        System.currentTimeMillis(),
+                        nowMillis,
                         DateUtils.MINUTE_IN_MILLIS,
                     ),
                 ),
@@ -526,7 +537,7 @@ fun AgentChoiceCard(
             card.options.forEachIndexed { index, option ->
                 val selected = isResolved && card.selectedOptionId == option.id
                 if (index > 0) {
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = MuseAlpha.disabled))
                 }
                 Row(
                     modifier = Modifier
@@ -554,7 +565,7 @@ fun AgentChoiceCard(
                         color = if (selected) {
                             MaterialTheme.colorScheme.primary
                         } else {
-                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.65f)
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = MuseAlpha.subtleBorder)
                         },
                         modifier = Modifier.size(MuseIconSizes.icon),
                     ) {
@@ -592,7 +603,7 @@ fun AgentCueBriefingCard(
 ) {
     Surface(
         shape = MuseShapes.semiLarge,
-        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.28f),
+        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = MuseAlpha.statusTint),
         border = BorderStroke(
             width = MuseBorderWidth.hairline,
             color = MaterialTheme.colorScheme.primary.copy(alpha = MuseAlpha.handle),

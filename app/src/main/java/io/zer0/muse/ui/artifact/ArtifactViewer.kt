@@ -56,6 +56,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import io.zer0.muse.ui.screen.HtmlPreviewScreen
+import io.zer0.muse.util.launchSafely
 
 /**
  * v2.0.1: 富内容预览语言判定(svg / html / chart / mermaid) — type 与 language 双查。
@@ -312,7 +313,7 @@ fun ArtifactViewerDialog(artifact: ArtifactEntity, onDismiss: () -> Unit, onCopy
                     onAction = { action ->
                         when (action) {
                             ArtifactAction.Copy -> onCopy(artifact.content)
-                            ArtifactAction.Save -> saveLauncher.launch(exportFileName)
+                            ArtifactAction.Save -> saveLauncher.launchSafely(exportFileName, context)
                             ArtifactAction.Share -> shareArtifact(context, artifact)
                             ArtifactAction.OpenExternal -> openArtifactExternal(context, artifact)
                             ArtifactAction.ToggleSource -> showSource = !showSource

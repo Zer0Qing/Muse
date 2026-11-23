@@ -145,18 +145,6 @@ fun GroupChatListScreen(onOpenChat: (String) -> Unit, viewModel: GroupChatViewMo
                         ),
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                        // v2.2: 页面标题"我的群聊"
-                        item(key = "page_title") {
-                            Text(
-                                text = stringResource(R.string.groupchat_list_title),
-                                style = MaterialTheme.typography.titleLarge,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 8.dp),
-                                textAlign = TextAlign.Center,
-                            )
-                        }
                         items(
                             items = state.chats,
                             key = { it.id },

@@ -43,6 +43,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.util.launchSafely
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -203,14 +205,19 @@ internal fun MuseToolSheet(
                         modifier = Modifier.fillMaxSize(),
                         onTap = {
                             MuseHaptics.light(hapticFeedback)
-                            val file = File.createTempFile("muse_capture_", ".jpg", context.cacheDir)
-                            val uri = FileProvider.getUriForFile(
-                                context,
-                                "${context.packageName}.fileprovider",
-                                file,
-                            )
-                            pendingCameraUri = uri
-                            takePictureLauncher.launch(uri)
+                            runCatching {
+                                val file = File.createTempFile("muse_capture_", ".jpg", context.cacheDir)
+                                val uri = FileProvider.getUriForFile(
+                                    context,
+                                    "${context.packageName}.fileprovider",
+                                    file,
+                                )
+                                pendingCameraUri = uri
+                                takePictureLauncher.launch(uri)
+                            }.onFailure { error ->
+                                Logger.w("MuseToolSheet", "启动拍照失败: ${error.message}", error)
+                                MuseToast.show(context.getString(R.string.chat_camera_unavailable_hint))
+                            }
                         },
                     )
                 }
@@ -219,7 +226,9 @@ internal fun MuseToolSheet(
                     icon = MuseIcons.camera,
                     label = stringResource(R.string.chat_tool_camera),
                     modifier = Modifier.size(TelegramMediaHeight),
-                    onClick = { cameraPermissionLauncher.launch(cameraPermission) },
+                    onClick = {
+                        cameraPermissionLauncher.launchSafely(cameraPermission, context)
+                    },
                 )
             }
 
@@ -244,7 +253,9 @@ internal fun MuseToolSheet(
                     icon = MuseIcons.image,
                     label = stringResource(R.string.chat_authorize_gallery),
                     modifier = Modifier.size(TelegramMediaHeight),
-                    onClick = { galleryPermissionLauncher.launch(galleryPermission) },
+                    onClick = {
+                        galleryPermissionLauncher.launchSafely(galleryPermission, context)
+                    },
                 )
             }
 

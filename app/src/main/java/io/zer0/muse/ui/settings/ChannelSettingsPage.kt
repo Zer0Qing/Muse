@@ -529,6 +529,7 @@ private fun ChannelEditDialog(initial: ChannelConfig?, onDismiss: () -> Unit, on
     MuseBottomSheet(
         onDismissRequest = requestDismiss,
         maxHeightFraction = 0.92f,
+        canDismiss = { buildDraft() == draftBaseline },
     ) {
         Text(
             text = stringResource(if (initial == null) R.string.channel_add else R.string.channel_edit_title),

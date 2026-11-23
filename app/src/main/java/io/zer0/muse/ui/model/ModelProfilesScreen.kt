@@ -46,6 +46,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
+import io.zer0.muse.util.launchSafely
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -122,7 +123,7 @@ fun ModelProfilesScreen(onBack: () -> Unit, settings: SettingsRepository = koinI
                                 },
                                 onPickImage = {
                                     pendingModelId = model.id
-                                    imageLauncher.launch("image/*")
+                                    imageLauncher.launchSafely("image/*", context)
                                 },
                             )
                         }

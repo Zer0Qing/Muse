@@ -63,9 +63,11 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
                 onOpenArchivedChats = { navController.navigateSingleTop(ArchivedChatsRoute) },
                 onOpenArchivedGroupChats = { navController.navigateSingleTop(ArchivedGroupChatsRoute) },
                 onOpenFolder = { id -> navController.navigateSingleTop(FolderDetailRoute(id)) },
-                // HTML/SVG 代码块全屏预览:URL 编码后跳转 HtmlPreviewScreen
+                // HTML/SVG 代码块全屏预览:通过 HtmlPreviewStore 中转 ID 跳转，避免 SavedState 超限
                 onHtmlPreview = { html ->
-                    navController.navigateSingleTop(HtmlPreviewRoute(html))
+                    navController.navigateSingleTop(
+                        HtmlPreviewRoute(io.zer0.muse.ui.screen.HtmlPreviewStore.put(navController.context, html)),
+                    )
                 },
                 onOpenSkills = { navController.navigateSingleTop(SkillsRoute) },
                 onOpenPromptTemplateManager = { navController.navigateSingleTop(PromptTemplateManagerRoute) },
@@ -127,7 +129,9 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
                 surface = io.zer0.muse.ui.chat.ChatSurface.MINI_PHONE,
                 viewModel = sharedViewModel,
                 onHtmlPreview = { html ->
-                    navController.navigateSingleTop(HtmlPreviewRoute(html))
+                    navController.navigateSingleTop(
+                        HtmlPreviewRoute(io.zer0.muse.ui.screen.HtmlPreviewStore.put(navController.context, html)),
+                    )
                 },
             )
         }
@@ -414,9 +418,9 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) { backStackEntry ->
-        val html = backStackEntry.toRoute<HtmlPreviewRoute>().html
-        HtmlPreviewScreen(
-            html = html,
+        val previewId = backStackEntry.toRoute<HtmlPreviewRoute>().previewId
+        io.zer0.muse.ui.screen.HtmlPreviewByIdScreen(
+            previewId = previewId,
             onBack = { navController.popBackStackSafe() },
         )
     }

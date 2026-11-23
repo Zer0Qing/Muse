@@ -73,6 +73,7 @@ import org.koin.compose.koinInject
 import java.io.ByteArrayOutputStream
 import io.zer0.muse.ui.chat.InputBar
 import io.zer0.muse.ui.chat.SmartImage
+import io.zer0.muse.util.launchSafely
 
 /**
  * VideoTaskStatus 枚举的 Saver(rememberSaveable 不能直接保存枚举,用 name 序列化/反序列化)。
@@ -325,7 +326,7 @@ fun VideoGenerationPage(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable(enabled = !isGenerating) {
-                                imagePicker.launch("image/*")
+                                imagePicker.launchSafely("image/*", context)
                             },
                     ) {
                         Row(

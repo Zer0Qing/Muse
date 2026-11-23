@@ -59,7 +59,6 @@ fun PluginUiTreeView(root: PluginUiTree.Node, assetsRoot: File?, modifier: Modif
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
             .padding(MusePaddings.screen),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
@@ -192,7 +191,6 @@ private fun BulletList(items: List<String>, ordered: Boolean) {
                     text = if (ordered) "${index + 1}." else "•",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.weight(1f),
                 )
                 Text(
                     text = item,

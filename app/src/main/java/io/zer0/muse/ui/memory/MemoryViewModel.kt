@@ -317,10 +317,15 @@ class MemoryViewModel(
         _dreamResult.value = null
     }
 
+    /** Dream 按具体作用域读写编译分段；UI 默认在「全部」(null) 视图时对齐到主助手默认库("main")。 */
+    private fun dreamScopeKey(): MemoryScopeKey =
+        memoryScopeKey(_selectedScope.value?.takeIf { it.isNotBlank() } ?: "main")
+            ?: MemoryScopeKey("default", "main", _selectedSpaceId.value.ifBlank { "default" })
+
     /** 刷新 Dream 状态（进入页面 / 操作后调用）。 */
     fun refreshDreamStatus() {
         val service = dreamService ?: return
-        val scope = memoryScopeKey(_selectedScope.value) ?: return
+        val scope = dreamScopeKey()
         viewModelScope.launch {
             _dreamStatus.value = resultOf { service.status(scope) }.getOrNull()
         }
@@ -334,12 +339,24 @@ class MemoryViewModel(
      */
     fun startDream() {
         val service = dreamService ?: return
-        val scope = memoryScopeKey(_selectedScope.value) ?: return
+        val scope = dreamScopeKey()
         if (_dreamRunning.value) return
         _dreamRunning.value = true
         viewModelScope.launch {
             try {
-                val current = resultOf { service.currentSections(scope) }.getOrNull().orEmpty()
+                var current = resultOf { service.currentSections(scope) }.getOrNull().orEmpty()
+                if (current.isEmpty()) {
+                    // 若当前作用域尚未产出编译分段，先触发一次即时编译再重读，避免因未编译直接判空无反应。
+                    withContext(Dispatchers.IO) {
+                        runCatching { memoryTicker.forceCompileNow() }
+                    }
+                    current = resultOf { service.currentSections(scope) }.getOrNull().orEmpty()
+                }
+                if (current.isEmpty()) {
+                    current = _state.value.compileItems
+                        .filter { it.id.isNotBlank() && it.content.isNotBlank() }
+                        .associate { it.id to it.content }
+                }
                 val result = service.start(scope, io.zer0.memory.dream.DreamTrigger.MANUAL, current)
                 _dreamResult.value = when (result) {
                     is io.zer0.memory.dream.DreamStartResult.Started -> "done"
@@ -359,7 +376,7 @@ class MemoryViewModel(
     /** 回滚到指定 revision。 */
     fun restoreDream(revisionId: String) {
         val service = dreamService ?: return
-        val scope = memoryScopeKey(_selectedScope.value) ?: return
+        val scope = dreamScopeKey()
         viewModelScope.launch {
             val result = service.restore(scope, revisionId)
             _dreamResult.value = when (result) {
@@ -511,6 +528,7 @@ class MemoryViewModel(
         if (_importanceFilter.value == importance) return
         _importanceFilter.value = importance
         loadAll()
+        refreshDreamStatus()
     }
 
     /**
@@ -520,6 +538,7 @@ class MemoryViewModel(
         if (_timeRangeFilter.value == range) return
         _timeRangeFilter.value = range
         loadAll()
+        refreshDreamStatus()
     }
 
     /**
@@ -626,6 +645,7 @@ class MemoryViewModel(
             }
         }
         loadAll()
+        refreshDreamStatus()
     }
 
     /**
@@ -660,6 +680,7 @@ class MemoryViewModel(
     fun selectScope(scope: String?) {
         _selectedScope.value = scope
         loadAll()
+        refreshDreamStatus()
     }
 
     /**

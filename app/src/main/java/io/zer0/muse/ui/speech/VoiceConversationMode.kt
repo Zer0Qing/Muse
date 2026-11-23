@@ -4,6 +4,7 @@ package io.zer0.muse.ui.speech
 
 import android.Manifest
 import android.content.pm.PackageManager
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -39,6 +40,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -73,6 +75,7 @@ import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.ui.theme.semiLarge
 import io.zer0.muse.ui.chat.ChatScreen
+import io.zer0.muse.util.launchSafely
 
 /**
  * 语音对话模式状态机(ASR 按钮 + TTS 自动播放的循环模型)。
@@ -149,7 +152,7 @@ fun VoiceConversationMode(onClose: () -> Unit, viewModel: ChatViewModel) {
         if (granted) {
             viewModel.startVoiceConversation()
         } else {
-            micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+            micPermissionLauncher.launchSafely(Manifest.permission.RECORD_AUDIO, context)
         }
     }
 
@@ -157,6 +160,11 @@ fun VoiceConversationMode(onClose: () -> Unit, viewModel: ChatViewModel) {
     val handleClose: () -> Unit = {
         viewModel.stopVoiceConversation()
         onClose()
+    }
+
+    BackHandler(onBack = handleClose)
+    DisposableEffect(Unit) {
+        onDispose { viewModel.stopVoiceConversation() }
     }
 
     // 用户点击主按钮:toggle(非按住)— LISTENING 时录音中→结束并提交,否则开始录音;其他状态→中断

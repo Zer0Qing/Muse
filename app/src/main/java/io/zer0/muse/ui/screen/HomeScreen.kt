@@ -13,6 +13,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -20,11 +21,14 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.isCtrlPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -32,10 +36,18 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
+import io.github.fletchmckee.liquid.liquefiable
+import io.github.fletchmckee.liquid.rememberLiquidState
 import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
+import io.zer0.muse.data.agentbot.AgentModelRouter
+import io.zer0.muse.data.agentbot.BotTaskStatus
+import io.zer0.muse.ui.agentbot.AgentBotViewModel
+import io.zer0.muse.ui.agentbot.AgentWorkbenchTab
 import io.zer0.muse.ui.chat.WorkspaceQuickPickDialog
 import io.zer0.muse.ui.common.MuseFloatingActionItem
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
@@ -52,16 +64,23 @@ import io.zer0.muse.ui.common.navigation.MuseTopBarIconButton
 import io.zer0.muse.ui.common.navigation.MuseTopBarMenu
 import io.zer0.muse.ui.common.surface.MusePageScaffold
 import io.zer0.muse.ui.groupchat.GroupChatListScreen
+import io.zer0.muse.ui.theme.GlassIsland
+import io.zer0.muse.ui.theme.LocalGlassIsBackgroundDark
+import io.zer0.muse.ui.theme.LocalLayerBackdrop
+import io.zer0.muse.ui.theme.LocalLiquidGlass
+import io.zer0.muse.ui.theme.LocalWaterGlassState
 import io.zer0.muse.ui.theme.MuseActionColors
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.ui.theme.semiLarge
+import io.zer0.muse.ui.theme.statusColors
 import io.zer0.muse.ui.theme.titleSmallStrong
 import io.zer0.muse.update.UpdateChecker
 import io.zer0.muse.update.UpdateNotifier
 import io.zer0.muse.util.ShareIntentHelper
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import io.zer0.muse.ui.assistant.ModelSwitchSheet
@@ -155,6 +174,16 @@ fun HomeScreen(
     // v1.133: 订阅缓存的 ReleaseInfo,有值则渲染 Banner
     val releaseJson by settings.latestReleaseInfoFlow.collectAsStateWithLifecycle(initialValue = null)
     val pagerState = rememberPagerState(initialPage = defaultPage, pageCount = { 3 })
+    var initialPageSynced by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        if (!initialPageSynced) {
+            val savedPage = runCatching { settings.defaultHomePageFlow.first() }.getOrDefault(0).coerceIn(0, 2)
+            if (savedPage != pagerState.currentPage) {
+                pagerState.scrollToPage(savedPage)
+            }
+            initialPageSynced = true
+        }
+    }
     // 01①: 更多菜单触发任务列表的编辑/新建文件夹，ChatListScreen 消费后回执清零。
     var pendingListAction by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
@@ -197,10 +226,271 @@ fun HomeScreen(
         }
     }
 
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    var homeTopBarHeightPx by remember { androidx.compose.runtime.mutableIntStateOf(0) }
+    val homeTopBarHeightDp = with(density) { homeTopBarHeightPx.toDp() }
+    val glassConfig = LocalLiquidGlass.current
+    val glassActive = glassConfig.enabled && io.zer0.muse.ui.theme.isRealGlassSupported()
+    val homeLayerBackdrop = if (glassActive) rememberLayerBackdrop() else null
+    val homeWaterState = if (glassActive) rememberLiquidState() else null
+    val homeBackgroundIsDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+
+    val botViewModel: AgentBotViewModel? = if (io.zer0.muse.feature.FeatureFlags.AGENT_BOT) {
+        koinInject()
+    } else {
+        null
+    }
+    var requestedWorkbenchTab by rememberSaveable { mutableStateOf<AgentWorkbenchTab?>(null) }
+    var requestedBriefingTick by remember { mutableIntStateOf(0) }
+    val botTaskBoardState by (botViewModel?.taskBoard ?: kotlinx.coroutines.flow.flowOf(
+        io.zer0.muse.data.agentbot.AgentBotUiState.TaskBoard(),
+    )).collectAsStateWithLifecycle(
+        initialValue = io.zer0.muse.data.agentbot.AgentBotUiState.TaskBoard(),
+    )
+    val botModelRoutesState by (botViewModel?.modelRoutes ?: kotlinx.coroutines.flow.flowOf(
+        AgentModelRouter.Snapshot(),
+    )).collectAsStateWithLifecycle(initialValue = AgentModelRouter.Snapshot())
+    val botActiveBadgeCount = botTaskBoardState.tasks.count { it.status in BotTaskStatus.NON_TERMINAL } +
+        botTaskBoardState.approvals.size
+    val botHasPendingApproval = botTaskBoardState.approvals.isNotEmpty()
+    val effectiveAgentForegroundBinding = botModelRoutesState.foreground
+    val effectiveAgentProviderId = effectiveAgentForegroundBinding.providerId.ifBlank {
+        state.currentAssistant?.providerId?.takeIf { it.isNotBlank() } ?: state.activeProviderId
+    }
+    val effectiveAgentModelId = effectiveAgentForegroundBinding.modelId.ifBlank {
+        state.currentAssistant?.modelId?.takeIf { it.isNotBlank() } ?: state.selectedModelId
+    }
+
+    val floatingTopBar: @Composable () -> Unit = {
+        // 顶部透明镂空三岛（Agent 页含右上工作台入口）：左侧头像(→设置) | 中间胶囊 Tab(任务/Agent/群聊) | 右侧工作台+更多
+        // 两侧与按钮间隙完全透明镂空，Agent 页上下滑动时对话气泡可直接穿行至按钮旁。
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
+                .statusBarsPadding()
+                .padding(horizontal = MusePaddings.inputPadding, vertical = MusePaddings.contentGap),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            MuseTopBarIconButton(
+                icon = MuseIcons.user,
+                contentDescription = stringResource(R.string.home_settings_cd),
+                onClick = onOpenSettings,
+                glassActive = glassActive,
+                glassConfig = glassConfig,
+            )
+
+            val tabLabels = HomeTabs.map { (labelResId, _) ->
+                stringResource(labelResId)
+            }
+            MuseCapsuleTab(
+                tabs = tabLabels,
+                selectedIndex = pagerState.currentPage,
+                onSelect = { page ->
+                    clickAnimating = true
+                    scope.launch {
+                        if (reducedMotion) {
+                            pagerState.scrollToPage(page)
+                        } else {
+                            pagerState.animateScrollToPage(page)
+                        }
+                    }
+                },
+                pageOffset = pagerState.currentPageOffsetFraction,
+                isDragging = pagerState.isScrollInProgress && !clickAnimating,
+                glassActive = glassActive,
+                glassConfig = glassConfig,
+                modifier = Modifier.widthIn(max = 172.dp),
+            )
+
+            val showMiniPhone = io.zer0.muse.feature.FeatureFlags.MINI_PHONE_ENTRY
+            val searchLabel = stringResource(R.string.home_search_cd)
+            val miniPhoneLabel = stringResource(R.string.home_miniphone_cd)
+            val workspaceLabel = stringResource(R.string.workspace_title)
+            val archivedEntryLabel = stringResource(R.string.chat_list_archived_entry, state.archivedSessions.size)
+            val archivedGroupChatsLabel = stringResource(R.string.groupchat_archived_title)
+            val newFolderLabel = stringResource(R.string.chat_list_new_folder)
+            val editListLabel = stringResource(R.string.common_edit)
+            val providerLabel = stringResource(R.string.chat_select_provider)
+            val switchAssistantLabel = stringResource(R.string.agent_hub_switch_bot)
+            val briefingLabel = stringResource(R.string.agent_hub_quick_briefing)
+            val teachLabel = stringResource(R.string.agent_hub_quick_teach)
+            val topMenuItems = buildList {
+                add(
+                    MuseFloatingActionItem(
+                        key = "search",
+                        icon = MuseIcons.search,
+                        label = searchLabel,
+                        onClick = { showCommandPalette = true },
+                    ),
+                )
+                if (pagerState.currentPage == 1 && botViewModel != null) {
+                    add(
+                        MuseFloatingActionItem(
+                            key = "switch_assistant",
+                            icon = MuseIcons.robot,
+                            label = switchAssistantLabel,
+                            onClick = { requestedWorkbenchTab = AgentWorkbenchTab.SQUAD },
+                        ),
+                    )
+                }
+                if (pagerState.currentPage == 0 || pagerState.currentPage == 1) {
+                    add(
+                        MuseFloatingActionItem(
+                            key = "provider",
+                            icon = MuseIcons.memoryChip,
+                            label = providerLabel,
+                            onClick = { showModelSheet = true },
+                        ),
+                    )
+                }
+                if (pagerState.currentPage == 1 && botViewModel != null) {
+                    add(
+                        MuseFloatingActionItem(
+                            key = "briefing",
+                            icon = MuseIcons.sun,
+                            label = briefingLabel,
+                            onClick = { requestedBriefingTick++ },
+                        ),
+                    )
+                    add(
+                        MuseFloatingActionItem(
+                            key = "teach",
+                            icon = MuseIcons.handFinger,
+                            label = teachLabel,
+                            onClick = {
+                                botViewModel.startTeachRecording()
+                                requestedWorkbenchTab = AgentWorkbenchTab.ROUTINES
+                            },
+                        ),
+                    )
+                }
+                if (showMiniPhone) {
+                    add(
+                        MuseFloatingActionItem(
+                            key = "miniphone",
+                            icon = MuseIcons.deviceMobile,
+                            label = miniPhoneLabel,
+                            onClick = onOpenMiniPhone,
+                        ),
+                    )
+                }
+                add(
+                    MuseFloatingActionItem(
+                        key = "workspace",
+                        icon = MuseIcons.folderOpen,
+                        label = workspaceLabel,
+                        onClick = { showWorkspacePick = true },
+                    ),
+                )
+                if (pagerState.currentPage == 2) {
+                    add(
+                        MuseFloatingActionItem(
+                            key = "archived_group_chats",
+                            icon = MuseIcons.archive,
+                            label = archivedGroupChatsLabel,
+                            onClick = onOpenArchivedGroupChats,
+                        ),
+                    )
+                }
+                if (pagerState.currentPage == 0) {
+                    add(
+                        MuseFloatingActionItem(
+                            key = "archived",
+                            icon = MuseIcons.archive,
+                            label = archivedEntryLabel,
+                            onClick = onOpenArchivedChats,
+                        ),
+                    )
+                    add(
+                        MuseFloatingActionItem(
+                            key = "new_folder",
+                            icon = MuseIcons.folderPlus,
+                            label = newFolderLabel,
+                            onClick = { pendingListAction = "create_folder" },
+                        ),
+                    )
+                    add(
+                        MuseFloatingActionItem(
+                            key = "edit_list",
+                            icon = MuseIcons.edit,
+                            label = editListLabel,
+                            onClick = { pendingListAction = "edit" },
+                        ),
+                    )
+                }
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
+            ) {
+                if (pagerState.currentPage == 1 && botViewModel != null) {
+                    Box {
+                        MuseTopBarIconButton(
+                            icon = MuseIcons.computer,
+                            contentDescription = stringResource(R.string.agent_hub_open_workbench),
+                            onClick = { requestedWorkbenchTab = AgentWorkbenchTab.LIVE },
+                            tint = if (botHasPendingApproval) {
+                                MaterialTheme.statusColors.warning
+                            } else {
+                                Color.Unspecified
+                            },
+                            glassActive = glassActive,
+                            glassConfig = glassConfig,
+                        )
+                        if (botActiveBadgeCount > 0) {
+                            Surface(
+                                shape = MuseShapes.pill,
+                                color = if (botHasPendingApproval) {
+                                    MaterialTheme.statusColors.warning
+                                } else {
+                                    MaterialTheme.colorScheme.primary
+                                },
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(top = 2.dp, end = 2.dp),
+                            ) {
+                                Text(
+                                    text = if (botActiveBadgeCount > 9) "9+" else botActiveBadgeCount.toString(),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    modifier = Modifier.padding(
+                                        horizontal = MusePaddings.labelVerticalGap,
+                                        vertical = MusePaddings.compactChipVertical,
+                                    ),
+                                )
+                            }
+                        }
+                    }
+                }
+                MuseTopBarMenu(
+                    contentDescription = stringResource(R.string.action_more),
+                    items = topMenuItems,
+                    glassActive = glassActive,
+                    glassConfig = glassConfig,
+                )
+            }
+            if (showWorkspacePick) {
+                WorkspaceQuickPickDialog(
+                    onOpen = { pickPath ->
+                        showWorkspacePick = false
+                        onOpenWorkspace(pickPath)
+                    },
+                    onDismiss = { showWorkspacePick = false },
+                )
+            }
+        }
+    }
+
+    androidx.compose.runtime.CompositionLocalProvider(
+        LocalLayerBackdrop provides (homeLayerBackdrop ?: LocalLayerBackdrop.current),
+        LocalWaterGlassState provides (homeWaterState ?: LocalWaterGlassState.current),
+        LocalGlassIsBackgroundDark provides homeBackgroundIsDark,
+    ) {
     MusePageScaffold(
+        topBarHandlesInsets = true,
         floatingActionButton = {
-            // v1.0.17: 悬浮胶囊仅在"任务"Tab(首页)显示,Agent/群聊页不显示
-            // C4: 宽屏双栏时隐藏(FAB 会悬浮在右栏输入区上方遮挡;左栏已有新建入口)
             if (pagerState.currentPage == 0 && !isWideTasks) {
                 HomeQuickActionCapsule(
                     onOpenScheduledTasks = onOpenScheduledTasks,
@@ -209,271 +499,88 @@ fun HomeScreen(
                     onCreateNewTask = onCreateNewTask,
                     expanded = capsuleExpanded,
                     onToggleExpanded = { capsuleExpanded = !capsuleExpanded },
+                    glassActive = glassActive,
+                    glassConfig = glassConfig,
                 )
             }
         },
-        topBar = {
-            // v1.24: 自定义紧凑顶部栏 — 取消 TopAppBar 默认高度,让 Tab 切换器紧贴下方内容
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    // v1.99: 大R角/曲面屏横向安全区避让
-                    .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
-                    .statusBarsPadding()
-                    .padding(horizontal = MusePaddings.inputPadding, vertical = MusePaddings.contentGap),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                // 左侧:头像 → 设置(与右侧「更多」同款圆按钮,顶栏左右对称)
-                MuseTopBarIconButton(
-                    icon = MuseIcons.user,
-                    contentDescription = stringResource(R.string.home_settings_cd),
-                    onClick = onOpenSettings,
-                )
-
-                // 中间:胶囊 Tab 切换器(MuseCapsuleTab 组件)
-                val tabLabels = HomeTabs.map { (labelResId, _) ->
-                    stringResource(labelResId)
-                }
-                io.zer0.muse.ui.common.form.MuseCapsuleTab(
-                    tabs = tabLabels,
-                    selectedIndex = pagerState.currentPage,
-                    onSelect = { page ->
-                        clickAnimating = true
-                        scope.launch {
-                            if (reducedMotion) {
-                                pagerState.scrollToPage(page)
-                            } else {
-                                pagerState.animateScrollToPage(page)
-                            }
-                        }
-                    },
-                    // v1.137 B3: 拖拽时连续跟踪手指,点击时用 tween 平滑过渡
-                    pageOffset = pagerState.currentPageOffsetFraction,
-                    isDragging = pagerState.isScrollInProgress && !clickAnimating,
-                    // 顶部 Tab 收窄,右侧腾出空间给全局搜索按钮
-                    // CHAT-17: 不再写死 172dp — 改为自适应上限,长标签由胶囊内省略处理
-                    modifier = Modifier.widthIn(max = 172.dp),
-                )
-
-                // 右侧:统一的「更多」入口(与单聊/群聊顶栏同一组件)。
-                // 原先这里并排挂两颗裸图标(全局搜索 + 小手机),与聊天页的菜单风格不一,
-                // 顶栏看起来一长一短;现在收进同一颗圆按钮的下拉菜单里。
-                // 移动端无物理键盘,Ctrl+K 不可用,搜索入口仍需在首屏可达。
-                // 小手机就是一条入口(图标 + 名字),点了直接进小手机。
-                // 是否露出只由编译期总闸决定；原先另有一道「设置里开启」的运行时开关，
-                // 它的设置页随旧实现一起删掉了，留着只会让入口永远不出现。
-                val showMiniPhone = io.zer0.muse.feature.FeatureFlags.MINI_PHONE_ENTRY
-                // v1.0.90: 小手机没开时，右上角直接就是搜索图标本身 —— 只有一项的菜单
-                // 等于多点一层。开了小手机才收起成三点菜单（搜索 + 小手机）。
-                // 菜单项按当前配置现拼：小手机总闸关掉时（`MINI_PHONE_ENTRY = false`，也就是
-                // 现在的出厂形态）这里原本是「裸搜索图标」，因为没有第二项可放。
-                // 加了「工作区」之后恒有 ≥2 项，所以统一收成三点菜单 ——
-                // 与该文件原来的判断（只有一项就别让用户多点一层）并不矛盾，是它的前提变了。
-                val searchLabel = stringResource(R.string.home_search_cd)
-                val miniPhoneLabel = stringResource(R.string.home_miniphone_cd)
-                val workspaceLabel = stringResource(R.string.workspace_title)
-                val archivedEntryLabel = stringResource(R.string.chat_list_archived_entry, state.archivedSessions.size)
-                // 群聊归档数量来自 GroupChatViewModel；首页只做入口展示,不在此处收集。
-                val archivedGroupChatsLabel = stringResource(R.string.groupchat_archived_title)
-                val newFolderLabel = stringResource(R.string.chat_list_new_folder)
-                val editListLabel = stringResource(R.string.common_edit)
-                val providerLabel = stringResource(R.string.chat_select_provider)
-                val topMenuItems = buildList {
-                    add(
-                        MuseFloatingActionItem(
-                            key = "search",
-                            icon = MuseIcons.search,
-                            label = searchLabel,
-                            onClick = { showCommandPalette = true },
-                        ),
-                    )
-                    if (showMiniPhone) {
-                        add(
-                            MuseFloatingActionItem(
-                                key = "miniphone",
-                                icon = MuseIcons.deviceMobile,
-                                label = miniPhoneLabel,
-                                onClick = onOpenMiniPhone,
-                            ),
-                        )
-                    }
-                    // Agent Tab 是主聊天页,却没有任何换模型入口:ChatScreen 在
-                    // Agent 形态下整条顶栏都不渲染(isAgentMode && onBack == null),
-                    // 而这里的三点菜单此前只放了搜索/工作区/归档。
-                    // 用户想换模型只能滑回任务 Tab 点进会话 —— 找不到入口的人会认为
-                    // 这个应用不能换模型。ModelSwitchSheet 早就在本文件底部,
-                    // 只是没有一处把 showModelSheet 置 true。
-                    // 2026-11-20(P2-7):任务 Tab 也要有换模型入口。
-                    // 此前只有 Agent Tab(page 1)有 —— 任务列表页想换模型只能滑到 Agent,
-                    // 或点进某个会话再从会话顶栏找,等于藏起来了。
-                    if (pagerState.currentPage == 0 || pagerState.currentPage == 1) {
-                        add(
-                            MuseFloatingActionItem(
-                                key = "provider",
-                                icon = MuseIcons.memoryChip,
-                                label = providerLabel,
-                                onClick = { showModelSheet = true },
-                            ),
-                        )
-                    }
-                    add(
-                        MuseFloatingActionItem(
-                            key = "workspace",
-                            icon = MuseIcons.folderOpen,
-                            label = workspaceLabel,
-                            onClick = { showWorkspacePick = true },
-                        ),
-                    )
-                    // 2026-11-20: 群聊 Tab 的「已归档」入口。
-                    // 真机反馈:群聊长按归档后从列表消失,整机找不到恢复入口 ——
-                    // 会话那边有归档页,群聊这边当时漏了。归档入口常驻(含 0),
-                    // 避免用户看到「归档成功」却无处可回。
-                    if (pagerState.currentPage == 2) {
-                        add(
-                            MuseFloatingActionItem(
-                                key = "archived_group_chats",
-                                icon = MuseIcons.archive,
-                                label = archivedGroupChatsLabel,
-                                onClick = onOpenArchivedGroupChats,
-                            ),
-                        )
-                    }
-                    // 01①: 任务列表的归档/新建文件夹/编辑从首屏快捷行收进这里，只在任务 Tab 出现。
-                    // 归档入口常驻(含 0)：右滑归档的 toast 承诺"可到已归档中恢复"，入口不能时有时无。
-                    if (pagerState.currentPage == 0) {
-                        add(
-                            MuseFloatingActionItem(
-                                key = "archived",
-                                icon = MuseIcons.archive,
-                                label = archivedEntryLabel,
-                                onClick = onOpenArchivedChats,
-                            ),
-                        )
-                        add(
-                            MuseFloatingActionItem(
-                                key = "new_folder",
-                                icon = MuseIcons.folderPlus,
-                                label = newFolderLabel,
-                                onClick = { pendingListAction = "create_folder" },
-                            ),
-                        )
-                        add(
-                            MuseFloatingActionItem(
-                                key = "edit_list",
-                                icon = MuseIcons.edit,
-                                label = editListLabel,
-                                onClick = { pendingListAction = "edit" },
-                            ),
-                        )
-                    }
-                }
-                MuseTopBarMenu(
-                    contentDescription = stringResource(R.string.action_more),
-                    items = topMenuItems,
-                )
-                // 工作区下钻选择器（与聊天页同一组件，不另写一份）
-                if (showWorkspacePick) {
-                    WorkspaceQuickPickDialog(
-                        onOpen = { pickPath ->
-                            showWorkspacePick = false
-                            onOpenWorkspace(pickPath)
-                        },
-                        onDismiss = { showWorkspacePick = false },
-                    )
-                }
-            }
-        },
+        topBar = {},
         containerColor = MaterialTheme.colorScheme.background,
-    ) { innerPadding ->
-        // 拦截返回:非 Tab 0 时先切回 Tab 0,避免直接退出 App
+    ) { _ ->
         BackHandler(enabled = pagerState.currentPage != 0) {
             scope.launch { pagerState.animateScrollToPage(0) }
         }
-        // P2-13: 桌面端快捷键拦截 — Ctrl+K 打开搜索,Ctrl+N 新建对话
-        // 仅在物理键盘 + Expanded 窗口下生效;Ctrl+N 复用 Tab 0 既有"新建会话 + 跳转"逻辑
         val newChatAction: () -> Unit = {
             viewModel.createNewSession(onReady = onOpenChat)
         }
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .onKeyEvent { event ->
-                    if (!desktopShortcutsEnabled) return@onKeyEvent false
-                    if (event.type != KeyEventType.KeyDown) return@onKeyEvent false
-                    when {
-                        // Ctrl+K: 打开全局命令面板(搜索 + 斜杠命令)
-                        event.key == DesktopShortcuts.FOCUS_SEARCH && event.isCtrlPressed -> {
-                            showCommandPalette = true
-                            true
-                        }
-                        // Ctrl+N: 新建对话(仅在 Tab 0 任务列表响应,与既有 onCreate 一致)
-                        event.key == DesktopShortcuts.NEW_CHAT && event.isCtrlPressed &&
-                            pagerState.currentPage == 0 -> {
-                            newChatAction()
-                            true
-                        }
-                        else -> false
-                    }
-                },
-        ) {
-            // v1.0.16: 新任务/新会话入口 — 放在 3 大切换 tab 栏正下方,
-            // 从原来的 ChatListScreen 顶部上提到这里,方便所有 Tab 可见。
-            // 仅在"任务"Tab 显示(Agent 页自己就能输入,群聊页有群聊列表入口)。
-            // v1.133: 顶部"新版本可用"Banner — 有缓存 ReleaseInfo 且未被关闭时显示
-            // v1.0.72: 用户点过忽略的版本不再展示(持久化,下次冷启动也不弹)
-            // v1.0.72: 升级到同版本/更高版本后即使缓存未清也不显示(24h 检查间隔内缓存会残留)
-            val ignoredUpdateVersion by settings.ignoredUpdateVersionFlow.collectAsStateWithLifecycle(initialValue = null)
-            val currentVersionName = remember { UpdateNotifier.getCurrentVersionName(context) }
-            val release = remember(releaseJson, bannerDismissed, ignoredUpdateVersion, currentVersionName) {
-                if (bannerDismissed || releaseJson.isNullOrBlank()) {
-                    null
-                } else {
-                    parseReleaseInfo(releaseJson)?.takeIf { info ->
-                        info.tagName != ignoredUpdateVersion &&
-                            UpdateNotifier.compareVersions(currentVersionName, info.tagName) < 0
-                    }
+        val ignoredUpdateVersion by settings.ignoredUpdateVersionFlow.collectAsStateWithLifecycle(initialValue = null)
+        val currentVersionName = remember { UpdateNotifier.getCurrentVersionName(context) }
+        val release = remember(releaseJson, bannerDismissed, ignoredUpdateVersion, currentVersionName) {
+            if (bannerDismissed || releaseJson.isNullOrBlank()) {
+                null
+            } else {
+                parseReleaseInfo(releaseJson)?.takeIf { info ->
+                    info.tagName != ignoredUpdateVersion &&
+                        UpdateNotifier.compareVersions(currentVersionName, info.tagName) < 0
                 }
             }
-            if (release != null) {
-                // 下载/更新出口统一指向官网下载页(版本、更新日志与下载入口一体,国内 CDN 直连)
-                val openDownloadPage: () -> Unit = {
-                    val intent = UpdateNotifier.buildOfficialDownloadIntent()
-                    runCatching {
-                        ShareIntentHelper.startChooserSafely(context, intent)
-                    }.onFailure { Logger.w("HomeScreen", "startActivity failed: ${it.message}") }
-                }
-                UpdateAvailableBanner(
-                    release = release,
-                    onClose = {
-                        bannerDismissed = true
-                        // v1.0.72: 忽略后持久化,该版本不再提示(用户可在设置-更新里手动检查)
-                        scope.launch { settings.saveIgnoredUpdateVersion(release.tagName) }
-                    },
-                    onViewRelease = openDownloadPage,
-                    onDownloadApk = openDownloadPage,
-                )
-            }
-            HorizontalPager(
-                state = pagerState,
+        }
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .weight(1f)
-                    // P2-9（审计报告）: 整页横滑翻页会与系统返回手势争抢边缘起手，
-                    // 声明左右边缘为排除区后，从屏幕边缘拖动会先翻页而不是返回。
-                    .horizontalGestureExclusion(),
-                userScrollEnabled = true,
-            ) { page ->
+                    .onKeyEvent { event ->
+                        if (!desktopShortcutsEnabled) return@onKeyEvent false
+                        if (event.type != KeyEventType.KeyDown) return@onKeyEvent false
+                        when {
+                            event.key == DesktopShortcuts.FOCUS_SEARCH && event.isCtrlPressed -> {
+                                showCommandPalette = true
+                                true
+                            }
+                            event.key == DesktopShortcuts.NEW_CHAT && event.isCtrlPressed &&
+                                pagerState.currentPage == 0 -> {
+                                newChatAction()
+                                true
+                            }
+                            else -> false
+                        }
+                    },
+            ) {
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .horizontalGestureExclusion()
+                        .then(if (homeLayerBackdrop != null) Modifier.layerBackdrop(homeLayerBackdrop) else Modifier)
+                        .then(if (homeWaterState != null) Modifier.liquefiable(homeWaterState) else Modifier),
+                    userScrollEnabled = true,
+                ) { page ->
                 when (page) {
-                    // Tab 0 "任务": 任务列表(用户日常工作调研)
-                    // 点击会话只切换 currentSessionId,不跳转到 Agent Tab
-                    // C4: 宽屏(Expanded)双栏 — 左会话列表(400dp)+ 右消息同屏;
-                    //     窄屏保持原交互(点击任务 push 独立聊天详情页)
                     0 -> {
-                        if (isWideTasks) {
-                            Row(modifier = Modifier.fillMaxSize()) {
-                                ChatListScreen(
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(top = homeTopBarHeightDp),
+                        ) {
+                            if (release != null) {
+                                val openDownloadPage: () -> Unit = {
+                                    val intent = UpdateNotifier.buildOfficialDownloadIntent()
+                                    runCatching {
+                                        ShareIntentHelper.startChooserSafely(context, intent)
+                                    }.onFailure { Logger.w("HomeScreen", "startActivity failed: ${it.message}") }
+                                }
+                                UpdateAvailableBanner(
+                                    release = release,
+                                    onClose = {
+                                        bannerDismissed = true
+                                        scope.launch { settings.saveIgnoredUpdateVersion(release.tagName) }
+                                    },
+                                    onViewRelease = openDownloadPage,
+                                    onDownloadApk = openDownloadPage,
+                                )
+                            }
+                            if (isWideTasks) {
+                                Row(modifier = Modifier.fillMaxSize()) {
+                                    ChatListScreen(
                                     sessions = state.sessions,
                                     folders = state.folders,
                                     currentSessionId = state.currentSessionId,
@@ -588,19 +695,13 @@ fun HomeScreen(
                                 onRetryLoadSessions = viewModel::retryLoadSessions,
                                 modifier = Modifier.fillMaxSize(),
                             )
+                            }
                         }
                     }
                     // Tab 1 "Agent": 长效日常聊天搭子
-                    // 独立聊天区域,不依赖任务 Tab 的会话选择
-                    // M-CS6: 移除多余的 Column 包裹 — ChatScreen 内部已用 fillMaxSize 自撑,Column 仅增加一层无意义嵌套
                     1 -> {
-                        // 中枢是"接单 + 后台执行 + 审核后汇报"，与"一问一答"是两种
-                        // 心智模型。开关关着时走原来的 Agent 聊天，不改变既有行为。
-                        if (io.zer0.muse.feature.FeatureFlags.AGENT_BOT) {
-                            val botViewModel: io.zer0.muse.ui.agentbot.AgentBotViewModel = koinInject()
+                        if (io.zer0.muse.feature.FeatureFlags.AGENT_BOT && botViewModel != null) {
                             LaunchedEffect(state.currentAssistant?.id) {
-                                // 绑定用 agentSessionId：那是 Agent Tab 自己的会话，
-                                // 不从"当前在看哪个任务会话"推断。
                                 botViewModel.bind(
                                     botId = state.currentAssistant?.id ?: "default",
                                     originSessionId = state.agentSessionId.orEmpty(),
@@ -610,7 +711,7 @@ fun HomeScreen(
                                 viewModel = botViewModel,
                                 assistantName = state.currentAssistant?.name.orEmpty(),
                                 avatarUri = state.currentAssistant?.avatarImageUrl?.takeIf { it.isNotBlank() },
-                                modelName = state.selectedModelId.orEmpty(),
+                                modelName = effectiveAgentModelId.orEmpty(),
                                 providers = state.providers,
                                 onOpenModel = { showModelSheet = true },
                                 onOpenProviderSettings = onOpenProviderSettings,
@@ -621,6 +722,10 @@ fun HomeScreen(
                                 onOpenGroupChats = {
                                     scope.launch { pagerState.animateScrollToPage(2) }
                                 },
+                                topOverlayInset = homeTopBarHeightDp,
+                                externalWorkbenchTab = requestedWorkbenchTab,
+                                onExternalWorkbenchTabConsumed = { requestedWorkbenchTab = null },
+                                externalBriefingTick = requestedBriefingTick,
                             )
                         } else {
                             ChatScreen(
@@ -630,32 +735,77 @@ fun HomeScreen(
                                 onHtmlPreview = onHtmlPreview,
                                 onOpenSkills = onOpenSkills,
                                 onOpenPromptTemplateManager = onOpenPromptTemplateManager,
+                                modifier = Modifier.padding(top = homeTopBarHeightDp),
                             )
                         }
                     }
                     // Tab 2 "群聊": 多 Agent 群聊列表
-                    // 点击群聊卡片 → 跳转到群聊详情页(通过 NavHost 路由)
-                    2 -> GroupChatListScreen(
-                        onOpenChat = onOpenGroupChat,
-                    )
+                    2 -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(top = homeTopBarHeightDp),
+                        ) {
+                            GroupChatListScreen(
+                                onOpenChat = onOpenGroupChat,
+                            )
+                        }
+                    }
                 }
+            }
+
+            // 顶部镂空三岛悬浮层：叠在 HorizontalPager 上方，Agent 页消息可直接滑到三颗按钮两侧镂空区
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .fillMaxWidth()
+                    .onSizeChanged { homeTopBarHeightPx = it.height },
+            ) {
+                floatingTopBar()
             }
         }
 
-        // v1.41: Agent Tab 模型切换面板
+        // v1.41: 模型切换面板（在 Agent Tab 时同时同步 Agent 前台模型路由）
         if (showModelSheet) {
+            val isAgentTab = pagerState.currentPage == 1 && botViewModel != null
+            val sheetProviderId = if (isAgentTab) effectiveAgentProviderId else state.activeProviderId
+            val sheetModelId = if (isAgentTab) effectiveAgentModelId else state.selectedModelId
             ModelSwitchSheet(
                 providers = state.providers,
-                activeProviderId = state.activeProviderId,
-                selectedModelId = state.selectedModelId,
-                onPickProvider = viewModel::setActiveProvider,
-                onPickModel = viewModel::setSelectedModel,
+                activeProviderId = sheetProviderId,
+                selectedModelId = sheetModelId,
+                onPickProvider = { pid ->
+                    viewModel.setActiveProvider(pid)
+                    if (isAgentTab && botViewModel != null) {
+                        val firstModel = state.providers.firstOrNull { it.id == pid }?.models?.firstOrNull()?.id
+                        if (!firstModel.isNullOrBlank()) {
+                            botViewModel.setModelRoute(AgentModelRouter.Role.FOREGROUND, pid, firstModel)
+                        } else {
+                            botViewModel.clearModelRoute(AgentModelRouter.Role.FOREGROUND)
+                        }
+                    }
+                },
+                onPickModel = { mid ->
+                    viewModel.setSelectedModel(mid)
+                    if (isAgentTab && botViewModel != null) {
+                        val ownerProviderId = mid?.let { target ->
+                            state.providers.firstOrNull { it.id == sheetProviderId && it.models.any { m -> m.id == target } }?.id
+                                ?: state.providers.firstOrNull { it.models.any { m -> m.id == target } }?.id
+                        } ?: sheetProviderId
+                        if (!mid.isNullOrBlank() && !ownerProviderId.isNullOrBlank()) {
+                            botViewModel.setModelRoute(AgentModelRouter.Role.FOREGROUND, ownerProviderId, mid)
+                        } else {
+                            botViewModel.clearModelRoute(AgentModelRouter.Role.FOREGROUND)
+                        }
+                    }
+                },
                 onRefreshModels = viewModel::refreshModels,
                 isFetchingModels = state.isFetchingModels,
                 fetchModelsError = state.fetchModelsError,
                 onDismiss = { showModelSheet = false },
             )
         }
+        } // 关闭 CompositionLocalProvider
     }
     // C1: 全局命令面板(独立 Dialog 窗口,覆盖任意 Tab)
     if (showCommandPalette) {
@@ -780,16 +930,10 @@ private fun HomeQuickActionCapsule(
     expanded: Boolean,
     onToggleExpanded: () -> Unit,
     modifier: Modifier = Modifier,
+    glassActive: Boolean = false,
+    glassConfig: io.zer0.muse.ui.theme.LiquidGlassConfig = io.zer0.muse.ui.theme.LiquidGlassConfig(),
 ) {
-    Surface(
-        modifier = modifier
-            .padding(end = 8.dp, bottom = 16.dp)
-            .navigationBarsPadding(),
-        shape = MuseShapes.pill,
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        tonalElevation = 2.dp,
-        shadowElevation = 4.dp,
-    ) {
+    val capsuleContent: @Composable () -> Unit = {
         Row(verticalAlignment = Alignment.CenterVertically) {
             // v1.136 T8: 收起时仅显示 Plus 按钮;展开时显示全部 4 个按钮(长按 Plus 切换)
             AnimatedVisibility(
@@ -830,6 +974,30 @@ private fun HomeQuickActionCapsule(
                 containerColor = MuseActionColors.container,
                 contentColor = MuseActionColors.content,
             )
+        }
+    }
+    if (glassActive && glassConfig.enabled) {
+        GlassIsland(
+            config = glassConfig,
+            shape = MuseShapes.pill,
+            solidColor = MaterialTheme.colorScheme.surfaceContainer,
+            modifier = modifier
+                .padding(end = 8.dp, bottom = 16.dp)
+                .navigationBarsPadding(),
+        ) {
+            capsuleContent()
+        }
+    } else {
+        Surface(
+            modifier = modifier
+                .padding(end = 8.dp, bottom = 16.dp)
+                .navigationBarsPadding(),
+            shape = MuseShapes.pill,
+            color = MaterialTheme.colorScheme.surfaceContainer,
+            tonalElevation = 2.dp,
+            shadowElevation = 4.dp,
+        ) {
+            capsuleContent()
         }
     }
 }

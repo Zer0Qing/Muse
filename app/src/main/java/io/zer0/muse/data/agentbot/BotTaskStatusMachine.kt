@@ -29,6 +29,9 @@ object BotTaskStatusMachine {
         /** 批准已结算，回到队列。 */
         RESUME_FROM_APPROVAL,
 
+        /** 协程仍在内存中挂起等待时收到用户批准或拒绝，原地恢复到 RUNNING 继续执行同一轮。 */
+        RESUME_IN_PLACE,
+
     /**
      * 用户在 NEEDS_USER 状态点了"继续"。
      *
@@ -110,6 +113,7 @@ object BotTaskStatusMachine {
              * 由他决定。体验上多一次点击，但不会悄悄做第二遍。
              */
             Event.RESUME_FROM_APPROVAL -> BotTaskStatus.NEEDS_USER
+            Event.RESUME_IN_PLACE -> BotTaskStatus.RUNNING
             Event.REVIEW_NEEDS_USER -> BotTaskStatus.NEEDS_USER
             Event.CANCEL_REQUEST -> BotTaskStatus.CANCEL_REQUESTED
             Event.MARK_UNKNOWN -> BotTaskStatus.UNKNOWN

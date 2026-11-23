@@ -3442,9 +3442,9 @@ class GroupChatScheduler(
         val ragQuery = lastUserMsg?.body?.takeIf { it.isNotBlank() }
         if (ragQuery != null) {
             val ragConfig = resultOf { settings.getRagConfig() }.getOrNull() ?: RagConfig()
-            if (ragConfig.enabled) {
-                val scopeDocIds = resultOf { ragService.resolveMentionToDocIds(ragQuery) }
-                    .getOrNull()?.takeIf { it.isNotEmpty() }
+            val scopeDocIds = resultOf { ragService.resolveMentionToDocIds(ragQuery) }
+                .getOrNull()?.takeIf { it.isNotEmpty() }
+            if (ragConfig.enabled || scopeDocIds != null) {
                 val injection = resultOf {
                     ragService.buildInjectionContextWithCitations(ragQuery, ragConfig, scopeDocIds)
                 }.getOrNull()

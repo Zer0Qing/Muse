@@ -984,4 +984,59 @@ class SubagentRunnerTest {
             result.error?.contains("找不到角色") == true,
         )
     }
+
+    @Test
+    fun `unrestricted agent mode exposes automation and screen tools omitted for plain subagents`() = runTest {
+        val mockChatService = mockk<ChatService>(relaxed = true)
+        val mockToolRegistry = mockk<ToolRegistry>(relaxed = true)
+        every { mockToolRegistry.listTools() } returns listOf(
+            ToolRegistry.ToolDef("web_search", "search", emptyMap(), riskLevel = ToolRiskLevel.SAFE),
+            ToolRegistry.ToolDef("ui_agent", "ui agent", emptyMap(), riskLevel = ToolRiskLevel.HIGH),
+            ToolRegistry.ToolDef("automation_workflow", "workflow", emptyMap(), riskLevel = ToolRiskLevel.HIGH),
+            ToolRegistry.ToolDef("screen_back", "back", emptyMap(), riskLevel = ToolRiskLevel.NORMAL),
+            ToolRegistry.ToolDef("subagent_run", "recursive", emptyMap(), riskLevel = ToolRiskLevel.HIGH),
+        )
+        every { mockToolRegistry.listToolsAsToolDefinitions() } returns listOf(
+            ToolDefinition("web_search", "search", "{}"),
+            ToolDefinition("ui_agent", "ui agent", "{}"),
+            ToolDefinition("automation_workflow", "workflow", "{}"),
+            ToolDefinition("screen_back", "back", "{}"),
+            ToolDefinition("subagent_run", "recursive", "{}"),
+        )
+        val offered = slot<List<ToolDefinition>>()
+        coEvery {
+            mockChatService.completeText(
+                messages = any(),
+                model = any(),
+                providerConfig = any(),
+                temperature = any(),
+                maxTokens = any(),
+                tools = capture(offered),
+                reasoningLevel = any(),
+                mode = any(),
+            )
+        } returns ChatCompletion(text = "完成", finishReason = "stop")
+
+        val runner = SubagentRunner(
+            mockChatService,
+            mockToolRegistry,
+            mockThreadStore(),
+            mockLimiter(),
+            mockk(relaxed = true),
+            ToolApprovalRouter(),
+        )
+        val result = runner.run(
+            SubagentRunner.Params(
+                task = "自动化操作并检查",
+                access = "full",
+                unrestrictedAgentMode = true,
+            ),
+        )
+        assertTrue(result.success)
+        val names = offered.captured.map { it.name }.toSet()
+        assertTrue("Agent 模式应包含 ui_agent，实际: $names", "ui_agent" in names)
+        assertTrue("Agent 模式应包含 automation_workflow，实际: $names", "automation_workflow" in names)
+        assertTrue("Agent 模式应包含 screen_back，实际: $names", "screen_back" in names)
+        assertFalse("递归工具仍应禁止，实际: $names", "subagent_run" in names)
+    }
 }

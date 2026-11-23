@@ -126,6 +126,8 @@ class PublicationService(
         taskRevision: Int,
         items: List<Item>,
         currentRequestRevision: Long = requestRevision,
+        reasoningByItem: List<String?> = emptyList(),
+        citationsByItem: List<List<String>> = emptyList(),
     ): Result = withContext(Dispatchers.IO) {
         if (items.isEmpty()) return@withContext Result(0, 0, 0, emptyList())
         if (originSessionId.isBlank()) {
@@ -153,7 +155,12 @@ class PublicationService(
                 taskRevision = taskRevision,
                 items = items.map { it.kind to it.payload },
             )
-            commitPending(publicationId, originSessionId)
+            commitPending(
+                publicationId = publicationId,
+                sessionId = originSessionId,
+                reasoningByItem = reasoningByItem,
+                citationsByItem = citationsByItem,
+            )
         }
     }
 
@@ -370,14 +377,19 @@ class PublicationService(
      * 每条 item 一个事务：一条失败不影响已成功的那些 —— 用户至少能看到前半句，
      * 而不是整批消失。
      */
-    private suspend fun commitPending(publicationId: String, sessionId: String): Result {
+    private suspend fun commitPending(
+        publicationId: String,
+        sessionId: String,
+        reasoningByItem: List<String?> = emptyList(),
+        citationsByItem: List<List<String>> = emptyList(),
+    ): Result {
         val pending = db.publicationOutboxDao().listByPublication(publicationId)
             .filter { it.status == PublicationStatus.PENDING }
         var committed = 0
         var failed = 0
         val messageIds = mutableListOf<String>()
 
-        for (item in pending) {
+        for ((index, item) in pending.withIndex()) {
             // 用 kotlin.uuid.Uuid 生成，与 UIMessage.id 同一套类型。
             //
             // 之前用 java.util.UUID.randomUUID().toString()：格式上兼容，
@@ -415,7 +427,7 @@ class PublicationService(
                             sessionId = sessionId,
                             role = MessageRole.ASSISTANT.name,
                             content = item.payloadRef,
-                            reasoning = null,
+                            reasoning = reasoningByItem.getOrNull(index)?.takeIf { it.isNotBlank() },
                             thinkingSignature = null,
                             thinkingEncryptedContent = null,
                             modelId = null,
@@ -427,7 +439,9 @@ class PublicationService(
                             voiceDurationMs = 0L,
                             favorite = false,
                             favoriteTag = null,
-                            citationUrlsJson = "[]",
+                            citationUrlsJson = citationsByItem.getOrNull(index)?.takeIf { it.isNotEmpty() }?.let {
+                                io.zer0.common.AppJson.encodeToString(it)
+                            } ?: "[]",
                             ragCitationsJson = "[]",
                             imageBase64Json = "[]",
                         ),

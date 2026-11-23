@@ -55,6 +55,7 @@ import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.huge
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import io.zer0.muse.util.launchSafely
 
 /**
  * v2.x: 账户中心 — 本地个人资料编辑页(无登录/注册 UI)。
@@ -148,9 +149,7 @@ fun AccountScreen(
                 userName = editName,
                 avatarUri = editAvatarUri,
                 onClick = {
-                    pickAvatarLauncher.launch(
-                        "image/*",
-                    )
+                    pickAvatarLauncher.launchSafely("image/*", context)
                 },
             )
             Text(

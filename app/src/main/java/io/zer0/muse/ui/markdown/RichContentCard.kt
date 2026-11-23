@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -331,11 +333,11 @@ private fun RichContentFullscreenPreview(title: String, html: String, onDismiss:
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background,
         ) {
-            Column(modifier = Modifier.fillMaxSize()) {
+            Column(modifier = Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(start = MusePaddings.screen, top = 4.dp, bottom = 4.dp),
+                        .padding(start = MusePaddings.screen, top = MusePaddings.tightGap, bottom = MusePaddings.tightGap),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(

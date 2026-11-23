@@ -366,16 +366,14 @@ fun SkillScreen(onBack: () -> Unit, skillRepository: SkillRepository = koinInjec
                     .onError { msg, _ -> MuseToast.show(context.getString(R.string.skill_operation_failed, msg)) }
                     .getOrNull()
                 if (json != null) {
-                    val sendIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-                        type = "application/json"
-                        putExtra(android.content.Intent.EXTRA_TEXT, json)
-                        putExtra(android.content.Intent.EXTRA_SUBJECT, skill.name)
-                    }
-                    resultOf {
-                        context.startActivity(android.content.Intent.createChooser(sendIntent, null))
-                    }.onError { msg, _ ->
-                        MuseToast.show(context.getString(R.string.skill_operation_failed, msg))
-                    }
+                    io.zer0.muse.util.ShareIntentHelper.shareTextOrFileSafely(
+                        context = context,
+                        mime = "application/json",
+                        content = json,
+                        subject = skill.name,
+                        filePrefix = "muse-skill",
+                        fileExtension = "json",
+                    )
                 }
             },
             // v1.0.92: 恢复内置 skill 出厂定义(仅内置项提供入口;幂等重置并重新启用)

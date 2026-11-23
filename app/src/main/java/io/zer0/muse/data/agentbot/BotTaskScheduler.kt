@@ -9,6 +9,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentHashMap
@@ -70,10 +71,20 @@ class BotTaskScheduler(
     private val modelRouter: AgentModelRouter? = null,
     private val configStore: io.zer0.ai.ProviderConfigStore? = null,
     private val annotationService: BotAnnotationService? = null,
+    private val allowances: ConversationToolAllowanceStore? = null,
+    private val settings: io.zer0.muse.data.SettingsRepository? = null,
+    private val assistantRepository: io.zer0.muse.data.assistant.AssistantRepository? = null,
+    private val toolConfigStore: io.zer0.muse.tools.ToolConfigStore? = null,
 ) {
 
     /** runId → Job。取消、诊断、保活都读它。 */
     private val runningJobs = ConcurrentHashMap<String, Job>()
+
+    /** 当前仍在内存中挂起或运行的 taskId 集合（用于区分原地挂起恢复与进程重启后离线恢复）。 */
+    private val activeTaskIds = ConcurrentHashMap.newKeySet<String>()
+
+    /** 判断某任务协程是否仍在内存中存活。 */
+    fun isTaskActiveInMemory(taskId: String): Boolean = taskId in activeTaskIds
 
     /** runId → 取消句柄。Runner 在工具循环间断点检查它。 */
     private val cancellations = ConcurrentHashMap<String, SubagentCancellation>()
@@ -161,6 +172,19 @@ class BotTaskScheduler(
                 }
             }
         }
+    }
+
+    private suspend fun resolveAssistantModelPair(
+        providerId: String?,
+        modelId: String,
+        store: io.zer0.ai.ProviderConfigStore,
+    ): Pair<io.zer0.ai.core.ProviderConfig?, io.zer0.ai.core.Model?>? {
+        val providers = runCatching { store.getAllProviders() }.getOrDefault(emptyList())
+        val matchedProvider = providerId?.takeIf { it.isNotBlank() }?.let { pid ->
+            providers.firstOrNull { p -> p.id == pid && p.models.any { it.id == modelId } }
+        } ?: providers.firstOrNull { p -> p.models.any { it.id == modelId } } ?: return null
+        val matchedModel = matchedProvider.models.firstOrNull { it.id == modelId } ?: return null
+        return matchedProvider to matchedModel
     }
 
     /** 停止驱动循环（测试与"关闭中枢"时用）。 */
@@ -311,13 +335,31 @@ class BotTaskScheduler(
         // `CoroutineStart.LAZY` + 先 put 再 start：保证"表里有它"与"它在跑"同时成立。
         val job = scope.launch(start = kotlinx.coroutines.CoroutineStart.LAZY) {
             try {
-                val routedBackgroundModel = if (modelRouter != null && configStore != null) {
+                val assistant = runCatching { assistantRepository?.getById(task.botId) }
+                    .onFailure { Logger.w("BotTaskScheduler", "读取助手配置失败: ${it.message}") }
+                    .getOrNull()
+                val routedFromRouter = if (modelRouter != null && configStore != null) {
                     runCatching { modelRouter.resolve(AgentModelRouter.Role.BACKGROUND, configStore) }
                         .onFailure { Logger.w("BotTaskScheduler", "解析后台模型路由失败: ${it.message}") }
                         .getOrNull()
                 } else {
                     null
                 }
+                val routedBackgroundModel = if (routedFromRouter?.second != null) {
+                    routedFromRouter
+                } else if (assistant?.modelId != null && configStore != null) {
+                    resolveAssistantModelPair(assistant.providerId, assistant.modelId, configStore)
+                } else {
+                    routedFromRouter
+                }
+                val deniedToolNames = runCatching {
+                    toolConfigStore?.policiesFlow?.first()
+                        ?.filterValues { it == io.zer0.muse.tools.ToolApprovalPolicy.ALWAYS_DENY }
+                        ?.keys
+                }.getOrNull().orEmpty()
+                val toolCriteria = io.zer0.muse.tools.ToolSchemaRules.criteriaFor(assistant, deniedToolNames)
+                val currentSpace = runCatching { settings?.currentSpaceIdFlow?.first() }
+                    .getOrNull().orEmpty().ifBlank { "default" }
                 val stepLabels = mutableMapOf<String, String>()
                 // 走 background 路径：只占非预留槽位，前台永远至少有一个槽可用。
                 // 旧 subagent_run / subagent_task 不传这个标志，行为不变（计划 V25）。
@@ -326,16 +368,20 @@ class BotTaskScheduler(
                         task = task.goal,
                         contextText = buildContext(task),
                         targetPaths = parsePaths(task.resourceScope),
-                        // 高风险写入可被请求，但仍会逐次创建持久审批。
+                        // 高风险写入可被请求，但仍会逐次创建持久审批；同时打开全能力与助手/技能/MCP 透传。
                         access = "full",
+                        maxToolCalls = 16,
                         threadId = run.threadId.ifBlank { null },
                         persistSession = true,
                         background = true,
                         modelOverride = routedBackgroundModel,
+                        unrestrictedAgentMode = true,
+                        toolCriteria = toolCriteria,
+                        assistantSystemPrompt = assistant?.systemPrompt?.takeIf { it.isNotBlank() },
                         pollSteeringInstructions = { progressBus?.drainSteer(task.taskId).orEmpty() },
                         toolExecutionContext = io.zer0.muse.tools.ToolExecutionContext(
                             scope = "main",
-                            spaceId = "default",
+                            spaceId = currentSpace,
                             assistantId = task.botId,
                             sessionId = task.originSessionId,
                             resourceScope = task.resourceScope,
@@ -445,6 +491,14 @@ class BotTaskScheduler(
                         // 所以这里建一张持久审批卡，把任务转 WAITING_APPROVAL 并结束本轮。
                         // 用户批准后由 BotResultApplier / 后续 run 继续。
                         onApprovalRequired = { toolName, toolCallId, argsJson, stepId ->
+                            val trustedOrSessionAllowed = runCatching {
+                                val mode = settings?.defaultSessionPermissionModeFlow?.first()
+                                mode == io.zer0.muse.tools.SessionPermissionMode.TRUSTED ||
+                                    allowances?.isAllowed(task.originSessionId, toolName) == true
+                            }.getOrDefault(false)
+                            if (trustedOrSessionAllowed) {
+                                return@Params SubagentRunner.ApprovalRequestResult.Approved("auto-allowed")
+                            }
                             val argumentsHash = StagedArtifactStore.hashOf(argsJson)
                             val resourceVersion = baselineHashFor(
                                 toolTargetPath(toolName, argsJson, task.resourceScope),
@@ -495,6 +549,61 @@ class BotTaskScheduler(
                                     approval == null -> SubagentRunner.ApprovalRequestResult.Failed(
                                         "审批请求没有保存，任务状态或版本已变化",
                                     )
+                                    approvalService != null -> {
+                                        // 协程存活期间原地挂起等待用户拍板：批准后立刻在同一轮继续执行工具，
+                                        // 避免关闭进程再要求用户点「重跑」以及重跑再次触发重复审批。
+                                        var outcome: SubagentRunner.ApprovalRequestResult =
+                                            SubagentRunner.ApprovalRequestResult.Created(approval.approvalId)
+                                        while (kotlinx.coroutines.currentCoroutineContext().isActive && !cancellation.isCancelled) {
+                                            delay(250L)
+                                            val current = repository.getApproval(approval.approvalId) ?: break
+                                            if (current.expiresAt > 0 &&
+                                                current.expiresAt < System.currentTimeMillis() &&
+                                                !ApprovalStatus.isSettled(current.status)
+                                            ) {
+                                                runCatching { approvalService.sweepExpired() }
+                                            }
+                                            val refreshed = repository.getApproval(approval.approvalId) ?: break
+                                            if (ApprovalStatus.isSettled(refreshed.status)) {
+                                                repository.transition(
+                                                    task.taskId,
+                                                    BotTaskStatusMachine.Event.RESUME_IN_PLACE,
+                                                )
+                                                outcome = when (refreshed.status) {
+                                                    ApprovalStatus.APPROVED -> {
+                                                        runCatching {
+                                                            repository.consumeApprovedApproval(
+                                                                taskId = task.taskId,
+                                                                runId = run.runId,
+                                                                taskRevision = run.taskRevision,
+                                                                stepId = stepId,
+                                                                toolName = toolName,
+                                                                argumentsHash = argumentsHash,
+                                                                resourceVersion = resourceVersion,
+                                                                sideEffect = sideEffect,
+                                                            )
+                                                        }
+                                                        runCatching {
+                                                            allowances?.allow(task.originSessionId, toolName)
+                                                        }
+                                                        SubagentRunner.ApprovalRequestResult.Approved(approval.approvalId)
+                                                    }
+                                                    ApprovalStatus.DENIED -> {
+                                                        SubagentRunner.ApprovalRequestResult.Denied(
+                                                            refreshed.decisionReason.ifBlank { "用户拒绝了该操作" },
+                                                        )
+                                                    }
+                                                    else -> {
+                                                        SubagentRunner.ApprovalRequestResult.Denied(
+                                                            "审批已过期或失效（${refreshed.status}）",
+                                                        )
+                                                    }
+                                                }
+                                                break
+                                            }
+                                        }
+                                        outcome
+                                    }
                                     else -> SubagentRunner.ApprovalRequestResult.Created(approval.approvalId)
                                 }
                             }
@@ -579,8 +688,10 @@ class BotTaskScheduler(
                 if (!stagedArtifactsTransferred) stagedArtifactRefs.forEach { staging?.discard(it) }
                 runningJobs.remove(run.runId)
                 cancellations.remove(run.runId)
+                activeTaskIds.remove(task.taskId)
             }
         }
+        activeTaskIds.add(task.taskId)
         runningJobs[run.runId] = job
         // 占位完成后才真正开跑：此时 finally 里的 remove 一定能删到东西。
         job.start()

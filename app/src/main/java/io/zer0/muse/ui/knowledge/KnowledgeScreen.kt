@@ -98,6 +98,7 @@ import org.koin.compose.koinInject
 import java.security.MessageDigest
 import java.util.Date
 import java.util.Locale
+import io.zer0.muse.util.launchSafely
 
 // L-KUI1: 内容截断上限,防止超大文档导致 OOM
 private const val MAX_CONTENT_LENGTH = 500_000
@@ -593,7 +594,7 @@ fun KnowledgeScreen(
         if (pending.isNotEmpty()) {
             startImport(pending, importTargetKbId.ifBlank { "default" }, importTargetFolderPath)
         } else {
-            importLauncher.launch(arrayOf("*/*"))
+            importLauncher.launchSafely(arrayOf("*/*"), context)
         }
     }
 
@@ -864,7 +865,9 @@ fun KnowledgeScreen(
                 //  - 单个/多个普通文件 → 才需要问一句要进哪个库。
                 // 原来反着来（先问库再选文件），导入压缩包时那个问题纯属多余。
                 onClick = {
-                    if (!importing) importLauncher.launch(arrayOf("*/*"))
+                    if (!importing) {
+                        importLauncher.launchSafely(arrayOf("*/*"), context)
+                    }
                 },
                 contentDescription = stringResource(R.string.knowledge_import),
             )
@@ -1894,6 +1897,16 @@ fun KnowledgeScreen(
                     scope.launch {
                         withContext(Dispatchers.IO) {
                             folderDao.deleteByPathRecursive(kbNow, path)
+                            // 文档不删，仅清除匹配目录（含子目录）的 folderPath 归属
+                            dao.getByKbIds(listOf(kbNow)).forEach { doc ->
+                                val p = KnowledgeFolderBrowser.folderPath(doc)
+                                if (p == path || p.startsWith("$path/")) {
+                                    dao.upsert(
+                                        KnowledgeFolderBrowser.withFolderPath(doc, "")
+                                            .copy(updatedAt = System.currentTimeMillis()),
+                                    )
+                                }
+                            }
                         }
                         if (currentFolderPath == path || currentFolderPath.startsWith("$path/")) {
                             currentFolderPath = KnowledgeFolderBrowser.parent(path)

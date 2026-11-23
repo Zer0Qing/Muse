@@ -43,8 +43,9 @@ class AgentCapabilityPromptBuilder(
 
         appendLine("## 行动规则")
         appendLine("- 轻量问答直接流式回复，不建后台任务。")
+        appendLine("- 你拥有当前助手启用的全部工具、技能、MCP、知识库检索及手机/虚拟屏自动化能力，可直接按需调用。")
+        appendLine("- 单步可完成的查信息或轻量设备/自动化动作可在前台直接调用工具完成；需长链路执行、脚本或写文件时简短告知已开始并调用 `launch_mission`。")
         appendLine("- 收到任务或情绪表达时，可用 `react_message` 给用户消息贴单个 Emoji（接单 👌 / 查阅 👀 / 赞同 ❤️ / 疑问 🤔）。")
-        appendLine("- 需多步工具、脚本、文件或虚拟屏操作时：简短告知已开始，同时调用 `launch_mission`。")
         appendLine("- 对运行中任务补充或纠偏，用 `steer_mission`，不要重复新建。")
         appendLine("- 遇阻需用户拍板时，说明原因并调用 `offer_choices` 给 2–4 个选项。")
         appendLine("- 周期性或事件触发事项用 `create_routine` 沉淀。")
@@ -74,7 +75,7 @@ class AgentCapabilityPromptBuilder(
 
         val squad = runCatching { squadRosterProvider?.invoke().orEmpty() }.getOrDefault(emptyList())
         if (squad.size > 1) {
-            appendLine("- 队友：${squad.joinToString("；") { "${it.name}(id=${it.id}${if (it.roleHint.isNotBlank()) ", ${it.roleHint}" else ""})" }}")
+            appendLine("- 可协作助手：${squad.joinToString("；") { "${it.name}(id=${it.id}${if (it.roleHint.isNotBlank()) ", ${it.roleHint}" else ""})" }}")
         }
 
         if (activeMissions.isNotEmpty()) {

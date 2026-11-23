@@ -66,6 +66,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 import io.zer0.muse.ui.assistant.VideoGenerationPage
+import io.zer0.muse.util.launchSafely
 
 /**
  * P2-9: 语音克隆页 — 全屏工具页。
@@ -262,7 +263,7 @@ fun VoiceCloningPage(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable(enabled = !isCloning) {
-                            pickAudioLauncher.launch(arrayOf("audio/*"))
+                            pickAudioLauncher.launchSafely(arrayOf("audio/*"), context)
                         },
                 ) {
                     Row(
@@ -531,7 +532,8 @@ fun VoiceCloningPage(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             },
-            confirmText = stringResource(R.string.voice_cloning_submit),
+            confirmText = stringResource(R.string.common_delete),
+            destructive = true,
             onConfirm = {
                 val target0 = target
                 voiceToDelete = null
@@ -555,7 +557,6 @@ fun VoiceCloningPage(
                     isDeleting = false
                 }
             },
-            destructive = true,
         )
     }
 }

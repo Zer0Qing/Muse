@@ -458,7 +458,11 @@ internal fun MessageBubble(
     // Resolve once per role/theme; null skin短路为 null,保证默认外观完全不变。
     val resolvedSkin = bubbleSkin?.let { skin ->
         val role = if (isUser) BubbleRole.USER else BubbleRole.ASSISTANT
-        BubbleSkinResolver.resolve(skin, role, darkTheme = isSystemInDarkTheme())
+        BubbleSkinResolver.resolve(
+            skin,
+            role,
+            darkTheme = io.zer0.muse.ui.theme.LocalIsDarkTheme.current,
+        )
     }
     // 阶段 4: 长按菜单状态(主菜单 + 翻译语言子菜单)
     // B-AUDIT: 长按菜单/删除确认/信息/表情回应等"瞬时交互状态"改回 remember —
@@ -1306,9 +1310,18 @@ internal fun MessageBubble(
                                 isFromUser = true,
                             )
                         } else if (userText.isNotBlank()) {
+                            val userBase = MaterialTheme.typography.bodyMedium
+                            val userScale = chatPrefs.messageFontScale.coerceIn(0.85f, 1.3f)
+                            val userStyle = userBase.copy(
+                                fontSize = userBase.fontSize * userScale,
+                                lineHeight = userBase.lineHeight.let {
+                                    if (it.isUnspecified) it else it * userScale
+                                },
+                                letterSpacing = chatPrefs.messageLetterSpacingEm.coerceIn(-0.02f, 0.1f).em,
+                            )
                             Text(
                                 text = userText,
-                                style = MaterialTheme.typography.bodyMedium,
+                                style = userStyle,
                                 color = userContentColor,
                             )
                         }
@@ -1406,8 +1419,9 @@ internal fun MessageBubble(
                     ) {
                         val assistantSurfaceColor = resolvedSkin?.let { Color(it.style.surfaceArgb) }
                             ?: MuseBubbleStyles.assistantSurfaceColor()
+                        val assistantBubbleRadius = chatPrefs.bubbleRadius.coerceIn(0, 28).toFloat()
                         val assistantShape = resolvedSkin?.style?.radiusDp?.dp?.let { RoundedCornerShape(it) }
-                            ?: MuseBubbleStyles.assistantBubbleShape()
+                            ?: MuseBubbleStyles.assistantBubbleShape(assistantBubbleRadius)
                         // v2.x: 长文校准 — 结构型/超长回复"不进卡":外壳容器取消(底色/描边/圆角/70% 宽度上限全去),
                         // 内容直接落在呼吸边上全宽排版(长内容阅读节奏)。皮肤模式下以皮肤为准。
                         // v2.x（用户反馈）: 有背景图时不做长文不进卡 —— 否则正文直接压在图片上，

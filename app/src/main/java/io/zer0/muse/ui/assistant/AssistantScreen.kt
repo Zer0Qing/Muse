@@ -70,6 +70,7 @@ import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 import kotlin.uuid.Uuid
 import io.zer0.muse.ui.chat.ChatViewModel
+import io.zer0.muse.util.launchSafely
 
 /**
  * 助手列表页 —— 全量重写。
@@ -432,7 +433,9 @@ fun AssistantScreen(onBack: () -> Unit, onOpenDetail: (String) -> Unit, viewMode
                                 // 导入角色卡：原来只是顶栏一颗无字下载箭头，读屏之外没人知道它是什么；
                                 // 与同页另一个导入入口用同一形态（图标 + 标题 + chevron）
                                 item(
-                                    onClick = { importLauncher.launch(arrayOf("*/*")) },
+                                    onClick = {
+                                        importLauncher.launchSafely(arrayOf("*/*"), context)
+                                    },
                                     leadingContent = {
                                         Icon(
                                             imageVector = MuseIcons.download,
@@ -649,7 +652,7 @@ fun AssistantScreen(onBack: () -> Unit, onOpenDetail: (String) -> Unit, viewMode
                     val safeName = assistant.name
                         .ifBlank { "assistant" }
                         .replace(Regex("[\\\\/:*?\"<>|]"), "_")
-                    exportLauncher.launch("$safeName.muse-assistant")
+                    exportLauncher.launchSafely("$safeName.muse-assistant", context)
                 },
             )
 

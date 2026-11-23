@@ -124,12 +124,11 @@ object DiagnosticExporter {
             putExtra(Intent.EXTRA_STREAM, uri)
             putExtra(Intent.EXTRA_SUBJECT, context.getString(R.string.diagnostic_export_subject))
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
-        context.startActivity(
-            Intent.createChooser(intent, context.getString(R.string.diagnostic_export_title)).apply {
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            },
+        io.zer0.muse.util.ShareIntentHelper.startChooserSafely(
+            context = context,
+            shareIntent = intent,
+            chooserTitle = context.getString(R.string.diagnostic_export_title),
         )
     }
 

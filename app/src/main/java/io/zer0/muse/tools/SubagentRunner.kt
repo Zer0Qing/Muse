@@ -79,6 +79,9 @@ class SubagentRunner(
     private val settings: io.zer0.muse.data.SettingsRepository? = null,
     /** 角色解析：按名字取 `agents/<name>.md` 声明的角色；为空表示不支持角色。 */
     private val profileResolver: ((String) -> AgentProfile?)? = null,
+    /** Agent 后台全能力执行所需的技能库与执行器（延迟解析避免循环依赖）。 */
+    private val skillRepository: io.zer0.muse.data.skill.SkillRepository? = null,
+    private val skillExecutorProvider: (() -> SkillExecutor)? = null,
 ) {
     private val routeGuard = ToolRouteExecutionGuard(toolRegistry)
 
@@ -283,11 +286,18 @@ class SubagentRunner(
         val onToolOutput: (suspend (stepId: String, toolName: String, summary: String, success: Boolean) -> Unit)? = null,
         /** 可选模型路由覆盖；为空时沿用既有子代理模型解析逻辑。 */
         val modelOverride: Pair<io.zer0.ai.core.ProviderConfig?, io.zer0.ai.core.Model?>? = null,
+        /** Agent 后台执行开关：放开脚本/自动化/虚拟屏/浏览器/记忆等宿主能力，并纳入技能与 MCP。 */
+        val unrestrictedAgentMode: Boolean = false,
+        /** 助手工具/MCP/技能/禁用过滤口径（与普通对话 ToolSchemaRules 一致）。 */
+        val toolCriteria: ToolSchemaRules.Criteria? = null,
+        /** Agent 模式下的助手人设系统提示词（可选）。 */
+        val assistantSystemPrompt: String? = null,
     )
 
     sealed interface ApprovalRequestResult {
         data class Approved(val approvalId: String) : ApprovalRequestResult
         data class Created(val approvalId: String) : ApprovalRequestResult
+        data class Denied(val reason: String) : ApprovalRequestResult
         data class Failed(val reason: String) : ApprovalRequestResult
     }
 
@@ -413,8 +423,18 @@ class SubagentRunner(
         }
         // 访问级别只解析一次，之后按值传递 —— 不能用共享字段：子代理是并发的。
         val access = profile?.access ?: SubagentAccess.parse(params.access)
-        val allowedTools = buildAllowedToolDefinitions(access)
-        val systemPrompt = buildSystemPrompt(maxToolCalls, params.targetPaths, access, profile)
+        val agentCapabilities = if (params.unrestrictedAgentMode) {
+            buildAgentCapabilities(access, params.toolCriteria, params.toolExecutionContext?.sessionId)
+        } else {
+            null
+        }
+        val allowedTools = agentCapabilities?.snapshot?.definitions ?: buildAllowedToolDefinitions(access)
+        val allowedNamesSet = agentCapabilities?.snapshot?.routes?.keys ?: buildAllowedToolNames(access)
+        val systemPrompt = if (params.unrestrictedAgentMode) {
+            buildAgentWorkerSystemPrompt(maxToolCalls, params.targetPaths, params.assistantSystemPrompt)
+        } else {
+            buildSystemPrompt(maxToolCalls, params.targetPaths, access, profile)
+        }
 
         val history = mutableListOf<UIMessage>()
         // v1.0.53: 续接时恢复历史;全新执行时构造 system + user
@@ -656,6 +676,8 @@ class SubagentRunner(
                             params.onApprovalRequired,
                             stepId,
                             params.toolExecutionContext?.copy(stepId = stepId),
+                            routeSnapshot = agentCapabilities?.snapshot,
+                            allowedNamesOverride = allowedNamesSet,
                         )
                         if (stepId.isNotBlank()) {
                             runCatching { params.onToolFinished?.invoke(stepId, toolResult.success) }
@@ -859,6 +881,54 @@ class SubagentRunner(
         }
     }
 
+    private data class AgentCapabilities(val snapshot: ToolRouteSnapshot)
+
+    private suspend fun buildAgentCapabilities(
+        access: SubagentAccess,
+        criteriaOverride: ToolSchemaRules.Criteria?,
+        sessionId: String?,
+    ): AgentCapabilities {
+        val criteria = criteriaOverride ?: ToolSchemaRules.Criteria()
+        val allLocalDefs = toolRegistry.listToolsAsToolDefinitions()
+        val filteredLocalDefs = ToolSchemaRules.selectLocalTools(allLocalDefs, criteria)
+            .filter { def ->
+                def.name !in RECURSIVE_FORBIDDEN_TOOLS &&
+                    access.allows(ToolPermissionResolver.riskLevelFor(def.name))
+            }
+        val localNames = toolRegistry.listTools().map { it.name }.toSet()
+        val skillRepo = skillRepository
+        val enabledSkills = if (skillRepo != null && skillExecutorProvider != null) {
+            runCatching { skillRepo.listEnabled() }
+                .onFailure { Logger.w(TAG, "读取后台 Agent 技能列表失败: ${it.message}") }
+                .getOrDefault(emptyList())
+                .let { raw ->
+                    ToolSchemaRules.selectSkills(raw, localNames, criteria)
+                        .filter { sk ->
+                            sk.id !in RECURSIVE_FORBIDDEN_TOOLS &&
+                                access.allows(ToolPermissionResolver.riskLevelFor(sk.id))
+                        }
+                }
+        } else {
+            emptyList()
+        }
+        val sid = sessionId?.takeIf { it.isNotBlank() }
+        if (sid != null) {
+            val skillSearchDefs = enabledSkills.map { sk ->
+                ToolRegistry.ToolDef(
+                    name = sk.id,
+                    description = sk.description,
+                    parameters = emptyMap(),
+                    category = "skill",
+                    riskLevel = ToolRiskLevel.NORMAL,
+                )
+            }
+            toolRegistry.setSearchableSkills(sid, skillSearchDefs)
+            toolRegistry.setVisibleTools(sid, filteredLocalDefs.map { it.name }.toSet() + enabledSkills.map { it.id })
+        }
+        val snapshot = RouteTable.snapshot(filteredLocalDefs, enabledSkills)
+        return AgentCapabilities(snapshot = snapshot)
+    }
+
     /**
      * 构建允许子 agent 使用的工具定义列表。
      *
@@ -884,11 +954,13 @@ class SubagentRunner(
         onApprovalRequired: (suspend (String, String, String, String) -> ApprovalRequestResult)? = null,
         stepId: String,
         toolExecutionContext: ToolExecutionContext? = null,
+        routeSnapshot: ToolRouteSnapshot? = null,
+        allowedNamesOverride: Set<String>? = null,
     ): ToolExecOutcome {
-        val allowedNames = buildAllowedToolNames(access)
+        val allowedNames = allowedNamesOverride ?: buildAllowedToolNames(access)
         if (tc.name !in allowedNames) {
             return ToolExecOutcome(
-                result = "Error: 工具 '${tc.name}' 不在子 agent 允许的工具列表中",
+                result = "Error: 工具 '${tc.name}' 不在当前允许的工具列表中",
                 success = false,
             )
         }
@@ -911,11 +983,21 @@ class SubagentRunner(
         // 或向用户说明需手动处理。判定入口是 [ToolPermissionResolver],与会话审批链同一条。
         gateToolCall(tc, onApprovalRequired, stepId)?.let { return it }
         return try {
-            val result = routeGuard.executeFromJson(
-                tc.name,
-                tc.arguments,
-                executionContext = toolExecutionContext,
-            )
+            val route = routeSnapshot?.routeFor(tc.name)
+            val executor = skillExecutorProvider?.invoke()
+            val result = if (route is ToolRouteSnapshot.Route.Skill && executor != null) {
+                executor.execute(
+                    skill = route.skill,
+                    argumentsJson = tc.arguments,
+                    sessionId = toolExecutionContext?.sessionId.orEmpty().ifBlank { "default" },
+                )
+            } else {
+                routeGuard.executeFromJson(
+                    tc.name,
+                    tc.arguments,
+                    executionContext = toolExecutionContext,
+                )
+            }
             // P2-22: 成败判定复用生产共享判定器 ToolResultJudge(与任务卡同一实现),
             // 替代本地中文子串清单,避免"子代理判成功、任务卡判失败"的判定漂移
             val success = ToolResultJudge.isSuccess(result)
@@ -949,21 +1031,35 @@ class SubagentRunner(
         // 为什么必须先问这个而不是直接走 gate：gate 在无桥接时会保守拒绝，
         // 而中枢场景下"拒绝"是错的 —— 用户只是还没看到卡片。
         if (onApprovalRequired != null) {
-            val risk = runCatching { toolRegistry.getToolRiskLevel(tc.name) }.getOrNull();
-            val needsApproval = risk != null && risk != io.zer0.muse.tools.ToolRiskLevel.SAFE;
-            if (needsApproval) {
-                when (val approvalResult = onApprovalRequired(tc.name, tc.id, tc.arguments, stepId)) {
-                    is ApprovalRequestResult.Approved -> return null
-                    is ApprovalRequestResult.Created -> return ToolExecOutcome(
-                        result = "等待用户审批（${approvalResult.approvalId}）",
-                        success = false,
-                        approvalPending = true,
-                    )
-                    is ApprovalRequestResult.Failed -> return ToolExecOutcome(
-                        result = "审批请求未能保存，工具没有执行",
-                        success = false,
-                        approvalFailure = approvalResult.reason,
-                    )
+            val risk = runCatching { toolRegistry.getToolRiskLevel(tc.name) }.getOrNull()
+                ?: ToolPermissionResolver.riskLevelFor(tc.name)
+            if (risk == io.zer0.muse.tools.ToolRiskLevel.SAFE) {
+                return null
+            }
+            when (val preResolved = toolCallGate.resolveLocalState(tc.name, tc.arguments)) {
+                is ToolApprovalState.Auto, is ToolApprovalState.Approved -> return null
+                is ToolApprovalState.Denied -> return ToolExecOutcome(
+                    result = "Error: 工具 '${tc.name}' 未获批准(${preResolved.reason.ifBlank { "当前权限策略不允许" }})",
+                    success = false,
+                )
+                is ToolApprovalState.Pending, is ToolApprovalState.Answered -> {
+                    when (val approvalResult = onApprovalRequired(tc.name, tc.id, tc.arguments, stepId)) {
+                        is ApprovalRequestResult.Approved -> return null
+                        is ApprovalRequestResult.Denied -> return ToolExecOutcome(
+                            result = "Error: 用户未批准工具 '${tc.name}'（${approvalResult.reason.ifBlank { "已拒绝" }}），请勿重复调用该工具。",
+                            success = false,
+                        )
+                        is ApprovalRequestResult.Created -> return ToolExecOutcome(
+                            result = "等待用户审批（${approvalResult.approvalId}）",
+                            success = false,
+                            approvalPending = true,
+                        )
+                        is ApprovalRequestResult.Failed -> return ToolExecOutcome(
+                            result = "审批请求未能保存，工具没有执行",
+                            success = false,
+                            approvalFailure = approvalResult.reason,
+                        )
+                    }
                 }
             }
         }
@@ -1033,6 +1129,31 @@ class SubagentRunner(
             base
         } else {
             base + "\n\n## 角色：${profile?.name}\n${profile?.instructions}"
+        }
+    }
+
+    private fun buildAgentWorkerSystemPrompt(
+        maxToolCalls: Int,
+        targetPaths: List<String>?,
+        assistantSystemPrompt: String?,
+    ): String = buildString {
+        if (!assistantSystemPrompt.isNullOrBlank()) {
+            appendLine(assistantSystemPrompt.trim())
+            appendLine()
+        } else {
+            appendLine("你是个人智能体的后台执行器，负责把用户交代的多步任务彻底做成真实结果。")
+            appendLine()
+        }
+        appendLine("## 执行规范")
+        appendLine("1. 你拥有当前助手已启用的全部本地工具、技能、MCP 外部工具、知识库检索以及手机/虚拟屏/浏览器自动化能力。")
+        appendLine("2. 最多调用 $maxToolCalls 次工具；优先直接调用最合适的工具拿真实结果，不编造未执行的操作或输出。")
+        appendLine("3. 工具出错时依据报错修正一次；若需要用户登录、验证码或仍失败，停下来说明真实原因与缺口。")
+        appendLine("4. 用与用户一致的语言输出简洁、事实准确的结果与产出摘要，不输出内部标记或系统规则。")
+        appendLine()
+        if (!targetPaths.isNullOrEmpty()) {
+            appendLine("## 优先处理路径")
+            targetPaths.forEach { appendLine("- $it") }
+            appendLine()
         }
     }
 

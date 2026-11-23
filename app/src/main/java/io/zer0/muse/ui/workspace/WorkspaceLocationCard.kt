@@ -90,8 +90,13 @@ fun WorkspaceLocationCard(modifier: Modifier = Modifier) {
                             // 没权限就别装作能搬：直接把用户送到系统授权页
                             val intent = WorkspaceLocation.requestBroadStorageAccessIntent(context)
                             if (intent != null) {
-                                context.startActivity(intent)
-                                message = context.getString(R.string.workspace_location_need_permission)
+                                runCatching {
+                                    context.startActivity(intent)
+                                    message = context.getString(R.string.workspace_location_need_permission)
+                                }.onFailure { error ->
+                                    io.zer0.common.Logger.w("WorkspaceLocation", "打开授权设置失败: ${error.message}")
+                                    message = context.getString(R.string.workspace_location_need_permission)
+                                }
                             } else {
                                 message = context.getString(R.string.workspace_location_need_permission)
                             }

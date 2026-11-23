@@ -158,6 +158,7 @@ import io.zer0.muse.ui.screen.SearchScreen
 import io.zer0.muse.ui.screen.HomeScreen
 import io.zer0.muse.ui.common.ManualCompressionPhase
 import io.zer0.muse.ui.common.RegionErrorBoundary
+import io.zer0.muse.util.launchSafely
 
 /** P6-B3: 翻译支持的目标语言列表(常用语言,中文名便于 LLM 理解)。 */
 internal val TranslationLanguages =
@@ -1276,7 +1277,7 @@ fun ChatScreen(
     LaunchedEffect(fileAccessRequest?.id) {
         val request = fileAccessRequest ?: return@LaunchedEffect
         val types = request.mimeTypes.toTypedArray().ifEmpty { arrayOf("*/*") }
-        fileAccessLauncher.launch(types)
+        fileAccessLauncher.launchSafely(types, context)
     }
 
     // v1.0.30: 发送后自动收起键盘
@@ -1767,9 +1768,7 @@ fun ChatScreen(
                                                         enabled = !effectiveSessionIdForBg.isNullOrBlank(),
                                                         onClick = {
                                                             showTopMenu = false
-                                                            sessionBgLauncher.launch(
-                                                                "image/*",
-                                                            )
+                                                            sessionBgLauncher.launchSafely("image/*", context)
                                                         },
                                                     ),
                                                     // v2.6.2（用户反馈）: 清除本对话背景 —— 仅当本会话单独设过时出现
@@ -2141,7 +2140,10 @@ fun ChatScreen(
                                                     }
                                                     ok
                                                 } else {
-                                                    micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                                                    micPermissionLauncher.launchSafely(
+                                                        Manifest.permission.RECORD_AUDIO,
+                                                        context,
+                                                    )
                                                     // U-17: 权限缺失时给出明确反馈,避免长按静默无响应
                                                     MuseToast.show(context.getString(R.string.chat_err_mic_permission))
                                                     false

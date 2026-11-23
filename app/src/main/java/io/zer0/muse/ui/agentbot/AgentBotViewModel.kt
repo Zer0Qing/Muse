@@ -63,6 +63,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import io.zer0.muse.data.agentbot.PublicationService
 import io.zer0.muse.data.agentbot.PublicationKind
 import io.zer0.muse.data.agentbot.ReviewDecision
@@ -111,6 +112,8 @@ class AgentBotViewModel(
     private val assistantRepository: io.zer0.muse.data.assistant.AssistantRepository? = null,
     private val channelManager: io.zer0.muse.channel.ChannelManager? = null,
     private val artifactRepository: io.zer0.muse.data.artifact.ArtifactRepository? = null,
+    private val settingsRepository: io.zer0.muse.data.SettingsRepository? = null,
+    private val knowledgeDocDao: io.zer0.muse.data.knowledge.KnowledgeDocDao? = null,
 ) : ViewModel() {
 
     private val ui = AgentBotUiState()
@@ -141,6 +144,18 @@ class AgentBotViewModel(
         assistantRepository?.observeAll ?: flowOf(emptyList())
     val artifactsFlow: Flow<List<io.zer0.muse.data.artifact.ArtifactEntity>> =
         artifactRepository?.observeAll() ?: flowOf(emptyList())
+    val chatPreferencesFlow: Flow<io.zer0.muse.data.ChatPreferences> =
+        settingsRepository?.chatPreferencesFlow ?: flowOf(io.zer0.muse.data.ChatPreferences())
+    val webSearchConfigFlow: Flow<io.zer0.muse.web.WebSearchConfig> =
+        settingsRepository?.webSearchConfigFlow ?: flowOf(io.zer0.muse.web.WebSearchConfig())
+    val knowledgeDocsFlow: Flow<List<io.zer0.muse.data.knowledge.KnowledgeDocEntity>> =
+        knowledgeDocDao?.observeAllUser() ?: flowOf(emptyList())
+
+    private val _deepThinkingEnabled = MutableStateFlow(false)
+    val deepThinkingEnabled: StateFlow<Boolean> = _deepThinkingEnabled.asStateFlow()
+
+    private val _deepThinkingLevel = MutableStateFlow(io.zer0.ai.core.ReasoningLevel.HIGH)
+    val deepThinkingLevel: StateFlow<io.zer0.ai.core.ReasoningLevel> = _deepThinkingLevel.asStateFlow()
 
     private val _hasOlderTranscript = MutableStateFlow(false)
     val hasOlderTranscript: StateFlow<Boolean> = _hasOlderTranscript.asStateFlow()
@@ -567,6 +582,57 @@ class AgentBotViewModel(
         ui.setComposerText(text)
     }
 
+    fun setQuotedMessage(message: AgentBotUiState.PublishedMessage?) {
+        ui.setQuotedMessage(message)
+    }
+
+    fun startEditingMessage(message: AgentBotUiState.PublishedMessage) {
+        ui.setEditingMessage(message.messageId, message.text)
+    }
+
+    fun cancelEditingMessage() {
+        ui.setEditingMessage(null, "")
+    }
+
+    fun toggleDeepThinking() {
+        _deepThinkingEnabled.update { !it }
+    }
+
+    fun cycleDeepThinkingLevel() {
+        _deepThinkingLevel.update { current ->
+            when (current) {
+                io.zer0.ai.core.ReasoningLevel.LOW -> io.zer0.ai.core.ReasoningLevel.MEDIUM
+                io.zer0.ai.core.ReasoningLevel.MEDIUM -> io.zer0.ai.core.ReasoningLevel.HIGH
+                io.zer0.ai.core.ReasoningLevel.HIGH -> io.zer0.ai.core.ReasoningLevel.XHIGH
+                io.zer0.ai.core.ReasoningLevel.XHIGH -> io.zer0.ai.core.ReasoningLevel.LOW
+                else -> io.zer0.ai.core.ReasoningLevel.HIGH
+            }
+        }
+    }
+
+    fun toggleWebSearch() {
+        val repo = settingsRepository ?: return
+        viewModelScope.launch {
+            runCatching {
+                val cfg = repo.webSearchConfigFlow.first()
+                val enabling = !cfg.enabled || cfg.mode == io.zer0.muse.web.WebSearchMode.OFF
+                val nextCfg = cfg.copy(
+                    enabled = enabling,
+                    mode = if (enabling) {
+                        if (cfg.mode == io.zer0.muse.web.WebSearchMode.OFF) {
+                            io.zer0.muse.web.WebSearchMode.AUTO
+                        } else {
+                            cfg.mode
+                        }
+                    } else {
+                        io.zer0.muse.web.WebSearchMode.OFF
+                    },
+                )
+                repo.saveWebSearchConfig(nextCfg)
+            }.onFailure { Logger.w("AgentBotVM", "切换联网搜索失败: ${it.message}", it) }
+        }
+    }
+
     fun addPendingImage(uri: Uri, context: Context) {
         if (ui.composer.value.pendingImages.size >= AgentBotUiState.MAX_PENDING_IMAGES) {
             ui.setError(AgentBotError.ATTACHMENT_LIMIT)
@@ -605,7 +671,20 @@ class AgentBotViewModel(
         imageBase64List: List<String>,
         submittedComposer: AgentBotUiState.Composer?,
     ) {
-        if (text.isBlank()) return
+        val trimmedText = text.trim()
+        if (trimmedText.isBlank() && imageBase64List.isEmpty()) return
+        val quotedPreview = submittedComposer?.quotedMessage?.text
+            ?.lineSequence()
+            ?.firstOrNull()
+            ?.trim()
+            .orEmpty()
+            .take(120)
+        val effectiveText = when {
+            quotedPreview.isNotBlank() && trimmedText.isNotBlank() -> "> $quotedPreview\n\n$trimmedText"
+            quotedPreview.isNotBlank() -> "> $quotedPreview"
+            else -> trimmedText
+        }
+        val editingMessageId = submittedComposer?.editingMessageId
         val botId = currentBotId
         viewModelScope.launch {
             ui.setSending(true)
@@ -630,10 +709,17 @@ class AgentBotViewModel(
                     return@launch
                 }
             }
+            if (!editingMessageId.isNullOrBlank()) {
+                runCatching { sessions.deleteMessage(editingMessageId) }
+                    .onFailure { Logger.w("AgentBotVM", "编辑重发删除原消息失败: ${it.message}", it) }
+                if (currentBotId == botId && currentSessionId == sessionId) {
+                    ui.replacePublished(ui.transcript.value.filterNot { it.messageId == editingMessageId })
+                }
+            }
             val accepted = facade.acceptUserInput(
                 botId = botId,
                 originSessionId = sessionId,
-                text = text,
+                text = effectiveText,
             )
             if (accepted == null) {
                 // 落盘失败：内容留在输入框，给可操作错误，不静默吞掉。
@@ -653,7 +739,7 @@ class AgentBotViewModel(
                     io.zer0.ai.core.UIMessage(
                         id = kotlin.uuid.Uuid.parse(accepted.messageId),
                         role = io.zer0.ai.core.MessageRole.USER,
-                        content = text,
+                        content = effectiveText,
                         imageBase64List = imageBase64List,
                     ),
                 )
@@ -671,13 +757,19 @@ class AgentBotViewModel(
                     AgentBotUiState.PublishedMessage(
                         messageId = accepted.messageId,
                         role = AgentBotUiState.Role.USER,
-                        text = text,
+                        text = effectiveText,
                         createdAt = System.currentTimeMillis(),
                         imageBase64List = imageBase64List,
                     ),
                 )
                 if (submittedComposer != null) {
                     if (ui.composer.value.text == submittedComposer.text) ui.setComposerText("")
+                    if (ui.composer.value.quotedMessage == submittedComposer.quotedMessage) {
+                        ui.setQuotedMessage(null)
+                    }
+                    if (ui.composer.value.editingMessageId == submittedComposer.editingMessageId) {
+                        ui.setEditingMessage(null, if (ui.composer.value.text == submittedComposer.text) "" else ui.composer.value.text)
+                    }
                     ui.removePendingImages(imageBase64List)
                 }
             }
@@ -696,7 +788,7 @@ class AgentBotViewModel(
             )
             // 记下这一轮的 Job：stopReply() 只取消它，不碰后台任务。
             foregroundTurnJob = viewModelScope.launch {
-                runForegroundTurn(identity, text, imageBase64List)
+                runForegroundTurn(identity, effectiveText, imageBase64List)
                 runTurnOnce(botId, sessionId)
             }
         }
@@ -855,11 +947,40 @@ class AgentBotViewModel(
             ).orEmpty()
             val router = modelRouter
             val store = configStore
-            val (routedProvider, routedModel) = if (router != null && store != null) {
+            val routedFromRouter = if (router != null && store != null) {
                 runCatching { router.resolve(AgentModelRouter.Role.FOREGROUND, store) }
                     .getOrDefault(null to null)
             } else {
                 null to null
+            }
+            val (routedProvider, routedModel) = if (routedFromRouter.second != null) {
+                routedFromRouter
+            } else if (assistant?.modelId != null && store != null) {
+                val providers = runCatching { store.getAllProviders() }.getOrDefault(emptyList())
+                val matchedProvider = assistant.providerId?.takeIf { it.isNotBlank() }?.let { pid ->
+                    providers.firstOrNull { p -> p.id == pid && p.models.any { it.id == assistant.modelId } }
+                } ?: providers.firstOrNull { p -> p.models.any { it.id == assistant.modelId } }
+                val matchedModel = matchedProvider?.models?.firstOrNull { it.id == assistant.modelId }
+                if (matchedModel != null) matchedProvider to matchedModel else routedFromRouter
+            } else {
+                routedFromRouter
+            }
+
+            val webSearchEnabled = runCatching {
+                settingsRepository?.webSearchConfigFlow?.first()?.enabled == true
+            }.getOrDefault(false)
+            val assistantReasoningLevel = assistant?.reasoningLevel?.let { raw ->
+                runCatching { io.zer0.ai.core.ReasoningLevel.valueOf(raw) }.getOrNull()
+            }
+            val reasoningLevel = when {
+                _deepThinkingEnabled.value -> _deepThinkingLevel.value
+                assistantReasoningLevel != null &&
+                    assistantReasoningLevel != io.zer0.ai.core.ReasoningLevel.OFF -> assistantReasoningLevel
+                else -> runCatching {
+                    settingsRepository?.getChatPreferences()?.let { prefs ->
+                        if (prefs.forceReasoning) prefs.forceReasoningLevel else io.zer0.ai.core.ReasoningLevel.DEFAULT
+                    }
+                }.getOrNull() ?: io.zer0.ai.core.ReasoningLevel.DEFAULT
             }
 
             val outcome = streamingEngine.runStreamingTurn(
@@ -870,6 +991,9 @@ class AgentBotViewModel(
                 inputImageBase64List = imageBase64List,
                 providerConfig = routedProvider,
                 model = routedModel,
+                assistant = assistant,
+                nativeWebSearch = webSearchEnabled,
+                reasoningLevel = reasoningLevel,
                 currentRequestRevision = {
                     repository.latestUserInputSequence(identity.assistantId, identity.sessionId)
                 },
@@ -912,6 +1036,8 @@ class AgentBotViewModel(
                         role = AgentBotUiState.Role.BOT,
                         text = outcome.text,
                         createdAt = System.currentTimeMillis(),
+                        reasoning = outcome.reasoning,
+                        citationUrls = outcome.citationUrls,
                     ),
                 )
             }
@@ -1066,8 +1192,14 @@ class AgentBotViewModel(
     /** 批准一步。 */
     fun approve(approvalId: String, argumentsHash: String, resourceVersion: String) {
         viewModelScope.launch {
+            val approval = runCatching { repository.getApproval(approvalId) }.getOrNull()
             when (val outcome = approvals.approve(approvalId, argumentsHash, resourceVersion)) {
-                is ApprovalService.Outcome.Settled -> Unit
+                is ApprovalService.Outcome.Settled -> {
+                    if (approval != null && approval.toolName.isNotBlank()) {
+                        runCatching { allowances.allow(approval.originSessionId.ifBlank { currentSessionId }, approval.toolName) }
+                        refreshAllowances()
+                    }
+                }
                 is ApprovalService.Outcome.AlreadySettled -> {
                     ui.setError(AgentBotError.ALREADY_DECIDED)
                 }
@@ -1101,11 +1233,48 @@ class AgentBotViewModel(
      * 把两者合成一个"停止"按钮，用户会以为自己取消了一件正在做的事。
      */
     fun stopReply() {
+        val partial = ui.streaming.value
+        val botId = currentBotId
+        val sessionId = currentSessionId
         foregroundTurnJob?.cancel()
         foregroundTurnJob = null
         ui.setSending(false)
         ui.setTyping(false)
         ui.clearStreaming()
+        if (partial.active && partial.text.isNotBlank() && sessionId.isNotBlank()) {
+            val savedId = kotlin.uuid.Uuid.random()
+            val savedText = partial.text.trimEnd()
+            val savedReasoning = partial.reasoning.trim().ifBlank { null }
+            val savedCitations = partial.citationUrls
+            val now = System.currentTimeMillis()
+            if (currentBotId == botId && currentSessionId == sessionId) {
+                ui.appendPublished(
+                    AgentBotUiState.PublishedMessage(
+                        messageId = savedId.toString(),
+                        role = AgentBotUiState.Role.BOT,
+                        text = savedText,
+                        createdAt = now,
+                        reasoning = savedReasoning.orEmpty(),
+                        citationUrls = savedCitations,
+                    ),
+                )
+            }
+            viewModelScope.launch(kotlinx.coroutines.NonCancellable) {
+                runCatching {
+                    sessions.appendMessage(
+                        sessionId,
+                        io.zer0.ai.core.UIMessage(
+                            id = savedId,
+                            role = io.zer0.ai.core.MessageRole.ASSISTANT,
+                            content = savedText,
+                            reasoning = savedReasoning,
+                            citationUrls = savedCitations,
+                            createdAt = now,
+                        ),
+                    )
+                }.onFailure { Logger.w("AgentBotVM", "停止生成保存部分回复失败: ${it.message}", it) }
+            }
+        }
     }
 
     /** 直接以纯文本发送（用于点击可点选建议卡、主动简报行动卡或语音转写自动发送）。 */
@@ -1427,13 +1596,39 @@ class AgentBotViewModel(
         val index = messages.indexOfFirst { it.messageId == messageId }
         if (index < 0) return
         val selected = messages[index]
-        val source = if (selected.role == AgentBotUiState.Role.USER) {
-            selected
-        } else {
-            messages.take(index).lastOrNull { it.role == AgentBotUiState.Role.USER }
-        } ?: return
-        if (source.text.isBlank()) return
-        submit(source.text, source.imageBase64List, submittedComposer = null)
+        if (selected.role == AgentBotUiState.Role.USER) {
+            if (selected.text.isBlank() && selected.imageBase64List.isEmpty()) return
+            submit(selected.text, selected.imageBase64List, submittedComposer = null)
+            return
+        }
+        val userSource = messages.take(index).lastOrNull { it.role == AgentBotUiState.Role.USER } ?: return
+        if (userSource.text.isBlank() && userSource.imageBase64List.isEmpty()) return
+        val botId = currentBotId
+        viewModelScope.launch {
+            runCatching { sessions.deleteMessage(messageId) }
+                .onFailure { Logger.w("AgentBotVM", "重新生成删除旧回复失败: ${it.message}", it) }
+            if (currentBotId == botId) {
+                ui.replacePublished(ui.transcript.value.filterNot { it.messageId == messageId })
+            }
+            val sessionId = when (ensureAgentSession(botId)) {
+                is SessionResolution.Ready -> currentSessionId
+                else -> return@launch
+            }
+            val rev = runCatching {
+                repository.latestUserInputSequence(botId, sessionId)
+            }.getOrDefault(0L)
+            val identity = io.zer0.muse.data.agentbot.AgentTurnIdentity(
+                assistantId = botId,
+                sessionId = sessionId,
+                requestId = userSource.messageId,
+                requestRevision = rev,
+            )
+            foregroundTurnJob?.cancel()
+            foregroundTurnJob = viewModelScope.launch {
+                runForegroundTurn(identity, userSource.text, userSource.imageBase64List)
+                runTurnOnce(botId, sessionId)
+            }
+        }
     }
 
     fun deleteMessage(messageId: String) {

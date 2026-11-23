@@ -368,4 +368,4 @@ data object ArchivedGroupChatsRoute
 data class FolderDetailRoute(val folderId: String)
 
 @Serializable
-data class HtmlPreviewRoute(val html: String)
+data class HtmlPreviewRoute(val previewId: String)

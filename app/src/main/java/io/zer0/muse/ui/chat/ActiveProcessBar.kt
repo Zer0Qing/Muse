@@ -131,7 +131,7 @@ internal fun ActiveProcessSheet(
     onDismiss: () -> Unit,
 ) {
     MuseBottomSheet(onDismissRequest = onDismiss) {
-        Column(modifier = Modifier.fillMaxWidth().heightIn(max = 420.dp)) {
+        Column(modifier = Modifier.fillMaxWidth()) {
             Text(
                 text = stringResource(R.string.chat_process_sheet_title),
                 style = MaterialTheme.typography.titleSmall,
@@ -159,11 +159,8 @@ internal fun ActiveProcessSheet(
                     color = MaterialTheme.colorScheme.outline,
                 )
             } else {
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    itemsIndexed(
-                        items = records,
-                        key = { index, record -> "${record.toolName}_${record.startedAt ?: 0L}_$index" },
-                    ) { index, record ->
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    records.forEachIndexed { index, record ->
                         ProcessRecordRow(record = record, index = index + 1)
                     }
                 }

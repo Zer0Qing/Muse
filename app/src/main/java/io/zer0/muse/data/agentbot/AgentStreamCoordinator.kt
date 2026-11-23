@@ -10,8 +10,29 @@ import io.zer0.ai.core.ToolCall
 import io.zer0.ai.core.ToolDefinition
 import io.zer0.ai.core.UIMessage
 import io.zer0.common.Logger
+import io.zer0.muse.data.skill.SkillRepository
+import io.zer0.muse.data.assistant.AssistantEntity
+import io.zer0.muse.data.assistant.AssistantRepository
+import io.zer0.muse.rag.RagService
+import io.zer0.muse.tools.FindToolsTool
+import io.zer0.muse.tools.RouteTable
+import io.zer0.muse.tools.SessionToolLoadRegistry
+import io.zer0.muse.tools.SkillExecutor
+import io.zer0.muse.tools.ToolApprovalRouter
+import io.zer0.muse.tools.ToolCallGate
+import io.zer0.muse.tools.ToolConfigStore
+import io.zer0.muse.tools.ToolExecutionContext
+import io.zer0.muse.tools.ToolExposurePolicy
+import io.zer0.muse.tools.ToolRegistry
+import io.zer0.muse.tools.ToolRouteExecutionGuard
+import io.zer0.muse.tools.ToolRouteSnapshot
+import io.zer0.muse.tools.ToolSchemaRules
+import io.zer0.muse.tools.ToolRiskLevel
+import io.zer0.muse.tools.ToolApprovalPolicy
+import io.zer0.muse.tools.ToolApprovalState
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -38,6 +59,14 @@ class AgentStreamCoordinator(
     private val streamingClient: StreamingClient,
     private val publication: PublicationService,
     private val governor: BotResourceGovernor,
+    private val toolRegistry: ToolRegistry? = null,
+    private val skillRepository: SkillRepository? = null,
+    private val skillExecutorProvider: (() -> SkillExecutor)? = null,
+    private val toolConfigStore: ToolConfigStore? = null,
+    private val settings: io.zer0.muse.data.SettingsRepository? = null,
+    private val allowances: ConversationToolAllowanceStore? = null,
+    private val ragService: RagService? = null,
+    private val assistantRepository: AssistantRepository? = null,
 ) {
 
     fun interface StreamingClient {
@@ -48,6 +77,34 @@ class AgentStreamCoordinator(
             model: Model?,
             sessionId: String,
         ): Flow<ChatStreamEvent>
+    }
+
+    interface OptionsStreamingClient : StreamingClient {
+        suspend fun streamWithOptions(
+            messages: List<UIMessage>,
+            tools: List<ToolDefinition>,
+            providerConfig: ProviderConfig?,
+            model: Model?,
+            sessionId: String,
+            nativeWebSearch: Boolean,
+            reasoningLevel: io.zer0.ai.core.ReasoningLevel,
+        ): Flow<ChatStreamEvent>
+
+        override suspend fun stream(
+            messages: List<UIMessage>,
+            tools: List<ToolDefinition>,
+            providerConfig: ProviderConfig?,
+            model: Model?,
+            sessionId: String,
+        ): Flow<ChatStreamEvent> = streamWithOptions(
+            messages = messages,
+            tools = tools,
+            providerConfig = providerConfig,
+            model = model,
+            sessionId = sessionId,
+            nativeWebSearch = false,
+            reasoningLevel = io.zer0.ai.core.ReasoningLevel.DEFAULT,
+        )
     }
 
     /** 流式期间增量吐给 UI 的实时草稿。 */
@@ -132,6 +189,9 @@ class AgentStreamCoordinator(
         inputImageBase64List: List<String> = emptyList(),
         providerConfig: ProviderConfig? = null,
         model: Model? = null,
+        assistant: AssistantEntity? = null,
+        nativeWebSearch: Boolean = false,
+        reasoningLevel: io.zer0.ai.core.ReasoningLevel = io.zer0.ai.core.ReasoningLevel.DEFAULT,
         currentRequestRevision: suspend () -> Long,
         onDraft: (StreamingDraft) -> Unit = {},
     ): TurnOutcome {
@@ -141,9 +201,13 @@ class AgentStreamCoordinator(
             return TurnOutcome(streamError = identityError)
         }
 
-        val messages = buildList {
+        val conversationMessages = mutableListOf<UIMessage>().apply {
             if (systemPrompt.isNotBlank()) {
                 add(UIMessage(role = MessageRole.SYSTEM, content = systemPrompt))
+            }
+            val ragMessage = buildAgentRagSystemMessage(assistant, userText)
+            if (ragMessage != null) {
+                add(ragMessage)
             }
             addAll(history)
             add(
@@ -155,107 +219,198 @@ class AgentStreamCoordinator(
             )
         }
 
-        val textBuilder = StringBuilder()
-        val reasoningBuilder = StringBuilder()
+        val hostToolset = buildHostToolset(identity.sessionId, assistant)
+        val totalTextBuilder = StringBuilder()
+        val totalReasoningBuilder = StringBuilder()
         val citationSet = linkedSetOf<String>()
-        val toolAccumulators = linkedMapOf<Int, ToolCallAccumulator>()
+        val collectedMetaCalls = mutableListOf<ToolCall>()
+        val stickyToolNames = mutableSetOf<String>()
         var streamError: String? = null
 
-        try {
-            val flow = streamingClient.stream(
-                messages = messages,
-                tools = AGENT_TOOLS,
-                providerConfig = providerConfig,
-                model = model,
-                sessionId = identity.sessionId,
-            )
-            flow.collect { event ->
-                when (event) {
-                    is ChatStreamEvent.ContentDelta -> {
-                        if (event.delta.isNotEmpty()) {
-                            textBuilder.append(event.delta)
-                            onDraft(
-                                StreamingDraft(
-                                    text = textBuilder.toString(),
-                                    reasoning = reasoningBuilder.toString(),
-                                    citationUrls = citationSet.toList(),
-                                ),
-                            )
-                        }
-                    }
-                    is ChatStreamEvent.ReasoningDelta -> {
-                        if (event.delta.isNotEmpty()) {
-                            reasoningBuilder.append(event.delta)
-                            onDraft(
-                                StreamingDraft(
-                                    text = textBuilder.toString(),
-                                    reasoning = reasoningBuilder.toString(),
-                                    citationUrls = citationSet.toList(),
-                                ),
-                            )
-                        }
-                    }
-                    is ChatStreamEvent.CitationDelta -> {
-                        if (event.urls.isNotEmpty()) {
-                            citationSet.addAll(event.urls)
-                            onDraft(
-                                StreamingDraft(
-                                    text = textBuilder.toString(),
-                                    reasoning = reasoningBuilder.toString(),
-                                    citationUrls = citationSet.toList(),
-                                ),
-                            )
-                        }
-                    }
-                    is ChatStreamEvent.ToolCallDelta -> {
-                        val acc = toolAccumulators.getOrPut(event.index) { ToolCallAccumulator() }
-                        event.id?.takeIf { it.isNotBlank() }?.let { acc.id = it }
-                        event.name?.takeIf { it.isNotBlank() }?.let { acc.name = it }
-                        event.argumentsDelta?.takeIf { it.isNotEmpty() }?.let { delta ->
-                            if (event.isSnapshot) {
-                                acc.arguments.clear()
+        loop@ for (round in 0 until MAX_FOREGROUND_TOOL_ROUNDS) {
+            val filteredHostTools = if (hostToolset != null) {
+                ToolExposurePolicy.filterToolsForRequest(
+                    userText = userText,
+                    tools = hostToolset.snapshot.definitions,
+                    stickyToolNames = stickyToolNames,
+                    loadedToolNames = SessionToolLoadRegistry.loadedFor(identity.sessionId),
+                    skillToolNames = hostToolset.skillNames,
+                )
+            } else {
+                emptyList()
+            }
+            val roundTools = (AGENT_TOOLS + filteredHostTools).distinctBy { it.name }
+
+            val roundTextBuilder = StringBuilder()
+            val roundReasoningBuilder = StringBuilder()
+            val toolAccumulators = linkedMapOf<Int, ToolCallAccumulator>()
+            val baseTextPrefix = if (totalTextBuilder.isNotEmpty()) {
+                totalTextBuilder.toString() + "\n\n"
+            } else {
+                ""
+            }
+            val baseReasoningPrefix = if (totalReasoningBuilder.isNotEmpty()) {
+                totalReasoningBuilder.toString() + "\n\n"
+            } else {
+                ""
+            }
+
+            try {
+                val flow = if (streamingClient is OptionsStreamingClient) {
+                    streamingClient.streamWithOptions(
+                        messages = conversationMessages.toList(),
+                        tools = roundTools,
+                        providerConfig = providerConfig,
+                        model = model,
+                        sessionId = identity.sessionId,
+                        nativeWebSearch = nativeWebSearch,
+                        reasoningLevel = reasoningLevel,
+                    )
+                } else {
+                    streamingClient.stream(
+                        messages = conversationMessages.toList(),
+                        tools = roundTools,
+                        providerConfig = providerConfig,
+                        model = model,
+                        sessionId = identity.sessionId,
+                    )
+                }
+                flow.collect { event ->
+                    when (event) {
+                        is ChatStreamEvent.ContentDelta -> {
+                            if (event.delta.isNotEmpty()) {
+                                roundTextBuilder.append(event.delta)
+                                onDraft(
+                                    StreamingDraft(
+                                        text = baseTextPrefix + roundTextBuilder.toString(),
+                                        reasoning = baseReasoningPrefix + roundReasoningBuilder.toString(),
+                                        citationUrls = citationSet.toList(),
+                                    ),
+                                )
                             }
-                            acc.arguments.append(delta)
                         }
-                    }
-                    is ChatStreamEvent.Error -> {
-                        streamError = event.message
-                    }
-                    is ChatStreamEvent.StreamInterrupted -> {
-                        if (textBuilder.isEmpty()) {
+                        is ChatStreamEvent.ReasoningDelta -> {
+                            if (event.delta.isNotEmpty()) {
+                                roundReasoningBuilder.append(event.delta)
+                                onDraft(
+                                    StreamingDraft(
+                                        text = baseTextPrefix + roundTextBuilder.toString(),
+                                        reasoning = baseReasoningPrefix + roundReasoningBuilder.toString(),
+                                        citationUrls = citationSet.toList(),
+                                    ),
+                                )
+                            }
+                        }
+                        is ChatStreamEvent.CitationDelta -> {
+                            if (event.urls.isNotEmpty()) {
+                                citationSet.addAll(event.urls)
+                                onDraft(
+                                    StreamingDraft(
+                                        text = baseTextPrefix + roundTextBuilder.toString(),
+                                        reasoning = baseReasoningPrefix + roundReasoningBuilder.toString(),
+                                        citationUrls = citationSet.toList(),
+                                    ),
+                                )
+                            }
+                        }
+                        is ChatStreamEvent.ToolCallDelta -> {
+                            val acc = toolAccumulators.getOrPut(event.index) { ToolCallAccumulator() }
+                            event.id?.takeIf { it.isNotBlank() }?.let { acc.id = it }
+                            event.name?.takeIf { it.isNotBlank() }?.let { acc.name = it }
+                            event.argumentsDelta?.takeIf { it.isNotEmpty() }?.let { delta ->
+                                if (event.isSnapshot) {
+                                    acc.arguments.clear()
+                                }
+                                acc.arguments.append(delta)
+                            }
+                        }
+                        is ChatStreamEvent.Error -> {
                             streamError = event.message
                         }
+                        is ChatStreamEvent.StreamInterrupted -> {
+                            if (roundTextBuilder.isEmpty() && totalTextBuilder.isEmpty()) {
+                                streamError = event.message
+                            }
+                        }
+                        is ChatStreamEvent.Done,
+                        is ChatStreamEvent.FallbackNotice,
+                        is ChatStreamEvent.ImageDelta,
+                        is ChatStreamEvent.UsageDelta,
+                        -> Unit
                     }
-                    is ChatStreamEvent.Done,
-                    is ChatStreamEvent.FallbackNotice,
-                    is ChatStreamEvent.ImageDelta,
-                    is ChatStreamEvent.UsageDelta,
-                    -> Unit
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Logger.w(TAG, "流式前台回合异常: ${e.message}", e)
+                streamError = e.message ?: "stream_failed"
+            }
+
+            if (currentRequestRevision() > identity.requestRevision) {
+                Logger.i(TAG, "输入版本已更新，丢弃过期流式回合: ${identity.requestId}")
+                return TurnOutcome(requestSuperseded = true)
+            }
+
+            if (roundTextBuilder.isNotEmpty()) {
+                if (totalTextBuilder.isNotEmpty()) totalTextBuilder.append("\n\n")
+                totalTextBuilder.append(roundTextBuilder)
+            }
+            if (roundReasoningBuilder.isNotEmpty()) {
+                if (totalReasoningBuilder.isNotEmpty()) totalReasoningBuilder.append("\n\n")
+                totalReasoningBuilder.append(roundReasoningBuilder)
+            }
+
+            val roundToolCalls = toolAccumulators.values
+                .filter { it.name.isNotBlank() }
+                .map { acc ->
+                    ToolCall(
+                        id = acc.id.ifBlank { "tc-${acc.name}-${System.nanoTime()}" },
+                        name = acc.name,
+                        arguments = acc.arguments.toString(),
+                    )
+                }
+
+            val metaCalls = roundToolCalls.filter { it.name in AGENT_META_NAMES }
+            val execCalls = if (hostToolset != null) {
+                roundToolCalls.filter { it.name !in AGENT_META_NAMES }
+            } else {
+                emptyList()
+            }
+            collectedMetaCalls += metaCalls
+            if (roundToolCalls.isNotEmpty() && hostToolset == null) {
+                collectedMetaCalls += roundToolCalls.filterNot { it in metaCalls }
+            }
+
+            val activeToolset = hostToolset
+            if (execCalls.isEmpty() || streamError != null || activeToolset == null) {
+                break@loop
+            }
+
+            conversationMessages += UIMessage(
+                role = MessageRole.ASSISTANT,
+                content = roundTextBuilder.toString(),
+                toolCalls = roundToolCalls,
+            )
+            for (tc in roundToolCalls) {
+                if (tc.name in AGENT_META_NAMES) {
+                    conversationMessages += UIMessage(
+                        role = MessageRole.TOOL,
+                        content = "{\"ok\":true}",
+                        toolCallId = tc.id,
+                    )
+                } else {
+                    val toolOutput = executeForegroundHostTool(identity, tc, activeToolset)
+                    stickyToolNames += tc.name
+                    conversationMessages += UIMessage(
+                        role = MessageRole.TOOL,
+                        content = toolOutput.take(MAX_FOREGROUND_TOOL_RESULT_CHARS),
+                        toolCallId = tc.id,
+                    )
                 }
             }
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            Logger.w(TAG, "流式前台回合异常: ${e.message}", e)
-            streamError = e.message ?: "stream_failed"
         }
 
-        if (currentRequestRevision() > identity.requestRevision) {
-            Logger.i(TAG, "输入版本已更新，丢弃过期流式回合: ${identity.requestId}")
-            return TurnOutcome(requestSuperseded = true)
-        }
-
-        val toolCalls = toolAccumulators.values
-            .filter { it.name.isNotBlank() }
-            .map { acc ->
-                ToolCall(
-                    id = acc.id.ifBlank { "tc-${acc.name}-${System.nanoTime()}" },
-                    name = acc.name,
-                    arguments = acc.arguments.toString(),
-                )
-            }
-
-        val parsed = parseToolCalls(toolCalls, fallbackText = textBuilder.toString())
+        val parsed = parseToolCalls(collectedMetaCalls, fallbackText = totalTextBuilder.toString())
         val finalReactions = parsed.reactions.toMutableList()
         if (parsed.dispatches.isNotEmpty() && finalReactions.isEmpty()) {
             // 派发后台任务但模型未主动贴角标时，自动给用户原消息贴一枚轻量确认角标。
@@ -284,6 +439,8 @@ class AgentStreamCoordinator(
             else -> ""
         }
 
+        val finalReasoning = totalReasoningBuilder.toString().trim()
+        val finalCitations = citationSet.toList()
         var publishedMessageId = ""
         if (effectiveText.isNotBlank()) {
             val publishResult = runCatching {
@@ -295,6 +452,8 @@ class AgentStreamCoordinator(
                     taskRevision = 1,
                     items = listOf(PublicationService.Item(PublicationKind.TEXT, effectiveText)),
                     currentRequestRevision = currentRequestRevision(),
+                    reasoningByItem = listOf(finalReasoning.ifBlank { null }),
+                    citationsByItem = listOf(finalCitations),
                 )
             }.onFailure {
                 Logger.w(TAG, "流式回复落盘发布失败: ${it.message}", it)
@@ -304,8 +463,8 @@ class AgentStreamCoordinator(
 
         return TurnOutcome(
             text = effectiveText,
-            reasoning = reasoningBuilder.toString().trim(),
-            citationUrls = citationSet.toList(),
+            reasoning = finalReasoning,
+            citationUrls = finalCitations,
             reactions = finalReactions,
             dispatches = finalDispatches,
             steerings = parsed.steerings,
@@ -319,6 +478,152 @@ class AgentStreamCoordinator(
                 null
             },
         )
+    }
+
+    private data class HostToolset(
+        val snapshot: ToolRouteSnapshot,
+        val skillNames: Set<String>,
+    )
+
+    private suspend fun buildAgentRagSystemMessage(
+        assistant: AssistantEntity?,
+        userText: String,
+    ): UIMessage? {
+        val service = ragService ?: return null
+        val repo = settings ?: return null
+        val query = userText.trim().takeIf { it.isNotBlank() } ?: return null
+        val baseConfig = runCatching { repo.getRagConfig() }.getOrNull() ?: return null
+        val effectiveConfig = assistant?.let { a ->
+            runCatching { assistantRepository?.mergeRagConfigOverride(a, baseConfig) }.getOrNull()
+        } ?: baseConfig
+        val mentionDocIds = runCatching { service.resolveMentionToDocIds(query) }.getOrNull()
+        val hasExplicitMention = !mentionDocIds.isNullOrEmpty()
+        if (!effectiveConfig.enabled && !hasExplicitMention) return null
+
+        val boundKbIds = assistant?.let { assistantRepository?.parseKnowledgeBaseIds(it) }.orEmpty()
+        val boundFolderScopes = assistant?.let { assistantRepository?.parseKnowledgeFolderScopes(it) }.orEmpty()
+        val permittedDocIds: List<String>? = if (boundKbIds.isEmpty() && boundFolderScopes.isEmpty()) {
+            null
+        } else {
+            when (val resolved = runCatching { service.resolveBindingScope(boundKbIds, boundFolderScopes) }.getOrNull()) {
+                is io.zer0.muse.knowledge.domain.KnowledgeScope.Resolved -> resolved.docIds.toList()
+                is io.zer0.muse.knowledge.domain.KnowledgeScope.AllUserLibraries -> null
+                else -> emptyList()
+            }
+        }
+        val scopeDocIds = io.zer0.muse.knowledge.retrieval.mergeMentionWithPermit(mentionDocIds, permittedDocIds)
+        val shouldRetrieve = effectiveConfig.enabled || (scopeDocIds != null && scopeDocIds.isNotEmpty())
+        if (!shouldRetrieve) return null
+
+        val injection = runCatching {
+            service.buildInjectionContextWithCitations(query, effectiveConfig, scopeDocIds)
+        }.onFailure { Logger.w(TAG, "Agent RAG 检索失败: ${it.message}") }.getOrNull() ?: return null
+        if (injection.text.isBlank()) return null
+        val clamped = io.zer0.muse.context.ContextBudget().clampText(
+            io.zer0.muse.context.ContextSection.RAG_CITATION,
+            injection.text,
+        )
+        return UIMessage(role = MessageRole.SYSTEM, content = clamped)
+    }
+
+    private suspend fun buildHostToolset(
+        sessionId: String,
+        assistant: AssistantEntity?,
+    ): HostToolset? {
+        val registry = toolRegistry ?: return null
+        val deniedToolNames = runCatching {
+            toolConfigStore?.policiesFlow?.first()
+                ?.filterValues { it == ToolApprovalPolicy.ALWAYS_DENY }
+                ?.keys
+        }.getOrNull().orEmpty()
+        val criteria = ToolSchemaRules.criteriaFor(assistant, deniedToolNames)
+        val registeredDefs = ToolSchemaRules.selectLocalTools(
+            registry.listToolsAsToolDefinitions(),
+            criteria,
+        )
+        val localNames = registry.listTools().map { it.name }.toSet()
+        val skillRepo = skillRepository
+        val enabledSkills = if (skillRepo != null && skillExecutorProvider != null) {
+            runCatching { skillRepo.listEnabled() }
+                .onFailure { Logger.w(TAG, "读取前台 Agent 技能失败: ${it.message}") }
+                .getOrDefault(emptyList())
+                .let { raw -> ToolSchemaRules.selectSkills(raw, localNames, criteria) }
+        } else {
+            emptyList()
+        }
+        val skillSearchDefs = enabledSkills.map { sk ->
+            ToolRegistry.ToolDef(
+                name = sk.id,
+                description = sk.description,
+                parameters = emptyMap(),
+                category = "skill",
+                riskLevel = ToolRiskLevel.NORMAL,
+            )
+        }
+        registry.setSearchableSkills(sessionId, skillSearchDefs)
+        registry.setVisibleTools(sessionId, registeredDefs.map { it.name }.toSet() + enabledSkills.map { it.id })
+        val snapshot = RouteTable.snapshot(registeredDefs, enabledSkills)
+        return HostToolset(
+            snapshot = snapshot,
+            skillNames = enabledSkills.mapTo(mutableSetOf()) { it.id },
+        )
+    }
+
+    private suspend fun executeForegroundHostTool(
+        identity: AgentTurnIdentity,
+        tc: ToolCall,
+        hostToolset: HostToolset,
+    ): String {
+        val registry = toolRegistry ?: return "Error: 工具注册表不可用"
+        val store = toolConfigStore ?: return "Error: 工具策略不可用"
+        val gate = ToolCallGate(ToolApprovalRouter(), registry, store, settings)
+        when (val localState = gate.resolveLocalState(tc.name, tc.arguments)) {
+            is ToolApprovalState.Auto, is ToolApprovalState.Approved -> Unit
+            is ToolApprovalState.Denied -> {
+                return "Error: 工具 '${tc.name}' 未获批准(${localState.reason.ifBlank { "策略不允许" }})"
+            }
+            is ToolApprovalState.Pending, is ToolApprovalState.Answered -> {
+                val allowedInSession = allowances?.isAllowed(identity.sessionId, tc.name) == true
+                if (!allowedInSession) {
+                    return "ApprovalRequired: 工具 '${tc.name}' 需由用户在审批卡片中拍板；请调用 launch_mission 派发后台任务以弹出审批卡片，或在提示用户开启完全放权后重试。"
+                }
+            }
+        }
+        val currentSpace = runCatching { settings?.currentSpaceIdFlow?.first() }
+            .getOrNull().orEmpty().ifBlank { "default" }
+        val execContext = ToolExecutionContext(
+            scope = "main",
+            spaceId = currentSpace,
+            assistantId = identity.assistantId,
+            sessionId = identity.sessionId,
+        )
+        return runCatching {
+            val route = hostToolset.snapshot.routeFor(tc.name)
+            val executor = skillExecutorProvider?.invoke()
+            when (route) {
+                is ToolRouteSnapshot.Route.Skill -> {
+                    executor?.execute(
+                        skill = route.skill,
+                        argumentsJson = tc.arguments,
+                        sessionId = identity.sessionId,
+                    ) ?: "Error: SkillExecutor 未就绪"
+                }
+                ToolRouteSnapshot.Route.Local -> {
+                    ToolRouteExecutionGuard(registry).executeFromJson(
+                        name = tc.name,
+                        argumentsJson = tc.arguments,
+                        snapshot = hostToolset.snapshot,
+                        executionContext = execContext,
+                    )
+                }
+                null -> "Error: 工具 '${tc.name}' 不在当前会话允许的工具面中"
+            }
+        }.onFailure { e ->
+            if (e is CancellationException) throw e
+            Logger.w(TAG, "前台执行工具 ${tc.name} 失败: ${e.message}", e)
+        }.getOrElse { e ->
+            "Error: ${e.message ?: e.javaClass.simpleName}"
+        }
     }
 
     private data class ParsedActions(
@@ -446,12 +751,14 @@ class AgentStreamCoordinator(
 
     companion object {
         private const val TAG = "AgentStreamCoord"
+        private const val MAX_FOREGROUND_TOOL_ROUNDS = 12
+        private const val MAX_FOREGROUND_TOOL_RESULT_CHARS = 12_000
         private const val MAX_EMOJI_CHARS = 8
         private const val MAX_CHOICE_OPTIONS = 4
         private const val DEFAULT_DISPATCH_EMOJI = "👌"
         private const val DEFAULT_ACK_TEXT = "好的，我先放到后台帮你处理，弄好后马上告诉你。"
         private const val DEFAULT_STEER_ACK_TEXT = "收到，我已把新要求同步给正在执行的任务。"
-        private const val DEFAULT_ROUTINE_ACK_TEXT = "已经为你保存成可复用的惯例，随时可在工作台管理。"
+        private const val DEFAULT_ROUTINE_ACK_TEXT = "已经为你保存为自动化任务，随时可在任务面板管理。"
 
         const val TOOL_REACT = "react_message"
         const val TOOL_LAUNCH_MISSION = "launch_mission"
@@ -459,16 +766,36 @@ class AgentStreamCoordinator(
         const val TOOL_OFFER_CHOICES = "offer_choices"
         const val TOOL_CREATE_ROUTINE = "create_routine"
 
+        private val AGENT_META_NAMES = setOf(
+            TOOL_REACT,
+            TOOL_LAUNCH_MISSION,
+            TOOL_STEER_MISSION,
+            TOOL_OFFER_CHOICES,
+            TOOL_CREATE_ROUTINE,
+            ForegroundCoordinator.TOOL_DISPATCH,
+            ForegroundCoordinator.TOOL_SAY,
+        )
+
         private val json = Json { ignoreUnknownKeys = true }
 
         fun fromChatService(chatService: ChatService): StreamingClient =
-            StreamingClient { messages, tools, providerConfig, model, sessionId ->
-                chatService.streamChat(
+            object : OptionsStreamingClient {
+                override suspend fun streamWithOptions(
+                    messages: List<UIMessage>,
+                    tools: List<ToolDefinition>,
+                    providerConfig: ProviderConfig?,
+                    model: Model?,
+                    sessionId: String,
+                    nativeWebSearch: Boolean,
+                    reasoningLevel: io.zer0.ai.core.ReasoningLevel,
+                ): Flow<ChatStreamEvent> = chatService.streamChat(
                     messages = messages,
                     model = model,
                     tools = tools,
                     toolChoice = "auto",
                     providerConfig = providerConfig,
+                    nativeWebSearch = nativeWebSearch,
+                    reasoningLevel = reasoningLevel,
                     mode = ChatRequestMode.CHAT,
                     sessionId = sessionId,
                 )
@@ -535,7 +862,7 @@ class AgentStreamCoordinator(
                                 "assignee_bot_id",
                                 buildJsonObject {
                                     put("type", "string")
-                                    put("description", "委派队友 id；留空由当前执行")
+                                    put("description", "委派助手 id；留空由当前执行")
                                 },
                             )
                         },
@@ -618,7 +945,7 @@ class AgentStreamCoordinator(
             ),
             ToolDefinition(
                 name = TOOL_CREATE_ROUTINE,
-                description = "创建可复用自动化惯例（手动/定时/事件触发）。",
+                description = "创建可复用的自动化任务（手动/定时/事件触发）。",
                 parametersJsonSchema = buildJsonObject {
                     put("type", "object")
                     put(

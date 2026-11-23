@@ -26,6 +26,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.viewinterop.AndroidView
+import io.zer0.common.AppDispatchers
+import io.zer0.common.Logger
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.MuseTactileButton
@@ -33,6 +35,87 @@ import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.media.LifecycleAwareWebView
 import io.zer0.muse.ui.common.media.LifecycleAwareWebViewFactory
 import io.zer0.muse.ui.common.navigation.MuseTopBar
+import kotlinx.coroutines.withContext
+import java.io.File
+import java.util.UUID
+
+/**
+ * HTML 预览内容的轻量中转缓存：
+ * 导航参数仅传递短 `previewId`，避免大体积 HTML 源码塞进 NavBackStack SavedState
+ * 在退后台或旋转重建时触发 Binder `TransactionTooLargeException`。
+ */
+object HtmlPreviewStore {
+    private const val MAX_ENTRIES = 24
+    private val lock = Any()
+    private val memoryCache = object : LinkedHashMap<String, String>(MAX_ENTRIES, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, String>?): Boolean = size > MAX_ENTRIES
+    }
+
+    fun put(context: Context, html: String): String {
+        val id = UUID.randomUUID().toString()
+        synchronized(lock) {
+            memoryCache[id] = html
+        }
+        runCatching {
+            val dir = File(context.cacheDir, "html_preview").apply { mkdirs() }
+            File(dir, "$id.html").writeText(html, Charsets.UTF_8)
+        }.onFailure { error ->
+            Logger.w("HtmlPreviewStore", "落盘 HTML 预览缓存失败: ${error.message}", error)
+        }
+        return id
+    }
+
+    fun getCached(id: String): String? = synchronized(lock) { memoryCache[id] }
+
+    suspend fun loadOrNull(context: Context, id: String): String? {
+        getCached(id)?.let { return it }
+        return withContext(AppDispatchers.io) {
+            runCatching {
+                val file = File(File(context.cacheDir, "html_preview"), "$id.html")
+                if (file.isFile) file.readText(Charsets.UTF_8) else null
+            }.onFailure { error ->
+                Logger.w("HtmlPreviewStore", "读取 HTML 预览缓存失败: ${error.message}", error)
+            }.getOrNull()?.also { loaded ->
+                synchronized(lock) { memoryCache[id] = loaded }
+            }
+        }
+    }
+}
+
+@Composable
+fun HtmlPreviewByIdScreen(
+    previewId: String,
+    onBack: () -> Unit,
+    title: String? = null,
+) {
+    val context = LocalContext.current
+    val initialHtml = androidx.compose.runtime.remember(previewId) {
+        HtmlPreviewStore.getCached(previewId)
+    }
+    val htmlState = androidx.compose.runtime.produceState(initialValue = initialHtml, key1 = previewId) {
+        if (value == null) {
+            value = HtmlPreviewStore.loadOrNull(context, previewId).orEmpty()
+        }
+    }
+    val loaded = htmlState.value
+    if (loaded != null) {
+        HtmlPreviewScreen(
+            html = loaded,
+            onBack = onBack,
+            title = title,
+        )
+    } else {
+        Surface(
+            color = MaterialTheme.colorScheme.background,
+            modifier = Modifier.fillMaxSize(),
+        ) {
+            MuseTopBar(
+                title = title?.takeIf { it.isNotBlank() } ?: stringResource(R.string.html_preview_title),
+                onBack = onBack,
+            )
+        }
+    }
+}
 
 /**
  * HTML 全屏预览页 — 在 WebView 中渲染 LLM 输出的 HTML / SVG 代码。

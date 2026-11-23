@@ -56,11 +56,15 @@ import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseAnchoredMenu
 import io.zer0.muse.ui.common.form.MuseBottomSheet
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
+import io.zer0.muse.ui.common.form.MuseCapsuleTab
 import io.zer0.muse.ui.common.form.MuseSwitch
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
+import io.zer0.muse.ui.common.media.AssistantAvatar
 import io.zer0.muse.ui.common.settings.ConfirmDeleteDialog
+import io.zer0.muse.ui.common.settings.SectionLabel
+import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.surface.MuseListItem
 import io.zer0.muse.ui.theme.MuseAlpha
 import io.zer0.muse.ui.theme.MuseBorderWidth
@@ -144,34 +148,24 @@ fun AgentWorkbenchSheet(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
             ) {
-                // 单行四域胶囊 + 关闭按钮固定在面板顶部，长内容下滑时不会滚走
+                // 单行四域标准 MuseCapsuleTab + 关闭按钮固定在面板顶部，长内容下滑时不会滚走
+                val tabs = listOf(
+                    stringResource(R.string.agent_hub_tab_live),
+                    stringResource(R.string.agent_hub_tab_routines),
+                    stringResource(R.string.agent_hub_tab_squad),
+                    stringResource(R.string.agent_hub_tab_artifacts),
+                )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(MusePaddings.labelVerticalGap),
                 ) {
-                    WorkbenchTabChip(
-                        label = stringResource(R.string.agent_hub_tab_live),
-                        selected = selectedTab == AgentWorkbenchTab.LIVE,
-                        onClick = { selectedTab = AgentWorkbenchTab.LIVE },
-                        modifier = Modifier.weight(1f),
-                    )
-                    WorkbenchTabChip(
-                        label = stringResource(R.string.agent_hub_tab_routines),
-                        selected = selectedTab == AgentWorkbenchTab.ROUTINES,
-                        onClick = { selectedTab = AgentWorkbenchTab.ROUTINES },
-                        modifier = Modifier.weight(1f),
-                    )
-                    WorkbenchTabChip(
-                        label = stringResource(R.string.agent_hub_tab_squad),
-                        selected = selectedTab == AgentWorkbenchTab.SQUAD,
-                        onClick = { selectedTab = AgentWorkbenchTab.SQUAD },
-                        modifier = Modifier.weight(1f),
-                    )
-                    WorkbenchTabChip(
-                        label = stringResource(R.string.agent_hub_tab_artifacts),
-                        selected = selectedTab == AgentWorkbenchTab.ARTIFACTS,
-                        onClick = { selectedTab = AgentWorkbenchTab.ARTIFACTS },
+                    MuseCapsuleTab(
+                        tabs = tabs,
+                        selectedIndex = selectedTab.ordinal,
+                        onSelect = { idx ->
+                            selectedTab = AgentWorkbenchTab.entries.getOrElse(idx) { AgentWorkbenchTab.LIVE }
+                        },
                         modifier = Modifier.weight(1f),
                     )
                     MuseTactileButton(
@@ -182,7 +176,7 @@ fun AgentWorkbenchSheet(
                     )
                 }
 
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = MuseAlpha.disabled))
             }
         },
     ) {
@@ -280,45 +274,6 @@ fun AgentWorkbenchSheet(
 }
 
 @Composable
-private fun WorkbenchTabChip(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        onClick = onClick,
-        shape = MuseShapes.pill,
-        color = if (selected) {
-            MaterialTheme.colorScheme.primaryContainer
-        } else {
-            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
-        },
-        modifier = modifier,
-    ) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier.padding(
-                horizontal = MusePaddings.contentGap,
-                vertical = MusePaddings.contentGap,
-            ),
-        ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium,
-                color = if (selected) {
-                    MaterialTheme.colorScheme.onPrimaryContainer
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-    }
-}
-
-@Composable
 private fun WorkbenchLiveTab(
     projection: AgentBotProjection?,
     sandboxLogs: List<LiveMissionProgressBus.SandboxLogLine>,
@@ -349,10 +304,7 @@ private fun WorkbenchLiveTab(
     // 1. 待拍板审批
     projection?.pendingApprovals.orEmpty().takeIf { it.isNotEmpty() }?.let { approvals ->
         Column(verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap)) {
-            Text(
-                text = stringResource(R.string.agent_bot_approvals_title),
-                style = MaterialTheme.typography.titleSmall,
-            )
+            SectionLabel(text = stringResource(R.string.agent_bot_approvals_title))
             approvals.forEach { approval ->
                 AgentInlineApprovalCard(
                     row = approval,
@@ -368,10 +320,7 @@ private fun WorkbenchLiveTab(
     val activeTasks = projection?.let { it.inProgress + it.needsAction }.orEmpty()
     if (activeTasks.isNotEmpty()) {
         Column(verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap)) {
-            Text(
-                text = stringResource(R.string.agent_screen_running),
-                style = MaterialTheme.typography.titleSmall,
-            )
+            SectionLabel(text = stringResource(R.string.agent_screen_running))
             activeTasks.forEach { task ->
                 AgentLiveMissionCard(
                     row = task,
@@ -501,10 +450,7 @@ private fun WorkbenchLiveTab(
 
     // 5. 分角色模型路由（合并为单张细线分组卡）
     Column(verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap)) {
-        Text(
-            text = stringResource(R.string.agent_hub_model_routing_title),
-            style = MaterialTheme.typography.titleSmall,
-        )
+        SectionLabel(text = stringResource(R.string.agent_hub_model_routing_title))
         Surface(
             shape = MuseShapes.semiLarge,
             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = MuseAlpha.mutedSurface),
@@ -746,7 +692,7 @@ private fun WorkbenchRoutinesTab(
     if (creatingOpen) {
         Surface(
             shape = MuseShapes.semiLarge,
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = MuseAlpha.disabled),
             modifier = Modifier.fillMaxWidth(),
         ) {
             Column(
@@ -947,9 +893,8 @@ private fun WorkbenchSquadTab(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
                 ) {
-                    AgentAvatarCircle(
-                        name = assistant.name,
-                        avatarUri = assistant.avatarImageUrl.takeIf { it.isNotBlank() },
+                    AssistantAvatar(
+                        assistant = assistant,
                     )
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
@@ -958,8 +903,9 @@ private fun WorkbenchSquadTab(
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
+                        val channelsLabel = stringResource(R.string.agent_hub_squad_channels)
                         val desc = assistant.summary.ifBlank {
-                            if (boundChannels.isNotEmpty()) "${boundChannels.size} channels" else ""
+                            if (boundChannels.isNotEmpty()) "${boundChannels.size} · $channelsLabel" else ""
                         }
                         if (desc.isNotBlank()) {
                             Text(
@@ -994,10 +940,7 @@ private fun WorkbenchSquadTab(
     // 仅存在已配置外部渠道时展示绑定区，不展示空态说明文案
     if (channels.isNotEmpty()) {
         Column(verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap)) {
-            Text(
-                text = stringResource(R.string.agent_hub_squad_channels),
-                style = MaterialTheme.typography.titleSmall,
-            )
+            SectionLabel(text = stringResource(R.string.agent_hub_squad_channels))
             val activeChannels = squadIdentities[currentBotId]?.channelIds.orEmpty()
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
@@ -1072,22 +1015,19 @@ private fun WorkbenchArtifactsTab(
     onDiscardCandidate: (String) -> Unit,
     onRevokeAllowance: (String) -> Unit,
 ) {
+    var viewingArtifact by remember { mutableStateOf<ArtifactEntity?>(null) }
     val candidates = projection?.candidates.orEmpty()
     if (candidates.isEmpty() && artifacts.isEmpty() && allowedTools.isEmpty()) {
-        Text(
-            text = stringResource(R.string.artifact_center_empty),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        MuseEmptyState(
+            icon = MuseIcons.fileText,
+            title = stringResource(R.string.artifact_center_empty),
         )
         return
     }
 
     if (candidates.isNotEmpty()) {
         Column(verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap)) {
-            Text(
-                text = stringResource(R.string.agent_bot_candidates_title),
-                style = MaterialTheme.typography.titleSmall,
-            )
+            SectionLabel(text = stringResource(R.string.agent_bot_candidates_title))
             candidates.forEach { candidate ->
                 AgentArtifactDeliveryCard(
                     candidate = candidate,
@@ -1112,14 +1052,12 @@ private fun WorkbenchArtifactsTab(
 
     if (artifacts.isNotEmpty()) {
         Column(verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap)) {
-            Text(
-                text = stringResource(R.string.agent_hub_artifacts_history),
-                style = MaterialTheme.typography.titleSmall,
-            )
+            SectionLabel(text = stringResource(R.string.agent_hub_artifacts_history))
             artifacts.take(25).forEach { artifact ->
                 Surface(
-                    shape = MuseShapes.medium,
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                    onClick = { viewingArtifact = artifact },
+                    shape = MuseShapes.semiLarge,
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = MuseAlpha.disabled),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Row(
@@ -1133,7 +1071,7 @@ private fun WorkbenchArtifactsTab(
                             modifier = Modifier
                                 .size(MuseIconSizes.topBarSolid)
                                 .background(
-                                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
+                                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = MuseAlpha.subtleBorder),
                                     MuseShapes.small,
                                 ),
                             contentAlignment = Alignment.Center,
@@ -1158,9 +1096,29 @@ private fun WorkbenchArtifactsTab(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
+                        Icon(
+                            imageVector = MuseIcons.chevronRight,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconSmallTiny),
+                        )
                     }
                 }
             }
         }
+    }
+
+    viewingArtifact?.let { artifact ->
+        val context = androidx.compose.ui.platform.LocalContext.current
+        io.zer0.muse.ui.artifact.ArtifactViewerDialog(
+            artifact = artifact,
+            onDismiss = { viewingArtifact = null },
+            onCopy = { text ->
+                val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE)
+                    as? android.content.ClipboardManager
+                clipboard?.setPrimaryClip(android.content.ClipData.newPlainText(null, text))
+                io.zer0.muse.ui.common.feedback.MuseToast.show(context.getString(R.string.chat_copied_toast))
+            },
+        )
     }
 }

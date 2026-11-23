@@ -563,4 +563,5 @@
     <string name="sticker_category_default">既定</string>
     <string name="chat_hold_to_record_hint">長押しで話し、離すと終了します</string>
     <string name="chat_input_action_fullscreen_subtitle">全画面入力</string>
+    <string name="chat_camera_unavailable_hint">カメラを開けません。端末のカメラまたは権限設定を確認してください。</string>
 </resources>

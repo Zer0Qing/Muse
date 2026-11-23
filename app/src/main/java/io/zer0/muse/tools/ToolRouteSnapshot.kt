@@ -2,6 +2,10 @@ package io.zer0.muse.tools
 
 import io.zer0.ai.core.ToolDefinition
 import io.zer0.muse.data.skill.SkillEntity
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonObject
 
 /** Immutable routing decision captured for one model turn. Definitions and execution share this snapshot. */
 data class ToolRouteSnapshot(
@@ -47,7 +51,7 @@ object RouteTable {
                         if (SkillImporter.isPromptSkill(skill.implementationKotlin)) {
                             PROMPT_SKILL_INPUT_SCHEMA
                         } else {
-                            skill.parametersJson
+                            normalizeObjectSchema(skill.parametersJson)
                         },
                     )
                 }
@@ -55,5 +59,20 @@ object RouteTable {
             localByName.keys.associateWith { ToolRouteSnapshot.Route.Local } +
                 skillByName.mapValues { (_, skill) -> ToolRouteSnapshot.Route.Skill(skill) }
         return ToolRouteSnapshot(definitions = definitions, routes = routes)
+    }
+
+    private fun normalizeObjectSchema(raw: String): String {
+        if (raw.isBlank()) return """{"type":"object","properties":{}}"""
+        return runCatching {
+            val element = Json.parseToJsonElement(raw).jsonObject
+            if (element.containsKey("type")) {
+                raw
+            } else {
+                buildJsonObject {
+                    put("type", JsonPrimitive("object"))
+                    element.forEach { (k, v) -> put(k, v) }
+                }.toString()
+            }
+        }.getOrElse { """{"type":"object","properties":{}}""" }
     }
 }

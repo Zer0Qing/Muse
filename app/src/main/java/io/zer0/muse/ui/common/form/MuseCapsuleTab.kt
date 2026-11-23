@@ -68,21 +68,43 @@ fun MuseCapsuleTab(
     modifier: Modifier = Modifier,
     pageOffset: Float? = null,
     isDragging: Boolean = false,
+    glassActive: Boolean = false,
+    glassConfig: io.zer0.muse.ui.theme.LiquidGlassConfig = io.zer0.muse.ui.theme.LiquidGlassConfig(),
 ) {
+    val useGlass = glassActive && glassConfig.enabled
     val useContinuous = pageOffset != null && isDragging
     val fractionalIndex = pageOffset?.let { selectedIndex + it } ?: selectedIndex.toFloat()
 
-    // UI-FIX A: 选中态实心（黑底白字）；未选中用不透明中性底。
-    // 不再用 0 alpha 淡入淡出，避免按压/滑动时出现半透明遮罩感。
+    // UI-FIX A: 选中态实心（黑底白字）；未选中用不透明中性底；玻璃态下未选中底透明以便透出背景折射。
     val selectedBg = MuseActionColors.container
-    val unselectedBg = MuseActionColors.neutralContainer
+    val unselectedBg = if (useGlass) {
+        androidx.compose.ui.graphics.Color.Transparent
+    } else {
+        MuseActionColors.neutralContainer
+    }
     val selectedText = MuseActionColors.content
-    val unselectedText = MuseActionColors.mutedContent
+    val unselectedText = if (useGlass && io.zer0.muse.ui.theme.LocalGlassIsBackgroundDark.current) {
+        androidx.compose.ui.graphics.Color.White.copy(alpha = 0.86f)
+    } else {
+        MuseActionColors.mutedContent
+    }
+    val containerGlassModifier = if (useGlass) {
+        io.zer0.muse.ui.theme.glassSurfaceModifier(
+            shape = MuseShapes.extraLarge,
+            surfaceColor = MuseActionColors.neutralContainer,
+            config = glassConfig,
+            backdrop = io.zer0.muse.ui.theme.LocalLayerBackdrop.current,
+            waterState = io.zer0.muse.ui.theme.LocalWaterGlassState.current,
+        )
+    } else {
+        Modifier
+    }
 
     Surface(
         shape = MuseShapes.extraLarge,
-        color = MuseActionColors.neutralContainer,
+        color = if (useGlass) androidx.compose.ui.graphics.Color.Transparent else MuseActionColors.neutralContainer,
         modifier = modifier
+            .then(containerGlassModifier)
             .widthIn(min = MuseTabSizes.minSegmentWidth * tabs.size)
             .heightIn(min = MuseTabSizes.minHeight, max = MuseTabSizes.maxHeight),
     ) {

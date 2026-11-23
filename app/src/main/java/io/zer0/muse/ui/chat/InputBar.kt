@@ -1277,7 +1277,7 @@ internal fun InputBar(state: MuseInputState = MuseInputState(), callbacks: Input
  *
  * 匹配规则:`@` 后跟中文/英文/数字/下划线序列。
  */
-private class MentionHighlightTransformation(
+internal class MentionHighlightTransformation(
     private val highlightColor: Color,
 ) : VisualTransformation {
     override fun filter(text: AnnotatedString): TransformedText {

@@ -8,9 +8,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
@@ -57,8 +55,9 @@ fun RuntimeVersionPicker(
         onDismissRequest = onDismiss,
         title = stringResource(R.string.runtime_version_picker_title),
         content = {
+            // MuseDialog 外层已提供 verticalScroll，此处不再嵌套 verticalScroll，避免无限高度约束崩溃。
             Column(
-                modifier = Modifier.verticalScroll(rememberScrollState()),
+                modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
             ) {
                 versions.forEach { version ->

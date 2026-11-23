@@ -58,6 +58,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
+import io.zer0.muse.util.launchSafely
 
 /**
  * 录音波形条:把最近振幅历史渲染成竖条。
@@ -227,7 +228,9 @@ internal fun ImageGenParamsPanel(params: ImageGenParams, onParamsChange: (ImageG
             MuseChip(
                 selected = false,
                 onClick = {
-                    if (supportsRef) imagePicker.launch("image/*")
+                    if (supportsRef) {
+                        imagePicker.launchSafely("image/*", context)
+                    }
                 },
                 enabled = supportsRef,
                 label = if (supportsRef) {

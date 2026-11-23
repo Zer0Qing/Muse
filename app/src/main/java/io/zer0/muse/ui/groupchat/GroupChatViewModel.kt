@@ -546,7 +546,13 @@ class GroupChatViewModel(
      * 添加待发送图片(base64 字符串)。
      */
     fun addPendingImage(base64Image: String) {
-        _state.update { it.copy(pendingImages = it.pendingImages + base64Image) }
+        _state.update { state ->
+            if (base64Image in state.pendingImages) {
+                state
+            } else {
+                state.copy(pendingImages = state.pendingImages + base64Image)
+            }
+        }
     }
 
     /**

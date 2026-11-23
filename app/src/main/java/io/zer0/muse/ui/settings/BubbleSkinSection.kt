@@ -57,6 +57,7 @@ import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.PluginSkinSource
 import kotlinx.coroutines.launch
 import io.zer0.muse.ui.chat.MessageBubble
+import io.zer0.muse.util.launchSafely
 
 /**
  * Phase 4: 气泡皮肤选择与预览区。
@@ -116,13 +117,14 @@ internal fun BubbleSkinSection(fontSizeScale: String, defaultDark: Boolean) {
 
     val shareSkin: (BubbleSkin) -> Unit = { skin ->
         val json = AppJson.encodeToString(BubbleSkin.serializer(), skin)
-        val sendIntent = Intent(Intent.ACTION_SEND).apply {
-            type = "text/plain"
-            putExtra(Intent.EXTRA_SUBJECT, "Muse Bubble Skin: ${skin.name}")
-            putExtra(Intent.EXTRA_TEXT, json)
-        }
-        context.startActivity(
-            Intent.createChooser(sendIntent, context.getString(R.string.settings_bubble_skin_export)),
+        io.zer0.muse.util.ShareIntentHelper.shareTextOrFileSafely(
+            context = context,
+            mime = "text/plain",
+            content = json,
+            subject = "Muse Bubble Skin: ${skin.name}",
+            chooserTitle = context.getString(R.string.settings_bubble_skin_export),
+            filePrefix = "muse-bubble-skin",
+            fileExtension = "json",
         )
     }
 
@@ -160,9 +162,12 @@ internal fun BubbleSkinSection(fontSizeScale: String, defaultDark: Boolean) {
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable {
-                    importLauncher.launch(
-                        arrayOf("application/json", "text/plain", "application/octet-stream"),
-                    )
+                    io.zer0.muse.util.ShareIntentHelper.run {
+                        importLauncher.launchSafely(
+                            arrayOf("application/json", "text/plain", "application/octet-stream"),
+                            context,
+                        )
+                    }
                 }
                 .padding(MusePaddings.cardInner),
             verticalAlignment = Alignment.CenterVertically,

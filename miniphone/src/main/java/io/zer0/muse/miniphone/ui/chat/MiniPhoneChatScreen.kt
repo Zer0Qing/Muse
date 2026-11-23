@@ -95,7 +95,11 @@ internal fun MiniPhoneChatRoute(
         input = ChatInputActions(
             onSend = viewModel::send,
             onPickImages = {
-                pickImages.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                runCatching {
+                    pickImages.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                }.onFailure { error ->
+                    io.zer0.common.Logger.w("MiniPhoneChatScreen", "打开图片选择器失败: ${error.message}", error)
+                }
             },
             onTranscribeVoice = viewModel::transcribeVoice,
             // 表情走的就是发图那条链：表情本是宿主库里的一张本地文件，

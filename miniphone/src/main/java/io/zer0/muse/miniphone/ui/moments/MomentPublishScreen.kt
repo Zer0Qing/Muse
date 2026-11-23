@@ -82,7 +82,11 @@ internal fun MomentPublishScreen(onClose: () -> Unit, onPublish: (String, List<U
             PickedImageGrid(
                 picked = picked,
                 onPick = {
-                    pickImages.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                    runCatching {
+                        pickImages.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                    }.onFailure { error ->
+                        io.zer0.common.Logger.w("MomentPublishScreen", "打开图片选择器失败: ${error.message}", error)
+                    }
                 },
             )
             if (picked.isNotEmpty()) {

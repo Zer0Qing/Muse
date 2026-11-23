@@ -79,6 +79,7 @@ import io.zer0.muse.util.ShareIntentHelper
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import io.zer0.muse.util.launchSafely
 
 /**
  * v1.0.19: 快速记录页面按新设计重写。
@@ -495,8 +496,9 @@ fun QuickNotesScreen(
             onAttachImage = {
                 noteForMenu = null
                 noteForAttach = note
-                attachImageLauncher.launch(
+                attachImageLauncher.launchSafely(
                     "image/*",
+                    context,
                 )
             },
             onRemoveAttachment = { path ->
@@ -524,7 +526,7 @@ fun QuickNotesScreen(
             },
             onImportJson = {
                 showExportMenu = false
-                importLauncher.launch(arrayOf("application/json", "text/plain", "*/*"))
+                importLauncher.launchSafely(arrayOf("application/json", "text/plain", "*/*"), context)
             },
         )
     }
@@ -580,6 +582,7 @@ fun QuickNotesScreen(
                 )
             },
             confirmText = stringResource(R.string.quick_notes_delete_permanent),
+            destructive = true,
             onConfirm = {
                 viewModel.deletePermanent(note.id)
                 noteToPermanentDelete = null
@@ -604,6 +607,7 @@ fun QuickNotesScreen(
                 )
             },
             confirmText = stringResource(R.string.quick_notes_clear_trash),
+            destructive = true,
             onConfirm = {
                 viewModel.clearTrash()
                 showClearTrashConfirm = false

@@ -196,7 +196,7 @@ fun AgentBotTaskRow(
                 )
             },
             confirmText = stringResource(
-                if (continuing) R.string.agent_bot_continue_confirm
+                if (continuing) R.string.agent_bot_continue
                 else R.string.agent_screen_retry_task,
             ),
             onConfirm = {

@@ -126,9 +126,9 @@ class AgentRoutineEngine(
     ): BotTaskEntity? {
         if (originSessionId.isBlank() || routine.goalPrompt.isBlank()) return null
         val acceptance = if (routine.stepsSummary.isNotBlank()) {
-            "按惯例步骤执行并清晰汇报结果：${routine.stepsSummary}"
+            "按自动化步骤执行并清晰汇报结果：${routine.stepsSummary}"
         } else {
-            "完成惯例「${routine.title}」并汇报真实结果"
+            "完成自动化「${routine.title}」并汇报真实结果"
         }
         val task = repository.createTask(
             botId = routine.botId,

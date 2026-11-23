@@ -14,13 +14,15 @@ import java.io.File
  * 若校验失败,UI 层可提示用户从自动备份恢复。
  *
  * @param integrityLogDao 完整性日志 DAO
- * @param db Room 暴露的 [SupportSQLiteDatabase],由 `MuseDb.openHelper.writableDatabase` 获取,
- *           用于执行 PRAGMA 查询与读取数据库文件路径
+ * @param dbProvider 延迟提供 Room 暴露的 [SupportSQLiteDatabase]，避免在 Koin 单例构造期（主线程）同步打开数据库
  */
 class IntegrityChecker(
     private val integrityLogDao: DbIntegrityLogDao,
-    private val db: SupportSQLiteDatabase,
+    private val dbProvider: () -> SupportSQLiteDatabase,
 ) {
+
+    private val db: SupportSQLiteDatabase
+        get() = dbProvider()
 
     companion object {
         private const val TAG = "IntegrityChecker"

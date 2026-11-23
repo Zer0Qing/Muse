@@ -72,6 +72,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import androidx.compose.foundation.lazy.items as lazyItems
+import io.zer0.muse.util.launchSafely
 
 /**
  * v1.95: 表情包库管理区 — 启用开关 + 发送概率 + 导入 zip + 分类筛选 + 预览网格。
@@ -325,14 +326,16 @@ internal fun StickerLibrarySection(settings: SettingsRepository, scope: Coroutin
                 icon = MuseIcons.upload,
                 title = stringResource(R.string.settings_sticker_upload),
                 onClick = {
-                    importLauncher.launch(arrayOf("*/*"))
+                    importLauncher.launchSafely(arrayOf("*/*"), context)
                 },
             ) { ChevronRight() }
             // 从相册添加（多选）。图进当前查看的包，没选包就进"默认"。
             SettingsItemRow(
                 icon = MuseIcons.image,
                 title = stringResource(R.string.settings_sticker_add_from_gallery),
-                onClick = { galleryLauncher.launch(arrayOf("image/*")) },
+                onClick = {
+                    galleryLauncher.launchSafely(arrayOf("image/*"), context)
+                },
             ) { ChevronRight() }
 
             // v1.0.54: 导入进度文本(进度条不随真实进度,用户反馈只保留文本)
@@ -405,7 +408,7 @@ internal fun StickerLibrarySection(settings: SettingsRepository, scope: Coroutin
                         label = stringResource(R.string.common_all),
                     )
                 }
-                lazyItems(categories, key = { it }) { cat ->
+                lazyItems(categories, key = { "cat:$it" }) { cat ->
                     MuseChip(
                         selected = selectedCategory == cat,
                         onClick = { selectedCategory = cat },
@@ -428,7 +431,7 @@ internal fun StickerLibrarySection(settings: SettingsRepository, scope: Coroutin
                             selected = false,
                             onClick = {
                                 exportCategory.value = selectedCategory
-                                exportLauncher.launch(selectedCategory + ".zip")
+                                exportLauncher.launchSafely(selectedCategory + ".zip", context)
                             },
                             label = stringResource(R.string.settings_sticker_export_pack),
                         )

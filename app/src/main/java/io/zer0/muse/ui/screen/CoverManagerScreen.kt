@@ -60,6 +60,7 @@ import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.ui.theme.semiLarge
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import io.zer0.muse.util.launchSafely
 
 /**
  * v1.0.53: 封面库管理页(封面工作流)。
@@ -138,7 +139,9 @@ fun CoverManagerScreen(onBack: () -> Unit, onPick: ((String) -> Unit)? = null) {
         floatingActionButton = {
             MuseFloatingButton(
                 icon = MuseIcons.plus,
-                onClick = { importLauncher.launch(arrayOf("image/*")) },
+                onClick = {
+                    importLauncher.launchSafely(arrayOf("image/*"), context)
+                },
                 contentDescription = stringResource(R.string.cover_import),
             )
         },
@@ -170,7 +173,9 @@ fun CoverManagerScreen(onBack: () -> Unit, onPick: ((String) -> Unit)? = null) {
                 // 把按钮本身放到空态里比告诉用户去哪找更直接。
                 MuseCapsuleButton(
                     text = stringResource(R.string.cover_import),
-                    onClick = { importLauncher.launch(arrayOf("image/*")) },
+                    onClick = {
+                    importLauncher.launchSafely(arrayOf("image/*"), context)
+                },
                     variant = IosCapsuleButtonVariant.Text,
                     fillWidth = false,
                 )

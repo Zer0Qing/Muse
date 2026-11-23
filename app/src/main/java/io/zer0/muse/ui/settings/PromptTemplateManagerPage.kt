@@ -303,6 +303,7 @@ fun PromptTemplateManagerPage(onBack: () -> Unit) {
                 )
             },
             confirmText = stringResource(R.string.common_delete),
+            destructive = true,
             onConfirm = {
                 persist(templates.filterNot { it.id == template.id })
                 deleting = null

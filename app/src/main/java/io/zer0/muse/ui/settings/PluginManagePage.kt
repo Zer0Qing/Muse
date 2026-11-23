@@ -110,6 +110,7 @@ import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
 import org.koin.compose.koinInject
 import java.io.File
+import io.zer0.muse.util.launchSafely
 
 /**
  * 统一「插件管理」页（v1.0.62）。
@@ -473,7 +474,12 @@ fun PluginManagePage(onBack: () -> Unit) {
         floatingActionButton = {
             MuseFloatingButton(
                 icon = MuseIcons.plus,
-                onClick = { importLauncher.launch(arrayOf("application/zip", "application/json", "application/octet-stream", "*/*")) },
+                onClick = {
+                    importLauncher.launchSafely(
+                            arrayOf("application/zip", "application/json", "application/octet-stream", "*/*"),
+                            context,
+                        )
+                },
                 contentDescription = stringResource(R.string.provider_plugins_import),
             )
         },

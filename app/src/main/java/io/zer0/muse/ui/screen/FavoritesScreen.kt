@@ -409,7 +409,7 @@ private fun FavoriteTagFilterRow(
                 )
             }
         }
-        items(tags, key = { it }) { tag ->
+        items(tags, key = { "tag:$it" }) { tag ->
             MuseChip(
                 selected = currentFilter == tag,
                 onClick = { onFilterChange(tag) },

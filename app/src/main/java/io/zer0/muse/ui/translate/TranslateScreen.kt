@@ -72,6 +72,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
+import io.zer0.muse.util.launchSafely
 
 /**
  * v1.0.31: 翻译页按新设计重写。
@@ -197,7 +198,7 @@ fun TranslateScreen(onBack: () -> Unit, onSendToNewChat: (String) -> Unit = {}, 
                     }
                 },
                 onTranslate = { viewModel.translate() },
-                onOcr = { imagePicker.launch("image/*") },
+                onOcr = { imagePicker.launchSafely("image/*", context) },
                 ocrRecognizing = ocrRecognizing,
                 onBatch = { showBatchDialog = true },
                 onGlossary = { showGlossaryDialog = true },

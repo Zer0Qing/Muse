@@ -50,6 +50,7 @@ import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.roundToInt
+import io.zer0.muse.util.launchSafely
 
 /**
  * v1.56: RAG 知识库检索配置页。
@@ -251,7 +252,9 @@ fun RagSettingsPage(onBack: () -> Unit, onManageKbs: () -> Unit = {}) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             MuseCapsuleButton(
                                 text = stringResource(R.string.settings_rag_onnx_pick),
-                                onClick = { onnxPicker.launch(arrayOf("*/*")) },
+                                onClick = {
+                                    onnxPicker.launchSafely(arrayOf("*/*"), context)
+                                },
                                 variant = IosCapsuleButtonVariant.Secondary,
                                 fillWidth = false,
                             )

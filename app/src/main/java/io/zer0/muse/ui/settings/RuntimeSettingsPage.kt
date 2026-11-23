@@ -33,6 +33,9 @@ import io.zer0.muse.runtime.RuntimeInstallOperation
 import io.zer0.muse.runtime.RuntimeInstallPhase
 import io.zer0.muse.runtime.RuntimeInstaller
 import io.zer0.muse.runtime.RuntimeManager
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import io.zer0.muse.runtime.RuntimeState
 import io.zer0.muse.runtime.RuntimeStore
 import io.zer0.muse.runtime.RuntimeVersion
@@ -46,9 +49,8 @@ import io.zer0.muse.ui.runtime.RuntimeVersionPicker
 import io.zer0.muse.ui.runtime.RuntimeCustomUrlDialog
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseSpacing
-import kotlinx.coroutines.Dispatchers
+import io.zer0.muse.util.launchSafely
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
 
@@ -74,6 +76,7 @@ fun RuntimeSettingsPage(onBack: () -> Unit) {
     }
     var versions by remember { mutableStateOf<List<RuntimeVersion>>(emptyList()) }
     var operation by remember { mutableStateOf<RuntimeInstallOperation?>(null) }
+    var hasRollback by remember { mutableStateOf(false) }
     var showVersionPicker by remember { mutableStateOf(false) }
     var showUninstallConfirm by remember { mutableStateOf(false) }
     var customUrlVersion by remember { mutableStateOf<RuntimeVersion?>(null) }
@@ -86,6 +89,8 @@ fun RuntimeSettingsPage(onBack: () -> Unit) {
                 try {
                     val archive = copySelectedArchive(context, uri, version)
                     RuntimeInstallService.startLocal(context, version.revision, archive)
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (error: Exception) {
                     RuntimeInstallStatus.fail(error.message)
                 }
@@ -101,8 +106,12 @@ fun RuntimeSettingsPage(onBack: () -> Unit) {
         }
         RuntimeInstallStatus.refresh(context)
         operation = manager.operation()
+        hasRollback = withContext(Dispatchers.IO) { manager.hasRollbackVersion() }
     }
-    LaunchedEffect(state, progress, error) { operation = manager.operation() }
+    LaunchedEffect(state, progress, error) {
+        operation = manager.operation()
+        hasRollback = withContext(Dispatchers.IO) { manager.hasRollbackVersion() }
+    }
 
     SettingsSubPageScaffold(
         title = stringResource(R.string.offline_resources_title),
@@ -182,7 +191,7 @@ fun RuntimeSettingsPage(onBack: () -> Unit) {
                                 variant = IosCapsuleButtonVariant.Secondary,
                                 fillWidth = false,
                             )
-                            if (manager.hasRollbackVersion()) {
+                            if (hasRollback) {
                                 MuseCapsuleButton(
                                     text = stringResource(R.string.runtime_action_rollback),
                                     enabled = progress == null,
@@ -281,9 +290,10 @@ fun RuntimeSettingsPage(onBack: () -> Unit) {
                     onInstallLocal = { version ->
                         showVersionPicker = false
                         localInstallRevision = version.revision
-                        localArchivePicker.launch(
-                            arrayOf("application/gzip", "application/x-gzip", "application/octet-stream"),
-                        )
+                        localArchivePicker.launchSafely(
+                                arrayOf("application/gzip", "application/x-gzip", "application/octet-stream"),
+                                context,
+                            )
                     },
                     onInstallCustom = { version ->
                         showVersionPicker = false

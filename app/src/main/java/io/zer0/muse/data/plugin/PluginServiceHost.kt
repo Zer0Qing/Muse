@@ -44,18 +44,21 @@ class PluginServiceHostService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // Android 8+ 要求通过 startForegroundService 拉起的服务必须先调 startForeground 再 stopSelf，否则 5s 超时崩溃。
+        startForeground(NOTIFICATION_ID, buildNotification())
         if (intent?.action == ACTION_STOP) {
             Logger.i(TAG, "用户停止插件服务")
+            stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
             return START_NOT_STICKY
         }
         // 安全模式总闸关掉时连服务都不该起来
         if (PluginKillSwitch.isDisabled(this)) {
             Logger.i(TAG, "安全模式总闸已关，不启动插件服务")
+            stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
             return START_NOT_STICKY
         }
-        startForeground(NOTIFICATION_ID, buildNotification())
         scope.launch { runEligiblePlugins() }
         // 不 sticky：被系统回收后由启动路径（前台/开机）重新拉，不在后台静默复活
         return START_NOT_STICKY

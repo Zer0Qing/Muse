@@ -46,6 +46,7 @@ import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MuseShapes
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import io.zer0.muse.util.launchSafely
 
 /**
  * v1.61-A: 数据迁移与导入页。
@@ -166,7 +167,7 @@ fun SettingsDataImportPage(onBack: () -> Unit) {
                     stringResource(R.string.settings_import_step_remember),
                 ),
                 onSelect = {
-                    filePicker.launch(arrayOf("application/zip", "application/octet-stream", "*/*"))
+                    filePicker.launchSafely(arrayOf("application/zip", "application/octet-stream", "*/*"), context)
                 },
             )
         }
@@ -181,7 +182,7 @@ fun SettingsDataImportPage(onBack: () -> Unit) {
                     stringResource(R.string.settings_import_step_remember),
                 ),
                 onSelect = {
-                    filePicker.launch(arrayOf("application/zip", "application/octet-stream", "*/*"))
+                    filePicker.launchSafely(arrayOf("application/zip", "application/octet-stream", "*/*"), context)
                 },
             )
         }
@@ -197,7 +198,10 @@ fun SettingsDataImportPage(onBack: () -> Unit) {
                     stringResource(R.string.settings_import_chatgpt_step4),
                 ),
                 onSelect = {
-                    filePicker.launch(arrayOf("application/zip", "application/octet-stream", "application/json", "text/plain", "*/*"))
+                    filePicker.launchSafely(
+                            arrayOf("application/zip", "application/octet-stream", "application/json", "text/plain", "*/*"),
+                            context,
+                        )
                 },
             )
         }
@@ -214,7 +218,7 @@ fun SettingsDataImportPage(onBack: () -> Unit) {
                     stringResource(R.string.settings_import_step_remember),
                 ),
                 onSelect = {
-                    filePicker.launch(arrayOf("application/zip", "application/octet-stream", "*/*"))
+                    filePicker.launchSafely(arrayOf("application/zip", "application/octet-stream", "*/*"), context)
                 },
             )
         }
@@ -230,7 +234,7 @@ fun SettingsDataImportPage(onBack: () -> Unit) {
                     stringResource(R.string.settings_import_step_remember),
                 ),
                 onSelect = {
-                    jsonFilePicker.launch(arrayOf("application/json", "text/plain", "*/*"))
+                    jsonFilePicker.launchSafely(arrayOf("application/json", "text/plain", "*/*"), context)
                 },
             )
         }
@@ -247,7 +251,7 @@ fun SettingsDataImportPage(onBack: () -> Unit) {
             MuseCapsuleButton(
                 text = stringResource(R.string.settings_import_select_backup),
                 onClick = {
-                    filePicker.launch(arrayOf("application/zip", "application/octet-stream", "*/*"))
+                    filePicker.launchSafely(arrayOf("application/zip", "application/octet-stream", "*/*"), context)
                 },
                 enabled = !isImporting,
                 leadingIcon = MuseIcons.upload,

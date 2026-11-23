@@ -118,6 +118,8 @@ class AgentBotUiState {
         val pendingImages: List<String> = emptyList(),
         /** 这条输入属于哪个 Bot；切换 Bot 时草稿不能串。 */
         val botId: String = "",
+        val quotedMessage: PublishedMessage? = null,
+        val editingMessageId: String? = null,
     )
 
     /** 一条已发布的对外消息。只从 PublicationOutbox 的 COMMITTED 状态来。 */
@@ -131,6 +133,8 @@ class AgentBotUiState {
         val imageBase64List: List<String> = emptyList(),
         /** 这条消息属于哪次 bot_say 批次；用于"部分发布恢复"。 */
         val publicationId: String = "",
+        val reasoning: String = "",
+        val citationUrls: List<String> = emptyList(),
     )
 
     enum class Role { USER, BOT }
@@ -342,7 +346,25 @@ class AgentBotUiState {
 
     fun setComposerBot(botId: String) = _composer.update {
         // 换 Bot 时草稿不串：上一个 Bot 的草稿属于上一个 Bot。
-        if (it.botId == botId) it else it.copy(botId = botId, text = "", pendingImages = emptyList())
+        if (it.botId == botId) {
+            it
+        } else {
+            it.copy(
+                botId = botId,
+                text = "",
+                pendingImages = emptyList(),
+                quotedMessage = null,
+                editingMessageId = null,
+            )
+        }
+    }
+
+    fun setQuotedMessage(message: PublishedMessage?) = _composer.update {
+        it.copy(quotedMessage = message)
+    }
+
+    fun setEditingMessage(messageId: String?, text: String) = _composer.update {
+        it.copy(editingMessageId = messageId, text = text)
     }
 
     fun appendPublished(message: PublishedMessage) = _transcript.update { current ->

@@ -167,7 +167,7 @@ val appModule = module {
     single {
         io.zer0.muse.data.stats.IntegrityChecker(
             integrityLogDao = get(),
-            db = get<MuseDb>().openHelper.writableDatabase,
+            dbProvider = { get<MuseDb>().openHelper.writableDatabase },
         )
     }
     single { io.zer0.muse.data.milestone.MilestoneChecker(get(), get(), get()) } // Phase 2 2B: milestone checker
@@ -659,6 +659,14 @@ val appModule = module {
             ),
             publication = get(),
             governor = get(),
+            toolRegistry = get(),
+            skillRepository = get(),
+            skillExecutorProvider = { get<io.zer0.muse.tools.SkillExecutor>() },
+            toolConfigStore = get(),
+            settings = get(),
+            allowances = get(),
+            ragService = get(),
+            assistantRepository = get(),
         )
     }
 
@@ -697,6 +705,8 @@ val appModule = module {
             assistantRepository = getOrNull(),
             channelManager = getOrNull(),
             artifactRepository = getOrNull(),
+            settingsRepository = getOrNull(),
+            knowledgeDocDao = getOrNull<MuseDb>()?.knowledgeDocDao(),
         )
     }
     // 候选产物暂存区。任务产出先落这里，审核通过且版本最新才应用到目标 ——
@@ -765,13 +775,17 @@ val appModule = module {
             repository = get(),
             onSettled = { taskId, approvalId, status ->
                 val repo = get<io.zer0.muse.data.agentbot.AgentBotRepository>()
-                // 批准后等待用户确认继续；拒绝、过期和参数失效都转交用户决定。
-                val event = if (status == io.zer0.muse.data.agentbot.ApprovalStatus.APPROVED) {
-                    io.zer0.muse.data.agentbot.BotTaskStatusMachine.Event.RESUME_FROM_APPROVAL
-                } else {
-                    io.zer0.muse.data.agentbot.BotTaskStatusMachine.Event.REVIEW_NEEDS_USER
+                val scheduler = runCatching { get<io.zer0.muse.data.agentbot.BotTaskScheduler>() }.getOrNull()
+                // 若该任务协程仍在内存中原地挂起等待此张审批卡，则由挂起协程自行恢复为 RUNNING 继续执行同一轮；
+                // 仅在进程曾重启、内存中已无该任务协程时才走离线恢复转移。
+                if (scheduler?.isTaskActiveInMemory(taskId) != true) {
+                    val event = if (status == io.zer0.muse.data.agentbot.ApprovalStatus.APPROVED) {
+                        io.zer0.muse.data.agentbot.BotTaskStatusMachine.Event.RESUME_FROM_APPROVAL
+                    } else {
+                        io.zer0.muse.data.agentbot.BotTaskStatusMachine.Event.REVIEW_NEEDS_USER
+                    }
+                    repo.transition(taskId, event)
                 }
-                repo.transition(taskId, event)
                 repo.appendEvent(
                     botId = repo.getTask(taskId)?.botId.orEmpty(),
                     originSessionId = repo.getTask(taskId)?.originSessionId.orEmpty(),
@@ -844,6 +858,10 @@ val appModule = module {
             modelRouter = get(),
             configStore = get(),
             annotationService = get(),
+            allowances = get(),
+            settings = get(),
+            assistantRepository = get(),
+            toolConfigStore = get(),
         )
     }
 
@@ -864,6 +882,8 @@ val appModule = module {
                     .load(io.zer0.muse.workspace.WorkspaceLocation.resolve(androidContext()))
                     .firstOrNull { it.name == name }
             },
+            skillRepository = get(),
+            skillExecutorProvider = { get<io.zer0.muse.tools.SkillExecutor>() },
         )
     }
 

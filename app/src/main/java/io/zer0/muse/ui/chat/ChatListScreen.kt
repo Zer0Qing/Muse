@@ -876,10 +876,14 @@ private fun PinnedTaskRow(
                             dragOffset += dragAmount.y
                         },
                         onDragEnd = {
-                            val target = (index + (dragOffset / rowHeightPx).roundToInt())
-                                .coerceIn(0, pinnedIds.lastIndex)
                             dragging = false
+                            val offset = dragOffset
                             dragOffset = 0f
+                            if (pinnedIds.isEmpty() || index !in pinnedIds.indices) {
+                                return@detectDragGesturesAfterLongPress
+                            }
+                            val target = (index + (offset / rowHeightPx).roundToInt())
+                                .coerceIn(0, pinnedIds.lastIndex)
                             if (target != index) {
                                 val ids = pinnedIds.toMutableList()
                                 val id = ids.removeAt(index)

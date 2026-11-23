@@ -255,7 +255,11 @@ private fun rememberMicPermissionRequest(onGranted: () -> Unit, onDenied: () -> 
         when {
             context.hasRecordPermission() -> currentGranted.value()
             deniedOnce -> currentDenied.value()
-            else -> launcher.launch(Manifest.permission.RECORD_AUDIO)
+            else -> runCatching { launcher.launch(Manifest.permission.RECORD_AUDIO) }
+                .onFailure { error ->
+                    io.zer0.common.Logger.w("MiniPhoneChatInputBar", "请求麦克风权限失败: ${error.message}", error)
+                    currentDenied.value()
+                }
         }
     }
 }

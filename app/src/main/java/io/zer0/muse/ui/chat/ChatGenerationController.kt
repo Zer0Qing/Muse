@@ -1186,14 +1186,16 @@ internal class ChatGenerationController(
                                 .onFailure { e -> Logger.w("ChatViewModel", "mergeRagConfigOverride 失败: ${e.message}") }
                                 .getOrDefault(ragConfig)
                         } ?: ragConfig
-                    if (effectiveRagConfig.enabled) {
-                        val lastUser = rawHistory.lastOrNull { it.role == MessageRole.USER }
-                        val ragQuery = lastUser?.content?.takeIf { it.isNotBlank() }
-                        if (ragQuery != null) {
-                            val mentionDocIds =
-                                resultOf { deps.ragService.resolveMentionToDocIds(ragQuery) }
-                                    .onError { msg, t -> Logger.w("ChatViewModel", "@mention 解析失败: $msg", t) }
-                                    .getOrNull()
+                    val lastUser = rawHistory.lastOrNull { it.role == MessageRole.USER }
+                    val ragQuery = lastUser?.content?.takeIf { it.isNotBlank() }
+                    if (ragQuery != null) {
+                        val mentionDocIds =
+                            resultOf { deps.ragService.resolveMentionToDocIds(ragQuery) }
+                                .onError { msg, t -> Logger.w("ChatViewModel", "@mention 解析失败: $msg", t) }
+                                .getOrNull()
+                        val hasExplicitMention = !mentionDocIds.isNullOrEmpty()
+                        // 关闭自动注入时，普通闲聊不再被动检索整库；仅当用户显式 @文档名 才定向检索引用。
+                        if (effectiveRagConfig.enabled || hasExplicitMention) {
                             // 助手绑定 KB 时,未显式 @mention 的查询只检索这些 KB;
                             // 显式 mention 优先,可临时定向到用户指定的文档。
                             val boundKnowledgeBaseIds =
@@ -1208,12 +1210,6 @@ internal class ChatGenerationController(
                                     .orEmpty()
                             // R1 范围合同:绑定解析走显式 KnowledgeScope,禁止用
                             // `takeIf { it.isNotEmpty() }` 把空绑定/失效绑定重新解释成全库。
-                            //  - 助手完全未绑定(无整库绑定也无文件夹绑定)= 既有「本地全库」行为,
-                            //    显式映射为 AllUserLibraries → 许可 = null(计划 R1 步骤:
-                            //    明确本地未绑定默认助手的 AllUserLibraries 行为,旧有效绑定保留);
-                            //  - 绑定存在但失效/为空(None/Invalid)→ 显式空许可(空列表)
-                            //    = 零结果,不再回落 null(全库);
-                            //  - Failed(解析执行失败)同样按零结果处理并显式告警,不伪装成全库。
                             val permittedDocIds: List<String>? =
                                 if (boundKnowledgeBaseIds.isEmpty() && boundFolderScopes.isEmpty()) {
                                     null
@@ -1235,8 +1231,6 @@ internal class ChatGenerationController(
                                             Logger.w("ChatViewModel", "范围解析失败,按零结果处理: ${resolved.reason}")
                                             emptyList()
                                         }
-                                        // resultOf 链 onError 后 getOrNull() 为 null = 解析链异常:
-                                        // 与 Failed 同语义,按零结果处理并告警,不得回落全库。
                                         null -> {
                                             Logger.w("ChatViewModel", "范围解析链失败,按零结果处理")
                                             emptyList()
@@ -1245,26 +1239,29 @@ internal class ChatGenerationController(
                                     }
                                 }
                             // R1 mention 合同:@mention 只能在入口许可内临时覆盖选择。
-                            // 合并逻辑统一在 mergeMentionWithPermit(合同测试钉住):
-                            // 空许可(失效/空绑定、解析失败)一律零结果,不得被重新解释成
-                            // null(全库);null 唯一来源 = 未绑定且无 mention。
                             val scopeDocIds: List<String>? =
                                 io.zer0.muse.knowledge.retrieval.mergeMentionWithPermit(
                                     mentionDocIds = mentionDocIds,
                                     permittedDocIds = permittedDocIds,
                                 )
+                            // 未开启自动注入且有效作用域为空时跳过检索，避免误触发空集外回退。
+                            val shouldRetrieve = effectiveRagConfig.enabled || (scopeDocIds != null && scopeDocIds.isNotEmpty())
                             val injection =
-                                resultOf {
-                                    deps.ragService.buildInjectionContextWithCitations(
-                                        ragQuery, effectiveRagConfig, scopeDocIds,
-                                    )
-                                }.onError { msg, _ ->
-                                    deps.addError(
-                                        ChatErrorType.NETWORK,
-                                        deps.appContext.getString(R.string.err_chat_rag_failed, msg),
-                                        true,
-                                    )
-                                }.getOrNull()
+                                if (shouldRetrieve) {
+                                    resultOf {
+                                        deps.ragService.buildInjectionContextWithCitations(
+                                            ragQuery, effectiveRagConfig, scopeDocIds,
+                                        )
+                                    }.onError { msg, _ ->
+                                        deps.addError(
+                                            ChatErrorType.NETWORK,
+                                            deps.appContext.getString(R.string.err_chat_rag_failed, msg),
+                                            true,
+                                        )
+                                    }.getOrNull()
+                                } else {
+                                    null
+                                }
                             if (injection != null) {
                                 if (injection.text.isNotBlank()) {
                                     val clampedRagText =

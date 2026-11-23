@@ -183,7 +183,7 @@ fun PendingImagesRow(images: List<String>, onRemove: (String) -> Unit, modifier:
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         contentPadding = PaddingValues(horizontal = 2.dp),
     ) {
-        items(images, key = { it }) { image ->
+        itemsIndexed(images, key = { idx, image -> "$idx:${image.hashCode()}" }) { _, image ->
             Box(modifier = Modifier.size(64.dp)) {
                 SmartImage(
                     model = image,

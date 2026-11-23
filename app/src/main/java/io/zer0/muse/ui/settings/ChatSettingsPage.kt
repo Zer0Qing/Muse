@@ -70,6 +70,7 @@ import org.koin.compose.koinInject
 import io.zer0.muse.ui.chat.InputBar
 import io.zer0.muse.ui.chat.MessageBubble
 import io.zer0.muse.ui.chat.ChatScreen
+import io.zer0.muse.util.launchSafely
 
 /**
  * v0.31: 聊天二级设置页 — 给用户更多控制权。
@@ -261,7 +262,7 @@ fun ChatSettingsPage(
                         .fillMaxWidth()
                         .heightIn(min = 56.dp)
                         .clickable {
-                            bgLauncher.launch("image/*")
+                            bgLauncher.launchSafely("image/*", bgContext)
                         }
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -351,7 +352,7 @@ fun ChatSettingsPage(
                         .fillMaxWidth()
                         .heightIn(min = 56.dp)
                         .clickable {
-                            darkBgLauncher.launch("image/*")
+                            darkBgLauncher.launchSafely("image/*", darkBgContext)
                         }
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,

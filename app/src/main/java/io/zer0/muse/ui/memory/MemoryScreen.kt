@@ -124,8 +124,10 @@ fun MemoryScreen(
     val timeRangeFilter by viewModel.timeRangeFilter.collectAsStateWithLifecycle()
     val organizing by viewModel.organizeRunning.collectAsStateWithLifecycle()
     val organizeStage by viewModel.organizeStage.collectAsStateWithLifecycle()
+    val organizeResult by viewModel.organizeResult.collectAsStateWithLifecycle()
     val dreamStatus by viewModel.dreamStatus.collectAsStateWithLifecycle()
     val dreamRunning by viewModel.dreamRunning.collectAsStateWithLifecycle()
+    val dreamResult by viewModel.dreamResult.collectAsStateWithLifecycle()
     // 测试宿主可能没装配 Dream：没有服务就不显示入口，避免「点了没反应」。
     val dreamServiceAvailable = remember { viewModel.hasDreamService() }
     // 多选合并：草稿 / 执行中 / 错误都由 ViewModel 持有，界面只负责展示与收集
@@ -239,8 +241,8 @@ fun MemoryScreen(
         delay(300)
         viewModel.search(query)
     }
-    LaunchedEffect(viewModel.organizeResult) {
-        val result = viewModel.organizeResult.value ?: return@LaunchedEffect
+    LaunchedEffect(organizeResult) {
+        val result = organizeResult ?: return@LaunchedEffect
         if (result.startsWith("done:")) {
             val merged = result.removePrefix("done:").toIntOrNull() ?: 0
             MuseToast.show(
@@ -254,6 +256,23 @@ fun MemoryScreen(
             MuseToast.show(context.getString(R.string.memory_organize_stage_failed))
         }
         viewModel.consumeOrganizeResult()
+    }
+
+    LaunchedEffect(dreamResult) {
+        val result = dreamResult ?: return@LaunchedEffect
+        when {
+            result == "done" -> MuseToast.show(
+                "${context.getString(R.string.memory_dream_title)} · ${context.getString(R.string.common_done)}",
+            )
+            result == "restored" -> MuseToast.show(
+                "${context.getString(R.string.memory_dream_rollback)} · ${context.getString(R.string.common_done)}",
+            )
+            result.startsWith("rejected:") -> {
+                val reason = result.removePrefix("rejected:")
+                MuseToast.show(context.getString(R.string.memory_dream_skipped, reason))
+            }
+        }
+        viewModel.consumeDreamResult()
     }
 
     LaunchedEffect(mergeError) {

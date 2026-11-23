@@ -109,6 +109,8 @@ internal fun MuseTopBarMenu(
     contentDescription: String,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    glassActive: Boolean = false,
+    glassConfig: io.zer0.muse.ui.theme.LiquidGlassConfig = io.zer0.muse.ui.theme.LiquidGlassConfig(),
 ) {
     var expanded by remember { mutableStateOf(false) }
     val highlighted = expanded && enabled
@@ -124,7 +126,9 @@ internal fun MuseTopBarMenu(
                 contentDescription = contentDescription,
                 onClick = { expanded = true },
                 enabled = enabled,
-                tint = if (highlighted) MaterialTheme.colorScheme.primary else MuseActionColors.tonalContent,
+                tint = if (highlighted) MaterialTheme.colorScheme.primary else Color.Unspecified,
+                glassActive = glassActive,
+                glassConfig = glassConfig,
             )
         }
         if (expanded) {

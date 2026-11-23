@@ -9,6 +9,7 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -48,27 +49,42 @@ import io.zer0.common.Logger
 import io.zer0.muse.R
 import io.zer0.muse.data.agentbot.AgentBotUiState
 import io.zer0.muse.data.agentbot.BotAnnotationEntity
+import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.form.MuseAnchoredMenu
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.surface.MuseListItem
 import io.zer0.muse.ui.markdown.MarkdownText
+import io.zer0.muse.util.ShareIntentHelper
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.em
+import androidx.compose.ui.unit.isUnspecified
+import io.zer0.muse.data.ChatPreferences
+import io.zer0.muse.ui.theme.LocalLiquidGlass
 import io.zer0.muse.ui.theme.MuseAlpha
 import io.zer0.muse.ui.theme.MuseBorderWidth
 import io.zer0.muse.ui.theme.MuseBubbleStyles
+import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.MuseSpringTier
+import io.zer0.muse.ui.theme.glassBorder
+import io.zer0.muse.ui.theme.glassEdgeHighlight
+import io.zer0.muse.ui.theme.glassFakeSurfaceColor
 import io.zer0.muse.ui.theme.pill
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 private val QUICK_REACTION_EMOJIS = listOf("👌", "👍", "❤️", "👀", "🤔", "🎉")
 
 /**
  * 沉浸式对话气泡，支持气泡底角压边悬浮 Emoji 反应贴纸、内联来源链接胶囊与长按快捷菜单。
  *
- * 移除了旧版每条消息旁的常驻三点按钮，释放横向正文阅读宽度并降低视觉噪音。
+ * 与主对话气泡共用 [ChatPreferences]（圆角、字号缩放、字距、通栏、时间戳、模型名、思考展开）与假液态玻璃质感。
  */
 @OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 @Composable
@@ -80,13 +96,67 @@ fun AgentMessageBubble(
     onDelete: () -> Unit,
     onReact: (String) -> Unit,
     onRemoveReaction: (String) -> Unit,
+    onQuote: () -> Unit = {},
+    onEdit: () -> Unit = {},
+    onSaveAsRoutine: () -> Unit = {},
     modifier: Modifier = Modifier,
+    chatPreferences: ChatPreferences = ChatPreferences(),
+    modelLabel: String = "",
+    onOpenMediaViewer: ((List<String>, Int) -> Unit)? = null,
 ) {
     val isUser = message.role == AgentBotUiState.Role.USER
     val haptic = LocalHapticFeedback.current
     val context = LocalContext.current
-    var menuExpanded by rememberSaveable(message.messageId) { mutableStateOf(false) }
+    val glassConfig = LocalLiquidGlass.current
+    var menuExpanded by remember(message.messageId) { mutableStateOf(false) }
+    var showSelectTextDialog by remember(message.messageId) { mutableStateOf(false) }
+    var reasoningExpanded by rememberSaveable(message.messageId) {
+        mutableStateOf(chatPreferences.reasoningExpandedByDefault)
+    }
     val inlineLinks = remember(message.text) { extractInlineSourceLinks(message.text) }
+    val bubbleRadius = chatPreferences.bubbleRadius.coerceIn(0, 28).toFloat()
+    val bubbleShape = if (isUser) {
+        MuseBubbleStyles.userBubbleShape(bubbleRadius)
+    } else {
+        MuseBubbleStyles.assistantBubbleShape(bubbleRadius)
+    }
+    val baseSurfaceColor = if (isUser) {
+        MuseBubbleStyles.userSurfaceColor()
+    } else {
+        MuseBubbleStyles.assistantSurfaceColor()
+    }
+    val contentColor = if (isUser) {
+        MuseBubbleStyles.userContentColor()
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }
+    val useFakeGlass = glassConfig.enabled
+    val monoFlatGlass = useFakeGlass && MuseBubbleStyles.isMonoBubbleTheme()
+    val glassBubbleModifier = when {
+        !useFakeGlass -> Modifier
+        monoFlatGlass -> Modifier
+            .clip(bubbleShape)
+            .glassEdgeHighlight(bubbleShape, glassConfig)
+            .glassBorder(bubbleShape, glassConfig)
+        else -> Modifier
+            .clip(bubbleShape)
+            .background(glassFakeSurfaceColor(baseSurfaceColor, glassConfig))
+            .glassEdgeHighlight(bubbleShape, glassConfig)
+            .glassBorder(bubbleShape, glassConfig)
+    }
+    val bodyScale = chatPreferences.messageFontScale.coerceIn(0.85f, 1.3f)
+    val baseBodyStyle = MaterialTheme.typography.bodyMedium
+    val bodyStyle = remember(baseBodyStyle, bodyScale, chatPreferences.messageLetterSpacingEm) {
+        baseBodyStyle.copy(
+            fontSize = baseBodyStyle.fontSize * bodyScale,
+            lineHeight = baseBodyStyle.lineHeight.let { if (it.isUnspecified) it else it * bodyScale },
+            letterSpacing = chatPreferences.messageLetterSpacingEm.coerceIn(-0.02f, 0.1f).em,
+        )
+    }
+    val openMenu = {
+        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        menuExpanded = true
+    }
 
     Row(
         modifier = modifier
@@ -98,55 +168,78 @@ fun AgentMessageBubble(
     ) {
         Box {
             Box(
-                modifier = Modifier.widthIn(max = MuseBubbleStyles.maxBubbleWidth()),
+                modifier = if (chatPreferences.bubbleFullWidth && !isUser) {
+                    Modifier.fillMaxWidth()
+                } else {
+                    Modifier.widthIn(max = MuseBubbleStyles.maxBubbleWidth())
+                },
             ) {
                 Surface(
-                    color = if (isUser) {
-                        MuseBubbleStyles.userSurfaceColor()
+                    color = if (useFakeGlass && !monoFlatGlass) Color.Transparent else baseSurfaceColor,
+                    contentColor = contentColor,
+                    shape = bubbleShape,
+                    border = if (useFakeGlass) {
+                        null
                     } else {
-                        MuseBubbleStyles.assistantSurfaceColor()
+                        BorderStroke(
+                            width = MuseBorderWidth.hairline,
+                            color = if (isUser) {
+                                MuseBubbleStyles.userBorderColor()
+                            } else {
+                                MuseBubbleStyles.assistantBorderColor()
+                            },
+                        )
                     },
-                    contentColor = if (isUser) {
-                        MuseBubbleStyles.userContentColor()
-                    } else {
-                        MaterialTheme.colorScheme.onSurface
-                    },
-                    shape = if (isUser) {
-                        MuseBubbleStyles.userBubbleShape()
-                    } else {
-                        MuseBubbleStyles.assistantBubbleShape()
-                    },
-                    border = BorderStroke(
-                        width = MuseBorderWidth.hairline,
-                        color = if (isUser) {
-                            MuseBubbleStyles.userBorderColor()
-                        } else {
-                            MuseBubbleStyles.assistantBorderColor()
-                        },
-                    ),
                     modifier = Modifier
                         .padding(
                             bottom = if (reactions.isNotEmpty()) MusePaddings.contentGap else MusePaddings.tinyGap,
                         )
-                        .clip(
-                            if (isUser) {
-                                MuseBubbleStyles.userBubbleShape()
-                            } else {
-                                MuseBubbleStyles.assistantBubbleShape()
-                            },
-                        )
+                        .then(glassBubbleModifier)
+                        .clip(bubbleShape)
                         .combinedClickable(
                             onClick = {},
-                            onLongClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                menuExpanded = true
-                            },
+                            onLongClick = openMenu,
                         ),
                 ) {
                     Column(
                         modifier = Modifier.padding(MusePaddings.bubbleInner),
                         verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
                     ) {
+                        if (!isUser && chatPreferences.showReasoning && message.reasoning.isNotBlank()) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { reasoningExpanded = !reasoningExpanded },
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
+                            ) {
+                                Icon(
+                                    imageVector = MuseIcons.sparkle,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(MuseIconSizes.iconTiny),
+                                )
+                                Text(
+                                    text = stringResource(R.string.agent_hub_thinking),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                Icon(
+                                    imageVector = if (reasoningExpanded) MuseIcons.chevronUp else MuseIcons.chevronDown,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(MuseIconSizes.iconTiny),
+                                )
+                            }
+                            if (reasoningExpanded) {
+                                Text(
+                                    text = message.reasoning,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
                         val imageModels = message.imageUrls + message.imageBase64List.map {
                             "data:image/jpeg;base64,$it"
                         }
@@ -157,14 +250,17 @@ fun AgentMessageBubble(
                                 itemsIndexed(
                                     items = imageModels,
                                     key = { index, img -> "$index:${img.hashCode()}" },
-                                ) { _, image ->
+                                ) { index, image ->
                                     AsyncImage(
                                         model = image,
                                         contentDescription = null,
                                         contentScale = ContentScale.Crop,
                                         modifier = Modifier
                                             .size(MusePaddings.previewThumb)
-                                            .clip(MuseShapes.medium),
+                                            .clip(MuseShapes.medium)
+                                            .clickable(enabled = onOpenMediaViewer != null) {
+                                                onOpenMediaViewer?.invoke(imageModels, index)
+                                            },
                                     )
                                 }
                             }
@@ -172,12 +268,10 @@ fun AgentMessageBubble(
                         if (message.text.isNotBlank()) {
                             MarkdownText(
                                 text = message.text,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = if (isUser) {
-                                    MuseBubbleStyles.userContentColor()
-                                } else {
-                                    MaterialTheme.colorScheme.onSurface
-                                },
+                                style = bodyStyle,
+                                color = contentColor,
+                                citationUrls = message.citationUrls,
+                                onLongPressOutside = { openMenu() },
                             )
                         }
                         if (!isUser && inlineLinks.isNotEmpty()) {
@@ -199,6 +293,28 @@ fun AgentMessageBubble(
                                     )
                                 }
                             }
+                        }
+                        val showTime = chatPreferences.showTimestamp && message.createdAt > 0L
+                        val showModel = !isUser && chatPreferences.showModelName && modelLabel.isNotBlank()
+                        if (showTime || showModel) {
+                            val footerText = remember(message.createdAt, chatPreferences.use24Hour, showTime, showModel, modelLabel) {
+                                val parts = mutableListOf<String>()
+                                if (showModel) parts += modelLabel
+                                if (showTime) {
+                                    val pattern = if (chatPreferences.use24Hour) {
+                                        MuseDateFormats.TIME_SHORT
+                                    } else {
+                                        MuseDateFormats.TIME_12H
+                                    }
+                                    parts += SimpleDateFormat(pattern, Locale.getDefault()).format(Date(message.createdAt))
+                                }
+                                parts.joinToString(" · ")
+                            }
+                            Text(
+                                text = footerText,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = contentColor.copy(alpha = MuseAlpha.subtleBorder),
+                            )
                         }
                     }
                 }
@@ -266,6 +382,27 @@ fun AgentMessageBubble(
                 MuseListItem(
                     onClick = {
                         menuExpanded = false
+                        onQuote()
+                    },
+                    leadingContent = {
+                        Icon(
+                            imageVector = MuseIcons.reply,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(MuseIconSizes.iconSmall),
+                        )
+                    },
+                    headlineContent = {
+                        Text(
+                            text = stringResource(R.string.message_action_quote),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    },
+                )
+                MuseListItem(
+                    onClick = {
+                        menuExpanded = false
                         onCopy()
                     },
                     leadingContent = {
@@ -284,15 +421,15 @@ fun AgentMessageBubble(
                         )
                     },
                 )
-                if (!isUser) {
+                if (message.text.isNotBlank()) {
                     MuseListItem(
                         onClick = {
                             menuExpanded = false
-                            onRetry()
+                            showSelectTextDialog = true
                         },
                         leadingContent = {
                             Icon(
-                                imageVector = MuseIcons.refresh,
+                                imageVector = MuseIcons.square,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.size(MuseIconSizes.iconSmall),
@@ -300,7 +437,103 @@ fun AgentMessageBubble(
                         },
                         headlineContent = {
                             Text(
-                                text = stringResource(R.string.agent_screen_retry_message),
+                                text = stringResource(R.string.action_select_text),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                        },
+                    )
+                }
+                if (isUser && message.text.isNotBlank()) {
+                    MuseListItem(
+                        onClick = {
+                            menuExpanded = false
+                            onEdit()
+                        },
+                        leadingContent = {
+                            Icon(
+                                imageVector = MuseIcons.edit,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(MuseIconSizes.iconSmall),
+                            )
+                        },
+                        headlineContent = {
+                            Text(
+                                text = stringResource(R.string.common_edit),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                        },
+                    )
+                }
+                MuseListItem(
+                    onClick = {
+                        menuExpanded = false
+                        onRetry()
+                    },
+                    leadingContent = {
+                        Icon(
+                            imageVector = MuseIcons.refresh,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(MuseIconSizes.iconSmall),
+                        )
+                    },
+                    headlineContent = {
+                        Text(
+                            text = stringResource(R.string.agent_screen_retry_message),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    },
+                )
+                if (message.text.isNotBlank()) {
+                    MuseListItem(
+                        onClick = {
+                            menuExpanded = false
+                            onSaveAsRoutine()
+                        },
+                        leadingContent = {
+                            Icon(
+                                imageVector = MuseIcons.bolt,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(MuseIconSizes.iconSmall),
+                            )
+                        },
+                        headlineContent = {
+                            Text(
+                                text = stringResource(R.string.agent_hub_mission_save_routine),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                        },
+                    )
+                    MuseListItem(
+                        onClick = {
+                            menuExpanded = false
+                            val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_TEXT, message.text)
+                            }
+                            runCatching {
+                                ShareIntentHelper.startChooserSafely(context, sendIntent)
+                            }.onFailure {
+                                Logger.w("AgentBubble", "分享消息失败: ${it.message}")
+                            }
+                        },
+                        leadingContent = {
+                            Icon(
+                                imageVector = MuseIcons.share,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(MuseIconSizes.iconSmall),
+                            )
+                        },
+                        headlineContent = {
+                            Text(
+                                text = stringResource(R.string.chat_share_action),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurface,
                             )
@@ -330,6 +563,30 @@ fun AgentMessageBubble(
                 )
             }
         }
+    }
+
+    if (showSelectTextDialog) {
+        MuseDialog(
+            onDismissRequest = { showSelectTextDialog = false },
+            title = stringResource(R.string.action_select_text),
+            content = {
+                SelectionContainer {
+                    Text(
+                        text = message.text,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            },
+            confirmText = stringResource(R.string.common_close),
+            onConfirm = { showSelectTextDialog = false },
+            dismissText = stringResource(R.string.common_copy),
+            onDismiss = {
+                showSelectTextDialog = false
+                onCopy()
+            },
+        )
     }
 }
 
@@ -411,9 +668,23 @@ private fun InlineSourceChip(
 fun AgentStreamingBubble(
     streaming: AgentBotUiState.StreamingBubble,
     modifier: Modifier = Modifier,
+    chatPreferences: ChatPreferences = ChatPreferences(),
 ) {
     if (!streaming.active) return
-    var reasoningExpanded by rememberSaveable { mutableStateOf(false) }
+    var reasoningExpanded by rememberSaveable {
+        mutableStateOf(chatPreferences.reasoningExpandedByDefault)
+    }
+    val bubbleRadius = chatPreferences.bubbleRadius.coerceIn(0, 28).toFloat()
+    val bubbleShape = MuseBubbleStyles.assistantBubbleShape(bubbleRadius)
+    val bodyScale = chatPreferences.messageFontScale.coerceIn(0.85f, 1.3f)
+    val baseBodyStyle = MaterialTheme.typography.bodyMedium
+    val bodyStyle = remember(baseBodyStyle, bodyScale, chatPreferences.messageLetterSpacingEm) {
+        baseBodyStyle.copy(
+            fontSize = baseBodyStyle.fontSize * bodyScale,
+            lineHeight = baseBodyStyle.lineHeight.let { if (it.isUnspecified) it else it * bodyScale },
+            letterSpacing = chatPreferences.messageLetterSpacingEm.coerceIn(-0.02f, 0.1f).em,
+        )
+    }
 
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -422,18 +693,22 @@ fun AgentStreamingBubble(
         Surface(
             color = MuseBubbleStyles.assistantSurfaceColor(),
             contentColor = MaterialTheme.colorScheme.onSurface,
-            shape = MuseBubbleStyles.assistantBubbleShape(),
+            shape = bubbleShape,
             border = BorderStroke(
                 width = MuseBorderWidth.hairline,
                 color = MuseBubbleStyles.assistantBorderColor(),
             ),
-            modifier = Modifier.widthIn(max = MuseBubbleStyles.maxBubbleWidth()),
+            modifier = if (chatPreferences.bubbleFullWidth) {
+                Modifier.fillMaxWidth()
+            } else {
+                Modifier.widthIn(max = MuseBubbleStyles.maxBubbleWidth())
+            },
         ) {
             Column(
                 modifier = Modifier.padding(MusePaddings.bubbleInner),
                 verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
             ) {
-                if (streaming.reasoning.isNotBlank()) {
+                if (chatPreferences.showReasoning && streaming.reasoning.isNotBlank()) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -471,13 +746,14 @@ fun AgentStreamingBubble(
                 if (streaming.text.isNotBlank()) {
                     MarkdownText(
                         text = streaming.text,
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = bodyStyle,
                         color = MaterialTheme.colorScheme.onSurface,
+                        citationUrls = streaming.citationUrls,
                     )
                 } else {
                     Text(
                         text = "…",
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = bodyStyle,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }

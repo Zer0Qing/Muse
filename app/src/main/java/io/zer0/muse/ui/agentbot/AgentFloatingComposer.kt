@@ -1,36 +1,47 @@
 package io.zer0.muse.ui.agentbot
 
 import android.net.Uri
-import androidx.compose.foundation.BorderStroke
+import android.view.KeyEvent
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -38,16 +49,26 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import io.zer0.ai.core.ReasoningLevel
 import io.zer0.muse.R
 import io.zer0.muse.data.agentbot.AgentBotUiState
+import io.zer0.muse.ui.assistant.reasoningLevelLabelRes
+import io.zer0.muse.ui.chat.MentionHighlightTransformation
 import io.zer0.muse.ui.chat.MuseToolSheet
 import io.zer0.muse.ui.chat.ToolEntry
+import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
+import io.zer0.muse.ui.common.media.AttachmentRemoveButton
+import io.zer0.muse.ui.common.surface.MuseIsland
+import io.zer0.muse.ui.theme.GlassIsland
+import io.zer0.muse.ui.theme.LocalLiquidGlass
+import io.zer0.muse.ui.theme.MuseActionColors
 import io.zer0.muse.ui.theme.MuseAlpha
-import io.zer0.muse.ui.theme.MuseBorderWidth
-import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MuseHaptics
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
@@ -58,7 +79,7 @@ import io.zer0.muse.ui.theme.pill
  * 底部独立悬浮药丸输入岛。
  *
  * 外层不铺背景底条，直接叠浮在全屏对话流之上；
- * 后台任务执行和前台流式回复期间均不锁定输入框，加号菜单复用普通对话的 [MuseToolSheet]。
+ * 与常规对话输入岛统一材质、按钮节奏与加号工具抽屉，后台任务执行期间仍不锁定输入。
  */
 @Composable
 fun AgentFloatingComposer(
@@ -80,19 +101,41 @@ fun AgentFloatingComposer(
     onOpenProviderSettings: (() -> Unit)?,
     onOpenRuntimeInstall: (() -> Unit)?,
     modifier: Modifier = Modifier,
+    enterToSend: Boolean = false,
+    showExpandButton: Boolean = false,
+    isWebSearchEnabled: Boolean = false,
+    isDeepThinkingEnabled: Boolean = false,
+    deepThinkingLevel: ReasoningLevel = ReasoningLevel.HIGH,
+    onClearQuote: () -> Unit = {},
+    onCancelEdit: () -> Unit = {},
+    onToggleWebSearch: () -> Unit = {},
+    onToggleDeepThinking: () -> Unit = {},
+    onCycleDeepThinkingLevel: () -> Unit = {},
+    onOpenKnowledgePicker: () -> Unit = {},
+    onPreviewPendingImage: (Int) -> Unit = {},
 ) {
     var showToolSheet by rememberSaveable { mutableStateOf(false) }
+    var showFullscreenEditor by rememberSaveable { mutableStateOf(false) }
     val context = LocalContext.current
     val hapticFeedback = LocalHapticFeedback.current
-    val hasText = composer.text.isNotBlank()
+    val glassConfig = LocalLiquidGlass.current
+    val canSend = composer.text.isNotBlank() || composer.pendingImages.isNotEmpty()
     val plusCd = stringResource(R.string.agent_hub_plus_cd)
     val voiceCd = stringResource(R.string.agent_hub_voice_cd)
     val sendCd = stringResource(R.string.action_send)
     val stopCd = stringResource(R.string.agent_bot_stop_reply)
+    val mentionColor = MaterialTheme.colorScheme.primary
+    val mentionTransform = remember(mentionColor) { MentionHighlightTransformation(mentionColor) }
+    val islandBaseColor = lerp(
+        MaterialTheme.colorScheme.surfaceVariant,
+        MaterialTheme.colorScheme.onSurface,
+        0.06f,
+    )
 
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
             .navigationBarsPadding()
             .imePadding()
             .padding(
@@ -112,12 +155,95 @@ fun AgentFloatingComposer(
             )
         }
 
+        val editingActive = !composer.editingMessageId.isNullOrBlank()
+        if (editingActive) {
+            MuseIsland(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = onCancelEdit,
+                    ),
+                backgroundAlpha = 1f,
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(MusePaddings.bubbleInner),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = stringResource(R.string.common_edit),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Icon(
+                        imageVector = MuseIcons.x,
+                        contentDescription = stringResource(R.string.common_cancel),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(MuseIconSizes.iconSmall),
+                    )
+                }
+            }
+        } else {
+            composer.quotedMessage?.let { quoted ->
+                MuseIsland(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = onClearQuote,
+                        ),
+                    backgroundAlpha = 1f,
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(MusePaddings.bubbleInner),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = stringResource(
+                                    if (quoted.role == AgentBotUiState.Role.USER) {
+                                        R.string.quote_label_user
+                                    } else {
+                                        R.string.quote_label_assistant
+                                    },
+                                ),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                            Text(
+                                text = io.zer0.muse.transformer.InternalMarkupSanitizer.displayContent(quoted.text),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                        MuseTactileButton(
+                            icon = MuseIcons.x,
+                            contentDescription = stringResource(R.string.quote_clear),
+                            onClick = onClearQuote,
+                        )
+                    }
+                }
+            }
+        }
+
         if (composer.pendingImages.isNotEmpty()) {
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
                 modifier = Modifier.padding(horizontal = MusePaddings.tightGap),
             ) {
-                items(composer.pendingImages, key = { it.hashCode() }) { image ->
+                itemsIndexed(
+                    items = composer.pendingImages,
+                    key = { idx, image -> "$idx:${image.hashCode()}" },
+                ) { index, image ->
                     Box {
                         AsyncImage(
                             model = "data:image/jpeg;base64,$image",
@@ -125,128 +251,158 @@ fun AgentFloatingComposer(
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
                                 .size(MusePaddings.previewThumb)
-                                .clip(MuseShapes.medium),
+                                .clip(MuseShapes.medium)
+                                .clickable { onPreviewPendingImage(index) },
                         )
-                        Surface(
+                        AttachmentRemoveButton(
+                            contentDescription = stringResource(R.string.agent_screen_remove_image),
                             onClick = { onRemoveImage(image) },
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-                            shadowElevation = MuseElevation.low,
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .padding(MusePaddings.removeDotPadding)
-                                .size(MuseIconSizes.icon),
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = MuseIcons.x,
-                                    contentDescription = stringResource(R.string.agent_screen_remove_image),
-                                    tint = MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.size(MuseIconSizes.iconTiny),
-                                )
-                            }
-                        }
+                            modifier = Modifier.align(Alignment.TopEnd),
+                        )
                     }
                 }
             }
         }
 
-        Surface(
+        GlassIsland(
+            config = glassConfig,
             shape = MuseShapes.pill,
-            color = MaterialTheme.colorScheme.surface,
-            shadowElevation = MuseElevation.high,
-            border = BorderStroke(
-                width = MuseBorderWidth.hairline,
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = MuseAlpha.subtleBorder),
-            ),
+            solidColor = islandBaseColor,
             modifier = Modifier.fillMaxWidth(),
         ) {
+            val islandContentColor = LocalContentColor.current
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(
-                        horizontal = MusePaddings.contentGap,
-                        vertical = MusePaddings.tightGap,
+                        horizontal = MusePaddings.inputIslandInnerHorizontal,
+                        vertical = MusePaddings.inputIslandRowVertical,
                     ),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
             ) {
-                // 左侧 [+] 按钮：沿用普通对话的 MuseToolSheet 底部面板
                 MuseTactileButton(
                     icon = MuseIcons.plus,
                     contentDescription = plusCd,
+                    tint = islandContentColor.copy(alpha = MuseAlpha.disabledContent),
                     onClick = {
                         MuseHaptics.light(hapticFeedback)
                         showToolSheet = true
                     },
                 )
 
-                // 中间自适应输入框
-                Box(
+                MuseTextField(
+                    value = composer.text,
+                    onValueChange = onTextChange,
+                    containerColor = Color.Transparent,
+                    textColor = if (glassConfig.enabled) islandContentColor else null,
+                    visualTransformation = mentionTransform,
+                    maxLines = 5,
+                    placeholder = {
+                        Text(
+                            text = stringResource(R.string.chat_placeholder_simple),
+                            color = islandContentColor.copy(alpha = MuseAlpha.mutedSurface),
+                            style = MaterialTheme.typography.bodyLarge,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    },
+                    keyboardOptions = KeyboardOptions(
+                        imeAction = if (enterToSend) ImeAction.Send else ImeAction.Default,
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onSend = {
+                            if (canSend) {
+                                MuseHaptics.medium(hapticFeedback)
+                                onSend()
+                            }
+                        },
+                    ),
                     modifier = Modifier
                         .weight(1f)
-                        .heightIn(min = MuseIconSizes.inputMinHeight)
-                        .padding(vertical = MusePaddings.labelVerticalGap),
-                    contentAlignment = Alignment.CenterStart,
-                ) {
-                    if (composer.text.isEmpty()) {
-                        Text(
-                            text = stringResource(R.string.agent_hub_input_placeholder),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    BasicTextField(
-                        value = composer.text,
-                        onValueChange = onTextChange,
-                        textStyle = MaterialTheme.typography.bodyMedium.copy(
-                            color = MaterialTheme.colorScheme.onSurface,
-                        ),
-                        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                        maxLines = 5,
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                        keyboardActions = KeyboardActions(
-                            onSend = { if (hasText) onSend() },
-                        ),
-                        modifier = Modifier.fillMaxWidth(),
+                        .heightIn(min = MuseIconSizes.inputMinHeight, max = MusePaddings.maxMessageFieldHeight)
+                        .onKeyEvent { event ->
+                            if (enterToSend &&
+                                event.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_ENTER &&
+                                event.nativeKeyEvent.action == KeyEvent.ACTION_DOWN &&
+                                (event.nativeKeyEvent.metaState and KeyEvent.META_SHIFT_ON) == 0
+                            ) {
+                                if (canSend) onSend()
+                                true
+                            } else {
+                                false
+                            }
+                        },
+                )
+
+                if (showExpandButton) {
+                    MuseTactileButton(
+                        icon = MuseIcons.maximize,
+                        contentDescription = stringResource(R.string.chat_input_action_fullscreen),
+                        tint = islandContentColor.copy(alpha = MuseAlpha.disabledContent),
+                        onClick = { showFullscreenEditor = true },
                     )
                 }
 
-                // 右侧：有文字 → 发送；流式回复中且无输入 → 停止；否则 → 语音
+                // 右侧按钮与 Chat InputBar 同优先级：生成中无输入 → 48dp 停止；有文字/图片 → 发送；否则 → 语音
                 when {
-                    hasText -> {
-                        Surface(
-                            onClick = onSend,
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.primary,
+                    (busy.sending || isStreaming) && !canSend -> {
+                        Box(
                             modifier = Modifier
-                                .size(MuseIconSizes.stopButton)
-                                .semantics { contentDescription = sendCd },
+                                .size(MuseIconSizes.touchTarget)
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null,
+                                    onClick = {
+                                        MuseHaptics.medium(hapticFeedback)
+                                        onStopReply()
+                                    },
+                                )
+                                .semantics { contentDescription = stopCd },
+                            contentAlignment = Alignment.Center,
                         ) {
-                            Box(contentAlignment = Alignment.Center) {
+                            Box(
+                                modifier = Modifier
+                                    .size(MuseIconSizes.stopButton)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.error),
+                                contentAlignment = Alignment.Center,
+                            ) {
                                 Icon(
-                                    imageVector = MuseIcons.send,
+                                    imageVector = MuseIcons.stop,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                    tint = MaterialTheme.colorScheme.onError,
                                     modifier = Modifier.size(MuseIconSizes.iconSmall),
                                 )
                             }
                         }
                     }
-                    busy.sending || isStreaming -> {
-                        Surface(
-                            onClick = onStopReply,
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.surfaceVariant,
+                    canSend -> {
+                        Box(
                             modifier = Modifier
-                                .size(MuseIconSizes.stopButton)
-                                .semantics { contentDescription = stopCd },
+                                .size(MuseIconSizes.touchTarget)
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null,
+                                    onClick = {
+                                        MuseHaptics.medium(hapticFeedback)
+                                        onSend()
+                                    },
+                                )
+                                .semantics { contentDescription = sendCd },
+                            contentAlignment = Alignment.Center,
                         ) {
-                            Box(contentAlignment = Alignment.Center) {
+                            Box(
+                                modifier = Modifier
+                                    .size(MuseIconSizes.stopButton)
+                                    .clip(CircleShape)
+                                    .background(MuseActionColors.container),
+                                contentAlignment = Alignment.Center,
+                            ) {
                                 Icon(
-                                    imageVector = MuseIcons.stop,
+                                    imageVector = MuseIcons.send,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurface,
+                                    tint = MuseActionColors.content,
                                     modifier = Modifier.size(MuseIconSizes.iconSmall),
                                 )
                             }
@@ -256,7 +412,11 @@ fun AgentFloatingComposer(
                         MuseTactileButton(
                             icon = MuseIcons.microphone,
                             contentDescription = voiceCd,
-                            onClick = onVoiceInput,
+                            tint = islandContentColor.copy(alpha = MuseAlpha.disabledContent),
+                            onClick = {
+                                MuseHaptics.light(hapticFeedback)
+                                onVoiceInput()
+                            },
                         )
                     }
                 }
@@ -264,10 +424,46 @@ fun AgentFloatingComposer(
         }
     }
 
+    if (showFullscreenEditor) {
+        MuseDialog(
+            onDismissRequest = { showFullscreenEditor = false },
+            title = stringResource(R.string.chat_input_action_fullscreen),
+            content = {
+                MuseTextField(
+                    value = composer.text,
+                    onValueChange = onTextChange,
+                    placeholder = { Text(stringResource(R.string.chat_placeholder_simple)) },
+                    minLines = 6,
+                    maxLines = 14,
+                    visualTransformation = mentionTransform,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            },
+            confirmText = if (canSend) stringResource(R.string.action_send) else stringResource(R.string.common_done),
+            onConfirm = {
+                showFullscreenEditor = false
+                if (canSend) onSend()
+            },
+            dismissText = stringResource(R.string.common_close),
+            onDismiss = { showFullscreenEditor = false },
+        )
+    }
+
     if (showToolSheet) {
         val workbenchTitle = stringResource(R.string.agent_hub_quick_workbench)
         val briefingTitle = stringResource(R.string.agent_hub_cue_trigger_briefing)
         val teachTitle = stringResource(R.string.agent_hub_quick_teach)
+        val webSearchTitle = stringResource(R.string.chat_web_search_cd)
+        val deepThinkingLabel = stringResource(R.string.chat_deep_thinking_cd)
+        val deepThinkingTitle = if (isDeepThinkingEnabled) {
+            "$deepThinkingLabel · ${stringResource(reasoningLevelLabelRes(deepThinkingLevel))}"
+        } else {
+            deepThinkingLabel
+        }
+        val knowledgeTitle = stringResource(R.string.chat_tool_knowledge)
+        val knowledgeSubtitle = stringResource(R.string.chat_tool_knowledge_subtitle)
+        val fullscreenTitle = stringResource(R.string.chat_input_action_fullscreen)
+        val fullscreenSubtitle = stringResource(R.string.chat_input_action_fullscreen_subtitle)
         val modelTitle = stringResource(R.string.chat_select_provider)
         val providerTitle = stringResource(R.string.agent_screen_provider_settings)
         val runtimeTitle = stringResource(R.string.agent_screen_runtime_install)
@@ -281,6 +477,49 @@ fun AgentFloatingComposer(
                         MuseHaptics.light(hapticFeedback)
                         showToolSheet = false
                         onOpenWorkbench()
+                    },
+                ),
+            )
+            add(
+                ToolEntry(
+                    icon = MuseIcons.globe,
+                    title = webSearchTitle,
+                    titleRes = R.string.chat_web_search_cd,
+                    isActive = isWebSearchEnabled,
+                    showArrow = false,
+                    onClick = {
+                        MuseHaptics.light(hapticFeedback)
+                        onToggleWebSearch()
+                    },
+                ),
+            )
+            add(
+                ToolEntry(
+                    icon = MuseIcons.brain,
+                    title = deepThinkingTitle,
+                    titleRes = R.string.chat_deep_thinking_cd,
+                    isActive = isDeepThinkingEnabled,
+                    showArrow = false,
+                    onClick = {
+                        MuseHaptics.light(hapticFeedback)
+                        onToggleDeepThinking()
+                    },
+                    onLongClick = {
+                        MuseHaptics.medium(hapticFeedback)
+                        onCycleDeepThinkingLevel()
+                    },
+                ),
+            )
+            add(
+                ToolEntry(
+                    icon = MuseIcons.book,
+                    title = knowledgeTitle,
+                    titleRes = R.string.chat_tool_knowledge,
+                    subtitle = knowledgeSubtitle,
+                    onClick = {
+                        MuseHaptics.light(hapticFeedback)
+                        showToolSheet = false
+                        onOpenKnowledgePicker()
                     },
                 ),
             )
@@ -308,10 +547,22 @@ fun AgentFloatingComposer(
                     },
                 ),
             )
+            add(
+                ToolEntry(
+                    icon = MuseIcons.maximize,
+                    title = fullscreenTitle,
+                    subtitle = fullscreenSubtitle,
+                    onClick = {
+                        MuseHaptics.light(hapticFeedback)
+                        showToolSheet = false
+                        showFullscreenEditor = true
+                    },
+                ),
+            )
             if (onOpenModel != null) {
                 add(
                     ToolEntry(
-                        icon = MuseIcons.brain,
+                        icon = MuseIcons.memoryChip,
                         title = modelTitle,
                         titleRes = R.string.chat_select_provider,
                         onClick = {
@@ -366,7 +617,7 @@ fun AgentFloatingComposer(
             onDismiss = { showToolSheet = false },
             featuredTitleRes = listOf(
                 R.string.agent_hub_quick_workbench,
-                R.string.agent_hub_cue_trigger_briefing,
+                R.string.chat_web_search_cd,
             ),
         )
     }

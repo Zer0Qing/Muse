@@ -79,6 +79,8 @@ fun MuseTextField(
      * 输入栏场景传 Color.Transparent,避免输入框实色块叠在岛背景上形成"白块"。
      */
     containerColor: androidx.compose.ui.graphics.Color? = null,
+    /** 可选的正文与光标颜色覆盖(深背景液态玻璃透明态场景用)。 */
+    textColor: androidx.compose.ui.graphics.Color? = null,
     /** 可选的内部输入框焦点请求器,用于页面打开后的安全自动聚焦。 */
     focusRequester: FocusRequester? = null,
     /**
@@ -150,12 +152,12 @@ fun MuseTextField(
             disabledBorderColor = Color.Transparent,
             errorBorderColor = if (isError) scheme.error else Color.Transparent,
             // 文字颜色
-            focusedTextColor = scheme.onSurface,
-            unfocusedTextColor = scheme.onSurface,
-            disabledTextColor = scheme.onSurfaceVariant,
+            focusedTextColor = textColor ?: scheme.onSurface,
+            unfocusedTextColor = textColor ?: scheme.onSurface,
+            disabledTextColor = textColor?.copy(alpha = 0.6f) ?: scheme.onSurfaceVariant,
             // placeholder 颜色
-            focusedPlaceholderColor = scheme.onSurfaceVariant,
-            unfocusedPlaceholderColor = scheme.onSurfaceVariant,
+            focusedPlaceholderColor = textColor?.copy(alpha = 0.65f) ?: scheme.onSurfaceVariant,
+            unfocusedPlaceholderColor = textColor?.copy(alpha = 0.65f) ?: scheme.onSurfaceVariant,
             // supportingText 颜色
             focusedSupportingTextColor = scheme.onSurfaceVariant,
             unfocusedSupportingTextColor = scheme.onSurfaceVariant,
@@ -165,7 +167,7 @@ fun MuseTextField(
             focusedTrailingIconColor = scheme.onSurfaceVariant,
             unfocusedTrailingIconColor = scheme.onSurfaceVariant,
             // 光标颜色
-            cursorColor = scheme.onSurface,
+            cursorColor = textColor ?: scheme.onSurface,
             errorCursorColor = scheme.error,
         )
 

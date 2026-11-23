@@ -1,7 +1,11 @@
 package io.zer0.muse.tools
 
 import io.zer0.ai.core.ToolDefinition
+import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.skill.SkillEntity
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
 
 /**
  * 「模型本轮真正能调用的工具」的唯一筛选口径。
@@ -53,6 +57,23 @@ object ToolSchemaRules {
         if (id in localToolNames || id.startsWith("channel_")) return false
         return criteria.configuredSkillIds.isEmpty() || id in criteria.configuredSkillIds
     }
+
+    /** 解析 JSON 字符串数组；异常或空串返回空列表。 */
+    fun parseIdList(json: String?): List<String> {
+        if (json.isNullOrBlank()) return emptyList()
+        return runCatching { idListJson.decodeFromString<List<String>>(json) }.getOrDefault(emptyList())
+    }
+
+    /** 根据助手扩展配置与全局禁用表生成统一的工具筛选条件。 */
+    fun criteriaFor(assistant: AssistantEntity?, deniedToolNames: Set<String> = emptySet()): Criteria =
+        Criteria(
+            configuredToolIds = assistant?.let { parseIdList(it.toolIdsJson).toSet() }.orEmpty(),
+            mcpServerIds = assistant?.let { parseIdList(it.mcpServerIdsJson).toSet() }.orEmpty(),
+            configuredSkillIds = assistant?.let { parseIdList(it.skillIdsJson).toSet() }.orEmpty(),
+            deniedToolNames = deniedToolNames,
+        )
+
+    private val idListJson = Json { ignoreUnknownKeys = true }
 
     /** 过滤本地工具定义（下发侧与计数侧同一套规则）。 */
     fun selectLocalTools(all: List<ToolDefinition>, criteria: Criteria): List<ToolDefinition> =

@@ -1,5 +1,6 @@
 package io.zer0.muse.ui.navigation
 
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
@@ -96,7 +97,9 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         val kind = io.zer0.muse.ui.settings.SettingsGroupKind.entries
             .firstOrNull { it.name == route.kind }
         if (kind == null) {
-            navController.popBackStackSafe()
+            LaunchedEffect(route.kind) {
+                navController.popBackStackSafe()
+            }
         } else {
             SettingsGroupPage(
                 kind = kind,

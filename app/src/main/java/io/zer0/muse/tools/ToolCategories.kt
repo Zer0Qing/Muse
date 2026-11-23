@@ -69,6 +69,10 @@ object ToolCategories {
             // 导致配好 key 与音色后角色仍不会发语音（自定义助手设过工具白名单时更彻底搜不到）。
             "send_voice",
             "list_cloned_voices",
+            // 知识库按需检索三件套（knowledge_search 为内置技能始终可用）：
+            // 自动注入默认关闭后，模型必须在每轮稳定看到目录与全文读取入口，自行决定何时检索引用。
+            "knowledge_list_docs",
+            "knowledge_read_doc",
         )
 
     /** 用户可在设置→工具 开关。 */
@@ -97,9 +101,6 @@ object ToolCategories {
             "app_list",
             "app_launch",
             "app_settings",
-            // v2.6.2: 知识库只读清单 + 会话日常整理（NORMAL，无破坏性）
-            "knowledge_list_docs",
-            "knowledge_read_doc",
             "session_list",
             "session_read",
             "session_rename",

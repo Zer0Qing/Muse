@@ -18,8 +18,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Icon
@@ -136,13 +138,14 @@ fun TerminalScreen(onBack: () -> Unit, onSendToAi: ((String) -> Unit)? = null) {
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize().imePadding()) {
+    Column(modifier = Modifier.fillMaxSize().navigationBarsPadding().imePadding()) {
         // ── 顶栏 ─────────────────────────────────────────────
         Row(
             modifier =
             Modifier
                 .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.surface)
+                .statusBarsPadding()
                 .padding(horizontal = MusePaddings.tightGap, vertical = MusePaddings.tightGap),
             verticalAlignment = Alignment.CenterVertically,
         ) {

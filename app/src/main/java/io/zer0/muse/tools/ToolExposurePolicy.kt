@@ -125,7 +125,11 @@ object ToolExposurePolicy {
                         //  - 技能:与 OPTIONAL 同口径收窄(此前无条件放行,导致每个已启用技能
                         //    每轮都随请求发出,是本项目工具 schema 占位的最大来源);
                         //  - 其余(MCP / 插件)保持既有可见性。
-                        null -> tool.name !in skillToolNames || tool.name in dynamicAllowed || optionalRelaxed
+                        null ->
+                            tool.name in ALWAYS_VISIBLE_SKILL_NAMES ||
+                                tool.name !in skillToolNames ||
+                                tool.name in dynamicAllowed ||
+                                optionalRelaxed
                         ToolCategory.CORE, ToolCategory.STANDARD, ToolCategory.LEGACY -> true
                         ToolCategory.OPTIONAL -> tool.name in dynamicAllowed || optionalRelaxed
                         ToolCategory.GLOBAL -> tool.name in dynamicAllowed
@@ -137,6 +141,8 @@ object ToolExposurePolicy {
 
     /** 工具族:关键词 → 相关工具集合。 */
     private data class ToolFamily(val keywords: Set<String>, val toolNames: Set<String>)
+
+    private val ALWAYS_VISIBLE_SKILL_NAMES = setOf("knowledge_search")
 
     private const val SIMPLE_TOOL_SUBSET_THRESHOLD = 20
 
@@ -273,7 +279,7 @@ object ToolExposurePolicy {
                 ),
             ),
             ToolFamily(
-                keywords = setOf("笔记", "速记", "知识库", "记一下", "note", "note down"),
+                keywords = setOf("笔记", "速记", "记一下", "note", "note down"),
                 toolNames =
                 setOf(
                     "quick_note_add",
@@ -283,6 +289,18 @@ object ToolExposurePolicy {
                     "quick_note_update",
                     "quick_note_delete",
                     "quick_note_pin",
+                ),
+            ),
+            ToolFamily(
+                keywords = setOf("知识库", "文档库", "资料库", "手册", "knowledge", "knowledge base", "kb"),
+                toolNames =
+                setOf(
+                    "knowledge_search",
+                    "knowledge_list_docs",
+                    "knowledge_read_doc",
+                    "knowledge_create_kb",
+                    "knowledge_delete_doc",
+                    "knowledge_delete_kb",
                 ),
             ),
             ToolFamily(
@@ -476,7 +494,7 @@ object ToolExposurePolicy {
                 ),
             ),
             ToolFamily(
-                keywords = setOf("自动操作", "自动化流程", "虚拟屏", "多步操作", "agent 操作", "virtual screen", "automation workflow"),
+                keywords = setOf("自动操作", "自动化", "自动执行", "自动打开", "虚拟屏", "多步操作", "agent 操作", "virtual screen", "automation workflow", "automate"),
                 toolNames = setOf("automation_workflow", "ui_agent", "virtual_screen", "virtual_screen_input"),
             ),
             ToolFamily(

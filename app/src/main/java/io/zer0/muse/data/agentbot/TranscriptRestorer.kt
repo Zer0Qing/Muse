@@ -133,5 +133,7 @@ class TranscriptRestorer(
         seq = message.seq,
         imageUrls = message.imageUrls,
         imageBase64List = message.imageBase64List,
+        reasoning = message.reasoning.orEmpty(),
+        citationUrls = message.citationUrls,
     )
 }

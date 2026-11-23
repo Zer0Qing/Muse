@@ -61,7 +61,12 @@ internal fun MiniPhoneCallFeature(threadId: String, characterId: String, request
     }
 
     LaunchedEffect(Unit) {
-        if (requestedKind == MpCallKind.VIDEO && !cameraAllowed) cameraLauncher.launch(Manifest.permission.CAMERA)
+        if (requestedKind == MpCallKind.VIDEO && !cameraAllowed) {
+            runCatching { cameraLauncher.launch(Manifest.permission.CAMERA) }
+                .onFailure { error ->
+                    io.zer0.common.Logger.w("MiniPhoneCallFeature", "请求相机权限失败: ${error.message}", error)
+                }
+        }
         controller.dial(threadId, characterId, requestedKind, cameraAllowed)
     }
 

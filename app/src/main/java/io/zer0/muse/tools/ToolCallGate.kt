@@ -55,6 +55,41 @@ class ToolCallGate(
         }
     }
 
+    /**
+     * 本地权限策略预判（供中枢持久审批在建卡前先咨询会话权限模式与单工具配置）：
+     *  - 用户选择了「完全放权」([SessionPermissionMode.TRUSTED])或单工具配置了 [ToolApprovalPolicy.ALWAYS_ALLOW] → [ToolApprovalState.Auto]，直接放行、不建审批卡；
+     *  - 用户配置了 [ToolApprovalPolicy.ALWAYS_DENY] 或命中参数级硬拒 → [ToolApprovalState.Denied]，直接拒绝；
+     *  - 其余需询问场景 → [ToolApprovalState.Pending]，交由持久审批链路处理。
+     */
+    suspend fun resolveLocalState(
+        toolName: String,
+        argumentsJson: String,
+        fallbackMode: SessionPermissionMode = SessionPermissionMode.ASK,
+    ): ToolApprovalState {
+        val args = parseToolArgs(toolName, argumentsJson)
+        val mode = try {
+            settings?.defaultSessionPermissionModeFlow?.first() ?: fallbackMode
+        } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+            Logger.w(TAG, "读取会话权限模式失败,按 $fallbackMode 处理", e)
+            fallbackMode
+        }
+        return try {
+            ToolPermissionResolver.resolve(
+                toolName = toolName,
+                risk = gateRiskLevel(toolName),
+                mode = mode,
+                perToolPolicy = explicitPolicyOf(toolName),
+                args = args,
+            )
+        } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+            Logger.w(TAG, "工具审批预判异常,按拒绝处理: tool=$toolName", e)
+            ToolApprovalState.Denied(
+                "审批判定异常(${e.message ?: e.javaClass.simpleName})",
+                source = DenySource.SYSTEM,
+            )
+        }
+    }
+
     /** 有通道：交给主会话审批链。审批超时视为拒绝，让发起方改道而不是干等。 */
     private suspend fun viaBridge(
         toolName: String,
@@ -116,7 +151,7 @@ class ToolCallGate(
     private fun denied(toolName: String, reason: String): Outcome = Outcome(allowed = false, reason = "工具 '$toolName' $reason")
 
     private fun gateRiskLevel(toolName: String): ToolRiskLevel = try {
-        toolRegistry.getToolRiskLevel(toolName) ?: ToolRiskLevel.HIGH
+        toolRegistry.getToolRiskLevel(toolName) ?: ToolPermissionResolver.riskLevelFor(toolName)
     } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
         Logger.w(TAG, "风险等级读取异常,按 HIGH 处理: tool=$toolName", e)
         ToolRiskLevel.HIGH

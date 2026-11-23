@@ -69,13 +69,13 @@ class AgentTeachRecorder {
         _state.value = State()
         if (!current.recording || current.steps.isEmpty()) return null
         val title = current.titleDraft.ifBlank {
-            current.steps.firstOrNull()?.action?.take(24).orEmpty().ifBlank { "示范惯例" }
+            current.steps.firstOrNull()?.action?.take(24).orEmpty().ifBlank { "自动流程" }
         }
         val summary = current.steps.joinToString(" → ") { step ->
             if (step.targetApp.isNotBlank()) "[${step.targetApp}] ${step.action}" else step.action
         }
         val goalPrompt = buildString {
-            appendLine("请按我之前示范过的以下流程完成「$title」：")
+            appendLine("请按我之前录制的以下流程完成「$title」：")
             current.steps.forEach { step ->
                 val prefix = if (step.targetApp.isNotBlank()) "（${step.targetApp}）" else ""
                 appendLine("${step.index}. $prefix${step.action}")

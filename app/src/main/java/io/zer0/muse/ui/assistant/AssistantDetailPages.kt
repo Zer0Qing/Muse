@@ -103,6 +103,7 @@ import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 import java.io.File
 import io.zer0.muse.ui.chat.ChatViewModel
+import io.zer0.muse.util.launchSafely
 
 // ──────────────────────────────────────────────────────────────────────────────
 // 即时保存 helper: 不用 ViewModel,直接读 AssistantRepository
@@ -444,7 +445,7 @@ fun AssistantDetailPage(
                         exportPngTarget = a
                         val safeName = a.name.ifBlank { "assistant" }
                             .replace(Regex("[\\\\/:*?\"<>|]"), "_")
-                        exportPngLauncher.launch("$safeName.png")
+                        exportPngLauncher.launchSafely("$safeName.png", context)
                     },
                     leadingContent = { io.zer0.muse.ui.common.form.MuseSettingsIcon(MuseIcons.image) },
                     headlineContent = { Text(stringResource(R.string.assistant_detail_export_png)) },
@@ -457,7 +458,7 @@ fun AssistantDetailPage(
                         exportJsonTarget = a
                         val safeName = a.name.ifBlank { "assistant" }
                             .replace(Regex("[\\\\/:*?\"<>|]"), "_")
-                        exportJsonLauncher.launch("$safeName.json")
+                        exportJsonLauncher.launchSafely("$safeName.json", context)
                     },
                     leadingContent = { io.zer0.muse.ui.common.form.MuseSettingsIcon(MuseIcons.fileText) },
                     headlineContent = { Text(stringResource(R.string.assistant_detail_export_json)) },
@@ -1080,9 +1081,7 @@ fun AssistantBasicPage(assistantId: String, onBack: () -> Unit) {
                                     Modifier
                                         .clip(RoundedCornerShape(MuseCornerRadius.SEMI_LARGE.dp))
                                         .clickable {
-                                            bgLauncher.launch(
-                                                "image/*",
-                                            )
+                                            bgLauncher.launchSafely("image/*", bgContext)
                                         }
                                         .padding(horizontal = 10.dp, vertical = 6.dp),
                                 )
@@ -1091,7 +1090,7 @@ fun AssistantBasicPage(assistantId: String, onBack: () -> Unit) {
                     },
                     modifier =
                     Modifier.clickable {
-                        bgLauncher.launch("image/*")
+                        bgLauncher.launchSafely("image/*", bgContext)
                     },
                 )
             }

@@ -38,6 +38,7 @@ import io.zer0.muse.ui.common.icons.MuseIcons
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import io.zer0.muse.util.launchSafely
 
 /**
  * v1.97: 二维码分享弹窗 — 显示 Provider 配置的二维码。
@@ -171,7 +172,7 @@ fun QrCodeScanDialog(onDismiss: () -> Unit, onResult: (String) -> Unit) {
     }
 
     LaunchedEffect(Unit) {
-        pickImage.launch("image/*")
+        pickImage.launchSafely("image/*", context)
     }
 
     MuseDialog(
@@ -206,7 +207,7 @@ fun QrCodeScanDialog(onDismiss: () -> Unit, onResult: (String) -> Unit) {
             }
         },
         confirmText = stringResource(R.string.qr_scan_pick_button),
-        onConfirm = { pickImage.launch("image/*") },
+        onConfirm = { pickImage.launchSafely("image/*", context) },
         dismissText = stringResource(R.string.common_cancel),
         onDismiss = onDismiss,
     )

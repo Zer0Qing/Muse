@@ -19,8 +19,8 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class RagConfig(
-    /** RAG 总开关(自动注入)。关闭后知识库仍可被 knowledge_search 工具手动检索。 */
-    val enabled: Boolean = true,
+    /** RAG 总开关(自动注入)。默认关闭，让模型通过 knowledge_* 工具按需检索或由用户 @文档名 显式引用。 */
+    val enabled: Boolean = false,
     /**
      * v1.0.92: 会话附件检索(从实验性转正,默认开)。
      *

@@ -79,8 +79,22 @@ import io.zer0.muse.ui.theme.MuseButtonSize
 import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.theme.MuseSpacing
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import io.zer0.muse.ui.common.surface.MuseListItem
+import io.zer0.muse.util.launchSafely
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
+import io.github.fletchmckee.liquid.liquefiable
+import io.github.fletchmckee.liquid.rememberLiquidState
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 
 /**
@@ -109,6 +123,10 @@ fun AgentBotScreen(
     onOpenArtifact: ((String) -> Unit)? = null,
     onSwitchAssistant: ((String) -> Unit)? = null,
     onOpenGroupChats: (() -> Unit)? = null,
+    topOverlayInset: Dp = MuseSpacing.xxs,
+    externalWorkbenchTab: AgentWorkbenchTab? = null,
+    onExternalWorkbenchTabConsumed: () -> Unit = {},
+    externalBriefingTick: Int = 0,
 ) {
     val composer by viewModel.composer.collectAsStateWithLifecycle()
     val transcript by viewModel.transcript.collectAsStateWithLifecycle()
@@ -129,6 +147,15 @@ fun AgentBotScreen(
     val channels by viewModel.channelsFlow.collectAsStateWithLifecycle()
     val squadIdentities by viewModel.squadIdentityBindings.collectAsStateWithLifecycle()
     val artifacts by viewModel.artifactsFlow.collectAsStateWithLifecycle(initialValue = emptyList())
+    val chatPreferences by viewModel.chatPreferencesFlow.collectAsStateWithLifecycle(
+        initialValue = io.zer0.muse.data.ChatPreferences(),
+    )
+    val webSearchConfig by viewModel.webSearchConfigFlow.collectAsStateWithLifecycle(
+        initialValue = io.zer0.muse.web.WebSearchConfig(),
+    )
+    val knowledgeDocs by viewModel.knowledgeDocsFlow.collectAsStateWithLifecycle(initialValue = emptyList())
+    val deepThinkingEnabled by viewModel.deepThinkingEnabled.collectAsStateWithLifecycle()
+    val deepThinkingLevel by viewModel.deepThinkingLevel.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -165,6 +192,15 @@ fun AgentBotScreen(
 
     var deleteTarget by remember { mutableStateOf<AgentBotUiState.PublishedMessage?>(null) }
     var workbenchTab by rememberSaveable { mutableStateOf<AgentWorkbenchTab?>(null) }
+    var showKnowledgePicker by rememberSaveable { mutableStateOf(false) }
+    var viewerMedia by remember { mutableStateOf<Pair<List<String>, Int>?>(null) }
+
+    LaunchedEffect(externalWorkbenchTab) {
+        if (externalWorkbenchTab != null) {
+            workbenchTab = externalWorkbenchTab
+            onExternalWorkbenchTabConsumed()
+        }
+    }
 
     val transcriptListState = rememberLazyListState()
     var shouldFollowTranscript by rememberSaveable { mutableStateOf(true) }
@@ -187,13 +223,29 @@ fun AgentBotScreen(
         }
     }
 
-    LaunchedEffect(transcript.lastOrNull()?.messageId, streaming.text.length) {
-        if (!shouldFollowTranscript) return@LaunchedEffect
+    LaunchedEffect(transcript.lastOrNull()?.messageId, streaming.active) {
+        if (!shouldFollowTranscript || !chatPreferences.autoScrollToBottom) return@LaunchedEffect
         snapshotFlow { transcriptListState.layoutInfo.totalItemsCount }.first { it > 0 }
         val lastIndex = transcriptListState.layoutInfo.totalItemsCount - 1
         if (lastIndex >= 0) {
             transcriptListState.animateScrollToItem(lastIndex)
         }
+    }
+    LaunchedEffect(streaming.active) {
+        if (!streaming.active) return@LaunchedEffect
+        var lastScrollUptime = 0L
+        snapshotFlow { streaming.text.length }
+            .collect { length ->
+                if (length <= 0 || !shouldFollowTranscript || !chatPreferences.autoScrollToBottom) return@collect
+                val now = android.os.SystemClock.uptimeMillis()
+                if (now - lastScrollUptime >= 280L) {
+                    val lastIndex = transcriptListState.layoutInfo.totalItemsCount - 1
+                    if (lastIndex >= 0) {
+                        lastScrollUptime = now
+                        transcriptListState.animateScrollToItem(lastIndex)
+                    }
+                }
+            }
     }
 
     val activeAssistant = assistants.firstOrNull { it.id == composer.botId }
@@ -207,21 +259,32 @@ fun AgentBotScreen(
     val inProgressTasks = projection?.inProgress.orEmpty()
     val needsActionTasks = projection?.needsAction.orEmpty()
     val recentTasks = projection?.recent.orEmpty()
+    val activeStreamTasks = remember(inProgressTasks, needsActionTasks) {
+        inProgressTasks + needsActionTasks
+    }
     val allTasks = inProgressTasks + needsActionTasks + recentTasks
     val pendingApprovals = projection?.pendingApprovals.orEmpty()
     val candidates = projection?.candidates.orEmpty()
     val annotationsByMsg = projection?.annotationsByMessage.orEmpty()
     val cards = projection?.cards.orEmpty()
 
-    val tasksByAnchor = remember(allTasks, transcript) {
-        val messageIds = transcript.mapTo(mutableSetOf()) { it.messageId }
-        allTasks
-            .filter { it.requestMessageId.isNotBlank() && it.requestMessageId in messageIds }
-            .groupBy { it.requestMessageId }
+    // 仅已完成的历史任务按助手回复消息锚定在历史流中；进行中与待拍板任务统一置于对话流底部（输入栏正上方）。
+    val missionAnchorByTaskId = remember(cards) {
+        cards.filter { it.kind == BotCardKind.MISSION && it.taskId.isNotBlank() && it.anchorMessageId.isNotBlank() }
+            .associate { it.taskId to it.anchorMessageId }
     }
-    val unanchoredActiveTasks = remember(allTasks, tasksByAnchor) {
+    val tasksByAnchor = remember(recentTasks, transcript, missionAnchorByTaskId) {
+        val messageIds = transcript.mapTo(mutableSetOf()) { it.messageId }
+        recentTasks
+            .mapNotNull { task ->
+                val anchor = missionAnchorByTaskId[task.taskId]?.takeIf { it in messageIds }
+                if (anchor != null) anchor to task else null
+            }
+            .groupBy({ it.first }, { it.second })
+    }
+    val unanchoredRecentTasks = remember(recentTasks, tasksByAnchor) {
         val anchoredIds = tasksByAnchor.values.flatten().mapTo(mutableSetOf()) { it.taskId }
-        (inProgressTasks + needsActionTasks).filterNot { it.taskId in anchoredIds }
+        recentTasks.filterNot { it.taskId in anchoredIds }
     }
     val choiceCardsByAnchor = remember(cards, transcript) {
         val messageIds = transcript.mapTo(mutableSetOf()) { it.messageId }
@@ -246,7 +309,7 @@ fun AgentBotScreen(
         val summary = buildString {
             if (inProgressTasks.isNotEmpty()) append("进行中任务 ${inProgressTasks.size} 项；")
             if (pendingApprovals.isNotEmpty()) append("待拍板审批 ${pendingApprovals.size} 项；")
-            if (routines.isNotEmpty()) append("已配置惯例 ${routines.size} 条。")
+            if (routines.isNotEmpty()) append("已配置自动化 ${routines.size} 条。")
         }.ifBlank { briefingEmpty }
         viewModel.publishCueBriefing(
             title = briefingTitle,
@@ -255,7 +318,7 @@ fun AgentBotScreen(
                 AgentStreamCoordinator.ChoiceOption(
                     id = "brief_review",
                     label = "帮我梳理今天的优先级",
-                    prompt = "结合我目前的任务和惯例，帮我梳理一下今天最值得先做的三件事。",
+                    prompt = "结合我目前的任务和自动化安排，帮我梳理一下今天最值得先做的三件事。",
                 ),
                 AgentStreamCoordinator.ChoiceOption(
                     id = "brief_check_env",
@@ -265,6 +328,11 @@ fun AgentBotScreen(
             ),
         )
     }
+    LaunchedEffect(externalBriefingTick) {
+        if (externalBriefingTick > 0) {
+            triggerBriefing()
+        }
+    }
 
     val isWelcomeEmpty = transcript.isEmpty() && allTasks.isEmpty() && cueCards.isEmpty() && !streaming.active
     val density = LocalDensity.current
@@ -272,80 +340,195 @@ fun AgentBotScreen(
     var bottomOverlayHeightPx by remember { mutableIntStateOf(0) }
     val topOverlayPadding = with(density) { topOverlayHeightPx.toDp() }
     val bottomOverlayPadding = with(density) { bottomOverlayHeightPx.toDp() }
+    val copiedToastText = stringResource(R.string.agent_screen_copy)
+    val savedRoutineToastText = stringResource(R.string.agent_hub_mission_save_routine)
 
-    // 全屏叠层画布：对话流铺满整屏，顶栏与底部输入岛全部独立悬浮在其上方，不切分页面。
+    // 接入外观设置中的三层聊天背景与液态玻璃效果（背景层与内容层作为兄弟节点，防止采样递归）
+    val settingsRepo = remember {
+        runCatching {
+            org.koin.mp.KoinPlatformTools.defaultContext().getOrNull()
+                ?.getOrNull<io.zer0.muse.data.SettingsRepository>()
+        }.getOrNull()
+    }
+    val globalChatBackground by (settingsRepo?.chatBackgroundFlow ?: flowOf(null))
+        .collectAsStateWithLifecycle(initialValue = null)
+    val darkChatBackground by (settingsRepo?.chatBackgroundDarkFlow ?: flowOf(null))
+        .collectAsStateWithLifecycle(initialValue = null)
+    val assistantBackgrounds by (settingsRepo?.assistantChatBackgroundFlow ?: flowOf(emptyMap()))
+        .collectAsStateWithLifecycle(initialValue = emptyMap())
+    val sessionBackgrounds by (settingsRepo?.sessionChatBackgroundFlow ?: flowOf(emptyMap()))
+        .collectAsStateWithLifecycle(initialValue = emptyMap())
+    val chatGradient by (settingsRepo?.chatGradientFlow ?: flowOf(null))
+        .collectAsStateWithLifecycle(initialValue = null)
+    val boundSessionId by viewModel.boundSessionId.collectAsStateWithLifecycle()
+    val isDarkTheme = io.zer0.muse.ui.theme.LocalIsDarkTheme.current
+    val effectiveGlobalBackground = if (isDarkTheme && !darkChatBackground.isNullOrBlank()) {
+        darkChatBackground
+    } else {
+        globalChatBackground
+    }
+    val chatBackground: String? = io.zer0.muse.data.resolveChatBackground(
+        sessionId = boundSessionId.takeIf { it.isNotBlank() },
+        assistantId = composer.botId.ifBlank { "default" },
+        sessionBackgrounds = sessionBackgrounds,
+        assistantBackgrounds = assistantBackgrounds,
+        globalBackground = effectiveGlobalBackground,
+    )
+    val glassConfig = io.zer0.muse.ui.theme.LocalLiquidGlass.current
+    val glassActive = glassConfig.enabled && io.zer0.muse.ui.theme.isRealGlassSupported()
+    val pageLayerBackdrop = if (glassActive) rememberLayerBackdrop() else null
+    val pageWaterState = if (glassActive) rememberLiquidState() else null
+    val backgroundIsDark = when {
+        !chatBackground.isNullOrBlank() -> true
+        else -> chatGradient?.let { g ->
+            val start = Color(g.startColorArgb.toInt())
+            val end = Color(g.endColorArgb.toInt())
+            (start.luminance() + end.luminance()) / 2f < 0.5f
+        } ?: (MaterialTheme.colorScheme.background.luminance() < 0.5f)
+    }
+
+    // 全屏叠层画布：背景与对话流共同进入 backdrop 采样层，顶栏与底部输入岛作为兄弟层悬浮其上。
     Box(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background),
     ) {
-        if (isWelcomeEmpty) {
-            AgentWelcomeCanvas(
-                hasConfiguredModel = modelName.isNotBlank() && providers.any { it.enabled },
-                onTriggerBriefing = triggerBriefing,
-                onOpenTeach = {
-                    viewModel.startTeachRecording()
-                    workbenchTab = AgentWorkbenchTab.ROUTINES
-                },
-                onOpenWorkbench = { workbenchTab = AgentWorkbenchTab.LIVE },
-                onOpenProviderSettings = onOpenProviderSettings,
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .padding(top = topOverlayPadding, bottom = bottomOverlayPadding),
-            )
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                state = transcriptListState,
-                contentPadding = PaddingValues(
-                    start = MusePaddings.screen,
-                    end = MusePaddings.screen,
-                    top = topOverlayPadding + MusePaddings.contentGap,
-                    bottom = bottomOverlayPadding + MusePaddings.contentGap,
-                ),
-                verticalArrangement = Arrangement.spacedBy(MusePaddings.auxGap),
-            ) {
-                        if (hasOlderTranscript) {
-                            item(key = "load-older") {
-                                Box(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    MuseCapsuleButton(
-                                        text = stringResource(R.string.agent_screen_load_older),
-                                        onClick = viewModel::loadOlderTranscript,
-                                        loading = loadingOlderTranscript,
-                                        variant = IosCapsuleButtonVariant.Text,
-                                        fillWidth = false,
-                                        size = MuseButtonSize.Compact,
-                                    )
-                                }
-                            }
-                        }
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .then(if (pageLayerBackdrop != null) Modifier.layerBackdrop(pageLayerBackdrop) else Modifier)
+                .then(if (pageWaterState != null) Modifier.liquefiable(pageWaterState) else Modifier),
+        ) {
+            if (!chatBackground.isNullOrBlank()) {
+                AsyncImage(
+                    model = chatBackground,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            } else {
+                chatGradient?.let { gradient ->
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                androidx.compose.ui.graphics.Brush.linearGradient(
+                                    colors = listOf(
+                                        Color(gradient.startColorArgb.toInt()),
+                                        Color(gradient.endColorArgb.toInt()),
+                                    ),
+                                ),
+                            ),
+                    )
+                }
+            }
 
-                        // 主动简报 / 建议行动卡
-                        items(cueCards, key = { "cue:${it.cardId}" }) { cue ->
-                            AgentCueBriefingCard(
-                                card = cue,
-                                onSelectAction = viewModel::selectChoiceOption,
-                                onDismiss = viewModel::dismissCard,
+            if (isWelcomeEmpty) {
+                AgentWelcomeCanvas(
+                    assistantName = resolvedName,
+                    assistant = activeAssistant,
+                    avatarUri = resolvedAvatar,
+                    modelLabel = visibleModel,
+                    hasConfiguredModel = modelName.isNotBlank() && providers.any { it.enabled },
+                    onOpenIdentitySwitch = { workbenchTab = AgentWorkbenchTab.SQUAD },
+                    onOpenModel = onOpenModel,
+                    onTriggerBriefing = triggerBriefing,
+                    onOpenTeach = {
+                        viewModel.startTeachRecording()
+                        workbenchTab = AgentWorkbenchTab.ROUTINES
+                    },
+                    onOpenWorkbench = { workbenchTab = AgentWorkbenchTab.LIVE },
+                    onOpenProviderSettings = onOpenProviderSettings,
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .padding(
+                            top = topOverlayInset + topOverlayPadding,
+                            bottom = bottomOverlayPadding,
+                        ),
+                )
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    state = transcriptListState,
+                    contentPadding = PaddingValues(
+                        start = if (chatPreferences.bubbleFullWidth) MuseSpacing.sm else MusePaddings.screen,
+                        end = if (chatPreferences.bubbleFullWidth) MuseSpacing.sm else MusePaddings.screen,
+                        top = topOverlayInset + topOverlayPadding + MusePaddings.contentGap,
+                        bottom = bottomOverlayPadding + MusePaddings.contentGap,
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(MusePaddings.auxGap),
+                ) {
+                    if (topOverlayInset > 0.dp) {
+                        item(key = "agent_inline_identity") {
+                            AgentInlineIdentityBar(
+                                assistantName = resolvedName,
+                                assistant = activeAssistant,
+                                avatarUri = resolvedAvatar,
+                                modelLabel = visibleModel,
+                                onOpenIdentitySwitch = { workbenchTab = AgentWorkbenchTab.SQUAD },
+                                onOpenModel = onOpenModel,
                             )
                         }
-
-                        // 对话气泡 + 锚定动态任务卡 + 锚定后续建议卡
-                        items(transcript, key = { it.messageId }) { message ->
-                            Column(verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap)) {
-                                AgentMessageBubble(
-                                    message = message,
-                                    reactions = annotationsByMsg[message.messageId].orEmpty(),
-                                    onCopy = {
-                                        clipboard?.setPrimaryClip(ClipData.newPlainText(null, message.text))
-                                    },
-                                    onRetry = { viewModel.retryMessage(message.messageId) },
-                                    onDelete = { deleteTarget = message },
-                                    onReact = { emoji -> viewModel.reactToMessage(message.messageId, emoji) },
-                                    onRemoveReaction = viewModel::removeAnnotation,
+                    }
+                    if (hasOlderTranscript) {
+                        item(key = "load-older") {
+                            Box(
+                                modifier = Modifier.fillMaxWidth(),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                MuseCapsuleButton(
+                                    text = stringResource(R.string.agent_screen_load_older),
+                                    onClick = viewModel::loadOlderTranscript,
+                                    loading = loadingOlderTranscript,
+                                    variant = IosCapsuleButtonVariant.Text,
+                                    fillWidth = false,
+                                    size = MuseButtonSize.Compact,
                                 )
+                            }
+                        }
+                    }
+
+                    // 主动简报 / 建议行动卡
+                    items(cueCards, key = { "cue:${it.cardId}" }) { cue ->
+                        AgentCueBriefingCard(
+                            card = cue,
+                            onSelectAction = viewModel::selectChoiceOption,
+                            onDismiss = viewModel::dismissCard,
+                        )
+                    }
+
+                    // 对话气泡 + 锚定动态任务卡 + 锚定后续建议卡
+                    items(transcript, key = { it.messageId }) { message ->
+                        Column(verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap)) {
+                            AgentMessageBubble(
+                                message = message,
+                                reactions = annotationsByMsg[message.messageId].orEmpty(),
+                                chatPreferences = chatPreferences,
+                                modelLabel = visibleModel,
+                                onCopy = {
+                                    clipboard?.setPrimaryClip(ClipData.newPlainText(null, message.text))
+                                    MuseToast.show(copiedToastText)
+                                },
+                                onRetry = { viewModel.retryMessage(message.messageId) },
+                                onDelete = { deleteTarget = message },
+                                onReact = { emoji -> viewModel.reactToMessage(message.messageId, emoji) },
+                                onRemoveReaction = viewModel::removeAnnotation,
+                                onQuote = {
+                                    viewModel.setQuotedMessage(message)
+                                },
+                                onEdit = {
+                                    viewModel.startEditingMessage(message)
+                                },
+                                onSaveAsRoutine = {
+                                    val title = message.text.lineSequence().firstOrNull().orEmpty().take(24)
+                                        .ifBlank { resolvedName }
+                                    viewModel.createRoutine(title = title, goalPrompt = message.text)
+                                    MuseToast.show(savedRoutineToastText)
+                                },
+                                onOpenMediaViewer = { images, index ->
+                                    viewerMedia = images to index
+                                },
+                            )
 
                                 tasksByAnchor[message.messageId].orEmpty().forEach { taskRow ->
                                     AgentLiveMissionCard(
@@ -369,8 +552,22 @@ fun AgentBotScreen(
                             }
                         }
 
-                        // 未绑定具体消息的活跃后台任务（如惯例触发）
-                        items(unanchoredActiveTasks, key = { "unanchored-task:${it.taskId}" }) { taskRow ->
+                        // 未绑定具体回复消息的近期已完成任务
+                        items(unanchoredRecentTasks, key = { "recent-task:${it.taskId}" }) { taskRow ->
+                            AgentLiveMissionCard(
+                                row = taskRow,
+                                onOpenDetails = onOpenTask ?: viewModel::openTaskDetails,
+                                onOpenComputer = { workbenchTab = AgentWorkbenchTab.LIVE },
+                                onSteer = viewModel::steerTask,
+                                onSaveAsRoutine = { taskId -> viewModel.saveTaskAsRoutine(taskId) },
+                                onContinue = viewModel::continueTask,
+                                onRetry = viewModel::retryTask,
+                                onCancel = viewModel::cancelTask,
+                            )
+                        }
+
+                        // 进行中与待处理任务：统一置于对话流底部（输入栏上方），不再挤在顶部用户消息与助手回复之间
+                        items(activeStreamTasks, key = { "active-task:${it.taskId}" }) { taskRow ->
                             AgentLiveMissionCard(
                                 row = taskRow,
                                 onOpenDetails = onOpenTask ?: viewModel::openTaskDetails,
@@ -415,68 +612,82 @@ fun AgentBotScreen(
                         // 实时原生流式回复气泡
                         if (streaming.active) {
                             item(key = "streaming-bubble") {
-                                AgentStreamingBubble(streaming = streaming)
-                            }
-                        }
-                    }
-
-                    // 上滑历史时浮现的回到底部悬浮圆按钮（避让底部悬浮输入岛）
-                    androidx.compose.animation.AnimatedVisibility(
-                        visible = !shouldFollowTranscript && transcript.isNotEmpty(),
-                        enter = fadeIn() + scaleIn(),
-                        exit = fadeOut() + scaleOut(),
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .padding(
-                                end = MusePaddings.screen,
-                                bottom = bottomOverlayPadding + MusePaddings.contentGap,
-                            ),
-                    ) {
-                        Surface(
-                            onClick = {
-                                shouldFollowTranscript = true
-                                coroutineScope.launch {
-                                    val last = transcriptListState.layoutInfo.totalItemsCount - 1
-                                    if (last >= 0) transcriptListState.animateScrollToItem(last)
-                                }
-                            },
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.surface,
-                            shadowElevation = MuseElevation.high,
-                            border = BorderStroke(
-                                width = MuseBorderWidth.hairline,
-                                color = MaterialTheme.colorScheme.outlineVariant,
-                            ),
-                            modifier = Modifier.size(MuseIconSizes.topBarSolid),
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = MuseIcons.arrowDown,
-                                    contentDescription = stringResource(R.string.agent_hub_scroll_bottom_cd),
-                                    tint = MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.size(MuseIconSizes.iconSmall),
+                                AgentStreamingBubble(
+                                    streaming = streaming,
+                                    chatPreferences = chatPreferences,
                                 )
                             }
                         }
                     }
+            }
         }
 
-        // 顶部透明镂空悬浮层：头像名牌 + 右侧工作台按钮 + 按需浮现的状态条
+        androidx.compose.runtime.CompositionLocalProvider(
+            io.zer0.muse.ui.theme.LocalLayerBackdrop provides
+                (pageLayerBackdrop ?: io.zer0.muse.ui.theme.LocalLayerBackdrop.current),
+            io.zer0.muse.ui.theme.LocalWaterGlassState provides
+                (pageWaterState ?: io.zer0.muse.ui.theme.LocalWaterGlassState.current),
+            io.zer0.muse.ui.theme.LocalGlassIsBackgroundDark provides backgroundIsDark,
+        ) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                // 上滑历史时浮现的回到底部悬浮圆按钮（与普通对话一致居中对齐，避让底部悬浮输入岛）
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = !shouldFollowTranscript && transcript.isNotEmpty(),
+                    enter = fadeIn() + scaleIn(),
+                    exit = fadeOut() + scaleOut(),
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(
+                            bottom = bottomOverlayPadding + MusePaddings.contentGap,
+                        ),
+                ) {
+                    Surface(
+                        onClick = {
+                            shouldFollowTranscript = true
+                            coroutineScope.launch {
+                                val last = transcriptListState.layoutInfo.totalItemsCount - 1
+                                if (last >= 0) transcriptListState.animateScrollToItem(last)
+                            }
+                        },
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surface,
+                        shadowElevation = MuseElevation.high,
+                        border = BorderStroke(
+                            width = MuseBorderWidth.hairline,
+                            color = MaterialTheme.colorScheme.outlineVariant,
+                        ),
+                        modifier = Modifier.size(MuseIconSizes.topBarSolid),
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = MuseIcons.arrowDown,
+                                contentDescription = stringResource(R.string.agent_hub_scroll_bottom_cd),
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(MuseIconSizes.iconSmall),
+                            )
+                        }
+                    }
+                }
+
+        // 顶部透明悬浮层：置于首页 Tab 下时已由首页统一接管顶栏，此处仅保留无遮挡加载条/错误横幅
         Column(
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .fillMaxWidth()
-                .onSizeChanged { topOverlayHeightPx = it.height },
+                .onSizeChanged { topOverlayHeightPx = it.height }
+                .padding(top = topOverlayInset),
         ) {
-            AgentFloatingHeader(
-                assistantName = resolvedName,
-                avatarUri = resolvedAvatar,
-                modelLabel = visibleModel,
-                activeBadgeCount = activeBadgeCount,
-                hasPendingApproval = pendingApprovals.isNotEmpty(),
-                onOpenIdentitySwitch = { workbenchTab = AgentWorkbenchTab.SQUAD },
-                onOpenWorkbench = { workbenchTab = AgentWorkbenchTab.LIVE },
-            )
+            if (topOverlayInset == 0.dp) {
+                AgentFloatingHeader(
+                    assistantName = resolvedName,
+                    avatarUri = resolvedAvatar,
+                    modelLabel = visibleModel,
+                    activeBadgeCount = activeBadgeCount,
+                    hasPendingApproval = pendingApprovals.isNotEmpty(),
+                    onOpenIdentitySwitch = { workbenchTab = AgentWorkbenchTab.SQUAD },
+                    onOpenWorkbench = { workbenchTab = AgentWorkbenchTab.LIVE },
+                )
+            }
 
             if (isLoading) {
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
@@ -484,7 +695,15 @@ fun AgentBotScreen(
             if (scopeError) {
                 ScopeErrorRow(onRetry = viewModel::retryScope)
             }
+        }
 
+        // 底部透明悬浮层：待拍板/进行中状态胶囊置顶于输入栏正上方 + 药丸输入岛
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .onSizeChanged { bottomOverlayHeightPx = it.height },
+        ) {
             AgentLiveActivityStrip(
                 runningCount = inProgressTasks.size,
                 approvalCount = pendingApprovals.size,
@@ -492,44 +711,109 @@ fun AgentBotScreen(
                 activeVirtualDisplay = activeVirtualDisplay,
                 onClick = { workbenchTab = AgentWorkbenchTab.LIVE },
             )
-        }
 
-        // 底部独立悬浮药丸输入岛
-        AgentFloatingComposer(
-            composer = composer,
-            busy = busy,
-            isStreaming = streaming.active,
-            errorText = busy.error?.let { agentErrorLabel(it) },
-            onTextChange = viewModel::onComposerTextChange,
-            onSend = viewModel::send,
-            onStopReply = viewModel::stopReply,
-            onPickImages = { imagePicker.launch(arrayOf("image/*")) },
-            onPickGalleryImage = { uri -> viewModel.addPendingImage(uri, context) },
-            onRemoveImage = viewModel::removePendingImage,
-            onVoiceInput = {
-                if (SpeechInput.isAvailable(context)) {
-                    runCatching {
-                        voiceLauncher.launch(SpeechInput.createIntent(voiceRecordingPrompt))
-                    }.onFailure {
-                        Logger.w("AgentBotScreen", "拉起语音输入失败: ${it.message}")
+            AgentFloatingComposer(
+                composer = composer,
+                busy = busy,
+                isStreaming = streaming.active,
+                errorText = busy.error?.let { agentErrorLabel(it) },
+                enterToSend = chatPreferences.enterToSend,
+                showExpandButton = chatPreferences.showExpandButton,
+                isWebSearchEnabled = webSearchConfig.enabled,
+                isDeepThinkingEnabled = deepThinkingEnabled,
+                deepThinkingLevel = deepThinkingLevel,
+                onTextChange = viewModel::onComposerTextChange,
+                onClearQuote = { viewModel.setQuotedMessage(null) },
+                onCancelEdit = viewModel::cancelEditingMessage,
+                onToggleWebSearch = viewModel::toggleWebSearch,
+                onToggleDeepThinking = viewModel::toggleDeepThinking,
+                onCycleDeepThinkingLevel = viewModel::cycleDeepThinkingLevel,
+                onOpenKnowledgePicker = { showKnowledgePicker = true },
+                onPreviewPendingImage = { index ->
+                    val images = composer.pendingImages.map { "data:image/jpeg;base64,$it" }
+                    if (images.isNotEmpty()) viewerMedia = images to index
+                },
+                onSend = viewModel::send,
+                onStopReply = viewModel::stopReply,
+                onPickImages = {
+                    imagePicker.launchSafely(arrayOf("image/*"), context)
+                },
+                onPickGalleryImage = { uri -> viewModel.addPendingImage(uri, context) },
+                onRemoveImage = viewModel::removePendingImage,
+                onVoiceInput = {
+                    if (SpeechInput.isAvailable(context)) {
+                        runCatching {
+                            voiceLauncher.launch(SpeechInput.createIntent(voiceRecordingPrompt))
+                        }.onFailure {
+                            Logger.w("AgentBotScreen", "拉起语音输入失败: ${it.message}")
+                            MuseToast.show(voiceUnavailableText)
+                        }
+                    } else {
                         MuseToast.show(voiceUnavailableText)
                     }
-                } else {
-                    MuseToast.show(voiceUnavailableText)
+                },
+                onOpenWorkbench = { workbenchTab = AgentWorkbenchTab.LIVE },
+                onTriggerBriefing = triggerBriefing,
+                onStartTeach = {
+                    viewModel.startTeachRecording()
+                    workbenchTab = AgentWorkbenchTab.ROUTINES
+                },
+                onOpenModel = onOpenModel,
+                onOpenProviderSettings = onOpenProviderSettings,
+                onOpenRuntimeInstall = onOpenRuntimeInstall,
+            )
+        }
+            }
+        }
+    }
+
+    viewerMedia?.let { (images, initialIndex) ->
+        io.zer0.muse.ui.common.media.FullScreenMediaViewer(
+            images = images,
+            initialIndex = initialIndex,
+            onDismiss = { viewerMedia = null },
+        )
+    }
+
+    if (showKnowledgePicker) {
+        val visibleDocs = remember(knowledgeDocs) { knowledgeDocs.filterNot { it.isInternal } }
+        MuseDialog(
+            onDismissRequest = { showKnowledgePicker = false },
+            title = stringResource(R.string.chat_knowledge_dialog_title),
+            content = {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    if (visibleDocs.isEmpty()) {
+                        Text(
+                            text = stringResource(R.string.chat_knowledge_empty),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(vertical = MusePaddings.largeGap),
+                        )
+                    } else {
+                        visibleDocs.forEach { doc ->
+                            MuseListItem(
+                                headlineContent = { Text(doc.title, style = MaterialTheme.typography.bodyLarge) },
+                                supportingContent = {
+                                    Text(
+                                        stringResource(R.string.chat_knowledge_doc_meta, doc.fileType, doc.content.length),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.outline,
+                                    )
+                                },
+                                onClick = {
+                                    val mention = "@${doc.title} "
+                                    val current = composer.text
+                                    viewModel.onComposerTextChange(if (current.isBlank()) mention else "$current\n$mention")
+                                    showKnowledgePicker = false
+                                },
+                            )
+                        }
+                    }
                 }
             },
-            onOpenWorkbench = { workbenchTab = AgentWorkbenchTab.LIVE },
-            onTriggerBriefing = triggerBriefing,
-            onStartTeach = {
-                viewModel.startTeachRecording()
-                workbenchTab = AgentWorkbenchTab.ROUTINES
-            },
-            onOpenModel = onOpenModel,
-            onOpenProviderSettings = onOpenProviderSettings,
-            onOpenRuntimeInstall = onOpenRuntimeInstall,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .onSizeChanged { bottomOverlayHeightPx = it.height },
+            onConfirm = null,
+            dismissText = stringResource(R.string.common_close),
+            onDismiss = { showKnowledgePicker = false },
         )
     }
 
@@ -602,10 +886,8 @@ fun AgentBotScreen(
             onDismissRequest = viewModel::closeTaskDetails,
             title = stringResource(R.string.agent_screen_task_details),
             content = {
+                // MuseDialog 外层已提供 verticalScroll，此处不重复嵌套。
                 Column(
-                    modifier = Modifier
-                        .heightIn(max = MusePaddings.dialogContentMaxHeight)
-                        .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
                 ) {
                     Text(details.goal, style = MaterialTheme.typography.bodyMedium)
@@ -645,10 +927,8 @@ fun AgentBotScreen(
             onDismissRequest = viewModel::closeCandidatePreview,
             title = stringResource(R.string.agent_screen_artifact_preview),
             content = {
+                // MuseDialog 外层已提供 verticalScroll，此处不重复嵌套。
                 Column(
-                    modifier = Modifier
-                        .heightIn(max = MusePaddings.dialogContentMaxHeight)
-                        .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
                 ) {
                     Text(preview.targetRef, style = MaterialTheme.typography.titleSmall)
@@ -680,14 +960,19 @@ fun AgentBotScreen(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun AgentWelcomeCanvas(
+    assistantName: String,
+    assistant: io.zer0.muse.data.assistant.AssistantEntity?,
+    avatarUri: String?,
+    modelLabel: String,
     hasConfiguredModel: Boolean,
+    onOpenIdentitySwitch: () -> Unit,
+    onOpenModel: (() -> Unit)?,
     onTriggerBriefing: () -> Unit,
     onOpenTeach: () -> Unit,
     onOpenWorkbench: () -> Unit,
     onOpenProviderSettings: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
-    // 顶部 AgentFloatingHeader 已有悬浮头像与名字，空态不再重复画第二套头像与名字
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -695,6 +980,14 @@ private fun AgentWelcomeCanvas(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
     ) {
+        AgentInlineIdentityBar(
+            assistantName = assistantName,
+            assistant = assistant,
+            avatarUri = avatarUri,
+            modelLabel = modelLabel,
+            onOpenIdentitySwitch = onOpenIdentitySwitch,
+            onOpenModel = onOpenModel,
+        )
         if (!hasConfiguredModel && onOpenProviderSettings != null) {
             MuseCapsuleButton(
                 text = stringResource(R.string.agent_screen_provider_settings),

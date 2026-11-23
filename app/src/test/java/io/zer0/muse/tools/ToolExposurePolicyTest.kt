@@ -320,4 +320,27 @@ class ToolExposurePolicyTest {
         assertFalse("看屏幕不应带出点击类", "ui_click" in looksAtScreen)
         assertFalse("看屏幕不应带出 GUI Agent", "ui_agent" in looksAtScreen)
     }
+
+    @Test
+    fun `knowledge search list and read tools are always exposed regardless of auto-inject`() {
+        val kbTools = padding + listOf(
+            tool("knowledge_search"),
+            tool("knowledge_list_docs"),
+            tool("knowledge_read_doc"),
+            tool("calculator"),
+        )
+        val exposedOnIdle = ToolExposurePolicy.filterToolsForRequest(
+            userText = "你好呀",
+            tools = kbTools,
+            skillToolNames = setOf("knowledge_search"),
+        ).map { it.name }.toSet()
+        assertTrue("knowledge_search 应始终可见供模型按需检索", "knowledge_search" in exposedOnIdle)
+        assertTrue("knowledge_list_docs 应始终可见", "knowledge_list_docs" in exposedOnIdle)
+        assertTrue("knowledge_read_doc 应始终可见", "knowledge_read_doc" in exposedOnIdle)
+    }
+
+    @Test
+    fun `rag auto inject defaults to off so casual chat never pulls KB chunks uninvited`() {
+        assertFalse("RAG 自动注入默认应关闭，由模型工具或 @文档名 显式触发", io.zer0.muse.rag.RagConfig().enabled)
+    }
 }

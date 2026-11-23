@@ -97,6 +97,7 @@ import org.koin.core.context.GlobalContext
 import io.zer0.muse.ui.settings.SafeModeScreen
 import io.zer0.muse.ui.screen.HomeScreen
 import io.zer0.muse.ui.chat.ChatScreen
+import io.zer0.muse.util.launchSafely
 
 /**
  * 应用唯一 Activity。
@@ -245,7 +246,10 @@ class MainActivity : ComponentActivity() {
                     if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) !=
                         PackageManager.PERMISSION_GRANTED
                     ) {
-                        notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                        notificationPermissionLauncher.launchSafely(
+                                android.Manifest.permission.POST_NOTIFICATIONS,
+                                this@MainActivity,
+                            )
                     }
                 }
             }
@@ -618,11 +622,16 @@ private fun MuseNavGraph(
                             if (sharedViewModel.shouldUseApiRecording()) {
                                 sharedViewModel.startStreamingAsr()
                             } else if (io.zer0.muse.ui.speech.SpeechInput.isAvailable(context)) {
-                                systemSpeechLauncher.launch(
-                                    io.zer0.muse.ui.speech.SpeechInput.createIntent(
-                                        context.getString(R.string.settings_asr_provider_system),
-                                    ),
-                                )
+                                val launched = systemSpeechLauncher.launchSafely(
+                                        io.zer0.muse.ui.speech.SpeechInput.createIntent(
+                                            context.getString(R.string.settings_asr_provider_system),
+                                        ),
+                                        context,
+                                        fallbackMessage = context.getString(R.string.asr_system_unavailable),
+                                    )
+                                if (!launched) {
+                                    io.zer0.common.Logger.w("MainActivity", "系统语音识别调起失败")
+                                }
                             } else {
                                 // 无可用语音识别器时给明确提示,不再静默
                                 io.zer0.muse.ui.common.feedback.MuseToast.show(

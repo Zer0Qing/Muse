@@ -646,7 +646,7 @@ internal fun QuickNoteFolderFilterRow(
                 onClick = { onFolderSelected("") },
             )
         }
-        items(folders, key = { it }) { folder ->
+        items(folders, key = { "folder:$it" }) { folder ->
             FolderChip(
                 label = folder,
                 selected = selectedFolder == folder,
