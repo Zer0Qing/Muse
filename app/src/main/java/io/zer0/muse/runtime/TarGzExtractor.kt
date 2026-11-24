@@ -27,6 +27,7 @@ object TarGzExtractor {
         // 真机事故:运行环境安装报「motd-news.timer 缺失」,根因就是 systemd 单元里的
         // 符号链接创建失败被 onFailure 吞掉,包"解完了"但目录不完整,自检才在别处炸。
         // 现在把失败条目攒起来,解包结束后统一抛出,让失败停在安装步骤且说清是哪几条。
+        val skippedLinks = mutableListOf<String>()
         val failedLinks = mutableListOf<String>()
         val root = destDir.canonicalFile
         var endBlocks = 0
@@ -99,13 +100,18 @@ object TarGzExtractor {
                             val link = longLink ?: linkNameRaw
                             longLink = null
                             val linkTarget = resolveLinkTarget(root, target.parentFile, link)
+                                // 真越界（相对路径逃出 rootfs、绝对路径含 .. 出根）是恶意/损坏包，
+                                // 必须整包失败——安全边界不能松。
                                 ?: throw IOException("符号链接目标越界: $link")
                             target.parentFile?.mkdirs()
                             removeExistingTarget(target)
                             runCatching { java.nio.file.Files.createSymbolicLink(target.toPath(), linkTarget) }
                                 .onFailure { e ->
-                                    Logger.w(TAG, "符号链接创建失败: $name -> $link (${e.message})")
-                                    failedLinks += "$name -> $link"
+                                    // 合法目标但建不了（权限、文件系统不支持）：降级跳过。
+                                    // rootfs 里的绝对链接多为 /etc/alternatives 与 systemd timer，
+                                    // 缺了不影响 node 运行，能否可用交给安装后的自检。
+                                    Logger.w(TAG, "符号链接创建失败，已跳过: $name -> $link (${e.message})")
+                                    skippedLinks += "$name -> $link (${e.message})"
                                 }
                             payload = 0
                         }
@@ -114,13 +120,14 @@ object TarGzExtractor {
                             // 真遇到就退回复制内容，语义接近且不会失败。
                             val link = longLink ?: linkNameRaw
                             longLink = null
+                            // 越界仍然整包失败（与符号链接一致），只有「合法但源缺失」才跳过。
                             val source = resolveInside(root, link, "硬链接目标越界")
                             target.parentFile?.mkdirs()
                             removeExistingTarget(target)
                             if (source.isFile) {
                                 source.copyTo(target, overwrite = true)
                             } else {
-                                // 硬链接目标缺失同样意味着包不完整,不能当成功
+                                // 包本身不完整（源就不在），不是环境问题，必须整包失败。
                                 Logger.w(TAG, "硬链接源不存在: $name -> $link")
                                 failedLinks += "$name -> $link (硬链接源缺失)"
                             }
@@ -149,10 +156,18 @@ object TarGzExtractor {
             }
         }
         if (endBlocks < REQUIRED_END_BLOCKS) throw EOFException("tar 归档缺少结束块")
+        // 分两类：包不完整（硬链接源缺失）仍失败；宿主建不了链接（权限/文件系统）降级跳过。
         if (failedLinks.isNotEmpty()) {
             throw IllegalStateException(
-                "解包不完整:${failedLinks.size} 条链接创建失败 -> " +
+                "解包不完整:${failedLinks.size} 条链接失败 -> " +
                     failedLinks.joinToString(limit = 10),
+            )
+        }
+        if (skippedLinks.isNotEmpty()) {
+            Logger.w(
+                TAG,
+                "解包完成但有 ${skippedLinks.size} 条链接被跳过（不影响运行则忽略）: " +
+                    skippedLinks.joinToString(limit = 10),
             )
         }
         return written
