@@ -1,0 +1,29 @@
+{
+  "versionName": "2.7.1",
+  "versionCode": 296,
+  "dbVersion": 138,
+  "apkFile": "app-arm64-v8a-release.apk",
+  "apkSizeBytes": 63472597,
+  "apkSha256": "cf5d0e33ba5e1ebe467db75e76f8a46501b1892382757b40f2f54fccc41582c7",
+  "apkArtifacts": [
+    {
+      "name": "app-arm64-v8a-release.apk",
+      "sizeBytes": 63472597,
+      "sha256": "cf5d0e33ba5e1ebe467db75e76f8a46501b1892382757b40f2f54fccc41582c7"
+    },
+    {
+      "name": "app-armeabi-v7a-release.apk",
+      "sizeBytes": 60971414,
+      "sha256": "3f875d4bd6ebe29125866a02ff2f823d1f6d29ab7c0c0674cce9f12a2e84062a"
+    },
+    {
+      "name": "app-universal-release.apk",
+      "sizeBytes": 106337611,
+      "sha256": "3bdcbc851159370a2713f6172ef815429c8d66dfc26b4760e4ccb96fdf1b5f7d"
+    }
+  ],
+  "releaseNotesRef": "releases/v2.7.1/release_body.md",
+  "sourceCommit": "292f84c031f412760d4a7c04386af174b148eb7f",
+  "sourceRef": "v2.7.1",
+  "generatedAt": "2026-11-24T16:30:42+00:00"
+}
