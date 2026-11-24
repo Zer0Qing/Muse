@@ -403,6 +403,16 @@
     <string name="settings_backup_log_restore_hint">Click to restore (all sessions, messages, memories) · %1$s</string>
     <string name="settings_backup_overwrite_confirm">The selected backup will overwrite all current sessions, messages, memories, and experience data (a protected copy is automatically created before restoring). Continue?</string>
     <string name="settings_backup_overwrite_confirm_action">Overwrite &amp; Restore</string>
+    <string name="settings_backup_import_mode_title">Choose import mode</string>
+    <string name="settings_backup_import_mode_merge">Merge</string>
+    <string name="settings_backup_import_mode_merge_desc">Add the backup chats as new sessions and keep everything you already have</string>
+    <string name="settings_backup_import_mode_overwrite">Replace</string>
+    <string name="settings_backup_import_mode_overwrite_desc">Replace all local data with the backup (a protected copy is created first, so you can roll back)</string>
+    <string name="settings_backup_merge_confirm">The backup chats will be added as new sessions. Your existing sessions, assistants, settings, and memories stay untouched. Importing the same backup twice creates a second copy. Continue?</string>
+    <string name="settings_backup_merge_confirm_action">Merge chats</string>
+    <string name="settings_backup_merge_nothing_to_import">This backup contains no chats to merge</string>
+    <string name="settings_backup_merge_unsupported">Older backups only support replacing. Use the replace option instead</string>
+    <string name="settings_backup_merge_success">Merged %1$d sessions / %2$d messages</string>
     <string name="settings_backup_password_unavailable">The backup password is no longer valid. Set a new backup password before uploading.</string>
     <string name="settings_backup_restore_auto_confirm">The selected automatic backup will overwrite all sessions, messages, memories, and experience data. A protective copy of the current data is generated before restoring, and it can be rolled back automatically on failure. Continue?</string>
     <string name="settings_backup_restore_auto_confirm_action">Restore</string>

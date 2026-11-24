@@ -3,6 +3,7 @@ package io.zer0.muse.runtime
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -50,6 +51,40 @@ class TarGzExtractorSecurityTest {
         assertNotNull(runCatching { TarGzExtractor.extract(symbolic, destination) }.exceptionOrNull())
         assertNotNull(runCatching { TarGzExtractor.extract(hard, destination) }.exceptionOrNull())
         assertFalse(File(temporaryFolder.root, "outside").exists())
+    }
+
+    @Test
+    fun `allows absolute symlink that resolves inside the proot virtual root`() {
+        // Ubuntu rootfs 自带 `var/run -> /run`。proot 把 `/run` 映射进 rootfs 内部，
+        // 不是 Android 宿主机；这类标准链接必须判为合法，否则安装必败。
+        // 直接断言判据本身：真实建链接在 Windows 上需要额外权限，会掩盖真正的回归点。
+        val destination = temporaryFolder.newFolder("root").canonicalFile
+        val parent = File(destination, "var").apply { mkdirs() }
+
+        val target = TarGzExtractor.resolveLinkTarget(destination, parent, "/run")
+
+        assertNotNull("绝对链接落在虚拟根内时必须允许", target)
+        assertTrue("目标应保留 run 段", target!!.toString().trimEnd('/', '\\').endsWith("run"))
+        assertFalse("`/run` 不该被判成逃逸", TarGzExtractor.absoluteLinkEscapesRoot("/run"))
+        assertFalse("`/run/lock` 不该被判成逃逸", TarGzExtractor.absoluteLinkEscapesRoot("/run/lock"))
+        assertFalse("`/etc/../usr` 仍在根内", TarGzExtractor.absoluteLinkEscapesRoot("/etc/../usr"))
+    }
+
+    @Test
+    fun `rejects absolute symlink whose virtual path escapes the root`() {
+        val destination = temporaryFolder.newFolder("root").canonicalFile
+        val parent = File(destination, "etc").apply { mkdirs() }
+
+        assertNull(
+            "`/../outside` 会逃出虚拟根，必须拒绝",
+            TarGzExtractor.resolveLinkTarget(destination, parent, "/../outside"),
+        )
+        assertNull(
+            "`../../outside` 相对逃逸必须拒绝",
+            TarGzExtractor.resolveLinkTarget(destination, parent, "../../outside"),
+        )
+        assertTrue("`/../outside` 应判为逃逸", TarGzExtractor.absoluteLinkEscapesRoot("/../outside"))
+        assertTrue("`/a/../../b` 应判为逃逸", TarGzExtractor.absoluteLinkEscapesRoot("/a/../../b"))
     }
 
     @Test

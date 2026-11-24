@@ -98,7 +98,8 @@ object TarGzExtractor {
                         '2' -> {
                             val link = longLink ?: linkNameRaw
                             longLink = null
-                            val linkTarget = resolveLinkInside(root, target.parentFile, link)
+                            val linkTarget = resolveLinkTarget(root, target.parentFile, link)
+                                ?: throw IOException("符号链接目标越界: $link")
                             target.parentFile?.mkdirs()
                             removeExistingTarget(target)
                             runCatching { java.nio.file.Files.createSymbolicLink(target.toPath(), linkTarget) }
@@ -266,14 +267,49 @@ object TarGzExtractor {
         return File(parent, candidate.name)
     }
 
-    private fun resolveLinkInside(root: File, parent: File?, link: String): java.nio.file.Path {
-        require(link.isNotBlank()) { "符号链接目标为空" }
-        val resolved = if (File(link).isAbsolute) File(link).canonicalFile else File(parent ?: root, link).canonicalFile
-        val rootPath = root.path
-        require(resolved.path == rootPath || resolved.path.startsWith(rootPath + File.separator)) {
-            "符号链接目标越界: $link"
+    /**
+     * 绝对符号链接是否逃出 proot 虚拟根（纯字面量判断，不碰宿主文件系统）。
+     *
+     * 绝对链接（如 Ubuntu rootfs 自带的 `var/run -> /run`）在 proot 虚拟根内解析：
+     * `/run` 指的是 rootfs 里的 run，不是 Android 宿主机。此前拿宿主机
+     * `File("/run").canonicalFile` 去比 root 前缀，会让这类标准链接 100% 误判为越界，
+     * 安装停在解包中途（只解出半个 rootfs）。
+     *
+     * 只看 `/` 分段里的 `..`：`/run/../etc` 仍在根内，`/../outside` 会掉到根外。
+     * 相对链接不走这里，仍由 canonical 路径校验。
+     */
+    internal fun absoluteLinkEscapesRoot(link: String): Boolean {
+        if (!link.startsWith("/")) return false
+        var depth = 0
+        for (segment in link.split('/')) {
+            when (segment) {
+                "", "." -> Unit
+                ".." -> {
+                    depth--
+                    if (depth < 0) return true
+                }
+                else -> depth++
+            }
         }
-        return File(link).toPath()
+        return false
+    }
+
+    /**
+     * 判断符号链接目标是否越出 [root]；越界返回 null，合法则返回要写入的链接目标。
+     *
+     * 绝对链接按 [absoluteLinkEscapesRoot] 的虚拟根语义校验，并保留绝对形式 ——
+     * 运行时由 proot 映射回 rootfs 内同名路径，语义与原镜像一致。
+     * 相对链接按宿主机真实路径校验，防止 `../../outside` 逃出解包目录。
+     */
+    internal fun resolveLinkTarget(root: File, parent: File?, link: String): java.nio.file.Path? {
+        if (link.isBlank()) return null
+        if (link.startsWith("/")) {
+            return if (absoluteLinkEscapesRoot(link)) null else java.nio.file.Paths.get(link)
+        }
+        val rootPath = root.path
+        val resolved = File(parent ?: root, link).canonicalFile
+        val inside = resolved.path == rootPath || resolved.path.startsWith(rootPath + File.separator)
+        return if (inside) java.nio.file.Paths.get(link) else null
     }
 
     private fun removeExistingTarget(target: File) {

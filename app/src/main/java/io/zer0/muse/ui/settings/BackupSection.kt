@@ -39,6 +39,7 @@ import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.muse.R
 import io.zer0.muse.backup.BackupService
+import io.zer0.muse.backup.BackupImportMode
 import io.zer0.muse.backup.CloudBackupConfig
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.export.ConversationExporter
@@ -600,16 +601,44 @@ internal fun BackupSection(
         )
     }
 
-    // U-4: 本地导入覆盖确认(覆盖式操作,确认后才发起导入;恢复前自动生成保护副本)
+    // U-4: 本地导入确认 —— 先让用户选「叠加合并」还是「覆盖恢复」，再按所选语义执行。
     pendingImportUri?.let { uri ->
         // B-8: 导入加密备份时可手动输入备份密码(忘记/更换云备份密码后仍可解密旧备份)
         var importPassword by remember { mutableStateOf("") }
+        var importMode by remember { mutableStateOf(BackupImportMode.OVERWRITE) }
+        val isMerge = importMode == BackupImportMode.MERGE
         MuseDialog(
             onDismissRequest = { pendingImportUri = null },
             title = stringResource(R.string.settings_backup_import),
             content = {
                 Column {
-                    Text(stringResource(R.string.settings_backup_overwrite_confirm))
+                    Text(stringResource(R.string.settings_backup_import_mode_title))
+                    Spacer(Modifier.height(MusePaddings.contentGap))
+                    // 两种语义后果不同，用单选把差异直接摆在选择项上，而不是只写在说明里。
+                    CardGroup {
+                        switchItem(
+                            key = "import_mode_merge",
+                            title = stringResource(R.string.settings_backup_import_mode_merge),
+                            subtitle = stringResource(R.string.settings_backup_import_mode_merge_desc),
+                            checked = isMerge,
+                            onCheckedChange = { importMode = BackupImportMode.MERGE },
+                        )
+                        switchItem(
+                            key = "import_mode_overwrite",
+                            title = stringResource(R.string.settings_backup_import_mode_overwrite),
+                            subtitle = stringResource(R.string.settings_backup_import_mode_overwrite_desc),
+                            checked = !isMerge,
+                            onCheckedChange = { importMode = BackupImportMode.OVERWRITE },
+                        )
+                    }
+                    Spacer(Modifier.height(MusePaddings.contentGap))
+                    Text(
+                        if (isMerge) {
+                            stringResource(R.string.settings_backup_merge_confirm)
+                        } else {
+                            stringResource(R.string.settings_backup_overwrite_confirm)
+                        },
+                    )
                     Spacer(Modifier.height(12.dp))
                     MuseTextField(
                         value = importPassword,
@@ -619,17 +648,27 @@ internal fun BackupSection(
                     )
                 }
             },
-            confirmText = stringResource(R.string.settings_backup_overwrite_confirm_action),
+            confirmText = if (isMerge) {
+                stringResource(R.string.settings_backup_merge_confirm_action)
+            } else {
+                stringResource(R.string.settings_backup_overwrite_confirm_action)
+            },
             onConfirm = {
                 val pwd = importPassword.trim().takeIf { it.isNotEmpty() }
+                val chosenMode = importMode
                 pendingImportUri = null
                 importPassword = ""
                 scope.launch {
                     importing = true
                     localBackupDialogVisible = true
                     resultOf {
-                        val (s, m) = backupService.import(context, uri, pwd)
-                        MuseToast.show(context.getString(R.string.settings_backup_import_success, s, m))
+                        val (s, m) = backupService.import(context, uri, pwd, chosenMode)
+                        val messageRes = if (chosenMode == BackupImportMode.MERGE) {
+                            R.string.settings_backup_merge_success
+                        } else {
+                            R.string.settings_backup_import_success
+                        }
+                        MuseToast.show(context.getString(messageRes, s, m))
                     }.onError { _, t ->
                         MuseToast.show(
                             context.getString(

@@ -351,12 +351,20 @@ class BackupService(
     }
 
     /**
-     * 从指定 URI 导入会话 + 消息 + memory 数据。
-     * 策略: 清空三个 DB 的全部表 → 插入备份数据(简化版,不做合并去重)。
+     * 从指定 URI 导入备份。
+     *
+     * [mode] 决定语义：
+     * - [BackupImportMode.OVERWRITE]：清空三库全部表 → 写入备份（既有行为，逐字节不变）。
+     * - [BackupImportMode.MERGE]：只把对话记录换新 id 后并入本机，不动助手/设置/记忆（详见 [BackupMergeImporter]）。
      * @param backupPassword B-8: 导入加密备份时的用户输入密码;为空时回退到云端备份配置中的密码。
      * @return 导入的会话数 + 消息数
      */
-    suspend fun import(context: Context, uri: Uri, backupPassword: String? = null): Pair<Int, Int> = withContext(Dispatchers.IO) {
+    suspend fun import(
+        context: Context,
+        uri: Uri,
+        backupPassword: String? = null,
+        mode: BackupImportMode = BackupImportMode.OVERWRITE,
+    ): Pair<Int, Int> = withContext(Dispatchers.IO) {
         val imported = withBackupImportWriteGate {
             val rawInput = context.contentResolver.openInputStream(uri)
                 ?: error(context.getString(R.string.backup_cannot_read, uri))
@@ -386,7 +394,7 @@ class BackupService(
                     }
                     val decrypted = BackupCrypto.decrypt(magic + rest, password)
                     val text = decrypted.toString(Charsets.UTF_8)
-                    importReader(context, java.io.BufferedReader(java.io.StringReader(text)))
+                    importReader(context, java.io.BufferedReader(java.io.StringReader(text)), mode)
                 } else if (read == 4 && magic[0] == 'P'.code.toByte() && magic[1] == 'K'.code.toByte()) {
                     // 兼容旧版/文件管理器导出的 ZIP 备份,选取首个 JSON 或 NDJSON 备份条目。
                     ZipInputStream(buffered).use { zip ->
@@ -397,10 +405,10 @@ class BackupService(
                         if (entry == null) {
                             error(context.getString(R.string.backup_format_unrecognized))
                         }
-                        importReader(context, zip.bufferedReader(Charsets.UTF_8))
+                        importReader(context, zip.bufferedReader(Charsets.UTF_8), mode)
                     }
                 } else {
-                    importReader(context, buffered.bufferedReader(Charsets.UTF_8))
+                    importReader(context, buffered.bufferedReader(Charsets.UTF_8), mode)
                 }
             }
         }
@@ -419,8 +427,20 @@ class BackupService(
         return lower.endsWith(".json") || lower.endsWith(".ndjson") || lower.contains("backup")
     }
 
-    /** 从已定位到正文开头的 reader 导入单 JSON 或 NDJSON。 */
-    private suspend fun importReader(context: Context, reader: java.io.BufferedReader): Pair<Int, Int> {
+    private suspend fun importReader(context: Context, reader: java.io.BufferedReader): Pair<Int, Int> =
+        importReader(context, reader, BackupImportMode.OVERWRITE)
+
+    /**
+     * 从已定位到正文开头的 reader 导入单 JSON 或 NDJSON。
+     *
+     * [mode] 只影响 NDJSON 正文（当前导出格式）；单 JSON 旧备份一律按覆盖处理，
+     * 因为它没有可安全重映射的引用关系，强行合并会产生悬空外键。
+     */
+    private suspend fun importReader(
+        context: Context,
+        reader: java.io.BufferedReader,
+        mode: BackupImportMode,
+    ): Pair<Int, Int> {
         reader.use { source ->
             val firstLine = generateSequence { source.readLine() }
                 .firstOrNull { !it.isNullOrBlank() }
@@ -437,9 +457,18 @@ class BackupService(
                         yield(line)
                     }
                 }
-                val imported = applyNdJsonStreamingWithImageCleanup(sequenceOf(firstLine) + rest)
+                val imported = if (mode == BackupImportMode.MERGE) {
+                    applyNdJsonMerge(sequenceOf(firstLine) + rest)
+                } else {
+                    applyNdJsonStreamingWithImageCleanup(sequenceOf(firstLine) + rest)
+                }
                 warmUpRoomAfterImport()
                 return imported
+            }
+            if (mode == BackupImportMode.MERGE) {
+                // 旧单 JSON 备份没有可安全重映射的引用关系，合并会造悬空外键，
+                // 因此明确拒绝而不是静默退化成覆盖（静默覆盖会删掉用户全部数据）。
+                error(context.getString(R.string.settings_backup_merge_unsupported))
             }
             // B-25: 单 JSON 备份防 OOM — 逐行读入时累计 UTF-8 体量,超过上限立即抛错。
             val text = readSingleJsonWithLimit(source, firstLine)
@@ -2160,6 +2189,44 @@ class BackupService(
         }
     }
 
+    /**
+     * 叠加导入：把 NDJSON 备份里的对话记录并入本机，不删除任何现有数据。
+     *
+     * 与覆盖导入的关键差别：
+     * - 不清空任何表，也不碰助手/技能/知识库/自动化/设置/记忆；
+     * - 每条会话与消息都换新 id（见 [BackupMergeImporter]），所以同一份备份
+     *   导两次会得到两份副本，而不是互相覆盖；
+     * - 不走 recovery journal：没有任何破坏性写点，失败只需整体事务回滚。
+     */
+    private suspend fun applyNdJsonMerge(lines: Sequence<String>): Pair<Int, Int> {
+        val importer = BackupMergeImporter(db)
+        var sawMeta = false
+        var sawAnyRecord = false
+        for (line in lines) {
+            if (line.isBlank()) continue
+            val obj = resultOf { json.decodeFromString(JsonObject.serializer(), line) }
+                .onError { msg, t ->
+                    Logger.w("BackupService", "合并导入跳过无法解析的行: ${t?.message ?: msg}", t)
+                }
+                .getOrNull() ?: continue
+            val type = (obj["type"] as? JsonPrimitive)?.contentOrNull ?: continue
+            if (type == "meta") {
+                sawMeta = true
+                continue
+            }
+            sawAnyRecord = true
+            importer.ingest(type, obj)
+        }
+        require(sawMeta || sawAnyRecord) { "备份文件为空,已拒绝导入" }
+        val result = importer.commit()
+        if (result.first == 0) {
+            // 备份里一条对话都没有（例如只有供应商配置的备份）：明确告知，不要假装成功。
+            error(context.getString(R.string.settings_backup_merge_nothing_to_import))
+        }
+        Logger.i("BackupService", "合并导入完成: ${result.first} 会话, ${result.second} 消息")
+        return result
+    }
+
     private suspend fun applyNdJsonStreamingWithImageCleanup(lines: Sequence<String>): Pair<Int, Int> {
         return restoreAndPruneMessageImages(
             imageStore = messageImageStore,
@@ -2636,11 +2703,13 @@ class BackupService(
      * Phase 8.9: 从云端下载最新备份并导入。
      * @return 导入的会话数 + 消息数;null 表示无备份或下载失败
      */
-    suspend fun importFromCloud(): Pair<Int, Int>? {
+    suspend fun importFromCloud(mode: BackupImportMode = BackupImportMode.OVERWRITE): Pair<Int, Int>? {
         val config = settings.cloudBackupConfigFlow.first()
         if (!config.isConfigured) return null
         val data = cloudBackupService.downloadLatestBackup(config) ?: return null
-        val imported = withBackupImportWriteGate { applyCloudBackupData(config, data) }
+        val imported = withBackupImportWriteGate {
+            if (mode == BackupImportMode.MERGE) applyCloudBackupDataMerge(data) else applyCloudBackupData(config, data)
+        }
         runAfterRestoreRecovery()
         return imported
     }
@@ -2650,11 +2719,13 @@ class BackupService(
      * @param fileName 归档文件名(如 muse-backup-20250719-153000.json)
      * @return 导入的会话数 + 消息数;null 表示无备份或下载失败
      */
-    suspend fun importFromCloudFile(fileName: String): Pair<Int, Int>? {
+    suspend fun importFromCloudFile(fileName: String, mode: BackupImportMode = BackupImportMode.OVERWRITE): Pair<Int, Int>? {
         val config = settings.cloudBackupConfigFlow.first()
         if (!config.isConfigured) return null
         val data = cloudBackupService.downloadBackup(config, fileName) ?: return null
-        val imported = withBackupImportWriteGate { applyCloudBackupData(config, data) }
+        val imported = withBackupImportWriteGate {
+            if (mode == BackupImportMode.MERGE) applyCloudBackupDataMerge(data) else applyCloudBackupData(config, data)
+        }
         runAfterRestoreRecovery()
         return imported
     }
@@ -2870,6 +2941,53 @@ class BackupService(
                 }
             }
         }.getOrDefault(false)
+    }
+
+    /**
+     * 叠加导入的云端入口：解密后交给 [applyNdJsonMerge]，不清空本机数据。
+     *
+     * 只支持 NDJSON 正文；旧单 JSON 云端备份明确拒绝合并（缺可重映射的引用关系）。
+     */
+    private suspend fun applyCloudBackupDataMerge(data: ByteArray): Pair<Int, Int>? {
+        val config = settings.cloudBackupConfigFlow.first()
+        val plaintext = if (BackupCrypto.isEncrypted(data)) {
+            if (config.backupPassword.isEmpty()) {
+                Logger.w("BackupService", "云端备份已加密但未设置备份密码,无法解密")
+                return null
+            }
+            resultOf { BackupCrypto.decrypt(data, config.backupPassword) }
+                .onError { _, t -> Logger.w("BackupService", "云端备份解密失败(密码错误?)", t) }
+                .getOrNull() ?: return null
+        } else {
+            data
+        }
+        val rawReader = plaintext.inputStream().bufferedReader(Charsets.UTF_8)
+        val firstLine = generateSequence { rawReader.readLine() }
+            .firstOrNull { !it.isNullOrBlank() }
+            ?: run {
+                rawReader.close()
+                return null
+            }
+        val isNdJson = resultOf {
+            val obj = json.decodeFromString(JsonObject.serializer(), firstLine)
+            obj["type"]?.let { (it as? JsonPrimitive)?.content } == "meta"
+        }.getOrNull() ?: false
+        if (!isNdJson) {
+            rawReader.close()
+            Logger.w("BackupService", "云端备份不是 NDJSON,拒绝叠加导入")
+            return null
+        }
+        return rawReader.use { reader ->
+            val rest = sequence {
+                while (true) {
+                    val line = reader.readLine() ?: break
+                    yield(line)
+                }
+            }
+            resultOf { applyNdJsonMerge(sequenceOf(firstLine) + rest) }
+                .onError { _, t -> Logger.w("BackupService", "云端 NDJSON 叠加导入失败", t) }
+                .getOrNull()
+        }
     }
 
     /**

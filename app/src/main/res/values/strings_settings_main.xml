@@ -197,6 +197,16 @@
     <!-- U-4: 覆盖式导入/恢复共用确认文案(本地导入 + 云端恢复 + 按版本恢复) -->
     <string name="settings_backup_overwrite_confirm">将用所选备份覆盖当前全部会话、消息、记忆与经验数据（恢复前会自动生成保护副本）。确定继续？</string>
     <string name="settings_backup_overwrite_confirm_action">覆盖并恢复</string>
+    <string name="settings_backup_import_mode_title">选择导入方式</string>
+    <string name="settings_backup_import_mode_merge">叠加合并</string>
+    <string name="settings_backup_import_mode_merge_desc">把备份里的对话作为新会话加进来，保留现有全部数据</string>
+    <string name="settings_backup_import_mode_overwrite">覆盖恢复</string>
+    <string name="settings_backup_import_mode_overwrite_desc">用备份替换本机全部数据（先自动备份，可回滚）</string>
+    <string name="settings_backup_merge_confirm">将把备份中的对话作为新会话加入，现有会话、助手、设置与记忆都会保留。同一份备份再导一次会多出一份副本。确定继续？</string>
+    <string name="settings_backup_merge_confirm_action">叠加导入</string>
+    <string name="settings_backup_merge_nothing_to_import">备份里没有可叠加的对话记录</string>
+    <string name="settings_backup_merge_unsupported">旧格式备份只支持覆盖恢复，请改用覆盖导入</string>
+    <string name="settings_backup_merge_success">已叠加 %1$d 个会话 / %2$d 条消息</string>
     <string name="settings_backup_upload_subtitle_configured">覆盖云端最新备份</string>
     <string name="settings_backup_upload_subtitle_unconfigured">请先配置云存储</string>
     <string name="settings_backup_configure_first">请先配置云存储</string>
