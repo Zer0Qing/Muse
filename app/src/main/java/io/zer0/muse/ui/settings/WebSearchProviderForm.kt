@@ -1,5 +1,6 @@
 package io.zer0.muse.ui.settings
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -25,10 +26,10 @@ import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
-import io.zer0.muse.ui.common.settings.SectionLabel
-import io.zer0.muse.ui.common.settings.SettingsGroup
+import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.theme.MuseSpacing
 import io.zer0.muse.web.WebSearchConfig
 import io.zer0.muse.web.WebSearchProviderCatalog
 import io.zer0.muse.web.WebSearchProviderEntry
@@ -93,15 +94,23 @@ internal fun WebSearchProviderTypeSection(
     var status by remember(selectedType) { mutableStateOf(ProviderFormStatus.UNTESTED) }
     var testing by remember(selectedType) { mutableStateOf(false) }
 
-    SectionLabel(stringResource(R.string.settings_web_search_provider_type_title))
-    SettingsGroup {
-        Column(Modifier.padding(MusePaddings.cardInner)) {
-            Text(
-                text = stringResource(R.string.settings_web_search_provider_type_desc),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Row(verticalAlignment = Alignment.CenterVertically) {
+    CardGroup(title = { Text(stringResource(R.string.settings_web_search_provider_type_title)) }) {
+        content(key = "web_search_status") {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(MusePaddings.cardInner),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
+            ) {
+                Text(
+                    text = stringResource(R.string.settings_web_search_provider_type_desc),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
                 Text(
                     text = when (status) {
                         ProviderFormStatus.CONNECTED -> stringResource(R.string.settings_web_search_status_connected)
@@ -109,15 +118,27 @@ internal fun WebSearchProviderTypeSection(
                         ProviderFormStatus.UNTESTED -> stringResource(R.string.settings_web_search_status_untested)
                     },
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = when (status) {
+                        ProviderFormStatus.CONNECTED -> MaterialTheme.colorScheme.primary
+                        ProviderFormStatus.FAILED -> MaterialTheme.colorScheme.error
+                        ProviderFormStatus.UNTESTED -> MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }
     }
 
     // 动态表单：字段集由 Catalog 的 Meta 决定，不同类型只显示自己需要的项。
-    SettingsGroup(modifier = Modifier.padding(top = MusePaddings.tightGap)) {
-        Column(Modifier.padding(MusePaddings.cardInner)) {
+    CardGroup(modifier = Modifier.padding(top = MusePaddings.cardGap)) {
+        content(key = "web_search_fields") {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(MusePaddings.cardInner),
+                verticalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
+            ) {
             if (meta.needsKey) {
                 Text(
                     stringResource(R.string.settings_web_search_key_pool_label),
@@ -348,6 +369,7 @@ internal fun WebSearchProviderTypeSection(
                     }
                 },
             )
+            }
         }
     }
 }

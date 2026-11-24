@@ -40,13 +40,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.form.LinearScrollGesture
-import io.zer0.muse.ui.common.form.MuseTactileButton
-import io.zer0.muse.ui.common.form.MuseTextField
+import io.zer0.muse.ui.common.form.MuseSearchField
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.navigation.MuseTopBar
+import io.zer0.muse.ui.common.surface.MuseSurface
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.MuseSpacing
 
 /**
  * v1.61-B: 使用教程页 — 面向新手的图文引导。
@@ -299,36 +300,11 @@ fun SettingsTutorialPage(onBack: () -> Unit) {
             ) {
                 // 顶部搜索框 — 始终作为第 0 项
                 item {
-                    MuseTextField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
+                    MuseSearchField(
+                        query = searchQuery,
+                        onQueryChange = { searchQuery = it },
+                        placeholder = stringResource(R.string.settings_tutorial_search_placeholder),
                         modifier = Modifier.fillMaxWidth(),
-                        placeholder = {
-                            Text(
-                                text = stringResource(R.string.settings_tutorial_search_placeholder),
-                                style = MaterialTheme.typography.bodyMedium,
-                            )
-                        },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = MuseIcons.search,
-                                contentDescription = null,
-                                modifier = Modifier.size(MuseIconSizes.iconSmall),
-                            )
-                        },
-                        trailingIcon = if (searchQuery.isNotEmpty()) {
-                            {
-                                MuseTactileButton(
-                                    icon = MuseIcons.x,
-                                    onClick = { searchQuery = "" },
-                                    contentDescription = stringResource(R.string.quick_notes_clear_search),
-                                    iconSize = MuseIconSizes.iconSmall,
-                                )
-                            }
-                        } else {
-                            null
-                        },
-                        singleLine = true,
                     )
                 }
 
@@ -336,7 +312,7 @@ fun SettingsTutorialPage(onBack: () -> Unit) {
                     // 搜索结果视图 — 扁平小节列表
                     if (filteredSections.isEmpty()) {
                         item {
-                            Surface(
+                            MuseSurface(
                                 shape = MuseShapes.large,
                                 color = MaterialTheme.colorScheme.surface,
                                 modifier = Modifier.fillMaxWidth(),
@@ -345,7 +321,7 @@ fun SettingsTutorialPage(onBack: () -> Unit) {
                                     text = stringResource(R.string.settings_tutorial_search_empty),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(16.dp),
+                                    modifier = Modifier.padding(MusePaddings.cardInner),
                                 )
                             }
                         }
@@ -406,7 +382,7 @@ fun SettingsTutorialPage(onBack: () -> Unit) {
 @Composable
 private fun TutorialChapterHeader(icon: ImageVector, titleRes: Int, isExpanded: Boolean, onToggleExpand: () -> Unit) {
     val title = stringResource(titleRes)
-    Surface(
+    MuseSurface(
         shape = MuseShapes.large,
         color = MaterialTheme.colorScheme.surface,
         modifier = Modifier.fillMaxWidth(),
@@ -416,24 +392,25 @@ private fun TutorialChapterHeader(icon: ImageVector, titleRes: Int, isExpanded: 
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable(onClick = onToggleExpand)
-                .padding(horizontal = 16.dp, vertical = 14.dp),
+                .padding(MusePaddings.cardInner),
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurface,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(MuseIconSizes.iconMedium),
             )
-            Spacer(Modifier.width(8.dp))
+            Spacer(Modifier.width(MuseSpacing.sm))
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.weight(1f),
             )
-            Spacer(Modifier.width(8.dp))
+            Spacer(Modifier.width(MuseSpacing.sm))
             Icon(
                 imageVector = if (isExpanded) MuseIcons.chevronDown else MuseIcons.chevronRight,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurface,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
@@ -444,18 +421,20 @@ private fun TutorialChapterHeader(icon: ImageVector, titleRes: Int, isExpanded: 
  */
 @Composable
 private fun TutorialSectionCard(titleRes: Int, contentRes: Int) {
-    Surface(
+    MuseSurface(
         shape = MuseShapes.large,
         color = MaterialTheme.colorScheme.surface,
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+        Column(
+            modifier = Modifier.padding(MusePaddings.cardInner),
+            verticalArrangement = Arrangement.spacedBy(MuseSpacing.xs),
+        ) {
             Text(
                 text = stringResource(titleRes),
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.primary,
             )
-            Spacer(Modifier.height(4.dp))
             Text(
                 text = stringResource(contentRes),
                 style = MaterialTheme.typography.bodyMedium,
@@ -470,12 +449,15 @@ private fun TutorialSectionCard(titleRes: Int, contentRes: Int) {
  */
 @Composable
 private fun SearchResultCard(section: SearchableSection) {
-    Surface(
+    MuseSurface(
         shape = MuseShapes.large,
         color = MaterialTheme.colorScheme.surface,
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(
+            modifier = Modifier.padding(MusePaddings.cardInner),
+            verticalArrangement = Arrangement.spacedBy(MuseSpacing.xs),
+        ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = section.chapterIcon,
@@ -483,20 +465,18 @@ private fun SearchResultCard(section: SearchableSection) {
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(MuseIconSizes.iconSmall),
                 )
-                Spacer(Modifier.width(6.dp))
+                Spacer(Modifier.width(MuseSpacing.smTight))
                 Text(
                     text = section.chapterTitle,
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Spacer(Modifier.height(8.dp))
             Text(
                 text = section.sectionTitle,
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurface,
             )
-            Spacer(Modifier.height(4.dp))
             Text(
                 text = section.content,
                 style = MaterialTheme.typography.bodyMedium,

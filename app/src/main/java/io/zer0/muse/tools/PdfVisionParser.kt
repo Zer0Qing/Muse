@@ -8,8 +8,10 @@ import io.zer0.ai.ChatService
 import io.zer0.ai.ProviderConfigStore
 import io.zer0.ai.core.ChatRequestMode
 import io.zer0.ai.core.MessageRole
+import io.zer0.ai.core.ReasoningLevel
 import io.zer0.ai.core.UIMessage
 import io.zer0.common.Logger
+import io.zer0.muse.transformer.stripThinkTags
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -219,9 +221,10 @@ class PdfVisionParser(
         /** 默认渲染宽度上限(像素)。A4 @ 96dpi ≈ 794px,1024 略放大保留细节。 */
         const val DEFAULT_TARGET_PAGE_WIDTH = 1024
 
-        /** 单次 OCR 提示词(要求模型尽量完整提取文字与结构,不总结)。 */
+        /** 单次 OCR 提示词(要求模型尽量完整提取文字与结构,不总结,直接输出正文)。 */
         const val OCR_PROMPT = "尽量完整提取本页可见文字与结构,保留标题、列表、表格顺序,不做总结。" +
-            "若是扫描版页面,做 OCR 还原文字。若页面为纯图片(非文字),描述图片主要内容。"
+            "若是扫描版页面,做 OCR 还原文字。若页面为纯图片(非文字),描述图片主要内容。" +
+            "直接输出正文，不要添加开场白或总结。"
     }
 }
 
@@ -245,8 +248,8 @@ interface VisionOcrClient {
  *
  * 行为:
  *  - isAvailable(): 检查 SettingsRepository 当前 Provider 是否有 supportsVisionInput() 模型
- *  - ocr(): 构造带 imageBase64List 的 USER 消息,调用 completeText(UTILITY 模式关思考省时)
- *  - 容错:text 为空时降级用 reasoning(推理模型可能把 OCR 内容放 reasoning_content)
+ *  - ocr(): 构造带 imageBase64List 的 USER 消息,调用 completeText(ReasoningLevel.OFF + UTILITY 模式)
+ *  - 仅采信正文输出(剥离 <think> 标签),绝不回退 reasoningContent 以免把思考草稿当成 OCR 原文
  */
 class DefaultVisionOcrClient(
     private val chatService: ChatService,
@@ -288,15 +291,14 @@ class DefaultVisionOcrClient(
                 messages = listOf(message),
                 model = routed?.second,
                 providerConfig = routed?.first,
+                reasoningLevel = ReasoningLevel.OFF,
                 mode = ChatRequestMode.UTILITY,
             )
         }.getOrElse {
             return "[OCR 调用失败: ${it.message}]"
         }
 
-        // 优先用 text;空时降级 reasoningContent(推理模型可能把 OCR 内容放 reasoning_content)
-        return completion.text.takeIf { it.isNotBlank() }
-            ?: completion.reasoningContent?.takeIf { it.isNotBlank() }
-            ?: "[OCR 返回空内容]"
+        // 仅取正文结果并剥离可能泄漏的思考标签，绝不把 reasoningContent 当成 OCR 文本返回
+        return stripThinkTags(completion.text).trim().ifBlank { "[OCR 返回空内容]" }
     }
 }

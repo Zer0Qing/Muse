@@ -1,10 +1,12 @@
 package io.zer0.muse.tools
 
 import io.zer0.ai.ChatService
+import io.zer0.ai.core.ChatRequestMode
 import io.zer0.ai.core.ChatStreamEvent
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.ProviderError
 import io.zer0.ai.core.ProviderException
+import io.zer0.ai.core.ReasoningLevel
 import io.zer0.ai.core.UIMessage
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
@@ -26,16 +28,15 @@ class TranslateToolsImpl {
         val sourceLanguage = args["source_language"]?.takeIf { it.isNotBlank() }
         val style = args["style"]?.takeIf { it.isNotBlank() } ?: "通用"
 
-        // 构建 system prompt(CONS-01: 收敛到 TranslateViewModel.buildTranslationPrompt,消除三套实现漂移)
-        val systemPrompt = TranslateViewModel.buildTranslationPrompt(
-            text = text,
+        // SYSTEM 只放翻译规则，USER 用 <source_text> 包裹原文，避免原文发送两次
+        val systemPrompt = TranslateViewModel.buildTranslationSystemPrompt(
             targetLanguage = targetLanguage,
             sourceLanguage = sourceLanguage ?: TranslateViewModel.SOURCE_AUTO,
             style = style,
         )
         val messages = listOf(
             UIMessage(role = MessageRole.SYSTEM, content = systemPrompt),
-            UIMessage(role = MessageRole.USER, content = text),
+            UIMessage(role = MessageRole.USER, content = TranslateViewModel.buildTranslationUserContent(text)),
         )
 
         // ChatService 通过 Koin 获取(Safe Mode 下 Koin 可能未初始化,走 resultOf 兜底)
@@ -47,7 +48,11 @@ class TranslateToolsImpl {
         return resultOf {
             // 优先 completeText(一次性返回,速度快)
             val translated: String = try {
-                val completion = chatService.completeText(messages = messages)
+                val completion = chatService.completeText(
+                    messages = messages,
+                    reasoningLevel = ReasoningLevel.OFF,
+                    mode = ChatRequestMode.UTILITY,
+                )
                 stripThinkTags(completion.text).trim()
             } catch (e: UnsupportedOperationException) {
                 // Provider 未实现 completeText,降级流式
@@ -66,10 +71,13 @@ class TranslateToolsImpl {
     }
 
     /** 流式收集翻译结果(completeText 不可用时的降级路径)。 */
-    /** 流式收集翻译结果(completeText 不可用时的降级路径)。 */
     suspend fun collectTranslateStream(chatService: ChatService, messages: List<UIMessage>): String {
         val sb = StringBuilder()
-        chatService.streamChat(messages = messages).collect { event ->
+        chatService.streamChat(
+            messages = messages,
+            reasoningLevel = ReasoningLevel.OFF,
+            mode = ChatRequestMode.UTILITY,
+        ).collect { event ->
             when (event) {
                 is ChatStreamEvent.ContentDelta -> sb.append(event.delta)
                 is ChatStreamEvent.Error -> throw ProviderException(

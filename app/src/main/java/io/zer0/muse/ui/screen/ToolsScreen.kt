@@ -1,18 +1,13 @@
 package io.zer0.muse.ui.screen
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -25,10 +20,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
 import io.zer0.muse.data.plugin.PluginManifest
@@ -37,13 +30,16 @@ import io.zer0.muse.tools.ToolRiskLevel
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.museAnimateItem
-import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.common.surface.CardGroupScope
+import io.zer0.muse.ui.settings.SettingsSubPageScaffold
+import io.zer0.muse.ui.theme.MuseAlpha
+import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMonoFontFamily
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.MuseSpacing
 import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.ui.theme.statusColors
 import io.zer0.muse.ui.theme.tiny
@@ -79,74 +75,60 @@ fun ToolsScreen(onBack: () -> Unit) {
     }
     var detailTarget by remember { mutableStateOf<ToolRegistry.ToolDef?>(null) }
 
-    io.zer0.muse.ui.common.surface.MusePageScaffold(
-        topBar = {
-            MuseTopBar(
-                title = stringResource(R.string.tools_screen_title),
-                onBack = onBack,
-                largeTitle = true,
-            )
-        },
-    ) { innerPadding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .background(MaterialTheme.colorScheme.background),
-            contentPadding = PaddingValues(vertical = MusePaddings.sectionGap),
-            verticalArrangement = Arrangement.spacedBy(MusePaddings.sectionGap),
-        ) {
-
-            // ── 按分类分组展示 ─────────────────────────────────────────────
-            if (tools.isEmpty()) {
-                // v2.x: 动效补齐 — 空态入场(令牌 animateItem)
-                item(key = "tools_empty") {
-                    Box(museAnimateItem()) {
-                        MuseEmptyState(
-                            title = stringResource(R.string.tools_empty_title),
-                            subtitle = stringResource(R.string.tools_empty_subtitle),
-                            modifier = Modifier.padding(horizontal = MusePaddings.screen),
-                        )
-                    }
-                }
-            }
-            grouped.forEach { (category, toolsInCategory) ->
-                // v2.x: 动效补齐 — 分类分组入场(令牌 animateItem)
-                item(key = "group_$category") {
-                    Box(museAnimateItem()) {
-                        CardGroup(
-                            modifier = Modifier.padding(horizontal = MusePaddings.screen),
-                            title = {
-                                Text(text = categoryLabel(category))
-                            },
-                        ) {
-                            toolsInCategory.forEach { tool ->
-                                ToolRow(
-                                    tool = tool,
-                                    onClick = { detailTarget = tool },
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            // ── v1.0.4 (P3-6): 内置插件清单 ──────────────────────────────
-            // 后端 PluginManifest.BUILT_IN 声明了 5 个内置插件(image-gen / beautify /
-            // media / mcp-bridge / office),含 trust/capabilities/activationEvents。
-            // 此处透出给用户,提升能力边界透明度(只读展示,启用/禁用仍由代码控制)。
-            // v2.x: 动效补齐 — 插件分组入场(令牌 animateItem)
-            item(key = "plugins_group") {
+    // 页骨架走设置族统一容器：滚动高度收口、状态栏/导航栏避让、卡片间距只在这一处定义。
+    SettingsSubPageScaffold(
+        title = stringResource(R.string.tools_screen_title),
+        onBack = onBack,
+    ) {
+        // ── 按分类分组展示 ─────────────────────────────────────────────
+        if (tools.isEmpty()) {
+            // v2.x: 动效补齐 — 空态入场(令牌 animateItem)
+            item(key = "tools_empty") {
                 Box(museAnimateItem()) {
+                    MuseEmptyState(
+                        title = stringResource(R.string.tools_empty_title),
+                        subtitle = stringResource(R.string.tools_empty_subtitle),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+        }
+        grouped.forEach { (category, toolsInCategory) ->
+            // v2.x: 动效补齐 — 分类分组入场(令牌 animateItem)
+            item(key = "group_$category") {
+                Box(museAnimateItem()) {
+                    // 水平外边距由 SettingsSubPageScaffold 承担，这里不再叠加一层，
+                    // 否则卡片会比同页其他设置分组窄一档。
                     CardGroup(
-                        modifier = Modifier.padding(horizontal = MusePaddings.screen),
                         title = {
-                            Text(text = stringResource(R.string.tools_plugins_section))
+                            Text(text = categoryLabel(category))
                         },
                     ) {
-                        PluginManifest.BUILT_IN.forEach { plugin ->
-                            PluginRow(plugin = plugin)
+                        toolsInCategory.forEach { tool ->
+                            ToolRow(
+                                tool = tool,
+                                onClick = { detailTarget = tool },
+                            )
                         }
+                    }
+                }
+            }
+        }
+
+        // ── v1.0.4 (P3-6): 内置插件清单 ──────────────────────────────
+        // 后端 PluginManifest.BUILT_IN 声明了 5 个内置插件(image-gen / beautify /
+        // media / mcp-bridge / office),含 trust/capabilities/activationEvents。
+        // 此处透出给用户,提升能力边界透明度(只读展示,启用/禁用仍由代码控制)。
+        // v2.x: 动效补齐 — 插件分组入场(令牌 animateItem)
+        item(key = "plugins_group") {
+            Box(museAnimateItem()) {
+                CardGroup(
+                    title = {
+                        Text(text = stringResource(R.string.tools_plugins_section))
+                    },
+                ) {
+                    PluginManifest.BUILT_IN.forEach { plugin ->
+                        PluginRow(plugin = plugin)
                     }
                 }
             }
@@ -174,7 +156,7 @@ private fun CardGroupScope.ToolRow(tool: ToolRegistry.ToolDef, onClick: () -> Un
                 imageVector = MuseIcons.wrench,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(22.dp),
+                modifier = Modifier.size(MuseIconSizes.iconMedium),
             )
         },
         headlineContent = {
@@ -209,14 +191,14 @@ private fun RiskBadge(level: ToolRiskLevel) {
     }
     Surface(
         shape = MuseShapes.pill,
-        color = color.copy(alpha = 0.12f),
+        color = color.copy(alpha = MuseAlpha.statusTint),
     ) {
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.SemiBold,
             color = color,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+            modifier = Modifier.padding(horizontal = MuseSpacing.mdTight, vertical = MuseSpacing.xs),
         )
     }
 }
@@ -245,7 +227,7 @@ private fun ToolDetailDialog(tool: ToolRegistry.ToolDef, onDismiss: () -> Unit) 
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(MuseSpacing.md))
 
                 // 元信息行:分类 + 风险等级
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -260,7 +242,7 @@ private fun ToolDetailDialog(tool: ToolRegistry.ToolDef, onDismiss: () -> Unit) 
                     )
                     RiskBadge(level = tool.riskLevel)
                 }
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(MuseSpacing.lg))
 
                 // 参数 Schema
                 if (tool.parameters.isNotEmpty()) {
@@ -270,7 +252,7 @@ private fun ToolDetailDialog(tool: ToolRegistry.ToolDef, onDismiss: () -> Unit) 
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(MuseSpacing.sm))
                     tool.parameters.forEach { (paramName, paramDesc) ->
                         val required = paramName in tool.required
                         val type = tool.parameterTypes[paramName] ?: "string"
@@ -280,16 +262,18 @@ private fun ToolDetailDialog(tool: ToolRegistry.ToolDef, onDismiss: () -> Unit) 
                             required = required,
                             description = paramDesc,
                         )
-                        Spacer(Modifier.height(6.dp))
+                        Spacer(Modifier.height(MuseSpacing.smTight))
                     }
                 }
 
                 // execute_javascript 专属安全说明
                 if (tool.name == "execute_javascript") {
-                    Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.height(MuseSpacing.md))
                     Surface(
                         shape = MuseShapes.small,
-                        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f),
+                        color = MaterialTheme.colorScheme.errorContainer.copy(
+                            alpha = MuseAlpha.statusTint,
+                        ),
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Column(modifier = Modifier.padding(MusePaddings.itemGap)) {
@@ -298,9 +282,9 @@ private fun ToolDetailDialog(tool: ToolRegistry.ToolDef, onDismiss: () -> Unit) 
                                     imageVector = MuseIcons.code,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.error,
-                                    modifier = Modifier.size(16.dp),
+                                    modifier = Modifier.size(MuseIconSizes.iconSmallTiny),
                                 )
-                                Spacer(Modifier.size(6.dp))
+                                Spacer(Modifier.size(MuseSpacing.smTight))
                                 Text(
                                     text = stringResource(R.string.tools_detail_sandbox_title),
                                     style = MaterialTheme.typography.labelMedium,
@@ -308,7 +292,7 @@ private fun ToolDetailDialog(tool: ToolRegistry.ToolDef, onDismiss: () -> Unit) 
                                     color = MaterialTheme.colorScheme.onSurface,
                                 )
                             }
-                            Spacer(Modifier.height(6.dp))
+                            Spacer(Modifier.height(MuseSpacing.smTight))
                             Text(
                                 text = stringResource(R.string.tools_detail_sandbox_content),
                                 style = MaterialTheme.typography.bodySmall,
@@ -331,47 +315,59 @@ private fun ToolDetailDialog(tool: ToolRegistry.ToolDef, onDismiss: () -> Unit) 
 private fun ParamRow(name: String, type: String, required: Boolean, description: String) {
     Surface(
         shape = MuseShapes.small,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(
+            alpha = MuseAlpha.mutedSurface,
+        ),
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Column(modifier = Modifier.padding(10.dp)) {
+        Column(modifier = Modifier.padding(MusePaddings.auxGap)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = name,
                     style = MaterialTheme.typography.bodyMedium,
-                    fontFamily = FontFamily.Monospace,
+                    fontFamily = MuseMonoFontFamily,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
-                Spacer(Modifier.size(8.dp))
+                Spacer(Modifier.size(MuseSpacing.sm))
                 Surface(
                     shape = MuseShapes.tiny,
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
+                    color = MaterialTheme.colorScheme.primary.copy(
+                        alpha = MuseAlpha.statusTint,
+                    ),
                 ) {
                     Text(
                         text = type,
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                        modifier = Modifier.padding(
+                            horizontal = MuseSpacing.smTight,
+                            vertical = MuseSpacing.xxs,
+                        ),
                     )
                 }
                 if (required) {
-                    Spacer(Modifier.size(6.dp))
+                    Spacer(Modifier.size(MuseSpacing.smTight))
                     Surface(
                         shape = MuseShapes.tiny,
-                        color = MaterialTheme.colorScheme.error.copy(alpha = 0.16f),
+                        color = MaterialTheme.colorScheme.error.copy(
+                            alpha = MuseAlpha.statusTint,
+                        ),
                     ) {
                         Text(
                             text = stringResource(R.string.tools_param_required),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                            modifier = Modifier.padding(
+                                horizontal = MuseSpacing.smTight,
+                                vertical = MuseSpacing.xxs,
+                            ),
                         )
                     }
                 }
             }
             if (description.isNotBlank()) {
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(MuseSpacing.xs))
                 Text(
                     text = description,
                     style = MaterialTheme.typography.bodySmall,
@@ -411,9 +407,9 @@ private fun CardGroupScope.PluginRow(plugin: PluginManifest) {
                 } else {
                     MaterialTheme.colorScheme.onSurfaceVariant
                 },
-                modifier = Modifier.size(22.dp),
+                modifier = Modifier.size(MuseIconSizes.iconMedium),
             )
-            Spacer(Modifier.size(12.dp))
+            Spacer(Modifier.size(MuseSpacing.md))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = plugin.name,
@@ -449,7 +445,7 @@ private fun CardGroupScope.PluginRow(plugin: PluginManifest) {
                         style = MaterialTheme.typography.labelSmall,
                         fontFamily = MuseMonoFontFamily,
                         color = MaterialTheme.colorScheme.outline,
-                        modifier = Modifier.padding(top = 2.dp),
+                        modifier = Modifier.padding(top = MuseSpacing.xxs),
                     )
                 }
             }
@@ -461,7 +457,7 @@ private fun CardGroupScope.PluginRow(plugin: PluginManifest) {
                     MaterialTheme.colorScheme.secondaryContainer
                 },
                 shape = MuseShapes.small,
-                modifier = Modifier.padding(start = 8.dp),
+                modifier = Modifier.padding(start = MuseSpacing.sm),
             ) {
                 Text(
                     text = plugin.trust,
@@ -471,7 +467,10 @@ private fun CardGroupScope.PluginRow(plugin: PluginManifest) {
                     } else {
                         MaterialTheme.colorScheme.onSecondaryContainer
                     },
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                    modifier = Modifier.padding(
+                        horizontal = MuseSpacing.sm,
+                        vertical = MuseSpacing.xxs,
+                    ),
                 )
             }
         }

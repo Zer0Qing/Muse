@@ -8,7 +8,7 @@ import io.zer0.muse.data.assistant.DirectivePolarity
  *
  * 两条规则不是风格偏好，是用户会不会信这个功能：
  *  1. **「不要做」永远排在「要做」前面，并且冲突时以它为准** ——
- *     参照平台的空态示例就是「别叫我宝贝」。这种要求被覆盖一次，用户就不会再往这里写东西了。
+ *     例如「别叫我宝贝」这类硬边界，被覆盖一次，用户就不会再往这里写东西了。
  *  2. **超预算不许静默截断** —— 装不下的条目要原样交回给界面说明"这几条这次没生效"。
  *     静默丢掉等于让用户以为说了有用。
  */
@@ -18,7 +18,7 @@ internal object AgentDirectivesPrompt {
     data class Result(val block: String, val omitted: List<AgentDirective>)
 
     /** 预算只算条目正文，标题与提示行不计 —— 免得标题长短挤掉用户真正写的内容。 */
-    fun build(directives: List<AgentDirective>, totalBudgetChars: Int): Result {
+    fun build(directives: List<AgentDirective>, totalBudgetChars: Int, locale: String = "zh-CN"): Result {
         val active = directives.filter { it.enabled && it.text.isNotBlank() }
         if (active.isEmpty() || totalBudgetChars <= 0) return Result("", emptyList())
 
@@ -42,22 +42,40 @@ internal object AgentDirectivesPrompt {
         }
         if (taken.isEmpty()) return Result("", omitted)
 
+        val isZh = locale.startsWith("zh", ignoreCase = true)
         val forbidden = taken.filter { it.polarity == DirectivePolarity.MUST_NOT }
         val desired = taken.filter { it.polarity == DirectivePolarity.SHOULD }
-        val block = buildString {
-            appendLine("这位用户对你的具体要求（优先于一般语气设定）：")
-            if (forbidden.isNotEmpty()) {
-                appendLine("绝对不要：")
-                forbidden.forEach { appendLine("- ${it.text.trim()}") }
-            }
-            if (desired.isNotEmpty()) {
-                appendLine("尽量做到：")
-                desired.forEach { appendLine("- ${it.text.trim()}") }
-            }
-            if (forbidden.isNotEmpty() && desired.isNotEmpty()) {
-                appendLine("两类要求冲突时，以「绝对不要」为准。")
-            }
-        }.trimEnd()
+        val block = if (isZh) {
+            buildString {
+                appendLine("这位用户对你的具体要求（优先于一般语气设定）：")
+                if (forbidden.isNotEmpty()) {
+                    appendLine("绝对不要：")
+                    forbidden.forEach { appendLine("- ${it.text.trim()}") }
+                }
+                if (desired.isNotEmpty()) {
+                    appendLine("尽量做到：")
+                    desired.forEach { appendLine("- ${it.text.trim()}") }
+                }
+                if (forbidden.isNotEmpty() && desired.isNotEmpty()) {
+                    appendLine("两类要求冲突时，以「绝对不要」为准。")
+                }
+            }.trimEnd()
+        } else {
+            buildString {
+                appendLine("Specific rules from this user (override general tone settings):")
+                if (forbidden.isNotEmpty()) {
+                    appendLine("Never do:")
+                    forbidden.forEach { appendLine("- ${it.text.trim()}") }
+                }
+                if (desired.isNotEmpty()) {
+                    appendLine("Try to do:")
+                    desired.forEach { appendLine("- ${it.text.trim()}") }
+                }
+                if (forbidden.isNotEmpty() && desired.isNotEmpty()) {
+                    appendLine("If these two lists conflict, \"Never do\" always wins.")
+                }
+            }.trimEnd()
+        }
         return Result(block, omitted)
     }
 }

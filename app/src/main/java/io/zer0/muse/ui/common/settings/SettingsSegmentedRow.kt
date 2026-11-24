@@ -33,7 +33,7 @@ import io.zer0.muse.ui.theme.MusePaddings
  */
 @Composable
 fun SettingsSegmentedRow(
-    icon: ImageVector,
+    icon: ImageVector? = null,
     title: String,
     /** 说明文案；null 表示不显示（标题已足够自解释时不要加）。 */
     subtitle: String? = null,
@@ -48,12 +48,14 @@ fun SettingsSegmentedRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.outline,
-            modifier = Modifier.size(MuseIconSizes.icon),
-        )
+        if (icon != null) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(MuseIconSizes.iconMedium),
+            )
+        }
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
@@ -67,7 +69,7 @@ fun SettingsSegmentedRow(
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )

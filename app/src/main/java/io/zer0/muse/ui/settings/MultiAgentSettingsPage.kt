@@ -59,16 +59,16 @@ import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.media.AssistantAvatar
 import io.zer0.muse.ui.common.settings.ConfirmDeleteDialog
 import io.zer0.muse.ui.common.settings.SectionLabel
-import io.zer0.muse.ui.common.settings.SettingsGroup
-import io.zer0.muse.ui.common.settings.SettingsGroupDivider
-import io.zer0.muse.ui.common.settings.SettingsItemRow
 import io.zer0.muse.ui.common.settings.SettingsSliderRow
-import io.zer0.muse.ui.common.settings.SettingsSwitchRow
 import io.zer0.muse.ui.common.state.MuseEmptyState
+import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.common.surface.MuseSurface
+import io.zer0.muse.ui.common.surface.navigationItem
+import io.zer0.muse.ui.common.surface.switchItem
 import io.zer0.muse.ui.theme.MuseHaptics
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.MuseSpacing
 import io.zer0.muse.ui.theme.pill
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -104,50 +104,82 @@ fun MultiAgentSettingsPage(onBack: () -> Unit) {
         scope.launch { settings.updateMultiAgentConfig(block) }
     }
 
-    SettingsSubPageScaffold(title = stringResource(R.string.settings_multi_agent_title), onBack = onBack) {
-        item {
-            SettingsGroup {
-                SettingsSwitchRow(
-                    icon = MuseIcons.users,
+    SettingsSubPageScaffold(
+        title = stringResource(R.string.settings_multi_agent_title),
+        onBack = onBack,
+        headerActions = {
+            MuseTactileButton(
+                icon = MuseIcons.plus,
+                onClick = { editingTeam = AgentTeam(id = "") },
+                contentDescription = stringResource(R.string.settings_multi_agent_new_team),
+                tint = MaterialTheme.colorScheme.primary,
+                compact = true,
+            )
+        },
+    ) {
+        item(key = "multi_agent_enable") {
+            CardGroup {
+                switchItem(
+                    key = "enable_multi_agent",
                     title = stringResource(R.string.settings_multi_agent_enable),
                     checked = config.enabled,
-                    onCheckedChange = { v ->
-                        updateConfig { it.copy(enabled = v) }
+                    onCheckedChange = { v -> updateConfig { it.copy(enabled = v) } },
+                    leadingContent = {
+                        Icon(
+                            imageVector = MuseIcons.users,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
                     },
                 )
             }
         }
 
-        // v1.201: LLM 综合评审全局设置区
-        item { SectionLabel(stringResource(R.string.multi_agent_llm_review_enabled)) }
-        item {
-            SettingsGroup {
-                SettingsSwitchRow(
-                    icon = MuseIcons.user,
+        item(key = "multi_agent_review") {
+            val reviewModelName = resolveReviewModelName(
+                reviewModelId = config.reviewModelId,
+                providers = providers,
+                activeProviderId = activeProviderId,
+            )
+            CardGroup(title = { Text(stringResource(R.string.multi_agent_llm_review_enabled)) }) {
+                switchItem(
+                    key = "llm_review_toggle",
                     title = stringResource(R.string.multi_agent_llm_review_enabled),
                     checked = config.llmReviewEnabled,
-                    onCheckedChange = { v ->
-                        scope.launch { settings.saveLlmReviewEnabled(v) }
+                    onCheckedChange = { v -> scope.launch { settings.saveLlmReviewEnabled(v) } },
+                    leadingContent = {
+                        Icon(
+                            imageVector = MuseIcons.user,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
                     },
                 )
-                SettingsItemRow(
-                    icon = MuseIcons.user,
+                navigationItem(
+                    key = "llm_review_model",
                     title = stringResource(R.string.multi_agent_llm_review_model),
-                    subtitle = resolveReviewModelName(
-                        reviewModelId = config.reviewModelId,
-                        providers = providers,
-                        activeProviderId = activeProviderId,
-                    ),
+                    subtitle = reviewModelName,
+                    leadingContent = {
+                        Icon(
+                            imageVector = MuseIcons.user,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
+                    },
                     onClick = { showReviewModelSheet = true },
                 )
             }
         }
 
-        item { SectionLabel(stringResource(R.string.settings_multi_agent_team_list)) }
+        item(key = "multi_agent_team_header") {
+            SectionLabel(stringResource(R.string.settings_multi_agent_team_list))
+        }
 
         if (config.teams.isEmpty()) {
-            // v1.48: h14 团队列表空态改用 MuseEmptyState 组件
-            item {
+            item(key = "multi_agent_teams_empty") {
                 MuseEmptyState(
                     icon = MuseIcons.users,
                     title = stringResource(R.string.settings_multi_agent_no_team),
@@ -169,14 +201,21 @@ fun MultiAgentSettingsPage(onBack: () -> Unit) {
             }
         }
 
-        // v1.0.92: 写作团队快速模板 — 一键预填写作协作流程(成员在编辑器里按顺序添加即可)
-        item {
+        item(key = "multi_agent_writing_template") {
             val writingTeamName = stringResource(R.string.settings_multi_agent_writing_team_name)
             val writingTeamDesc = stringResource(R.string.settings_multi_agent_writing_team_desc)
-            SettingsGroup {
-                SettingsItemRow(
-                    icon = MuseIcons.edit,
+            CardGroup {
+                navigationItem(
+                    key = "writing_team_template",
                     title = stringResource(R.string.settings_multi_agent_writing_team_template),
+                    leadingContent = {
+                        Icon(
+                            imageVector = MuseIcons.edit,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
+                    },
                     onClick = {
                         editingTeam = AgentTeam(id = "", name = writingTeamName, description = writingTeamDesc)
                     },
@@ -184,81 +223,48 @@ fun MultiAgentSettingsPage(onBack: () -> Unit) {
             }
         }
 
-        item {
-            Spacer(Modifier.height(8.dp))
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(MuseShapes.pill)
-                    // A11Y-02: 触控目标 ≥48dp
-                    .defaultMinSize(minHeight = MuseIconSizes.touchTarget)
-                    .clickable { editingTeam = AgentTeam(id = "") },
-                color = MaterialTheme.colorScheme.primary,
-                shape = MuseShapes.pill,
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 14.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        imageVector = MuseIcons.plus,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(20.dp),
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        text = stringResource(R.string.settings_multi_agent_new_team),
-                        style = MaterialTheme.typography.labelLarge.copy(
-                            fontWeight = FontWeight.SemiBold,
-                        ),
-                        color = MaterialTheme.colorScheme.onPrimary,
-                    )
-                }
-            }
-        }
-
-        // v1.201: 人机协作暂停策略
-        item { SectionLabel(stringResource(R.string.delegation_pause_section_title)) }
-        item {
-            SettingsGroup {
-                SettingsSwitchRow(
+        item(key = "multi_agent_pause_policy") {
+            CardGroup(title = { Text(stringResource(R.string.delegation_pause_section_title)) }) {
+                switchItem(
+                    key = "pause_before_team",
                     title = stringResource(R.string.delegation_pause_before_team),
                     checked = config.pausePolicy.pauseBeforeTeam,
                     onCheckedChange = { v ->
                         updateConfig { it.copy(pausePolicy = it.pausePolicy.copy(pauseBeforeTeam = v)) }
                     },
                 )
-                SettingsSwitchRow(
+                switchItem(
+                    key = "pause_before_member",
                     title = stringResource(R.string.delegation_pause_before_member),
                     checked = config.pausePolicy.pauseBeforeEachMember,
                     onCheckedChange = { v ->
                         updateConfig { it.copy(pausePolicy = it.pausePolicy.copy(pauseBeforeEachMember = v)) }
                     },
                 )
-                SettingsSwitchRow(
+                switchItem(
+                    key = "pause_intermediate",
                     title = stringResource(R.string.delegation_pause_intermediate),
                     checked = config.pausePolicy.pauseOnIntermediateResult,
                     onCheckedChange = { v ->
                         updateConfig { it.copy(pausePolicy = it.pausePolicy.copy(pauseOnIntermediateResult = v)) }
                     },
                 )
-                SettingsSwitchRow(
+                switchItem(
+                    key = "pause_high_risk",
                     title = stringResource(R.string.delegation_pause_high_risk),
                     checked = config.pausePolicy.pauseOnHighRisk,
                     onCheckedChange = { v ->
                         updateConfig { it.copy(pausePolicy = it.pausePolicy.copy(pauseOnHighRisk = v)) }
                     },
                 )
-                DelegationTimeoutSliderRow(
-                    timeoutSec = config.pausePolicy.autoTimeoutSec,
-                    onValueChange = { newSec ->
-                        updateConfig { it.copy(pausePolicy = it.pausePolicy.copy(autoTimeoutSec = newSec)) }
-                    },
-                )
+                content(key = "pause_timeout") {
+                    DelegationTimeoutSliderRow(
+                        timeoutSec = config.pausePolicy.autoTimeoutSec,
+                        onValueChange = { newSec ->
+                            updateConfig { it.copy(pausePolicy = it.pausePolicy.copy(autoTimeoutSec = newSec)) }
+                        },
+                    )
+                }
             }
         }
     }

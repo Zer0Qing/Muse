@@ -18,9 +18,9 @@ import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.navigation.MuseTopBarIconButton
-import io.zer0.muse.ui.common.settings.SectionLabel
-import io.zer0.muse.ui.common.settings.SettingsGroup
+import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.theme.MuseSpacing
 import io.zer0.muse.web.WebSearchConfig
 import io.zer0.muse.web.customSearchOrderKey
 
@@ -43,53 +43,52 @@ internal fun WebSearchOrderSection(webSearchConfig: WebSearchConfig, onSave: (Li
         .filter { it.enabled && it.endpoint.isNotBlank() }
         .map { customSearchOrderKey(it.name) }
 
-    SectionLabel(
-        stringResource(R.string.settings_web_search_order_title),
+    CardGroup(
+        title = { Text(stringResource(R.string.settings_web_search_order_title)) },
         modifier = Modifier.padding(top = MusePaddings.cardGap),
-    )
-    SettingsGroup(modifier = Modifier.padding(top = 4.dp)) {
-        Column(Modifier.padding(MusePaddings.cardInner)) {
-            Text(
-                text = stringResource(R.string.settings_web_search_order_subtitle),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            val order = WebSearchOrderState.displayedOrder(customKeys, webSearchConfig.providerOrder)
-            order.forEachIndexed { index, key ->
-                Spacer(Modifier.height(2.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Text(
-                        text = WebSearchOrderState.displayName(key),
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.weight(1f),
-                    )
-                    // 触控与语义：IconButton 自身 48dp（门禁查按钮 modifier），
-                    // Icon 必须带 contentDescription（可点击容器内的裸 Icon 会被无障碍门禁拦）。
-                    MuseTopBarIconButton(
-                        icon = MuseIcons.arrowUp,
-                        contentDescription = stringResource(R.string.settings_web_search_order_move_up),
-                        enabled = index > 0,
-                        onClick = { onSave(WebSearchOrderState.moved(order, index, -1)) },
-                    )
-                    MuseTopBarIconButton(
-                        icon = MuseIcons.arrowDown,
-                        contentDescription = stringResource(R.string.settings_web_search_order_move_down),
-                        enabled = index < order.lastIndex,
-                        onClick = { onSave(WebSearchOrderState.moved(order, index, +1)) },
-                    )
+    ) {
+        content(key = "web_search_order") {
+            Column(Modifier.padding(MusePaddings.cardInner)) {
+                Text(
+                    text = stringResource(R.string.settings_web_search_order_subtitle),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                val order = WebSearchOrderState.displayedOrder(customKeys, webSearchConfig.providerOrder)
+                order.forEachIndexed { index, key ->
+                    Spacer(Modifier.height(MuseSpacing.xxs))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Text(
+                            text = WebSearchOrderState.displayName(key),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.weight(1f),
+                        )
+                        MuseTopBarIconButton(
+                            icon = MuseIcons.arrowUp,
+                            contentDescription = stringResource(R.string.settings_web_search_order_move_up),
+                            enabled = index > 0,
+                            onClick = { onSave(WebSearchOrderState.moved(order, index, -1)) },
+                        )
+                        MuseTopBarIconButton(
+                            icon = MuseIcons.arrowDown,
+                            contentDescription = stringResource(R.string.settings_web_search_order_move_down),
+                            enabled = index < order.lastIndex,
+                            onClick = { onSave(WebSearchOrderState.moved(order, index, +1)) },
+                        )
+                    }
                 }
+                Spacer(Modifier.height(MuseSpacing.xs))
+                MuseCapsuleButton(
+                    text = stringResource(R.string.settings_web_search_order_reset),
+                    onClick = { onSave(WebSearchOrderState.defaultOrder) },
+                    variant = IosCapsuleButtonVariant.Secondary,
+                    fillWidth = false,
+                )
             }
-            Spacer(Modifier.height(6.dp))
-            MuseCapsuleButton(
-                text = stringResource(R.string.settings_web_search_order_reset),
-                onClick = { onSave(WebSearchOrderState.defaultOrder) },
-                variant = IosCapsuleButtonVariant.Secondary,
-                fillWidth = false,
-            )
         }
     }
 }

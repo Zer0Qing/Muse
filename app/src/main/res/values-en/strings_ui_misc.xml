@@ -5,6 +5,17 @@
     <string name="common_state_disabled">Disabled</string>
     <string name="common_confirm_delete_message">Delete \"%1$s\"?</string>
     <string name="common_delete">Delete</string>
+    <string name="common_save">Save</string>
+    <string name="common_edit">Edit</string>
+    <string name="common_name">Name</string>
+    <string name="common_copy">Copy</string>
+    <string name="common_translate">Translate</string>
+    <string name="common_clear">Clear</string>
+    <string name="common_all">All</string>
+    <string name="common_enable">Enable</string>
+    <string name="common_provider">Provider</string>
+    <string name="common_share">Share</string>
+    <string name="common_done">Done</string>
     <string name="common_confirm_delete_consequence_default">This action cannot be undone.</string>
     <string name="common_cancel">Cancel</string>
     <string name="common_confirm">Confirm</string>
@@ -245,4 +256,8 @@ Tap refresh to fetch the list upstream</string>
     <string name="agent_bot_result_empty">Done</string>
     <string name="agent_bot_prompt_verify_result">Check whether the result is right</string>
     <string name="agent_bot_notification_title">Your task has a result</string>
+    <string name="time_picker_hour">Hour</string>
+    <string name="time_picker_minute">Minute</string>
+    <string name="time_picker_increase">Increase</string>
+    <string name="time_picker_decrease">Decrease</string>
 </resources>

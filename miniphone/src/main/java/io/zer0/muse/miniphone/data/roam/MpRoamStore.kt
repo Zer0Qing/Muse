@@ -80,14 +80,15 @@ internal class MpRoamStore(
     /**
      * 在 [locationName] 一带「遇见」一位路人：让 [characterId] 生成一位陌生人的性格与招呼，再落库。
      *
-     * 生成的文本原样存进 persona，第一行当名字用 —— 名字与性格都来自宿主，门面不自己编。
+     * 按两行结构解析：第 1 行提取路人姓名（剥除可能的前缀与引号），后续行存为 persona；
      * 宿主没给结果（未实现、失败、或只给了空白）就返回 null 并什么都不写。
      */
     suspend fun encounter(host: MiniPhoneHost, characterId: String, locationId: String, locationName: String): String? {
         val generated = host.composeScene(characterId, buildEncounterBrief(locationName))
         if (generated.isNullOrBlank()) return null
-        val text = generated.trim()
-        return recordNpc(locationId, text.lineSequence().first().trim(), text, characterId = "")
+        val (name, persona) = parseEncounterOutput(generated)
+        if (name.isBlank()) return null
+        return recordNpc(locationId, name, persona, characterId = "")
     }
 
     /** 清掉某个位置记下的路人，换一片地方时不必手动逐个删。 */
@@ -95,9 +96,38 @@ internal class MpRoamStore(
         db.roamNpcDao().deleteByLocation(locationId)
     }
 
+    private fun parseEncounterOutput(raw: String): Pair<String, String> {
+        val lines = raw.lineSequence()
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .toList()
+        if (lines.isEmpty()) return "" to ""
+        val cleanName = lines.first()
+            .replace(NAME_PREFIX_REGEX, "")
+            .trim(' ', '「', '」', '《', '》', '"', '\'', '“', '”', '：', ':')
+            .take(MAX_NPC_NAME_CHARS)
+        val bodyLines = lines.drop(1)
+        val cleanPersona = if (bodyLines.isEmpty()) {
+            raw.trim()
+        } else {
+            bodyLines.joinToString("\n")
+                .replace(PERSONA_PREFIX_REGEX, "")
+                .trim()
+        }
+        return cleanName to cleanPersona
+    }
+
     private fun buildEncounterBrief(locationName: String): String = buildString {
         appendLine("你正在「$locationName」一带闲逛，迎面遇到一位素不相识的路人。")
-        appendLine("第一行只写这位路人的名字，随后用一两句话写清他的性格，以及他开口对你说的第一句话。")
-        append("不要替用户做决定，不要解释你在做什么，只输出这位路人本身。")
+        appendLine("请严格按两行输出：")
+        appendLine("第 1 行：只写这位路人的名字（2–6 字，不要前缀或标点）。")
+        appendLine("第 2 行：用一两句话写清 TA 的性格，以及 TA 开口对你说的第一句话。")
+        append("不要替用户做决定，不要解释你在做什么，只输出这两行。")
+    }
+
+    private companion object {
+        const val MAX_NPC_NAME_CHARS = 20
+        val NAME_PREFIX_REGEX = Regex("""^(?:名字|姓名|称呼|路人|name)\s*[:：]\s*""", RegexOption.IGNORE_CASE)
+        val PERSONA_PREFIX_REGEX = Regex("""^(?:性格|设定|简介|persona)\s*[:：]\s*""", RegexOption.IGNORE_CASE)
     }
 }

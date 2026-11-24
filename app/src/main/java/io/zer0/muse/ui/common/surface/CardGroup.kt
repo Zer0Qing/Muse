@@ -50,16 +50,30 @@ import io.zer0.muse.ui.theme.largeCard
  *
  * 适配 muse 的 Material Icons(而非 HugeIcons)和 warm-paper 主题。
  */
-private data class CardGroupItem(
-    val key: Any?,
-    val onClick: (() -> Unit)?,
-    val onLongClick: (() -> Unit)?,
-    val modifier: Modifier,
-    val headlineContent: @Composable () -> Unit,
-    val supportingContent: (@Composable () -> Unit)?,
-    val leadingContent: (@Composable () -> Unit)?,
-    val trailingContent: (@Composable () -> Unit)?,
-)
+private sealed interface CardGroupEntry {
+    val key: Any?
+    val hasLeading: Boolean
+
+    data class ListRow(
+        override val key: Any?,
+        val onClick: (() -> Unit)?,
+        val onLongClick: (() -> Unit)?,
+        val modifier: Modifier,
+        val headlineContent: @Composable () -> Unit,
+        val supportingContent: (@Composable () -> Unit)?,
+        val leadingContent: (@Composable () -> Unit)?,
+        val trailingContent: (@Composable () -> Unit)?,
+    ) : CardGroupEntry {
+        override val hasLeading: Boolean get() = leadingContent != null
+    }
+
+    data class CustomContent(
+        override val key: Any?,
+        val content: @Composable () -> Unit,
+    ) : CardGroupEntry {
+        override val hasLeading: Boolean get() = false
+    }
+}
 
 @DslMarker
 private annotation class CardGroupDsl
@@ -87,10 +101,16 @@ interface CardGroupScope {
         trailingContent: (@Composable () -> Unit)? = null,
         headlineContent: @Composable () -> Unit,
     )
+
+    /**
+     * 卡片分组内的自定义内容块（不包一层 [MuseListItem]，避免表单列 / 滑块行 / 分段控件出现双重内边距），
+     * 仍享受统一的卡片圆角容器与自动 [MuseDivider] 分隔线。
+     */
+    fun content(key: Any? = null, content: @Composable () -> Unit)
 }
 
 private class CardGroupScopeImpl : CardGroupScope {
-    val items = mutableListOf<CardGroupItem>()
+    val items = mutableListOf<CardGroupEntry>()
 
     override fun item(
         key: Any?,
@@ -103,7 +123,7 @@ private class CardGroupScopeImpl : CardGroupScope {
         headlineContent: @Composable () -> Unit,
     ) {
         items.add(
-            CardGroupItem(
+            CardGroupEntry.ListRow(
                 key = key,
                 onClick = onClick,
                 onLongClick = onLongClick,
@@ -114,6 +134,10 @@ private class CardGroupScopeImpl : CardGroupScope {
                 trailingContent = trailingContent,
             ),
         )
+    }
+
+    override fun content(key: Any?, content: @Composable () -> Unit) {
+        items.add(CardGroupEntry.CustomContent(key = key, content = content))
     }
 }
 
@@ -128,7 +152,11 @@ private class CardGroupScopeImpl : CardGroupScope {
  * @param content DSL 内容块,内部用 [CardGroupScope.item] 添加项
  */
 @Composable
-fun CardGroup(modifier: Modifier = Modifier, title: (@Composable () -> Unit)? = null, content: CardGroupScope.() -> Unit) {
+fun CardGroup(
+    modifier: Modifier = Modifier,
+    title: (@Composable () -> Unit)? = null,
+    content: @Composable CardGroupScope.() -> Unit,
+) {
     val scope = CardGroupScopeImpl()
     scope.content()
 
@@ -174,19 +202,22 @@ fun CardGroup(modifier: Modifier = Modifier, title: (@Composable () -> Unit)? = 
                 val count = scope.items.size
                 // 双平面翻新：分隔线起点跟随内容左边线——整组有 leading 图标时缩到图标右侧文字列,
                 // 无图标卡落到行内边距(不再无条件 56dp,根治无图标卡比内容线多缩 40dp)。
-                val dividerIndent = museDividerStartIndent(hasLeading = scope.items.any { it.leadingContent != null })
-                scope.items.fastForEachIndexed { index, item ->
+                val dividerIndent = museDividerStartIndent(hasLeading = scope.items.any { it.hasLeading })
+                scope.items.fastForEachIndexed { index, entry ->
                     // 用 key 包裹,使带 key 的列表项在增删/重排时保留 remember 状态(如交互源、展开态)
-                    key(item.key ?: index) {
-                        MuseListItem(
-                            onClick = item.onClick,
-                            onLongClick = item.onLongClick,
-                            modifier = item.modifier,
-                            headlineContent = item.headlineContent,
-                            supportingContent = item.supportingContent,
-                            leadingContent = item.leadingContent,
-                            trailingContent = item.trailingContent,
-                        )
+                    key(entry.key ?: index) {
+                        when (entry) {
+                            is CardGroupEntry.ListRow -> MuseListItem(
+                                onClick = entry.onClick,
+                                onLongClick = entry.onLongClick,
+                                modifier = entry.modifier,
+                                headlineContent = entry.headlineContent,
+                                supportingContent = entry.supportingContent,
+                                leadingContent = entry.leadingContent,
+                                trailingContent = entry.trailingContent,
+                            )
+                            is CardGroupEntry.CustomContent -> entry.content()
+                        }
                     }
                     // 用 MuseDivider 基元分隔 item,统一 thickness/color/缩进
                     if (index != count - 1) {

@@ -459,7 +459,8 @@ private fun AuditLogRow(log: AuditLogEntity, dateFormat: SimpleDateFormat, onLon
         modifier = Modifier
             .fillMaxWidth()
             .combinedClickable(
-                onClick = {},
+                // 单击就展开详情：长按才可看是隐藏交互，多数人不会去试。
+                onClick = onLongClick,
                 onLongClick = onLongClick,
             ),
     ) {

@@ -467,7 +467,7 @@ object ToolPermissionResolver {
      *          get_network_info / get_contacts_count 等)
      *  - list_*(list_installed_apps / list_reminders / list_stickers 等)
      *  - read_*(clipboard_read / workspace_read 等)
-     *  - search_*(quick_note_search / resource_search 等)
+     *  - search_*(quick_note_list / resource_search 等)
      *  - 其他只读:calculator / echo / ping_host / dns_lookup / get_public_ip /
      *            url_encode / url_decode / base64_encode / base64_decode / hash_text /
      *            generate_uuid / random_number / json_pretty / generate_password /
@@ -507,12 +507,15 @@ object ToolPermissionResolver {
         "workspace_grep",
         "memory_config_get",
         // ── search_* 族(只读搜索)──
-        "quick_note_search",
         "quick_note_list",
         "resource_search",
         "resource_list",
         // ── 其他只读/计算/编码/查询 ──
         "calculator",
+        // find_tools 只做本地工具目录检索 + 会话内登记，无任何副作用。
+        // 不列在这里时，严格模式与无审批通道的后台子代理会把它判成 Pending → 拒绝，
+        // 结果是模型永远拿不到「检索装载」这条补全通道，收窄后的工具面再也长不回来。
+        "find_tools",
         "echo",
         "ping_host",
         "dns_lookup",

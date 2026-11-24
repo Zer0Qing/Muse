@@ -39,8 +39,7 @@ import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.navigation.MuseTopBar
-import io.zer0.muse.ui.common.settings.SettingsGroup
-import io.zer0.muse.ui.common.settings.SettingsGroupDivider
+import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.theme.MuseMonoFontFamily
@@ -272,15 +271,14 @@ private fun LicenseGroupSection(
             )
         }
 
-        // 依赖列表(卡片组,沿用 SettingsGroup 视觉)
-        SettingsGroup {
-            entries.forEachIndexed { index, entry ->
-                DependencyRow(
-                    entry = entry,
-                    onClickUrl = onClickUrl,
-                )
-                if (index < entries.lastIndex) {
-                    SettingsGroupDivider()
+        // 依赖列表（卡片组）
+        CardGroup {
+            entries.forEach { entry ->
+                content(key = "license_${entry.name}") {
+                    DependencyRow(
+                        entry = entry,
+                        onClickUrl = onClickUrl,
+                    )
                 }
             }
         }
@@ -288,7 +286,7 @@ private fun LicenseGroupSection(
 }
 
 /**
- * 单个依赖行(在 SettingsGroup 内使用)。
+ * 单个依赖行(在 [CardGroup] 内使用)。
  *
  * 布局: [名称 + 版本] [版权小字] [查看源码右箭头]
  * 点击整行 → 若有 URL 则打开;没有 URL 则不响应(避免误点反馈)。

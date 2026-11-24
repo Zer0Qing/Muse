@@ -2,13 +2,19 @@ package io.zer0.muse.ui.agentbot
 
 import android.net.Uri
 import android.view.KeyEvent
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.displayCutout
@@ -19,6 +25,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -31,17 +38,22 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.pointer.changedToUp
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -54,26 +66,33 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import io.zer0.ai.core.ReasoningLevel
 import io.zer0.muse.R
+import io.zer0.muse.asr.ASRStatus
 import io.zer0.muse.data.agentbot.AgentBotUiState
 import io.zer0.muse.ui.assistant.reasoningLevelLabelRes
+import io.zer0.muse.ui.chat.LoadingDots
 import io.zer0.muse.ui.chat.MentionHighlightTransformation
 import io.zer0.muse.ui.chat.MuseToolSheet
+import io.zer0.muse.ui.chat.RecordingWaveform
 import io.zer0.muse.ui.chat.ToolEntry
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.media.AttachmentRemoveButton
+import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.common.surface.MuseIsland
 import io.zer0.muse.ui.theme.GlassIsland
 import io.zer0.muse.ui.theme.LocalLiquidGlass
 import io.zer0.muse.ui.theme.MuseActionColors
 import io.zer0.muse.ui.theme.MuseAlpha
+import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseHaptics
 import io.zer0.muse.ui.theme.MuseIconSizes
+import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.pill
+import kotlinx.coroutines.delay
 
 /**
  * 底部独立悬浮药丸输入岛。
@@ -93,7 +112,7 @@ fun AgentFloatingComposer(
     onPickImages: () -> Unit,
     onPickGalleryImage: (Uri) -> Unit,
     onRemoveImage: (String) -> Unit,
-    onVoiceInput: () -> Unit,
+    onVoiceInput: () -> Unit = {},
     onOpenWorkbench: () -> Unit,
     onTriggerBriefing: () -> Unit,
     onStartTeach: () -> Unit,
@@ -106,6 +125,14 @@ fun AgentFloatingComposer(
     isWebSearchEnabled: Boolean = false,
     isDeepThinkingEnabled: Boolean = false,
     deepThinkingLevel: ReasoningLevel = ReasoningLevel.HIGH,
+    isRecording: Boolean = false,
+    asrStatus: ASRStatus = ASRStatus.Idle,
+    asrErrorMessage: String? = null,
+    recordingAmplitudes: List<Float> = emptyList(),
+    showMic: Boolean = true,
+    onStartRecording: (() -> Boolean)? = null,
+    onStopRecording: (() -> Unit)? = null,
+    onCancelRecording: (() -> Unit)? = null,
     onClearQuote: () -> Unit = {},
     onCancelEdit: () -> Unit = {},
     onToggleWebSearch: () -> Unit = {},
@@ -116,14 +143,22 @@ fun AgentFloatingComposer(
 ) {
     var showToolSheet by rememberSaveable { mutableStateOf(false) }
     var showFullscreenEditor by rememberSaveable { mutableStateOf(false) }
+    var showCancelledHint by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val hapticFeedback = LocalHapticFeedback.current
     val glassConfig = LocalLiquidGlass.current
+    val reducedMotion = MuseMotion.isReducedMotion()
     val canSend = composer.text.isNotBlank() || composer.pendingImages.isNotEmpty()
     val plusCd = stringResource(R.string.agent_hub_plus_cd)
     val voiceCd = stringResource(R.string.agent_hub_voice_cd)
     val sendCd = stringResource(R.string.action_send)
     val stopCd = stringResource(R.string.agent_bot_stop_reply)
+    LaunchedEffect(showCancelledHint) {
+        if (showCancelledHint) {
+            delay(1_500L)
+            showCancelledHint = false
+        }
+    }
     val mentionColor = MaterialTheme.colorScheme.primary
     val mentionTransform = remember(mentionColor) { MentionHighlightTransformation(mentionColor) }
     val islandBaseColor = lerp(
@@ -177,6 +212,8 @@ fun AgentFloatingComposer(
                         text = stringResource(R.string.common_edit),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f),
                     )
                     Icon(
@@ -408,7 +445,89 @@ fun AgentFloatingComposer(
                             }
                         }
                     }
-                    else -> {
+                    showMic && onStartRecording != null && onStopRecording != null && onCancelRecording != null -> {
+                        val pulseScale by animateFloatAsState(
+                            targetValue = if (isRecording && !reducedMotion) 1.25f else 1f,
+                            animationSpec = if (isRecording && !reducedMotion) {
+                                infiniteRepeatable(
+                                    animation = MuseMotion.tween(MuseAnimation.LOOP_NORMAL_MS, easing = FastOutSlowInEasing),
+                                    repeatMode = RepeatMode.Reverse,
+                                )
+                            } else {
+                                MuseMotion.tween(MuseAnimation.TACTILE_MS)
+                            },
+                            label = "agentMicPulse",
+                        )
+                        val currentOnStart by rememberUpdatedState(onStartRecording)
+                        val currentOnStop by rememberUpdatedState(onStopRecording)
+                        val currentOnCancel by rememberUpdatedState(onCancelRecording)
+                        val recognizingCd = stringResource(R.string.chat_recognizing_cd)
+                        val recordingCd = stringResource(R.string.chat_recording_cd)
+                        val holdToRecordCd = stringResource(R.string.chat_hold_to_record_cd)
+                        Box(
+                            modifier = Modifier
+                                .size(MuseIconSizes.touchTarget)
+                                .pointerInput(Unit) {
+                                    val slideThresholdPx = MuseIconSizes.touchTarget.toPx()
+                                    detectTapGestures(
+                                        onPress = { offset ->
+                                            val started = currentOnStart()
+                                            if (!started) return@detectTapGestures
+                                            MuseHaptics.medium(hapticFeedback)
+                                            var cancelled = false
+                                            awaitPointerEventScope {
+                                                while (true) {
+                                                    val event = awaitPointerEvent()
+                                                    val change = event.changes.firstOrNull() ?: continue
+                                                    if (offset.y - change.position.y > slideThresholdPx) {
+                                                        cancelled = true
+                                                        break
+                                                    }
+                                                    if (change.changedToUp()) break
+                                                }
+                                            }
+                                            if (cancelled) {
+                                                currentOnCancel()
+                                                showCancelledHint = true
+                                            } else {
+                                                currentOnStop()
+                                            }
+                                        },
+                                    )
+                                },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            when {
+                                asrStatus == ASRStatus.Stopping || asrStatus == ASRStatus.Reconnecting -> MuseSpinner(
+                                    modifier = Modifier.semantics { contentDescription = recognizingCd },
+                                    size = MuseIconSizes.iconMedium,
+                                )
+                                isRecording -> Icon(
+                                    imageVector = MuseIcons.microphone,
+                                    contentDescription = recordingCd,
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier
+                                        .size(MuseIconSizes.iconMedium)
+                                        .scale(pulseScale),
+                                )
+                                else -> Box(
+                                    modifier = Modifier
+                                        .size(MuseIconSizes.stopButton)
+                                        .clip(CircleShape)
+                                        .background(MuseActionColors.neutralContainer),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Icon(
+                                        imageVector = MuseIcons.microphone,
+                                        contentDescription = holdToRecordCd,
+                                        tint = MuseActionColors.mutedContent,
+                                        modifier = Modifier.size(MuseIconSizes.iconSmall),
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    showMic -> {
                         MuseTactileButton(
                             icon = MuseIcons.microphone,
                             contentDescription = voiceCd,
@@ -419,6 +538,65 @@ fun AgentFloatingComposer(
                             },
                         )
                     }
+                    else -> {
+                        Box(
+                            modifier = Modifier.size(MuseIconSizes.touchTarget),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(MuseIconSizes.stopButton)
+                                    .clip(CircleShape)
+                                    .background(MuseActionColors.neutralContainer),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    imageVector = MuseIcons.send,
+                                    contentDescription = sendCd,
+                                    tint = MuseActionColors.mutedContent,
+                                    modifier = Modifier.size(MuseIconSizes.iconSmall),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 录音/识别/取消状态提示条（与普通对话 InputBar 一致）
+        if (isRecording || asrStatus == ASRStatus.Stopping ||
+            (asrStatus == ASRStatus.Error && !asrErrorMessage.isNullOrBlank()) || showCancelledHint
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = MusePaddings.tightGap),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                when {
+                    asrStatus == ASRStatus.Stopping -> LoadingDots(text = stringResource(R.string.voice_recognizing))
+                    asrStatus == ASRStatus.Reconnecting -> LoadingDots(text = stringResource(R.string.voice_reconnecting))
+                    asrStatus == ASRStatus.Connecting -> LoadingDots(text = stringResource(R.string.voice_connecting))
+                    asrStatus == ASRStatus.Error -> Text(
+                        text = asrErrorMessage ?: stringResource(R.string.chat_recording_start_failed),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                    isRecording -> {
+                        RecordingWaveform(amplitudes = recordingAmplitudes)
+                        Spacer(modifier = Modifier.width(MusePaddings.contentGap))
+                        Text(
+                            text = stringResource(R.string.voice_release_to_recognize),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    showCancelledHint -> Text(
+                        text = stringResource(R.string.chat_cancelled),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
         }

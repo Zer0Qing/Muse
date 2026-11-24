@@ -75,7 +75,7 @@ class MemoryToolScopeTest {
     )
 
     @Test
-    fun `search takes the trusted scope and keeps suppressed facts out`() {
+    fun `search takes the trusted scope and includes suppressed facts for explicit recall`() {
         runBlocking {
             val cases = RecordingUseCases()
             val output = SearchMemoryTool.executeWithUseCases(
@@ -91,7 +91,7 @@ class MemoryToolScopeTest {
             assertEquals("assistant-a", request.scope.assistantId)
             assertEquals("chat", request.scope.scope)
             assertEquals("space-b", request.scope.spaceId)
-            assertFalse("默认检索不许把退出自动召回的事实一起端出去", request.includeSuppressed)
+            assertTrue("显式 search_memory 应允许按需查回已被移出自动召回的事实", request.includeSuppressed)
             assertTrue(output.isNotEmpty())
         }
     }

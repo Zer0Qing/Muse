@@ -649,6 +649,8 @@ val appModule = module {
                     )
                 }
             },
+            promptLoader = getOrNull(),
+            settingsRepository = getOrNull(),
         )
     }
 
@@ -707,6 +709,7 @@ val appModule = module {
             artifactRepository = getOrNull(),
             settingsRepository = getOrNull(),
             knowledgeDocDao = getOrNull<MuseDb>()?.knowledgeDocDao(),
+            appContext = androidContext(),
         )
     }
     // 候选产物暂存区。任务产出先落这里，审核通过且版本最新才应用到目标 ——

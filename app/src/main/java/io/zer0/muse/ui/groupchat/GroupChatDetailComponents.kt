@@ -408,17 +408,20 @@ internal fun GroupChatMessageBubble(
                         )
                     }
                 }
-                // v1.46: 思考过程块(可折叠)
+                // v1.46: 思考过程块(统一 MuseThinkingPanel)
                 if (chatPrefs.showReasoning) {
                     message.reasoning?.takeIf { it.isNotBlank() }?.let { reasoning ->
                         val reasoningExpanded = isReasoningExpanded ?: chatPrefs.reasoningExpandedByDefault
-                        GroupChatExpandableBlock(
-                            title = stringResource(R.string.groupchat_reasoning),
-                            content = reasoning,
+                        io.zer0.muse.ui.common.chat.MuseThinkingPanel(
+                            reasoning = reasoning,
                             expanded = reasoningExpanded,
                             onToggle = onToggleReasoningExpanded,
-                            titleColor = MaterialTheme.colorScheme.outline,
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            isThinkingActive = false,
+                            reasoningDurationMs = message.reasoningDurationMs,
+                            cacheKey = message.id,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = MusePaddings.tightGap),
                         )
                     }
                 }
@@ -504,50 +507,12 @@ internal fun GroupChatMessageBubble(
  */
 @Composable
 internal fun MoodCapsule(mood: String, expanded: Boolean, onToggle: () -> Unit) {
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        shape = MuseShapes.medium,
-        modifier = Modifier
-            .padding(bottom = 6.dp)
-            .clickable { onToggle() },
-    ) {
-        Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = stringResource(R.string.chat_mood_label),
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    // ST-10 (A11Y-03): 大字体下标题占满剩余宽度并最多 2 行,避免把右侧展开图标挤出
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
-                Icon(
-                    imageVector = if (expanded) MuseIcons.chevronUp else MuseIcons.chevronDown,
-                    contentDescription = if (expanded) {
-                        stringResource(R.string.groupchat_collapse)
-                    } else {
-                        stringResource(R.string.common_expand)
-                    },
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(MuseIconSizes.iconTiny),
-                )
-            }
-            if (expanded) {
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = mood,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-    }
+    io.zer0.muse.ui.common.chat.MuseMoodCard(
+        mood = mood,
+        expanded = expanded,
+        onToggle = onToggle,
+        modifier = Modifier.padding(bottom = MusePaddings.tightGap),
+    )
 }
 
 /**

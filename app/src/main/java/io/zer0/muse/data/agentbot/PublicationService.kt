@@ -127,6 +127,8 @@ class PublicationService(
         items: List<Item>,
         currentRequestRevision: Long = requestRevision,
         reasoningByItem: List<String?> = emptyList(),
+        reasoningDurationMsByItem: List<Long?> = emptyList(),
+        moodByItem: List<String?> = emptyList(),
         citationsByItem: List<List<String>> = emptyList(),
     ): Result = withContext(Dispatchers.IO) {
         if (items.isEmpty()) return@withContext Result(0, 0, 0, emptyList())
@@ -159,6 +161,8 @@ class PublicationService(
                 publicationId = publicationId,
                 sessionId = originSessionId,
                 reasoningByItem = reasoningByItem,
+                reasoningDurationMsByItem = reasoningDurationMsByItem,
+                moodByItem = moodByItem,
                 citationsByItem = citationsByItem,
             )
         }
@@ -381,6 +385,8 @@ class PublicationService(
         publicationId: String,
         sessionId: String,
         reasoningByItem: List<String?> = emptyList(),
+        reasoningDurationMsByItem: List<Long?> = emptyList(),
+        moodByItem: List<String?> = emptyList(),
         citationsByItem: List<List<String>> = emptyList(),
     ): Result {
         val pending = db.publicationOutboxDao().listByPublication(publicationId)
@@ -444,6 +450,8 @@ class PublicationService(
                             } ?: "[]",
                             ragCitationsJson = "[]",
                             imageBase64Json = "[]",
+                            mood = moodByItem.getOrNull(index)?.takeIf { it.isNotBlank() },
+                            reasoningDurationMs = reasoningDurationMsByItem.getOrNull(index),
                         ),
                     )
                     true

@@ -89,6 +89,7 @@ class ForegroundCoordinator(
         val providerToolBlind: Boolean = false,
         val publishedMessageId: String = "",
         val requestSuperseded: Boolean = false,
+        val mood: String = "",
     ) {
         val shouldDispatch: Boolean get() = dispatchGoal.isNotBlank()
 
@@ -220,6 +221,12 @@ class ForegroundCoordinator(
             }
         }
 
+        val extractedMood = io.zer0.muse.transformer.InternalMarkupSanitizer.extractMood(turn.say).orEmpty().trim()
+        val cleanSay = io.zer0.muse.transformer.InternalMarkupSanitizer.stripForDisplay(turn.say).trim()
+        if (extractedMood.isNotBlank() || cleanSay != turn.say) {
+            turn = turn.copy(say = cleanSay, mood = extractedMood)
+        }
+
         // 主 Bot 说的话必须经 PublicationService 提交才可见。
         //
         // 这一步不能省：模型正文只有经显式 bot_say 与发布通道提交才算对外表达，
@@ -235,6 +242,7 @@ class ForegroundCoordinator(
                     taskRevision = 1,
                     items = listOf(PublicationService.Item(PublicationKind.TEXT, turn.say)),
                     currentRequestRevision = currentRequestRevision(),
+                    moodByItem = listOf(turn.mood.ifBlank { null }),
                 )
             }.onFailure {
                 Logger.w("ForegroundCoordinator", "发布失败: ${it.message}")

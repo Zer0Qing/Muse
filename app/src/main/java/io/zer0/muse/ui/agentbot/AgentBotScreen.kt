@@ -54,6 +54,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -156,12 +157,47 @@ fun AgentBotScreen(
     val knowledgeDocs by viewModel.knowledgeDocsFlow.collectAsStateWithLifecycle(initialValue = emptyList())
     val deepThinkingEnabled by viewModel.deepThinkingEnabled.collectAsStateWithLifecycle()
     val deepThinkingLevel by viewModel.deepThinkingLevel.collectAsStateWithLifecycle()
+    val asrConfig by viewModel.asrConfig.collectAsStateWithLifecycle()
+    val asrState by viewModel.asrState.collectAsStateWithLifecycle()
+    val localModelReady by io.zer0.muse.asr.local.LocalModelStoreBridge.readyFlow.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
+    val systemRecognizerAvailable = remember(context) { SpeechInput.isAvailable(context) }
+    val showMic = io.zer0.muse.asr.isAsrInputAvailable(
+        provider = asrConfig.provider,
+        apiKey = asrConfig.apiKey,
+        localModelReady = localModelReady,
+        systemRecognizerAvailable = systemRecognizerAvailable,
+    )
+    var systemRecording by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
     val voiceUnavailableText = stringResource(R.string.agent_hub_voice_unavailable)
     val voiceRecordingPrompt = stringResource(R.string.agent_hub_voice_recording)
+
+    val micPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        if (!granted) {
+            MuseToast.show(context.getString(R.string.chat_err_mic_permission))
+        }
+    }
+
+    val lifecycleOwnerForAsr = LocalLifecycleOwner.current
+    androidx.compose.runtime.DisposableEffect(lifecycleOwnerForAsr, viewModel) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP) {
+                systemRecording = false
+                viewModel.disposeAsr()
+            }
+        }
+        lifecycleOwnerForAsr.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwnerForAsr.lifecycle.removeObserver(observer)
+            systemRecording = false
+            viewModel.disposeAsr()
+        }
+    }
 
     val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
         uris.forEach { uri ->
@@ -375,9 +411,19 @@ fun AgentBotScreen(
         globalBackground = effectiveGlobalBackground,
     )
     val glassConfig = io.zer0.muse.ui.theme.LocalLiquidGlass.current
-    val glassActive = glassConfig.enabled && io.zer0.muse.ui.theme.isRealGlassSupported()
-    val pageLayerBackdrop = if (glassActive) rememberLayerBackdrop() else null
-    val pageWaterState = if (glassActive) rememberLiquidState() else null
+    val glassActive = glassConfig.enabled &&
+        io.zer0.muse.ui.theme.isRealGlassSupported() &&
+        !io.zer0.muse.ui.theme.LocalInsideBackdropRecorder.current
+    val pageLayerBackdrop = if (glassActive && glassConfig.style == io.zer0.muse.ui.theme.GlassStyle.FROST) {
+        rememberLayerBackdrop()
+    } else {
+        null
+    }
+    val pageWaterState = if (glassActive && glassConfig.style == io.zer0.muse.ui.theme.GlassStyle.WATER) {
+        rememberLiquidState()
+    } else {
+        null
+    }
     val backgroundIsDark = when {
         !chatBackground.isNullOrBlank() -> true
         else -> chatGradient?.let { g ->
@@ -399,6 +445,15 @@ fun AgentBotScreen(
                 .then(if (pageLayerBackdrop != null) Modifier.layerBackdrop(pageLayerBackdrop) else Modifier)
                 .then(if (pageWaterState != null) Modifier.liquefiable(pageWaterState) else Modifier),
         ) {
+            // 内容层内部隔离 backdrop 采样源，避免滚动流内的流内玻璃胶囊（如 AgentInlineIdentityBar）
+            // 反向采样自身所属的 backdrop 导致 HWUI RenderThread 递归崩溃。
+            androidx.compose.runtime.CompositionLocalProvider(
+                io.zer0.muse.ui.theme.LocalLayerBackdrop provides null,
+                io.zer0.muse.ui.theme.LocalWaterGlassState provides null,
+                io.zer0.muse.ui.theme.LocalInsideBackdropRecorder provides
+                    (pageLayerBackdrop != null || pageWaterState != null ||
+                        io.zer0.muse.ui.theme.LocalInsideBackdropRecorder.current),
+            ) {
             if (!chatBackground.isNullOrBlank()) {
                 AsyncImage(
                     model = chatBackground,
@@ -506,7 +561,8 @@ fun AgentBotScreen(
                                 chatPreferences = chatPreferences,
                                 modelLabel = visibleModel,
                                 onCopy = {
-                                    clipboard?.setPrimaryClip(ClipData.newPlainText(null, message.text))
+                                    val cleanCopy = io.zer0.muse.transformer.InternalMarkupSanitizer.displayContent(message.text)
+                                    clipboard?.setPrimaryClip(ClipData.newPlainText(null, cleanCopy))
                                     MuseToast.show(copiedToastText)
                                 },
                                 onRetry = { viewModel.retryMessage(message.messageId) },
@@ -620,6 +676,7 @@ fun AgentBotScreen(
                         }
                     }
             }
+            }
         }
 
         androidx.compose.runtime.CompositionLocalProvider(
@@ -722,6 +779,11 @@ fun AgentBotScreen(
                 isWebSearchEnabled = webSearchConfig.enabled,
                 isDeepThinkingEnabled = deepThinkingEnabled,
                 deepThinkingLevel = deepThinkingLevel,
+                isRecording = asrState.isRecording || systemRecording,
+                asrStatus = asrState.status,
+                asrErrorMessage = asrState.errorMessage,
+                recordingAmplitudes = asrState.amplitudes,
+                showMic = showMic,
                 onTextChange = viewModel::onComposerTextChange,
                 onClearQuote = { viewModel.setQuotedMessage(null) },
                 onCancelEdit = viewModel::cancelEditingMessage,
@@ -740,16 +802,55 @@ fun AgentBotScreen(
                 },
                 onPickGalleryImage = { uri -> viewModel.addPendingImage(uri, context) },
                 onRemoveImage = viewModel::removePendingImage,
-                onVoiceInput = {
-                    if (SpeechInput.isAvailable(context)) {
+                onStartRecording = {
+                    if (viewModel.shouldUseApiRecording()) {
+                        val hasMic = androidx.core.content.ContextCompat.checkSelfPermission(
+                            context,
+                            android.Manifest.permission.RECORD_AUDIO,
+                        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                        if (hasMic) {
+                            val ok = viewModel.startStreamingAsr()
+                            if (!ok) {
+                                val err = viewModel.asrState.value.errorMessage
+                                    ?.takeIf { it.isNotBlank() }
+                                    ?: context.getString(R.string.asr_missing_api_key_error)
+                                MuseToast.show(err)
+                            }
+                            ok
+                        } else {
+                            micPermissionLauncher.launchSafely(
+                                android.Manifest.permission.RECORD_AUDIO,
+                                context,
+                            )
+                            MuseToast.show(context.getString(R.string.chat_err_mic_permission))
+                            false
+                        }
+                    } else if (SpeechInput.isAvailable(context)) {
+                        systemRecording = true
+                        true
+                    } else {
+                        MuseToast.show(voiceUnavailableText)
+                        false
+                    }
+                },
+                onStopRecording = {
+                    if (viewModel.shouldUseApiRecording()) {
+                        viewModel.stopStreamingAsrAndSend()
+                    } else {
+                        systemRecording = false
                         runCatching {
                             voiceLauncher.launch(SpeechInput.createIntent(voiceRecordingPrompt))
                         }.onFailure {
                             Logger.w("AgentBotScreen", "拉起语音输入失败: ${it.message}")
                             MuseToast.show(voiceUnavailableText)
                         }
+                    }
+                },
+                onCancelRecording = {
+                    if (viewModel.shouldUseApiRecording()) {
+                        viewModel.cancelStreamingAsr()
                     } else {
-                        MuseToast.show(voiceUnavailableText)
+                        systemRecording = false
                     }
                 },
                 onOpenWorkbench = { workbenchTab = AgentWorkbenchTab.LIVE },
@@ -1051,6 +1152,8 @@ private fun ScopeErrorRow(onRetry: () -> Unit) {
                 text = stringResource(R.string.agent_screen_load_failed),
                 modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.bodySmall,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
             )
             MuseCapsuleButton(
                 text = stringResource(R.string.agent_screen_retry_load),

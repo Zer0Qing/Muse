@@ -79,16 +79,48 @@ class MiniContextBuilder(
         sessionId: String? = null,
         voiceMessageEnabled: Boolean = false,
     ): List<UIMessage> {
-        val systemMessages = buildSystemMessages(assistant, voiceMessageEnabled)
+        val (taskSystemBlock, cleanUserContent) = splitTaskAndUserContent(userContent)
+        val systemMessages = buildSystemMessages(assistant, voiceMessageEnabled) +
+            listOfNotNull(taskSystemBlock?.let { UIMessage(role = MessageRole.SYSTEM, content = it) })
         val userMessage = UIMessage(
             role = MessageRole.USER,
-            content = userContent,
+            content = cleanUserContent,
             createdAt = System.currentTimeMillis(),
         )
         // 世界书 / 提示词注入需要"最后一条 USER 消息"作为关键词匹配文本，
-        // 所以先拼好原始列表再交给管道处理。
+        // 把任务样板与 <style> 移到 SYSTEM 后，世界书只扫描真实素材/用户话语，避免对模板词误触发。
         val raw = systemMessages + userMessage
         return applyTransformers(raw, assistant, sessionId)
+    }
+
+    /**
+     * 拆分旁路任务素材：把 `<moment_task>`/`<chat_task>`/`<inner_voice_task>`/`<scene_task>`
+     * 与 `<style>` 样板指令移入 SYSTEM 角色，USER 仅保留真实动态提示或触发句，防止世界书误触发。
+     */
+    private fun splitTaskAndUserContent(raw: String): Pair<String?, String> {
+        val styleMatch = STYLE_BLOCK_REGEX.find(raw) ?: return null to raw
+        val taskMatch = TASK_BLOCK_REGEX.find(raw) ?: return null to raw
+        val taskTag = taskMatch.groupValues[1]
+        val taskBody = taskMatch.groupValues[2].trim()
+        val styleBlock = styleMatch.value.trim()
+        val hintMatch = HINT_BLOCK_REGEX.find(taskBody)
+        val (taskDirective, userTrigger) = when {
+            hintMatch != null -> {
+                val hintText = hintMatch.groupValues[1].trim()
+                val headerWithoutHint = taskBody.replace(hintMatch.value, "").trim()
+                val directive = "<$taskTag>\n$headerWithoutHint\n</$taskTag>\n\n$styleBlock"
+                directive to hintText.ifBlank { DEFAULT_TASK_TRIGGER }
+            }
+            taskTag == "scene_task" -> {
+                val directive = "请按用户消息中的场景任务说明，以你自己的身份完成写作。\n\n$styleBlock"
+                directive to taskBody.ifBlank { DEFAULT_TASK_TRIGGER }
+            }
+            else -> {
+                val directive = "<$taskTag>\n$taskBody\n</$taskTag>\n\n$styleBlock"
+                directive to DEFAULT_TASK_TRIGGER
+            }
+        }
+        return taskDirective to userTrigger
     }
 
     /**
@@ -97,6 +129,9 @@ class MiniContextBuilder(
      * `forSubagent = true` 的理由：旁路生成是"隔离的单次任务"，不该拿团队花名册、
      * 委派工具清单、Agent 收件箱摘要——那些只属于主对话。但它仍保留基础人格、
      * 世界书与记忆注入，这正是本次修复要补的部分。
+     *
+     * 小手机所有路径都不需要 `<mood>` 内部腹稿块，在返回前显式剥离 MOOD 格式段，
+     * 避免模型先浪费预算写 `<mood>` 再在输出层被剥掉。
      *
      * 语音约定（[voiceMessageInstruction]）排在系统消息最后一条：人格与世界书先立人设，
      * 输出格式类的指令紧随其后，模型对靠近用户消息的约束更敏感。
@@ -113,10 +148,33 @@ class MiniContextBuilder(
             )
         }.onError { msg, t ->
             Logger.w(TAG, "构建系统提示失败，退化为空系统提示: ${t?.message ?: msg}")
-        }.getOrNull() ?: emptyList()
+        }.getOrNull().orEmpty()
+            .mapNotNull { msg ->
+                if (msg.role != MessageRole.SYSTEM) {
+                    msg
+                } else {
+                    val cleaned = stripMoodFormatSection(msg.content)
+                    if (cleaned.isBlank()) null else msg.copy(content = cleaned)
+                }
+            }
         if (!voiceMessageEnabled) return base
         // 系统提示构建失败时也照常带上约定：没有它模型不会输出标记，语音功能等于不存在
         return base + UIMessage(role = MessageRole.SYSTEM, content = voiceMessageInstruction())
+    }
+
+    /** 移除 SystemPromptAssembler 注入的 MOOD 格式段（小手机场景不消费 `<mood>`）。 */
+    private fun stripMoodFormatSection(content: String): String {
+        if (!content.contains("<mood>", ignoreCase = true) && !content.contains("MOOD", ignoreCase = true)) {
+            return content
+        }
+        val sections = content.split(SECTION_SEPARATOR)
+        val kept = sections.filterNot { section ->
+            val firstLine = section.trim().lineSequence().firstOrNull()?.trim().orEmpty()
+            firstLine.startsWith("MOOD 格式", ignoreCase = true) ||
+                firstLine.startsWith("MOOD format", ignoreCase = true) ||
+                (section.contains("<mood>", ignoreCase = true) && section.contains("Vibe:", ignoreCase = true))
+        }
+        return kept.joinToString(SECTION_SEPARATOR)
     }
 
     /** 只跑与人格一致性相关的 Transformer。 */
@@ -232,6 +290,16 @@ class MiniContextBuilder(
 
         /** 旁路生成使用的默认提示词模式（与助手默认绑定一致）。 */
         private const val DEFAULT_PROMPT_MODE = "default"
+
+        private const val SECTION_SEPARATOR = "\n\n---\n\n"
+        private const val DEFAULT_TASK_TRIGGER = "请按任务要求直接输出。"
+
+        private val STYLE_BLOCK_REGEX = Regex("""<style>[\s\S]*?</style>""", RegexOption.IGNORE_CASE)
+        private val TASK_BLOCK_REGEX = Regex(
+            """<(moment_task|chat_task|inner_voice_task|scene_task)>([\s\S]*?)</\1>""",
+            RegexOption.IGNORE_CASE,
+        )
+        private val HINT_BLOCK_REGEX = Regex("""<hint>([\s\S]*?)</hint>""", RegexOption.IGNORE_CASE)
     }
 }
 
@@ -239,7 +307,7 @@ class MiniContextBuilder(
  * 小手机私信的语音输出约定。
  *
  * 宿主侧按 `[语音]……[/语音]` 切段：标记里的内容合成语音发出，标记外的当普通文本；
- * 单轮最多合成 5 段，标记内没有中文的段落会被跳过。这些规则在模型侧无法自发现，
+ * 单轮最多合成 5 段，标记内没有中文的段落会自动退化为普通文字发出。这些规则在模型侧无法自发现，
  * 所以必须显式写进系统指令，否则模型永远不会输出标记。
  *
  * 只给私信路径用：动态与主动消息也走同一个 [MiniContextBuilder]，但它们没有语音出口。
@@ -248,7 +316,7 @@ internal fun voiceMessageInstruction(): String = buildString {
     appendLine("<voice_message>")
     appendLine("想说出口的台词用 [语音] 开头、[/语音] 结尾包起来，一对方括号包一段。系统只把标记里的内容合成语音发出去，对方听到的是声音，看不到标记；标记外的文字照常当消息发。")
     appendLine("- 一次最多 5 段。")
-    appendLine("- 旁白、动作描写、心理活动、英文原文不要放进去：这些不会被念出来，纯英文的一段会被直接跳过。")
+    appendLine("- 旁白、动作描写、心理活动、英文原文不要放进去：这些不会被念出来，纯英文会自动以文字发出。")
     appendLine("- 不必每轮都发语音。情绪重、话短、想让对方听见的时候才用。")
     appendLine("- 标记不要嵌套，也不要跨段复用：一段台词一对标记，说完就收起。")
     appendLine("</voice_message>")

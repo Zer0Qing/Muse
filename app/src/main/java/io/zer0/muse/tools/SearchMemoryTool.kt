@@ -107,7 +107,8 @@ object SearchMemoryTool {
                 tags = tags,
                 dateRange = if (from != null || to != null) FactStore.DateRange(from, to) else null,
                 limit = limit,
-                includeSuppressed = false,
+                // 显式检索必须包含已退出自动召回的早期记忆，与工具描述口径一致
+                includeSuppressed = true,
             ),
         )
         return when (result) {

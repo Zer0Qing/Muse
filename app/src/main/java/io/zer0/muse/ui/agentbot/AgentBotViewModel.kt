@@ -47,6 +47,7 @@ import io.zer0.muse.data.agentbot.TranscriptRestorer
 import io.zer0.muse.data.agentbot.asScopeStates
 import io.zer0.muse.data.agentbot.ConversationToolAllowanceStore
 import io.zer0.muse.data.agentbot.ForegroundCoordinator
+import io.zer0.muse.data.withResolvedEndpoint
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -114,6 +115,7 @@ class AgentBotViewModel(
     private val artifactRepository: io.zer0.muse.data.artifact.ArtifactRepository? = null,
     private val settingsRepository: io.zer0.muse.data.SettingsRepository? = null,
     private val knowledgeDocDao: io.zer0.muse.data.knowledge.KnowledgeDocDao? = null,
+    private val appContext: android.content.Context? = null,
 ) : ViewModel() {
 
     private val ui = AgentBotUiState()
@@ -156,6 +158,23 @@ class AgentBotViewModel(
 
     private val _deepThinkingLevel = MutableStateFlow(io.zer0.ai.core.ReasoningLevel.HIGH)
     val deepThinkingLevel: StateFlow<io.zer0.ai.core.ReasoningLevel> = _deepThinkingLevel.asStateFlow()
+
+    private val _asrConfig = MutableStateFlow(io.zer0.muse.asr.AsrConfig())
+    val asrConfig: StateFlow<io.zer0.muse.asr.AsrConfig> = _asrConfig.asStateFlow()
+
+    private val _asrState = MutableStateFlow(io.zer0.muse.asr.ASRState())
+    val asrState: StateFlow<io.zer0.muse.asr.ASRState> = _asrState.asStateFlow()
+
+    private val asrCoordinator: io.zer0.muse.asr.StreamingAsrCoordinator? = appContext?.let { ctx ->
+        io.zer0.muse.asr.StreamingAsrCoordinator(
+            context = ctx,
+            coroutineScope = viewModelScope,
+            configProvider = { _asrConfig.value },
+            inputProvider = { ui.composer.value.text },
+            updateInput = { transform -> ui.setComposerText(transform(ui.composer.value.text)) },
+            onStateChange = { state -> _asrState.value = state },
+        )
+    }
 
     private val _hasOlderTranscript = MutableStateFlow(false)
     val hasOlderTranscript: StateFlow<Boolean> = _hasOlderTranscript.asStateFlow()
@@ -222,6 +241,41 @@ class AgentBotViewModel(
                 }
                 .collect { state -> onScopeState(state) }
         }
+        settingsRepository?.let { repo ->
+            viewModelScope.launch {
+                combine(repo.asrConfigFlow, repo.providersFlow) { cfg, providers ->
+                    val resolved = io.zer0.muse.data.SpeechProviderResolver.resolveAsr(cfg, providers)
+                    cfg.withResolvedEndpoint(resolved)
+                }.collect { effective ->
+                    _asrConfig.value = effective
+                }
+            }
+        }
+    }
+
+    fun shouldUseApiRecording(): Boolean = asrCoordinator?.shouldUseApiRecording() == true
+
+    fun startStreamingAsr(): Boolean = asrCoordinator?.startStreamingAsr() == true
+
+    fun stopStreamingAsrAndSend() {
+        asrCoordinator?.stopStreamingAsrAndSend {
+            if (ui.composer.value.text.isNotBlank()) {
+                send()
+            }
+        }
+    }
+
+    fun cancelStreamingAsr() {
+        asrCoordinator?.cancelStreamingAsr()
+    }
+
+    fun disposeAsr() {
+        asrCoordinator?.dispose()
+    }
+
+    override fun onCleared() {
+        asrCoordinator?.dispose()
+        super.onCleared()
     }
 
     /** 一次页面范围请求：assistant + 宿主传入的 canonical 会话（可能为空，待绑定回读）。 */
@@ -885,6 +939,7 @@ class AgentBotViewModel(
                             identity.assistantId,
                             identity.sessionId,
                         ),
+                        moodByItem = listOf(turn.mood.ifBlank { null }),
                     )
                 } catch (e: CancellationException) {
                     throw e
@@ -903,6 +958,7 @@ class AgentBotViewModel(
                     messageId = publishedMessageId,
                     role = AgentBotUiState.Role.BOT,
                     text = turn.say,
+                    mood = turn.mood,
                     createdAt = System.currentTimeMillis(),
                 ),
             )
@@ -1004,6 +1060,10 @@ class AgentBotViewModel(
                                 active = true,
                                 text = draft.text,
                                 reasoning = draft.reasoning,
+                                reasoningStartedAtMs = draft.reasoningStartedAtMs,
+                                reasoningDurationMs = draft.reasoningDurationMs,
+                                isThinkingActive = draft.isThinkingActive,
+                                mood = draft.mood,
                                 citationUrls = draft.citationUrls,
                             ),
                         )
@@ -1037,6 +1097,8 @@ class AgentBotViewModel(
                         text = outcome.text,
                         createdAt = System.currentTimeMillis(),
                         reasoning = outcome.reasoning,
+                        reasoningDurationMs = outcome.reasoningDurationMs,
+                        mood = outcome.mood,
                         citationUrls = outcome.citationUrls,
                     ),
                 )
@@ -1241,12 +1303,19 @@ class AgentBotViewModel(
         ui.setSending(false)
         ui.setTyping(false)
         ui.clearStreaming()
-        if (partial.active && partial.text.isNotBlank() && sessionId.isNotBlank()) {
+        if (partial.active && (partial.text.isNotBlank() || partial.mood.isNotBlank()) && sessionId.isNotBlank()) {
             val savedId = kotlin.uuid.Uuid.random()
-            val savedText = partial.text.trimEnd()
+            val savedText = io.zer0.muse.transformer.InternalMarkupSanitizer.stripForDisplay(partial.text).trimEnd()
+            val savedMood = partial.mood.ifBlank {
+                io.zer0.muse.transformer.InternalMarkupSanitizer.extractMood(partial.text).orEmpty()
+            }.trim().ifBlank { null }
             val savedReasoning = partial.reasoning.trim().ifBlank { null }
+            val savedReasoningDurationMs = partial.reasoningDurationMs ?: partial.reasoningStartedAtMs?.let {
+                (System.currentTimeMillis() - it).coerceAtLeast(0L)
+            }
             val savedCitations = partial.citationUrls
             val now = System.currentTimeMillis()
+            if (savedText.isBlank() && savedMood == null) return
             if (currentBotId == botId && currentSessionId == sessionId) {
                 ui.appendPublished(
                     AgentBotUiState.PublishedMessage(
@@ -1255,6 +1324,8 @@ class AgentBotViewModel(
                         text = savedText,
                         createdAt = now,
                         reasoning = savedReasoning.orEmpty(),
+                        reasoningDurationMs = savedReasoningDurationMs,
+                        mood = savedMood.orEmpty(),
                         citationUrls = savedCitations,
                     ),
                 )
@@ -1268,6 +1339,8 @@ class AgentBotViewModel(
                             role = io.zer0.ai.core.MessageRole.ASSISTANT,
                             content = savedText,
                             reasoning = savedReasoning,
+                            reasoningDurationMs = savedReasoningDurationMs,
+                            mood = savedMood,
                             citationUrls = savedCitations,
                             createdAt = now,
                         ),

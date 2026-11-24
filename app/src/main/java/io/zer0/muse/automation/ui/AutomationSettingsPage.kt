@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -34,26 +33,33 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.common.Logger
-import io.zer0.muse.ui.theme.MuseCornerRadius
 import io.zer0.muse.R
 import io.zer0.muse.automation.core.AutomationManager
 import io.zer0.muse.data.AutomationSettingsStore
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.ui.chat.ChatViewModel
 import io.zer0.muse.ui.common.feedback.MuseToast
-import io.zer0.muse.ui.common.form.MuseCapsuleButton
-import io.zer0.muse.ui.common.form.MuseSwitch
 import io.zer0.muse.ui.common.icons.MuseIcons
-import io.zer0.muse.ui.common.settings.ChevronRight
-import io.zer0.muse.ui.common.settings.SettingsGroup
-import io.zer0.muse.ui.common.settings.SettingsItemRow
+import io.zer0.muse.ui.common.surface.CardGroup
+import io.zer0.muse.ui.common.surface.actionItem
+import io.zer0.muse.ui.common.surface.navigationItem
+import io.zer0.muse.ui.common.surface.switchItem
 import io.zer0.muse.ui.settings.SettingsSubPageScaffold
+import io.zer0.muse.ui.theme.MuseAlpha
+import io.zer0.muse.ui.theme.MuseIconSizes
+import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.MuseSpacing
+import io.zer0.muse.ui.theme.largeCard
+import io.zer0.muse.ui.theme.semiLarge
+import io.zer0.muse.ui.theme.titleMediumStrong
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -130,28 +136,13 @@ fun AutomationSettingsPage(
         ) {
             // 顶部说明卡
             item(key = "intro") {
-                Surface(
-                    shape = RoundedCornerShape(MuseCornerRadius.CARD.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        Icon(
-                            imageVector = MuseIcons.computer,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                        )
-                        Text(
-                            text = stringResource(R.string.automation_settings_intro),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
+                AutomationNoticeCard(
+                    icon = MuseIcons.computer,
+                    text = stringResource(R.string.automation_settings_intro),
+                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = MuseAlpha.mutedSurface),
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    iconTint = MaterialTheme.colorScheme.primary,
+                )
             }
 
             // 总闸关闭时，页面顶部先给一条醒目提示：否则用户只会看到「开关是关的」，
@@ -167,28 +158,13 @@ fun AutomationSettingsPage(
             when (bannerKind) {
                 AutomationBannerKind.MASTER_OFF -> {
                     item(key = "master-off-banner") {
-                        Surface(
-                            shape = RoundedCornerShape(MuseCornerRadius.CARD.dp),
-                            color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            ) {
-                                Icon(
-                                    imageVector = MuseIcons.shield,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.error,
-                                )
-                                Text(
-                                    text = stringResource(R.string.automation_master_off_banner),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onErrorContainer,
-                                )
-                            }
-                        }
+                        AutomationNoticeCard(
+                            icon = MuseIcons.shield,
+                            text = stringResource(R.string.automation_master_off_banner),
+                            containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = MuseAlpha.mutedSurface),
+                            contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                            iconTint = MaterialTheme.colorScheme.error,
+                        )
                     }
                 }
 
@@ -196,44 +172,31 @@ fun AutomationSettingsPage(
                 // 与上面的「总闸关闭」横幅互斥：那条说「为什么不能用」，这条说「去哪开回来」。
                 AutomationBannerKind.A11Y_OFF -> {
                     item(key = "a11y-off-banner") {
-                        Surface(
-                            shape = RoundedCornerShape(MuseCornerRadius.CARD.dp),
-                            color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f),
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            ) {
-                                Icon(
-                                    imageVector = MuseIcons.shield,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                        AutomationNoticeCard(
+                            icon = MuseIcons.shield,
+                            text = stringResource(R.string.automation_a11y_off_banner),
+                            containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = MuseAlpha.mutedSurface),
+                            contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                            iconTint = MaterialTheme.colorScheme.onTertiaryContainer,
+                            action = {
+                                Text(
+                                    text = stringResource(R.string.automation_a11y_off_action),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier
+                                        .padding(top = MuseSpacing.smTight)
+                                        .clip(MuseShapes.small)
+                                        .clickable {
+                                            manager.openSystemSettings(
+                                                AutomationManager.SystemSettingsTarget.ACCESSIBILITY,
+                                            )
+                                        }
+                                        .padding(horizontal = MuseSpacing.xs, vertical = MuseSpacing.xxs),
                                 )
-                                Column(Modifier.weight(1f)) {
-                                    Text(
-                                        text = stringResource(R.string.automation_a11y_off_banner),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onTertiaryContainer,
-                                    )
-                                    Text(
-                                        text = stringResource(R.string.automation_a11y_off_action),
-                                        style = MaterialTheme.typography.labelLarge,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier
-                                            .padding(top = 6.dp)
-                                            .clip(RoundedCornerShape(MuseCornerRadius.SMALL.dp))
-                                            .clickable {
-                                                manager.openSystemSettings(
-                                                    AutomationManager.SystemSettingsTarget.ACCESSIBILITY,
-                                                )
-                                            }
-                                            .padding(horizontal = 4.dp, vertical = 2.dp),
-                                    )
-                                }
-                            }
-                        }
+                            },
+                        )
                     }
                 }
 
@@ -243,15 +206,14 @@ fun AutomationSettingsPage(
             // v2.x: 三通道权限配置已收敛到「权限配置向导」(消除两页逐层重复)
             if (page == AutomationSubPage.ACCESS) {
                 item(key = "permissions-entry") {
-                    SettingsGroup {
-                        SettingsItemRow(
-                            icon = MuseIcons.shieldCheck,
+                    CardGroup {
+                        navigationItem(
+                            key = "permission_wizard",
                             title = stringResource(R.string.permission_wizard_title),
                             subtitle = stringResource(R.string.permission_wizard_desc),
                             onClick = onOpenPermissionWizard,
-                        ) {
-                            ChevronRight()
-                        }
+                            leadingContent = { SettingsRowIcon(MuseIcons.shieldCheck) },
+                        )
                     }
                 }
             }
@@ -276,62 +238,64 @@ fun AutomationSettingsPage(
             }
 
             // 25: 两个并列总闸收进同一张卡，减少「一项一卡」的堆砌感；行为与开关各自独立不变。
+            // 没有 SettingsRepository（如页面测试）时开关不可交互：与其渲染一个拖不动却看不出原因的
+            // 开关，不如让 switchItem 明确进入禁用态。
+            val switchEnabled = settings != null
             item(key = "automation-master") {
-                SettingsGroup {
-                    SettingsItemRow(
-                        icon = MuseIcons.switch,
+                CardGroup {
+                    switchItem(
+                        key = "automation_master",
                         title = stringResource(R.string.automation_master_title),
                         subtitle = stringResource(R.string.automation_master_desc),
-                        onClick = null,
-                    ) {
-                        MuseSwitch(
-                            checked = automationEnabled,
-                            onCheckedChange = settings?.let { repository ->
-                                { enabled -> scope.launch { repository.saveAutomationEnabled(enabled) } }
-                            },
-                            contentDescription = stringResource(R.string.automation_master_title),
-                        )
-                    }
+                        checked = automationEnabled,
+                        onCheckedChange = { enabled ->
+                            settings?.let { repository -> scope.launch { repository.saveAutomationEnabled(enabled) } }
+                        },
+                        enabled = switchEnabled,
+                        leadingContent = { SettingsRowIcon(MuseIcons.switch) },
+                    )
                     // AUD-20261011-TASKER-ABUSE: exported broadcast remains opt-in and visibly warns about model cost.
-                    SettingsItemRow(
-                        icon = MuseIcons.link,
+                    switchItem(
+                        key = "automation_tasker",
                         title = stringResource(R.string.automation_tasker_title),
                         subtitle = stringResource(R.string.automation_tasker_desc),
-                        onClick = null,
-                    ) {
-                        MuseSwitch(
-                            checked = taskerEnabled,
-                            onCheckedChange = settings?.let { repository ->
-                                { enabled -> scope.launch { repository.saveTaskerTriggerEnabled(enabled) } }
-                            },
-                            contentDescription = stringResource(R.string.automation_tasker_title),
-                        )
-                    }
+                        checked = taskerEnabled,
+                        onCheckedChange = { enabled ->
+                            settings?.let { repository ->
+                                scope.launch { repository.saveTaskerTriggerEnabled(enabled) }
+                            }
+                        },
+                        enabled = switchEnabled,
+                        leadingContent = { SettingsRowIcon(MuseIcons.link) },
+                    )
                 }
             }
 
             // 25: 总览页的三个子页入口（默认全开：点进去即可配置，不再一页堆砌）。
             if (page == AutomationSubPage.LANDING) {
                 item(key = "sub-menu") {
-                    SettingsGroup {
-                        SettingsItemRow(
-                            icon = MuseIcons.shieldCheck,
+                    CardGroup {
+                        navigationItem(
+                            key = "sub_access",
                             title = stringResource(R.string.automation_sub_access),
                             subtitle = stringResource(R.string.automation_sub_access_desc),
                             onClick = { subPage = AutomationSubPage.ACCESS },
-                        ) { ChevronRight() }
-                        SettingsItemRow(
-                            icon = MuseIcons.computer,
+                            leadingContent = { SettingsRowIcon(MuseIcons.shieldCheck) },
+                        )
+                        navigationItem(
+                            key = "sub_autonomous",
                             title = stringResource(R.string.automation_sub_autonomous),
                             subtitle = stringResource(R.string.automation_sub_autonomous_desc),
                             onClick = { subPage = AutomationSubPage.AUTONOMOUS },
-                        ) { ChevronRight() }
-                        SettingsItemRow(
-                            icon = MuseIcons.clock,
+                            leadingContent = { SettingsRowIcon(MuseIcons.computer) },
+                        )
+                        navigationItem(
+                            key = "sub_orchestration",
                             title = stringResource(R.string.automation_sub_orchestration),
                             subtitle = stringResource(R.string.automation_sub_orchestration_desc),
                             onClick = { subPage = AutomationSubPage.ORCHESTRATION },
-                        ) { ChevronRight() }
+                            leadingContent = { SettingsRowIcon(MuseIcons.clock) },
+                        )
                     }
                 }
             }
@@ -372,6 +336,69 @@ fun AutomationSettingsPage(
     }
 }
 
+/**
+ * 页面顶部的说明/拦截条。
+ *
+ * 与卡片组区分开：它是「读一段话」的提示，不是可配置项，所以不套 [CardGroup]
+ * （套了会得到一个不可点的空行，反而让人去试着点它）。
+ */
+@Composable
+private fun AutomationNoticeCard(
+    icon: ImageVector,
+    text: String,
+    containerColor: Color,
+    contentColor: Color,
+    iconTint: Color,
+    action: (@Composable () -> Unit)? = null,
+) {
+    Surface(
+        shape = MuseShapes.largeCard,
+        color = containerColor,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier.padding(MusePaddings.sectionGap),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = iconTint,
+                modifier = Modifier.size(MuseIconSizes.iconMedium),
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = contentColor,
+                )
+                // 可选动作区：非空才组合，避免在空槽位上多铺一层布局节点。
+                val actionContent = action
+                if (actionContent != null) {
+                    actionContent()
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 卡片行首图标。
+ *
+ * 取 24dp 而不是 20dp：卡片内分隔线的缩进按「行内边距 + 24dp 图标 + 行内边距」计算，
+ * 图标换成更小档位会让每一条分隔线相对文字列左移 4dp，看起来像没对齐。
+ */
+@Composable
+private fun SettingsRowIcon(icon: ImageVector) {
+    Icon(
+        imageVector = icon,
+        contentDescription = null,
+        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.size(MuseIconSizes.icon),
+    )
+}
+
 /** 25: 编排与测试子页。从主页抽出，页内只留子页分流，避免单函数分支复杂度超标。 */
 private fun LazyListScope.orchestrationSubPage(
     testing: Boolean,
@@ -380,54 +407,55 @@ private fun LazyListScope.orchestrationSubPage(
     onOpenScheduledTasks: () -> Unit,
 ) {
     item(key = "orchestration") {
-        Surface(
-            shape = RoundedCornerShape(MuseCornerRadius.CARD.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Column(Modifier.padding(16.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = MuseIcons.clock,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                    Spacer(Modifier.width(8.dp))
+        CardGroup {
+            content(key = "orchestration_intro") {
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        // 自定义块不经过 MuseListItem，边距只在这里补一次；块内不再二次缩进。
+                        .padding(MusePaddings.cardInner),
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = MuseIcons.clock,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
+                        Spacer(Modifier.width(MusePaddings.contentGap))
+                        Text(
+                            text = stringResource(R.string.automation_orchestration_title),
+                            style = MaterialTheme.typography.titleMediumStrong,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                    Spacer(Modifier.height(MusePaddings.contentGap))
                     Text(
-                        text = stringResource(R.string.automation_orchestration_title),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
+                        text = stringResource(R.string.automation_orchestration_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text = stringResource(R.string.automation_orchestration_hint),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(Modifier.height(12.dp))
-                MuseCapsuleButton(
-                    text = stringResource(R.string.automation_orchestration_action),
-                    onClick = onOpenScheduledTasks,
-                    modifier = Modifier.fillMaxWidth(),
-                    leadingIcon = MuseIcons.clock,
-                )
             }
+            actionItem(
+                key = "orchestration_action",
+                title = stringResource(R.string.automation_orchestration_action),
+                onClick = onOpenScheduledTasks,
+            )
+            actionItem(
+                key = "test_action",
+                title = if (testing) {
+                    stringResource(R.string.automation_test_running)
+                } else {
+                    stringResource(R.string.automation_test_action)
+                },
+                onClick = onRunTest,
+                enabled = !testing,
+                loading = testing,
+            )
         }
-    }
-    item(key = "test") {
-        MuseCapsuleButton(
-            text = if (testing) {
-                stringResource(R.string.automation_test_running)
-            } else {
-                stringResource(R.string.automation_test_action)
-            },
-            onClick = onRunTest,
-            enabled = !testing,
-            loading = testing,
-            leadingIcon = MuseIcons.play,
-            modifier = Modifier.fillMaxWidth(),
-        )
     }
     testResult?.let { result ->
         item(key = "test-result") {
@@ -440,38 +468,40 @@ private fun LazyListScope.orchestrationSubPage(
 @Composable
 private fun ScreenTestResultCard(result: ScreenTestResult) {
     Surface(
-        shape = RoundedCornerShape(MuseCornerRadius.SEMI_LARGE.dp),
+        shape = MuseShapes.semiLarge,
         color = if (result.success) {
-            MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
+            MaterialTheme.colorScheme.secondaryContainer.copy(alpha = MuseAlpha.mutedSurface)
         } else {
-            MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
+            MaterialTheme.colorScheme.errorContainer.copy(alpha = MuseAlpha.mutedSurface)
         },
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Column(Modifier.padding(14.dp)) {
+        Column(Modifier.padding(MusePaddings.cardInner)) {
             Text(text = result.message, style = MaterialTheme.typography.bodySmall)
             // ST-04: 开发者诊断信息默认折叠,展开显示包名与数据来源
             result.devInfo?.let { devInfo ->
                 var showDevInfo by remember { mutableStateOf(false) }
-                Spacer(Modifier.height(6.dp))
+                Spacer(Modifier.height(MuseSpacing.smTight))
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(MuseCornerRadius.SMALL.dp))
+                        .clip(MuseShapes.small)
                         .clickable { showDevInfo = !showDevInfo }
-                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                        .padding(horizontal = MuseSpacing.sm, vertical = MuseSpacing.xs),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
                         text = stringResource(R.string.automation_developer_info),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f),
                     )
                     Icon(
                         imageVector = if (showDevInfo) MuseIcons.chevronUp else MuseIcons.chevronDown,
                         contentDescription = null,
-                        modifier = Modifier.size(18.dp),
+                        modifier = Modifier.size(MuseIconSizes.iconSmall),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
@@ -480,7 +510,7 @@ private fun ScreenTestResultCard(result: ScreenTestResult) {
                         text = devInfo,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        modifier = Modifier.padding(horizontal = MuseSpacing.sm, vertical = MuseSpacing.xs),
                     )
                 }
             }
@@ -554,15 +584,14 @@ private fun VirtualDisplayHandoffSection(
     if (!io.zer0.muse.automation.AutomationRuntime.isReady) return
     val first = handoffs.firstOrNull() ?: return
     val expanded = expandedId == first.displayId
-    SettingsGroup {
-        SettingsItemRow(
-            icon = MuseIcons.bolt,
+    CardGroup {
+        navigationItem(
+            key = "handoff_entry",
             title = stringResource(R.string.automation_handoff_title),
             subtitle = stringResource(R.string.automation_handoff_desc, handoffs.size),
             onClick = { onExpand(if (expanded) null else first.displayId) },
-        ) {
-            ChevronRight()
-        }
+            leadingContent = { SettingsRowIcon(MuseIcons.bolt) },
+        )
     }
     if (expanded) {
         VirtualDisplayHandoffPanel(

@@ -1,11 +1,10 @@
 package io.zer0.muse.ui.settings
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -14,100 +13,128 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.common.Logger
 import io.zer0.muse.R
 import io.zer0.muse.data.PreferenceStore
 import io.zer0.muse.data.UserPreference
-import io.zer0.muse.ui.common.form.MuseCapsuleButton
+import io.zer0.muse.ui.common.form.MuseSwitch
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.icons.MuseIcons
-import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.common.settings.ConfirmDeleteDialog
-import io.zer0.muse.ui.common.settings.SectionLabel
-import io.zer0.muse.ui.common.settings.SettingsGroup
-import io.zer0.muse.ui.common.settings.SettingsGroupDivider
-import io.zer0.muse.ui.common.settings.SettingsItemRow
 import io.zer0.muse.ui.common.state.MuseEmptyState
-import io.zer0.muse.ui.common.surface.MusePageScaffold
-import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.common.surface.CardGroup
+import io.zer0.muse.ui.theme.MuseSpacing
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
 /**
- * v2.6.7 fix (AUDIT F9): 用户偏好管理页。
- *
- * 背景：`PreferenceStore` 的 `preferencesFlow` / `remove` / `setEnabled` / `clear`
- * 此前全仓零调用 —— 助手会把「以后别…」记成硬约束，但用户看不到、删不掉、也关不掉。
- * 一条记错的偏好会永久生效。
- *
- * 这里把已有能力接成可用界面：列出、停用/启用、删除。
- * 新增条目仍由助手经 `remember_preference` 工具完成（那是它的自然入口）。
+ * 用户偏好管理页：列出助手经 `remember_preference` 记下的硬性交互偏好，支持启停与删除。
  */
 @Composable
-@Suppress("LongMethod") // 页级组合函数：弹窗与列表同在一处更易读，拆分会引入参数传递
 fun UserPreferencePage(onBack: () -> Unit, store: PreferenceStore = koinInject()) {
     val preferences by store.preferencesFlow.collectAsStateWithLifecycle(initialValue = emptyList())
     val scope = rememberCoroutineScope()
     var deleting by remember { mutableStateOf<UserPreference?>(null) }
+    val stateEnabledText = stringResource(R.string.common_state_enabled)
+    val stateDisabledText = stringResource(R.string.common_state_disabled)
 
-    MusePageScaffold(
-        topBar = {
-            MuseTopBar(
-                title = stringResource(R.string.settings_preference_title),
-                onBack = onBack,
-            )
-        },
-    ) { padding ->
+    SettingsSubPageScaffold(
+        title = stringResource(R.string.settings_preference_title),
+        onBack = onBack,
+    ) {
         if (preferences.isEmpty()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-            ) {
-                MuseEmptyState(
-                    icon = MuseIcons.check,
-                    title = stringResource(R.string.settings_preference_empty),
-                    modifier = Modifier.fillMaxSize(),
-                )
+            item(key = "preference_empty") {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = MuseSpacing.xxxl),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    MuseEmptyState(
+                        icon = MuseIcons.check,
+                        title = stringResource(R.string.settings_preference_empty),
+                    )
+                }
             }
         } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                    start = MusePaddings.screen,
-                    end = MusePaddings.screen,
-                    bottom = MusePaddings.listBottomClearance,
-                ),
-            ) {
-                item(key = "desc") {
-                    Text(
-                        text = stringResource(R.string.settings_preference_desc),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(vertical = MusePaddings.itemGap),
-                    )
-                }
-                item(key = "label") {
-                    SectionLabel(stringResource(R.string.settings_preference_subtitle))
-                }
-                items(preferences, key = { it.id }) { pref ->
-                    PreferenceRow(
-                        pref = pref,
-                        onToggle = { enabled ->
-                            scope.launch {
-                                runCatching { store.setEnabled(pref.id, enabled) }
-                                    .onFailure {
-                                        Logger.w("UserPreferencePage", "切换偏好状态失败: ${it.message}")
+            item(key = "preference_desc") {
+                Text(
+                    text = stringResource(R.string.settings_preference_desc),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = MuseSpacing.xs),
+                )
+            }
+            item(key = "preference_list") {
+                CardGroup(title = { Text(stringResource(R.string.settings_preference_subtitle)) }) {
+                    preferences.forEach { pref ->
+                        item(
+                            key = pref.id,
+                            onClick = {
+                                scope.launch {
+                                    runCatching { store.setEnabled(pref.id, !pref.enabled) }
+                                        .onFailure {
+                                            Logger.w("UserPreferencePage", "切换偏好状态失败: ${it.message}")
+                                        }
+                                }
+                            },
+                            headlineContent = {
+                                Text(
+                                    text = pref.rule,
+                                    maxLines = 3,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            },
+                            supportingContent = {
+                                val subtitle = buildString {
+                                    if (!pref.enabled) {
+                                        append(stringResource(R.string.settings_preference_disabled_tag))
+                                        if (pref.source.isNotBlank()) append(" · ")
                                     }
-                            }
-                        },
-                        onDelete = { deleting = pref },
-                    )
-                    if (pref != preferences.lastOrNull()) {
+                                    if (pref.source.isNotBlank()) {
+                                        append(stringResource(R.string.settings_preference_source, pref.source))
+                                    }
+                                }
+                                if (subtitle.isNotBlank()) {
+                                    Text(text = subtitle, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                }
+                            },
+                            trailingContent = {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(MuseSpacing.xs),
+                                ) {
+                                    MuseSwitch(
+                                        checked = pref.enabled,
+                                        onCheckedChange = { enabled ->
+                                            scope.launch {
+                                                runCatching { store.setEnabled(pref.id, enabled) }
+                                                    .onFailure {
+                                                        Logger.w("UserPreferencePage", "切换偏好状态失败: ${it.message}")
+                                                    }
+                                            }
+                                        },
+                                        modifier = Modifier.semantics {
+                                            stateDescription = if (pref.enabled) stateEnabledText else stateDisabledText
+                                        },
+                                    )
+                                    MuseTactileButton(
+                                        icon = MuseIcons.trash,
+                                        tint = MaterialTheme.colorScheme.error,
+                                        contentDescription = stringResource(R.string.common_delete),
+                                        compact = true,
+                                        onClick = { deleting = pref },
+                                    )
+                                }
+                            },
+                        )
                     }
                 }
             }
@@ -128,49 +155,5 @@ fun UserPreferencePage(onBack: () -> Unit, store: PreferenceStore = koinInject()
             },
             onDismiss = { deleting = null },
         )
-    }
-}
-
-@Composable
-private fun PreferenceRow(pref: UserPreference, onToggle: (Boolean) -> Unit, onDelete: () -> Unit) {
-    SettingsGroup {
-        SettingsItemRow(
-            icon = if (pref.enabled) MuseIcons.check else MuseIcons.circle,
-            title = pref.rule,
-            titleMaxLines = 3,
-            subtitle = buildString {
-                if (!pref.enabled) {
-                    append(stringResource(R.string.settings_preference_disabled_tag))
-                    if (pref.source.isNotBlank()) append(" · ")
-                }
-                if (pref.source.isNotBlank()) {
-                    append(stringResource(R.string.settings_preference_source, pref.source))
-                }
-            }.ifBlank { null },
-            onClick = { onToggle(!pref.enabled) },
-        ) {
-            Text(
-                text = stringResource(
-                    if (pref.enabled) {
-                        R.string.settings_preference_disable
-                    } else {
-                        R.string.common_enable
-                    },
-                ),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary,
-            )
-        }
-        SettingsItemRow(
-            icon = MuseIcons.trash,
-            title = stringResource(R.string.common_delete),
-            onClick = onDelete,
-        ) {
-            MuseCapsuleButton(
-                text = stringResource(R.string.common_delete),
-                onClick = onDelete,
-                fillWidth = false,
-            )
-        }
     }
 }

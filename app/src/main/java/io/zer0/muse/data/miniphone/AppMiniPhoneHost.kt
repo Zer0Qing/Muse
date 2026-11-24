@@ -182,15 +182,19 @@ internal class MiniPhoneTextComposer(
     suspend fun composeScene(assistant: AssistantEntity, brief: String): String? =
         generate(assistant, sceneMaterial(brief), MAX_TOKENS_SCENE)?.let(::cleanOutput)
 
-    /** 私信素材：把模块交来的对话拼成「人格系统提示 + 最近几轮」。 */
-    suspend fun buildConversation(assistant: AssistantEntity, history: List<MpChatTurn>): List<UIMessage> {
+    /** 私信/通话素材：把模块交来的对话拼成「人格系统提示 + 注入段 + 最近几轮」。 */
+    suspend fun buildConversation(
+        assistant: AssistantEntity,
+        history: List<MpChatTurn>,
+        isVoiceCall: Boolean = false,
+    ): List<UIMessage> {
         // 系统提示不是角色说过的话,图片/语音行没有文本 —— 两者都不进上下文
         val turns = history
             .filter { it.sender != MpActorType.SYSTEM && it.content.isNotBlank() }
             .takeLast(MAX_HISTORY_TURNS)
         val lastUser = turns.lastOrNull { it.sender == MpActorType.USER } ?: return emptyList()
         // 复用同一条人格组装链:世界书 / 提示词注入按最后一条用户消息取关键词;
-        // 私信是唯一有语音出口的路径,顺带把语音标记约定加进系统指令
+        // 私信与通话共享语音标记约定,通话场景再追加口语短句与禁 Markdown 约束
         val built = resultOf {
             contextBuilder.buildMessages(
                 assistant = assistant,
@@ -201,7 +205,28 @@ internal class MiniPhoneTextComposer(
             .onError { msg, t -> Logger.w(TAG, "组装角色上下文失败: ${t?.message ?: msg}") }
             .getOrNull()
             ?: return emptyList()
-        return built.takeWhile { it.role == MessageRole.SYSTEM } + turns.map { it.toUIMessage() }
+        val voiceCallHint = if (isVoiceCall) {
+            listOf(UIMessage(role = MessageRole.SYSTEM, content = VOICE_CALL_INSTRUCTION))
+        } else {
+            emptyList()
+        }
+        val turnMessages = turns.map { it.toUIMessage() }
+        // 保留 buildMessages 在 USER 前后插入的所有注入消息（如 WorldBook AT_DEPTH / post-USER 注入），
+        // 不再用 takeWhile { role == SYSTEM } 截断，避免非首段注入被静默丢弃。
+        val placeholderIdx = built.indexOfLast { it.role == MessageRole.USER && it.content == lastUser.content }
+        if (placeholderIdx < 0) {
+            return built.filter { it.role == MessageRole.SYSTEM } + voiceCallHint + turnMessages
+        }
+        val beforePlaceholder = built.subList(0, placeholderIdx)
+        val afterPlaceholder = built.subList(placeholderIdx + 1, built.size)
+        val leadingSystem = beforePlaceholder.takeWhile { it.role == MessageRole.SYSTEM }
+        val midInjections = beforePlaceholder.drop(leadingSystem.size)
+        return leadingSystem +
+            voiceCallHint +
+            turnMessages.dropLast(1) +
+            midInjections +
+            turnMessages.last() +
+            afterPlaceholder
     }
 
     /** 剥掉 think 标签、系统标记与包裹引号;剥完为空视为没有结果。 */
@@ -305,13 +330,26 @@ internal class MiniPhoneTextComposer(
         appendLine("</style>")
     }
 
-    /** 模块拼好的素材原样接进去：上下文在前，最后一句是这一条要写什么。 */
+    /** 模块拼好的动态素材包进 `<hint>`，便于 [MiniContextBuilder] 将样板指令移至 SYSTEM、仅让世界书扫描动态素材。 */
     private fun StringBuilder.appendHint(hint: String?) {
-        hint?.takeIf { it.isNotBlank() }?.lineSequence()?.forEach { line -> appendLine(line) }
+        val clean = hint?.trim()?.takeIf { it.isNotEmpty() } ?: return
+        appendLine("<hint>")
+        clean.lineSequence().forEach { line -> appendLine(line) }
+        appendLine("</hint>")
     }
 
     private companion object {
         private const val TAG = "MiniPhoneTextComposer"
+
+        /** 实时语音/视频通话场景的额外系统约束。 */
+        private val VOICE_CALL_INSTRUCTION = """
+<voice_call>
+你正在和用户进行实时语音/视频通话：
+- 用简短自然的口语短句说话（每次 1–2 句为主），像真人接电话一样自然回应；
+- 优先把说出口的台词用 [语音]...[/语音] 包裹起来，让对方直接听到声音；
+- 严禁使用 Markdown、编号列表、代码块、长段落、括号动作描写或旁白。
+</voice_call>
+        """.trimIndent()
 
         /** 一句话生成的上限：超时当失败处理（旁路生成不该拖住界面）。 */
         private const val GENERATION_TIMEOUT_MS = 15_000L
@@ -390,9 +428,12 @@ class AppMiniPhoneHost(
             emit(MpProfile(nickname = ""))
         }
 
-    override fun respond(characterId: String, history: List<MpChatTurn>): Flow<MpReplyEvent> = flow {
+    override fun respond(characterId: String, history: List<MpChatTurn>): Flow<MpReplyEvent> =
+        respond(characterId = characterId, history = history, isVoiceCall = false)
+
+    override fun respond(characterId: String, history: List<MpChatTurn>, isVoiceCall: Boolean): Flow<MpReplyEvent> = flow {
         val assistant = textComposer.findAssistant(characterId)
-        val messages = assistant?.let { textComposer.buildConversation(it, history) }
+        val messages = assistant?.let { textComposer.buildConversation(it, history, isVoiceCall = isVoiceCall) }
         if (assistant == null || messages.isNullOrEmpty()) {
             emit(MpReplyEvent.Failed)
             return@flow

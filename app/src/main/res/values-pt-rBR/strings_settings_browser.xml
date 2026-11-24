@@ -7,6 +7,8 @@
     <string name="settings_browser_cookies_title">Cookies</string>
     <string name="settings_browser_accept_cookies">Aceitar cookies</string>
     <string name="settings_browser_clear">Limpar cookies e dados do site</string>
+    <string name="settings_browser_clear_confirm">Você será desconectado de todos os sites. Não é possível desfazer.</string>
+    <string name="settings_browser_cleared">Cookies e dados do site limpos</string>
     <string name="settings_browser_engine_bing">Bing</string>
     <string name="settings_browser_engine_baidu">Baidu</string>
     <string name="settings_browser_engine_sogou">Sogou</string>

@@ -236,6 +236,7 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         SettingsDataPage(
             onBack = { navController.popBackStackSafe() },
             onOpenCloudBackup = { navController.navigateSingleTop(SettingsCloudBackupRoute) },
+            onOpenWebAccess = { navController.navigateSingleTop(SettingsWebAccessRoute) },
         )
     }
     // 运行时安装与状态（数据与备份上方）
@@ -312,6 +313,7 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         ChatSettingsPage(
             onBack = { navController.popBackStackSafe() },
             onOpenQuickActions = { navController.navigateSingleTop(SettingsQuickActionsRoute) },
+            onOpenToolsSettings = { navController.navigateSingleTop(ToolsSettingsRoute) },
         )
     }
     // v2.6.0: 设置三级页 — 消息快捷按钮自定义（Via 式）

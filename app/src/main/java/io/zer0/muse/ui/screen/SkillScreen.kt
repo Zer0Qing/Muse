@@ -52,7 +52,7 @@ import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.navigation.MuseTopBar
-import io.zer0.muse.ui.common.settings.SettingsGroup
+import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.theme.MuseIconSizes
@@ -285,6 +285,8 @@ fun SkillScreen(onBack: () -> Unit, skillRepository: SkillRepository = koinInjec
                                     ),
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
                                     modifier = Modifier.weight(1f),
                                 )
                                 Text(
@@ -507,78 +509,80 @@ private fun SkillRow(skill: SkillEntity, isBuiltIn: Boolean, onToggleEnabled: (B
     val stateLabel = if (skill.enabled) stringResource(R.string.common_state_enabled) else stringResource(R.string.common_state_disabled)
     // 预提取 semantics contentDescription(semantics lambda 非 @Composable,不能直接调用 stringResource)
     val rowCd = stringResource(R.string.skill_row_cd, skill.name.ifBlank { unnamedText }, stateLabel)
-    SettingsGroup {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { onShowDetail() }
-                .semantics {
-                    contentDescription = rowCd
-                }
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Icon(
-                imageVector = MuseIcons.puzzle,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(24.dp),
-            )
-            Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = skill.name.ifBlank { unnamedText },
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium,
-                        color = if (skill.enabled) {
-                            MaterialTheme.colorScheme.onSurface
-                        } else {
-                            MaterialTheme.colorScheme.outline
-                        },
-                    )
-                    if (!skill.enabled) {
-                        Spacer(Modifier.size(6.dp))
+    CardGroup {
+        content(key = "skill_${skill.id}") {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onShowDetail() }
+                    .semantics {
+                        contentDescription = rowCd
+                    }
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Icon(
+                    imageVector = MuseIcons.puzzle,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp),
+                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = stringResource(R.string.common_state_disabled),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.outline,
+                            text = skill.name.ifBlank { unnamedText },
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium,
+                            color = if (skill.enabled) {
+                                MaterialTheme.colorScheme.onSurface
+                            } else {
+                                MaterialTheme.colorScheme.outline
+                            },
+                        )
+                        if (!skill.enabled) {
+                            Spacer(Modifier.size(6.dp))
+                            Text(
+                                text = stringResource(R.string.common_state_disabled),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.outline,
+                            )
+                        }
+                        if (isBuiltIn) {
+                            Spacer(Modifier.size(6.dp))
+                            Text(
+                                text = stringResource(R.string.skill_built_in),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    }
+                    if (skill.description.isNotEmpty()) {
+                        Text(
+                            text = skill.description,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(top = 2.dp),
                         )
                     }
-                    if (isBuiltIn) {
-                        Spacer(Modifier.size(6.dp))
-                        Text(
-                            text = stringResource(R.string.skill_built_in),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                    }
                 }
-                if (skill.description.isNotEmpty()) {
-                    Text(
-                        text = skill.description,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(top = 2.dp),
-                    )
-                }
+                MuseSwitch(
+                    checked = skill.enabled,
+                    onCheckedChange = onToggleEnabled,
+                    modifier = Modifier.semantics {
+                        stateDescription = stateLabel
+                    },
+                )
+                MuseTactileButton(
+                    icon = MuseIcons.info,
+                    onClick = onShowDetail,
+                    contentDescription = stringResource(R.string.skill_detail_cd),
+                    size = MuseIconSizes.touchTarget,
+                    iconSize = 20.dp,
+                )
             }
-            MuseSwitch(
-                checked = skill.enabled,
-                onCheckedChange = onToggleEnabled,
-                modifier = Modifier.semantics {
-                    stateDescription = stateLabel
-                },
-            )
-            MuseTactileButton(
-                icon = MuseIcons.info,
-                onClick = onShowDetail,
-                contentDescription = stringResource(R.string.skill_detail_cd),
-                size = MuseIconSizes.touchTarget,
-                iconSize = 20.dp,
-            )
         }
     }
 }

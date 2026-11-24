@@ -138,14 +138,14 @@ fun SettingsSliderRow(
                 Icon(
                     imageVector = icon,
                     contentDescription = iconContentDescription,
-                    tint = MaterialTheme.colorScheme.outline,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(MuseIconSizes.iconMedium),
                 )
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                     // LAYOUT-01: 限行兜底(见 SettingsSwitchRow 同处说明)
                     maxLines = 1,

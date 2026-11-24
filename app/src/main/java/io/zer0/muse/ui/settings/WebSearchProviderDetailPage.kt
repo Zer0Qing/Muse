@@ -1,7 +1,7 @@
 package io.zer0.muse.ui.settings
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -13,9 +13,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.ui.common.icons.MuseIcons
-import io.zer0.muse.ui.common.settings.SectionLabel
-import io.zer0.muse.ui.common.settings.SettingsGroup
-import io.zer0.muse.ui.common.settings.SettingsSwitchRow
+import io.zer0.muse.ui.common.surface.CardGroup
+import io.zer0.muse.ui.common.surface.switchItem
+import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.web.WebSearchConfig
 import io.zer0.muse.web.WebSearchProviderCatalog
@@ -50,17 +50,14 @@ fun SettingsWebSearchProviderDetailPage(
         title = selectedProviderKey,
         onBack = onBack,
     ) {
-        item {
-            SectionLabel(stringResource(R.string.settings_web_search_provider_selection))
-        }
-        item {
-            SettingsGroup {
-                SettingsSwitchRow(
-                    icon = MuseIcons.search,
+        item(key = "provider_current_group") {
+            CardGroup(title = { Text(stringResource(R.string.settings_web_search_provider_selection)) }) {
+                switchItem(
+                    key = "provider_set_current",
                     title = stringResource(R.string.settings_web_search_provider_set_current),
                     subtitle = stringResource(
                         R.string.settings_web_search_provider_set_current_subtitle,
-                            selectedProviderKey,
+                        selectedProviderKey,
                     ),
                     checked = isCurrent,
                     onCheckedChange = { checked ->
@@ -72,23 +69,34 @@ fun SettingsWebSearchProviderDetailPage(
                             }
                         }
                     },
+                    leadingContent = {
+                        Icon(
+                            imageVector = MuseIcons.search,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
+                    },
                 )
             }
         }
         if (isAuto) {
-            item {
-                SettingsGroup {
-                    Column(Modifier.padding(MusePaddings.cardInner)) {
-                        Text(
-                            text = stringResource(R.string.settings_web_search_provider_auto_desc),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
+            item(key = "provider_auto_desc") {
+                CardGroup {
+                    item(
+                        key = "provider_auto_desc_row",
+                        headlineContent = {
+                            Text(
+                                text = stringResource(R.string.settings_web_search_provider_auto_desc),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        },
+                    )
                 }
             }
         } else if (WebSearchProviderCatalog.selectableTypes.contains(selectedProviderKey)) {
-            item {
+            item(key = "provider_type_section") {
                 WebSearchProviderTypeSection(
                     providerKey = selectedProviderKey,
                     config = config,

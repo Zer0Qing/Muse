@@ -569,4 +569,8 @@
     <string name="chat_hold_to_record_hint">Нажмите и удерживайте, чтобы говорить; отпустите, чтобы закончить</string>
     <string name="chat_input_action_fullscreen_subtitle">Полноэкранный ввод</string>
     <string name="chat_camera_unavailable_hint">Не удалось открыть камеру. Проверьте камеру устройства или настройки разрешений.</string>
+    <string name="chat_thinking_active">Думает</string>
+    <string name="chat_thinking_active_topic">Думает · %1$s</string>
+    <string name="chat_thinking_done_duration">Думал %1$d с</string>
+    <string name="chat_thinking_done">Ход мыслей</string>
 </resources>

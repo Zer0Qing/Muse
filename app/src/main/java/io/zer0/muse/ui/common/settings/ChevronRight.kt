@@ -8,7 +8,7 @@ import io.zer0.muse.ui.common.icons.MuseIcons
 /**
  * 右箭头 — 设置项右侧的 ">" 指示符。
  *
- * 用在 [SettingsItemRow] 的 trailing 位置,提示该行可点击进入下一级。
+ * 用在 [io.zer0.muse.ui.common.surface.MuseListItem] 的 trailing 位置，提示该行可点击进入下一级。
  */
 @Composable
 fun ChevronRight() {

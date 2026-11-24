@@ -209,6 +209,34 @@ internal object MigrationsB {
     }
 
     /**
+     * 思考过程耗时持久化：为单聊/Agent 共用的 messages 表与群聊 group_chat_messages 表
+     * 新增 reasoningDurationMs（可空毫秒，旧数据默认 NULL）。
+     */
+    val MIGRATION_137_138 = object : Migration(137, 138) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            addNullableIntColumnIfMissing(db, "messages", "reasoningDurationMs")
+            addNullableIntColumnIfMissing(db, "group_chat_messages", "reasoningDurationMs")
+        }
+
+        private fun addNullableIntColumnIfMissing(
+            db: SupportSQLiteDatabase,
+            table: String,
+            column: String,
+        ) {
+            val cols = mutableSetOf<String>()
+            db.query("PRAGMA table_info(`$table`)").use { cursor ->
+                val nameIdx = cursor.getColumnIndex("name")
+                while (cursor.moveToNext()) {
+                    if (nameIdx >= 0) cols += cursor.getString(nameIdx)
+                }
+            }
+            if (column !in cols) {
+                db.execSQL("ALTER TABLE `$table` ADD COLUMN `$column` INTEGER DEFAULT NULL")
+            }
+        }
+    }
+
+    /**
      * Agent 中枢七表。
      *
      * 纯新增,不动任何既有行:中枢功能关着时这七张表就是空的,普通对话

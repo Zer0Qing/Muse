@@ -27,6 +27,8 @@ import io.zer0.muse.diagnostics.DiagnosticsSnapshot
 import io.zer0.muse.diagnostics.MainThreadJankTracker
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
+import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.common.surface.CardGroupScope
 import io.zer0.muse.ui.theme.MusePaddings
@@ -65,6 +67,19 @@ fun SettingsDiagnosticsPage(onBack: () -> Unit) {
     SettingsSubPageScaffold(
         title = stringResource(R.string.settings_screen_diagnostics),
         onBack = onBack,
+        headerActions = {
+            // 刷新从动作卡里提到顶栏：原先埋在「操作」卡中，用户要滚到底才发现能重采集。
+            MuseTactileButton(
+                icon = MuseIcons.refresh,
+                onClick = {
+                    reload++
+                    MuseToast.show(context.getString(R.string.settings_diagnostics_refreshing))
+                },
+                contentDescription = stringResource(R.string.settings_diagnostics_refresh),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                compact = true,
+            )
+        },
     ) {
         val data = snapshot
         if (data == null) {
@@ -128,8 +143,6 @@ fun SettingsDiagnosticsPage(onBack: () -> Unit) {
                                 text = stringResource(R.string.settings_diagnostics_refresh),
                                 onClick = {
                                     reload++
-                                    // 2026-11-20(P2-26):同一组三个按钮此前只有「复制」有反馈,
-                                    // 「导出」有(但在 IO 线程弹)、「刷新」完全没反馈 —— 点了不知道有没有生效。
                                     MuseToast.show(context.getString(R.string.settings_diagnostics_refreshing))
                                 },
                             )

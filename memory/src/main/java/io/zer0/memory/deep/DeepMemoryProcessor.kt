@@ -20,9 +20,12 @@ import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonNames
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -521,6 +524,7 @@ class DeepMemoryProcessor(
 
     /** fact extraction 的 JSON DTO。v5: 含 importance / category / confidence / source / expires_at / last_confirmed_at 字段。
      * H-MEM-2: 新增 entityKey — LLM 提取时要求输出实体键,支持精确去重通道(v12+)。 */
+    @OptIn(ExperimentalSerializationApi::class)
     @Serializable
     private data class FactDto(
         val fact: String,
@@ -530,8 +534,14 @@ class DeepMemoryProcessor(
         val category: String = "general",
         val confidence: Float? = null,
         val source: String = "inferred",
+        @SerialName("expires_at")
+        @JsonNames("expiresAt")
         val expiresAt: String? = null,
+        @SerialName("last_confirmed_at")
+        @JsonNames("lastConfirmedAt")
         val lastConfirmedAt: String? = null,
+        @SerialName("entity_key")
+        @JsonNames("entityKey")
         val entityKey: String? = null,
     )
 }

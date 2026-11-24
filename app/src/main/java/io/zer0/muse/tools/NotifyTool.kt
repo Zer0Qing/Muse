@@ -13,9 +13,8 @@ object NotifyTool {
 
     fun toolDef() = ToolRegistry.ToolDef(
         name = "notify",
-        description = "向用户发送通知。适用场景:" +
-            "- 用户说「提醒我 xxx」或「xxx 的时候告诉我」" +
-            "- 巡检任务发现需要用户注意的问题" +
+        description = "立即向用户发送一条系统通知（当前立刻弹出；定时/延后提醒请用 schedule_reminder）。" +
+            "适用场景：用户要求立刻发一条通知，或后台巡检/异步任务发现需要用户立即注意的问题。" +
             "一切正常、没有异常时不要调用。",
         parameters = mapOf(
             "title" to "Required. Notification title (brief).",

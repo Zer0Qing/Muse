@@ -1,30 +1,20 @@
 package io.zer0.muse.ui.settings
 
 import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -33,24 +23,20 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.ai.plugin.ProviderPlugin
-import io.zer0.ai.plugin.ProviderPluginRegistry
-import io.zer0.common.Logger
-import io.zer0.common.resultOf
 import io.zer0.muse.R
-import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.plugin.ConfigItem
 import io.zer0.muse.data.plugin.ConfigItemType
 import io.zer0.muse.data.plugin.PluginCapabilityGateway
@@ -59,57 +45,40 @@ import io.zer0.muse.data.plugin.PluginManager
 import io.zer0.muse.data.plugin.PluginRuntimeHealth
 import io.zer0.muse.data.plugin.PluginSecurityGate
 import io.zer0.muse.data.plugin.PluginVersion
-import io.zer0.muse.data.plugin.market.CatalogRefreshResult
-import io.zer0.muse.data.plugin.market.InstallPlanResult
 import io.zer0.muse.data.plugin.market.MarketVersionAdvice
 import io.zer0.muse.data.plugin.market.MarketVersionView
 import io.zer0.muse.data.plugin.market.PluginCatalogEntry
-import io.zer0.muse.data.plugin.market.PluginCatalogRepository
-import io.zer0.muse.data.plugin.market.PluginDownloadClient
-import io.zer0.muse.data.plugin.market.PluginInstallCoordinator
 import io.zer0.muse.data.plugin.market.PluginInstallPlan
-import io.zer0.muse.data.plugin.market.PluginMarketDefaults
-import io.zer0.muse.data.plugin.market.PluginMarketInstaller
-import io.zer0.muse.data.plugin.market.PluginMarketTrustRoots
 import io.zer0.muse.data.plugin.market.PluginMarketVersions
 import io.zer0.muse.ui.common.feedback.MuseDialog
-import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseAnchoredMenu
 import io.zer0.muse.ui.common.form.MuseBottomSheet
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
-import io.zer0.muse.ui.common.form.MuseCapsuleTab
 import io.zer0.muse.ui.common.form.MuseDropdown
-import io.zer0.muse.ui.common.form.MuseFloatingButton
-import io.zer0.muse.ui.common.form.MuseFormDialog
 import io.zer0.muse.ui.common.form.MuseSwitch
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
-import io.zer0.muse.ui.common.media.WindowWidthClass
-import io.zer0.muse.ui.common.media.rememberWindowWidthClass
-import io.zer0.muse.ui.common.navigation.MuseTopBar
-import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.state.MuseIndeterminateProgressBar
 import io.zer0.muse.ui.common.state.MuseSpinner
+import io.zer0.muse.ui.common.surface.CardGroup
+import io.zer0.muse.ui.common.surface.MuseListItem
 import io.zer0.muse.ui.common.surface.MuseSurface
 import io.zer0.muse.ui.markdown.RichContentCard
 import io.zer0.muse.ui.theme.MuseActionColors
+import io.zer0.muse.ui.theme.MuseAlpha
+import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
-import io.zer0.muse.ui.theme.titleSmallStrong
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
+import io.zer0.muse.ui.theme.largeCard
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
-import org.koin.compose.koinInject
-import java.io.File
 
 /**
  * 插件管理页的私有组件：列表行、配置字段、市场条目、安装预览。
@@ -125,13 +94,22 @@ internal data class PendingExternalInstall(
     val preview: PluginSecurityGate.InstallPreview,
 )
 
+/**
+ * 区块小标题 — 视觉与 [io.zer0.muse.ui.common.surface.CardGroup] 的分组标题同档
+ * （弱化 onSurfaceVariant + labelLarge），但自身不承载卡片容器。
+ *
+ * 用于"下面每一项各自是一张卡"的场合（例如每个已安装插件一张卡）：那种结构里
+ * 外层不能再套一层分组卡，否则会出现卡里套卡。水平边距由页骨架统一提供，这里不再叠加。
+ */
 @Composable
-internal fun SectionHeader(title: String) {
+internal fun PluginSectionLabel(title: String) {
     Text(
         text = title,
-        style = MaterialTheme.typography.titleSmallStrong,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(horizontal = MusePaddings.screen, vertical = MusePaddings.tightGap),
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = MuseAlpha.titleMuted),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = MusePaddings.cardGap, bottom = MusePaddings.contentGap),
     )
 }
 
@@ -152,291 +130,269 @@ internal fun InstalledPluginRow(
     panelHtml: String? = null,
     onConfigChanged: suspend (String, JsonElement) -> Unit = { _, _ -> },
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(MusePaddings.itemGap),
+    // 行自身就是一张卡：页面按单个插件逐张渲染，外层没有分组容器可依附，
+    // 而权限面板展开后内部还有分组卡 —— 那时再套一层就成了卡里套卡。
+    MuseSurface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MuseShapes.largeCard,
+        color = MaterialTheme.colorScheme.surface,
+        elevation = MuseElevation.micro,
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = plugin.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                // P0-5: Python 档在列表上就要看得见 —— 它等同高信任，不能只藏在折叠面板里。
-                // 判据用入口扩展名：安全门强制 runtime=python 的包入口必须是 .py
-                // （PluginSecurityGate.kt:319-322），因此不需要给 InstalledPlugin 加字段、
-                // 也不需要改 InstalledPluginRow 签名（它被三条 detekt 基线按签名压着）。
-                if (plugin.entry.lowercase().endsWith(".py")) {
-                    val trusted = PluginCapabilityLedgers.shared(LocalContext.current)
-                        .isApproved(plugin.id, PluginCapabilityGateway.RUNTIME_PYTHON)
+        Column(modifier = Modifier.padding(MusePaddings.cardInner)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = stringResource(
-                            if (trusted) R.string.plugin_row_python_trusted else R.string.plugin_row_python_locked,
-                        ),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (trusted) {
-                            MaterialTheme.colorScheme.tertiary
-                        } else {
-                            MaterialTheme.colorScheme.error
-                        },
+                        text = plugin.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
-                }
-                // PL1 收尾:熔断窗口要在插件页看得见,而且必须自己走表。
-                // 停在一个不再变化的「剩余 300 秒」上等于骗人:用户据此判断「还要等多久」,
-                // 数字不动他就会一直等下去。因此冷却中每秒重读一次,解冻即停表。
-                val health = PluginRuntimeHealth.shared
-                // 这里读计数是为了让本行订阅它:计数 +1 → 本行重组 → 视图重新取值。
-                // 视图本身不 remember,否则冷却中的秒数会被冻在第一次取值上。
-                val circuitTick = remember(plugin.id) { mutableIntStateOf(0) }
-                val circuit = circuitTick.intValue.let { health.circuitView(plugin.id) }
-                if (circuit.status != PluginRuntimeHealth.CircuitStatus.None) {
-                    Text(
-                        text = when (circuit.status) {
-                            PluginRuntimeHealth.CircuitStatus.Probing -> stringResource(R.string.plugin_row_circuit_probing)
-                            else -> stringResource(R.string.plugin_row_circuit_cooling, circuit.remainingSeconds)
-                        },
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
-                LaunchedEffect(plugin.id, circuit.status) {
-                    // 循环里读的是真状态,不是重组时抓到的那份快照,否则冷却结束后这个循环永远停不下来。
-                    while (health.circuitView(plugin.id).status != PluginRuntimeHealth.CircuitStatus.None) {
-                        delay(1_000L)
-                        circuitTick.intValue += 1
+                    // P0-5: Python 档在列表上就要看得见 —— 它等同高信任，不能只藏在折叠面板里。
+                    // 判据用入口扩展名：安全门强制 runtime=python 的包入口必须是 .py
+                    // （PluginSecurityGate.kt:319-322），因此不需要给 InstalledPlugin 加字段、
+                    // 也不需要改 InstalledPluginRow 签名（它被三条 detekt 基线按签名压着）。
+                    if (plugin.entry.lowercase().endsWith(".py")) {
+                        val trusted = PluginCapabilityLedgers.shared(LocalContext.current)
+                            .isApproved(plugin.id, PluginCapabilityGateway.RUNTIME_PYTHON)
+                        Text(
+                            text = stringResource(
+                                if (trusted) R.string.plugin_row_python_trusted else R.string.plugin_row_python_locked,
+                            ),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (trusted) {
+                                MaterialTheme.colorScheme.tertiary
+                            } else {
+                                MaterialTheme.colorScheme.error
+                            },
+                        )
                     }
-                }
-                Text(
-                    // ST-04: 面向用户只显示版本/工具数;插件 id/指纹/sha256 收进「开发者信息」折叠区
-                    text = stringResource(R.string.plugin_summary_brief, plugin.version, plugin.tools.size),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (plugin.description.isNotBlank()) {
+                    // PL1 收尾:熔断窗口要在插件页看得见,而且必须自己走表。
+                    // 停在一个不再变化的「剩余 300 秒」上等于骗人:用户据此判断「还要等多久」,
+                    // 数字不动他就会一直等下去。因此冷却中每秒重读一次,解冻即停表。
+                    val health = PluginRuntimeHealth.shared
+                    // 这里读计数是为了让本行订阅它:计数 +1 → 本行重组 → 视图重新取值。
+                    // 视图本身不 remember,否则冷却中的秒数会被冻在第一次取值上。
+                    val circuitTick = remember(plugin.id) { mutableIntStateOf(0) }
+                    val circuit = circuitTick.intValue.let { health.circuitView(plugin.id) }
+                    if (circuit.status != PluginRuntimeHealth.CircuitStatus.None) {
+                        Text(
+                            text = when (circuit.status) {
+                                PluginRuntimeHealth.CircuitStatus.Probing -> stringResource(R.string.plugin_row_circuit_probing)
+                                else -> stringResource(R.string.plugin_row_circuit_cooling, circuit.remainingSeconds)
+                            },
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                    LaunchedEffect(plugin.id, circuit.status) {
+                        // 循环里读的是真状态,不是重组时抓到的那份快照,否则冷却结束后这个循环永远停不下来。
+                        while (health.circuitView(plugin.id).status != PluginRuntimeHealth.CircuitStatus.None) {
+                            delay(1_000L)
+                            circuitTick.intValue += 1
+                        }
+                    }
                     Text(
-                        text = plugin.description,
+                        // ST-04: 面向用户只显示版本/工具数;插件 id/指纹/sha256 收进「开发者信息」折叠区
+                        text = stringResource(R.string.plugin_summary_brief, plugin.version, plugin.tools.size),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    if (plugin.description.isNotBlank()) {
+                        Text(
+                            text = plugin.description,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    Text(
+                        text = signatureStatusLabel(plugin.signatureStatus),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (plugin.signatureStatus == PluginSecurityGate.SignatureStatus.VALID_TRUSTED) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                        maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
                 Text(
-                    text = signatureStatusLabel(plugin.signatureStatus),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (plugin.signatureStatus == PluginSecurityGate.SignatureStatus.VALID_TRUSTED) {
+                    text = if (!plugin.installationConfirmed) {
+                        stringResource(R.string.muse_plugins_draft)
+                    } else {
+                        stringResource(if (plugin.enabled) R.string.common_state_enabled else R.string.common_state_disabled)
+                    },
+                    style = MaterialTheme.typography.labelMedium,
+                    color = if (plugin.enabled && plugin.installationConfirmed) {
                         MaterialTheme.colorScheme.primary
                     } else {
                         MaterialTheme.colorScheme.onSurfaceVariant
                     },
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                 )
             }
-            Text(
-                text = if (!plugin.installationConfirmed) {
-                    stringResource(R.string.muse_plugins_draft)
-                } else {
-                    stringResource(if (plugin.enabled) R.string.common_state_enabled else R.string.common_state_disabled)
-                },
-                style = MaterialTheme.typography.labelMedium,
-                color = if (plugin.enabled && plugin.installationConfirmed) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
-            )
-        }
-        Spacer(Modifier.height(MusePaddings.itemGap))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
-        ) {
-            if (plugin.installationConfirmed) {
-                MuseCapsuleButton(
-                    text = stringResource(if (plugin.enabled) R.string.common_state_disabled else R.string.common_state_enabled),
-                    onClick = onToggle,
-                    modifier = Modifier.weight(1f),
-                    variant = IosCapsuleButtonVariant.Secondary,
+            Spacer(Modifier.height(MusePaddings.itemGap))
+            // 多动作收拢进右侧菜单：原先"启用/禁用 + 删除"两个等宽胶囊按钮并排，
+            // 一旦行内再出现"签名并启用""确认安装""回滚"，四个按钮挤一行就只剩图标宽度。
+            // 现在默认只留一个常驻状态入口，其余动作点「更多」再选；删除仍在菜单里走二次确认。
+            val primaryActionLabel = when {
+                plugin.installationConfirmed -> stringResource(
+                    if (plugin.enabled) R.string.common_state_disabled else R.string.common_state_enabled,
                 )
-            } else if (onSignAndEnable != null) {
                 // 助手自写草稿：签名并启用是本行唯一能把它变成可执行的入口。
-                MuseCapsuleButton(
-                    text = stringResource(R.string.muse_plugins_sign_enable_action),
-                    onClick = onSignAndEnable,
-                    modifier = Modifier.weight(1f),
-                    variant = IosCapsuleButtonVariant.Secondary,
-                )
-            } else if (onConfirm != null) {
-                MuseCapsuleButton(
-                    text = stringResource(
-                        if (plugin.signatureStatus == PluginSecurityGate.SignatureStatus.VALID_UNTRUSTED) {
-                            R.string.muse_plugins_install_trust_publisher_action
-                        } else {
-                            R.string.muse_plugins_install_confirm_action
-                        },
-                    ),
-                    onClick = { onConfirm?.invoke() },
-                    modifier = Modifier.weight(1f),
-                    variant = IosCapsuleButtonVariant.Secondary,
-                )
-            } else {
-                Text(
-                    text = stringResource(R.string.muse_plugins_unsigned_draft_only),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(vertical = MusePaddings.itemGap),
-                )
-            }
-            MuseCapsuleButton(
-                text = stringResource(R.string.provider_plugins_delete),
-                onClick = onDelete,
-                modifier = Modifier.weight(1f),
-                variant = IosCapsuleButtonVariant.Secondary,
-            )
-        }
-        // 回滚入口：只有存在「非当前版本」的历史副本时才出现；真正的校验在回滚时重做。
-        rollbackVersion?.let { version ->
-            MuseCapsuleButton(
-                text = stringResource(R.string.muse_plugins_rollback_action, version),
-                onClick = { onRollback(version) },
-                modifier = Modifier.fillMaxWidth(),
-                variant = IosCapsuleButtonVariant.Secondary,
-            )
-        }
-        // ST-04: 开发者信息默认折叠 — id/发布者指纹/内容摘要仅供排查,不打扰普通用户
-        var showDevInfo by remember { mutableStateOf(false) }
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { showDevInfo = !showDevInfo }
-                .padding(vertical = MusePaddings.tightGap),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = stringResource(R.string.muse_plugins_developer_info),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.weight(1f),
-                // LAYOUT-01: 折叠头取宽 + 限行，防被右侧 chevron 图标挤成一列
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Icon(
-                imageVector = if (showDevInfo) {
-                    MuseIcons.chevronUp
-                } else {
-                    MuseIcons.chevronDown
-                },
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.outline,
-                modifier = Modifier.size(MuseIconSizes.iconSmall),
-            )
-        }
-        if (showDevInfo) {
-            Column(verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap)) {
-                Text(
-                    text = stringResource(R.string.plugin_summary, plugin.id, plugin.version, plugin.tools.size),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                if (plugin.publisherId.isNotBlank() && plugin.publisherKeyFingerprint.isNotBlank()) {
-                    Text(
-                        text = stringResource(
-                            R.string.muse_plugins_publisher_fingerprint,
-                            plugin.publisherId,
-                            plugin.publisherKeyFingerprint,
-                        ),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                if (plugin.contentSha256.isNotBlank()) {
-                    Text(
-                        text = plugin.contentSha256,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
-        }
-        // v1.0.92: 插件 UI 面板 — 声明 uiPanel 的插件提供只读自定义界面
-        if (panelHtml != null) {
-            var showPanel by remember { mutableStateOf(false) }
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { showPanel = true }
-                    .padding(vertical = MusePaddings.tightGap),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = stringResource(R.string.muse_plugins_open_panel),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.weight(1f),
-                    // LAYOUT-01: 同上，折叠头限 1 行
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Icon(
-                    imageVector = MuseIcons.chevronUp,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.outline,
-                    modifier = Modifier.size(MuseIconSizes.iconSmall),
-                )
-            }
-            if (showPanel) {
-                MuseDialog(
-                    onDismissRequest = { showPanel = false },
-                    title = plugin.name,
-                    content = {
-                        RichContentCard(
-                            language = "html",
-                            content = panelHtml,
-                            showPreviewButton = false,
-                        )
+                onSignAndEnable != null -> stringResource(R.string.muse_plugins_sign_enable_action)
+                onConfirm != null -> stringResource(
+                    if (plugin.signatureStatus == PluginSecurityGate.SignatureStatus.VALID_UNTRUSTED) {
+                        R.string.muse_plugins_install_trust_publisher_action
+                    } else {
+                        R.string.muse_plugins_install_confirm_action
                     },
-                    confirmText = stringResource(R.string.common_close),
-                    onConfirm = { showPanel = false },
                 )
+                else -> null
             }
-        }
-        // B7-01: 插件配置表单 — 仅当插件声明了配置项且已启用时才显示
-        if (!configEntries.isNullOrEmpty()) {
-            val configScope = rememberCoroutineScope()
-            var showConfig by remember { mutableStateOf(false) }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
+            ) {
+                if (plugin.installationConfirmed) {
+                    MuseCapsuleButton(
+                        text = primaryActionLabel.orEmpty(),
+                        onClick = onToggle,
+                        modifier = Modifier.weight(1f),
+                        variant = IosCapsuleButtonVariant.Secondary,
+                    )
+                } else if (onSignAndEnable != null) {
+                    MuseCapsuleButton(
+                        text = primaryActionLabel.orEmpty(),
+                        onClick = onSignAndEnable,
+                        modifier = Modifier.weight(1f),
+                        variant = IosCapsuleButtonVariant.Secondary,
+                    )
+                } else if (onConfirm != null) {
+                    MuseCapsuleButton(
+                        text = primaryActionLabel.orEmpty(),
+                        onClick = { onConfirm?.invoke() },
+                        modifier = Modifier.weight(1f),
+                        variant = IosCapsuleButtonVariant.Secondary,
+                    )
+                } else {
+                    Text(
+                        text = stringResource(R.string.muse_plugins_unsigned_draft_only),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(vertical = MusePaddings.itemGap),
+                    )
+                }
+                var actionsOpen by remember { mutableStateOf(false) }
+                Box {
+                    MuseTactileButton(
+                        icon = MuseIcons.moreHorizontal,
+                        onClick = { actionsOpen = true },
+                        contentDescription = stringResource(R.string.action_more),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        compact = true,
+                    )
+                    MuseAnchoredMenu(
+                        expanded = actionsOpen,
+                        onDismissRequest = { actionsOpen = false },
+                        alignEnd = true,
+                    ) {
+                        if (!plugin.installationConfirmed && onSignAndEnable != null) {
+                            MuseListItem(
+                                onClick = {
+                                    actionsOpen = false
+                                    onSignAndEnable.invoke()
+                                },
+                                leadingContent = { MenuActionIcon(MuseIcons.key) },
+                                headlineContent = { Text(stringResource(R.string.muse_plugins_sign_enable_action)) },
+                            )
+                        }
+                        if (!plugin.installationConfirmed && onConfirm != null) {
+                            MuseListItem(
+                                onClick = {
+                                    actionsOpen = false
+                                    onConfirm.invoke()
+                                },
+                                leadingContent = { MenuActionIcon(MuseIcons.shieldCheck) },
+                                headlineContent = {
+                                    Text(
+                                        stringResource(
+                                            if (plugin.signatureStatus ==
+                                                PluginSecurityGate.SignatureStatus.VALID_UNTRUSTED
+                                            ) {
+                                                R.string.muse_plugins_install_trust_publisher_action
+                                            } else {
+                                                R.string.muse_plugins_install_confirm_action
+                                            },
+                                        ),
+                                    )
+                                },
+                            )
+                        }
+                        // 回滚入口：只有存在「非当前版本」的历史副本时才出现；真正的校验在回滚时重做。
+                        rollbackVersion?.let { version ->
+                            MuseListItem(
+                                onClick = {
+                                    actionsOpen = false
+                                    onRollback(version)
+                                },
+                                leadingContent = { MenuActionIcon(MuseIcons.history) },
+                                headlineContent = { Text(stringResource(R.string.muse_plugins_rollback_action, version)) },
+                            )
+                        }
+                        MuseListItem(
+                            onClick = {
+                                actionsOpen = false
+                                // 只交给页面层的 pendingDeleteExternal：确认弹窗在那里统一渲染，
+                                // 行内再弹一次会变成"点一次、确认两次"。
+                                onDelete()
+                            },
+                            leadingContent = {
+                                MenuActionIcon(
+                                    icon = MuseIcons.trash,
+                                    tint = MaterialTheme.colorScheme.error,
+                                )
+                            },
+                            headlineContent = {
+                                Text(
+                                    text = stringResource(R.string.provider_plugins_delete),
+                                    color = MaterialTheme.colorScheme.error,
+                                )
+                            },
+                        )
+                    }
+                }
+            }
+            // ST-04: 开发者信息默认折叠 — id/发布者指纹/内容摘要仅供排查,不打扰普通用户
+            var showDevInfo by remember { mutableStateOf(false) }
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { showConfig = !showConfig }
+                    .clickable { showDevInfo = !showDevInfo }
                     .padding(vertical = MusePaddings.tightGap),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = stringResource(R.string.muse_plugins_config),
+                    text = stringResource(R.string.muse_plugins_developer_info),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.weight(1f),
-                    // LAYOUT-01: 同上，折叠头限 1 行
+                    // LAYOUT-01: 折叠头取宽 + 限行，防被右侧 chevron 图标挤成一列
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Icon(
-                    imageVector = if (showConfig) {
+                    imageVector = if (showDevInfo) {
                         MuseIcons.chevronUp
                     } else {
                         MuseIcons.chevronDown
@@ -446,18 +402,121 @@ internal fun InstalledPluginRow(
                     modifier = Modifier.size(MuseIconSizes.iconSmall),
                 )
             }
-            if (showConfig) {
+            if (showDevInfo) {
                 Column(verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap)) {
-                    configEntries.forEach { (item, value) ->
-                        ConfigFieldRow(
-                            item = item,
-                            currentValue = value,
-                            onChanged = { newValue ->
-                                configScope.launch {
-                                    onConfigChanged(item.key, newValue)
-                                }
-                            },
+                    Text(
+                        text = stringResource(R.string.plugin_summary, plugin.id, plugin.version, plugin.tools.size),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    if (plugin.publisherId.isNotBlank() && plugin.publisherKeyFingerprint.isNotBlank()) {
+                        Text(
+                            text = stringResource(
+                                R.string.muse_plugins_publisher_fingerprint,
+                                plugin.publisherId,
+                                plugin.publisherKeyFingerprint,
+                            ),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                    }
+                    if (plugin.contentSha256.isNotBlank()) {
+                        Text(
+                            text = plugin.contentSha256,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+            }
+            // v1.0.92: 插件 UI 面板 — 声明 uiPanel 的插件提供只读自定义界面
+            if (panelHtml != null) {
+                var showPanel by remember { mutableStateOf(false) }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showPanel = true }
+                        .padding(vertical = MusePaddings.tightGap),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = stringResource(R.string.muse_plugins_open_panel),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.weight(1f),
+                        // LAYOUT-01: 同上，折叠头限 1 行
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Icon(
+                        imageVector = MuseIcons.chevronUp,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.size(MuseIconSizes.iconSmall),
+                    )
+                }
+                if (showPanel) {
+                    MuseDialog(
+                        onDismissRequest = { showPanel = false },
+                        title = plugin.name,
+                        content = {
+                            RichContentCard(
+                                language = "html",
+                                content = panelHtml,
+                                showPreviewButton = false,
+                            )
+                        },
+                        confirmText = stringResource(R.string.common_close),
+                        onConfirm = { showPanel = false },
+                    )
+                }
+            }
+            // B7-01: 插件配置表单 — 仅当插件声明了配置项且已启用时才显示
+            if (!configEntries.isNullOrEmpty()) {
+                val configScope = rememberCoroutineScope()
+                var showConfig by remember { mutableStateOf(false) }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showConfig = !showConfig }
+                        .padding(vertical = MusePaddings.tightGap),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = stringResource(R.string.muse_plugins_config),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.weight(1f),
+                        // LAYOUT-01: 同上，折叠头限 1 行
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Icon(
+                        imageVector = if (showConfig) {
+                            MuseIcons.chevronUp
+                        } else {
+                            MuseIcons.chevronDown
+                        },
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.size(MuseIconSizes.iconSmall),
+                    )
+                }
+                if (showConfig) {
+                    Column(verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap)) {
+                        configEntries.forEach { (item, value) ->
+                            ConfigFieldRow(
+                                item = item,
+                                currentValue = value,
+                                onChanged = { newValue ->
+                                    configScope.launch {
+                                        onConfigChanged(item.key, newValue)
+                                    }
+                                },
+                            )
+                        }
                     }
                 }
             }
@@ -589,88 +648,109 @@ internal fun ConfigFieldRow(item: ConfigItem, currentValue: JsonElement?, onChan
 
 @Composable
 internal fun PluginCard(plugin: ProviderPlugin, onDelete: () -> Unit, onConvert: () -> Unit) {
-    Surface(
-        shape = MuseShapes.medium,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = MusePaddings.screen),
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(MusePaddings.cardInner),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = MuseIcons.puzzle,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.size(MuseIconSizes.iconMedium),
-            )
-            Spacer(Modifier.size(MusePaddings.iconPadding))
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
-            ) {
-                Text(
-                    text = plugin.displayName,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (plugin.description.isNotBlank()) {
-                    Text(
-                        text = plugin.description,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                Text(
-                    text = stringResource(R.string.plugin_models_summary, plugin.models.size, plugin.baseUrl),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            Surface(
-                shape = MuseShapes.medium,
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                modifier = Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button) { onConvert() },
-            ) {
+    // 转为供应商 / 删除都收进「更多」：这两个动作一个是低频迁移、一个是危险操作，
+    // 都不该在每一行常驻一个高对比色块，把插件名挤成省略号。
+    var actionsOpen by remember { mutableStateOf(false) }
+    CardGroup {
+        item(
+            key = plugin.id,
+            headlineContent = {
                 Row(
-                    modifier = Modifier.padding(horizontal = MusePaddings.contentGap, vertical = MusePaddings.tightGap),
+                    modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(
-                        imageVector = MuseIcons.swapHorizontal,
-                        contentDescription = stringResource(R.string.provider_plugins_convert),
+                        imageVector = MuseIcons.puzzle,
+                        contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.size(MuseIconSizes.iconSmall),
+                        modifier = Modifier.size(MuseIconSizes.iconMedium),
                     )
-                    Spacer(Modifier.size(MusePaddings.tightGap))
-                    Text(
-                        text = stringResource(R.string.provider_plugins_convert),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Medium,
-                    )
+                    Spacer(Modifier.size(MusePaddings.iconPadding))
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
+                    ) {
+                        Text(
+                            text = plugin.displayName,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        if (plugin.description.isNotBlank()) {
+                            Text(
+                                text = plugin.description,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                        Text(
+                            text = stringResource(R.string.plugin_models_summary, plugin.models.size, plugin.baseUrl),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    Box {
+                        MuseTactileButton(
+                            icon = MuseIcons.moreHorizontal,
+                            onClick = { actionsOpen = true },
+                            contentDescription = stringResource(R.string.action_more),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            compact = true,
+                        )
+                        MuseAnchoredMenu(
+                            expanded = actionsOpen,
+                            onDismissRequest = { actionsOpen = false },
+                            alignEnd = true,
+                        ) {
+                            MuseListItem(
+                                onClick = {
+                                    actionsOpen = false
+                                    onConvert()
+                                },
+                                leadingContent = { MenuActionIcon(MuseIcons.swapHorizontal) },
+                                headlineContent = { Text(stringResource(R.string.provider_plugins_convert)) },
+                            )
+                            MuseListItem(
+                                onClick = {
+                                    actionsOpen = false
+                                    onDelete()
+                                },
+                                leadingContent = {
+                                    MenuActionIcon(
+                                        icon = MuseIcons.trash,
+                                        tint = MaterialTheme.colorScheme.error,
+                                    )
+                                },
+                                headlineContent = {
+                                    Text(
+                                        text = stringResource(R.string.provider_plugins_delete),
+                                        color = MaterialTheme.colorScheme.error,
+                                    )
+                                },
+                            )
+                        }
+                    }
                 }
-            }
-            Spacer(Modifier.size(MusePaddings.contentGap))
-            MuseTactileButton(
-                icon = MuseIcons.trash,
-                onClick = onDelete,
-                contentDescription = stringResource(R.string.provider_plugins_delete),
-                tint = MaterialTheme.colorScheme.error,
-            )
-        }
+            },
+        )
     }
+}
+
+/** 菜单行前置图标 — 统一小图标 + 中性色，危险项由调用方传入 error 色。 */
+@Composable
+private fun MenuActionIcon(icon: ImageVector, tint: Color = MaterialTheme.colorScheme.onSurfaceVariant) {
+    Icon(
+        imageVector = icon,
+        contentDescription = null,
+        tint = tint,
+        modifier = Modifier.size(MuseIconSizes.iconSmall),
+    )
 }
 
 /** 市场安装任务阶段；Failed 携带面向用户的原因。 */
@@ -696,7 +776,7 @@ internal fun MarketLoadingRow() {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(MusePaddings.screen),
+            .padding(vertical = MusePaddings.screen),
         contentAlignment = Alignment.Center,
     ) {
         MuseSpinner(
@@ -710,7 +790,7 @@ internal fun MarketErrorRow(reason: String, onRetry: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = MusePaddings.screen, vertical = MusePaddings.tightGap),
+            .padding(vertical = MusePaddings.tightGap),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
     ) {
@@ -763,12 +843,14 @@ internal fun MarketEntryCell(
         retainedVersions = retainedVersions,
         appVersion = appVersion,
     )
+    // 双平面：层次靠"底色 vs 卡面"的明度差，不再画描边 ——
+    // 描边在同一屏里会和卡片组的无边框叠成两套分层语言。
     MuseSurface(
         onClick = onClick,
         modifier = modifier,
-        shape = MuseShapes.extraLarge,
+        shape = MuseShapes.largeCard,
         color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(0.6.dp, MaterialTheme.colorScheme.outlineVariant),
+        elevation = MuseElevation.micro,
     ) {
         Column(
             modifier = Modifier
@@ -1053,13 +1135,19 @@ internal fun MarketInstallActions(
     }
 }
 
-/** P0-9: 信任的发行者行 — 展示 id + 指纹,提供撤销入口。 */
+/**
+ * P0-9: 信任的发行者行 — 展示 id + 指纹，右侧「更多」里放撤销。
+ *
+ * 撤销是不可逆的授权回收（撤销后该发行者的插件会被自动禁用），因此不放在行面上常驻：
+ * 常驻按钮会让"看一眼指纹"变成"顺手点一下撤销"。真正的二次确认在页面层的弹窗里。
+ */
 @Composable
 internal fun TrustedPublisherRow(publisherId: String, fingerprint: String, onRevoke: () -> Unit) {
+    var actionsOpen by remember { mutableStateOf(false) }
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = MusePaddings.tightGap),
+            .padding(horizontal = MusePaddings.screen, vertical = MusePaddings.inputPadding),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
     ) {
@@ -1079,22 +1167,49 @@ internal fun TrustedPublisherRow(publisherId: String, fingerprint: String, onRev
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        MuseCapsuleButton(
-            text = stringResource(R.string.muse_plugins_trust_revoke_action),
-            onClick = onRevoke,
-            variant = IosCapsuleButtonVariant.Secondary,
-            fillWidth = false,
-        )
+        Box {
+            MuseTactileButton(
+                icon = MuseIcons.moreHorizontal,
+                onClick = { actionsOpen = true },
+                contentDescription = stringResource(R.string.action_more),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                compact = true,
+            )
+            MuseAnchoredMenu(
+                expanded = actionsOpen,
+                onDismissRequest = { actionsOpen = false },
+                alignEnd = true,
+            ) {
+                MuseListItem(
+                    onClick = {
+                        actionsOpen = false
+                        onRevoke()
+                    },
+                    leadingContent = { MenuActionIcon(MuseIcons.ban, MaterialTheme.colorScheme.error) },
+                    headlineContent = {
+                        Text(
+                            text = stringResource(R.string.muse_plugins_trust_revoke_action),
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    },
+                )
+            }
+        }
     }
 }
 
-/** P0-9: 目录信任根行 — 展示 keyId,提供移除入口(内置根不可移除)。 */
+/**
+ * P0-9: 目录信任根行 — 展示 keyId，右侧「更多」里放移除（内置根不进这个列表，不可移除）。
+ *
+ * 移除会让该信任根签发的目录条目全部失效，属于配置级破坏操作，所以同样收进菜单。
+ */
 @Composable
 internal fun CatalogRootKeyRow(keyId: String, onRemove: () -> Unit) {
+    var actionsOpen by remember { mutableStateOf(false) }
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = MusePaddings.tightGap),
+            .padding(horizontal = MusePaddings.screen, vertical = MusePaddings.inputPadding),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
     ) {
@@ -1106,12 +1221,34 @@ internal fun CatalogRootKeyRow(keyId: String, onRemove: () -> Unit) {
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )
-        MuseCapsuleButton(
-            text = stringResource(R.string.muse_plugins_trust_catalog_remove_action),
-            onClick = onRemove,
-            variant = IosCapsuleButtonVariant.Secondary,
-            fillWidth = false,
-        )
+        Box {
+            MuseTactileButton(
+                icon = MuseIcons.moreHorizontal,
+                onClick = { actionsOpen = true },
+                contentDescription = stringResource(R.string.action_more),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                compact = true,
+            )
+            MuseAnchoredMenu(
+                expanded = actionsOpen,
+                onDismissRequest = { actionsOpen = false },
+                alignEnd = true,
+            ) {
+                MuseListItem(
+                    onClick = {
+                        actionsOpen = false
+                        onRemove()
+                    },
+                    leadingContent = { MenuActionIcon(MuseIcons.trash, MaterialTheme.colorScheme.error) },
+                    headlineContent = {
+                        Text(
+                            text = stringResource(R.string.muse_plugins_trust_catalog_remove_action),
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    },
+                )
+            }
+        }
     }
 }
 

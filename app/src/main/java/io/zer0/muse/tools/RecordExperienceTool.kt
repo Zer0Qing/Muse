@@ -11,12 +11,12 @@ object RecordExperienceTool {
 
     fun toolDef() = ToolRegistry.ToolDef(
         name = "record_experience",
-        description = "把一条经验记进经验库。适用情形:用户指出你的错误、表现出不满或反复强调某事;" +
-            "你试了多种方法后找到有效做法;用户说「以后就这么做」或「别这么做」。" +
+        description = "把一条可复用的工具使用或排错经验记进经验库（仅记录参数坑点、有效调用路径、多步排查后找到的解法）。" +
+            "用户个人事实请用 save_memory，用户长期行为/回答风格偏好（如「以后别…」「始终用…」）请用 remember_preference，勿写入经验库。" +
             "每条一句话,写具体。",
         parameters = mapOf(
-            "category" to "Required. Category, 2-4 words, e.g. 'tool usage', 'search tips', 'response style'.",
-            "content" to "Required. The experience content, concise and direct, one sentence.",
+            "category" to "Required. Category, 2-4 words, e.g. 'tool usage', 'debugging', 'search tips'.",
+            "content" to "Required. The reusable tool/debugging lesson, concise and direct, one sentence.",
         ),
         required = setOf("category", "content"),
         category = "built-in",

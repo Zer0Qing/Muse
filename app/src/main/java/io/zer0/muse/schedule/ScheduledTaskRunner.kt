@@ -370,6 +370,14 @@ class ScheduledTaskRunner(
 
         /** 自适应休眠的下限：到期时间已过（或近在眼前）时也不要空转。 */
         private const val MIN_POLL_DELAY_MS = 1_000L
+
+        /** 后台无人值守定时任务的运行规则。 */
+        private val UNATTENDED_RUN_RULES = """
+[后台定时任务执行规则]
+- 本次任务在后台无人值守运行，结果将直接作为通知与任务记录展示。
+- 直接给出清晰、精炼、可直接阅读的最终结果；不要向用户反问或等待确认。
+- 不要输出 <mood>、<reflection> 等内部标签，也不要输出多余寒暄。
+        """.trimIndent()
     }
 
     private fun restoreBlocksScheduledWrites(taskId: String, operation: String): Boolean {
@@ -820,8 +828,8 @@ class ScheduledTaskRunner(
         }
         val finalCompletion = completion
             ?: error(context.getString(R.string.schedule_err_ai_timeout, LLM_TIMEOUT_MS / 1000))
-        // v1.0.74 fix: 剥离 <think> 推理标签,防止思考内容混入任务回复
-        val reply = io.zer0.muse.transformer.stripThinkTags(finalCompletion.text)
+        // 剥离 <think> / <mood> / <reflection> 等内部标签，避免污染定时任务回复与通知文案
+        val reply = io.zer0.muse.transformer.InternalMarkupSanitizer.stripForDisplay(finalCompletion.text)
         if (restoreBlocksScheduledWrites(task.id, "定时会话")) return ""
         val now = System.currentTimeMillis()
         val sessionId = if (task.dedicatedSessionId.isNotBlank()) {
@@ -1033,14 +1041,45 @@ class ScheduledTaskRunner(
             ?: error(context.getString(R.string.schedule_err_no_assistant))
     }
 
-    /** 构造调用 AI 的消息列表:助手 systemPrompt(非空时) + 用户 prompt。 */
-    private fun buildMessages(assistant: AssistantEntity, prompt: String): List<UIMessage> {
-        val list = mutableListOf<UIMessage>()
-        if (assistant.systemPrompt.isNotBlank()) {
-            list.add(UIMessage(role = MessageRole.SYSTEM, content = assistant.systemPrompt))
+    /** 构造调用 AI 的消息列表:渲染模板变量后的助手 systemPrompt + 后台静默执行约束 + 用户 prompt。 */
+    private suspend fun buildMessages(assistant: AssistantEntity, prompt: String): List<UIMessage> {
+        val renderedPrompt = renderSystemPrompt(assistant)
+        val systemContent = buildString {
+            if (renderedPrompt.isNotBlank()) {
+                appendLine(renderedPrompt.trim())
+                appendLine()
+            }
+            append(UNATTENDED_RUN_RULES)
         }
-        list.add(UIMessage(role = MessageRole.USER, content = prompt))
-        return list
+        return listOf(
+            UIMessage(role = MessageRole.SYSTEM, content = systemContent),
+            UIMessage(role = MessageRole.USER, content = prompt),
+        )
+    }
+
+    /** 渲染 assistant.systemPrompt 中的 {{char}}/{{user}}/{{date}} 等模板变量；失败时安全回退原文。 */
+    private suspend fun renderSystemPrompt(assistant: AssistantEntity): String {
+        val raw = assistant.systemPrompt
+        if (raw.isBlank() || (!raw.contains("{{") && !raw.contains("{%"))) return raw
+        val rendered = resultOf {
+            val userProfile = runCatching {
+                org.koin.core.context.GlobalContext.getOrNull()
+                    ?.getOrNull<io.zer0.muse.data.SettingsRepository>()
+                    ?.getUserProfile()
+            }.getOrNull()
+            io.zer0.muse.transformer.TemplateTransformer(context).transform(
+                messages = listOf(UIMessage(role = MessageRole.SYSTEM, content = raw)),
+                context = io.zer0.muse.transformer.TransformContext(
+                    extras = mapOf(
+                        "user_nickname" to userProfile?.userNickName,
+                        "assistant_name" to (userProfile?.assistantName ?: assistant.name),
+                    ),
+                ),
+            ).firstOrNull()?.content
+        }.onError { msg, t ->
+            Logger.w(TAG, "定时任务系统提示词模板渲染失败: ${t?.message ?: msg}")
+        }.getOrNull()
+        return rendered?.takeIf { it.isNotBlank() } ?: raw
     }
 
     fun stop() {

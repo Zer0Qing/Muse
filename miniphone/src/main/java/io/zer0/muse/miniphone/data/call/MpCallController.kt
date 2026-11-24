@@ -77,7 +77,7 @@ internal class MpCallController(
         if (current.phase != MpCallPhase.CONNECTED) return
         roundJob?.cancel()
         roundJob = scope.launch {
-            host.respond(current.characterId, history.takeLast(HISTORY_TURNS)).collect { event ->
+            host.respond(current.characterId, history.takeLast(HISTORY_TURNS), isVoiceCall = true).collect { event ->
                 val latest = _state.value ?: return@collect
                 if (latest.phase != MpCallPhase.CONNECTED) return@collect
                 _state.value = when (event) {

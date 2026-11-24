@@ -46,6 +46,7 @@ import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.findActivity
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.common.surface.MusePageScaffold
@@ -177,7 +178,16 @@ fun PermissionWizardScreen(onBack: () -> Unit) {
             MuseTopBar(
                 title = stringResource(R.string.permission_wizard_title),
                 onBack = onBack,
-            )
+                actions = {
+                    // 刷新收到顶栏：原先每张卡各放一个，同一动作出现五次，用户不知道点哪个。
+                    MuseTactileButton(
+                        icon = MuseIcons.refresh,
+                        onClick = { refreshAsync() },
+                        contentDescription = stringResource(R.string.permission_refresh),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        compact = true,
+                    )
+                },            )
         },
     ) { padding ->
         Column(

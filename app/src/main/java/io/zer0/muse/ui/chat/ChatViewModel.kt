@@ -245,6 +245,12 @@ data class ChatStreamState(
      *  3. reasoning-only 阶段(模型只输出思考链,content 仍空)不会被误判为"还在等待"
      */
     val isWaitingFirstToken: Boolean = false,
+    /** 当前是否处于思考流式阶段（首个 ReasoningDelta 至首个正文/工具调用/结束）。 */
+    val isThinkingActive: Boolean = false,
+    /** 当前思考阶段开始时间戳（epoch ms），用于实时秒表。 */
+    val reasoningStartedAtMs: Long? = null,
+    /** 本轮已冻结的思考阶段耗时（ms），在正文或工具调用到来时锁定。 */
+    val reasoningDurationMs: Long? = null,
     /**
      * v1.0.4: 视觉辅助分析进度(null=未在分析)。
      *
@@ -3428,9 +3434,15 @@ class ChatViewModel(
         val messages = _messages.value.filter { it.role == MessageRole.USER || it.role == MessageRole.ASSISTANT }
         if (messages.size < 2) return
         val preview =
-            messages.take(4).joinToString("\n") {
-                io.zer0.muse.transformer.InternalMarkupSanitizer.stripForDisplay(it.content).take(100)
-            }
+            messages.take(4).mapNotNull { msg ->
+                val body = io.zer0.muse.transformer.InternalMarkupSanitizer.stripForDisplay(msg.content).take(120).trim()
+                if (body.isBlank()) {
+                    null
+                } else {
+                    val speaker = if (msg.role == MessageRole.USER) "[User]" else "[Assistant]"
+                    "$speaker $body"
+                }
+            }.joinToString("\n")
         if (preview.isBlank()) return
         viewModelScope.launch(AppDispatchers.io) {
             // v1.0.52: 读取用户自定义对话命名 prompt(null/空串表示用默认)
@@ -3438,12 +3450,27 @@ class ChatViewModel(
                 resultOf { settings.customTitlePromptFlow.first() }
                     .getOrNull()
                     ?.takeIf { it.isNotBlank() }
-            val prompt =
-                if (customTitlePrompt != null) {
-                    "$customTitlePrompt\n\n$preview"
-                } else {
-                    "请用4到8个字概括以下对话的主题,直接输出标题文字,不要加引号或其他标点:\n\n$preview"
+            val configuredLang = settings.getLanguageSync()
+            val resolvedLocale = when (configuredLang) {
+                "system", "" -> java.util.Locale.getDefault().language
+                else -> configuredLang
+            }
+            val useChinese = io.zer0.muse.transformer.ConversationCompressor.detectChineseConversation(
+                messages = messages.take(4),
+                appLocale = resolvedLocale,
+            )
+            val systemPrompt =
+                when {
+                    customTitlePrompt != null -> customTitlePrompt
+                    useChinese ->
+                        "你是会话标题助手。请用 4 到 8 个字概括以下对话主题，使用与对话一致的语言，直接输出标题文字，不要加引号、书名号或句末标点。"
+                    else ->
+                        "You are a conversation title assistant. Summarize the conversation topic in 3 to 6 words in the same language as the conversation. Output only the title text with no quotes or trailing punctuation."
                 }
+            val titleMessages = listOf(
+                UIMessage(role = MessageRole.SYSTEM, content = systemPrompt),
+                UIMessage(role = MessageRole.USER, content = preview),
+            )
             resultOf {
                 val completion =
                     retryOnNetworkError {
@@ -3454,16 +3481,32 @@ class ChatViewModel(
                                     .resolve(io.zer0.muse.data.routing.UtilityTier.SMALL)
                             }.getOrNull()
                         chatService.completeText(
-                            messages = listOf(UIMessage(role = MessageRole.USER, content = prompt)),
+                            messages = titleMessages,
                             model = routed?.second,
                             providerConfig = routed?.first,
+                            temperature = 0.3f,
+                            maxTokens = 64,
+                            tools = null,
+                            reasoningLevel = ReasoningLevel.OFF,
+                            mode = io.zer0.ai.core.ChatRequestMode.UTILITY,
                         )
                     }
                 // v1.0.74 fix: 先剥离 <think> 推理标签再清洗。
                 // 此前直接 trim+去引号+take(20),模型带思考输出(如中转站 R1)
                 // 时标题会截进 `<think>...` 内容,用户看到的标题以 think 开头。
-                val cleaned = io.zer0.muse.transformer.stripThinkTags(completion.text)
-                cleaned.removeSurrounding("\"").removeSurrounding("'").take(20)
+                val maxTitleLen = if (useChinese) 24 else 48
+                io.zer0.muse.transformer.stripThinkTags(completion.text)
+                    .lineSequence()
+                    .firstOrNull { it.isNotBlank() }
+                    .orEmpty()
+                    .trim()
+                    .removeSurrounding("\"")
+                    .removeSurrounding("'")
+                    .removeSurrounding("「", "」")
+                    .removeSurrounding("《", "》")
+                    .trimEnd('。', '.', '!', '！', '?', '？')
+                    .trim()
+                    .take(maxTitleLen)
             }.onSuccess { newTitle ->
                 // v2.5.2 fix: 拦截无意义标题 —— 中转站/小模型偶尔偷懒输出 "..." / "." /
                 // "。。。" 等字面量（用户实测多个会话标题全变成省略号，导出列表无法辨认），
@@ -3472,7 +3515,9 @@ class ChatViewModel(
                 if (!meaningless) {
                     sessionRepository.renameSession(sessionId, newTitle)
                 }
-            }.onError { _, _ -> }
+            }.onError { msg, err ->
+                Logger.w("ChatVM", "autoTitleSession 失败(sessionId=$sessionId): $msg", err)
+            }
         }
     }
 

@@ -93,14 +93,31 @@ class GroupChatActivityHub {
     /** chatId → 正在流式生成的助手回复内容(空 map 表示无流式输出)。 */
     val streamingContent: StateFlow<Map<String, String>> = _streamingContent.asStateFlow()
 
+    /** 群聊当前实时思考草稿（供 MuseThinkingPanel 展示实时思考区间与秒表）。 */
+    data class StreamingReasoning(
+        val text: String,
+        val startedAtMs: Long? = null,
+        val durationMs: Long? = null,
+        val isThinkingActive: Boolean = false,
+    )
+
+    private val _streamingReasoning = MutableStateFlow<Map<String, StreamingReasoning>>(emptyMap())
+    val streamingReasoning: StateFlow<Map<String, StreamingReasoning>> = _streamingReasoning.asStateFlow()
+
     /** 更新某个群聊的流式输出内容。 */
     fun updateStreamingContent(chatId: String, content: String) {
         _streamingContent.update { it + (chatId to content) }
     }
 
-    /** 群聊流式输出结束(落库后调用,清除 UI 临时内容)。 */
+    /** 更新某个群聊的实时思考过程状态。 */
+    fun updateStreamingReasoning(chatId: String, reasoning: StreamingReasoning) {
+        _streamingReasoning.update { it + (chatId to reasoning) }
+    }
+
+    /** 群聊流式输出结束(落库后调用,清除 UI 临时内容与实时思考态)。 */
     fun clearStreamingContent(chatId: String) {
         _streamingContent.update { it - chatId }
+        _streamingReasoning.update { it - chatId }
     }
 
     /**

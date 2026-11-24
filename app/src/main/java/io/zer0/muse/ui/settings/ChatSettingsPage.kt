@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -52,15 +51,14 @@ import io.zer0.muse.ui.common.form.MuseChip
 import io.zer0.muse.ui.common.form.MuseSlider
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
-import io.zer0.muse.ui.common.settings.ChevronRight
-import io.zer0.muse.ui.common.settings.SectionLabel
-import io.zer0.muse.ui.common.settings.SettingsGroup
-import io.zer0.muse.ui.common.settings.SettingsGroupDivider
-import io.zer0.muse.ui.common.settings.SettingsItemRow
 import io.zer0.muse.ui.common.settings.SettingsSegmentedRow
-import io.zer0.muse.ui.common.settings.SettingsSwitchRow
+import io.zer0.muse.ui.common.settings.SettingsSliderRow
+import io.zer0.muse.ui.common.surface.CardGroup
+import io.zer0.muse.ui.common.surface.navigationItem
+import io.zer0.muse.ui.common.surface.switchItem
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.theme.MuseSpacing
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -84,14 +82,15 @@ import io.zer0.muse.util.launchSafely
  * 所有开关打包到 [ChatPreferences] 数据类里一次序列化存储。
  * MessageBubble / ChatScreen / InputBar 读取这些开关决定渲染与交互行为。
  *
- * v1.0.20: 新增"工具调用批准"分组(置顶),含三档会话权限模式。
- * 单工具级策略仍在工具页配置,本页不提供跳转入口。
+ * 全局默认工具权限与单工具策略统一归属工具设置页，本页仅展示当前档位摘要并提供跳转入口。
  */
 @Composable
 fun ChatSettingsPage(
     onBack: () -> Unit,
     /** v2.6.0: 打开消息快捷按钮自定义页。 */
     onOpenQuickActions: () -> Unit = {},
+    /** 打开工具与权限设置页（全局默认审批策略主归属页）。 */
+    onOpenToolsSettings: () -> Unit = {},
 ) {
     val settings: SettingsRepository = koinInject()
     val prefs by settings.chatPreferencesFlow.collectAsStateWithLifecycle(initialValue = ChatPreferences())
@@ -123,83 +122,45 @@ fun ChatSettingsPage(
         .collectAsStateWithLifecycle(initialValue = SessionPermissionMode.ASK)
 
     SettingsSubPageScaffold(title = stringResource(R.string.settings_chat_title), onBack = onBack) {
-        // ── 0. 工具调用批准（置顶）──
-        item { SectionLabel(stringResource(R.string.settings_chat_tool_approval_section)) }
-        item {
-            SettingsGroup {
-                val modeOptions =
-                    listOf(
-                        stringResource(R.string.settings_chat_tool_approval_trusted),
-                        stringResource(R.string.settings_chat_tool_approval_ask),
-                        stringResource(R.string.settings_chat_tool_approval_strict),
-                    )
-                val modeIndex =
-                    when (permissionMode) {
-                        SessionPermissionMode.TRUSTED -> 0
-                        SessionPermissionMode.ASK -> 1
-                        SessionPermissionMode.STRICT -> 2
-                    }
-                SettingsSegmentedRow(
-                    icon = MuseIcons.shieldCheck,
+        // ── 0. 工具调用批准（摘要跳转至工具设置页，避免两页重复配置同一策略）──
+        item(key = "chat_tool_approval") {
+            val (modeLabelRes, modeDescRes) = when (permissionMode) {
+                SessionPermissionMode.TRUSTED ->
+                    R.string.settings_chat_tool_approval_trusted to R.string.settings_chat_tool_approval_trusted_desc
+                SessionPermissionMode.ASK ->
+                    R.string.settings_chat_tool_approval_ask to R.string.settings_chat_tool_approval_ask_desc
+                SessionPermissionMode.STRICT ->
+                    R.string.settings_chat_tool_approval_strict to R.string.settings_chat_tool_approval_strict_desc
+            }
+            CardGroup(title = { Text(stringResource(R.string.settings_chat_tool_approval_section)) }) {
+                navigationItem(
+                    key = "tool_approval_mode_nav",
                     title = stringResource(R.string.settings_chat_tool_approval_title),
-                    options = modeOptions,
-                    selectedIndex = modeIndex,
-                    onSelectedChange = { idx ->
-                        val newMode =
-                            when (idx) {
-                                0 -> SessionPermissionMode.TRUSTED
-                                2 -> SessionPermissionMode.STRICT
-                                else -> SessionPermissionMode.ASK
-                            }
-                        scope.launch { settings.setDefaultSessionPermissionMode(newMode) }
+                    subtitle = stringResource(modeDescRes),
+                    value = stringResource(modeLabelRes),
+                    onClick = onOpenToolsSettings,
+                    leadingContent = {
+                        Icon(
+                            MuseIcons.shieldCheck,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
                     },
                 )
-                // 当前模式说明（随选中档位动态切换）
-                val modeDescRes =
-                    when (permissionMode) {
-                        SessionPermissionMode.TRUSTED -> R.string.settings_chat_tool_approval_trusted_desc
-                        SessionPermissionMode.ASK -> R.string.settings_chat_tool_approval_ask_desc
-                        SessionPermissionMode.STRICT -> R.string.settings_chat_tool_approval_strict_desc
-                    }
-                Row(
-                    modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(MusePaddings.cardInner),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Icon(
-                        imageVector = MuseIcons.lock,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.outline,
-                        modifier = Modifier.size(MuseIconSizes.iconMedium),
-                    )
-                    Text(
-                        text = stringResource(modeDescRes),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
             }
         }
 
-        // ── 1. 消息显示 ──
-        // ── v1.0.74: 聊天背景(聊天/Agent/群聊共用) ──
-        item { SectionLabel(stringResource(R.string.settings_chat_background_section)) }
-        item {
+        // ── 聊天背景（亮色图 / 深色图 / 渐变）合并为一张卡 ──
+        item(key = "chat_background_group") {
             val chatBackground by settings.chatBackgroundFlow.collectAsStateWithLifecycle(initialValue = null)
-            val bgScope = rememberCoroutineScope()
+            val darkBg by settings.chatBackgroundDarkFlow.collectAsStateWithLifecycle(initialValue = null)
+            val chatGradient by settings.chatGradientFlow.collectAsStateWithLifecycle(initialValue = null)
             val bgContext = LocalContext.current
             val bgLauncher =
-                rememberLauncherForActivityResult(
-                    contract = ActivityResultContracts.GetContent(),
-                ) { uri ->
+                rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
                     uri?.let { picked ->
-                        bgScope.launch {
-                            // 审计修复 (6.5): 背景图改为存文件路径,DataStore 只存路径字符串。
-                            // 原实现把 ~500KB base64 写进 DataStore Preferences,每次 edit 全量重写,
-                            // 设置文件膨胀、冷启动变慢、ANR 风险。文件存 filesDir,体积可控。
+                        scope.launch {
                             val savedPath =
                                 withContext(Dispatchers.IO) {
                                     runCatching {
@@ -227,15 +188,10 @@ fun ChatSettingsPage(
                                         if (scaled !== bmp) scaled.recycle()
                                         bmp.recycle()
                                         val target = java.io.File(bgContext.filesDir, "chat_background.jpg")
-                                        java.io.FileOutputStream(target).use { fos ->
-                                            fos.write(out.toByteArray())
-                                        }
+                                        java.io.FileOutputStream(target).use { fos -> fos.write(out.toByteArray()) }
                                         out.close()
-                                        // 兼容旧值:已存 base64 的继续用,新值存路径(以 file:// 开头区分)
                                         "file://" + target.absolutePath
                                     }
-                                        // toast 只说"失败了"，原因只有日志知道：
-                                        // 读不到所选文件、解不出位图、写不进 filesDir 是三种不同修法。
                                         .onFailure { e ->
                                             Logger.w(
                                                 "ChatSettings",
@@ -247,7 +203,6 @@ fun ChatSettingsPage(
                                 }
                             if (savedPath != null) {
                                 settings.saveChatBackground(savedPath)
-                                // v1.0.74 fix: 此前成功/失败均无反馈,用户以为坏了
                                 MuseToast.show(bgContext.getString(R.string.settings_chat_background_saved))
                             } else {
                                 MuseToast.show(bgContext.getString(R.string.settings_chat_background_failed))
@@ -255,853 +210,680 @@ fun ChatSettingsPage(
                         }
                     }
                 }
-            SettingsGroup {
-                Row(
-                    modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 56.dp)
-                        .clickable {
-                            bgLauncher.launchSafely("image/*", bgContext)
-                        }
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        imageVector = MuseIcons.image,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp),
-                    )
-                    Spacer(Modifier.width(12.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = stringResource(R.string.settings_chat_background_title),
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                        Text(
-                            text = stringResource(R.string.settings_chat_background_subtitle),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    if (chatBackground != null) {
-                        Text(
-                            text = stringResource(R.string.action_clear),
-                            style =
-                            MaterialTheme.typography.bodySmall.copy(
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Medium,
-                            ),
-                            modifier =
-                            Modifier
-                                .clip(RoundedCornerShape(MuseCornerRadius.SEMI_LARGE.dp))
-                                .clickable {
-                                    bgScope.launch {
-                                        settings.saveChatBackground(null)
-                                        io.zer0.muse.ui.settings.ChatBackgroundStore.deleteSlot(bgContext, null)
-                                    }
-                                }
-                                .padding(horizontal = 10.dp, vertical = 6.dp),
-                        )
-                    } else {
-                        Text(
-                            text = stringResource(R.string.settings_chat_background_choose),
-                            style =
-                            MaterialTheme.typography.bodySmall.copy(
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Medium,
-                            ),
-                        )
-                    }
-                }
-            }
-        }
-        item {
-            // v2.6.2（用户反馈）: 深色模式专用背景 —— 配合明暗自动切换，让背景也跟着换。
-            val darkBg by settings.chatBackgroundDarkFlow.collectAsStateWithLifecycle(initialValue = null)
-            val darkBgScope = rememberCoroutineScope()
-            val darkBgContext = LocalContext.current
             val darkBgLauncher =
-                rememberLauncherForActivityResult(
-                    contract = ActivityResultContracts.GetContent(),
-                ) { uri ->
+                rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
                     uri?.let { picked ->
-                        darkBgScope.launch {
+                        scope.launch {
                             val savedPath = withContext(Dispatchers.IO) {
-                                io.zer0.muse.ui.settings.ChatBackgroundStore.saveFromUri(
-                                    darkBgContext,
-                                    picked,
-                                    "chat_background_dark",
-                                )
+                                ChatBackgroundStore.saveFromUri(bgContext, picked, "chat_background_dark")
                             }
                             if (savedPath != null) {
                                 settings.saveChatBackgroundDark(savedPath)
-                                MuseToast.show(darkBgContext.getString(R.string.settings_chat_background_saved))
+                                MuseToast.show(bgContext.getString(R.string.settings_chat_background_saved))
                             } else {
-                                MuseToast.show(darkBgContext.getString(R.string.chat_background_save_failed))
+                                MuseToast.show(bgContext.getString(R.string.chat_background_save_failed))
                             }
                         }
                     }
                 }
-            SettingsGroup {
-                Row(
-                    modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 56.dp)
-                        .clickable {
-                            darkBgLauncher.launchSafely("image/*", darkBgContext)
-                        }
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        imageVector = MuseIcons.image,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp),
-                    )
-                    Spacer(Modifier.width(12.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = stringResource(R.string.settings_chat_background_dark_title),
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
+            CardGroup(title = { Text(stringResource(R.string.settings_chat_background_section)) }) {
+                item(
+                    key = "bg_light",
+                    onClick = { bgLauncher.launchSafely("image/*", bgContext) },
+                    leadingContent = {
+                        Icon(
+                            imageVector = MuseIcons.image,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
                         )
-                        Text(
-                            text = stringResource(R.string.settings_chat_background_dark_subtitle),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    if (darkBg != null) {
-                        Text(
-                            text = stringResource(R.string.action_clear),
-                            style =
-                            MaterialTheme.typography.bodySmall.copy(
-                                color = MaterialTheme.colorScheme.primary,
+                    },
+                    headlineContent = { Text(stringResource(R.string.settings_chat_background_title)) },
+                    supportingContent = { Text(stringResource(R.string.settings_chat_background_subtitle)) },
+                    trailingContent = {
+                        if (chatBackground != null) {
+                            Text(
+                                text = stringResource(R.string.action_clear),
+                                style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.Medium,
-                            ),
-                            modifier =
-                            Modifier
-                                .clip(RoundedCornerShape(MuseCornerRadius.SEMI_LARGE.dp))
-                                .clickable {
-                                    darkBgScope.launch {
-                                        settings.saveChatBackgroundDark(null)
-                                        io.zer0.muse.ui.settings.ChatBackgroundStore.deleteSlot(
-                                            darkBgContext,
-                                            "chat_background_dark",
-                                        )
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(MuseCornerRadius.SEMI_LARGE.dp))
+                                    .clickable {
+                                        scope.launch {
+                                            settings.saveChatBackground(null)
+                                            ChatBackgroundStore.deleteSlot(bgContext, null)
+                                        }
                                     }
-                                }
-                                .padding(horizontal = 10.dp, vertical = 6.dp),
-                        )
-                    } else {
-                        Text(
-                            text = stringResource(R.string.settings_chat_background_choose),
-                            style =
-                            MaterialTheme.typography.bodySmall.copy(
-                                color = MaterialTheme.colorScheme.primary,
+                                    .padding(horizontal = MuseSpacing.sm, vertical = MuseSpacing.xs),
+                            )
+                        } else {
+                            Text(
+                                text = stringResource(R.string.settings_chat_background_choose),
+                                style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.Medium,
-                            ),
-                        )
-                    }
-                }
-            }
-        }
-        item {
-            // E3: 动态渐变背景 — 双色线性渐变预设(背景图优先,渐变在无背景图时生效)
-            val chatGradient by settings.chatGradientFlow.collectAsStateWithLifecycle(initialValue = null)
-            val gradScope = rememberCoroutineScope()
-            SettingsGroup {
-                Row(
-                    modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 56.dp)
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        imageVector = MuseIcons.palette,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(24.dp),
-                    )
-                    Spacer(Modifier.width(12.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = stringResource(R.string.settings_chat_gradient_title),
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                        Text(
-                            text = stringResource(R.string.settings_chat_gradient_subtitle),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    if (chatGradient != null) {
-                        Text(
-                            text = stringResource(R.string.action_clear),
-                            style =
-                            MaterialTheme.typography.bodySmall.copy(
                                 color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Medium,
-                            ),
-                            modifier =
-                            Modifier
-                                .clip(RoundedCornerShape(MuseCornerRadius.SEMI_LARGE.dp))
-                                .clickable {
-                                    gradScope.launch { settings.saveChatGradient(null) }
-                                }
-                                .padding(horizontal = 10.dp, vertical = 6.dp),
-                        )
-                    }
-                }
-                Row(
-                    modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    PRESET_CHAT_GRADIENTS.forEach { (start, end) ->
-                        val selected = chatGradient?.startColorArgb == start && chatGradient?.endColorArgb == end
-                        Box(
-                            modifier =
-                            Modifier
-                                .size(36.dp)
-                                .clip(RoundedCornerShape(MuseCornerRadius.SMALL.dp))
-                                .background(
-                                    Brush.linearGradient(
-                                        listOf(Color(start.toInt()), Color(end.toInt())),
-                                    ),
-                                )
-                                .border(
-                                    width = if (selected) 2.dp else 1.dp,
-                                    color =
-                                    if (selected) {
-                                        MaterialTheme.colorScheme.primary
-                                    } else {
-                                        MaterialTheme.colorScheme.outlineVariant
-                                    },
-                                    shape = RoundedCornerShape(MuseCornerRadius.SMALL.dp),
-                                )
-                                .clickable {
-                                    gradScope.launch { settings.saveChatGradient(ChatGradient(start, end)) }
-                                },
-                        )
-                    }
-                }
-            }
-        }
-        item { SectionLabel(stringResource(R.string.settings_chat_message_display)) }
-        item {
-            SettingsGroup {
-                SettingsSwitchRow(
-                    icon = MuseIcons.moodSmile,
-                    title = stringResource(R.string.settings_chat_show_mood),
-                    checked = prefs.showMoodBlock,
-                    onCheckedChange = { v -> update { it.copy(showMoodBlock = v) } },
-                )
-                SettingsSwitchRow(
-                    // 思考过程的图形早已定为 brain(进程列表 think/reasoning 同一口径),atom 留给"反思"。
-                    icon = MuseIcons.brain,
-                    title = stringResource(R.string.settings_chat_show_reasoning),
-                    checked = prefs.showReasoning,
-                    onCheckedChange = { v -> update { it.copy(showReasoning = v) } },
-                )
-                // v2.6.1（用户反馈）: 强制模型返回思考 —— 打开后不被助手级 OFF/AUTO 压掉。
-                SettingsSwitchRow(
-                    icon = MuseIcons.brain,
-                    title = stringResource(R.string.settings_chat_force_reasoning),
-                    checked = prefs.forceReasoning,
-                    onCheckedChange = { v -> update { it.copy(forceReasoning = v) } },
-                )
-                SettingsSwitchRow(
-                    // 反思 = 助手回看自己的输出,用 reflect 的"绕回自身"图形;atom 留给真正的原子/模型类语义。
-                    icon = MuseIcons.reflect,
-                    title = stringResource(R.string.settings_chat_show_reflection),
-                    checked = prefs.showReflectionBlock,
-                    onCheckedChange = { v -> update { it.copy(showReflectionBlock = v) } },
-                )
-                // v1.0.52: 移除 showTokenEstimate 死开关 — 该开关从未被任何 UI 读取,
-                // 用户反复开启它但无效果。真正生效的是"性能"分组里的"Token 估算"开关。
-                SettingsSwitchRow(
-                    icon = MuseIcons.switch,
-                    title = stringResource(R.string.settings_chat_show_model),
-                    checked = prefs.showModelName,
-                    onCheckedChange = { v -> update { it.copy(showModelName = v) } },
-                )
-                SettingsSwitchRow(
-                    icon = MuseIcons.user,
-                    title = stringResource(R.string.settings_chat_show_assistant_name),
-                    checked = prefs.showAssistantName,
-                    onCheckedChange = { v -> update { it.copy(showAssistantName = v) } },
-                )
-                // 2.6.24: 与助手名字开关对称 —— 用户消息顶部是否显示自己的昵称。
-                SettingsSwitchRow(
-                    icon = MuseIcons.user,
-                    title = stringResource(R.string.settings_chat_show_user_name),
-                    checked = prefs.showUserName,
-                    onCheckedChange = { v -> update { it.copy(showUserName = v) } },
-                )
-                SettingsSwitchRow(
-                    icon = MuseIcons.calendarTime,
-                    title = stringResource(R.string.settings_chat_show_timestamp),
-                    checked = prefs.showTimestamp,
-                    onCheckedChange = { v -> update { it.copy(showTimestamp = v) } },
-                )
-            }
-        }
-
-        // ── v2.6.10: 跨会话衔接 ──
-        // 开新对话时把上一个会话末尾的对话带进上下文。
-        // 默认关闭：会占用输入 token，用户明确需要连续感时再打开。
-        item { SectionLabel(stringResource(R.string.settings_chat_carry_over_section)) }
-        item {
-            SettingsGroup {
-                SettingsSwitchRow(
-                    icon = MuseIcons.chat,
-                    title = stringResource(R.string.settings_chat_carry_over),
-                    checked = prefs.carryOverEnabled,
-                    onCheckedChange = { v -> update { it.copy(carryOverEnabled = v) } },
-                )
-                if (prefs.carryOverEnabled) {
-                    Column(modifier = Modifier.padding(MusePaddings.cardInner)) {
-                        Text(
-                            text = stringResource(
-                                R.string.settings_chat_carry_over_count,
-                                prefs.carryOverMessageCount,
-                            ),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                        Text(
-                            text = stringResource(
-                                R.string.settings_chat_carry_over_count_hint,
-                                prefs.carryOverMessageCount / 2,
-                            ),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Slider(
-                            value = prefs.carryOverMessageCount.toFloat(),
-                            onValueChange = { v ->
-                                // 按 2 条一档（一问一答），避免用户调到奇怪的奇数。
-                                val snapped = (v.toInt() / 2 * 2).coerceIn(4, 40)
-                                update { it.copy(carryOverMessageCount = snapped) }
-                            },
-                            valueRange = 4f..40f,
-                            steps = 17,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-                }
-            }
-        }
-
-        // ── v2.6.0: 消息快捷按钮自定义（Via 式三级页）──
-        item { SectionLabel(stringResource(R.string.settings_chat_quick_actions)) }
-        item {
-            SettingsGroup {
-                SettingsItemRow(
-                    icon = MuseIcons.copy,
-                    title = stringResource(R.string.settings_chat_quick_customize),
-                    onClick = onOpenQuickActions,
-                ) { ChevronRight() }
-            }
-        }
-
-        // ── 正文排版(消息字号 / 字间距, v2.0)──
-        item { SectionLabel(stringResource(R.string.settings_chat_typography_section)) }
-        // v2.5.0: 排版预览面板 —— 当前聊天外观设置的合成效果,所见即所得
-        item {
-            SettingsGroup {
-                BubblePreviewPanel(prefs = prefs)
-            }
-        }
-        item {
-            SettingsGroup {
-                // 消息字号:0.85~1.25 倍,默认 100%
-                var fontScaleDraft by remember { mutableStateOf(prefs.messageFontScale) }
-                LaunchedEffect(prefs.messageFontScale) {
-                    if (prefs.messageFontScale != fontScaleDraft) {
-                        fontScaleDraft = prefs.messageFontScale
-                    }
-                }
-                LaunchedEffect(fontScaleDraft) {
-                    if (fontScaleDraft != prefs.messageFontScale) {
-                        delay(400)
-                        update { it.copy(messageFontScale = fontScaleDraft) }
-                    }
-                }
-                Column(
-                    modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(MusePaddings.cardInner),
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        // LAYOUT-01: 设置项名称取剩余宽度 + 限行,百分比是定宽短值,限 1 行。
-                        Text(
-                            text = stringResource(R.string.settings_chat_message_font_size),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.weight(1f),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        Text(
-                            text = "${(fontScaleDraft * 100).toInt()}%",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.SemiBold,
-                            maxLines = 1,
-                        )
-                    }
-                    Text(
-                        text = stringResource(R.string.settings_chat_message_font_size_subtitle),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    MuseSlider(
-                        value = fontScaleDraft,
-                        onValueChange = { v -> fontScaleDraft = v },
-                        valueRange = 0.85f..1.25f,
-                        steps = 7,
-                        valueFormatter = { v -> "${(v * 100).toInt()}%" },
-                    )
-                }
-                // 字间距:-0.02em ~ 0.08em
-                var letterSpacingDraft by remember { mutableStateOf(prefs.messageLetterSpacingEm) }
-                LaunchedEffect(prefs.messageLetterSpacingEm) {
-                    if (prefs.messageLetterSpacingEm != letterSpacingDraft) {
-                        letterSpacingDraft = prefs.messageLetterSpacingEm
-                    }
-                }
-                LaunchedEffect(letterSpacingDraft) {
-                    if (letterSpacingDraft != prefs.messageLetterSpacingEm) {
-                        delay(400)
-                        update { it.copy(messageLetterSpacingEm = letterSpacingDraft) }
-                    }
-                }
-                Column(
-                    modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(MusePaddings.cardInner),
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        // LAYOUT-01: 同上,设置项名称取宽 + 限行,数值列限 1 行。
-                        Text(
-                            text = stringResource(R.string.settings_chat_letter_spacing),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.weight(1f),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        Text(
-                            text = "%.2f em".format(letterSpacingDraft),
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.SemiBold,
-                            maxLines = 1,
-                        )
-                    }
-                    Text(
-                        text = stringResource(R.string.settings_chat_letter_spacing_subtitle),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    MuseSlider(
-                        value = letterSpacingDraft,
-                        onValueChange = { v -> letterSpacingDraft = v },
-                        valueRange = -0.02f..0.08f,
-                        steps = 9,
-                        valueFormatter = { v -> "%.2f".format(v) },
-                    )
-                }
-            }
-        }
-
-        // ── 生成风格(全局温度 + 语气风格 + 语气)──
-        item { SectionLabel(stringResource(R.string.settings_chat_generation_style)) }
-        item {
-            SettingsGroup {
-                SettingsSwitchRow(
-                    icon = MuseIcons.languages,
-                    title = stringResource(R.string.settings_chat_reply_language),
-                    checked = prefs.replyInUserLanguageEnabled,
-                    onCheckedChange = { v -> update { it.copy(replyInUserLanguageEnabled = v) } },
-                )
-            }
-        }
-        item {
-            SettingsGroup {
-                // 温度滑块:0-2,步长 0.1
-                Row(
-                    modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(MusePaddings.cardInner),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Icon(
-                        imageVector = MuseIcons.temperature,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.outline,
-                        modifier = Modifier.size(MuseIconSizes.iconMedium),
-                    )
-                    Column(modifier = Modifier.weight(1f)) {
-                        // 本地草稿 + 400ms 防抖:拖动时只更新草稿,停止后再写 DataStore,避免每次微调都持久化
-                        var temperatureDraft by remember { mutableStateOf(prefs.globalTemperature) }
-                        LaunchedEffect(prefs.globalTemperature) {
-                            if (prefs.globalTemperature != temperatureDraft) {
-                                temperatureDraft = prefs.globalTemperature
-                            }
+                            )
                         }
-                        LaunchedEffect(temperatureDraft) {
-                            if (temperatureDraft != prefs.globalTemperature) {
-                                delay(400)
-                                update { it.copy(globalTemperature = temperatureDraft) }
+                    },
+                )
+                item(
+                    key = "bg_dark",
+                    onClick = { darkBgLauncher.launchSafely("image/*", bgContext) },
+                    leadingContent = {
+                        Icon(
+                            imageVector = MuseIcons.image,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
+                    },
+                    headlineContent = { Text(stringResource(R.string.settings_chat_background_dark_title)) },
+                    supportingContent = { Text(stringResource(R.string.settings_chat_background_dark_subtitle)) },
+                    trailingContent = {
+                        if (darkBg != null) {
+                            Text(
+                                text = stringResource(R.string.action_clear),
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(MuseCornerRadius.SEMI_LARGE.dp))
+                                    .clickable {
+                                        scope.launch {
+                                            settings.saveChatBackgroundDark(null)
+                                            ChatBackgroundStore.deleteSlot(bgContext, "chat_background_dark")
+                                        }
+                                    }
+                                    .padding(horizontal = MuseSpacing.sm, vertical = MuseSpacing.xs),
+                            )
+                        } else {
+                            Text(
+                                text = stringResource(R.string.settings_chat_background_choose),
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    },
+                )
+                content(key = "bg_gradient") {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(MusePaddings.cardInner),
+                        verticalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(MuseSpacing.md),
+                        ) {
+                            Icon(
+                                imageVector = MuseIcons.palette,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(MuseIconSizes.iconMedium),
+                            )
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = stringResource(R.string.settings_chat_gradient_title),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                                Text(
+                                    text = stringResource(R.string.settings_chat_gradient_subtitle),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            if (chatGradient != null) {
+                                Text(
+                                    text = stringResource(R.string.action_clear),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(MuseCornerRadius.SEMI_LARGE.dp))
+                                        .clickable { scope.launch { settings.saveChatGradient(null) } }
+                                        .padding(horizontal = MuseSpacing.sm, vertical = MuseSpacing.xs),
+                                )
                             }
                         }
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
                         ) {
-                            // LAYOUT-01: 同上(此时行内还叠加了图标与 Column.weight),名称取宽 + 限行。
-                            Text(
-                                text = stringResource(R.string.settings_chat_randomness),
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.weight(1f),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            Text(
-                                text = "%.1f".format(temperatureDraft),
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.SemiBold,
-                                maxLines = 1,
-                            )
+                            PRESET_CHAT_GRADIENTS.forEach { (start, end) ->
+                                val selected = chatGradient?.startColorArgb == start && chatGradient?.endColorArgb == end
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(RoundedCornerShape(MuseCornerRadius.SMALL.dp))
+                                        .background(
+                                            Brush.linearGradient(
+                                                listOf(Color(start.toInt()), Color(end.toInt())),
+                                            ),
+                                        )
+                                        .border(
+                                            width = if (selected) 2.dp else 1.dp,
+                                            color = if (selected) {
+                                                MaterialTheme.colorScheme.primary
+                                            } else {
+                                                MaterialTheme.colorScheme.outlineVariant
+                                            },
+                                            shape = RoundedCornerShape(MuseCornerRadius.SMALL.dp),
+                                        )
+                                        .clickable {
+                                            scope.launch { settings.saveChatGradient(ChatGradient(start, end)) }
+                                        },
+                                )
+                            }
                         }
-                        Text(
-                            text = stringResource(temperatureHint(temperatureDraft)),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        MuseSlider(
-                            value = temperatureDraft,
-                            onValueChange = { v -> temperatureDraft = v },
-                            valueRange = 0f..2f,
-                            // 步长 0.1,0-2 共 21 个点,steps = 21 - 2
-                            steps = 19,
-                            modifier = Modifier.padding(top = 4.dp),
+                    }
+                }
+            }
+        }
+
+        // ── 1. 消息显示 ──
+        item(key = "chat_message_display") {
+            CardGroup(title = { Text(stringResource(R.string.settings_chat_message_display)) }) {
+                switchItem(
+                    key = "show_mood",
+                    title = stringResource(R.string.settings_chat_show_mood),
+                    checked = prefs.showMoodBlock,
+                    onCheckedChange = { v -> update { it.copy(showMoodBlock = v) } },
+                    leadingContent = {
+                        Icon(MuseIcons.moodSmile, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium))
+                    },
+                )
+                switchItem(
+                    key = "show_reasoning",
+                    title = stringResource(R.string.settings_chat_show_reasoning),
+                    checked = prefs.showReasoning,
+                    onCheckedChange = { v -> update { it.copy(showReasoning = v) } },
+                    leadingContent = {
+                        Icon(MuseIcons.brain, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium))
+                    },
+                )
+                switchItem(
+                    key = "force_reasoning",
+                    title = stringResource(R.string.settings_chat_force_reasoning),
+                    checked = prefs.forceReasoning,
+                    onCheckedChange = { v -> update { it.copy(forceReasoning = v) } },
+                    leadingContent = {
+                        Icon(MuseIcons.brain, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium))
+                    },
+                )
+                switchItem(
+                    key = "show_reflection",
+                    title = stringResource(R.string.settings_chat_show_reflection),
+                    checked = prefs.showReflectionBlock,
+                    onCheckedChange = { v -> update { it.copy(showReflectionBlock = v) } },
+                    leadingContent = {
+                        Icon(MuseIcons.reflect, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium))
+                    },
+                )
+                switchItem(
+                    key = "show_model",
+                    title = stringResource(R.string.settings_chat_show_model),
+                    checked = prefs.showModelName,
+                    onCheckedChange = { v -> update { it.copy(showModelName = v) } },
+                    leadingContent = {
+                        Icon(MuseIcons.switch, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium))
+                    },
+                )
+                switchItem(
+                    key = "show_assistant_name",
+                    title = stringResource(R.string.settings_chat_show_assistant_name),
+                    checked = prefs.showAssistantName,
+                    onCheckedChange = { v -> update { it.copy(showAssistantName = v) } },
+                    leadingContent = {
+                        Icon(MuseIcons.user, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium))
+                    },
+                )
+                switchItem(
+                    key = "show_user_name",
+                    title = stringResource(R.string.settings_chat_show_user_name),
+                    checked = prefs.showUserName,
+                    onCheckedChange = { v -> update { it.copy(showUserName = v) } },
+                    leadingContent = {
+                        Icon(MuseIcons.user, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium))
+                    },
+                )
+                switchItem(
+                    key = "show_timestamp",
+                    title = stringResource(R.string.settings_chat_show_timestamp),
+                    checked = prefs.showTimestamp,
+                    onCheckedChange = { v -> update { it.copy(showTimestamp = v) } },
+                    leadingContent = {
+                        Icon(MuseIcons.calendarTime, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium))
+                    },
+                )
+            }
+        }
+
+        // ── 跨会话衔接 ──
+        item(key = "chat_carry_over") {
+            CardGroup(title = { Text(stringResource(R.string.settings_chat_carry_over_section)) }) {
+                switchItem(
+                    key = "carry_over_toggle",
+                    title = stringResource(R.string.settings_chat_carry_over),
+                    checked = prefs.carryOverEnabled,
+                    onCheckedChange = { v -> update { it.copy(carryOverEnabled = v) } },
+                    leadingContent = {
+                        Icon(MuseIcons.chat, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium))
+                    },
+                )
+                if (prefs.carryOverEnabled) {
+                    content(key = "carry_over_slider") {
+                        SettingsSliderRow(
+                            title = stringResource(R.string.settings_chat_carry_over_count, prefs.carryOverMessageCount),
+                            subtitle = stringResource(R.string.settings_chat_carry_over_count_hint, prefs.carryOverMessageCount / 2),
+                            value = prefs.carryOverMessageCount.toFloat(),
+                            valueRange = 4f..40f,
+                            steps = 17,
+                            valueText = "${prefs.carryOverMessageCount}",
+                            onValueChange = { v ->
+                                val snapped = (v.toInt() / 2 * 2).coerceIn(4, 40)
+                                update { it.copy(carryOverMessageCount = snapped) }
+                            },
                         )
                     }
                 }
-                // 风格选择:concise/balanced/detailed
-                val styleOptions =
-                    listOf(
-                        stringResource(R.string.settings_chat_style_concise),
-                        stringResource(R.string.settings_chat_style_balanced),
-                        stringResource(R.string.settings_chat_style_detailed),
+            }
+        }
+
+        // ── 消息快捷按钮自定义 ──
+        item(key = "chat_quick_actions") {
+            CardGroup(title = { Text(stringResource(R.string.settings_chat_quick_actions)) }) {
+                navigationItem(
+                    key = "quick_actions_entry",
+                    title = stringResource(R.string.settings_chat_quick_customize),
+                    leadingContent = {
+                        Icon(MuseIcons.copy, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium))
+                    },
+                    onClick = onOpenQuickActions,
+                )
+            }
+        }
+
+        // ── 正文排版 ──
+        item(key = "chat_typography") {
+            var fontScaleDraft by remember { mutableStateOf(prefs.messageFontScale) }
+            LaunchedEffect(prefs.messageFontScale) {
+                if (prefs.messageFontScale != fontScaleDraft) fontScaleDraft = prefs.messageFontScale
+            }
+            LaunchedEffect(fontScaleDraft) {
+                if (fontScaleDraft != prefs.messageFontScale) {
+                    delay(400)
+                    update { it.copy(messageFontScale = fontScaleDraft) }
+                }
+            }
+            var letterSpacingDraft by remember { mutableStateOf(prefs.messageLetterSpacingEm) }
+            LaunchedEffect(prefs.messageLetterSpacingEm) {
+                if (prefs.messageLetterSpacingEm != letterSpacingDraft) letterSpacingDraft = prefs.messageLetterSpacingEm
+            }
+            LaunchedEffect(letterSpacingDraft) {
+                if (letterSpacingDraft != prefs.messageLetterSpacingEm) {
+                    delay(400)
+                    update { it.copy(messageLetterSpacingEm = letterSpacingDraft) }
+                }
+            }
+            CardGroup(title = { Text(stringResource(R.string.settings_chat_typography_section)) }) {
+                content(key = "bubble_preview") {
+                    BubblePreviewPanel(prefs = prefs)
+                }
+                content(key = "font_scale_slider") {
+                    SettingsSliderRow(
+                        title = stringResource(R.string.settings_chat_message_font_size),
+                        subtitle = stringResource(R.string.settings_chat_message_font_size_subtitle),
+                        value = fontScaleDraft,
+                        valueRange = 0.85f..1.25f,
+                        steps = 7,
+                        valueText = "${(fontScaleDraft * 100).toInt()}%",
+                        onValueChange = { fontScaleDraft = it },
                     )
-                val selectedStyleIndex =
-                    when (prefs.responseStyle) {
-                        "concise" -> 0
-                        "detailed" -> 2
-                        else -> 1
-                    }
-                SettingsSegmentedRow(
-                    // 回复风格是"怎么说"的文字类设置,与字号/字体同族;atom 是思考/原子的语义,借错了。
-                    icon = MuseIcons.typography,
-                    title = stringResource(R.string.settings_chat_style),
-                    options = styleOptions,
-                    selectedIndex = selectedStyleIndex,
-                    onSelectedChange = { idx ->
-                        val value =
-                            when (idx) {
+                }
+                content(key = "letter_spacing_slider") {
+                    SettingsSliderRow(
+                        title = stringResource(R.string.settings_chat_letter_spacing),
+                        subtitle = stringResource(R.string.settings_chat_letter_spacing_subtitle),
+                        value = letterSpacingDraft,
+                        valueRange = -0.02f..0.08f,
+                        steps = 9,
+                        valueText = "%.2f em".format(letterSpacingDraft),
+                        onValueChange = { letterSpacingDraft = it },
+                    )
+                }
+            }
+        }
+
+        // ── 生成风格 ──
+        item(key = "chat_generation_style") {
+            var temperatureDraft by remember { mutableStateOf(prefs.globalTemperature) }
+            LaunchedEffect(prefs.globalTemperature) {
+                if (prefs.globalTemperature != temperatureDraft) temperatureDraft = prefs.globalTemperature
+            }
+            LaunchedEffect(temperatureDraft) {
+                if (temperatureDraft != prefs.globalTemperature) {
+                    delay(400)
+                    update { it.copy(globalTemperature = temperatureDraft) }
+                }
+            }
+            val styleOptions =
+                listOf(
+                    stringResource(R.string.settings_chat_style_concise),
+                    stringResource(R.string.settings_chat_style_balanced),
+                    stringResource(R.string.settings_chat_style_detailed),
+                )
+            val selectedStyleIndex =
+                when (prefs.responseStyle) {
+                    "concise" -> 0
+                    "detailed" -> 2
+                    else -> 1
+                }
+            val toneOptions =
+                listOf(
+                    stringResource(R.string.settings_chat_tone_neutral),
+                    stringResource(R.string.settings_chat_tone_friendly),
+                    stringResource(R.string.settings_chat_tone_formal),
+                    stringResource(R.string.settings_chat_tone_humorous),
+                )
+            val selectedToneIndex =
+                when (prefs.responseTone) {
+                    "neutral" -> 0
+                    "friendly" -> 1
+                    "formal" -> 2
+                    "humorous" -> 3
+                    else -> 0
+                }
+            CardGroup(title = { Text(stringResource(R.string.settings_chat_generation_style)) }) {
+                switchItem(
+                    key = "reply_user_lang",
+                    title = stringResource(R.string.settings_chat_reply_language),
+                    checked = prefs.replyInUserLanguageEnabled,
+                    onCheckedChange = { v -> update { it.copy(replyInUserLanguageEnabled = v) } },
+                    leadingContent = {
+                        Icon(MuseIcons.languages, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium))
+                    },
+                )
+                content(key = "global_temp") {
+                    SettingsSliderRow(
+                        icon = MuseIcons.temperature,
+                        title = stringResource(R.string.settings_chat_randomness),
+                        subtitle = stringResource(temperatureHint(temperatureDraft)),
+                        value = temperatureDraft,
+                        valueRange = 0f..2f,
+                        steps = 19,
+                        valueText = "%.1f".format(temperatureDraft),
+                        onValueChange = { temperatureDraft = it },
+                    )
+                }
+                content(key = "response_style") {
+                    SettingsSegmentedRow(
+                        icon = MuseIcons.typography,
+                        title = stringResource(R.string.settings_chat_style),
+                        options = styleOptions,
+                        selectedIndex = selectedStyleIndex,
+                        onSelectedChange = { idx ->
+                            val value = when (idx) {
                                 0 -> "concise"
                                 2 -> "detailed"
                                 else -> "balanced"
                             }
-                        update { it.copy(responseStyle = value) }
-                    },
-                )
-                // 语气选择:neutral/friendly/formal/humorous
-                val toneOptions =
-                    listOf(
-                        stringResource(R.string.settings_chat_tone_neutral),
-                        stringResource(R.string.settings_chat_tone_friendly),
-                        stringResource(R.string.settings_chat_tone_formal),
-                        stringResource(R.string.settings_chat_tone_humorous),
+                            update { it.copy(responseStyle = value) }
+                        },
                     )
-                val selectedToneIndex =
-                    when (prefs.responseTone) {
-                        "neutral" -> 0
-                        "friendly" -> 1
-                        "formal" -> 2
-                        "humorous" -> 3
-                        else -> 0
-                    }
-                SettingsSegmentedRow(
-                    icon = MuseIcons.switch,
-                    title = stringResource(R.string.settings_chat_tone),
-                    options = toneOptions,
-                    selectedIndex = selectedToneIndex,
-                    onSelectedChange = { idx ->
-                        val value =
-                            when (idx) {
+                }
+                content(key = "response_tone") {
+                    SettingsSegmentedRow(
+                        icon = MuseIcons.switch,
+                        title = stringResource(R.string.settings_chat_tone),
+                        options = toneOptions,
+                        selectedIndex = selectedToneIndex,
+                        onSelectedChange = { idx ->
+                            val value = when (idx) {
                                 0 -> "neutral"
                                 1 -> "friendly"
                                 2 -> "formal"
                                 3 -> "humorous"
                                 else -> "neutral"
                             }
-                        update { it.copy(responseTone = value) }
-                    },
-                )
+                            update { it.copy(responseTone = value) }
+                        },
+                    )
+                }
             }
         }
 
         // ── 2. 默认展开状态 ──
-        item { SectionLabel(stringResource(R.string.settings_chat_default_expand)) }
-        item {
-            SettingsGroup {
-                SettingsSwitchRow(
-                    icon = MuseIcons.expand,
+        item(key = "chat_default_expand") {
+            CardGroup(title = { Text(stringResource(R.string.settings_chat_default_expand)) }) {
+                switchItem(
+                    key = "expand_mood",
                     title = stringResource(R.string.settings_chat_mood_expand),
                     checked = prefs.moodExpandedByDefault,
                     onCheckedChange = { v -> update { it.copy(moodExpandedByDefault = v) } },
+                    leadingContent = { Icon(MuseIcons.expand, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
                 )
-                SettingsSwitchRow(
-                    icon = MuseIcons.expand,
+                switchItem(
+                    key = "show_expand_btn",
                     title = stringResource(R.string.settings_chat_expand_button),
                     checked = prefs.showExpandButton,
                     onCheckedChange = { v -> update { it.copy(showExpandButton = v) } },
+                    leadingContent = { Icon(MuseIcons.expand, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
                 )
-                SettingsSwitchRow(
-                    icon = MuseIcons.expand,
+                switchItem(
+                    key = "expand_reasoning",
                     title = stringResource(R.string.settings_chat_reasoning_expand),
                     checked = prefs.reasoningExpandedByDefault,
                     onCheckedChange = { v -> update { it.copy(reasoningExpandedByDefault = v) } },
+                    leadingContent = { Icon(MuseIcons.expand, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
                 )
-                SettingsSwitchRow(
-                    icon = MuseIcons.expand,
+                switchItem(
+                    key = "expand_reflection",
                     title = stringResource(R.string.settings_chat_reflection_expand),
                     checked = prefs.reflectionExpandedByDefault,
                     onCheckedChange = { v -> update { it.copy(reflectionExpandedByDefault = v) } },
+                    leadingContent = { Icon(MuseIcons.expand, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
                 )
             }
         }
 
         // ── 3. 交互行为 ──
-        item { SectionLabel(stringResource(R.string.settings_chat_interaction)) }
-        item {
-            SettingsGroup {
-                SettingsSwitchRow(
-                    icon = MuseIcons.chat,
+        item(key = "chat_interaction") {
+            CardGroup(title = { Text(stringResource(R.string.settings_chat_interaction)) }) {
+                switchItem(
+                    key = "stream_resp",
                     title = stringResource(R.string.settings_chat_streaming),
                     checked = prefs.streamResponse,
                     onCheckedChange = { v -> update { it.copy(streamResponse = v) } },
+                    leadingContent = { Icon(MuseIcons.chat, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
                 )
-                // issue #3.5: 快速回复模式 —— 跳过每轮的相关记忆检索(首字延迟大头)。
-                SettingsSwitchRow(
-                    icon = MuseIcons.arrowRight,
+                switchItem(
+                    key = "fast_reply",
                     title = stringResource(R.string.settings_chat_fast_reply),
                     checked = prefs.fastReplyMode,
                     onCheckedChange = { v -> update { it.copy(fastReplyMode = v) } },
+                    leadingContent = { Icon(MuseIcons.arrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
                 )
-                SettingsSwitchRow(
-                    icon = MuseIcons.arrowRight,
+                switchItem(
+                    key = "auto_scroll",
                     title = stringResource(R.string.settings_chat_auto_scroll),
                     checked = prefs.autoScrollToBottom,
                     onCheckedChange = { v -> update { it.copy(autoScrollToBottom = v) } },
+                    leadingContent = { Icon(MuseIcons.arrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
                 )
-                SettingsSwitchRow(
-                    icon = MuseIcons.volume,
+                switchItem(
+                    key = "volume_scroll",
                     title = stringResource(R.string.settings_chat_volume_scroll),
                     checked = prefs.volumeKeyScroll,
                     onCheckedChange = { v -> update { it.copy(volumeKeyScroll = v) } },
+                    leadingContent = { Icon(MuseIcons.volume, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
                 )
-                SettingsSwitchRow(
-                    icon = MuseIcons.handFinger,
+                switchItem(
+                    key = "enter_send",
                     title = stringResource(R.string.settings_chat_enter_send),
                     checked = prefs.enterToSend,
                     onCheckedChange = { v -> update { it.copy(enterToSend = v) } },
+                    leadingContent = { Icon(MuseIcons.handFinger, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
                 )
-                SettingsSwitchRow(
-                    icon = MuseIcons.bolt,
+                switchItem(
+                    key = "haptic",
                     title = stringResource(R.string.settings_chat_haptic),
                     checked = prefs.hapticFeedback,
                     onCheckedChange = { v -> update { it.copy(hapticFeedback = v) } },
+                    leadingContent = { Icon(MuseIcons.bolt, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
                 )
-                SettingsSwitchRow(
-                    icon = MuseIcons.handFinger,
+                switchItem(
+                    key = "predictive_back",
                     title = stringResource(R.string.settings_chat_predictive_back),
                     checked = prefs.predictiveBackEnabled,
                     onCheckedChange = { v -> update { it.copy(predictiveBackEnabled = v) } },
+                    leadingContent = { Icon(MuseIcons.handFinger, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
                 )
             }
         }
 
         // ── 4. 高级 ──
-        item { SectionLabel(stringResource(R.string.settings_common_advanced)) }
-        item {
-            SettingsGroup {
-                // 注:长消息折叠阈值(longMessageThreshold)设置项已移除 ——
-                // MessageBubble 不再对助手回复正文做整体折叠,该阈值无消费方,保留会误导用户。
-                SettingsSwitchRow(
-                    icon = MuseIcons.eye,
+        item(key = "chat_advanced") {
+            val titlePromptSubtitle = customTitlePrompt?.takeIf { it.isNotBlank() }
+                ?: stringResource(R.string.settings_chat_custom_title_prompt_default)
+            CardGroup(title = { Text(stringResource(R.string.settings_common_advanced)) }) {
+                switchItem(
+                    key = "show_tool_calls",
                     title = stringResource(R.string.settings_chat_show_tool_calls),
                     checked = prefs.showToolCallDetails,
                     onCheckedChange = { v -> update { it.copy(showToolCallDetails = v) } },
+                    leadingContent = { Icon(MuseIcons.eye, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
                 )
-                SettingsSwitchRow(
-                    icon = MuseIcons.pause,
+                switchItem(
+                    key = "pause_tools",
                     title = stringResource(R.string.settings_chat_pause_tool_execution),
                     checked = prefs.pauseToolExecution,
                     onCheckedChange = { v -> update { it.copy(pauseToolExecution = v) } },
+                    leadingContent = { Icon(MuseIcons.pause, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
                 )
-                SettingsSwitchRow(
-                    icon = MuseIcons.calendarTime,
+                switchItem(
+                    key = "use_24h",
                     title = stringResource(R.string.settings_chat_24h),
                     checked = prefs.use24Hour,
                     onCheckedChange = { v -> update { it.copy(use24Hour = v) } },
+                    leadingContent = { Icon(MuseIcons.calendarTime, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
                 )
-                // v1.0.4 (P3-4): 性能模式 — 接入 MessagePaginator,超长会话仅渲染最近 N 条
-                SettingsSwitchRow(
-                    icon = MuseIcons.gauge,
+                switchItem(
+                    key = "perf_mode",
                     title = stringResource(R.string.settings_chat_performance_mode),
                     checked = prefs.performanceMode,
                     onCheckedChange = { v -> update { it.copy(performanceMode = v) } },
+                    leadingContent = { Icon(MuseIcons.gauge, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
                 )
-                // v2.x: 会话缓存上限(高级) — 后台保留的会话消息内存副本数,热更生效
-                SessionCacheSizeRow(settings = settings, scope = scope)
-                // v1.0.47 P5-3: Token 估算(默认关闭)——开启后输入栏显示 Token 计数按钮,点击查看上下文占用
-                // v1.0.52: 这是唯一真正生效的 Token 开关(消息显示分组里的"显示Token"已移除,因为它从未工作)
-                SettingsSwitchRow(
-                    icon = MuseIcons.chartBar,
+                content(key = "session_cache_size") {
+                    SessionCacheSizeRow(settings = settings, scope = scope)
+                }
+                switchItem(
+                    key = "token_estimate",
                     title = stringResource(R.string.settings_chat_token_estimate),
                     checked = tokenEstimateEnabled,
                     onCheckedChange = { v -> scope.launch { settings.saveTokenEstimateEnabled(v) } },
+                    leadingContent = { Icon(MuseIcons.chartBar, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
                 )
-                SettingsSwitchRow(
-                    icon = MuseIcons.clipboard,
+                switchItem(
+                    key = "paste_as_file",
                     title = stringResource(R.string.settings_chat_paste_as_file),
                     checked = pasteAsFileEnabled,
                     onCheckedChange = { v -> scope.launch { settings.savePasteAsFileEnabled(v) } },
+                    leadingContent = { Icon(MuseIcons.clipboard, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
                 )
                 if (pasteAsFileEnabled) {
                     val thresholdOptions = listOf("1000", "2000", "5000")
-                    val thresholdIndex =
-                        when (pasteAsFileThreshold) {
-                            1000 -> 0
-                            5000 -> 2
-                            else -> 1
-                        }
-                    SettingsSegmentedRow(
-                        icon = MuseIcons.clipboard,
-                        title = stringResource(R.string.settings_chat_paste_as_file_threshold),
-                        subtitle = stringResource(R.string.settings_chat_paste_as_file_threshold_subtitle, pasteAsFileThreshold),
-                        options = thresholdOptions,
-                        selectedIndex = thresholdIndex,
-                        onSelectedChange = { idx ->
-                            val threshold =
-                                when (idx) {
+                    val thresholdIndex = when (pasteAsFileThreshold) {
+                        1000 -> 0
+                        5000 -> 2
+                        else -> 1
+                    }
+                    content(key = "paste_threshold") {
+                        SettingsSegmentedRow(
+                            icon = MuseIcons.clipboard,
+                            title = stringResource(R.string.settings_chat_paste_as_file_threshold),
+                            subtitle = stringResource(R.string.settings_chat_paste_as_file_threshold_subtitle, pasteAsFileThreshold),
+                            options = thresholdOptions,
+                            selectedIndex = thresholdIndex,
+                            onSelectedChange = { idx ->
+                                val threshold = when (idx) {
                                     0 -> 1000
                                     2 -> 5000
                                     else -> 2000
                                 }
-                            scope.launch { settings.savePasteAsFileThreshold(threshold) }
-                        },
-                    )
+                                scope.launch { settings.savePasteAsFileThreshold(threshold) }
+                            },
+                        )
+                    }
                 }
-                SettingsItemRow(
-                    icon = MuseIcons.edit,
+                navigationItem(
+                    key = "custom_title_prompt",
                     title = stringResource(R.string.settings_chat_custom_title_prompt),
-                    subtitle = customTitlePrompt?.takeIf { it.isNotBlank() }
-                        ?: stringResource(R.string.settings_chat_custom_title_prompt_default),
+                    subtitle = titlePromptSubtitle,
+                    leadingContent = { Icon(MuseIcons.edit, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
                     onClick = {
                         titlePromptDraft = customTitlePrompt.orEmpty()
                         showTitlePromptDialog = true
                     },
-                ) { ChevronRight() }
+                )
             }
         }
 
-        // ── v2.x: 拆分子分组 — 原「高级」重复标签改为三个语义分组(上下文/记忆/通知)──
-        item { SectionLabel(stringResource(R.string.settings_chat_context_section)) }
-        // v2.x: 工具轮次上限(默认无限制) — Agent Loop 放开后长任务不再被轮次卡断;
-        // 卡死/重复调用/连续失败等循环保护仍独立生效。
-        item {
-            SettingsGroup {
-                val roundOptions =
-                    listOf(
-                        stringResource(R.string.settings_chat_tool_rounds_unlimited),
-                        "100",
-                        "50",
-                        "25",
-                    )
-                val roundIndex =
-                    when (toolLoopMaxRounds) {
-                        100 -> 1
-                        50 -> 2
-                        25 -> 3
-                        else -> 0
-                    }
-                SettingsSegmentedRow(
-                    icon = MuseIcons.refresh,
-                    title = stringResource(R.string.settings_chat_tool_rounds),
-                    options = roundOptions,
-                    selectedIndex = roundIndex,
-                    onSelectedChange = { idx ->
-                        val limit =
-                            when (idx) {
+        // ── 上下文与工具轮次 ──
+        item(key = "chat_context_section") {
+            val roundOptions =
+                listOf(
+                    stringResource(R.string.settings_chat_tool_rounds_unlimited),
+                    "100",
+                    "50",
+                    "25",
+                )
+            val roundIndex = when (toolLoopMaxRounds) {
+                100 -> 1
+                50 -> 2
+                25 -> 3
+                else -> 0
+            }
+            CardGroup(title = { Text(stringResource(R.string.settings_chat_context_section)) }) {
+                content(key = "tool_loop_rounds") {
+                    SettingsSegmentedRow(
+                        icon = MuseIcons.refresh,
+                        title = stringResource(R.string.settings_chat_tool_rounds),
+                        options = roundOptions,
+                        selectedIndex = roundIndex,
+                        onSelectedChange = { idx ->
+                            val limit = when (idx) {
                                 1 -> 100
                                 2 -> 50
                                 3 -> 25
                                 else -> 0
                             }
-                        scope.launch { settings.saveToolLoopMaxRounds(limit) }
-                    },
-                )
-            }
-        }
-        // ── 通知 ──
-        item { SectionLabel(stringResource(R.string.settings_memory_notification_section)) }
-        item {
-            SettingsGroup {
-                // 回复通知策略(never / when_unfocused / always)
-                NotificationPolicyRow(
-                    current = notificationPolicy,
-                    onChange = { v ->
-                        scope.launch { settings.saveNotificationPolicy(v) }
-                    },
-                )
+                            scope.launch { settings.saveToolLoopMaxRounds(limit) }
+                        },
+                    )
+                }
             }
         }
 
-        // ── 表情包库：并入聊天设置，不再作为聊天分类下的独立条目 ──
-        item { StickerSettingsSection(settings = settings, scope = scope) }
+        // ── 通知 ──
+        item(key = "chat_notification_section") {
+            CardGroup(title = { Text(stringResource(R.string.settings_memory_notification_section)) }) {
+                content(key = "notification_policy") {
+                    NotificationPolicyRow(
+                        current = notificationPolicy,
+                        onChange = { v -> scope.launch { settings.saveNotificationPolicy(v) } },
+                    )
+                }
+            }
+        }
+
+        // ── 表情包库 ──
+        item(key = "chat_stickers_section") { StickerSettingsSection(settings = settings, scope = scope) }
     }
 
     if (showTitlePromptDialog) {

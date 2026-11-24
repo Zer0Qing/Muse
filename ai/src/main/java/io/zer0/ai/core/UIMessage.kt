@@ -242,6 +242,8 @@ data class UIMessage(
      * 读取时保留原值不动（按「读」解释，不回填、不重算），写入量为 null（未知）。
      */
     val durationMs: Long? = null,
+    /** 思考阶段耗时（毫秒，首个 ReasoningDelta 到首个正文/工具调用/结束）；null 表示未记录或无思考阶段。 */
+    val reasoningDurationMs: Long? = null,
     val promptTokens: Int? = null,
     val completionTokens: Int? = null,
     val reasoningTokens: Int? = null,

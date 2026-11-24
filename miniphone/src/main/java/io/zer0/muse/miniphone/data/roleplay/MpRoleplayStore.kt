@@ -233,28 +233,36 @@ internal class MpRoleplayStore(
         .ifBlank { text.lineSequence().firstOrNull()?.trim()?.take(MAX_ENDING_TITLE_CHARS).orEmpty() }
 
     private fun advanceBrief(context: MpRoleplayContext, action: String, roll: Int): String = buildString {
-        appendLine("你正在主持一场跑团。请依据剧本、当前局面和玩家行动，续写下一回合的叙事。")
+        appendLine("你正在主持一场跑团。请依据剧本、已有回合和玩家行动，续写下一回合的叙事。")
         appendLine("剧本《${context.script.title}》：")
         appendLine(context.script.body)
-        appendLine("当前局面：")
-        appendLine(context.state.latestText)
-        context.state.turns.takeLast(MAX_BRIEF_TURNS).forEach { item ->
-            appendLine("第 ${item.turn} 回合｜行动：${item.action.ifBlank { "未描述" }}｜骰果：${item.roll}｜结果：${item.text}")
+        if (context.state.turns.isNotEmpty()) {
+            appendLine("最近回合：")
+            context.state.turns.takeLast(MAX_BRIEF_TURNS).forEach { item ->
+                appendLine("第 ${item.turn} 回合｜行动：${item.action.ifBlank { "未描述" }}｜骰果：${item.roll}/$DICE_SIDES｜结果：${item.text}")
+            }
+        } else if (context.state.opening.isNotBlank() && context.state.opening != context.script.body) {
+            appendLine("当前开场：")
+            appendLine(context.state.opening)
         }
         appendLine("玩家行动：${action.ifBlank { "未描述，按当前局面自然推进" }}")
-        appendLine("本回合骰果：$roll/$DICE_SIDES。")
-        append("只输出叙事正文，不要解释规则，不要替玩家决定下一步。")
+        appendLine("本回合骰果：$roll/$DICE_SIDES（d20 规则：1=大失败，2–9=受阻或偏不利，10–19=顺利推进，20=大成功）。")
+        append("请控制在 120–200 字以内，只输出叙事正文，不要解释规则，不要替玩家决定下一步。")
     }
 
     private fun endingBrief(context: MpRoleplayContext): String = buildString {
         appendLine("请为下面这场跑团写一个结局。")
         appendLine("剧本《${context.script.title}》：")
         appendLine(context.script.body)
-        appendLine("最终局面：")
-        appendLine(context.state.latestText)
-        context.state.turns.takeLast(MAX_BRIEF_TURNS).forEach { item ->
-            appendLine("第 ${item.turn} 回合｜行动：${item.action.ifBlank { "未描述" }}｜骰果：${item.roll}｜结果：${item.text}")
+        if (context.state.turns.isNotEmpty()) {
+            appendLine("最近回合：")
+            context.state.turns.takeLast(MAX_BRIEF_TURNS).forEach { item ->
+                appendLine("第 ${item.turn} 回合｜行动：${item.action.ifBlank { "未描述" }}｜骰果：${item.roll}/$DICE_SIDES｜结果：${item.text}")
+            }
+        } else if (context.state.opening.isNotBlank() && context.state.opening != context.script.body) {
+            appendLine("开场局面：")
+            appendLine(context.state.opening)
         }
-        append("只写结局正文，要有收束感，不要追加选项或说明。")
+        append("请控制在 120–200 字以内，只写结局正文，要有收束感，不要追加选项或说明。")
     }
 }

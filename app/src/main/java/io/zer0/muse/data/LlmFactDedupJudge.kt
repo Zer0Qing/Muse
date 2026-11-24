@@ -50,7 +50,8 @@ class LlmFactDedupJudge(
         你是记忆系统的去重判定器。给定两条记忆事实,判断它们是否描述同一个事实(同一件事)。
         - 表述措辞不同但语义相同(如"用户养了一只柯基"与"他养了只柯基犬")→ same=true
         - 同一实体下的不同事实(如"喜欢咖啡"与"讨厌香菜")→ same=false
-        - 其中 [REDACTED] 代表已被脱敏的敏感信息(人名/电话/地址等),视为同一实体的不同写法
+        - 彼此矛盾或状态变更的更新(如"住在上海"与"搬到了北京"、"喜欢辣"与"戒辣了")→ same=false(冲突交由更新层处理,不要当作重复合并)
+        - [REDACTED] 代表已脱敏的敏感信息(人名/电话/地址等);仅出现 [REDACTED] 本身并不足以证明两条事实指向同一实体,必须结合相同实体键与周围语义语境综合判断
         - 不确定时 same=false(宁可不合并,不可误合并)
         只输出严格 JSON,不要 markdown 围栏,不要额外文字:
         {"same": true/false, "confidence": 0.0~1.0, "reason": "简短理由"}
@@ -67,7 +68,8 @@ class LlmFactDedupJudge(
     }
 
     internal fun parse(raw: String): DedupVerdict {
-        val trimmed = raw.trim().removePrefix("```json").removePrefix("```").removeSuffix("```").trim()
+        val noThink = io.zer0.muse.transformer.stripThinkTags(raw)
+        val trimmed = noThink.trim().removePrefix("```json").removePrefix("```").removeSuffix("```").trim()
         val obj = runCatching { json.decodeFromString<JudgeResponse>(trimmed) }.getOrNull()
             ?: runCatching { json.decodeFromString<JudgeResponse>(extractJsonObject(trimmed)) }.getOrNull()
             ?: return DedupVerdict.NOT_SAME

@@ -1,16 +1,11 @@
 package io.zer0.muse.ui.settings
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -24,19 +19,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
-import io.zer0.muse.ui.theme.MuseCornerRadius
 import io.zer0.muse.R
 import io.zer0.muse.data.plugin.PluginCapabilityAudit
 import io.zer0.muse.data.plugin.PluginCapabilityGateway
 import io.zer0.muse.data.plugin.PluginCapabilityLedgers
 import io.zer0.muse.data.plugin.PluginPermissionTier
 import io.zer0.muse.ui.common.form.MuseSwitch
+import io.zer0.muse.ui.common.settings.StatusDot
+import io.zer0.muse.ui.common.surface.CardGroup
+import io.zer0.muse.ui.common.surface.switchItem
 import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.MuseSpacing
+import io.zer0.muse.ui.theme.semiLarge
+import io.zer0.muse.ui.theme.statusColors
 import java.text.DateFormat
 import java.util.Date
 
@@ -64,7 +62,10 @@ fun PluginPermissionPanel(
         PermissionSnapshot.from(gateway, pluginId, declaredCapabilities, runtime)
     }
 
-    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap)) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
+    ) {
         Text(
             text = stringResource(R.string.plugin_permission_section_title),
             style = MaterialTheme.typography.labelLarge,
@@ -76,6 +77,7 @@ fun PluginPermissionPanel(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
+        // 待批块独立成块：它是"先看一眼再决定"的信息，混进开关卡片会被当成普通行扫过去。
         if (snapshot.pendingApproval.isNotEmpty()) {
             WarningBlock(
                 title = stringResource(R.string.plugin_permission_pending_title),
@@ -88,36 +90,103 @@ fun PluginPermissionPanel(
             )
         }
 
-        if (snapshot.nodeRuntime) {
-            // 7-4：node 档与 js 档的执行载体不同（子进程 + vm 上下文），
-            // 不说清楚就会被当成"和别的插件一样"，而它恰恰是**默认档**。
-            RuntimeNote(text = stringResource(R.string.plugin_permission_node_note))
-        }
-
-        if (snapshot.pythonRuntime) {
-            PythonTrustRow(
-                allowed = snapshot.pythonAllowed,
-                onToggle = { next ->
-                    gateway.grant(
-                        pluginId = pluginId,
-                        capability = PluginCapabilityGateway.RUNTIME_PYTHON,
-                        allowed = next,
-                        declared = declaredCapabilities,
+        // 运行时说明与能力开关收敛进同一张分组卡：同一份账本、同一套行形态，
+        // 用户不必分辨"这行是说明还是开关"。
+        CardGroup {
+            if (snapshot.nodeRuntime) {
+                // 7-4：node 档与 js 档的执行载体不同（子进程 + vm 上下文），
+                // 不说清楚就会被当成"和别的插件一样"，而它恰恰是**默认档**。
+                content(key = "node_runtime_note") {
+                    Text(
+                        text = stringResource(R.string.plugin_permission_node_note),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(
+                            horizontal = MuseSpacing.lg,
+                            vertical = MuseSpacing.md,
+                        ),
                     )
-                    revision++
-                },
-            )
-        }
-
-        CapabilityRows(snapshot.declared) { capability, next ->
-            gateway.grant(
-                pluginId = pluginId,
-                capability = capability,
-                allowed = next,
-                declared = declaredCapabilities,
-                tier = PluginPermissionTier.ALWAYS,
-            )
-            revision++
+                }
+            }
+            if (snapshot.pythonRuntime) {
+                // Python 档是另一级信任（同 UID 子进程、能直接读写应用数据目录），
+                // 差别写成副标题紧跟开关，而不是另起一段让用户自己关联。
+                switchItem(
+                    key = "python_runtime",
+                    title = stringResource(R.string.plugin_permission_python_title),
+                    subtitle = stringResource(R.string.plugin_permission_python_warning),
+                    checked = snapshot.pythonAllowed,
+                    onCheckedChange = { next ->
+                        gateway.grant(
+                            pluginId = pluginId,
+                            capability = PluginCapabilityGateway.RUNTIME_PYTHON,
+                            allowed = next,
+                            declared = declaredCapabilities,
+                        )
+                        revision++
+                    },
+                )
+            }
+            snapshot.declared.forEach { row ->
+                // 显示"这会做什么"而不是能力标识符：用户点的是后果，不是键名。
+                // 标识符仍挂在开关的无障碍描述上 —— 文案随语言变，键不能变。
+                val label = PluginCapabilityCopy.text(LocalContext.current, row.capability)
+                val sensitive = PluginCapabilityCopy.isSensitive(row.capability)
+                item(
+                    key = row.capability,
+                    onClick = {
+                        gateway.grant(
+                            pluginId = pluginId,
+                            capability = row.capability,
+                            allowed = !row.allowed,
+                            declared = declaredCapabilities,
+                            tier = PluginPermissionTier.ALWAYS,
+                        )
+                        revision++
+                    },
+                    trailingContent = {
+                        MuseSwitch(
+                            checked = row.allowed,
+                            onCheckedChange = { next ->
+                                gateway.grant(
+                                    pluginId = pluginId,
+                                    capability = row.capability,
+                                    allowed = next,
+                                    declared = declaredCapabilities,
+                                    tier = PluginPermissionTier.ALWAYS,
+                                )
+                                revision++
+                            },
+                            contentDescription = row.capability,
+                        )
+                    },
+                    headlineContent = {
+                        Text(
+                            text = label,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            color = if (sensitive) {
+                                MaterialTheme.colorScheme.error
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            },
+                        )
+                    },
+                )
+            }
+            if (snapshot.declared.isEmpty() && !snapshot.pythonRuntime && !snapshot.nodeRuntime) {
+                content(key = "no_capabilities") {
+                    Text(
+                        text = stringResource(R.string.plugin_permission_none),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(
+                            horizontal = MuseSpacing.lg,
+                            vertical = MuseSpacing.md,
+                        ),
+                    )
+                }
+            }
         }
 
         DeniedCallsBlock(snapshot.blockedAttempts) { capability ->
@@ -133,88 +202,6 @@ fun PluginPermissionPanel(
         }
 
         RecentCallsBlock(snapshot.recent)
-    }
-}
-
-/**
- * Python 运行时开关：默认关闭，且**不来自清单声明**。
- *
- * 文案必须把差别说清楚 —— Python 插件跑在同 UID 子进程里，能直接读写应用数据目录，
- * 桥接闸门与文件沙盒都管不到它；这不是"再多一项能力"，而是另一级信任。
- */
-@Composable
-private fun PythonTrustRow(allowed: Boolean, onToggle: (Boolean) -> Unit) {
-    Surface(
-        shape = RoundedCornerShape(MuseCornerRadius.SEMI_LARGE.dp),
-        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.45f),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
-            ) {
-                Text(
-                    text = stringResource(R.string.plugin_permission_python_title),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.weight(1f),
-                )
-                MuseSwitch(checked = allowed, onCheckedChange = onToggle)
-            }
-            Text(
-                text = stringResource(R.string.plugin_permission_python_warning),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-}
-
-/** 运行时说明行：node 档要说清它与 js 的差别（默认档、可中断、能力一律经账本）。 */
-@Composable
-private fun RuntimeNote(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
-}
-
-/** 已声明能力逐行开关。 */
-@Composable
-private fun CapabilityRows(rows: List<CapabilityRow>, onToggle: (String, Boolean) -> Unit) {
-    if (rows.isEmpty()) {
-        Text(
-            text = stringResource(R.string.plugin_permission_none),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-    rows.forEach { row ->
-        // 显示"这会做什么"而不是能力标识符：用户点的是后果，不是键名。
-        val label = PluginCapabilityCopy.text(LocalContext.current, row.capability)
-        val sensitive = PluginCapabilityCopy.isSensitive(row.capability)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
-        ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (sensitive) {
-                    MaterialTheme.colorScheme.error
-                } else {
-                    MaterialTheme.colorScheme.onSurface
-                },
-                modifier = Modifier
-                    .weight(1f)
-                    .semantics { contentDescription = row.capability },
-            )
-            MuseSwitch(checked = row.allowed, onCheckedChange = { next -> onToggle(row.capability, next) })
-        }
     }
 }
 
@@ -237,6 +224,8 @@ private fun DeniedCallsBlock(attempts: List<PluginCapabilityAudit.Event>, onAllo
                 text = stringResource(R.string.plugin_permission_denied_row, attempt.action, attempt.capability),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.error,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
             TextAction(
@@ -247,7 +236,12 @@ private fun DeniedCallsBlock(attempts: List<PluginCapabilityAudit.Event>, onAllo
     }
 }
 
-/** 最近调用记录（能力判定级，不是完整请求日志）。 */
+/**
+ * 最近调用记录（能力判定级，不是完整请求日志）。
+ *
+ * 这些行不进卡片：它们按时间追加、条数还会变，卡片分隔线在这里只会变成噪音，
+ * 而且整块是只读流水账 —— 包成"可点的行"反而误导。
+ */
 @Composable
 private fun RecentCallsBlock(events: List<PluginCapabilityAudit.Event>) {
     Text(
@@ -261,6 +255,7 @@ private fun RecentCallsBlock(events: List<PluginCapabilityAudit.Event>) {
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        return
     }
     events.forEach { event ->
         Text(
@@ -271,6 +266,8 @@ private fun RecentCallsBlock(events: List<PluginCapabilityAudit.Event>) {
                 if (event.allowed) "✓" else "✗",
             ),
             style = MaterialTheme.typography.bodySmall,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
             color = if (event.allowed) {
                 MaterialTheme.colorScheme.onSurfaceVariant
             } else {
@@ -305,7 +302,7 @@ fun PluginPermissionDisclosure(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { expanded = !expanded }
-                .padding(vertical = 6.dp),
+                .padding(vertical = MuseSpacing.smTight),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
         ) {
@@ -314,14 +311,12 @@ fun PluginPermissionDisclosure(
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.weight(1f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
             if (pendingCount > 0) {
-                // 有待审能力：用小圆点提醒，不新增长文案（也不依赖翻译宽度）
-                Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .background(MaterialTheme.colorScheme.error, CircleShape),
-                )
+                // 有待审能力：用状态圆点提醒，不新增长文案（也不依赖翻译宽度）
+                StatusDot(color = MaterialTheme.statusColors.error)
             }
             Text(
                 text = stringResource(
@@ -381,21 +376,27 @@ private data class CapabilityRow(val capability: String, val allowed: Boolean)
 @Composable
 private fun WarningBlock(title: String, detail: String, actionLabel: String, onAction: () -> Unit) {
     Surface(
-        shape = RoundedCornerShape(MuseCornerRadius.SEMI_LARGE.dp),
-        color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f),
+        shape = MuseShapes.semiLarge,
+        color = MaterialTheme.statusColors.warningContainer,
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.padding(horizontal = MuseSpacing.md, vertical = MuseSpacing.sm),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = title, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
                 Text(
                     text = detail,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
             TextAction(text = actionLabel, onClick = onAction)
@@ -410,8 +411,9 @@ private fun TextAction(text: String, onClick: () -> Unit) {
         text = text,
         style = MaterialTheme.typography.labelMedium,
         color = MaterialTheme.colorScheme.primary,
+        maxLines = 1,
         modifier = Modifier
-            .padding(4.dp)
+            .padding(MuseSpacing.xs)
             .clickable(onClick = onClick),
     )
 }

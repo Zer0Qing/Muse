@@ -31,15 +31,14 @@ import io.zer0.muse.tools.ToolApprovalPolicy
 import io.zer0.muse.tools.ToolConfigStore
 import io.zer0.muse.tools.ToolRegistry
 import io.zer0.muse.tools.ToolRiskLevel
-import io.zer0.muse.ui.common.form.MuseTextField
+import io.zer0.muse.ui.common.form.MuseSearchField
 import io.zer0.muse.ui.common.icons.MuseIcons
-import io.zer0.muse.ui.common.settings.SectionLabel
-import io.zer0.muse.ui.common.settings.SettingsGroup
-import io.zer0.muse.ui.common.settings.SettingsGroupDivider
 import io.zer0.muse.ui.common.settings.SettingsSegmentedRow
+import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMonoFontFamily
 import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.theme.MuseSpacing
 import io.zer0.muse.ui.theme.statusColors
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -108,87 +107,75 @@ fun ToolsSettingsPage(onBack: () -> Unit) {
     ) {
         // ── 全局默认审批策略 ──
         // 单个工具的覆盖在下方列表里；这里管的是默认值。
-        item { SectionLabel(stringResource(R.string.settings_chat_tool_approval_section)) }
         item {
-            SettingsGroup {
-                val modeOptions =
-                    listOf(
-                        stringResource(R.string.settings_chat_tool_approval_trusted),
-                        stringResource(R.string.settings_chat_tool_approval_ask),
-                        stringResource(R.string.settings_chat_tool_approval_strict),
+            CardGroup(title = { Text(stringResource(R.string.settings_chat_tool_approval_section)) }) {
+                content(key = "tool_approval_mode") {
+                    val modeOptions =
+                        listOf(
+                            stringResource(R.string.settings_chat_tool_approval_trusted),
+                            stringResource(R.string.settings_chat_tool_approval_ask),
+                            stringResource(R.string.settings_chat_tool_approval_strict),
+                        )
+                    val modeIndex =
+                        when (permissionMode) {
+                            SessionPermissionMode.TRUSTED -> 0
+                            SessionPermissionMode.ASK -> 1
+                            SessionPermissionMode.STRICT -> 2
+                        }
+                    SettingsSegmentedRow(
+                        icon = MuseIcons.shieldCheck,
+                        title = stringResource(R.string.settings_chat_tool_approval_title),
+                        options = modeOptions,
+                        selectedIndex = modeIndex,
+                        onSelectedChange = { idx ->
+                            val newMode =
+                                when (idx) {
+                                    0 -> SessionPermissionMode.TRUSTED
+                                    2 -> SessionPermissionMode.STRICT
+                                    else -> SessionPermissionMode.ASK
+                                }
+                            scope.launch { settings.setDefaultSessionPermissionMode(newMode) }
+                        },
                     )
-                val modeIndex =
-                    when (permissionMode) {
-                        SessionPermissionMode.TRUSTED -> 0
-                        SessionPermissionMode.ASK -> 1
-                        SessionPermissionMode.STRICT -> 2
+                }
+                content(key = "tool_approval_desc") {
+                    // 当前模式说明（动态显示）
+                    val modeDescRes =
+                        when (permissionMode) {
+                            SessionPermissionMode.TRUSTED -> R.string.settings_chat_tool_approval_trusted_desc
+                            SessionPermissionMode.ASK -> R.string.settings_chat_tool_approval_ask_desc
+                            SessionPermissionMode.STRICT -> R.string.settings_chat_tool_approval_strict_desc
+                        }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(MusePaddings.cardInner),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(MuseSpacing.md),
+                    ) {
+                        Icon(
+                            imageVector = MuseIcons.lock,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
+                        Text(
+                            text = stringResource(modeDescRes),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
-                SettingsSegmentedRow(
-                    icon = MuseIcons.shieldCheck,
-                    title = stringResource(R.string.settings_chat_tool_approval_title),
-                    options = modeOptions,
-                    selectedIndex = modeIndex,
-                    onSelectedChange = { idx ->
-                        val newMode =
-                            when (idx) {
-                                0 -> SessionPermissionMode.TRUSTED
-                                2 -> SessionPermissionMode.STRICT
-                                else -> SessionPermissionMode.ASK
-                            }
-                        scope.launch { settings.setDefaultSessionPermissionMode(newMode) }
-                    },
-                )
-                // 当前模式说明（动态显示）
-                val modeDescRes =
-                    when (permissionMode) {
-                        SessionPermissionMode.TRUSTED -> R.string.settings_chat_tool_approval_trusted_desc
-                        SessionPermissionMode.ASK -> R.string.settings_chat_tool_approval_ask_desc
-                        SessionPermissionMode.STRICT -> R.string.settings_chat_tool_approval_strict_desc
-                    }
-                Row(
-                    modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(MusePaddings.cardInner),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Icon(
-                        imageVector = MuseIcons.lock,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.outline,
-                        modifier = Modifier.size(MuseIconSizes.iconMedium),
-                    )
-                    Text(
-                        text = stringResource(modeDescRes),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
                 }
             }
         }
 
         // ── 顶部搜索框 ────────────────────────────────────────────────
         item(key = "search") {
-            MuseTextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
+            MuseSearchField(
+                query = searchQuery,
+                onQueryChange = { searchQuery = it },
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text(stringResource(R.string.tools_settings_search_hint)) },
-                leadingIcon = {
-                    Icon(MuseIcons.search, contentDescription = null)
-                },
-                trailingIcon = {
-                    if (searchQuery.isNotEmpty()) {
-                        Icon(
-                            MuseIcons.refresh,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.outline,
-                            modifier = Modifier.size(20.dp),
-                        )
-                    }
-                },
-                singleLine = true,
+                placeholder = stringResource(R.string.tools_settings_search_hint),
             )
         }
 
@@ -213,24 +200,22 @@ fun ToolsSettingsPage(onBack: () -> Unit) {
 
         // ── 按风险等级分组展示 ───────────────────────────────────────
         grouped.forEach { (riskLevel, toolsInGroup) ->
-            item(key = "header_${riskLevel.name}") {
-                SectionLabel(stringResource(riskLevelSectionTitle(riskLevel)))
-            }
             item(key = "group_${riskLevel.name}") {
-                SettingsGroup {
-                    toolsInGroup.forEachIndexed { index, tool ->
-                        if (index > 0) SettingsGroupDivider()
-                        ToolPolicyRow(
-                            toolName = tool.name,
-                            toolDescription = tool.description,
-                            riskLevel = tool.riskLevel,
-                            currentPolicy = policies[tool.name] ?: ToolApprovalPolicy.ALWAYS_ALLOW,
-                            onPolicyChange = { newPolicy ->
-                                scope.launch {
-                                    toolConfigStore.setPolicy(tool.name, newPolicy)
-                                }
-                            },
-                        )
+                CardGroup(title = { Text(stringResource(riskLevelSectionTitle(riskLevel))) }) {
+                    toolsInGroup.forEach { tool ->
+                        content(key = "tool_${tool.name}") {
+                            ToolPolicyRow(
+                                toolName = tool.name,
+                                toolDescription = tool.description,
+                                riskLevel = tool.riskLevel,
+                                currentPolicy = policies[tool.name] ?: ToolApprovalPolicy.ALWAYS_ALLOW,
+                                onPolicyChange = { newPolicy ->
+                                    scope.launch {
+                                        toolConfigStore.setPolicy(tool.name, newPolicy)
+                                    }
+                                },
+                            )
+                        }
                     }
                 }
             }
@@ -264,31 +249,34 @@ fun ToolsSettingsPage(onBack: () -> Unit) {
         }
 
         // ── 底部说明卡片 ─────────────────────────────────────────────
-        item(key = "footer_header") {
-            SectionLabel(stringResource(R.string.tools_settings_footer_section))
-        }
         item(key = "footer") {
             // v1.0.52: 语义状态色,深色模式自动切亮档
             val statusColors = MaterialTheme.statusColors
-            SettingsGroup {
-                PolicyExplanationRow(
-                    icon = MuseIcons.check,
-                    iconTint = statusColors.success,
-                    title = stringResource(R.string.tools_settings_policy_always_allow),
-                    description = stringResource(R.string.tools_settings_policy_always_allow_desc),
-                )
-                PolicyExplanationRow(
-                    icon = MuseIcons.help,
-                    iconTint = statusColors.warning,
-                    title = stringResource(R.string.tools_settings_policy_ask),
-                    description = stringResource(R.string.tools_settings_policy_ask_desc),
-                )
-                PolicyExplanationRow(
-                    icon = MuseIcons.ban,
-                    iconTint = statusColors.error,
-                    title = stringResource(R.string.tools_settings_policy_always_deny),
-                    description = stringResource(R.string.tools_settings_policy_always_deny_desc),
-                )
+            CardGroup(title = { Text(stringResource(R.string.tools_settings_footer_section)) }) {
+                content(key = "policy_allow") {
+                    PolicyExplanationRow(
+                        icon = MuseIcons.check,
+                        iconTint = statusColors.success,
+                        title = stringResource(R.string.tools_settings_policy_always_allow),
+                        description = stringResource(R.string.tools_settings_policy_always_allow_desc),
+                    )
+                }
+                content(key = "policy_ask") {
+                    PolicyExplanationRow(
+                        icon = MuseIcons.help,
+                        iconTint = statusColors.warning,
+                        title = stringResource(R.string.tools_settings_policy_ask),
+                        description = stringResource(R.string.tools_settings_policy_ask_desc),
+                    )
+                }
+                content(key = "policy_deny") {
+                    PolicyExplanationRow(
+                        icon = MuseIcons.ban,
+                        iconTint = statusColors.error,
+                        title = stringResource(R.string.tools_settings_policy_always_deny),
+                        description = stringResource(R.string.tools_settings_policy_always_deny_desc),
+                    )
+                }
             }
         }
     }

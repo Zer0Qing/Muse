@@ -9,14 +9,14 @@ import java.io.File
  * v2.x 扩展运行时：平台自检工具。
  *
  * 让助手能在聊天里自查"它所在的这个 App 平台"到底有哪些能力可用 ——
- * 覆盖内置 Node 运行时 + 各工具通道的授权/就绪状态,一次调用给出结构化清单。
+ * 覆盖 Linux 沙盒运行时（按需安装）+ 各工具通道的授权/就绪状态,一次调用给出结构化清单。
  *
  * 用途:
- *  - 用户问"内置运行时能用吗""这些工具能不能用上"时直接调用;
+ *  - 用户问"运行时能用吗""这些工具能不能用上"时直接调用;
  *  - 排查"某个工具调不动"时先自检,把"权限未授予"与"功能故障"区分开。
  *
  * 设计:
- *  - 只读检查,无副作用(除 Node 数据一次性解压,本就在应用初始化会做);
+ *  - 只读检查,无副作用(除运行时数据一次性校验/解压);
  *  - 通道状态来自运行环境授权提供器([ToolRegistry.permissionStatusProvider]),
  *    与工具执行前的预检同源,不会出现"自检说能用但实际调不动"的分叉;
  *  - 单点失败不影响其它项(每项独立 runCatching)。
@@ -27,7 +27,7 @@ object PlatformSelfCheckTool {
 
     fun toolDef(): ToolRegistry.ToolDef = ToolRegistry.ToolDef(
         name = NAME,
-        description = "自检 Muse 运行平台:内置 Node 运行时状态 + 各工具通道(无障碍/Shell/Root/Termux)" +
+        description = "自检 Muse 运行平台：Linux 沙盒运行时（按需安装）状态 + 各工具通道(无障碍/Shell/Root/Termux)" +
             "的授权与就绪情况,返回结构化清单。" +
             "当用户询问「自检」「平台能力」「工具能不能用」「运行时状态」或排查工具调不动时调用。",
         parameters = emptyMap(),
@@ -46,8 +46,8 @@ object PlatformSelfCheckTool {
     suspend fun execute(context: Context, permissionStatusProvider: (() -> ToolPermissionStatus?)?): String {
         val sb = StringBuilder("【平台自检】")
 
-        // ── 1. 内置 Node 运行时 ──────────────────────────────────────────
-        sb.append("\n■ 内置 Node 运行时")
+        // ── 1. Linux 沙盒运行时（按需安装） ─────────────────────────────
+        sb.append("\n■ Linux 沙盒运行时（按需安装）")
         val node = MuseRuntime.nodeBinary(context)
         val externalReady = RuntimeBridge.isReady(context)
         sb.append("\n  - Node 来源: ").append(

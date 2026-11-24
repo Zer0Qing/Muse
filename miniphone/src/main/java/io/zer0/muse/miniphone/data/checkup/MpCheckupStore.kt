@@ -1,5 +1,6 @@
 package io.zer0.muse.miniphone.data.checkup
 
+import io.zer0.common.Logger
 import io.zer0.muse.miniphone.api.MiniPhoneHost
 import io.zer0.muse.miniphone.data.db.MiniPhoneDb
 import io.zer0.muse.miniphone.data.db.MpActorType
@@ -7,6 +8,7 @@ import io.zer0.muse.miniphone.data.db.entity.MpCheckupCaseEntity
 import io.zer0.muse.miniphone.data.db.entity.MpCheckupEvidenceEntity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import org.json.JSONObject
 
 /** 查岗方向：本机用户查角色，或角色查本机用户。落库用 [wire]。 */
 internal enum class MpCheckupDirection(val wire: String) {
@@ -78,31 +80,187 @@ internal class MpCheckupStore(
         return id
     }
 
-    /** 让角色逐条解读证据并给出结论；拿不到结论就标未完成。 */
+    /**
+     * 批量让角色结构化解读证据并给出总结结论；拿不到结论就标未完成。
+     *
+     * 用一次结构化 JSON 调用（证据超过 [MAX_SUMMARY_EVIDENCE] 条时分批）替代逐条串行调用，
+     * 避免深度查岗触发 40+ 次 LLM 请求。兼容 JSON、编号列表与纯文本三种模型输出形状。
+     */
     suspend fun interpret(caseId: String) {
         val case = db.checkupCaseDao().get(caseId) ?: return
+        val direction = MpCheckupDirection.fromWire(case.direction)
         val evidence = db.checkupEvidenceDao().observeByCase(caseId).first()
-        evidence.forEach { item ->
-            val verdict = host.composeScene(
-                case.characterId,
-                "有人在查你的岗，看到这条记录：「${item.excerpt}」。用一句话说明它意味着什么，不要替自己辩解。",
-            )
-            if (!verdict.isNullOrBlank()) db.checkupEvidenceDao().setVerdict(item.id, verdict.trim())
+
+        var summary: String? = null
+        if (evidence.isEmpty()) {
+            summary = host.composeScene(case.characterId, buildEmptyEvidenceBrief(direction))?.trim()
+        } else {
+            val batches = evidence.chunked(MAX_SUMMARY_EVIDENCE)
+            for ((batchIdx, batch) in batches.withIndex()) {
+                val includeSummary = batchIdx == 0
+                val raw = host.composeScene(
+                    case.characterId,
+                    buildBatchInterpretBrief(direction, batch, totalCount = evidence.size, includeSummary = includeSummary),
+                )
+                if (raw.isNullOrBlank()) continue
+                val parsed = parseBatchResponse(raw, batch.size)
+                batch.forEachIndexed { idx, item ->
+                    val verdict = parsed.verdicts[idx + 1]?.trim()
+                    if (!verdict.isNullOrBlank()) {
+                        db.checkupEvidenceDao().setVerdict(item.id, verdict)
+                    }
+                }
+                if (includeSummary && !parsed.summary.isNullOrBlank()) {
+                    summary = parsed.summary.trim()
+                }
+            }
         }
-        val summary = host.composeScene(
-            case.characterId,
-            buildString {
-                appendLine("有人查了你的岗，取到 ${evidence.size} 条证据：")
-                evidence.take(MAX_SUMMARY_EVIDENCE).forEach { appendLine("- ${it.excerpt}") }
-                appendLine("用两三句话给出你的结论。")
-            },
-        )
+
         val finishedAt = now()
         if (summary.isNullOrBlank()) {
             db.checkupCaseDao().finish(caseId, STATUS_FAILED, "", finishedAt)
         } else {
             db.checkupCaseDao().finish(caseId, STATUS_DONE, summary.trim(), finishedAt)
         }
+    }
+
+    private data class ParsedBatchResult(
+        val verdicts: Map<Int, String>,
+        val summary: String?,
+    )
+
+    private fun formatEvidenceLabel(item: MpCheckupEvidenceEntity): String = when (item.kind) {
+        KIND_MESSAGE -> "消息：${item.excerpt}"
+        KIND_MOMENT -> "动态：${item.excerpt}"
+        KIND_MEMO -> "备忘录：${item.excerpt}"
+        KIND_CALL_VOICE -> "语音通话 ${item.excerpt} 秒"
+        KIND_CALL_VIDEO -> "视频通话 ${item.excerpt} 秒"
+        else -> "${item.kind}：${item.excerpt}"
+    }
+
+    private fun buildEmptyEvidenceBrief(direction: MpCheckupDirection): String = when (direction) {
+        MpCheckupDirection.OUTGOING ->
+            "用户刚刚查了你的岗，但没有翻到任何记录。用一两句话给出你的客观回应，不要编造不存在的记录。"
+        MpCheckupDirection.INCOMING ->
+            "你刚刚查了用户的岗，但没有翻到任何记录。用一两句话说出你的结论，不要编造不存在的记录。"
+    }
+
+    private fun buildBatchInterpretBrief(
+        direction: MpCheckupDirection,
+        batch: List<MpCheckupEvidenceEntity>,
+        totalCount: Int,
+        includeSummary: Boolean,
+    ): String = buildString {
+        when (direction) {
+            MpCheckupDirection.OUTGOING -> {
+                appendLine("用户正在查你的岗（共取到 $totalCount 条证据，本批 ${batch.size} 条）。")
+                appendLine("请客观说明每条记录意味着什么，不要替自己强行辩解。")
+            }
+            MpCheckupDirection.INCOMING -> {
+                appendLine("你正在查用户的岗（共取到 $totalCount 条线索，本批 ${batch.size} 条）。")
+                appendLine("请站在你的视角解读每条记录说明了什么。")
+            }
+        }
+        appendLine("证据列表：")
+        batch.forEachIndexed { idx, item ->
+            appendLine("${idx + 1}. [${formatEvidenceLabel(item)}]")
+        }
+        appendLine()
+        if (includeSummary) {
+            appendLine("请只输出严格 JSON（不要 markdown 代码块），包含每条的一句话解读与 2–3 句总结结论：")
+            append("""{"verdicts":[{"index":1,"verdict":"一句话解读"}],"summary":"两三句话总结结论"}""")
+        } else {
+            appendLine("请只输出严格 JSON（不要 markdown 代码块），包含每条的一句话解读：")
+            append("""{"verdicts":[{"index":1,"verdict":"一句话解读"}]}""")
+        }
+    }
+
+    private fun parseBatchResponse(raw: String, batchSize: Int): ParsedBatchResult {
+        val cleaned = raw
+            .replace(THINK_CLOSED_REGEX, "")
+            .replace(THINK_UNCLOSED_REGEX, "")
+            .trim()
+        val unfenced = FENCE_REGEX.find(cleaned)?.groupValues?.get(1)?.trim() ?: cleaned
+        val jsonCandidate = extractBalancedJsonObject(unfenced)
+        if (jsonCandidate != null) {
+            val fromJson = runCatching {
+                val root = JSONObject(jsonCandidate)
+                val verdicts = LinkedHashMap<Int, String>()
+                val arr = root.optJSONArray("verdicts")
+                if (arr != null) {
+                    for (i in 0 until arr.length()) {
+                        val obj = arr.optJSONObject(i)
+                        if (obj != null) {
+                            val idx = obj.optInt("index", i + 1)
+                            val text = obj.optString("verdict").trim()
+                            if (idx in 1..batchSize && text.isNotBlank()) verdicts[idx] = text
+                        } else {
+                            val text = arr.optString(i).trim()
+                            if (i + 1 <= batchSize && text.isNotBlank()) verdicts[i + 1] = text
+                        }
+                    }
+                }
+                val summary = root.optString("summary").trim().ifBlank { null }
+                ParsedBatchResult(verdicts = verdicts, summary = summary)
+            }.onFailure { e ->
+                Logger.w(TAG, "查岗 JSON 解析失败，降级文本解析: ${e.message}")
+            }.getOrNull()
+            if (fromJson != null && (fromJson.verdicts.isNotEmpty() || fromJson.summary != null)) {
+                return fromJson
+            }
+        }
+
+        // 兜底 1：按编号行解析（模型未遵守 JSON 时）
+        val lineVerdicts = LinkedHashMap<Int, String>()
+        var parsedSummary: String? = null
+        for (line in unfenced.lineSequence()) {
+            val trimmed = line.trim()
+            val numbered = NUMBERED_LINE_REGEX.find(trimmed)
+            if (numbered != null) {
+                val idx = numbered.groupValues[1].toIntOrNull()
+                val text = numbered.groupValues[2].trim()
+                if (idx != null && idx in 1..batchSize && text.isNotBlank()) {
+                    lineVerdicts[idx] = text
+                }
+            } else if (trimmed.startsWith("结论") || trimmed.startsWith("总结")) {
+                val body = trimmed.substringAfter("：", trimmed.substringAfter(":", "")).trim()
+                if (body.isNotBlank()) parsedSummary = body
+            }
+        }
+        if (lineVerdicts.isNotEmpty()) {
+            return ParsedBatchResult(
+                verdicts = lineVerdicts,
+                summary = parsedSummary ?: unfenced.trim().takeIf { it.isNotBlank() },
+            )
+        }
+
+        // 兜底 2：纯文本整段结论（兼容极简回复），同时填入摘要与各条解读以便展示
+        val plain = unfenced.trim()
+        if (plain.isEmpty()) return ParsedBatchResult(emptyMap(), null)
+        val fallbackVerdicts = (1..batchSize).associateWith { plain }
+        return ParsedBatchResult(verdicts = fallbackVerdicts, summary = plain)
+    }
+
+    private fun extractBalancedJsonObject(text: String): String? {
+        val start = text.indexOf('{')
+        if (start < 0) return null
+        var depth = 0
+        var inString = false
+        var escaped = false
+        for (i in start until text.length) {
+            val c = text[i]
+            when {
+                escaped -> escaped = false
+                c == '\\' && inString -> escaped = true
+                c == '"' -> inString = !inString
+                !inString && c == '{' -> depth++
+                !inString && c == '}' -> {
+                    depth--
+                    if (depth == 0) return text.substring(start, i + 1)
+                }
+            }
+        }
+        return null
     }
 
     suspend fun deleteCase(caseId: String) {
@@ -151,6 +309,8 @@ internal class MpCheckupStore(
     }
 
     companion object {
+        private const val TAG = "MpCheckupStore"
+
         const val KIND_MESSAGE: String = "message"
         const val KIND_MOMENT: String = "moment"
         const val KIND_MEMO: String = "memo"
@@ -162,5 +322,10 @@ internal class MpCheckupStore(
         const val STATUS_FAILED: String = "failed"
 
         private const val MAX_SUMMARY_EVIDENCE = 12
+
+        private val THINK_CLOSED_REGEX = Regex("<think(?:ing)?>[\\s\\S]*?</think(?:ing)?>", RegexOption.IGNORE_CASE)
+        private val THINK_UNCLOSED_REGEX = Regex("<think(?:ing)?>[\\s\\S]*$", RegexOption.IGNORE_CASE)
+        private val FENCE_REGEX = Regex("""```(?:json)?\s*\r?\n([\s\S]*?)\r?\n```""", RegexOption.IGNORE_CASE)
+        private val NUMBERED_LINE_REGEX = Regex("""^\[?(\d+)\]?[\.、:：\)\]]\s*(.+)$""")
     }
 }

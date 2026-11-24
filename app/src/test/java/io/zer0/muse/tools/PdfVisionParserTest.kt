@@ -277,19 +277,19 @@ class PdfVisionParserTest {
     }
 
     @Test
-    fun `DefaultVisionOcrClient falls back to reasoningContent when text empty`() = runTest {
+    fun `DefaultVisionOcrClient does not fall back to reasoningContent when text empty`() = runTest {
         val mockChatService = mockk<ChatService>()
         val mockConfigStore = mockk<ProviderConfigStore>()
         coEvery { mockConfigStore.get() } returns testProviderConfig(visionSupported = true)
-        // 模拟推理模型:text 空,但 reasoningContent 有内容
+        // 推理内容属于模型内部思考，不应污染 OCR 正文结果
         coEvery {
             mockChatService.completeText(any(), any(), any(), any(), any(), any(), any(), any())
-        } returns ChatCompletion(text = "", reasoningContent = "推理模型把 OCR 放这里")
+        } returns ChatCompletion(text = "", reasoningContent = "推理模型内部思考内容")
 
         val client = DefaultVisionOcrClient(mockChatService, mockConfigStore)
         val result = client.ocr("base64data")
 
-        assertEquals("text 空时应降级用 reasoningContent", "推理模型把 OCR 放这里", result)
+        assertEquals("text 空时应返回空内容标记而非把思考内容当 OCR 正文", "[OCR 返回空内容]", result)
     }
 
     @Test

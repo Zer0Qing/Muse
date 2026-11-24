@@ -382,7 +382,7 @@ abstract class MuseDb : RoomDatabase() {
 
     companion object {
         /** Single schema-version source; must match the latest exported JSON. */
-        const val LATEST_SCHEMA_VERSION = 137
+        const val LATEST_SCHEMA_VERSION = 138
 
         @Volatile
         private var dbInstance: MuseDb? = null
@@ -680,6 +680,7 @@ abstract class MuseDb : RoomDatabase() {
             MuseDbMigrations.MIGRATION_134_135,
             MuseDbMigrations.MIGRATION_135_136,
             MuseDbMigrations.MIGRATION_136_137,
+            MuseDbMigrations.MIGRATION_137_138,
         )
 
         // SpreadOperator:展开 126 个已包装的迁移对象。这里必须用 vararg 形式交给 Room 的

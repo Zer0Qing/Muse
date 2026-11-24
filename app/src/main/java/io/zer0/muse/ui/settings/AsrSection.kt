@@ -1,20 +1,17 @@
 package io.zer0.muse.ui.settings
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -28,45 +25,42 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import io.zer0.muse.ui.theme.MuseCornerRadius
 import io.zer0.muse.R
 import io.zer0.muse.asr.AsrConfig
 import io.zer0.muse.asr.AsrProviderType
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.SpeechProviderResolver
 import io.zer0.muse.ui.common.feedback.MuseToast
-import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseBottomSheet
-import io.zer0.muse.ui.common.form.MuseCapsuleButton
+import io.zer0.muse.ui.common.form.MuseSecretTextField
 import io.zer0.muse.ui.common.form.MuseSelectionSheet
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
-import io.zer0.muse.ui.common.settings.SectionLabel
-import io.zer0.muse.ui.common.settings.SettingsGroup
-import io.zer0.muse.ui.common.settings.SettingsGroupDivider
-import io.zer0.muse.ui.common.settings.SettingsItemRow
-import io.zer0.muse.ui.common.settings.SettingsSwitchRow
+import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.common.surface.MuseListItem
+import io.zer0.muse.ui.common.surface.actionItem
+import io.zer0.muse.ui.common.surface.navigationItem
+import io.zer0.muse.ui.common.surface.switchItem
+import io.zer0.muse.ui.theme.MuseCornerRadius
+import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.MuseSpacing
 import kotlinx.coroutines.launch
 
 /**
- * v2.0 重设计: 语音识别(ASR)设置。
+ * 语音识别（ASR）设置区块。
  *
- * 旧版把 7 个 Provider 铺成胶囊墙 + 每个字段一个"保存"按钮,信息密度低、主次不分。
- * 新版结构:
- *  1. 引擎卡片 — 一眼看到当前识别引擎与用途,点"更换"弹出底部选择面板;
- *  2. 连接 — API Key / baseUrl / 模型,一个"保存连接设置"统一提交;
- *  3. 识别 — 采样率 / 语言 / 热词 / VAD / 标点等,一个"保存识别设置"统一提交;
- *  4. 文件转录 — 仅 DashScope 文件模式显示,一个"保存转录设置"。
+ * 结构：
+ *  1. 引擎与离线模型卡片 — 一眼看到当前引擎、点击底部面板切换，并附离线模型管理入口；
+ *  2. 连接 — 跟随供应商、API Key / Base URL、统一保存动作、模型选择；
+ *  3. 识别 — 采样率、语言/热词、VAD、标点/逆文本规范化；
+ *  4. 文件转录 — 仅 DashScope 文件模式显示。
  */
 @Composable
-@Suppress("LongMethod", "CyclomaticComplexMethod") // 一个设置页：字段按顺序排开比拆成多个只有一处的小函数更好读
+@Suppress("LongMethod", "CyclomaticComplexMethod") // 单设置分区：字段按顺序组织更易读
 internal fun AsrSection(
     asrConfig: AsrConfig,
     settings: SettingsRepository,
@@ -76,9 +70,11 @@ internal fun AsrSection(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     var enginePickerOpen by remember { mutableStateOf(false) }
+    var providerPickerOpen by remember { mutableStateOf(false) }
+    val providers by settings.providersFlow.collectAsStateWithLifecycle(initialValue = emptyList())
 
-    // 切换 Provider 时,若仍保留上一个 Provider 的默认模型,请求会带错模型名;
-    // 只有用户明确改过自定义模型时才保留,否则切到目标 Provider 的默认模型。
+    // 切换 Provider 时，若仍保留上一个 Provider 的默认模型，请求会带错模型名；
+    // 只有用户明确改过自定义模型时才保留，否则切到目标 Provider 的默认模型。
     fun configForProvider(provider: AsrProviderType): AsrConfig {
         val next = asrConfig.copy(provider = provider)
         val knownDefaults = AsrProviderType.values()
@@ -99,265 +95,236 @@ internal fun AsrSection(
         text = stringResource(R.string.settings_asr_provider_hint),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(top = 4.dp),
+        modifier = Modifier.padding(top = MuseSpacing.xs),
     )
 
     // ---- 引擎卡片 ----
-    Spacer(Modifier.size(MusePaddings.itemGap))
-    Surface(
-        onClick = { enginePickerOpen = true },
-        shape = MuseShapes.extraLarge,
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(0.6.dp, MaterialTheme.colorScheme.outlineVariant),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(MusePaddings.cardInner),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
-        ) {
-            EngineIconTile(asrConfig.provider, size = 44.dp)
-            Column(modifier = Modifier.weight(1f)) {
+    CardGroup(modifier = Modifier.padding(top = MusePaddings.itemGap)) {
+        item(
+            key = "asr_engine",
+            onClick = { enginePickerOpen = true },
+            leadingContent = { EngineIconTile(asrConfig.provider, size = 44.dp) },
+            headlineContent = { Text(asrProviderName(asrConfig.provider)) },
+            supportingContent = { Text(asrProviderDesc(asrConfig.provider)) },
+            trailingContent = {
                 Text(
-                    text = stringResource(R.string.settings_asr_engine_title),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    text = stringResource(R.string.settings_asr_engine_change),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
                 )
-                Text(
-                    text = asrProviderName(asrConfig.provider),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = asrProviderDesc(asrConfig.provider),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            MuseCapsuleButton(
-                text = stringResource(R.string.settings_asr_engine_change),
-                onClick = { enginePickerOpen = true },
-                variant = IosCapsuleButtonVariant.Text,
-                fillWidth = false,
-            )
-        }
+            },
+        )
     }
 
     // ---- 本地模型入口 ----
-    // 不挂在引擎选中状态上：用户先看见「模型下载」才可能去下模型；选了本地引擎却
-    // 找不到下载入口，只会看到「模型缺失」的错误。
+    // 不挂在引擎选中状态上：用户先看见「模型下载」才可能去下模型。
     LocalModelEntryRow(onClick = onOpenLocalModel)
 
     if (asrConfig.provider != AsrProviderType.SYSTEM && asrConfig.provider != AsrProviderType.LOCAL_SENSEVOICE) {
-        // 本地引擎不联网，连接/识别分组对它没有意义；模型卡片在上面已给出全部所需配置。
         // ---- 连接 ----
-        SectionLabel(
-            stringResource(R.string.settings_asr_group_connection),
-            modifier = Modifier.padding(top = MusePaddings.cardGap),
-        )
-        SettingsGroup(modifier = Modifier.padding(top = 4.dp)) {
-            var asrApiKey by remember(asrConfig.provider) { mutableStateOf(asrConfig.apiKey) }
-            var asrApiKeyVisible by remember { mutableStateOf(false) }
-            var asrBaseUrl by remember(asrConfig.provider) { mutableStateOf(asrConfig.baseUrl) }
-            val providers by settings.providersFlow.collectAsStateWithLifecycle(initialValue = emptyList())
-            val unsetLabel = stringResource(R.string.settings_speech_follow_unset)
-            var providerPickerOpen by remember { mutableStateOf(false) }
-            val followProvider = providers.firstOrNull { it.id == asrConfig.providerId }
-            val needsBaseUrl = asrConfig.provider == AsrProviderType.OPENAI_WHISPER ||
-                asrConfig.provider == AsrProviderType.OPENAI_REALTIME ||
-                asrConfig.provider == AsrProviderType.AGNES
-            // DashScope 实时识别走内置 wss 端点,供应商地址不参与:该引擎下不提供跟随开关
-            val followAvailable = asrConfig.provider != AsrProviderType.DASHSCOPE
-            // 只有在引擎支持且用户真的开了开关时,跟随后才生效
-            val followActive = followAvailable && asrConfig.followProvider
+        var asrApiKey by remember(asrConfig.provider) { mutableStateOf(asrConfig.apiKey) }
+        var asrBaseUrl by remember(asrConfig.provider) { mutableStateOf(asrConfig.baseUrl) }
+        val unsetLabel = stringResource(R.string.settings_speech_follow_unset)
+        val followProvider = providers.firstOrNull { it.id == asrConfig.providerId }
+        val needsBaseUrl = asrConfig.provider == AsrProviderType.OPENAI_WHISPER ||
+            asrConfig.provider == AsrProviderType.OPENAI_REALTIME ||
+            asrConfig.provider == AsrProviderType.AGNES
+        // DashScope 实时识别走内置 wss 端点，供应商地址不参与：该引擎下不提供跟随开关
+        val followAvailable = asrConfig.provider != AsrProviderType.DASHSCOPE
+        val followActive = followAvailable && asrConfig.followProvider
+        val resolvedFollow = remember(asrConfig, providers) {
+            SpeechProviderResolver.resolveAsr(asrConfig, providers)
+        }
+        val modelProvider = remember(providers, asrConfig.providerId) {
+            SpeechModelPicker.candidateProvider(providers, asrConfig.providerId)
+        }
+        val currentModelId = if (SpeechModelPicker.asrFollowActive(asrConfig)) {
+            asrConfig.modelId
+        } else {
+            asrConfig.model
+        }
 
-            // 跟随供应商配置：开启后 API Key / 接口地址取自供应商，模型在同一供应商的模型里手选
+        CardGroup(
+            title = { Text(stringResource(R.string.settings_asr_group_connection)) },
+            modifier = Modifier.padding(top = MusePaddings.cardGap),
+        ) {
             if (followAvailable) {
-                SettingsSwitchRow(
-                    icon = MuseIcons.cloud,
+                switchItem(
+                    key = "asr_follow_provider",
                     title = stringResource(R.string.settings_asr_follow_provider),
                     checked = asrConfig.followProvider,
                     onCheckedChange = { follow ->
                         scope.launch { settings.saveAsrConfig(asrConfig.copy(followProvider = follow)) }
                     },
+                    leadingContent = {
+                        Icon(
+                            imageVector = MuseIcons.cloud,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
+                    },
                 )
             }
 
             if (followActive) {
-                MuseListItem(
-                    onClick = { providerPickerOpen = true },
-                    leadingContent = { Icon(MuseIcons.server, contentDescription = null) },
-                    headlineContent = { Text(stringResource(R.string.common_provider)) },
-                    supportingContent = { Text(followProvider?.displayName ?: unsetLabel) },
-                )
-
-                val resolved = SpeechProviderResolver.resolveAsr(asrConfig, providers)
-                if (resolved.isProviderFallback) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(MusePaddings.cardInner),
-                    ) {
-                        InlineError(
-                            stringResource(
-                                R.string.settings_speech_follow_fallback_notice,
-                                stringResource(speechFollowFallbackReasonRes(resolved.fallbackReason)),
-                            ),
+                navigationItem(
+                    key = "asr_follow_provider_picker",
+                    title = stringResource(R.string.common_provider),
+                    subtitle = followProvider?.displayName ?: unsetLabel,
+                    leadingContent = {
+                        Icon(
+                            imageVector = MuseIcons.server,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
                         )
-                    }
-                }
-
-                if (providerPickerOpen) {
-                    MuseSelectionSheet(
-                        title = stringResource(R.string.common_provider),
-                        onDismissRequest = { providerPickerOpen = false },
-                    ) {
-                        providers.forEach { provider ->
-                            MuseListItem(
-                                onClick = {
-                                    // 换供应商时清空模型选择，避免带着上一个供应商的模型发请求
-                                    scope.launch {
-                                        settings.saveAsrConfig(
-                                            asrConfig.copy(providerId = provider.id, modelId = ""),
-                                        )
-                                    }
-                                    providerPickerOpen = false
-                                },
-                                headlineContent = { Text(provider.displayName) },
+                    },
+                    onClick = { providerPickerOpen = true },
+                )
+                if (resolvedFollow.isProviderFallback) {
+                    content(key = "asr_follow_fallback") {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(MusePaddings.cardInner),
+                        ) {
+                            InlineError(
+                                stringResource(
+                                    R.string.settings_speech_follow_fallback_notice,
+                                    stringResource(speechFollowFallbackReasonRes(resolvedFollow.fallbackReason)),
+                                ),
                             )
                         }
                     }
                 }
             }
 
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(MusePaddings.cardInner),
-                verticalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
-            ) {
-                // 跟随时凭据由供应商提供，手填值保留但不可编辑
-                if (!followActive && asrConfig.apiKey.isBlank()) {
-                    InlineError(stringResource(R.string.asr_missing_api_key_error))
-                }
-                MuseTextField(
-                    value = asrApiKey,
-                    onValueChange = { asrApiKey = it },
-                    label = { Text(stringResource(R.string.settings_asr_api_key)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    enabled = !followActive,
-                    visualTransformation = if (asrApiKeyVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                    trailingIcon = {
-                        MuseCapsuleButton(
-                            text = if (asrApiKeyVisible) {
-                                stringResource(
-                                    R.string.settings_asr_hide,
-                                )
-                            } else {
-                                stringResource(R.string.settings_asr_show)
-                            },
-                            onClick = { asrApiKeyVisible = !asrApiKeyVisible },
-                            variant = IosCapsuleButtonVariant.Text,
-                            fillWidth = false,
-                        )
-                    },
-                )
-                if (needsBaseUrl) {
-                    MuseTextField(
-                        value = asrBaseUrl,
-                        onValueChange = { asrBaseUrl = it },
-                        label = { Text(stringResource(R.string.settings_asr_base_url)) },
-                        placeholder = { Text(asrConfig.defaultBaseUrl().ifBlank { "https://api.openai.com/v1" }) },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
+            content(key = "asr_credentials") {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(MusePaddings.cardInner),
+                    verticalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
+                ) {
+                    if (!followActive && asrConfig.apiKey.isBlank()) {
+                        InlineError(stringResource(R.string.asr_missing_api_key_error))
+                    }
+                    MuseSecretTextField(
+                        value = asrApiKey,
+                        onValueChange = { asrApiKey = it },
+                        label = stringResource(R.string.settings_asr_api_key),
                         enabled = !followActive,
+                        modifier = Modifier.fillMaxWidth(),
                     )
-                }
-                SaveRow(stringResource(R.string.settings_asr_save_connection)) {
-                    scope.launch {
-                        // 模型不在这里提交：它由下面的模型行自己写入
-                        settings.saveAsrConfig(
-                            asrConfig.copy(
-                                apiKey = asrApiKey.trim(),
-                                baseUrl = asrBaseUrl.trim(),
-                            ),
+                    if (needsBaseUrl) {
+                        MuseTextField(
+                            value = asrBaseUrl,
+                            onValueChange = { asrBaseUrl = it },
+                            label = { Text(stringResource(R.string.settings_asr_base_url)) },
+                            placeholder = { Text(asrConfig.defaultBaseUrl().ifBlank { "https://api.openai.com/v1" }) },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            enabled = !followActive,
                         )
-                        MuseToast.show(context.getString(R.string.settings_asr_saved))
                     }
                 }
             }
 
-            // ---- 模型：候选来自供应商，这里只负责选一个 ----
-            val modelProvider = remember(providers, asrConfig.providerId) {
-                SpeechModelPicker.candidateProvider(providers, asrConfig.providerId)
+            if (!followActive) {
+                actionItem(
+                    key = "asr_save_connection",
+                    title = stringResource(R.string.settings_asr_save_connection),
+                    onClick = {
+                        scope.launch {
+                            settings.saveAsrConfig(
+                                asrConfig.copy(
+                                    apiKey = asrApiKey.trim(),
+                                    baseUrl = asrBaseUrl.trim(),
+                                ),
+                            )
+                            MuseToast.show(context.getString(R.string.settings_asr_saved))
+                        }
+                    },
+                )
             }
-            // 跟随时模型存在 modelId，手动模式存在 model
-            val currentModelId = if (SpeechModelPicker.asrFollowActive(asrConfig)) {
-                asrConfig.modelId
-            } else {
-                asrConfig.model
+
+            content(key = "asr_model") {
+                SpeechModelSection(
+                    title = stringResource(R.string.settings_asr_model),
+                    currentModelId = currentModelId,
+                    provider = modelProvider,
+                    emptyLabel = asrConfig.defaultModel(),
+                    onPick = { modelId ->
+                        scope.launch { settings.saveAsrConfig(SpeechModelPicker.applyToAsr(asrConfig, modelId)) }
+                    },
+                    onOpenProviders = onOpenProviderSettings,
+                )
             }
-            SpeechModelSection(
-                title = stringResource(R.string.settings_asr_model),
-                currentModelId = currentModelId,
-                provider = modelProvider,
-                emptyLabel = asrConfig.defaultModel(),
-                onPick = { modelId ->
-                    scope.launch { settings.saveAsrConfig(SpeechModelPicker.applyToAsr(asrConfig, modelId)) }
-                },
-                onOpenProviders = onOpenProviderSettings,
-            )
         }
 
         // ---- 识别 ----
-        SectionLabel(
-            stringResource(R.string.settings_asr_group_recognition),
+        var asrLang by remember(asrConfig.provider) { mutableStateOf(asrConfig.language ?: "zh") }
+        var asrHotwords by remember(asrConfig.provider) {
+            mutableStateOf(asrConfig.hotwords.joinToString(", "))
+        }
+        var vadThreshold by remember(asrConfig.vadEnabled) {
+            mutableStateOf(asrConfig.vadThreshold.toString())
+        }
+        var vadSilence by remember(asrConfig.vadEnabled) {
+            mutableStateOf(asrConfig.vadSilenceDurationMs.toString())
+        }
+
+        CardGroup(
+            title = { Text(stringResource(R.string.settings_asr_group_recognition)) },
             modifier = Modifier.padding(top = MusePaddings.cardGap),
-        )
-        SettingsGroup(modifier = Modifier.padding(top = 4.dp)) {
-            SettingsItemRow(
-                icon = MuseIcons.waveSine,
-                title = stringResource(R.string.settings_asr_sample_rate),
-                subtitle = stringResource(R.string.settings_asr_sample_rate_subtitle, asrConfig.sampleRate),
+        ) {
+            item(
+                key = "asr_sample_rate",
+                leadingContent = {
+                    Icon(
+                        imageVector = MuseIcons.waveSine,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(MuseIconSizes.iconMedium),
+                    )
+                },
+                headlineContent = { Text(stringResource(R.string.settings_asr_sample_rate)) },
+                supportingContent = {
+                    Text(stringResource(R.string.settings_asr_sample_rate_subtitle, asrConfig.sampleRate))
+                },
             )
 
-            var asrLang by remember(asrConfig.provider) { mutableStateOf(asrConfig.language ?: "zh") }
-            var asrHotwords by remember(asrConfig.provider) {
-                mutableStateOf(asrConfig.hotwords.joinToString(", "))
-            }
-            var vadThreshold by remember(asrConfig.vadEnabled) {
-                mutableStateOf(asrConfig.vadThreshold.toString())
-            }
-            var vadSilence by remember(asrConfig.vadEnabled) {
-                mutableStateOf(asrConfig.vadSilenceDurationMs.toString())
+            content(key = "asr_recognition_fields") {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(MusePaddings.cardInner),
+                    verticalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
+                ) {
+                    MuseTextField(
+                        value = asrLang,
+                        onValueChange = { asrLang = it },
+                        label = { Text(stringResource(R.string.settings_asr_language_code)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                    )
+                    MuseTextField(
+                        value = asrHotwords,
+                        onValueChange = { asrHotwords = it },
+                        label = { Text(stringResource(R.string.settings_asr_hotwords)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = false,
+                        minLines = 1,
+                        maxLines = 3,
+                    )
+                }
             }
 
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(MusePaddings.cardInner),
-                verticalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
-            ) {
-                MuseTextField(
-                    value = asrLang,
-                    onValueChange = { asrLang = it },
-                    label = { Text(stringResource(R.string.settings_asr_language_code)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                )
-                MuseTextField(
-                    value = asrHotwords,
-                    onValueChange = { asrHotwords = it },
-                    label = { Text(stringResource(R.string.settings_asr_hotwords)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = false,
-                    minLines = 1,
-                    maxLines = 3,
-                )
-                SaveRow(stringResource(R.string.settings_asr_save_recognition)) {
+            actionItem(
+                key = "asr_save_recognition",
+                title = stringResource(R.string.settings_asr_save_recognition),
+                onClick = {
                     scope.launch {
                         val list = asrHotwords.split(",")
                             .map { it.trim() }
@@ -373,12 +340,12 @@ internal fun AsrSection(
                         )
                         MuseToast.show(context.getString(R.string.settings_asr_saved))
                     }
-                }
-            }
+                },
+            )
 
-            // VAD(除 SYSTEM / OPENAI_REALTIME 外显示;OPENAI_REALTIME 走服务端 VAD)
             if (asrConfig.provider != AsrProviderType.OPENAI_REALTIME) {
-                SettingsSwitchRow(
+                switchItem(
+                    key = "asr_vad_toggle",
                     title = stringResource(R.string.settings_asr_vad),
                     checked = asrConfig.vadEnabled,
                     onCheckedChange = { v ->
@@ -386,29 +353,35 @@ internal fun AsrSection(
                     },
                 )
                 if (asrConfig.vadEnabled) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(MusePaddings.cardInner),
-                        verticalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
-                    ) {
-                        MuseTextField(
-                            value = vadThreshold,
-                            onValueChange = { v ->
-                                vadThreshold = v.filter { c -> c.isDigit() || c == '.' }
-                            },
-                            label = { Text(stringResource(R.string.settings_asr_vad_threshold)) },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                        )
-                        MuseTextField(
-                            value = vadSilence,
-                            onValueChange = { v -> vadSilence = v.filter { c -> c.isDigit() } },
-                            label = { Text(stringResource(R.string.settings_asr_vad_silence)) },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                        )
-                        SaveRow(stringResource(R.string.settings_asr_save_vad)) {
+                    content(key = "asr_vad_fields") {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(MusePaddings.cardInner),
+                            verticalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
+                        ) {
+                            MuseTextField(
+                                value = vadThreshold,
+                                onValueChange = { v ->
+                                    vadThreshold = v.filter { c -> c.isDigit() || c == '.' }
+                                },
+                                label = { Text(stringResource(R.string.settings_asr_vad_threshold)) },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true,
+                            )
+                            MuseTextField(
+                                value = vadSilence,
+                                onValueChange = { v -> vadSilence = v.filter { c -> c.isDigit() } },
+                                label = { Text(stringResource(R.string.settings_asr_vad_silence)) },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true,
+                            )
+                        }
+                    }
+                    actionItem(
+                        key = "asr_save_vad",
+                        title = stringResource(R.string.settings_asr_save_vad),
+                        onClick = {
                             scope.launch {
                                 settings.saveAsrConfig(
                                     asrConfig.copy(
@@ -418,34 +391,35 @@ internal fun AsrSection(
                                 )
                                 MuseToast.show(context.getString(R.string.settings_asr_saved_vad))
                             }
-                        }
-                    }
+                        },
+                    )
                 }
             } else {
-                // v2.0: OPENAI_REALTIME 的 VAD 由服务端处理,原实现整行隐藏,
-                // 用户不知道为何没有开关;补一条说明行。
-                Text(
-                    text = stringResource(R.string.settings_asr_vad_realtime_note),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(MusePaddings.cardInner),
-                )
+                content(key = "asr_vad_realtime_note") {
+                    Text(
+                        text = stringResource(R.string.settings_asr_vad_realtime_note),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(MusePaddings.cardInner),
+                    )
+                }
             }
 
-            // DashScope 高级字段(仅 DASHSCOPE / DASHSCOPE_FILE 显示)
             if (asrConfig.provider == AsrProviderType.DASHSCOPE ||
                 asrConfig.provider == AsrProviderType.DASHSCOPE_FILE
             ) {
-                SettingsSwitchRow(
+                switchItem(
+                    key = "asr_punctuation",
                     title = stringResource(R.string.settings_asr_punctuation),
                     checked = asrConfig.enablePunctuation,
                     onCheckedChange = { v ->
                         scope.launch { settings.saveAsrConfig(asrConfig.copy(enablePunctuation = v)) }
                     },
                 )
-                SettingsSwitchRow(
+                switchItem(
+                    key = "asr_itn",
                     title = stringResource(R.string.settings_asr_itn),
                     checked = asrConfig.enableInverseTextNormalization,
                     onCheckedChange = { v ->
@@ -457,49 +431,54 @@ internal fun AsrSection(
             }
         }
 
-        // ---- 文件转录(仅 DASHSCOPE_FILE) ----
+        // ---- 文件转录（仅 DASHSCOPE_FILE）----
         if (asrConfig.provider == AsrProviderType.DASHSCOPE_FILE) {
-            SectionLabel(
-                stringResource(R.string.settings_asr_group_transcription),
+            var fileUrl by remember(asrConfig.provider) { mutableStateOf(asrConfig.fileAudioUrl) }
+            var pollInterval by remember(asrConfig.provider) {
+                mutableStateOf(asrConfig.pollIntervalMs.toString())
+            }
+            var pollTimeout by remember(asrConfig.provider) {
+                mutableStateOf(asrConfig.pollTimeoutMs.toString())
+            }
+            CardGroup(
+                title = { Text(stringResource(R.string.settings_asr_group_transcription)) },
                 modifier = Modifier.padding(top = MusePaddings.cardGap),
-            )
-            SettingsGroup(modifier = Modifier.padding(top = 4.dp)) {
-                var fileUrl by remember(asrConfig.provider) { mutableStateOf(asrConfig.fileAudioUrl) }
-                var pollInterval by remember(asrConfig.provider) {
-                    mutableStateOf(asrConfig.pollIntervalMs.toString())
+            ) {
+                content(key = "asr_transcription_fields") {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(MusePaddings.cardInner),
+                        verticalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
+                    ) {
+                        MuseTextField(
+                            value = fileUrl,
+                            onValueChange = { fileUrl = it },
+                            label = { Text(stringResource(R.string.settings_asr_audio_url)) },
+                            placeholder = { Text("https://example.com/audio.mp3") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                        )
+                        MuseTextField(
+                            value = pollInterval,
+                            onValueChange = { v -> pollInterval = v.filter { c -> c.isDigit() } },
+                            label = { Text(stringResource(R.string.settings_asr_poll_interval)) },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                        )
+                        MuseTextField(
+                            value = pollTimeout,
+                            onValueChange = { v -> pollTimeout = v.filter { c -> c.isDigit() } },
+                            label = { Text(stringResource(R.string.settings_asr_poll_timeout)) },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                        )
+                    }
                 }
-                var pollTimeout by remember(asrConfig.provider) {
-                    mutableStateOf(asrConfig.pollTimeoutMs.toString())
-                }
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(MusePaddings.cardInner),
-                    verticalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
-                ) {
-                    MuseTextField(
-                        value = fileUrl,
-                        onValueChange = { fileUrl = it },
-                        label = { Text(stringResource(R.string.settings_asr_audio_url)) },
-                        placeholder = { Text("https://example.com/audio.mp3") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                    )
-                    MuseTextField(
-                        value = pollInterval,
-                        onValueChange = { v -> pollInterval = v.filter { c -> c.isDigit() } },
-                        label = { Text(stringResource(R.string.settings_asr_poll_interval)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                    )
-                    MuseTextField(
-                        value = pollTimeout,
-                        onValueChange = { v -> pollTimeout = v.filter { c -> c.isDigit() } },
-                        label = { Text(stringResource(R.string.settings_asr_poll_timeout)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                    )
-                    SaveRow(stringResource(R.string.settings_asr_save_transcription)) {
+                actionItem(
+                    key = "asr_save_transcription",
+                    title = stringResource(R.string.settings_asr_save_transcription),
+                    onClick = {
                         scope.launch {
                             settings.saveAsrConfig(
                                 asrConfig.copy(
@@ -514,8 +493,43 @@ internal fun AsrSection(
                             )
                             MuseToast.show(context.getString(R.string.settings_asr_saved))
                         }
-                    }
-                }
+                    },
+                )
+            }
+        }
+    }
+
+    // ---- 跟随供应商选择面板 ----
+    if (providerPickerOpen) {
+        MuseSelectionSheet(
+            title = stringResource(R.string.common_provider),
+            onDismissRequest = { providerPickerOpen = false },
+        ) {
+            providers.forEach { provider ->
+                MuseListItem(
+                    onClick = {
+                        // 换供应商时清空模型选择，避免带着上一个供应商的模型发请求
+                        scope.launch {
+                            settings.saveAsrConfig(
+                                asrConfig.copy(providerId = provider.id, modelId = ""),
+                            )
+                        }
+                        providerPickerOpen = false
+                    },
+                    headlineContent = { Text(provider.displayName) },
+                    trailingContent = if (provider.id == asrConfig.providerId) {
+                        {
+                            Icon(
+                                imageVector = MuseIcons.check,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(MuseIconSizes.iconSmall),
+                            )
+                        }
+                    } else {
+                        null
+                    },
+                )
             }
         }
     }
@@ -543,7 +557,7 @@ internal fun AsrSection(
     }
 }
 
-/** 引擎选择面板中的单个 Provider 行:图标砖 + 名称 + 描述 + 选中勾。 */
+/** 引擎选择面板中的单个 Provider 行：图标砖 + 名称 + 描述 + 选中勾。 */
 @Composable
 private fun EnginePickerRow(provider: AsrProviderType, selected: Boolean, onClick: () -> Unit) {
     Row(
@@ -551,7 +565,7 @@ private fun EnginePickerRow(provider: AsrProviderType, selected: Boolean, onClic
             .fillMaxWidth()
             .clip(MuseShapes.large)
             .clickable(onClick = onClick)
-            .padding(vertical = 10.dp, horizontal = 4.dp),
+            .padding(vertical = MuseSpacing.sm, horizontal = MuseSpacing.xs),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
     ) {
@@ -573,7 +587,7 @@ private fun EnginePickerRow(provider: AsrProviderType, selected: Boolean, onClic
                 imageVector = MuseIcons.check,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(20.dp),
+                modifier = Modifier.size(MuseIconSizes.iconSmall),
             )
         }
     }
@@ -594,22 +608,6 @@ private fun EngineIconTile(provider: AsrProviderType, size: androidx.compose.ui.
             contentDescription = null,
             tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.size(size * 0.5f),
-        )
-    }
-}
-
-/** 保存按钮行 — 右对齐,避免每个字段一个保存按钮占满纵向空间。 */
-@Composable
-private fun SaveRow(text: String, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.End,
-    ) {
-        MuseCapsuleButton(
-            text = text,
-            onClick = onClick,
-            variant = IosCapsuleButtonVariant.Primary,
-            fillWidth = false,
         )
     }
 }
@@ -649,9 +647,7 @@ private fun asrProviderIcon(provider: AsrProviderType): ImageVector = when (prov
     AsrProviderType.LOCAL_SENSEVOICE -> MuseIcons.deviceMobile
 }
 
-/**
- * 表单内联错误提示条。
- */
+/** 表单内联错误提示条。 */
 @Composable
 private fun InlineError(message: String) {
     Text(

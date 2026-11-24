@@ -478,3 +478,12 @@ val LocalWaterGlassState = staticCompositionLocalOf<LiquidState?> { null }
  * [GlassIsland] 与顶栏标题据此选择深/浅内容色。
  */
 val LocalGlassIsBackgroundDark = staticCompositionLocalOf { false }
+
+/**
+ * 当前子树是否位于祖先 `Modifier.layerBackdrop` / `Modifier.liquefiable` 录制范围内。
+ *
+ * 为 true 时，子页面不得再嵌套创建第二层真玻璃 backdrop，且子树内的玻璃组件必须保持
+ * [LocalLayerBackdrop] / [LocalWaterGlassState] 为 null（自动降级为假玻璃），
+ * 防止 Android HWUI RenderThread 出现「backdrop 录制包含采样自身或嵌套 RenderEffect」的原生崩溃（无 Java 堆栈）。
+ */
+val LocalInsideBackdropRecorder = staticCompositionLocalOf { false }

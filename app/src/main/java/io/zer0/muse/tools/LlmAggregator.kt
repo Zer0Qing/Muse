@@ -1,13 +1,16 @@
 package io.zer0.muse.tools
 
 import io.zer0.ai.ChatService
+import io.zer0.ai.core.ChatRequestMode
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.Model
 import io.zer0.ai.core.ProviderConfig
+import io.zer0.ai.core.ReasoningLevel
 import io.zer0.ai.core.UIMessage
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.muse.data.SettingsRepository
+import io.zer0.muse.transformer.stripThinkTags
 import kotlinx.coroutines.withTimeoutOrNull
 
 /**
@@ -57,13 +60,15 @@ class LlmAggregator(
                     temperature = REVIEW_TEMPERATURE,
                     maxTokens = REVIEW_MAX_TOKENS,
                     providerConfig = providerConfig,
+                    reasoningLevel = ReasoningLevel.OFF,
+                    mode = ChatRequestMode.UTILITY,
                 )
             }
         }.onError { msg, t ->
             Logger.w("LlmAggregator", "review 调用异常: $msg", t)
         }.getOrNull() ?: return null
 
-        val text = completion.text.trim()
+        val text = stripThinkTags(completion.text).trim()
         return text.ifBlank { null }
     }
 
@@ -99,8 +104,7 @@ class LlmAggregator(
         }.joinToString("\n\n")
 
         return """
-你是多 Agent 结果评审员。以下是多个助手对同一任务的回复,请综合所有视角,
-标注冲突点,产出最终融合输出。
+请综合以下多个助手对同一任务的回复，标注冲突点并产出最终融合输出。
 
 ## 原始任务
 ${question ?: "未提供"}

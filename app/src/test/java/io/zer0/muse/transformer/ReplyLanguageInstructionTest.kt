@@ -14,9 +14,13 @@ class ReplyLanguageInstructionTest {
 
     @Test
     fun `正文语言段给出跟随用户与回落界面语言两条`() {
-        val prompt = replyLanguageInstruction("en")
-        assertTrue(prompt.contains("正文使用用户本轮消息所用的语言"))
-        assertTrue(prompt.contains("应用界面语言：English"))
+        val enPrompt = replyLanguageInstruction("en")
+        assertTrue(enPrompt.contains("Reply in the language of the user's current message"))
+        assertTrue(enPrompt.contains("app interface language: English"))
+
+        val zhPrompt = replyLanguageInstruction("zh-CN")
+        assertTrue(zhPrompt.contains("正文使用用户本轮消息所用的语言"))
+        assertTrue(zhPrompt.contains("应用界面语言：中文"))
     }
 
     @Test
@@ -27,9 +31,9 @@ class ReplyLanguageInstructionTest {
     }
 
     @Test
-    fun `明确禁止因为提示词是中文就改用中文`() {
-        // 提示词是模型面、固定中文，这一句是这条 bug 的直接对症项。
-        assertTrue(replyLanguageInstruction("en").contains("历史消息是中文就改用中文"))
+    fun `明确禁止因为提示词或历史消息语言不同就擅自切换`() {
+        assertTrue(replyLanguageInstruction("en").contains("do not switch languages"))
+        assertTrue(replyLanguageInstruction("zh-CN").contains("不要因为系统提示词、工具说明或历史消息是其他语言就切换"))
     }
 
     @Test

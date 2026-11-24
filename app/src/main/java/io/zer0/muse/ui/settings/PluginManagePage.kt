@@ -3,28 +3,16 @@ package io.zer0.muse.ui.settings
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -37,12 +25,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.ai.plugin.ProviderPlugin
@@ -51,18 +35,12 @@ import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
-import io.zer0.muse.data.plugin.ConfigItem
-import io.zer0.muse.data.plugin.ConfigItemType
 import io.zer0.muse.data.plugin.PluginCapabilityGateway
 import io.zer0.muse.data.plugin.PluginCapabilityLedgers
 import io.zer0.muse.data.plugin.PluginManager
-import io.zer0.muse.data.plugin.PluginRuntimeHealth
 import io.zer0.muse.data.plugin.PluginSecurityGate
-import io.zer0.muse.data.plugin.PluginVersion
 import io.zer0.muse.data.plugin.market.CatalogRefreshResult
 import io.zer0.muse.data.plugin.market.InstallPlanResult
-import io.zer0.muse.data.plugin.market.MarketVersionAdvice
-import io.zer0.muse.data.plugin.market.MarketVersionView
 import io.zer0.muse.data.plugin.market.PluginCatalogEntry
 import io.zer0.muse.data.plugin.market.PluginCatalogRepository
 import io.zer0.muse.data.plugin.market.PluginDownloadClient
@@ -74,43 +52,29 @@ import io.zer0.muse.data.plugin.market.PluginMarketTrustRoots
 import io.zer0.muse.data.plugin.market.PluginMarketVersions
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
-import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
-import io.zer0.muse.ui.common.form.MuseBottomSheet
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseCapsuleTab
-import io.zer0.muse.ui.common.form.MuseDropdown
-import io.zer0.muse.ui.common.form.MuseFloatingButton
 import io.zer0.muse.ui.common.form.MuseFormDialog
-import io.zer0.muse.ui.common.form.MuseSwitch
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
-import io.zer0.muse.ui.common.media.WindowWidthClass
-import io.zer0.muse.ui.common.media.rememberWindowWidthClass
-import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.state.MuseIndeterminateProgressBar
 import io.zer0.muse.ui.common.state.MuseSpinner
-import io.zer0.muse.ui.common.surface.MuseSurface
-import io.zer0.muse.ui.markdown.RichContentCard
-import io.zer0.muse.ui.theme.MuseActionColors
+import io.zer0.muse.ui.common.surface.CardGroup
+import io.zer0.muse.ui.common.surface.actionItem
+import io.zer0.muse.ui.common.surface.navigationItem
+import io.zer0.muse.ui.common.surface.switchItem
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
-import io.zer0.muse.ui.theme.MuseShapes
-import io.zer0.muse.ui.theme.titleSmallStrong
+import io.zer0.muse.util.launchSafely
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.booleanOrNull
-import kotlinx.serialization.json.contentOrNull
 import org.koin.compose.koinInject
 import java.io.File
-import io.zer0.muse.util.launchSafely
 
 /**
  * 统一「插件管理」页（v1.0.62）。
@@ -128,7 +92,6 @@ fun PluginManagePage(onBack: () -> Unit) {
     val settings: SettingsRepository = koinInject()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    val widthClass = rememberWindowWidthClass()
 
     var externalPlugins by remember { mutableStateOf(pluginManager.list()) }
     var providerPlugins by remember { mutableStateOf(registry.list()) }
@@ -455,248 +418,203 @@ fun PluginManagePage(onBack: () -> Unit) {
         }
     }
 
-    io.zer0.muse.ui.common.surface.MusePageScaffold(
-        topBar = {
-            MuseTopBar(
-                title = stringResource(R.string.muse_plugins_manage),
-                onBack = onBack,
-                largeTitle = true,
-                actions = {
-                    io.zer0.muse.ui.common.form.MuseTactileButton(
-                        icon = MuseIcons.bug,
-                        onClick = { debugVisible = true },
-                        contentDescription = stringResource(R.string.plugin_debug_title),
-                    )
-                },
+    // 导入入口从悬浮按钮移到页首操作区：悬浮按钮会盖住列表最后一项的操作菜单，
+    // 而它本身是一次性动作 —— 常驻遮挡与"偶尔导入"的频率不匹配。
+    SettingsSubPageScaffold(
+        title = stringResource(R.string.muse_plugins_manage),
+        onBack = onBack,
+        headerActions = {
+            MuseTactileButton(
+                icon = MuseIcons.bug,
+                onClick = { debugVisible = true },
+                contentDescription = stringResource(R.string.plugin_debug_title),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                compact = true,
             )
-        },
-        containerColor = MaterialTheme.colorScheme.background,
-        floatingActionButton = {
-            MuseFloatingButton(
+            MuseTactileButton(
                 icon = MuseIcons.plus,
                 onClick = {
                     importLauncher.launchSafely(
-                            arrayOf("application/zip", "application/json", "application/octet-stream", "*/*"),
-                            context,
-                        )
+                        arrayOf("application/zip", "application/json", "application/octet-stream", "*/*"),
+                        context,
+                    )
                 },
                 contentDescription = stringResource(R.string.provider_plugins_import),
+                tint = MaterialTheme.colorScheme.primary,
+                compact = true,
             )
         },
-    ) { innerPadding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .navigationBarsPadding()
-                .then(
-                    if (widthClass == WindowWidthClass.Expanded) Modifier.widthIn(max = 720.dp) else Modifier,
-                ),
-            contentPadding = PaddingValues(
-                top = innerPadding.calculateTopPadding(),
-                bottom = innerPadding.calculateBottomPadding() + MusePaddings.screen,
-            ),
-            verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
-        ) {
-            // 安全模式总闸：插件全停时，页面顶部必须说清"为什么什么都不执行"，
-            // 并给出唯一的恢复入口 —— 总闸刻意不自动恢复。
-            if (io.zer0.muse.data.plugin.PluginKillSwitch.isDisabled(context)) {
-                item {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = MusePaddings.screen, vertical = MusePaddings.tightGap),
-                        verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
-                    ) {
-                        Text(
-                            text = stringResource(R.string.plugin_kill_switch_title),
-                            style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.error,
-                        )
-                        Text(
-                            text = stringResource(R.string.plugin_kill_switch_desc),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        MuseCapsuleButton(
-                            text = stringResource(R.string.plugin_kill_switch_restore),
-                            onClick = {
-                                io.zer0.muse.data.plugin.PluginKillSwitch.setDisabled(context, false)
-                                externalPlugins = pluginManager.list()
-                            },
-                        )
+    ) {
+        // 安全模式总闸：插件全停时，页面顶部必须说清"为什么什么都不执行"，
+        // 并给出唯一的恢复入口 —— 总闸刻意不自动恢复。
+        if (io.zer0.muse.data.plugin.PluginKillSwitch.isDisabled(context)) {
+            item(key = "plugin_kill_switch") {
+                CardGroup {
+                    content(key = "kill_switch_body") {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(MusePaddings.itemGap),
+                            verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
+                        ) {
+                            Text(
+                                text = stringResource(R.string.plugin_kill_switch_title),
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                            Text(
+                                text = stringResource(R.string.plugin_kill_switch_desc),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            MuseCapsuleButton(
+                                text = stringResource(R.string.plugin_kill_switch_restore),
+                                onClick = {
+                                    io.zer0.muse.data.plugin.PluginKillSwitch.setDisabled(context, false)
+                                    externalPlugins = pluginManager.list()
+                                },
+                            )
+                        }
                     }
                 }
             }
-            // UI-FIX: 顶部分档 —— 已安装 / 市场 / 信任管理，不再把三块竖堆成一条长列表
-            item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = MusePaddings.screen, vertical = MusePaddings.tightGap),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    MuseCapsuleTab(
-                        tabs = listOf(
-                            stringResource(R.string.muse_plugins_tab_installed),
-                            stringResource(R.string.muse_plugins_market_title),
-                            stringResource(R.string.muse_plugins_trust_title),
-                        ),
-                        selectedIndex = pluginTab,
-                        onSelect = { pluginTab = it },
-                        modifier = Modifier.widthIn(max = 260.dp),
+        }
+        // UI-FIX: 顶部分档 —— 已安装 / 市场 / 信任管理，不再把三块竖堆成一条长列表
+        item(key = "plugin_tabs") {
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center,
+            ) {
+                MuseCapsuleTab(
+                    tabs = listOf(
+                        stringResource(R.string.muse_plugins_tab_installed),
+                        stringResource(R.string.muse_plugins_market_title),
+                        stringResource(R.string.muse_plugins_trust_title),
+                    ),
+                    selectedIndex = pluginTab,
+                    onSelect = { pluginTab = it },
+                    modifier = Modifier.widthIn(max = 260.dp),
+                )
+            }
+        }
+        // v2.6.13: 插件总开关。放在分档上方而不是埋在某个 tab 里 ——
+        // 它的作用是「插件出问题时能一键止损」，用户不该先找到对的页签才能用。
+        item(key = "plugin_global_switch") {
+            CardGroup {
+                switchItem(
+                    key = "plugins_globally_enabled",
+                    title = stringResource(R.string.muse_plugins_global_switch_title),
+                    subtitle = stringResource(R.string.muse_plugins_global_switch_desc),
+                    checked = pluginsEnabled,
+                    onCheckedChange = { enabled ->
+                        scope.launch { settings.savePluginsGloballyEnabled(enabled) }
+                    },
+                )
+            }
+        }
+        if (pluginTab == 1) {
+            // ── 插件市场区（Phase 5）──
+            // 刷新与目录设置都是整页级动作，收敛成一张动作卡：并排两个图标按钮
+            // 会在窄屏上把标题挤成一列，也让"哪一个是主操作"看不出来。
+            item(key = "market_actions") {
+                CardGroup(title = { Text(stringResource(R.string.muse_plugins_market_title)) }) {
+                    actionItem(
+                        key = "market_refresh",
+                        title = stringResource(R.string.muse_plugins_market_refresh),
+                        enabled = catalogUrl?.isNotBlank() == true,
+                        loading = marketRefreshing,
+                        onClick = { refreshMarketCatalog() },
+                    )
+                    navigationItem(
+                        key = "market_settings",
+                        title = stringResource(R.string.muse_plugins_market_configure),
+                        onClick = { showMarketSettings = true },
                     )
                 }
             }
-            // v2.6.13: 插件总开关。放在分档上方而不是埋在某个 tab 里 ——
-            // 它的作用是「插件出问题时能一键止损」，用户不该先找到对的页签才能用。
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = MusePaddings.screen, vertical = MusePaddings.tightGap),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = stringResource(R.string.muse_plugins_global_switch_title),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                        Text(
-                            text = stringResource(R.string.muse_plugins_global_switch_desc),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    MuseSwitch(
-                        checked = pluginsEnabled,
-                        onCheckedChange = { enabled ->
-                            scope.launch { settings.savePluginsGloballyEnabled(enabled) }
+            when {
+                // 设置读取中：既不显示“未配置”，也不假装目录可用。
+                catalogUrl == null -> item(key = "market_loading") { MarketLoadingRow() }
+                catalogUrl.isNullOrBlank() -> item(key = "market_unconfigured") {
+                    MuseEmptyState(
+                        icon = MuseIcons.puzzle,
+                        title = stringResource(R.string.muse_plugins_market_not_configured),
+                        actionText = stringResource(R.string.muse_plugins_market_configure),
+                        onAction = { showMarketSettings = true },
+                    )
+                }
+                marketEntries.isEmpty() && marketRefreshing -> item(key = "market_refreshing") { MarketLoadingRow() }
+                marketEntries.isEmpty() -> item(key = "market_empty") {
+                    val failure = marketError
+                    MuseEmptyState(
+                        icon = if (failure != null) MuseIcons.alertCircle else MuseIcons.puzzle,
+                        title = failure ?: stringResource(R.string.muse_plugins_market_empty),
+                        subtitle = if (failure != null) {
+                            stringResource(R.string.muse_plugins_market_error_hint)
+                        } else {
+                            null
                         },
+                        actionText = if (failure != null) stringResource(R.string.common_retry) else null,
+                        onAction = if (failure != null) ({ refreshMarketCatalog() }) else null,
                     )
                 }
-            }
-            if (pluginTab == 1) {
-                // ── 插件市场区（Phase 5）──
-                item {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = MusePaddings.screen, vertical = MusePaddings.tightGap),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            text = stringResource(R.string.muse_plugins_market_title),
-                            style = MaterialTheme.typography.titleSmallStrong,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.weight(1f),
-                            // LAYOUT-01: Row 内文本取宽 + 限行，防放大字号下被右侧刷新/更多按钮挤成一列
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        if (marketRefreshing) {
-                            MuseSpinner(
-                                size = MuseIconSizes.iconSmall,
-                            )
-                        } else if (catalogUrl?.isNotBlank() == true) {
-                            MuseTactileButton(
-                                icon = MuseIcons.refresh,
-                                onClick = { refreshMarketCatalog() },
-                                contentDescription = stringResource(R.string.muse_plugins_market_refresh),
-                            )
+                else -> {
+                    marketError?.let { reason ->
+                        item(key = "market_error") {
+                            MarketErrorRow(reason = reason, onRetry = { refreshMarketCatalog() })
                         }
-                        MuseTactileButton(
-                            icon = MuseIcons.sliders,
-                            onClick = { showMarketSettings = true },
-                            contentDescription = stringResource(R.string.muse_plugins_market_configure),
-                        )
                     }
-                }
-                when {
-                    // 设置读取中：既不显示“未配置”，也不假装目录可用。
-                    catalogUrl == null -> item { MarketLoadingRow() }
-                    catalogUrl.isNullOrBlank() -> item {
-                        MuseEmptyState(
-                            icon = MuseIcons.puzzle,
-                            title = stringResource(R.string.muse_plugins_market_not_configured),
-                            actionText = stringResource(R.string.muse_plugins_market_configure),
-                            onAction = { showMarketSettings = true },
-                        )
-                    }
-                    marketEntries.isEmpty() && marketRefreshing -> item { MarketLoadingRow() }
-                    marketEntries.isEmpty() -> item {
-                        val failure = marketError
-                        MuseEmptyState(
-                            icon = if (failure != null) MuseIcons.alertCircle else MuseIcons.puzzle,
-                            title = failure ?: stringResource(R.string.muse_plugins_market_empty),
-                            subtitle = if (failure != null) {
-                                stringResource(R.string.muse_plugins_market_error_hint)
-                            } else {
-                                null
-                            },
-                            actionText = if (failure != null) stringResource(R.string.common_retry) else null,
-                            onAction = if (failure != null) ({ refreshMarketCatalog() }) else null,
-                        )
-                    }
-                    else -> {
-                        marketError?.let { reason ->
-                            item { MarketErrorRow(reason = reason, onRetry = { refreshMarketCatalog() }) }
-                        }
-                        // 两列网格：每排两张插件卡，点开进详情页再安装（原大列表太占地方）。
-                        // 注意不用 LazyVerticalGrid：它会嵌进当前 LazyColumn 造成无界高度崩溃，
-                        // 这里按「每排两格」成对排布，视觉等价且结构安全。
-                        items(marketEntries.chunked(2), key = { "market_row_${it.first().id}" }) { pair ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = MusePaddings.screen, vertical = MusePaddings.tightGap),
-                                horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
-                                verticalAlignment = Alignment.Top,
-                            ) {
-                                pair.forEach { entry ->
-                                    MarketEntryCell(
-                                        entry = entry,
-                                        installedVersion = externalPlugins.firstOrNull { it.id == entry.id }?.version,
-                                        phase = marketInstall?.takeIf { it.entryId == entry.id }?.phase,
-                                        onClick = { marketDetailEntry = entry },
-                                        modifier = Modifier.weight(1f),
-                                        // PL3:可切回的版本来自本机留档,不是市场目录(目录只有一个版本,
-                                        // 而且要等签名三端对账完才可能带 versions[])。
-                                        retainedVersions = pluginManager.listRetainedVersions(entry.id).map { it.record.version },
-                                    )
-                                }
-                                if (pair.size == 1) {
-                                    Spacer(Modifier.weight(1f))
-                                }
+                    // 两列网格：每排两张插件卡，点开进详情页再安装（原大列表太占地方）。
+                    // 注意不用 LazyVerticalGrid：它会嵌进当前 LazyColumn 造成无界高度崩溃，
+                    // 这里按「每排两格」成对排布，视觉等价且结构安全。
+                    items(marketEntries.chunked(2), key = { "market_row_${it.first().id}" }) { pair ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
+                            verticalAlignment = Alignment.Top,
+                        ) {
+                            pair.forEach { entry ->
+                                MarketEntryCell(
+                                    entry = entry,
+                                    installedVersion = externalPlugins.firstOrNull { it.id == entry.id }?.version,
+                                    phase = marketInstall?.takeIf { it.entryId == entry.id }?.phase,
+                                    onClick = { marketDetailEntry = entry },
+                                    modifier = Modifier.weight(1f),
+                                    // PL3:可切回的版本来自本机留档,不是市场目录(目录只有一个版本,
+                                    // 而且要等签名三端对账完才可能带 versions[])。
+                                    retainedVersions = pluginManager.listRetainedVersions(entry.id).map { it.record.version },
+                                )
+                            }
+                            if (pair.size == 1) {
+                                Spacer(Modifier.weight(1f))
                             }
                         }
                     }
                 }
-
-                // ── P0-9: 信任管理(信任的发行者 / 目录信任根)──
             }
-            if (pluginTab == 2) {
-                item { SectionHeader(stringResource(R.string.muse_plugins_trust_title)) }
-                item {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = MusePaddings.screen, vertical = MusePaddings.tightGap),
-                        verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
-                    ) {
-                        Text(
-                            text = stringResource(R.string.muse_plugins_trust_publishers_title),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        if (trustedPublishers.isEmpty()) {
+
+            // ── P0-9: 信任管理(信任的发行者 / 目录信任根)──
+        }
+        if (pluginTab == 2) {
+            item(key = "trust_publishers") {
+                CardGroup(
+                    title = { Text(stringResource(R.string.muse_plugins_trust_publishers_title)) },
+                ) {
+                    if (trustedPublishers.isEmpty()) {
+                        content(key = "trust_publishers_empty") {
                             Text(
                                 text = stringResource(R.string.muse_plugins_trust_publishers_empty),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(
+                                    horizontal = MusePaddings.screen,
+                                    vertical = MusePaddings.inputPadding,
+                                ),
                             )
-                        } else {
-                            trustedPublishers.forEach { publisher ->
+                        }
+                    } else {
+                        trustedPublishers.forEach { publisher ->
+                            content(key = "trust_${publisher.publisherId}") {
                                 TrustedPublisherRow(
                                     publisherId = publisher.publisherId,
                                     fingerprint = publisher.fingerprint,
@@ -704,21 +622,30 @@ fun PluginManagePage(onBack: () -> Unit) {
                                 )
                             }
                         }
-                        Spacer(Modifier.height(MusePaddings.contentGap))
-                        Text(
-                            text = stringResource(R.string.muse_plugins_trust_catalog_title),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        val userRootKeys = catalogRootKeys.keys - PluginMarketDefaults.catalogRootKeys.keys
-                        if (userRootKeys.isEmpty()) {
+                    }
+                }
+            }
+            item(key = "trust_catalog_roots") {
+                // 内置官方信任根不计入"可移除"清单，所以空态是常态而不是异常 —— 文案只说事实。
+                val userRootKeys = catalogRootKeys.keys - PluginMarketDefaults.catalogRootKeys.keys
+                CardGroup(
+                    title = { Text(stringResource(R.string.muse_plugins_trust_catalog_title)) },
+                ) {
+                    if (userRootKeys.isEmpty()) {
+                        content(key = "catalog_roots_empty") {
                             Text(
                                 text = stringResource(R.string.muse_plugins_trust_catalog_empty),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(
+                                    horizontal = MusePaddings.screen,
+                                    vertical = MusePaddings.inputPadding,
+                                ),
                             )
-                        } else {
-                            userRootKeys.forEach { keyId ->
+                        }
+                    } else {
+                        userRootKeys.forEach { keyId ->
+                            content(key = "root_$keyId") {
                                 CatalogRootKeyRow(
                                     keyId = keyId,
                                     onRemove = {
@@ -739,148 +666,151 @@ fun PluginManagePage(onBack: () -> Unit) {
                     }
                 }
             }
-            if (pluginTab == 0) {
-                // ── 外部插件区 ──
-                item { SectionHeader(stringResource(R.string.muse_plugins_external)) }
-                if (importing && externalPlugins.isEmpty()) {
-                    item {
-                        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                            MuseSpinner(
-                                size = MuseIconSizes.iconMedium,
-                            )
-                        }
-                    }
-                } else if (externalPlugins.isEmpty()) {
-                    item {
-                        MuseEmptyState(
-                            icon = MuseIcons.puzzle,
-                            title = stringResource(R.string.muse_plugins_empty_hint),
-                        )
-                    }
-                } else {
-                    items(externalPlugins, key = { "ext_${it.id}" }) { plugin ->
-                        val verified = pluginManager.loadVerifiedPlugin(plugin.id)
-                        val configEntries = verified?.let {
-                            pluginManager.getPluginConfigsWithDefaults(it.manifest)
-                        }
-                        val panelHtml = remember(plugin.id, plugin.version) {
-                            if (plugin.enabled) pluginManager.loadPluginPanel(plugin.id) else null
-                        }
-                        InstalledPluginRow(
-                            plugin = plugin,
-                            configEntries = configEntries,
-                            panelHtml = panelHtml,
-                            onConfigChanged = { key, value ->
-                                scope.launch {
-                                    pluginManager.setPluginConfig(plugin.id, key, value)
-                                    externalPlugins = pluginManager.list()
-                                }
-                            },
-                            onToggle = {
-                                scope.launch {
-                                    pluginManager.setEnabled(plugin.id, !plugin.enabled)
-                                    externalPlugins = pluginManager.list()
-                                }
-                            },
-                            onConfirm = if (
-                                plugin.signatureStatus == PluginSecurityGate.SignatureStatus.VALID_TRUSTED ||
-                                plugin.signatureStatus == PluginSecurityGate.SignatureStatus.VALID_UNTRUSTED
-                            ) {
-                                {
-                                    scope.launch {
-                                        pluginManager.confirmInstallation(
-                                            plugin.id,
-                                            trustPublisher = plugin.signatureStatus ==
-                                                PluginSecurityGate.SignatureStatus.VALID_UNTRUSTED,
-                                        )
-                                            .onSuccess {
-                                                externalPlugins = pluginManager.list()
-                                                MuseToast.show(context.getString(R.string.muse_plugins_confirmed))
-                                            }
-                                            .onFailure { error ->
-                                                val msg = error.message ?: error::class.simpleName ?: "unknown"
-                                                MuseToast.show(
-                                                    context.getString(R.string.provider_plugins_import_failed, msg),
-                                                    3500,
-                                                )
-                                            }
-                                    }
-                                }
-                            } else {
-                                null
-                            },
-                            onDelete = { pendingDeleteExternal = plugin },
-                            // 助手起草的未签名草稿：只有本机作者密钥签名并启用后才可执行。
-                            onSignAndEnable = if (
-                                plugin.signatureStatus == PluginSecurityGate.SignatureStatus.UNSIGNED &&
-                                !plugin.installationConfirmed
-                            ) {
-                                { pendingSignDraft = plugin }
-                            } else {
-                                null
-                            },
-                            rollbackVersion = pluginManager.listRetainedVersions(plugin.id)
-                                .firstOrNull { it.version != plugin.version }
-                                ?.version,
-                            onRollback = { version -> rollbackRequest = plugin.id to version },
-                        )
-                        // D4：声明式界面（宿主原生渲染）优先；HTML 面板仍在行内保留作逃生口。
-                        // 做成兄弟组件而不是给 InstalledPluginRow 加参数：那个函数的多个告警
-                        // 由 detekt 基线**按签名**压制，加参数会让它们集体复活。
-                        val declarativeView = remember(plugin.id, plugin.version, plugin.enabled) {
-                            if (plugin.enabled) pluginManager.loadUiView(plugin.id) else null
-                        }
-                        // 提交链路：账本判「交互界面」是否已批准，执行走 SkillMediaToolsImpl 的同一个入口
-                        // （与工具路径共用桥接路由器，不另建第二条）。koinInject 必须在组合作用域取。
-                        val mediaTools: io.zer0.muse.tools.SkillMediaToolsImpl = koinInject()
-                        io.zer0.muse.ui.plugin.PluginDeclarativeViewEntry(
-                            pluginName = plugin.name,
-                            loaded = declarativeView,
-                            assetsRoot = if (plugin.enabled) pluginManager.pluginDirFor(plugin.id) else null,
-                            interactiveEnabled = PluginCapabilityLedgers.shared(context)
-                                .isApproved(plugin.id, PluginCapabilityGateway.UI_INTERACTIVE),
-                            disabledReason = stringResource(R.string.plugin_ui_needs_interactive),
-                            onSubmit = { handler, values ->
-                                when (
-                                    val outcome = mediaTools.invokeUiSubmitHandler(plugin.id, handler, values)
-                                ) {
-                                    is io.zer0.muse.tools.SkillMediaToolsImpl.UiSubmitResult.Tree ->
-                                        io.zer0.muse.ui.plugin.PluginUiSubmitOutcome.Rendered(outcome.parsed)
-                                    is io.zer0.muse.tools.SkillMediaToolsImpl.UiSubmitResult.Rejected ->
-                                        io.zer0.muse.ui.plugin.PluginUiSubmitOutcome.Rejected(outcome.reason)
-                                }
-                            },
-                        )
-                        // P0-3: 能力与权限。P0-2 之后声明真的会拦请求，这里必须给用户出口：
-                        // 看得到授予了什么、最近被拒过什么、升级新增能力要重新批准。
-                        PluginPermissionDisclosure(
-                            pluginId = plugin.id,
-                            declaredCapabilities = verified?.manifest?.capabilities.orEmpty(),
-                            runtime = verified?.manifest?.runtime.orEmpty(),
+        }
+        if (pluginTab == 0) {
+            // ── 外部插件区 ──
+            item(key = "external_section_label") {
+                PluginSectionLabel(stringResource(R.string.muse_plugins_external))
+            }
+            if (importing && externalPlugins.isEmpty()) {
+                item(key = "external_importing") {
+                    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        MuseSpinner(
+                            size = MuseIconSizes.iconMedium,
                         )
                     }
                 }
+            } else if (externalPlugins.isEmpty()) {
+                item(key = "external_empty") {
+                    MuseEmptyState(
+                        icon = MuseIcons.puzzle,
+                        title = stringResource(R.string.muse_plugins_empty_hint),
+                    )
+                }
+            } else {
+                items(externalPlugins, key = { "ext_${it.id}" }) { plugin ->
+                    val verified = pluginManager.loadVerifiedPlugin(plugin.id)
+                    val configEntries = verified?.let {
+                        pluginManager.getPluginConfigsWithDefaults(it.manifest)
+                    }
+                    val panelHtml = remember(plugin.id, plugin.version) {
+                        if (plugin.enabled) pluginManager.loadPluginPanel(plugin.id) else null
+                    }
+                    // 插件行自己就是一张卡（自带圆角与底色），页面不再套一层分组容器：
+                    // 权限面板展开时它内部还有分组卡，外面再包一层就变成"卡里套卡"。
+                    InstalledPluginRow(
+                        plugin = plugin,
+                        configEntries = configEntries,
+                        panelHtml = panelHtml,
+                        onConfigChanged = { key, value ->
+                            scope.launch {
+                                pluginManager.setPluginConfig(plugin.id, key, value)
+                                externalPlugins = pluginManager.list()
+                            }
+                        },
+                        onToggle = {
+                            scope.launch {
+                                pluginManager.setEnabled(plugin.id, !plugin.enabled)
+                                externalPlugins = pluginManager.list()
+                            }
+                        },
+                        onConfirm = if (
+                            plugin.signatureStatus == PluginSecurityGate.SignatureStatus.VALID_TRUSTED ||
+                            plugin.signatureStatus == PluginSecurityGate.SignatureStatus.VALID_UNTRUSTED
+                        ) {
+                            {
+                                scope.launch {
+                                    pluginManager.confirmInstallation(
+                                        plugin.id,
+                                        trustPublisher = plugin.signatureStatus ==
+                                            PluginSecurityGate.SignatureStatus.VALID_UNTRUSTED,
+                                    )
+                                        .onSuccess {
+                                            externalPlugins = pluginManager.list()
+                                            MuseToast.show(context.getString(R.string.muse_plugins_confirmed))
+                                        }
+                                        .onFailure { error ->
+                                            val msg = error.message ?: error::class.simpleName ?: "unknown"
+                                            MuseToast.show(
+                                                context.getString(R.string.provider_plugins_import_failed, msg),
+                                                3500,
+                                            )
+                                        }
+                                }
+                            }
+                        } else {
+                            null
+                        },
+                        onDelete = { pendingDeleteExternal = plugin },
+                        // 助手起草的未签名草稿：只有本机作者密钥签名并启用后才可执行。
+                        onSignAndEnable = if (
+                            plugin.signatureStatus == PluginSecurityGate.SignatureStatus.UNSIGNED &&
+                            !plugin.installationConfirmed
+                        ) {
+                            { pendingSignDraft = plugin }
+                        } else {
+                            null
+                        },
+                        rollbackVersion = pluginManager.listRetainedVersions(plugin.id)
+                            .firstOrNull { it.version != plugin.version }
+                            ?.version,
+                        onRollback = { version -> rollbackRequest = plugin.id to version },
+                    )
+                    // D4：声明式界面（宿主原生渲染）优先；HTML 面板仍在行内保留作逃生口。
+                    // 做成兄弟组件而不是给 InstalledPluginRow 加参数：那个函数的多个告警
+                    // 由 detekt 基线**按签名**压制，加参数会让它们集体复活。
+                    val declarativeView = remember(plugin.id, plugin.version, plugin.enabled) {
+                        if (plugin.enabled) pluginManager.loadUiView(plugin.id) else null
+                    }
+                    // 提交链路：账本判「交互界面」是否已批准，执行走 SkillMediaToolsImpl 的同一个入口
+                    // （与工具路径共用桥接路由器，不另建第二条）。koinInject 必须在组合作用域取。
+                    val mediaTools: io.zer0.muse.tools.SkillMediaToolsImpl = koinInject()
+                    io.zer0.muse.ui.plugin.PluginDeclarativeViewEntry(
+                        pluginName = plugin.name,
+                        loaded = declarativeView,
+                        assetsRoot = if (plugin.enabled) pluginManager.pluginDirFor(plugin.id) else null,
+                        interactiveEnabled = PluginCapabilityLedgers.shared(context)
+                            .isApproved(plugin.id, PluginCapabilityGateway.UI_INTERACTIVE),
+                        disabledReason = stringResource(R.string.plugin_ui_needs_interactive),
+                        onSubmit = { handler, values ->
+                            when (
+                                val outcome = mediaTools.invokeUiSubmitHandler(plugin.id, handler, values)
+                            ) {
+                                is io.zer0.muse.tools.SkillMediaToolsImpl.UiSubmitResult.Tree ->
+                                    io.zer0.muse.ui.plugin.PluginUiSubmitOutcome.Rendered(outcome.parsed)
+                                is io.zer0.muse.tools.SkillMediaToolsImpl.UiSubmitResult.Rejected ->
+                                    io.zer0.muse.ui.plugin.PluginUiSubmitOutcome.Rejected(outcome.reason)
+                            }
+                        },
+                    )
+                    // P0-3: 能力与权限。P0-2 之后声明真的会拦请求，这里必须给用户出口：
+                    // 看得到授予了什么、最近被拒过什么、升级新增能力要重新批准。
+                    PluginPermissionDisclosure(
+                        pluginId = plugin.id,
+                        declaredCapabilities = verified?.manifest?.capabilities.orEmpty(),
+                        runtime = verified?.manifest?.runtime.orEmpty(),
+                    )
+                }
+            }
 
-                // ── Provider 插件区 ──
-                item {
-                    Spacer(Modifier.height(MusePaddings.contentGap))
-                    SectionHeader(stringResource(R.string.provider_plugins_title))
+            // ── Provider 插件区 ──
+            item(key = "provider_section_label") {
+                PluginSectionLabel(stringResource(R.string.provider_plugins_title))
+            }
+            if (providerPlugins.isEmpty()) {
+                item(key = "provider_empty") {
+                    MuseEmptyState(
+                        icon = MuseIcons.puzzle,
+                        title = stringResource(R.string.provider_plugins_empty),
+                    )
                 }
-                if (providerPlugins.isEmpty()) {
-                    item {
-                        MuseEmptyState(
-                            icon = MuseIcons.puzzle,
-                            title = stringResource(R.string.provider_plugins_empty),
-                        )
-                    }
-                } else {
-                    items(providerPlugins, key = { "prov_${it.id}" }) { plugin ->
-                        PluginCard(
-                            plugin = plugin,
-                            onDelete = { pendingDeleteProvider = plugin },
-                            onConvert = { convertToProvider(plugin) },
-                        )
-                    }
+            } else {
+                items(providerPlugins, key = { "prov_${it.id}" }) { plugin ->
+                    PluginCard(
+                        plugin = plugin,
+                        onDelete = { pendingDeleteProvider = plugin },
+                        onConvert = { convertToProvider(plugin) },
+                    )
                 }
             }
         }

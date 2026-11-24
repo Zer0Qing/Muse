@@ -101,8 +101,8 @@ data class DeviceCapabilityProfile(
                 if (virtualDisplay) "可用" else "不可用",
         )
         appendLine(
-            "- 内置 Node 运行时(跑脚本/数据处理/MCP stdio): " +
-                if (nodeRuntime) "可用" else "不可用（运行时未就绪）",
+            "- Linux 沙盒运行时(Node/Python 脚本与数据处理): " +
+                if (nodeRuntime) "可用" else "未安装（可在设置 → 模型与运行环境 → 离线资源按需安装）",
         )
         append(
             "- 当前最高权限层: " + when (highestLevel) {
@@ -114,20 +114,46 @@ data class DeviceCapabilityProfile(
         )
     }
 
+    /** 单行紧凑能力摘要，供 Agent 前台等对上下文长度敏感的系统提示词使用。 */
+    fun renderOneLineSummary(): String {
+        val parts = buildList {
+            if (!automationEnabled) {
+                add("屏幕自动化总闸已关")
+            } else {
+                val level = when (highestLevel) {
+                    PermissionLevel.ROOT -> "Root"
+                    PermissionLevel.SHELL -> "Shizuku/Shell"
+                    PermissionLevel.ACCESSIBILITY -> "无障碍"
+                    PermissionLevel.NONE -> "无屏幕控制权限"
+                }
+                add("屏幕控制=$level")
+                add("截屏=${if (canScreenshot) "可用" else "不可用"}")
+                add("虚拟屏=${if (virtualDisplay) "可用" else "不可用"}")
+            }
+            add("Linux沙盒=${if (nodeRuntime) "就绪" else "未安装"}")
+        }
+        return parts.joinToString("，")
+    }
+
     /**
      * 渲染操作决策规程：把"先探测、再选层、后验证"的既定做法写进提示词。
      *
-     * 这些不是建议而是硬约束（每条都对应一次真实踩坑），因此与能力档案一起注入。
+     * 自动化总闸关闭且无屏幕权限时仅返回简短提示，避免向日常闲聊注入整段手机操作手册。
      */
     fun renderOperatingGuide(): String = buildString {
         if (!automationEnabled) {
             appendLine("## 自动化总闸已关闭")
-            appendLine(
-                "用户关掉了「允许屏幕自动化」：`screen_*` / `ui_agent` / `automation_workflow` 都会直接拒绝执行。" +
-                    "不要反复尝试，先请用户在 设置 → 自动化 → 允许屏幕自动化 打开；" +
-                    "在此之前只能使用不需要屏幕权限的工具（app_list / app_launch / app_settings 等）。",
+            append(
+                "用户关掉了「允许屏幕自动化」：`screen_*` / `ui_agent` / `automation_workflow` 都会拒绝执行。" +
+                    "请先请用户在 设置 → 自动化 → 允许屏幕自动化 打开；" +
+                    "在此之前仅可使用无需屏幕权限的工具（app_list / app_launch / app_settings 等）。",
             )
-            appendLine()
+            return@buildString
+        }
+        if (highestLevel == PermissionLevel.NONE && !nodeRuntime) {
+            appendLine("## 手机自动化说明")
+            append("当前未开启无障碍/Shizuku/Root，仅能用 app_list / app_launch / app_settings；如需操作其他应用界面请先请用户授权。")
+            return@buildString
         }
         appendLine("## 操作手机的决策规程")
         appendLine("1. 动手前先确认能力：上表列出的是**当前**真实可用性；表里写「不可用」的通道不要反复重试，直接换方案或向用户说明缺哪一项权限。")
@@ -137,18 +163,13 @@ data class DeviceCapabilityProfile(
         appendLine("   - 需要截屏、系统界面、安装应用、改系统设置或强停/清数据/卸载时，才用 Shell/Root（`app_force_stop`/`app_clear_data`/`app_uninstall`/`device_shell`）。")
         appendLine("3. 每步都要验证：动作发出后重新读一次屏幕/状态确认结果（文字是否变化、页面是否切换），不要连发多个盲操作。")
         appendLine("4. 界面失败先看结构再换手段：先用读屏结果定位控件（文本/描述/层级）；找不到再考虑坐标点击；坐标也不稳时改用 Shell/Root 的命令级方案。")
-        appendLine("5. 重复性/长流程优先写成脚本：用内置 Node 完成循环、JSON/正则处理、批量请求，比逐步推理省时省 token；稳定后沉淀为技能。")
+        appendLine("5. 重复性/长流程优先写成脚本：沙盒就绪时用 Node/Python 完成循环、JSON/正则处理、批量请求，比逐步推理省时省 token；稳定后沉淀为技能。")
         appendLine(
             "6. 不打扰用户：调用 `ui_agent` 时优先用 display=auto 并提供 package_name；" +
                 "它会尝试创建本次专属虚拟屏，Shell/Root 或 App 不支持时明确降级到前台。" +
                 "display=virtual 仅在能力档案显示虚拟屏可用时指定；不要假设兼容虚拟屏与 Agent 独立屏是同一块屏。",
         )
         appendLine("7. 缺权限就如实说：说明「需要哪一项」（如 Shizuku/Root/无障碍），不要用模拟结果代替真实执行，也不要谎报成功。")
-        // 原来还有两条，已删：
-        //  - 「高风险动作先说明待确认」——系统提示「只有用户明确要求才执行；高风险操作按审批结果执行」
-        //    已经覆盖，审批流程本身就在拦，重复声明只占篇幅。
-        //  - 「动手前先调 tool_status」——系统提示已有「不确定设备能力时先调 tool_status」，
-        //    同一条规则写两遍会让模型以为是两件事。
     }
 
     companion object {

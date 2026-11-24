@@ -134,6 +134,8 @@ class TranscriptRestorer(
         imageUrls = message.imageUrls,
         imageBase64List = message.imageBase64List,
         reasoning = message.reasoning.orEmpty(),
+        reasoningDurationMs = message.reasoningDurationMs,
+        mood = message.mood.orEmpty(),
         citationUrls = message.citationUrls,
     )
 }

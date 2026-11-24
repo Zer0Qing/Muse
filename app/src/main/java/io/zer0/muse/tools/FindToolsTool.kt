@@ -23,12 +23,8 @@ object FindToolsTool {
     fun toolDef() = ToolRegistry.ToolDef(
         name = TOOL_NAME,
         description =
-        "Search the full tool library, or get a complete capability list. " +
-            "With keywords: matching tools become available from your next call in this session. " +
-            "With an empty query: returns the full tool list with a channel-status summary. " +
-            "Entries marked * need extra system authorization (Shizuku/Root, Accessibility or Termux); " +
-            "when a required channel is not ready, calling the tool fails fast with a clear error. " +
-            "Use this when you need a tool that is not in your current list, or when asked what you can do.",
+        "Search the tool library by keywords to load matching tools from your next call, " +
+            "or pass an empty query for the full capability overview (* = extra system auth).",
         parameters =
         mapOf(
             "query" to "Optional. Keywords describing the capability you need. " +

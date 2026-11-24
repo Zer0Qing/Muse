@@ -240,4 +240,8 @@
     <string name="agent_bot_result_empty">완료했습니다</string>
     <string name="agent_bot_prompt_verify_result">결과가 맞는지 확인해 주세요</string>
     <string name="agent_bot_notification_title">맡긴 일의 결과가 나왔습니다</string>
+    <string name="time_picker_hour">시</string>
+    <string name="time_picker_minute">분</string>
+    <string name="time_picker_increase">증가</string>
+    <string name="time_picker_decrease">감소</string>
 </resources>

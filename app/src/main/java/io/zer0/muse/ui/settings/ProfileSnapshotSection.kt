@@ -3,23 +3,20 @@ package io.zer0.muse.ui.settings
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
@@ -31,17 +28,16 @@ import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.surface.CardGroup
+import io.zer0.muse.ui.common.surface.switchItem
+import io.zer0.muse.ui.theme.MuseSpacing
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
 /**
- * v2.6.23(M3): 「系统提炼的画像」区 —— 展示自动画像快照、提供总开关与逐段人工覆盖。
+ * 「系统提炼的画像」区 —— 展示自动画像快照、提供总开关与逐段人工覆盖。
  *
- * 与上方手填字段的关系必须让用户看得见:
- *  - 手填字段永远优先,这里只展示"系统从对话里学到的";
- *  - 每段可「覆盖」(写 manual_content,注入时替换自动版)或「恢复自动」;
- *  - 关掉开关 = 注入立即回到只用手填画像,快照数据保留不删。
+ * 手填字段永远优先；关掉开关后注入立即回到只用手填画像，快照数据保留不删。
  */
 @Composable
 internal fun ProfileSnapshotSection() {
@@ -53,7 +49,7 @@ internal fun ProfileSnapshotSection() {
     val enabled = chatPrefs?.profileSnapshotEnabled ?: true
 
     var snapshots by remember { mutableStateOf<List<ProfileSnapshotEntity>>(emptyList()) }
-    var reload by remember { mutableStateOf(0) }
+    var reload by remember { mutableIntStateOf(0) }
     LaunchedEffect(reload) {
         val rows = resultOf {
             factDbProvider.getFactDb("default").profileSnapshotDao()
@@ -66,28 +62,18 @@ internal fun ProfileSnapshotSection() {
     var overrideTarget by remember { mutableStateOf<ProfileSnapshotEntity?>(null) }
 
     CardGroup(title = { Text(stringResource(R.string.settings_user_profile_auto_section)) }) {
-        item(
-            headlineContent = {
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(stringResource(R.string.settings_user_profile_auto_switch))
-                        Text(
-                            text = stringResource(R.string.settings_user_profile_auto_desc),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    io.zer0.muse.ui.common.form.MuseSwitch(
-                        checked = enabled,
-                        onCheckedChange = { on ->
-                            scope.launch { settings.updateChatPreferences { it.copy(profileSnapshotEnabled = on) } }
-                        },
-                    )
-                }
+        switchItem(
+            key = "profile_snapshot_toggle",
+            title = stringResource(R.string.settings_user_profile_auto_switch),
+            subtitle = stringResource(R.string.settings_user_profile_auto_desc),
+            checked = enabled,
+            onCheckedChange = { on ->
+                scope.launch { settings.updateChatPreferences { it.copy(profileSnapshotEnabled = on) } }
             },
         )
         if (snapshots.isEmpty()) {
             item(
+                key = "profile_snapshot_empty",
                 headlineContent = {
                     Text(
                         text = stringResource(R.string.settings_user_profile_auto_empty),
@@ -101,6 +87,7 @@ internal fun ProfileSnapshotSection() {
             val body = row.manualContent?.takeIf { it.isNotBlank() } ?: row.autoContent
             if (body.isBlank() && row.manualContent.isNullOrBlank()) return@forEach
             item(
+                key = "snapshot_${row.section}",
                 headlineContent = {
                     ProfileSnapshotRow(
                         row = row,
@@ -131,11 +118,10 @@ internal fun ProfileSnapshotSection() {
     }
 }
 
-/** 单段快照行:标题 + 正文 + 「覆盖/恢复自动」动作。 */
 @Composable
 private fun ProfileSnapshotRow(row: ProfileSnapshotEntity, body: String, onOverride: () -> Unit, onRevert: () -> Unit) {
     val overridden = !row.manualContent.isNullOrBlank()
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(MuseSpacing.xs)) {
         Text(
             text = stringResource(profileSectionTitle(row.section)),
             style = MaterialTheme.typography.titleSmall,
@@ -157,12 +143,11 @@ private fun ProfileSnapshotRow(row: ProfileSnapshotEntity, body: String, onOverr
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier
                 .clickable { if (overridden) onRevert() else onOverride() }
-                .padding(vertical = 4.dp),
+                .padding(vertical = MuseSpacing.xs),
         )
     }
 }
 
-/** 覆盖弹层:初值取自动版(让用户在原文上改,而不是面对空框)。 */
 @Composable
 private fun ProfileSnapshotOverrideDialog(
     target: ProfileSnapshotEntity,
@@ -201,10 +186,8 @@ private fun ProfileSnapshotOverrideDialog(
     )
 }
 
-/** 六段按注入顺序排列;未知段名放最后(前向兼容新增段)。 */
 private fun sectionOrderIndex(section: String): Int = ProfileSection.ORDER.indexOf(section).takeIf { it >= 0 } ?: Int.MAX_VALUE
 
-/** 六段的本地化标题。 */
 @Composable
 private fun profileSectionTitle(section: String): Int = when (section) {
     ProfileSection.IDENTITY_SETTINGS -> R.string.profile_section_identity

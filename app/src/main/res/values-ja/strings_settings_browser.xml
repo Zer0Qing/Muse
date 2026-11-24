@@ -7,6 +7,8 @@
     <string name="settings_browser_cookies_title">Cookies</string>
     <string name="settings_browser_accept_cookies">Cookies を許可</string>
     <string name="settings_browser_clear">Cookies とサイトデータ消去</string>
+    <string name="settings_browser_clear_confirm">すべてのサイトからログアウトされます。元に戻せません。</string>
+    <string name="settings_browser_cleared">Cookies とサイトデータを消去しました</string>
     <string name="settings_browser_engine_bing">Bing</string>
     <string name="settings_browser_engine_baidu">Baidu</string>
     <string name="settings_browser_engine_sogou">Sogou</string>

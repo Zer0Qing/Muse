@@ -27,9 +27,10 @@ class BackupSessionExportWiringTest {
         assertTrue("导出会话列表必须占满弹窗内容宽度，避免标题被测成零宽只显示省略号", backupSource.contains(".fillMaxWidth()"))
         assertTrue("导出会话列表仍应保留高度上限", backupSource.contains(".heightIn(max = 420.dp)"))
         assertTrue("导出会话标题至少显示两行，长标题仍可区分", backupSource.contains("titleMaxLines = 2"))
-
-        val itemRowSource = locate("src/main/java/io/zer0/muse/ui/common/settings/SettingsItemRow.kt")
-        assertTrue("SettingsItemRow 应允许导出列表放宽标题行数", itemRowSource.contains("titleMaxLines: Int = 1"))
+        // 导出列表已从废弃的 SettingsItemRow 迁到 MuseListItem；
+        // 两行标题由本地 titleMaxLines 变量传入，行为不变。
+        assertTrue(backupSource.contains("MuseListItem"))
+        assertTrue(backupSource.contains("maxLines = titleMaxLines"))
     }
 
     private fun locate(relativePath: String): String {

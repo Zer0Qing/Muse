@@ -608,6 +608,7 @@
     <string name="search_custom_engine_method">Method</string>
     <string name="search_custom_engine_body">Body template (POST; {query} is replaced)</string>
     <string name="search_custom_engine_results_path">Results path (e.g. data.results; blank means the root is an array)</string>
+    <string name="search_custom_engine_delete_confirm">Delete “%1$s”? It will no longer be used in the search chain.</string>
     <string name="settings_chat_carry_over_section">Carry over context</string>
     <string name="settings_chat_carry_over">Bring previous chat into a new one</string>
     <string name="settings_chat_carry_over_count">Carry %1$d messages</string>

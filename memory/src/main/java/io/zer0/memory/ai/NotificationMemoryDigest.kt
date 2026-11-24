@@ -108,7 +108,7 @@ class NotificationMemoryDigest(
             withContext(Dispatchers.IO) {
                 llmClient.callText(
                     systemPrompt = buildSystemPrompt(locale, existingPreview),
-                    userContent = buildUserContent(notifications),
+                    userContent = buildUserContent(notifications, locale),
                     model = model,
                     temperature = 0.3f,
                     maxTokens = DIGEST_MAX_TOKENS,
@@ -162,8 +162,9 @@ class NotificationMemoryDigest(
             .take(24)
     }
 
-    private fun buildUserContent(notifications: List<NotificationInput>): String = buildString {
-        appendLine("## 最近收到的通知")
+    private fun buildUserContent(notifications: List<NotificationInput>, locale: String = "zh-CN"): String = buildString {
+        val isZh = locale.startsWith("zh", ignoreCase = true)
+        appendLine(if (isZh) "## 最近收到的通知" else "## Recent notifications")
         appendLine()
         notifications.sortedBy { it.timestamp }.forEach { n ->
             val app = n.appLabel.ifBlank { n.packageName }
@@ -216,19 +217,19 @@ class NotificationMemoryDigest(
             }
             return if (isZh) {
                 """
-你是一个记忆整理助手。用户希望助手「记得」他手机上收到的通知，并能在之后自然提起。
-下面给你用户最近收到的一批通知，请从中提炼值得长期记住的事实。
+你是一个记忆整理助手。用户希望助手记住手机上收到的重要通知，方便后续自然提起或跟进。
+下面给你用户最近收到的一批通知，请从中提炼近期可行动的生活事项。
 
 $existingSection
-## 值得记的（尽量多记）
-- 快递/物流、订单状态、外卖进度
-- 日程提醒、会议、约会、航班车次
+## 值得记的（近期可行动的生活事项）
+- 快递/物流到达、订单状态、外卖进度、取件提醒（不记录敏感登录凭证）
+- 日程提醒、会议、约会、航班车次、预约确认
 - 账单/缴费/还款提醒、金额与截止日期
 - 健康提醒（吃药、体检、运动）
-- 验证码、预约确认、取件码等有时效的具体信息
 - 用户与他人的约定、待办事项
 
-## 不值得记的（剔除）
+## 不值得记的（严格剔除）
+- 任何一次性验证码（OTP）、短信/邮件校验码、登录授权码、密码、令牌、银行卡号或敏感安全凭据（严禁保存）
 - 纯营销推广、广告、优惠券推送
 - 新闻资讯、天气播报（除非用户明显关心）
 - 社交点赞、关注、评论提醒
@@ -244,19 +245,19 @@ $existingSection
                 """.trimIndent()
             } else {
                 """
-You are a memory organizer. The user wants the assistant to REMEMBER notifications received on their phone.
-Below is a batch of recent notifications. Extract facts worth remembering long-term.
+You are a memory organizer. The user wants the assistant to keep track of important notifications received on their phone.
+Below is a batch of recent notifications. Extract recent actionable life events worth keeping.
 
 $existingSection
-## Worth remembering (prefer more)
-- Deliveries, orders, food progress
-- Calendar reminders, meetings, flights/trains
-- Bills, payments, deadlines with amounts
+## Worth remembering (recent actionable life events)
+- Deliveries, order status, food delivery progress, parcel pickup notices (excluding auth credentials)
+- Calendar reminders, meetings, appointments, flights/trains, booking confirmations
+- Bills, payments, due dates with amounts
 - Health reminders (medication, checkups)
-- Verification codes, appointment/parcel pickup codes
 - Commitments and to-dos
 
-## Not worth remembering (drop)
+## Not worth remembering (strictly drop)
+- Any OTPs, verification codes, login/auth codes, passwords, tokens, bank/card numbers, or sensitive credentials (NEVER store)
 - Pure marketing, ads, coupons
 - News, generic weather
 - Social likes/follows/comments

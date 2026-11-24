@@ -15,7 +15,7 @@ import kotlinx.serialization.json.put
 /**
  * P1-C: Node 脚本执行工具（execute_node_script）。
  *
- * 在内置 Node 运行时中执行 JavaScript 脚本：完整能力（文件读写 / 网络 / 子进程），
+ * 在 Linux 沙盒运行时（按需安装）的 Node.js 环境中执行 JavaScript 脚本：完整能力（文件读写 / 网络 / 子进程），
  * 可 require 运行时 node_modules 区（filesDir/muse-runtime/node_modules）中的 npm 包。
  *
  * 高风险工具：ASK / STRICT 模式要求审批；TRUSTED 模式依用户明确选择免确认。
@@ -35,7 +35,7 @@ object NodeScriptTool {
 
     fun toolDef() = ToolRegistry.ToolDef(
         name = TOOL_NAME,
-        description = "在内置 Node.js 运行时中执行 JavaScript 脚本(完整能力:文件读写、网络、子进程;" +
+        description = "在 Linux 沙盒运行时（按需安装）的 Node.js 环境中执行 JavaScript 脚本(完整能力:文件读写、网络、子进程;" +
             "可 require 第三方 npm 模块)。返回 JSON(result/logs/error)。超时默认 30 秒。",
         parameters = mapOf(
             "code" to "Node 脚本代码(表达式或语句块;可用 require/fs/fetch 等)",

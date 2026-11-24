@@ -468,11 +468,21 @@ fun GroupChatDetailScreen(
         // 关键:backdrop 层只包背景本身,内容作兄弟节点,避免
         // “玻璃取 backdrop → backdrop 含玻璃”的渲染递归(会导致 RenderThread 栈溢出)。
         val glassConfig = io.zer0.muse.ui.theme.LocalLiquidGlass.current
-        val glassActive = glassConfig.enabled && io.zer0.muse.ui.theme.isRealGlassSupported()
+        val glassActive = glassConfig.enabled &&
+            io.zer0.muse.ui.theme.isRealGlassSupported() &&
+            !io.zer0.muse.ui.theme.LocalInsideBackdropRecorder.current
         val pageLayerBackdrop =
-            if (glassActive) com.kyant.backdrop.backdrops.rememberLayerBackdrop() else null
+            if (glassActive && glassConfig.style == io.zer0.muse.ui.theme.GlassStyle.FROST) {
+                com.kyant.backdrop.backdrops.rememberLayerBackdrop()
+            } else {
+                null
+            }
         val pageWaterState =
-            if (glassActive) io.github.fletchmckee.liquid.rememberLiquidState() else null
+            if (glassActive && glassConfig.style == io.zer0.muse.ui.theme.GlassStyle.WATER) {
+                io.github.fletchmckee.liquid.rememberLiquidState()
+            } else {
+                null
+            }
         val backgroundIsDark =
             if (!chatBackground.isNullOrBlank()) {
                 true
@@ -973,37 +983,59 @@ fun GroupChatDetailScreen(
                                 )
                             }
                         }
-                        // Agent 正在回复时的"正在思考..."状态
-                        if (state.isAgentResponding) {
+                        val liveReasoning = state.streamingReasoning?.takeIf {
+                            state.chatPreferences.showReasoning && it.text.isNotBlank()
+                        }
+                        val liveContent = state.streamingContent?.takeIf { it.isNotBlank() }
+                        // Agent 正在回复时的"正在思考..."状态（已有实时思考卡或正文流式时隐藏避免重复）
+                        if (state.isAgentResponding && liveReasoning == null && liveContent == null) {
                             item(key = "thinking_indicator") {
                                 ThinkingIndicator(currentSpeaker = state.currentSpeaker)
                             }
                         }
-                        // v1.x: 群聊流式输出 — 生成中的内容实时展示(落库后由正式消息替换)
-                        state.streamingContent?.takeIf { it.isNotBlank() }?.let { streaming ->
+                        // 群聊实时思考与流式输出（落库后由正式消息替换）
+                        if (liveReasoning != null || liveContent != null) {
                             item(key = "streaming_content") {
+                                var liveReasoningExpanded by remember(liveReasoning?.startedAtMs) {
+                                    mutableStateOf(state.chatPreferences.reasoningExpandedByDefault)
+                                }
                                 Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(horizontal = MusePaddings.screen, vertical = 4.dp),
+                                        .padding(horizontal = MusePaddings.screen, vertical = MusePaddings.tinyGap),
+                                    verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
                                 ) {
                                     Text(
                                         text = state.currentSpeaker?.name
                                             ?: stringResource(R.string.groupchat_streaming_title),
                                         style = MaterialTheme.typography.labelMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.padding(start = 4.dp, bottom = 2.dp),
+                                        modifier = Modifier.padding(start = MusePaddings.tinyGap),
                                     )
-                                    Surface(
-                                        shape = MuseShapes.assistantBubble,
-                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                                    ) {
-                                        Text(
-                                            text = streaming,
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                            modifier = Modifier.padding(MusePaddings.cardInner),
+                                    liveReasoning?.let { r ->
+                                        io.zer0.muse.ui.common.chat.MuseThinkingPanel(
+                                            reasoning = r.text,
+                                            expanded = liveReasoningExpanded,
+                                            onToggle = { liveReasoningExpanded = !liveReasoningExpanded },
+                                            isThinkingActive = r.isThinkingActive,
+                                            reasoningStartedAtMs = r.startedAtMs,
+                                            reasoningDurationMs = r.durationMs,
+                                            cacheKey = "gc-stream-${r.startedAtMs ?: 0L}",
+                                            modifier = Modifier.fillMaxWidth(),
                                         )
+                                    }
+                                    liveContent?.let { streaming ->
+                                        Surface(
+                                            shape = MuseShapes.assistantBubble,
+                                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                                        ) {
+                                            Text(
+                                                text = streaming,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                                modifier = Modifier.padding(MusePaddings.cardInner),
+                                            )
+                                        }
                                     }
                                 }
                             }

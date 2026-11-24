@@ -603,6 +603,7 @@
     <string name="permission_level_shizuku">Shizuku одобрен (доступны UI + команды оболочки)</string>
     <string name="permission_wizard_desc">Автоматизация UI Muse использует трёхканальную модель прав. Включите каждый канал ниже: чем выше уровень, тем больше операций доступно. Действия UI требуют только «Специальные возможности»; команды оболочки требуют Shizuku или Root.</string>
     <string name="permission_wizard_title">Мастер прав</string>
+    <string name="permission_refresh">Обновить</string>
     <string name="root_section_title">Права root</string>
     <string name="root_status_available">Root одобрен (резервный канал, может напрямую выполнять команды su)</string>
     <string name="root_status_unavailable">Нет root или не одобрен (используется как резерв, когда Shizuku недоступен)</string>

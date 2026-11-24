@@ -47,11 +47,10 @@ object PdfVisionSkill {
         name = NAME,
         description = "对 PDF 文件做视觉解析(每页渲染为图片 → 视觉模型 OCR 提取文字)。" +
             "适用于扫描版 PDF(图片型)或复杂版式 PDF(表格/公式/图文混排)。" +
-            "普通文字版 PDF 请优先用 read_file(若可读)或文档解析附件,本工具耗时较长。" +
-            "需要配置支持 vision 的模型(GPT-4o / Gemini / Claude 等)。" +
+            "普通文字版 PDF 如已作为对话附件发送则系统会自动提取正文，无需重复调用；本工具耗时较长，需要配置支持视觉的模型。" +
             "返回每页 OCR 文本,用 '--- Page N ---' 分隔。",
         parameters = mapOf(
-            "path" to "PDF 文件绝对路径(如 '/sdcard/Download/report.pdf' 或工作区相对路径)",
+            "path" to "PDF 文件路径(工作区相对路径、应用沙盒内路径或下载目录内可读文件名)",
             "max_pages" to "最大解析页数(默认 50,硬上限 200),防止超大 PDF 耗时过长",
         ),
         required = setOf("path"),

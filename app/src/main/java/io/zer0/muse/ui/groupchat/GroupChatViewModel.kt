@@ -93,6 +93,8 @@ data class GroupChatUiState(
     val selectedMessageIds: Set<String> = emptySet(),
     /** v1.x: 当前群聊正在流式生成的助手回复内容(null=无流式输出)。 */
     val streamingContent: String? = null,
+    /** 当前群聊正在流式生成的实时思考过程(null=无实时思考)。 */
+    val streamingReasoning: GroupChatActivityHub.StreamingReasoning? = null,
     /** v1.0.72: 群聊搜索状态。 */
     val searchResults: List<GroupChatMessageEntity> = emptyList(),
     val isSearching: Boolean = false,
@@ -247,6 +249,14 @@ class GroupChatViewModel(
                 val chatId = currentChatId.value
                 _state.update {
                     it.copy(streamingContent = if (chatId != null) streaming[chatId] else null)
+                }
+            }
+        }
+        viewModelScope.launch {
+            activityHub.streamingReasoning.guardUpstream("streamingReasoning").collect { reasoningMap ->
+                val chatId = currentChatId.value
+                _state.update {
+                    it.copy(streamingReasoning = if (chatId != null) reasoningMap[chatId] else null)
                 }
             }
         }

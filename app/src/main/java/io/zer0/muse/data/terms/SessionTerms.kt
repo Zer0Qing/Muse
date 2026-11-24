@@ -172,20 +172,41 @@ object SessionTerms {
 
     // ── 注入 ──────────────────────────────────────────────────
 
+    private val closingTagRegex = Regex("</session_terms>", RegexOption.IGNORE_CASE)
+
+    /** 转义闭合边界标签，防止术语文本或释义跳出 <session_terms> 容器。 */
+    private fun escapeTagBoundary(raw: String): String = closingTagRegex.replace(raw, "<\\/session_terms>")
+
     /**
      * 把选中的术语渲染成系统提示的一段。空集合返回空串(调用方据此不拼这一节)。
      *
-     * 未确认条目一律带「不确定」。这一句不是客套:模型读到没有标注的候选解释,
-     * 会当成用户的既定说法直接使用,而在别的会话里它可能完全不是那个意思。
+     * 未确认条目一律带「不确定」标注，且提示头明确要求未确认条目先向用户核实、不要自行假定；
+     * 已确认条目渲染结果不得携带「不确定」字样，避免误触发确认语义。
      */
-    fun renderInjectionBlock(terms: List<SessionTermEntity>): String {
+    fun renderInjectionBlock(terms: List<SessionTermEntity>, locale: String = "zh"): String {
         if (terms.isEmpty()) return ""
+        val normalizedLocale = locale.trim().replace('_', '-').lowercase()
+        val isZh = normalizedLocale.isEmpty() || normalizedLocale == "zh" || normalizedLocale.startsWith("zh-")
         val body = terms.take(MAX_INJECT).joinToString("\n") { term ->
-            val head = if (term.confirmed) "- ${term.term}" else "- ${term.term}(不确定,用户尚未确认)"
-            val meaning = term.meaning?.takeIf { it.isNotBlank() }
-            if (meaning == null) head else "$head:$meaning"
+            val safeTerm = escapeTagBoundary(term.term)
+            val head = when {
+                term.confirmed -> "- $safeTerm"
+                isZh -> "- $safeTerm(不确定,用户尚未确认)"
+                else -> "- $safeTerm (uncertain, not yet confirmed by user)"
+            }
+            val meaning = term.meaning?.takeIf { it.isNotBlank() }?.let(::escapeTagBoundary)
+            when {
+                meaning == null -> head
+                isZh -> "$head:$meaning"
+                else -> "$head: $meaning"
+            }
         }
-        return "<session_terms>\n以下词是用户在自己会话里的说法,含义按标注处理:\n$body\n</session_terms>"
+        val header = if (isZh) {
+            "以下词是用户在自己会话里的说法,含义按标注处理;未确认的条目请先向用户确认,不要自行假定含义:"
+        } else {
+            "Terms used by the user in their conversations (follow annotated meanings; confirm unconfirmed entries with the user rather than assuming):"
+        }
+        return "<session_terms>\n$header\n$body\n</session_terms>"
     }
 
     /** 候选→确认提示的阈值判断,单独一个函数是为了让"3 次"这个数只出现在一处。 */

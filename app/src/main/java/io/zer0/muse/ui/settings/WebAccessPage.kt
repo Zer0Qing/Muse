@@ -44,12 +44,14 @@ import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.icons.MuseIcons
-import io.zer0.muse.ui.common.settings.SettingsGroup
-import io.zer0.muse.ui.common.settings.SettingsGroupDivider
-import io.zer0.muse.ui.common.settings.SettingsItemRow
-import io.zer0.muse.ui.common.settings.SettingsSwitchRow
+import io.zer0.muse.ui.common.surface.CardGroup
+import io.zer0.muse.ui.common.surface.actionItem
+import io.zer0.muse.ui.common.surface.switchItem
 import io.zer0.muse.ui.qrcode.QrCodeGenerator
+import io.zer0.muse.ui.theme.MuseIconSizes
+import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.MuseSpacing
 import io.zer0.muse.web.WebServer
 import io.zer0.muse.web.WebServerConfig
 import kotlinx.coroutines.Dispatchers
@@ -341,15 +343,23 @@ private fun WebAccessSwitchGroup(
     onToggleLan: (Boolean) -> Unit,
     onRegeneratePin: () -> Unit,
 ) {
-    SettingsGroup {
-        SettingsSwitchRow(
-            icon = MuseIcons.router,
+    CardGroup {
+        switchItem(
+            key = "web_access_enabled",
             title = stringResource(R.string.settings_web_access_enable),
             checked = config.enabled,
             onCheckedChange = onToggleEnabled,
+            leadingContent = {
+                Icon(
+                    imageVector = MuseIcons.router,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(MuseIconSizes.iconMedium),
+                )
+            },
         )
-        SettingsSwitchRow(
-            icon = MuseIcons.wifi,
+        switchItem(
+            key = "web_access_lan",
             title = stringResource(R.string.settings_web_access_lan),
             subtitle = if (config.allowLan) {
                 stringResource(R.string.settings_web_access_lan_on)
@@ -358,9 +368,17 @@ private fun WebAccessSwitchGroup(
             },
             checked = config.allowLan,
             onCheckedChange = onToggleLan,
+            leadingContent = {
+                Icon(
+                    imageVector = MuseIcons.wifi,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(MuseIconSizes.iconMedium),
+                )
+            },
         )
-        SettingsItemRow(
-            icon = MuseIcons.refresh,
+        actionItem(
+            key = "web_access_regenerate_pin",
             title = stringResource(R.string.settings_web_regenerate_pin),
             onClick = onRegeneratePin,
         )
@@ -375,32 +393,31 @@ private fun WebAccessTips() {
         stringResource(R.string.settings_web_access_tip_same_wifi),
         stringResource(R.string.settings_web_access_tip_disable),
     )
-    SettingsGroup {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            tips.forEach { tip ->
-                Row(
-                    verticalAlignment = Alignment.Top,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    Icon(
-                        imageVector = MuseIcons.info,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                        modifier = Modifier
-                            .padding(top = 2.dp)
-                            .size(16.dp),
-                    )
-                    Text(
-                        text = tip,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                        lineHeight = 18.sp,
-                    )
+    CardGroup {
+        content(key = "web_access_tips_body") {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(MusePaddings.cardInner),
+                verticalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
+            ) {
+                tips.forEach { tip ->
+                    Row(
+                        verticalAlignment = Alignment.Top,
+                        horizontalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
+                    ) {
+                        Icon(
+                            imageVector = MuseIcons.info,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconSmall),
+                        )
+                        Text(
+                            text = tip,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
         }

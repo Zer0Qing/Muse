@@ -2127,6 +2127,7 @@ class SessionRepository(
             },
             // A5: 生成元数据往返(旧数据为 null,UI 回退本地估算)
             durationMs = durationMs,
+            reasoningDurationMs = reasoningDurationMs,
             promptTokens = promptTokens,
             completionTokens = completionTokens,
             reasoningTokens = reasoningTokens,
@@ -2192,6 +2193,7 @@ class SessionRepository(
         },
         // A5: 生成元数据持久化(provider 实测优先,缺失为 null)
         durationMs = durationMs,
+        reasoningDurationMs = reasoningDurationMs,
         promptTokens = promptTokens,
         completionTokens = completionTokens,
         reasoningTokens = reasoningTokens,

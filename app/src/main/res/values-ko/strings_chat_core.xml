@@ -564,4 +564,8 @@
     <string name="chat_hold_to_record_hint">길게 눌러 말하고, 놓으면 끝납니다</string>
     <string name="chat_input_action_fullscreen_subtitle">전체 화면 입력</string>
     <string name="chat_camera_unavailable_hint">카메라를 열 수 없습니다. 기기 카메라 또는 권한 설정을 확인해 주세요.</string>
+    <string name="chat_thinking_active">생각 중</string>
+    <string name="chat_thinking_active_topic">생각 중 · %1$s</string>
+    <string name="chat_thinking_done_duration">%1$d초 동안 생각함</string>
+    <string name="chat_thinking_done">사고 과정</string>
 </resources>

@@ -36,7 +36,6 @@ import io.zer0.muse.transformer.CompressionPolicy
 import io.zer0.muse.transformer.ContextCompressTransformer
 import io.zer0.muse.transformer.ConversationCompressor
 import io.zer0.muse.transformer.TransformContext
-import io.zer0.muse.transformer.UserMessageTimeContext
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.util.ErrorMessages
 import io.zer0.muse.util.MessageTokenCache
@@ -547,7 +546,12 @@ internal class ChatGenerationController(
                 replyingTo = null,
                 replyQuoteOverride = null,
                 // F-10: 发送即进入 CONNECTING(等待首 token)
-                streamState = it.streamState.copy(phase = ChatStreamPhase.CONNECTING),
+                streamState = it.streamState.copy(
+                    phase = ChatStreamPhase.CONNECTING,
+                    isThinkingActive = false,
+                    reasoningStartedAtMs = null,
+                    reasoningDurationMs = null,
+                ),
                 isStreaming = true,
                 // v1.0.3: 进入"等待首 token"阶段,UI 显示 ThinkingBubble
                 isWaitingFirstToken = true,
@@ -889,6 +893,15 @@ internal class ChatGenerationController(
         val sessionIgnoreMemory =
             state.sessions
                 .firstOrNull { it.id == effectiveSessionId }?.ignoreMemory ?: false
+        val experiments = runCatching { deps.settings.experimentsCache }.getOrNull()
+        val configuredLang = runCatching { deps.settings.getLanguageSync() }.getOrNull().orEmpty()
+        val effectiveLocale =
+            if (configuredLang.isBlank() || configuredLang == "system") {
+                java.util.Locale.getDefault().toLanguageTag()
+            } else {
+                configuredLang
+            }
+        val externalRevisionHash = runCatching { deps.systemPromptAssembler.staticRevisionHash() }.getOrNull().orEmpty()
         return buildString {
             append(assistant?.id ?: "null")
             append("|")
@@ -916,15 +929,35 @@ internal class ChatGenerationController(
             append("|")
             append(prefs.showMoodBlock)
             append("|")
+            append(prefs.generativeUiEnabled)
+            append("|")
+            append(prefs.preferCardOutput)
+            append("|")
+            append(prefs.replyInUserLanguageEnabled)
+            append("|")
+            append(prefs.profileSnapshotEnabled)
+            append("|")
+            append(prefs.carryOverEnabled)
+            append("|")
+            append(prefs.carryOverMessageCount)
+            append("|")
             append(prefs.responseStyle)
             append("|")
             append(prefs.responseTone)
+            append("|")
+            append(experiments?.forceMoodBlock ?: false)
+            append("|")
+            append(experiments?.selfReflection ?: false)
+            append("|")
+            append(effectiveLocale)
+            append("|")
+            append(externalRevisionHash)
             append("|")
             append(sessionIgnoreMemory)
         }
     }
 
-    /** 组装 system prompt(9 个 section)+ 相关记忆检索 + RAG 自动注入 + 发送前上下文截断检查。
+    /** 组装 system prompt(静态快照 SYSTEM #1 + 共享动态段/Hook SYSTEM #2)+ RAG 注入 + 发送前上下文截断检查。
      *
      * @return true = 提示词可用，本轮继续；false = 静态提示词不可用，调用方必须**中止本轮**
      *   （不得带着空提示词继续生成，理由见 [StaticPromptOutcome]）。
@@ -960,8 +993,10 @@ internal class ChatGenerationController(
                 }
             val memoryScope = assistantId?.takeIf { it != "default" } ?: "main"
             val memorySpaceId = deps.settings.currentSpaceIdFlow.firstOrNull().orEmpty().ifBlank { "default" }
-            // 复用静态 system prompt 快照,只追加动态"当前时间"。作用域/空间也属于快照身份,
-            // 否则切换 Assistant 或 Space 后会复用上一份记忆 prompt。
+            // 在计算静态缓存键前刷新画像/偏好/禁用工具/面具修订哈希，避免设置变更后误命中旧缓存。
+            resultOf { deps.systemPromptAssembler.refreshStaticRevisionHashes(assistant?.id) }
+                .onError { msg, t -> Logger.w("ChatVM", "refreshStaticRevisionHashes 失败: $msg", t) }
+            // 复用静态 system prompt 快照,动态段与 Hook 放在 SYSTEM #2 保留 Prompt Caching。
             // L1-5: 完整 key 走单一真源函数（与 ChatViewModel.refreshContextInfo 共用）。
             val currentKey =
                 computeFullSnapshotKey(
@@ -1024,97 +1059,44 @@ internal class ChatGenerationController(
                         }
                     }
                 }
-            val dynamicSection = if (timeReminderEnabled) deps.systemPromptAssembler.buildDynamicSection() else ""
-            val userMessageTimeContext = UserMessageTimeContext.build(rawHistory)
-            val lastUserInputForPrompt = rawHistory.lastOrNull { it.role == MessageRole.USER }?.content
-            // v2.x: 表情包使用指南(动态读取;库为空/开关关闭时为空串)
-            val stickerGuide = resultOf { deps.systemPromptAssembler.buildStickerGuideSection() }.getOrNull().orEmpty()
-            // v2.6.8: 关系状态段。此前只有旁路生成走的 build() 会注入它，单聊主链
-            // 走的是 buildStaticSnapshot + 动态拼装，从未包含。关系随互动时效变化，
-            // 不能进静态快照，否则每次亲密度变动都会让整份缓存失效，故归动态段。
-            val relationshipSection =
-                resultOf { deps.systemPromptAssembler.buildRelationshipSection(assistant) }
-                    .onError { msg, throwable ->
-                        Logger.w("ChatVM", "buildRelationshipSection 失败: $msg", throwable)
-                    }
-                    .getOrNull()
-                    .orEmpty()
+            val dynamicSection =
+                run {
+                    val lastUserInputForPrompt = rawHistory.lastOrNull { it.role == MessageRole.USER }?.content
+                    val compiledMemoryExcludeLines =
+                        io.zer0.muse.transformer.SystemPromptAssembler.extractLongTermMemoryLines(staticSnapshot)
+                    val conversationRecallActive =
+                        effectiveMemoryEnabled &&
+                            !sessionIgnoreMem &&
+                            deps.settings.memoryConfigCache.conversationRecallEnabled &&
+                            !lastUserInputForPrompt.isNullOrBlank() &&
+                            effSid != null
+                    resultOf {
+                        deps.systemPromptAssembler.buildDynamicSections(
+                            io.zer0.muse.transformer.SystemPromptAssembler.DynamicPromptRequest(
+                                assistant = assistant,
+                                timeReminderEnabled = timeReminderEnabled,
+                                forSubagent = false,
+                                sessionId = effSid,
+                                rawHistory = rawHistory,
+                                currentUserInput = lastUserInputForPrompt,
+                                relevantMemoryAssistantId = relevantMemoryAssistantId,
+                                memoryScope = memoryScope,
+                                memorySpaceId = memorySpaceId,
+                                relevantMemoryExcludeLines = compiledMemoryExcludeLines,
+                                conversationRecallEnabled = conversationRecallActive,
+                                conversationRecallMaxTokens = deps.settings.memoryConfigCache.tokenBudget.coerceAtMost(1600),
+                            ),
+                        )
+                    }.onError { msg, throwable ->
+                        Logger.w("ChatVM", "buildDynamicSections 失败: $msg", throwable)
+                    }.getOrNull().orEmpty()
+                }
             val combinedSystemPrompt =
                 buildString {
                     if (staticSnapshot.isNotBlank()) append(staticSnapshot)
                     if (dynamicSection.isNotBlank()) {
                         if (isNotEmpty()) append("\n\n---\n\n")
                         append(dynamicSection)
-                    }
-                    if (userMessageTimeContext.isNotBlank()) {
-                        if (isNotEmpty()) append("\n\n---\n\n")
-                        append(userMessageTimeContext)
-                    }
-                    if (relationshipSection.isNotBlank()) {
-                        if (isNotEmpty()) append("\n\n---\n\n")
-                        append(relationshipSection)
-                    }
-                    if (stickerGuide.isNotBlank()) {
-                        if (isNotEmpty()) append("\n\n---\n\n")
-                        append(stickerGuide)
-                    }
-                    // 相关记忆检索(仅当记忆开启且非子助手;检索失败静默跳过)。
-                    if (relevantMemoryAssistantId != null) {
-                        // buildSystemPrompt 在 applyTransformers 之前执行,此时 transformedMessages
-                        // 仍为空;使用本轮已准备好的 rawHistory,否则相关记忆永远不会注入。
-                        val lastUserInput = lastUserInputForPrompt
-                        if (!lastUserInput.isNullOrBlank()) {
-                            val relevant =
-                                resultOf {
-                                    deps.systemPromptAssembler.buildRelevantMemorySection(
-                                        currentUserInput = lastUserInput,
-                                        scope = memoryScope,
-                                        spaceId = memorySpaceId,
-                                        assistantId = relevantMemoryAssistantId,
-                                    )
-                                }
-                                    .onError { msg, _ -> Logger.w("ChatVM", "buildRelevantMemorySection 失败: $msg") }
-                                    .getOrNull() ?: ""
-                            if (relevant.isNotBlank()) {
-                                if (isNotEmpty()) append("\n\n---\n\n")
-                                append(relevant)
-                            }
-                        }
-                    }
-                    // 会话原文回溯:复用 messages_fts 的当前会话范围检索,不复制消息到知识库,
-                    // 也不把 SYSTEM/TOOL 内部内容注入模型。用户可在记忆设置中关闭此能力。
-                    if (
-                        effectiveMemoryEnabled &&
-                        !sessionIgnoreMem &&
-                        deps.settings.memoryConfigCache.conversationRecallEnabled &&
-                        !lastUserInputForPrompt.isNullOrBlank() &&
-                        effSid != null
-                    ) {
-                        val recalled =
-                            resultOf {
-                                deps.sessionRepository.searchMessagesInSession(
-                                    sessionId = effSid,
-                                    query = lastUserInputForPrompt,
-                                    limit = 8,
-                                )
-                            }.onError { msg, throwable ->
-                                Logger.w("ChatVM", "会话原文回溯失败: $msg", throwable)
-                            }.getOrNull().orEmpty()
-                        val recallSection =
-                            ConversationRecallFormatter.build(
-                                query = lastUserInputForPrompt,
-                                results = recalled,
-                                maxTokens = deps.settings.memoryConfigCache.tokenBudget.coerceAtMost(1600),
-                            )
-                        if (recallSection.isNotBlank()) {
-                            if (isNotEmpty()) append("\n\n---\n\n")
-                            append(recallSection)
-                        }
-                        Logger.d(
-                            "ChatVM",
-                            "conversation recall | enabled=true | sessionId=$effSid | " +
-                                "matches=${recalled.size} | injected=${recallSection.isNotBlank()}",
-                        )
                     }
                 }
             // L1-4: system prompt 总量闸门 —— 各 section 单独有预算（相关记忆/回顾各自 clamp），
@@ -1123,20 +1105,22 @@ internal class ChatGenerationController(
             val limitedSystemPrompt =
                 io.zer0.muse.context.ContextBudget()
                     .clampText(io.zer0.muse.context.ContextSection.SYSTEM_PROMPT, combinedSystemPrompt)
-            val dynamicSystemPrompt =
+            val (finalStaticPrompt, finalDynamicPrompt) =
                 if (staticSnapshot.isNotBlank() && limitedSystemPrompt.startsWith(staticSnapshot)) {
-                    limitedSystemPrompt
+                    staticSnapshot to limitedSystemPrompt
                         .removePrefix(staticSnapshot)
                         .removePrefix("\n\n---\n\n")
                 } else {
-                    limitedSystemPrompt
+                    limitedSystemPrompt to ""
                 }
-            systemMessages = composeSystemPromptMessages(staticSnapshot, dynamicSystemPrompt)
+            systemMessages = composeSystemPromptMessages(finalStaticPrompt, finalDynamicPrompt)
+            val currentTimeIncluded =
+                dynamicSection.contains(InternalPromptMarkers.TIME_SECTION_PREFIX) ||
+                    dynamicSection.contains("Current time:")
             Logger.d(
                 "ChatVM",
                 "system prompt dynamic sections | timeReminder=$timeReminderEnabled" +
-                    " | currentTimeIncluded=${dynamicSection.contains(InternalPromptMarkers.TIME_SECTION_PREFIX)}" +
-                    " | userMessageTimeIncluded=${userMessageTimeContext.isNotBlank()}" +
+                    " | currentTimeIncluded=$currentTimeIncluded" +
                     " | systemMessages=${systemMessages.size}",
             )
             deps.systemPromptCache.cachedSystemPrompt = limitedSystemPrompt
@@ -1250,7 +1234,10 @@ internal class ChatGenerationController(
                                 if (shouldRetrieve) {
                                     resultOf {
                                         deps.ragService.buildInjectionContextWithCitations(
-                                            ragQuery, effectiveRagConfig, scopeDocIds,
+                                            query = ragQuery,
+                                            ragConfig = effectiveRagConfig,
+                                            scopeDocIds = scopeDocIds,
+                                            locale = deps.settings.getLanguageSync(),
                                         )
                                     }.onError { msg, _ ->
                                         deps.addError(
@@ -1482,7 +1469,12 @@ internal class ChatGenerationController(
                 isStreaming = false,
                 isWaitingFirstToken = false,
                 toolProgressMessage = null,
-                streamState = it.streamState.copy(phase = finalPhase),
+                streamState = it.streamState.copy(
+                    phase = finalPhase,
+                    isThinkingActive = false,
+                    reasoningStartedAtMs = null,
+                    reasoningDurationMs = null,
+                ),
             )
         }
         restoreSelectionAfterTaskRoute(state)
@@ -1876,10 +1868,15 @@ internal class ChatGenerationController(
             if (restoreBlocksChatWrites("finalizeWriteAssistantMeta")) return@resultOf
             val entity = deps.sessionRepository.getMessageById(state.currentAssistantId.toString()) ?: return@resultOf
             val usage = state.usageTokens
-            val durationMs = System.currentTimeMillis() - streamStartedAt
+            val nowMs = System.currentTimeMillis()
+            val durationMs = nowMs - streamStartedAt
+            val reasoningDurationMs = state.reasoningDurationMs ?: state.reasoningStartedAtMs?.let {
+                (nowMs - it).coerceAtLeast(0L)
+            }
             deps.sessionRepository.upsertMessageEntity(
                 entity.copy(
                     durationMs = durationMs,
+                    reasoningDurationMs = reasoningDurationMs,
                     promptTokens = usage?.promptTokens,
                     completionTokens = usage?.completionTokens,
                     reasoningTokens = usage?.reasoningTokens,
@@ -1892,6 +1889,7 @@ internal class ChatGenerationController(
                     if (it.id == state.currentAssistantId) {
                         it.copy(
                             durationMs = durationMs,
+                            reasoningDurationMs = reasoningDurationMs,
                             promptTokens = usage?.promptTokens,
                             completionTokens = usage?.completionTokens,
                             reasoningTokens = usage?.reasoningTokens,

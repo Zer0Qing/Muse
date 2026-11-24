@@ -134,6 +134,8 @@ class AgentBotUiState {
         /** 这条消息属于哪次 bot_say 批次；用于"部分发布恢复"。 */
         val publicationId: String = "",
         val reasoning: String = "",
+        val reasoningDurationMs: Long? = null,
+        val mood: String = "",
         val citationUrls: List<String> = emptyList(),
     )
 
@@ -178,6 +180,10 @@ class AgentBotUiState {
         val active: Boolean = false,
         val text: String = "",
         val reasoning: String = "",
+        val reasoningStartedAtMs: Long? = null,
+        val reasoningDurationMs: Long? = null,
+        val isThinkingActive: Boolean = false,
+        val mood: String = "",
         val citationUrls: List<String> = emptyList(),
     )
 

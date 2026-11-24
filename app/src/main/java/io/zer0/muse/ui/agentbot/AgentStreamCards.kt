@@ -235,6 +235,7 @@ fun AgentLiveMissionCard(
                         onValueChange = { steerDraft = it },
                         placeholder = { Text(stringResource(R.string.agent_hub_mission_steer_hint)) },
                         modifier = Modifier.weight(1f),
+                        maxLines = 2,
                     )
                     MuseCapsuleButton(
                         text = stringResource(R.string.agent_hub_mission_steer_send),
@@ -559,6 +560,8 @@ fun AgentChoiceCard(
                             MaterialTheme.colorScheme.onSurface
                         },
                         modifier = Modifier.weight(1f),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
                     )
                     Surface(
                         shape = CircleShape,

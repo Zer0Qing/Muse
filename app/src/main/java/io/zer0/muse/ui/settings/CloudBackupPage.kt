@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,10 +27,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.common.FileSizeFormatter
 import io.zer0.common.resultOf
@@ -44,20 +43,21 @@ import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseDropdown
-import io.zer0.muse.ui.common.form.MuseSlider
+import io.zer0.muse.ui.common.form.MuseSecretTextField
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.settings.ConfirmDeleteDialog
-import io.zer0.muse.ui.common.settings.SectionLabel
-import io.zer0.muse.ui.common.settings.SettingsGroup
-import io.zer0.muse.ui.common.settings.SettingsGroupDivider
-import io.zer0.muse.ui.common.settings.SettingsItemRow
-import io.zer0.muse.ui.common.settings.SettingsSwitchRow
+import io.zer0.muse.ui.common.settings.SettingsSliderRow
 import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import io.zer0.muse.ui.common.state.MuseSpinner
+import io.zer0.muse.ui.common.surface.CardGroup
+import io.zer0.muse.ui.common.surface.actionItem
+import io.zer0.muse.ui.common.surface.switchItem
 import io.zer0.muse.ui.theme.MuseDateFormats
+import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.theme.MuseSpacing
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -65,21 +65,25 @@ import org.koin.compose.koinInject
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.math.roundToInt
 
 /**
  * v1.132: 云备份独立设置页。
  *
- * 页面结构:
- *  1. 云存储配置分组 — 类型选择 + S3/WebDAV 字段表单 + 加密密码 + 保存按钮 + 测试连接
- *  2. 操作分组 — 立即备份 / 从最新备份恢复
+ * 页面结构(每个分组是一张 [CardGroup] 卡片,分组标题保留):
+ *  1. 云存储配置 — 类型选择 + S3/WebDAV 字段表单 + 加密密码 + 测试连接
+ *  2. 操作 — 立即备份 / 从最新备份恢复
  *  3. 远端备份列表 — 刷新 + 按版本恢复 + 删除
- *  4. 自动备份分组 — 开关 + 间隔天数 slider
+ *  4. 自动备份 — 开关 + 间隔天数 slider
  *
  * 设计:
- *  - 复用 [SettingsSubPageScaffold] 顶部栏 + 滚动容器
- *  - 配置表单用本地草稿,点击「保存配置」后才写入 DataStore(与 ProxySettingsPage 一致)
- *  - 网络操作走 Dispatchers.IO + 进度对话框,防重复点击
- *  - 密码/密钥输入框默认遮罩,点击「显示」切换
+ *  - 复用 [SettingsFormScaffold]:顶栏紧凑「保存」是唯一的落盘入口,草稿与持久值
+ *    有差异时才点亮;返回键 / 手势返回在有未保存改动时先弹「放弃修改」确认。
+ *  - 配置表单用本地草稿,点击顶栏「保存」后才写入 DataStore。
+ *  - 自动备份开关与间隔属于即时生效项:操作完立刻落盘,不参与保存按钮的 dirty 判定,
+ *    否则用户会以为要先点保存才会真的开始定时备份。
+ *  - 网络操作走 Dispatchers.IO + 进度对话框,防重复点击。
+ *  - 密码 / 密钥 / 口令输入统一用 [MuseSecretTextField](自带显隐切换)。
  */
 @Composable
 fun CloudBackupPage(onBack: () -> Unit) {
@@ -93,12 +97,29 @@ fun CloudBackupPage(onBack: () -> Unit) {
         initialValue = CloudBackupConfig(),
     )
 
-    // 本地草稿(初始化为当前 config,保存后同步)
-    var draft by remember(cloudConfig) { mutableStateOf(cloudConfig) }
-    // P0-1: 用户是否主动编辑过备份密码字段 — 区分"显式清除密码"(清空后保存 → 复位
+    // 表单草稿:与"上次采纳的持久值"没有差异时跟随持久值刷新。
+    // 无条件 remember(cloudConfig) 覆盖草稿会让后台写入(上传完成写 lastSyncAt、
+    // 自动备份开关落盘)顺手把用户正在编辑的端点与密码回滚成已保存值;
+    // 而完全不跟随,又会让页面首帧拿到的默认空配置永远盖不掉真实配置。
+    var adopted by remember { mutableStateOf(cloudConfig) }
+    var draft by remember { mutableStateOf(cloudConfig) }
+    LaunchedEffect(cloudConfig) {
+        if (!cloudBackupDraftDirty(draft, adopted)) draft = cloudConfig
+        adopted = cloudConfig
+    }
+    // 用户是否主动编辑过备份密码字段 — 区分"显式清除密码"(清空后保存 → 复位
     // backupPasswordSet)与"未触碰字段"(Keystore 失效读回为空 → 保留标志,守卫不丢)
     var passwordEdited by remember { mutableStateOf(false) }
-    var secretVisible by remember { mutableStateOf(false) }
+
+    // 自动备份间隔(天):滑块的显示值与拖动写入必须是同一份状态。
+    // 只读持久值会让拇指在拖动时纹丝不动 —— 落盘发生在松手之后,期间重组又把
+    // 显示值拉回旧值,于是滑块看起来"卡住",读数也与手指位置对不上。
+    var intervalDays by remember(cloudConfig.autoSyncIntervalHours) {
+        mutableStateOf(intervalDaysOf(cloudConfig))
+    }
+
+    // v2.6.0: 云备份包含供应商密钥(与本地备份同语义,默认关)
+    var cloudIncludeSecrets by remember { mutableStateOf(false) }
 
     // 操作进度状态
     var testing by remember { mutableStateOf(false) }
@@ -121,10 +142,10 @@ fun CloudBackupPage(onBack: () -> Unit) {
     var listLoading by remember { mutableStateOf(false) }
     var listLoadFailed by remember { mutableStateOf(false) }
 
-    // 自动备份间隔(本地草稿,滑动时即时更新 draft,保存配置时落盘)
-    var intervalDaysDraft by remember(cloudConfig.autoSyncIntervalHours) {
-        mutableStateOf(cloudConfig.autoSyncIntervalHours / 24f)
-    }
+    // 显式清空已设置的备份密码时,字段本身回到空串(与持久值相同),但 backupPasswordSet
+    // 需要跟着复位 —— 这也是一次真实的待保存改动,否则用户清空后看不出还有东西没落盘。
+    val clearingPassword = passwordEdited && draft.backupPassword.isEmpty() && cloudConfig.backupPasswordSet
+    val draftDirty = clearingPassword || cloudBackupDraftDirty(draft, cloudConfig)
 
     // 配置变化或保存后,自动刷新远端备份列表
     LaunchedEffect(cloudConfig.type, cloudConfig.isConfigured) {
@@ -141,9 +162,49 @@ fun CloudBackupPage(onBack: () -> Unit) {
         }
     }
 
-    SettingsSubPageScaffold(title = stringResource(R.string.cloud_backup_page_title), onBack = onBack) {
+    // 顶栏「保存」= 唯一落盘入口。密码标志按用户行为确定:
+    // 密码非空 → 置 true;显式清空 → 置 false(允许撤销);未触碰 → 保留既有标志
+    // (Keystore 失效读回为空时守卫不丢)。
+    // 写的是整份配置,但自动备份开关、间隔与上次同步时间由即时操作/后台任务维护,
+    // 草稿里这几项可能已经过期 —— 一律透传持久值,否则保存表单会顺手把它们改回去。
+    fun persistDraft() {
+        val withPasswordFlag = when {
+            draft.backupPassword.isNotEmpty() -> draft.copy(backupPasswordSet = true)
+            passwordEdited -> draft.copy(backupPasswordSet = false)
+            else -> draft
+        }
+        val finalDraft = withPasswordFlag.copy(
+            autoSync = cloudConfig.autoSync,
+            autoSyncIntervalHours = cloudConfig.autoSyncIntervalHours,
+            lastSyncAt = cloudConfig.lastSyncAt,
+        )
+        scope.launch {
+            resultOf { settings.saveCloudBackupConfig(finalDraft) }
+                .onSuccess {
+                    // 本地草稿跟着落盘值收敛:否则 backupPasswordSet 的差异会让页面
+                    // 一直显示"有未保存改动",保存按钮永远处于点亮态。
+                    draft = finalDraft
+                    passwordEdited = false
+                    MuseToast.show(context.getString(R.string.cloud_backup_config_saved))
+                }
+                .onError { _, t ->
+                    // 兜底文案不能是英文裸串:中文环境里"Save failed"既读不出原因也不合语境。
+                    MuseToast.show(
+                        t?.message ?: context.getString(R.string.cloud_backup_config_save_failed),
+                        2500,
+                    )
+                }
+        }
+    }
+
+    SettingsFormScaffold(
+        title = stringResource(R.string.cloud_backup_page_title),
+        dirty = draftDirty,
+        onSave = { persistDraft() },
+        onDismiss = onBack,
+    ) {
         // ── 顶部说明 ──
-        item {
+        item(key = "cloud_backup_desc") {
             Text(
                 text = stringResource(R.string.cloud_backup_page_desc),
                 style = MaterialTheme.typography.bodySmall,
@@ -153,21 +214,16 @@ fun CloudBackupPage(onBack: () -> Unit) {
         }
 
         // ── 1. 云存储配置 ──
-        item { SectionLabel(stringResource(R.string.cloud_backup_section_config)) }
-        item {
-            SettingsGroup {
+        item(key = "cloud_backup_config_group") {
+            CardGroup(title = { Text(stringResource(R.string.cloud_backup_section_config)) }) {
                 // 启用开关(切换 type 在 none / 之前类型之间)
-                SettingsSwitchRow(
-                    icon = MuseIcons.cloud,
+                switchItem(
+                    key = "cloud_backup_enable",
                     title = stringResource(R.string.cloud_backup_enable),
-                    subtitle = if (draft.type != "none") {
-                        when (draft.type) {
-                            "s3" -> stringResource(R.string.cloud_backup_type_s3)
-                            "webdav" -> stringResource(R.string.cloud_backup_type_webdav)
-                            else -> stringResource(R.string.cloud_backup_type_none)
-                        }
-                    } else {
-                        stringResource(R.string.cloud_backup_type_none)
+                    subtitle = when (draft.type) {
+                        "s3" -> stringResource(R.string.cloud_backup_type_s3)
+                        "webdav" -> stringResource(R.string.cloud_backup_type_webdav)
+                        else -> stringResource(R.string.cloud_backup_type_none)
                     },
                     checked = draft.type != "none",
                     onCheckedChange = { enabled ->
@@ -180,70 +236,53 @@ fun CloudBackupPage(onBack: () -> Unit) {
                             },
                         )
                     },
+                    leadingContent = {
+                        Icon(
+                            imageVector = MuseIcons.cloud,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
+                    },
                 )
                 // 类型选择(只在启用时显示)
                 if (draft.type != "none") {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(MusePaddings.cardInner),
-                    ) {
-                        MuseDropdown(
+                    content(key = "cloud_backup_type") {
+                        CloudTypePicker(
                             value = draft.type,
                             onValueChange = { draft = draft.copy(type = it) },
-                            label = stringResource(R.string.cloud_backup_type_label),
-                            options = listOf(
-                                "webdav" to stringResource(R.string.cloud_backup_type_webdav),
-                                "s3" to stringResource(R.string.cloud_backup_type_s3),
-                            ),
-                            modifier = Modifier.fillMaxWidth(),
                         )
                     }
-                    // 按类型显示字段表单
-                    if (draft.type == "webdav") {
-                        WebDavFields(
-                            draft = draft,
-                            onDraftChange = { draft = it },
-                            secretVisible = secretVisible,
-                            onToggleSecret = { secretVisible = !secretVisible },
-                        )
-                    } else if (draft.type == "s3") {
-                        S3Fields(
-                            draft = draft,
-                            onDraftChange = { draft = it },
-                            secretVisible = secretVisible,
-                            onToggleSecret = { secretVisible = !secretVisible },
-                        )
+                    // 按类型显示字段表单。两种类型共用同一个 content 块:
+                    // 各占一个条目时,切换类型会在卡片里留下一条多余的分隔线。
+                    // 走到这里 type 必然是 webdav 或 s3(外层已排除 none)。
+                    content(key = "cloud_backup_fields") {
+                        if (draft.type == "webdav") {
+                            WebDavFields(draft = draft, onDraftChange = { draft = it })
+                        } else {
+                            S3Fields(draft = draft, onDraftChange = { draft = it })
+                        }
                     }
                     // 加密密码(通用)
-                    EncryptionPasswordField(
-                        password = draft.backupPassword,
-                        onPasswordChange = {
-                            draft = draft.copy(backupPassword = it)
-                            passwordEdited = true
-                        },
-                        secretVisible = secretVisible,
-                        onToggleSecret = { secretVisible = !secretVisible },
-                    )
+                    content(key = "cloud_backup_encrypt_password") {
+                        EncryptionPasswordField(
+                            password = draft.backupPassword,
+                            onPasswordChange = {
+                                draft = draft.copy(backupPassword = it)
+                                passwordEdited = true
+                            },
+                        )
+                    }
                 }
-            }
-        }
-        // 保存配置 + 测试连接
-        item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = MusePaddings.tightGap),
-                horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
-            ) {
-                // 测试连接
-                MuseCapsuleButton(
-                    text = stringResource(R.string.cloud_backup_test_connection),
-                    onClick = {
-                        if (testing) return@MuseCapsuleButton
+                // 测试连接:并入配置卡片,loading 期间忽略点击,避免并发探测同一份配置。
+                actionItem(
+                    key = "cloud_backup_test",
+                    title = stringResource(R.string.cloud_backup_test_connection),
+                    onClick = testConnection@{
+                        // 配置不全时给出提示而不是静默无反应:禁用的行既点不动也不说明原因。
                         if (!draft.isConfigured) {
                             MuseToast.show(context.getString(R.string.cloud_backup_test_failed))
-                            return@MuseCapsuleButton
+                            return@testConnection
                         }
                         testing = true
                         scope.launch {
@@ -256,70 +295,38 @@ fun CloudBackupPage(onBack: () -> Unit) {
                             )
                         }
                     },
-                    enabled = !testing && draft.isConfigured,
+                    enabled = !testing,
                     loading = testing,
-                    variant = IosCapsuleButtonVariant.Text,
-                    fillWidth = false,
-                    modifier = Modifier.weight(1f),
-                )
-                // 保存配置
-                MuseTactileButton(
-                    icon = MuseIcons.database,
-                    onClick = {
-                        scope.launch {
-                            // P0-1: 保存前按用户行为确定 backupPasswordSet —
-                            // 密码非空 → 置 true;显式清空 → 置 false(允许撤销);
-                            // 未触碰密码字段 → 保留既有标志(Keystore 失效读回为空时守卫不丢)
-                            val finalDraft = when {
-                                draft.backupPassword.isNotEmpty() -> draft.copy(backupPasswordSet = true)
-                                passwordEdited -> draft.copy(backupPasswordSet = false)
-                                else -> draft
-                            }
-                            resultOf { settings.saveCloudBackupConfig(finalDraft) }
-                                .onSuccess {
-                                    MuseToast.show(context.getString(R.string.cloud_backup_config_saved))
-                                }
-                                .onError { _, t ->
-                                    // 兜底文案不能是英文裸串:中文环境里"Save failed"既读不出原因也不合语境。
-                                    MuseToast.show(
-                                        t?.message ?: context.getString(R.string.cloud_backup_config_save_failed),
-                                        2500,
-                                    )
-                                }
-                        }
-                    },
-                    contentDescription = null,
-                    modifier = Modifier.weight(1f),
                 )
             }
         }
 
         // ── 2. 操作分组 ──
-        item { SectionLabel(stringResource(R.string.cloud_backup_section_actions)) }
-        item {
-            SettingsGroup {
-                // v2.6.0: 云备份包含供应商密钥（与本地备份同语义，默认关）
-                var cloudIncludeSecrets by remember { mutableStateOf(false) }
-                SettingsSwitchRow(
-                    icon = MuseIcons.key,
+        item(key = "cloud_backup_actions_group") {
+            CardGroup(title = { Text(stringResource(R.string.cloud_backup_section_actions)) }) {
+                // v2.6.0: 云备份包含供应商密钥(与本地备份同语义,默认关)
+                switchItem(
+                    key = "cloud_backup_include_secrets",
                     title = stringResource(R.string.settings_backup_include_secrets),
                     checked = cloudIncludeSecrets,
                     onCheckedChange = { cloudIncludeSecrets = it },
-                )
-                SettingsItemRow(
-                    icon = MuseIcons.cloudUpload,
-                    title = stringResource(R.string.cloud_backup_backup_now),
-                    subtitle = if (cloudConfig.isConfigured) {
-                        stringResource(R.string.settings_backup_upload_subtitle_configured)
-                    } else {
-                        stringResource(R.string.settings_backup_upload_subtitle_unconfigured)
+                    leadingContent = {
+                        Icon(
+                            imageVector = MuseIcons.key,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
                     },
-                    onClick = {
+                )
+                item(
+                    key = "cloud_backup_now",
+                    onClick = backupNow@{
                         if (!cloudConfig.isConfigured) {
                             MuseToast.show(context.getString(R.string.settings_backup_configure_first))
-                            return@SettingsItemRow
+                            return@backupNow
                         }
-                        if (backingUp || restoring) return@SettingsItemRow
+                        if (backingUp || restoring) return@backupNow
                         backingUp = true
                         cloudBackupDialogVisible = true
                         scope.launch {
@@ -343,43 +350,77 @@ fun CloudBackupPage(onBack: () -> Unit) {
                             }
                         }
                     },
-                )
-                SettingsItemRow(
-                    icon = MuseIcons.cloudDownload,
-                    title = stringResource(R.string.cloud_backup_restore_latest),
-                    subtitle = if (cloudConfig.isConfigured) {
-                        stringResource(R.string.settings_backup_restore_subtitle_configured)
-                    } else {
-                        stringResource(R.string.settings_backup_upload_subtitle_unconfigured)
+                    leadingContent = {
+                        Icon(
+                            imageVector = MuseIcons.cloudUpload,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
                     },
-                    onClick = {
+                    headlineContent = { Text(stringResource(R.string.cloud_backup_backup_now)) },
+                    supportingContent = {
+                        Text(
+                            if (cloudConfig.isConfigured) {
+                                stringResource(R.string.settings_backup_upload_subtitle_configured)
+                            } else {
+                                stringResource(R.string.settings_backup_upload_subtitle_unconfigured)
+                            },
+                        )
+                    },
+                )
+                item(
+                    key = "cloud_backup_restore_latest",
+                    onClick = restoreLatest@{
                         if (!cloudConfig.isConfigured) {
                             MuseToast.show(context.getString(R.string.settings_backup_configure_first))
-                            return@SettingsItemRow
+                            return@restoreLatest
                         }
-                        if (backingUp || restoring) return@SettingsItemRow
+                        if (backingUp || restoring) return@restoreLatest
                         // U-4: 覆盖式恢复,先弹确认框,确认后再在 onConfirm 里执行实际恢复
                         confirmRestoreLatest = true
+                    },
+                    leadingContent = {
+                        Icon(
+                            imageVector = MuseIcons.cloudDownload,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
+                    },
+                    headlineContent = { Text(stringResource(R.string.cloud_backup_restore_latest)) },
+                    supportingContent = {
+                        Text(
+                            if (cloudConfig.isConfigured) {
+                                stringResource(R.string.settings_backup_restore_subtitle_configured)
+                            } else {
+                                stringResource(R.string.settings_backup_upload_subtitle_unconfigured)
+                            },
+                        )
                     },
                 )
             }
         }
 
         // ── 3. 远端备份列表 ──
-        item { SectionLabel(stringResource(R.string.cloud_backup_section_remote)) }
-        item {
-            SettingsGroup {
+        item(key = "cloud_backup_remote_group") {
+            // 刷新中的副标题用显式类型声明:列表加载态是唯一需要副标题的时刻,
+            // 显式标注可合成 lambda 类型,避免 `if` 分支的 lambda 被推断成普通函数类型。
+            val refreshSubtitle: (@Composable () -> Unit)? = if (listLoading) {
+                { Text(stringResource(R.string.cloud_backup_list_loading)) }
+            } else {
+                null
+            }
+            CardGroup(title = { Text(stringResource(R.string.cloud_backup_section_remote)) }) {
                 // 刷新按钮(顶部独立行)
-                SettingsItemRow(
-                    icon = MuseIcons.refresh,
-                    title = stringResource(R.string.cloud_backup_refresh_list),
-                    subtitle = if (listLoading) stringResource(R.string.cloud_backup_list_loading) else null,
-                    onClick = {
+                item(
+                    key = "cloud_backup_refresh",
+                    onClick = refreshList@{
                         if (!cloudConfig.isConfigured) {
                             MuseToast.show(context.getString(R.string.settings_backup_configure_first))
-                            return@SettingsItemRow
+                            return@refreshList
                         }
-                        if (listLoading) return@SettingsItemRow
+                        if (listLoading) return@refreshList
                         listLoading = true
                         listLoadFailed = false
                         scope.launch {
@@ -389,36 +430,25 @@ fun CloudBackupPage(onBack: () -> Unit) {
                             listLoading = false
                         }
                     },
+                    leadingContent = {
+                        Icon(
+                            imageVector = MuseIcons.refresh,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
+                    },
+                    headlineContent = { Text(stringResource(R.string.cloud_backup_refresh_list)) },
+                    supportingContent = refreshSubtitle,
                 )
                 when {
-                    !cloudConfig.isConfigured -> {
-                        Text(
-                            text = stringResource(R.string.settings_backup_status_unconfigured),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(MusePaddings.cardInner),
-                        )
+                    !cloudConfig.isConfigured -> content(key = "cloud_backup_list_unconfigured") {
+                        CloudListNotice(stringResource(R.string.settings_backup_status_unconfigured))
                     }
-                    listLoading -> {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(MusePaddings.cardInner),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center,
-                        ) {
-                            MuseSpinner(
-                                size = 20.dp,
-                            )
-                            Spacer(Modifier.width(MusePaddings.contentGap))
-                            Text(
-                                text = stringResource(R.string.cloud_backup_list_loading),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
+                    listLoading -> content(key = "cloud_backup_list_loading") {
+                        CloudListLoading()
                     }
-                    listLoadFailed -> {
+                    listLoadFailed -> content(key = "cloud_backup_list_failed") {
                         MuseErrorStateBox(
                             message = stringResource(R.string.cloud_backup_list_load_failed),
                             onRetry = {
@@ -433,30 +463,18 @@ fun CloudBackupPage(onBack: () -> Unit) {
                             },
                         )
                     }
-                    remoteBackups.isEmpty() -> {
-                        Text(
-                            text = stringResource(R.string.cloud_backup_list_empty),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(MusePaddings.cardInner),
-                        )
+                    remoteBackups.isEmpty() -> content(key = "cloud_backup_list_empty") {
+                        CloudListNotice(stringResource(R.string.cloud_backup_list_empty))
                     }
-                    else -> {
-                        remoteBackups.forEachIndexed { idx, backup ->
-                            if (idx > 0) SettingsGroupDivider()
+                    else -> remoteBackups.forEach { backup ->
+                        content(key = "cloud_backup_file_${backup.fileName}") {
                             RemoteBackupRow(
                                 backup = backup,
-                                onDelete = {
-                                    if (deleting != null || restoring || backingUp) return@RemoteBackupRow
-                                    // 远端归档是不可逆数据,若删的恰好是唯一一份,用户会在无意间
-                                    // 失去全部云端退路 —— 与本页"恢复""覆盖导入"同等对待,先点名确认。
-                                    confirmDeleteFile = backup.fileName
-                                },
-                                onRestore = {
-                                    if (deleting != null || restoring || backingUp) return@RemoteBackupRow
-                                    // U-4: 覆盖式按版本恢复,先弹确认框,确认后再在 onConfirm 里执行实际恢复
-                                    confirmRestoreFile = backup.fileName
-                                },
+                                // 上传 / 恢复 / 删除互斥:任一进行中都不接受另一项操作,
+                                // 否则同一份归档会被并发改写或删除。
+                                actionsEnabled = deleting == null && !restoring && !backingUp,
+                                onDelete = { confirmDeleteFile = backup.fileName },
+                                onRestore = { confirmRestoreFile = backup.fileName },
                                 isDeleting = deleting == backup.fileName,
                             )
                         }
@@ -466,11 +484,10 @@ fun CloudBackupPage(onBack: () -> Unit) {
         }
 
         // ── 4. 自动备份 ──
-        item { SectionLabel(stringResource(R.string.cloud_backup_section_auto)) }
-        item {
-            SettingsGroup {
-                SettingsSwitchRow(
-                    icon = MuseIcons.calendarTime,
+        item(key = "cloud_backup_auto_group") {
+            CardGroup(title = { Text(stringResource(R.string.cloud_backup_section_auto)) }) {
+                switchItem(
+                    key = "cloud_backup_auto_enable",
                     title = stringResource(R.string.cloud_backup_auto_enable),
                     checked = cloudConfig.autoSync,
                     onCheckedChange = { enabled ->
@@ -478,82 +495,56 @@ fun CloudBackupPage(onBack: () -> Unit) {
                             settings.saveCloudBackupConfig(cloudConfig.copy(autoSync = enabled))
                         }
                     },
+                    leadingContent = {
+                        Icon(
+                            imageVector = MuseIcons.calendarTime,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
+                    },
                 )
                 if (cloudConfig.autoSync) {
-                    // 间隔天数 slider(1-30 天)
-                    val intervalDays = cloudConfig.autoSyncIntervalHours / 24f
-                    val sliderValue = intervalDays.coerceIn(1f, 30f)
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(MusePaddings.cardInner),
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(
-                                text = stringResource(R.string.cloud_backup_interval_label),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                // LAYOUT-01: 标签取剩余宽度 + 限行(仅取宽时剩余宽度仍可能极小)。
-                                modifier = Modifier.weight(1f),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            Text(
-                                text = pluralStringResource(
-                                    R.plurals.cloud_backup_interval_days,
-                                    sliderValue.toInt(),
-                                    sliderValue.toInt(),
-                                ),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.primary,
-                                // LAYOUT-01: 天数数值列限 1 行,不反向挤占标签。
-                                maxLines = 1,
-                            )
-                        }
-                        Spacer(Modifier.height(MusePaddings.contentGap))
-                        // 单位走资源:硬编码"天"会让英文界面出现"3 天"这种半中半英的读数。
-                        val intervalDaysPlural = R.plurals.cloud_backup_interval_days
-                        MuseSlider(
-                            value = sliderValue,
-                            onValueChange = { intervalDaysDraft = it },
-                            valueRange = 1f..30f,
-                            // 1..30 共 30 个取值,steps = 30-2 = 28
-                            steps = 28,
-                            valueFormatter = { v ->
-                                val days = v.toInt()
-                                context.resources.getQuantityString(intervalDaysPlural, days, days)
+                    // 1..30 共 30 个取值,steps = 30-2 = 28。
+                    // 单位走资源:硬编码"天"会让英文界面出现"3 天"这种半中半英的读数。
+                    // 松手才落盘:拖动中每帧写 DataStore 会持续触发配置流重组,
+                    // 拖动手感与滑块位置都会一起抖。
+                    content(key = "auto_sync_interval") {
+                        SettingsSliderRow(
+                            icon = MuseIcons.clock,
+                            title = stringResource(R.string.cloud_backup_interval_label),
+                            value = intervalDays,
+                            valueRange = IntervalDaysRange,
+                            steps = INTERVAL_STEPS,
+                            valueText = pluralStringResource(
+                                R.plurals.cloud_backup_interval_days,
+                                intervalDays.roundToInt(),
+                                intervalDays.roundToInt(),
+                            ),
+                            onValueChange = { intervalDays = it },
+                            onValueChangeFinished = {
+                                val days = intervalDays.roundToInt().coerceIn(MIN_INTERVAL_DAYS, MAX_INTERVAL_DAYS)
+                                val hours = days * DAY_HOURS
+                                if (hours != cloudConfig.autoSyncIntervalHours) {
+                                    scope.launch {
+                                        settings.saveCloudBackupConfig(
+                                            cloudConfig.copy(autoSyncIntervalHours = hours),
+                                        )
+                                    }
+                                }
                             },
                         )
-                        Spacer(Modifier.height(MusePaddings.contentGap))
-                        // v1.134 P2-3: 短间隔警示 — 间隔 ≤ 2 天时显示流量/电量提示
-                        if (sliderValue.toInt() <= 2) {
+                    }
+                    // v1.134 P2-3: 短间隔警示 — 间隔 ≤ 2 天时提示流量/电量代价(仅提示,不拦截)。
+                    if (intervalDays.roundToInt() <= SHORT_INTERVAL_WARNING_DAYS) {
+                        content(key = "auto_sync_interval_hint") {
                             Text(
                                 text = stringResource(R.string.cloud_backup_interval_hint),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.tertiary,
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                            Spacer(Modifier.height(MusePaddings.contentGap))
-                        }
-                        // 拖动结束保存(简化:用 TextButton 显式保存)
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.End,
-                        ) {
-                            MuseCapsuleButton(
-                                text = stringResource(R.string.cloud_backup_save_config),
-                                onClick = {
-                                    scope.launch {
-                                        val hours = (intervalDaysDraft.toInt().coerceIn(1, 30)) * 24
-                                        settings.saveCloudBackupConfig(cloudConfig.copy(autoSyncIntervalHours = hours))
-                                        MuseToast.show(context.getString(R.string.cloud_backup_config_saved))
-                                    }
-                                },
-                                variant = IosCapsuleButtonVariant.Text,
-                                fillWidth = false,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(MusePaddings.cardInner),
                             )
                         }
                     }
@@ -581,13 +572,19 @@ fun CloudBackupPage(onBack: () -> Unit) {
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     MuseSpinner()
-                    Spacer(modifier = Modifier.width(16.dp))
+                    Spacer(modifier = Modifier.width(MuseSpacing.lg))
+                    // 取剩余宽度 + 居中 + 限行:大字号下文案不逐字换行,
+                    // 其他语言的超长文案也会省略而不是把行撑出卡片。
                     Text(
-                        if (backingUp) {
+                        text = if (backingUp) {
                             stringResource(R.string.settings_backup_uploading_cloud)
                         } else {
                             stringResource(R.string.settings_backup_restoring_cloud)
                         },
+                        modifier = Modifier.weight(1f),
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             },
@@ -739,16 +736,127 @@ fun CloudBackupPage(onBack: () -> Unit) {
  */
 private enum class RestoreFailKind { LATEST, FILE }
 
+/** 自动备份间隔下限(天)。 */
+private const val MIN_INTERVAL_DAYS = 1
+
+/** 自动备份间隔上限(天)。 */
+private const val MAX_INTERVAL_DAYS = 30
+
+/** 一天的小时数 —— 滑块的"天"读数要落盘成 [CloudBackupConfig.autoSyncIntervalHours]。 */
+private const val DAY_HOURS = 24
+
+/** 间隔档位:1..30 天共 30 个取值,Material steps 语义下中间停点 = 30-2。 */
+private const val INTERVAL_STEPS = MAX_INTERVAL_DAYS - 2
+
+/** 低于等于该天数时给出流量 / 电量警示。 */
+private const val SHORT_INTERVAL_WARNING_DAYS = 2
+
+/** 滑块的取值区间(天)。 */
+private val IntervalDaysRange = MIN_INTERVAL_DAYS.toFloat()..MAX_INTERVAL_DAYS.toFloat()
+
 /**
- * WebDAV 字段表单(URL / 用户名 / 密码 / 远程目录)。
+ * 把持久化的间隔小时数换算成滑块的天数读数。
+ *
+ * 必须取整到"天"这一档:滑块只有 1..30 的整档停点,而历史配置可能存成 36 小时
+ * 这类非整天值 —— 不取整就会出现"拇指停在第 1 档、右侧却读作 2 天"的自相矛盾。
+ */
+private fun intervalDaysOf(config: CloudBackupConfig): Float = (config.autoSyncIntervalHours / DAY_HOURS.toFloat())
+    .roundToInt()
+    .coerceIn(MIN_INTERVAL_DAYS, MAX_INTERVAL_DAYS)
+    .toFloat()
+
+/**
+ * 云存储类型选择(WebDAV / S3 兼容存储)。
  */
 @Composable
-private fun WebDavFields(
-    draft: CloudBackupConfig,
-    onDraftChange: (CloudBackupConfig) -> Unit,
-    secretVisible: Boolean,
-    onToggleSecret: () -> Unit,
-) {
+private fun CloudTypePicker(value: String, onValueChange: (String) -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(MusePaddings.cardInner),
+    ) {
+        MuseDropdown(
+            value = value,
+            onValueChange = onValueChange,
+            label = stringResource(R.string.cloud_backup_type_label),
+            options = listOf(
+                "webdav" to stringResource(R.string.cloud_backup_type_webdav),
+                "s3" to stringResource(R.string.cloud_backup_type_s3),
+            ),
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
+
+/**
+ * 远端备份列表的空态 / 未配置提示。
+ */
+@Composable
+private fun CloudListNotice(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(MusePaddings.cardInner),
+    )
+}
+
+/**
+ * 远端备份列表的加载态(转圈 + 文字,居中)。
+ */
+@Composable
+private fun CloudListLoading() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(MusePaddings.cardInner),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center,
+    ) {
+        MuseSpinner(size = MuseIconSizes.iconMedium)
+        Spacer(Modifier.width(MusePaddings.contentGap))
+        // 取剩余宽度 + 限行:行内文字在大字号下不逐字换行,居中对齐保持原视觉。
+        Text(
+            text = stringResource(R.string.cloud_backup_list_loading),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f),
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+/**
+ * 表单草稿是否与已保存配置有差异。
+ *
+ * 只比较用户在本页真正能改的字段,所以先抹掉三类由系统维护的值再比:
+ *  - [CloudBackupConfig.backupPasswordSet] 由保存逻辑按密码内容派生,不是用户输入;
+ *  - [CloudBackupConfig.lastSyncAt] 由备份完成时后台写入,不属于表单内容;
+ *  - [CloudBackupConfig.autoSync] / [CloudBackupConfig.autoSyncIntervalHours] 是即时生效项,
+ *    改动立刻落盘,不该让顶栏「保存」亮起来。
+ * 若直接比较整份 data class,一次成功的云上传就会让页面误以为用户改了东西,
+ * 返回时还会弹"放弃修改"。
+ */
+private fun CloudBackupConfig.normalizedForFormComparison(): CloudBackupConfig = copy(
+    autoSync = false,
+    autoSyncIntervalHours = 0,
+    lastSyncAt = 0,
+    backupPasswordSet = false,
+)
+
+private fun cloudBackupDraftDirty(draft: CloudBackupConfig, persisted: CloudBackupConfig): Boolean =
+    draft.normalizedForFormComparison() != persisted.normalizedForFormComparison()
+
+/**
+ * WebDAV 字段表单(URL / 用户名 / 密码 / 远程目录)。
+ *
+ * 外层是单层 [Column](只加一份卡片内边距):字段直接铺在卡片里,
+ * 不再套一层带内边距的列表行,避免双重缩进。
+ */
+@Composable
+private fun WebDavFields(draft: CloudBackupConfig, onDraftChange: (CloudBackupConfig) -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -769,25 +877,12 @@ private fun WebDavFields(
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
-        MuseTextField(
+        // 密码走统一的密钥输入组件:掩码 + 眼睛按钮由组件自己持有,不再由页面传显隐开关。
+        MuseSecretTextField(
             value = draft.webdavPassword,
             onValueChange = { onDraftChange(draft.copy(webdavPassword = it)) },
-            label = { Text(stringResource(R.string.settings_backup_password)) },
-            singleLine = true,
+            label = stringResource(R.string.settings_backup_password),
             modifier = Modifier.fillMaxWidth(),
-            visualTransformation = if (secretVisible) VisualTransformation.None else PasswordVisualTransformation(),
-            trailingIcon = {
-                MuseCapsuleButton(
-                    text = if (secretVisible) {
-                        stringResource(R.string.cloud_backup_hide_secret)
-                    } else {
-                        stringResource(R.string.cloud_backup_show_secret)
-                    },
-                    onClick = onToggleSecret,
-                    variant = IosCapsuleButtonVariant.Text,
-                    fillWidth = false,
-                )
-            },
         )
         MuseTextField(
             value = draft.webdavPath,
@@ -803,12 +898,7 @@ private fun WebDavFields(
  * S3 字段表单(Endpoint / Region / Bucket / AccessKey / SecretKey / KeyPrefix)。
  */
 @Composable
-private fun S3Fields(
-    draft: CloudBackupConfig,
-    onDraftChange: (CloudBackupConfig) -> Unit,
-    secretVisible: Boolean,
-    onToggleSecret: () -> Unit,
-) {
+private fun S3Fields(draft: CloudBackupConfig, onDraftChange: (CloudBackupConfig) -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -836,6 +926,7 @@ private fun S3Fields(
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
+        // AccessKey 是账号标识,可读无妨;SecretKey 才是凭据,必须掩码。
         MuseTextField(
             value = draft.s3AccessKey,
             onValueChange = { onDraftChange(draft.copy(s3AccessKey = it)) },
@@ -843,25 +934,11 @@ private fun S3Fields(
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
-        MuseTextField(
+        MuseSecretTextField(
             value = draft.s3SecretKey,
             onValueChange = { onDraftChange(draft.copy(s3SecretKey = it)) },
-            label = { Text(stringResource(R.string.settings_backup_secret_key)) },
-            singleLine = true,
+            label = stringResource(R.string.settings_backup_secret_key),
             modifier = Modifier.fillMaxWidth(),
-            visualTransformation = if (secretVisible) VisualTransformation.None else PasswordVisualTransformation(),
-            trailingIcon = {
-                MuseCapsuleButton(
-                    text = if (secretVisible) {
-                        stringResource(R.string.cloud_backup_hide_secret)
-                    } else {
-                        stringResource(R.string.cloud_backup_show_secret)
-                    },
-                    onClick = onToggleSecret,
-                    variant = IosCapsuleButtonVariant.Text,
-                    fillWidth = false,
-                )
-            },
         )
         MuseTextField(
             value = draft.s3KeyPrefix,
@@ -876,53 +953,40 @@ private fun S3Fields(
 
 /**
  * 加密密码字段(通用,S3/WebDAV 均用)。
+ *
+ * 标题与提示合并到同一个输入框:label 是字段名,placeholder 才是"留空则明文上传"的说明,
+ * 这样空态能看到后果说明,填了值之后又不会被长句挤占标题位置。
  */
 @Composable
-private fun EncryptionPasswordField(
-    password: String,
-    onPasswordChange: (String) -> Unit,
-    secretVisible: Boolean,
-    onToggleSecret: () -> Unit,
-) {
+private fun EncryptionPasswordField(password: String, onPasswordChange: (String) -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(MusePaddings.cardInner),
-        verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
     ) {
-        Text(
-            text = stringResource(R.string.settings_backup_encrypt_password),
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        MuseTextField(
+        MuseSecretTextField(
             value = password,
             onValueChange = onPasswordChange,
-            label = { Text(stringResource(R.string.settings_backup_encrypt_password_hint)) },
-            singleLine = true,
+            label = stringResource(R.string.settings_backup_encrypt_password),
+            placeholder = stringResource(R.string.settings_backup_encrypt_password_hint),
             modifier = Modifier.fillMaxWidth(),
-            visualTransformation = if (secretVisible) VisualTransformation.None else PasswordVisualTransformation(),
-            trailingIcon = {
-                MuseCapsuleButton(
-                    text = if (secretVisible) {
-                        stringResource(R.string.cloud_backup_hide_secret)
-                    } else {
-                        stringResource(R.string.cloud_backup_show_secret)
-                    },
-                    onClick = onToggleSecret,
-                    variant = IosCapsuleButtonVariant.Text,
-                    fillWidth = false,
-                )
-            },
         )
     }
 }
 
 /**
  * 单条远端备份行 — 文件名 + 时间 + 大小 + 恢复 / 删除按钮。
+ *
+ * @param actionsEnabled 为 false 时两个动作都不可点(另一项操作正在进行)。
  */
 @Composable
-private fun RemoteBackupRow(backup: RemoteBackup, onRestore: () -> Unit, onDelete: () -> Unit, isDeleting: Boolean) {
+private fun RemoteBackupRow(
+    backup: RemoteBackup,
+    actionsEnabled: Boolean,
+    onRestore: () -> Unit,
+    onDelete: () -> Unit,
+    isDeleting: Boolean,
+) {
     val fmt = remember { SimpleDateFormat(MuseDateFormats.DATE_TIME_FULL, Locale.getDefault()) }
     Column(
         modifier = Modifier
@@ -933,6 +997,9 @@ private fun RemoteBackupRow(backup: RemoteBackup, onRestore: () -> Unit, onDelet
             text = backup.fileName,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface,
+            // 远端文件名由时间戳拼成,可能很长;限两行并省略,避免单行撑高整张卡片。
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
         )
         Spacer(Modifier.height(MusePaddings.tightGap))
         Text(
@@ -946,7 +1013,7 @@ private fun RemoteBackupRow(backup: RemoteBackup, onRestore: () -> Unit, onDelet
                 }
             },
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.height(MusePaddings.contentGap))
         Row(
@@ -954,16 +1021,18 @@ private fun RemoteBackupRow(backup: RemoteBackup, onRestore: () -> Unit, onDelet
             horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            // 图标按钮必须自带描述:否则无障碍只剩一个"按钮",读不出是恢复还是删除。
             MuseTactileButton(
                 icon = MuseIcons.cloudDownload,
                 onClick = onRestore,
-                contentDescription = null,
+                contentDescription = stringResource(R.string.cloud_backup_restore_this),
+                enabled = actionsEnabled,
             )
             Spacer(Modifier.width(MusePaddings.contentGap))
             MuseCapsuleButton(
                 text = stringResource(R.string.common_delete),
                 onClick = onDelete,
-                enabled = !isDeleting,
+                enabled = actionsEnabled && !isDeleting,
                 loading = isDeleting,
                 variant = IosCapsuleButtonVariant.Text,
                 fillWidth = false,

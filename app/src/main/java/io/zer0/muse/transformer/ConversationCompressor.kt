@@ -6,6 +6,7 @@ import io.zer0.ai.core.ChatStreamEvent
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.Model
 import io.zer0.ai.core.ProviderConfig
+import io.zer0.ai.core.ReasoningLevel
 import io.zer0.ai.core.UIMessage
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
@@ -72,6 +73,33 @@ class ConversationCompressor(
 
         /** v2.3.2: 输入预算占模型上下文窗口的比例(其余留给摘要输出与指令)。 */
         private const val CHUNK_BUDGET_RATIO = 0.4
+
+        /**
+         * 判断待压缩对话是否应使用中文摘要契约：优先统计对话文本的汉字/拉丁占比，
+         * 纯数字或空样本时回落应用界面 locale，避免英文对话被强行压成中文摘要。
+         */
+        internal fun detectChineseConversation(messages: List<UIMessage>, appLocale: String): Boolean {
+            var cjkCount = 0
+            var latinCount = 0
+            var inspected = 0
+            for (msg in messages.take(20)) {
+                for (ch in msg.content) {
+                    if (ch in '\u4E00'..'\u9FFF' || ch in '\u3400'..'\u4DBF') {
+                        cjkCount++
+                    } else if (ch in 'A'..'Z' || ch in 'a'..'z') {
+                        latinCount++
+                    }
+                    inspected++
+                    if (inspected >= 2_000) break
+                }
+                if (inspected >= 2_000) break
+            }
+            return when {
+                cjkCount > 0 && cjkCount * 2 >= latinCount -> true
+                latinCount > 0 -> false
+                else -> isChineseLocale(appLocale)
+            }
+        }
 
         /**
          * 取出上一版摘要里的「已否定」段。
@@ -187,13 +215,22 @@ class ConversationCompressor(
             Logger.i(TAG, "compress: 使用自定义压缩指令")
         }
 
+        val lang = settingsRepository.getLanguageSync()
+        val resolvedLocale = when (lang) {
+            "system", "" -> java.util.Locale.getDefault().language
+            else -> lang
+        }
+        val useChinese = detectChineseConversation(toCompress, resolvedLocale)
+
         // 并行压缩每块(v1.0.51: 用 Semaphore 限制并发,避免大量块同时调 LLM 轰炸 API)
+        // 只把 previousSummary 交给第 0 块做增量合并，避免多块并行时 N 倍重复携带并改写同一份既有摘要。
         val results =
             coroutineScope {
-                chunks.map { chunk ->
+                chunks.mapIndexed { index, chunk ->
                     async {
                         chunkSemaphore.withPermit {
-                            compressChunk(chunk, customPrompt, model, providerConfig, previousSummary)
+                            val chunkPrevious = if (index == 0) previousSummary else null
+                            compressChunk(chunk, customPrompt, model, providerConfig, chunkPrevious, useChinese)
                         }
                     }
                 }.let { deferredList ->
@@ -225,6 +262,8 @@ class ConversationCompressor(
      * @param customPrompt 用户自定义压缩指令(null/空串表示用默认结构化指令)
      * @param model 压缩模型(v2.3.2: 由 [compress] 统一解析一次后传入,不再每块各解析一次)
      * @param providerConfig 与 [model] 配套的 Provider 绑定
+     * @param previousSummary 上一版摘要(仅第 0 块传入,避免多块重复合并)
+     * @param useChinese 是否使用中文压缩契约(false 时使用英文契约并保持与对话一致的语言)
      * @return 摘要文本;失败或摘要为空时返回 null
      */
     private suspend fun compressChunk(
@@ -233,16 +272,17 @@ class ConversationCompressor(
         model: Model? = null,
         providerConfig: ProviderConfig? = null,
         previousSummary: String? = null,
+        useChinese: Boolean = true,
     ): String? {
-        val prompt = buildString {
+        val hasPrevious = !previousSummary.isNullOrBlank()
+        val systemPrompt = buildString {
             if (!customPrompt.isNullOrBlank()) {
-                // v1.0.52: 用户自定义压缩指令
-                appendLine(customPrompt)
-            } else {
+                appendLine(customPrompt.trim())
+            } else if (useChinese) {
                 // 默认结构化压缩指令：三段固定结构。
                 // 「已否定」单独成段，是为了避免压缩后旧方案被重新提出——
                 // 只写「已完成/待办」时，被否掉的方案会从摘要里消失，模型就会再提一次。
-                appendLine("请把下面的对话历史压缩成一份可交接的摘要，保留继续工作必需的信息。")
+                appendLine("你是对话压缩助手。请把用户提供的对话历史压缩成一份可交接的简洁摘要，保留继续工作必需的信息。")
                 appendLine("必须只输出以下三个三级标题，顺序固定；每节用要点形式，每点一行：")
                 appendLine("### 已完成")
                 appendLine("- 已经完成并确认有效的事项、做出的决策及理由")
@@ -250,33 +290,71 @@ class ConversationCompressor(
                 appendLine("- 已经明确否定、不再采纳的方案、结论或建议；没有则写 `- 无`。此节内容后续不得被重新提出")
                 appendLine("### 待办")
                 appendLine("- 尚未完成的工作、下一步、未解决问题和需要跟进的事项")
-                appendLine("- 不要编造未提及的内容")
-                appendLine("- 总长度不超过 800 字")
+                appendLine("- 不要编造未提及的内容；总长度不超过 800 字")
+            } else {
+                appendLine("You are a conversation compression assistant. Compress the conversation history into a concise handoff summary in the conversation's language, retaining only what is needed to continue work.")
+                appendLine("Output ONLY these three level-3 headings in exact order, using one bullet per line:")
+                appendLine("### Completed")
+                appendLine("- Completed and confirmed work, decisions made, and key reasons")
+                appendLine("### Negated")
+                appendLine("- Explicitly rejected approaches, conclusions, or options; write `- None` if none. Items here must not be re-proposed")
+                appendLine("### Pending")
+                appendLine("- Unfinished work, next steps, open questions, and follow-ups")
+                appendLine("- Never fabricate unmentioned facts; keep the total under 500 words")
             }
-            if (!previousSummary.isNullOrBlank()) {
+            if (hasPrevious) {
                 appendLine()
-                appendLine("已有摘要(来自更早的压缩,必须在它基础上更新,而不是另起一份):")
-                appendLine(previousSummary.trim())
-                appendLine()
-                appendLine("合并要求:")
-                appendLine("- 已有摘要里的事实与决策一律保留,除非新对话明确推翻它")
-                appendLine("- 新对话带来的进展要覆盖旧结论(状态变了就写新的状态)")
-                appendLine("- 两边都有内容不要重复写两遍,合成一条")
+                if (useChinese) {
+                    appendLine("增量合并要求:")
+                    appendLine("- 在已有摘要基础上更新，而不是另起一份")
+                    appendLine("- 已有摘要里的事实与决策一律保留，除非新对话明确推翻它")
+                    appendLine("- 新进展覆盖旧状态；两边重复项合并为一条")
+                } else {
+                    appendLine("Incremental merge rules:")
+                    appendLine("- Update the existing summary rather than starting from scratch")
+                    appendLine("- Preserve prior facts and decisions unless explicitly superseded by new turns")
+                    appendLine("- Replace outdated statuses with latest progress and deduplicate overlapping points")
+                }
             }
-            val negated = previousSummary?.let(::extractNegatedSection).orEmpty()
-            if (negated.isNotBlank()) {
+        }.trim()
+
+        val userContent = buildString {
+            if (hasPrevious) {
+                val trimmedPrevious = previousSummary?.trim().orEmpty()
+                if (useChinese) {
+                    appendLine("已有摘要:")
+                } else {
+                    appendLine("Existing summary:")
+                }
+                appendLine(trimmedPrevious)
+                val negated = extractNegatedSection(trimmedPrevious)
+                if (negated.isNotBlank()) {
+                    appendLine()
+                    if (useChinese) {
+                        appendLine("已否定结论（不得重新提出，必须原样保留到新的「### 已否定」一节）:")
+                    } else {
+                        appendLine("Negated conclusions (must not be re-proposed; preserve verbatim under `### Negated`):")
+                    }
+                    appendLine(negated)
+                }
                 appendLine()
-                appendLine("已否定结论（不得重新提出，必须原样保留到新的「### 已否定」一节）:")
-                appendLine(negated)
             }
-            appendLine()
-            appendLine("对话历史:")
+            appendLine(if (useChinese) "对话历史:" else "Conversation history:")
             chunk.forEach { msg ->
-                val role = when (msg.role) {
-                    MessageRole.USER -> "用户"
-                    MessageRole.ASSISTANT -> "助手"
-                    MessageRole.SYSTEM -> "系统"
-                    MessageRole.TOOL -> "工具"
+                val role = if (useChinese) {
+                    when (msg.role) {
+                        MessageRole.USER -> "用户"
+                        MessageRole.ASSISTANT -> "助手"
+                        MessageRole.SYSTEM -> "系统"
+                        MessageRole.TOOL -> "工具"
+                    }
+                } else {
+                    when (msg.role) {
+                        MessageRole.USER -> "User"
+                        MessageRole.ASSISTANT -> "Assistant"
+                        MessageRole.SYSTEM -> "System"
+                        MessageRole.TOOL -> "Tool"
+                    }
                 }
                 val raw = msg.content
                 // v2.x: 与 ContextCompressTransformer 口径一致 —— 保头尾，让尾部结论进得了摘要
@@ -286,13 +364,13 @@ class ConversationCompressor(
         }
 
         val messages = listOf(
-            UIMessage(role = MessageRole.SYSTEM, content = "你是对话压缩助手,输出简洁中文摘要。"),
-            UIMessage(role = MessageRole.USER, content = prompt),
+            UIMessage(role = MessageRole.SYSTEM, content = systemPrompt),
+            UIMessage(role = MessageRole.USER, content = userContent),
         )
 
         return try {
             // H-COMP2 / L-COMP7: 用 resultOf 替代 runCatching,不吞 CancellationException
-            // completeText 默认走 UTILITY 模式(自动关思考),适合后台摘要任务
+            // 显式传 UTILITY + ReasoningLevel.OFF，避免后台摘要浪费推理 token
             val completion = resultOf {
                 chatService.completeText(
                     messages = messages,
@@ -300,6 +378,7 @@ class ConversationCompressor(
                     providerConfig = providerConfig,
                     temperature = COMPRESS_TEMPERATURE,
                     maxTokens = COMPRESS_MAX_TOKENS,
+                    reasoningLevel = ReasoningLevel.OFF,
                     mode = ChatRequestMode.UTILITY,
                 )
             }.onError { msg, t ->
@@ -313,6 +392,7 @@ class ConversationCompressor(
                     providerConfig = providerConfig,
                     temperature = COMPRESS_TEMPERATURE,
                     maxTokens = COMPRESS_MAX_TOKENS,
+                    reasoningLevel = ReasoningLevel.OFF,
                     mode = ChatRequestMode.UTILITY,
                 ).collect { ev ->
                     if (ev is ChatStreamEvent.ContentDelta) sb.append(ev.delta)

@@ -2,8 +2,10 @@ package io.zer0.muse.ui.chat
 
 import android.content.Context
 import io.zer0.ai.ChatService
+import io.zer0.ai.core.ChatRequestMode
 import io.zer0.ai.core.ChatStreamEvent
 import io.zer0.ai.core.MessageRole
+import io.zer0.ai.core.ReasoningLevel
 import io.zer0.ai.core.UIMessage
 import io.zer0.common.AppDispatchers
 import io.zer0.common.Logger
@@ -88,13 +90,16 @@ internal class ChatTranslationCoordinator(
         targetLanguage: String,
         style: String,
     ) {
-        val prompt = io.zer0.muse.ui.translate.TranslateViewModel.buildTranslationPrompt(
-            text = sourceText,
+        val systemPrompt = io.zer0.muse.ui.translate.TranslateViewModel.buildTranslationSystemPrompt(
             targetLanguage = targetLanguage,
             sourceLanguage = io.zer0.muse.ui.translate.TranslateViewModel.SOURCE_AUTO,
             style = style,
         )
-        val request = listOf(UIMessage(role = MessageRole.USER, content = prompt))
+        val userContent = io.zer0.muse.ui.translate.TranslateViewModel.buildTranslationUserContent(sourceText)
+        val request = listOf(
+            UIMessage(role = MessageRole.SYSTEM, content = systemPrompt),
+            UIMessage(role = MessageRole.USER, content = userContent),
+        )
         val sessionId = host.displayedSessionId() ?: return
 
         // 空串占位表示"翻译中"，流式增量直接更新源消息（UI 以可展开块展示）。
@@ -110,7 +115,11 @@ internal class ChatTranslationCoordinator(
         val sb = StringBuilder()
         var failure: Pair<String, ChatErrorType>? = null
         var completed = false
-        host.chatService.streamChat(messages = request).collect { ev ->
+        host.chatService.streamChat(
+            messages = request,
+            reasoningLevel = ReasoningLevel.OFF,
+            mode = ChatRequestMode.UTILITY,
+        ).collect { ev ->
             when (ev) {
                 is ChatStreamEvent.ContentDelta -> {
                     if (failure == null) {

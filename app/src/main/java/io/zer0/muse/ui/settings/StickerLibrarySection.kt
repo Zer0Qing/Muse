@@ -58,15 +58,13 @@ import io.zer0.muse.ui.common.form.MuseChip
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.media.FullScreenMediaViewer
-import io.zer0.muse.ui.common.settings.ChevronRight
-import io.zer0.muse.ui.common.settings.SectionLabel
-import io.zer0.muse.ui.common.settings.SettingsGroup
-import io.zer0.muse.ui.common.settings.SettingsGroupDivider
-import io.zer0.muse.ui.common.settings.SettingsItemRow
-import io.zer0.muse.ui.common.settings.SettingsSwitchRow
+import io.zer0.muse.ui.common.surface.CardGroup
+import io.zer0.muse.ui.common.surface.navigationItem
+import io.zer0.muse.ui.common.surface.switchItem
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.MuseSpacing
 import io.zer0.muse.ui.theme.pill
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -262,130 +260,144 @@ internal fun StickerLibrarySection(settings: SettingsRepository, scope: Coroutin
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        SettingsGroup {
+        CardGroup {
             // 启用开关
-            SettingsSwitchRow(
-                // 表情包有自己的图形:此前与"图片/绘图"共用 image,同一页里分不清说的是贴纸还是图片。
-                icon = MuseIcons.sticker,
+            switchItem(
+                key = "sticker_enabled",
                 title = stringResource(R.string.settings_sticker_enabled),
                 checked = stickerEnabled,
                 onCheckedChange = { v -> scope.launch { settings.saveStickerEnabled(v) } },
+                leadingContent = {
+                    Icon(
+                        imageVector = MuseIcons.sticker,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(MuseIconSizes.iconMedium),
+                    )
+                },
             )
-            // v2.x: 发送频率档位(标记链路;替代旧概率滑块)
-            Row(
-                modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(MusePaddings.cardInner),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Icon(
-                    imageVector = MuseIcons.sliders,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.outline,
-                    modifier = Modifier.size(MuseIconSizes.iconMedium),
-                )
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(R.string.settings_sticker_frequency),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurface,
+            // 发送频率档位
+            content(key = "sticker_frequency") {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(MusePaddings.cardInner),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(MuseSpacing.md),
+                ) {
+                    Icon(
+                        imageVector = MuseIcons.sliders,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(MuseIconSizes.iconMedium),
                     )
-                    Text(
-                        text = stringResource(R.string.settings_sticker_frequency_subtitle),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Row(
-                        modifier = Modifier.padding(top = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        listOf(
-                            STICKER_FREQ_OCCASIONALLY to R.string.settings_sticker_freq_occasional,
-                            STICKER_FREQ_NORMAL to R.string.settings_sticker_freq_normal,
-                            STICKER_FREQ_FREQUENT to R.string.settings_sticker_freq_frequent,
-                        ).forEach { (value, labelRes) ->
-                            MuseChip(
-                                selected = stickerFrequency == value,
-                                onClick = {
-                                    scope.launch {
-                                        settings.saveStickerFrequency(value)
-                                        // v2.x: 选择档位即视为想用表情包 — 自动开启总开关
-                                        if (!stickerEnabled) settings.saveStickerEnabled(true)
-                                    }
-                                },
-                                label = stringResource(labelRes),
-                            )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = stringResource(R.string.settings_sticker_frequency),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        Text(
+                            text = stringResource(R.string.settings_sticker_frequency_subtitle),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Row(
+                            modifier = Modifier.padding(top = MuseSpacing.sm),
+                            horizontalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
+                        ) {
+                            listOf(
+                                STICKER_FREQ_OCCASIONALLY to R.string.settings_sticker_freq_occasional,
+                                STICKER_FREQ_NORMAL to R.string.settings_sticker_freq_normal,
+                                STICKER_FREQ_FREQUENT to R.string.settings_sticker_freq_frequent,
+                            ).forEach { (value, labelRes) ->
+                                MuseChip(
+                                    selected = stickerFrequency == value,
+                                    onClick = {
+                                        scope.launch {
+                                            settings.saveStickerFrequency(value)
+                                            if (!stickerEnabled) settings.saveStickerEnabled(true)
+                                        }
+                                    },
+                                    label = stringResource(labelRes),
+                                )
+                            }
                         }
                     }
                 }
             }
-            // 导入 zip(通过 SAF 选取压缩包)
-            SettingsItemRow(
-                icon = MuseIcons.upload,
+            // 导入 zip（通过 SAF 选取压缩包）
+            navigationItem(
+                key = "sticker_upload_zip",
                 title = stringResource(R.string.settings_sticker_upload),
-                onClick = {
-                    importLauncher.launchSafely(arrayOf("*/*"), context)
+                leadingContent = {
+                    Icon(
+                        imageVector = MuseIcons.upload,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(MuseIconSizes.iconMedium),
+                    )
                 },
-            ) { ChevronRight() }
-            // 从相册添加（多选）。图进当前查看的包，没选包就进"默认"。
-            SettingsItemRow(
-                icon = MuseIcons.image,
+                onClick = { importLauncher.launchSafely(arrayOf("*/*"), context) },
+            )
+            // 从相册添加（多选）
+            navigationItem(
+                key = "sticker_add_gallery",
                 title = stringResource(R.string.settings_sticker_add_from_gallery),
-                onClick = {
-                    galleryLauncher.launchSafely(arrayOf("image/*"), context)
+                leadingContent = {
+                    Icon(
+                        imageVector = MuseIcons.image,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(MuseIconSizes.iconMedium),
+                    )
                 },
-            ) { ChevronRight() }
-
-            // v1.0.54: 导入进度文本(进度条不随真实进度,用户反馈只保留文本)
-            if (importingSticker) {
-                Column(
-                    modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                ) {
-                    if (stickerImportText.isNotBlank()) {
-                        Text(
-                            text = stickerImportText,
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                    }
+                onClick = { galleryLauncher.launchSafely(arrayOf("image/*"), context) },
+            )
+            // 导入进度文本
+            if (importingSticker && stickerImportText.isNotBlank()) {
+                content(key = "sticker_import_progress") {
+                    Text(
+                        text = stickerImportText,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = MusePaddings.screen, vertical = MuseSpacing.sm),
+                    )
                 }
             }
-            // v1.112 (F1-F2): 批量删除 / 清空入口
+            // 批量删除 / 清空入口
             if (stickers.isNotEmpty()) {
-                Row(
-                    modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    MuseCapsuleButton(
-                        text =
-                        if (batchDeleteMode) {
-                            stringResource(R.string.settings_sticker_batch_done)
-                        } else {
-                            stringResource(R.string.settings_sticker_batch_delete)
-                        },
-                        onClick = {
-                            batchDeleteMode = !batchDeleteMode
-                            if (!batchDeleteMode) selectedIds.clear()
-                        },
-                        variant = IosCapsuleButtonVariant.Text,
-                        fillWidth = false,
-                        modifier = Modifier.weight(1f),
-                    )
-                    MuseCapsuleButton(
-                        text = stringResource(R.string.settings_common_clear_all),
-                        onClick = { showClearAllConfirm = true },
-                        variant = IosCapsuleButtonVariant.Text,
-                        fillWidth = false,
-                        modifier = Modifier.weight(1f),
-                    )
+                content(key = "sticker_batch_actions") {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = MusePaddings.screen, vertical = MuseSpacing.sm),
+                        horizontalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
+                    ) {
+                        MuseCapsuleButton(
+                            text = if (batchDeleteMode) {
+                                stringResource(R.string.settings_sticker_batch_done)
+                            } else {
+                                stringResource(R.string.settings_sticker_batch_delete)
+                            },
+                            onClick = {
+                                batchDeleteMode = !batchDeleteMode
+                                if (!batchDeleteMode) selectedIds.clear()
+                            },
+                            variant = IosCapsuleButtonVariant.Text,
+                            fillWidth = false,
+                            modifier = Modifier.weight(1f),
+                        )
+                        MuseCapsuleButton(
+                            text = stringResource(R.string.settings_common_clear_all),
+                            onClick = { showClearAllConfirm = true },
+                            variant = IosCapsuleButtonVariant.Text,
+                            fillWidth = false,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
                 }
             }
         }
@@ -884,6 +896,15 @@ internal fun StickerLibrarySection(settings: SettingsRepository, scope: Coroutin
                             modifier = Modifier.weight(1f),
                         )
                     }
+                    MuseCapsuleButton(
+                        text = stringResource(R.string.common_delete),
+                        onClick = {
+                            itemActions = null
+                            pendingDelete = target
+                        },
+                        destructive = true,
+                        fillWidth = true,
+                    )
                 }
             },
             confirmText = stringResource(R.string.common_confirm),
@@ -898,11 +919,8 @@ internal fun StickerLibrarySection(settings: SettingsRepository, scope: Coroutin
                     refreshTrigger++
                 }
             },
-            dismissText = stringResource(R.string.common_delete),
-            onDismiss = {
-                itemActions = null
-                pendingDelete = target
-            },
+            dismissText = stringResource(R.string.common_cancel),
+            onDismiss = { itemActions = null },
         )
     }
 }
@@ -935,7 +953,11 @@ internal val PRESET_CHAT_GRADIENTS: List<Pair<Long, Long>> =
 @Composable
 internal fun StickerSettingsSection(settings: SettingsRepository, scope: CoroutineScope) {
     Column(verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap)) {
-        SectionLabel(stringResource(R.string.settings_chat_sticker_section))
+        Text(
+            text = stringResource(R.string.settings_chat_sticker_section),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         StickerLibrarySection(settings = settings, scope = scope)
     }
 }

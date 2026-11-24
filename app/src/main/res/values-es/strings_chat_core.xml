@@ -571,4 +571,8 @@
     <string name="chat_hold_to_record_hint">Mantén pulsado para hablar, suelta para terminar</string>
     <string name="chat_input_action_fullscreen_subtitle">Entrada a pantalla completa</string>
     <string name="chat_camera_unavailable_hint">No se puede abrir la cámara. Revisa la cámara del dispositivo o los permisos.</string>
+    <string name="chat_thinking_active">Pensando</string>
+    <string name="chat_thinking_active_topic">Pensando · %1$s</string>
+    <string name="chat_thinking_done_duration">Pensó durante %1$d s</string>
+    <string name="chat_thinking_done">Proceso de pensamiento</string>
 </resources>

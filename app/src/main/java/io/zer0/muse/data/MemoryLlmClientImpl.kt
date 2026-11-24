@@ -2,10 +2,12 @@ package io.zer0.muse.data
 
 import android.content.Context
 import io.zer0.ai.ChatService
+import io.zer0.ai.core.ChatRequestMode
 import io.zer0.ai.core.ChatStreamEvent
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.Model
 import io.zer0.ai.core.ModelAbility
+import io.zer0.ai.core.ReasoningLevel
 import io.zer0.ai.core.UIMessage
 import io.zer0.common.Logger
 import io.zer0.memory.llm.MemoryLlmClient
@@ -18,6 +20,9 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.withTimeout
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
 
 /**
  * [MemoryLlmClient] 的 app 端实现。
@@ -104,6 +109,8 @@ class MemoryLlmClientImpl(
                         providerConfig = resolvedProviderConfig,
                         temperature = temperature,
                         maxTokens = effectiveMaxTokens,
+                        reasoningLevel = ReasoningLevel.OFF,
+                        mode = ChatRequestMode.UTILITY,
                     )
                     // 只接受真实正文;纯 reasoning 思考内容不允许进入记忆链路
                     val raw = resolveMemoryLlmRawText(
@@ -141,7 +148,8 @@ class MemoryLlmClientImpl(
                             providerConfig = resolvedProviderConfig,
                             temperature = temperature,
                             maxTokens = effectiveMaxTokens,
-                            mode = io.zer0.ai.core.ChatRequestMode.UTILITY,
+                            reasoningLevel = ReasoningLevel.OFF,
+                            mode = ChatRequestMode.UTILITY,
                         ).collect { event ->
                             when (event) {
                                 is ChatStreamEvent.ContentDelta -> contentSb.append(event.delta)
@@ -267,12 +275,55 @@ internal fun resolveMemoryLlmRawText(systemPrompt: String, text: String, reasoni
     if (reasoning.isBlank()) return null
     if (!JSON_OUTPUT_PROMPT_RE.containsMatchIn(systemPrompt)) return null
     if (!JSON_PAYLOAD_RE.containsMatchIn(reasoning)) return null
+    if (!containsValidJsonPayload(reasoning)) return null
     return reasoning
 }
 
 private val JSON_OUTPUT_PROMPT_RE = Regex(
-    """JSON\s*(?:数组|对象)|严格\s*JSON|strict\s*JSON|JSON\s*(?:array|object)|Output\s+Format""",
+    """JSON\s*(?:数组|对象)|严格\s*JSON|只输出\s*JSON|strict\s*JSON|JSON\s*(?:array|object|only)""",
     RegexOption.IGNORE_CASE,
 )
 
-private val JSON_PAYLOAD_RE = Regex("""[\[{][\s\S]*[\]}]""")
+/** 仅接受含真实 JSON 键值结构或空数组的载荷，避免英文思考里的 `[User]`/`{topic}` 误命中。 */
+private val JSON_PAYLOAD_RE = Regex("""\{\s*"[^"\r\n]+"\s*:[\s\S]*\}|\[\s*(?:\{\s*"[^"\r\n]+"\s*:|"[^"\r\n]*"|\])""")
+
+private fun containsValidJsonPayload(text: String): Boolean =
+    hasValidJsonContainer(text, '{', '}') || hasValidJsonContainer(text, '[', ']')
+
+private fun hasValidJsonContainer(text: String, open: Char, close: Char): Boolean {
+    var cursor = 0
+    while (cursor < text.length) {
+        val start = text.indexOf(open, cursor)
+        if (start < 0) return false
+        val end = findMatchingClose(text, start, open, close)
+        if (end < 0) return false
+        val candidate = text.substring(start, end + 1)
+        val valid = runCatching {
+            val element = Json.parseToJsonElement(candidate)
+            element is JsonObject || element is JsonArray
+        }.getOrDefault(false)
+        if (valid) return true
+        cursor = start + 1
+    }
+    return false
+}
+
+private fun findMatchingClose(text: String, start: Int, open: Char, close: Char): Int {
+    var depth = 0
+    var inString = false
+    var escaped = false
+    for (i in start until text.length) {
+        val c = text[i]
+        when {
+            escaped -> escaped = false
+            c == '\\' && inString -> escaped = true
+            c == '"' -> inString = !inString
+            !inString && c == open -> depth++
+            !inString && c == close -> {
+                depth--
+                if (depth == 0) return i
+            }
+        }
+    }
+    return -1
+}

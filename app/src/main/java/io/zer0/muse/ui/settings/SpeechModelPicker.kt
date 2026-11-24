@@ -35,9 +35,10 @@ import io.zer0.muse.ui.common.form.MuseSelectionSheet
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.settings.ChevronRight
-import io.zer0.muse.ui.common.settings.SettingsItemRow
 import io.zer0.muse.ui.common.surface.MuseListItem
+import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.theme.MuseSpacing
 
 /**
  * 语音模型（TTS / ASR）的候选与写入规则。
@@ -194,25 +195,28 @@ internal fun SpeechModelSection(
 @Composable
 internal fun SpeechModelRow(title: String, selection: SpeechModelSelection, emptyLabel: String, onOpenPicker: () -> Unit) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        SettingsItemRow(
-            icon = MuseIcons.robot,
-            title = title,
-            subtitle = speechModelLabel(selection, emptyLabel),
+        MuseListItem(
             onClick = onOpenPicker,
-        ) {
-            ChevronRight()
-        }
-        Column(
+            leadingContent = {
+                Icon(
+                    imageVector = MuseIcons.robot,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(MuseIconSizes.iconMedium),
+                )
+            },
+            headlineContent = { Text(title) },
+            supportingContent = { Text(speechModelLabel(selection, emptyLabel)) },
+            trailingContent = { ChevronRight() },
+        )
+        Text(
+            text = stringResource(R.string.settings_speech_model_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(MusePaddings.cardInner),
-        ) {
-            Text(
-                text = stringResource(R.string.settings_speech_model_hint),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+                .padding(start = MusePaddings.screen, end = MusePaddings.screen, bottom = MuseSpacing.sm),
+        )
     }
 }
 

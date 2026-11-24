@@ -128,6 +128,8 @@ internal class StreamRunState(
     var totalCharCount: Int = 0
     var totalToolCallCount: Int = 0
     var firstTokenTime: Long = 0L
+    var reasoningStartedAtMs: Long? = null
+    var reasoningDurationMs: Long? = null
 
     /**
      * v2.0: 本代生成中推给 UI 的刷新次数(内容/思考/图片)。

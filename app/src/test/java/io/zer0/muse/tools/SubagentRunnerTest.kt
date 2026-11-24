@@ -1039,4 +1039,240 @@ class SubagentRunnerTest {
         assertTrue("Agent 模式应包含 screen_back，实际: $names", "screen_back" in names)
         assertFalse("递归工具仍应禁止，实际: $names", "subagent_run" in names)
     }
+
+    @Test
+    fun `unrestricted agent mode narrows large tool pool and preserves find_tools loads across rounds`() = runTest {
+        val mockChatService = mockk<ChatService>(relaxed = true)
+        val mockToolRegistry = mockk<ToolRegistry>(relaxed = true)
+        val optionalTools = listOf(
+            "get_weather", "set_alarm", "set_timer", "toggle_wifi", "toggle_bluetooth",
+            "toggle_flashlight", "set_brightness", "get_brightness", "set_volume", "get_volume",
+            "vibrate", "open_app", "open_system_setting", "get_location", "share_text",
+            "echo", "translate", "ping_host", "dns_lookup", "generate_uuid",
+        )
+        val globalTools = listOf("workspace_write", "browser_navigate")
+        val allNames = listOf("find_tools", "calculator", "web_search") + optionalTools + globalTools
+        every { mockToolRegistry.listTools() } returns allNames.map { name ->
+            ToolRegistry.ToolDef(name, "$name desc", emptyMap(), riskLevel = ToolPermissionResolver.riskLevelFor(name))
+        }
+        every { mockToolRegistry.listToolsAsToolDefinitions() } returns allNames.map { name ->
+            ToolDefinition(name, "$name desc", "{}")
+        }
+        every { mockToolRegistry.getToolRiskLevel("find_tools") } returns ToolRiskLevel.SAFE
+        coEvery { mockToolRegistry.executeFromJson("find_tools", any()) } returns
+            "Matched 1 tool(s), now available from your next call in this session:\n- workspace_write: write file"
+
+        val offeredPerRound = mutableListOf<List<ToolDefinition>>()
+        coEvery {
+            mockChatService.completeText(
+                messages = any(),
+                model = any(),
+                providerConfig = any(),
+                temperature = any(),
+                maxTokens = any(),
+                tools = capture(offeredPerRound),
+                reasoningLevel = any(),
+                mode = any(),
+            )
+        } returnsMany listOf(
+            ChatCompletion(
+                text = "",
+                finishReason = "tool_calls",
+                toolCalls = listOf(ToolCall("ft-1", "find_tools", """{"query":"工作区"}""")),
+            ),
+            ChatCompletion(text = "完成", finishReason = "stop"),
+        )
+
+        val runner = SubagentRunner(
+            mockChatService,
+            mockToolRegistry,
+            mockThreadStore(),
+            mockLimiter(),
+            mockk(relaxed = true),
+            ToolApprovalRouter(),
+        )
+        val result = runner.run(
+            SubagentRunner.Params(
+                task = "查一下今天天气",
+                access = "full",
+                unrestrictedAgentMode = true,
+            ),
+        )
+        assertTrue(result.success)
+        assertEquals(2, offeredPerRound.size)
+
+        val round1Names = offeredPerRound[0].map { it.name }.toSet()
+        assertTrue("第一轮应经分层收窄显著少于全量(${allNames.size})，实际=${round1Names.size}", round1Names.size < allNames.size)
+        assertTrue("第一轮必须保留 find_tools", "find_tools" in round1Names)
+        assertTrue("第一轮应包含命中的 get_weather", "get_weather" in round1Names)
+        assertFalse("第一轮不应暴露无关全局工具 workspace_write", "workspace_write" in round1Names)
+        assertFalse("第一轮不应暴露无关全局工具 browser_navigate", "browser_navigate" in round1Names)
+
+        val round2Names = offeredPerRound[1].map { it.name }.toSet()
+assertTrue("find_tools 动态装载的 workspace_write 应在下一轮可见", "workspace_write" in round2Names)
+        assertFalse("未装载的 browser_navigate 仍应收窄", "browser_navigate" in round2Names)
+    }
+
+    @Test
+    fun `standard subagent narrows large tool pool via ToolExposurePolicy and keeps find_tools`() = runTest {
+        val mockChatService = mockk<ChatService>(relaxed = true)
+        val mockToolRegistry = mockk<ToolRegistry>(relaxed = true)
+        val safeOptional = listOf(
+            "echo", "translate", "ping_host", "dns_lookup", "get_public_ip",
+            "url_encode", "url_decode", "base64_encode", "base64_decode", "hash_text",
+            "generate_uuid", "random_number", "json_pretty", "generate_password",
+            "get_storage_info", "get_memory_info", "get_display_info", "get_cpu_info",
+            "get_sensors_list", "get_brightness", "get_volume",
+        )
+        val allNames = listOf("find_tools", "calculator", "get_weather") + safeOptional
+        every { mockToolRegistry.listTools() } returns allNames.map { name ->
+            ToolRegistry.ToolDef(name, "$name desc", emptyMap(), riskLevel = ToolRiskLevel.SAFE)
+        }
+        every { mockToolRegistry.listToolsAsToolDefinitions(any()) } answers {
+            firstArg<List<String>>().map { name -> ToolDefinition(name, "$name desc", "{}") }
+        }
+        val offered = slot<List<ToolDefinition>>()
+        coEvery {
+            mockChatService.completeText(
+                messages = any(),
+                model = any(),
+                providerConfig = any(),
+                temperature = any(),
+                maxTokens = any(),
+                tools = capture(offered),
+                reasoningLevel = any(),
+                mode = any(),
+            )
+        } returns ChatCompletion(text = "晴天", finishReason = "stop")
+
+        val runner = SubagentRunner(
+            mockChatService,
+            mockToolRegistry,
+            mockThreadStore(),
+            mockLimiter(),
+            mockk(relaxed = true),
+            ToolApprovalRouter(),
+        )
+        val result = runner.run(SubagentRunner.Params(task = "北京今天天气怎么样"))
+        assertTrue(result.success)
+        val names = offered.captured.map { it.name }.toSet()
+        assertTrue("标准子代理也应走收窄", names.size < allNames.size)
+        assertTrue("标准子代理应保留 find_tools", "find_tools" in names)
+        assertTrue("命中天气族应保留 get_weather", "get_weather" in names)
+        assertFalse("无关工具 base64_encode 应收窄", "base64_encode" in names)
+    }
+
+    @Test
+    fun `prompts localize user headers in English and avoid phantom recursive tool warnings`() = runTest {
+        val mockChatService = mockk<ChatService>(relaxed = true)
+        val mockToolRegistry = mockk<ToolRegistry>(relaxed = true)
+        every { mockToolRegistry.listTools() } returns listOf(
+            ToolRegistry.ToolDef("web_search", "search", emptyMap(), riskLevel = ToolRiskLevel.SAFE),
+        )
+        every { mockToolRegistry.listToolsAsToolDefinitions(any()) } returns listOf(
+            ToolDefinition("web_search", "search", "{}"),
+        )
+        val settings = mockSettings(SessionPermissionMode.ASK)
+        every { settings.getLanguageSync() } returns "en"
+
+        val sentMessages = slot<List<io.zer0.ai.core.UIMessage>>()
+        coEvery {
+            mockChatService.completeText(
+                messages = capture(sentMessages),
+                model = any(),
+                providerConfig = any(),
+                temperature = any(),
+                maxTokens = any(),
+                tools = any(),
+                reasoningLevel = any(),
+                mode = any(),
+            )
+        } returns ChatCompletion(text = "Done", finishReason = "stop")
+
+        val runner = SubagentRunner(
+            mockChatService,
+            mockToolRegistry,
+            mockThreadStore(),
+            mockLimiter(),
+            mockk(relaxed = true),
+            ToolApprovalRouter(),
+            settings = settings,
+        )
+        val result = runner.run(
+            SubagentRunner.Params(
+                task = "Summarize release notes",
+                contextText = "Keep under 5 bullets",
+            ),
+        )
+        assertTrue(result.success)
+        val sysMsg = sentMessages.captured.first { it.role == io.zer0.ai.core.MessageRole.SYSTEM }.content
+        val userMsg = sentMessages.captured.first { it.role == io.zer0.ai.core.MessageRole.USER }.content
+        assertFalse("系统提示不应再提及未暴露的幽灵工具 subagent_run", sysMsg.contains("subagent_run"))
+        assertFalse("系统提示不应再提及未暴露的幽灵工具 delegate_agent", sysMsg.contains("delegate_agent"))
+        assertTrue("英文模式下 user 消息应使用英文标题", userMsg.contains("## Task"))
+        assertTrue("英文模式下约束段应使用英文标题", userMsg.contains("## Constraints / Acceptance Criteria"))
+    }
+
+    @Test
+    fun `agent worker system prompt enforces resourceScope verifiable evidence and tools boundary`() = runTest {
+        val mockChatService = mockk<ChatService>(relaxed = true)
+        val mockToolRegistry = mockk<ToolRegistry>(relaxed = true)
+        every { mockToolRegistry.listTools() } returns listOf(
+            ToolRegistry.ToolDef("find_tools", "find", emptyMap(), riskLevel = ToolRiskLevel.SAFE),
+            ToolRegistry.ToolDef("read_file", "read", emptyMap(), riskLevel = ToolRiskLevel.SAFE),
+        )
+        every { mockToolRegistry.listToolsAsToolDefinitions() } returns listOf(
+            ToolDefinition("find_tools", "find", "{}"),
+            ToolDefinition("read_file", "read", "{}"),
+        )
+        val settings = mockSettings(SessionPermissionMode.ASK)
+        every { settings.getLanguageSync() } returns "zh"
+
+        val sentMessages = slot<List<io.zer0.ai.core.UIMessage>>()
+        coEvery {
+            mockChatService.completeText(
+                messages = capture(sentMessages),
+                model = any(),
+                providerConfig = any(),
+                temperature = any(),
+                maxTokens = any(),
+                tools = any(),
+                reasoningLevel = any(),
+                mode = any(),
+            )
+        } returns ChatCompletion(text = "完成", finishReason = "stop")
+
+        val runner = SubagentRunner(
+            mockChatService,
+            mockToolRegistry,
+            mockThreadStore(),
+            mockLimiter(),
+            mockk(relaxed = true),
+            ToolApprovalRouter(),
+            settings = settings,
+        )
+        runner.run(
+            SubagentRunner.Params(
+                task = "检查笔记目录",
+                unrestrictedAgentMode = true,
+                toolExecutionContext = ToolExecutionContext(
+                    scope = "main",
+                    spaceId = "default",
+                    resourceScope = "notes/",
+                    isSubagentContext = true,
+                ),
+            ),
+        )
+        val sysMsg = sentMessages.captured.first { it.role == io.zer0.ai.core.MessageRole.SYSTEM }.content
+        assertTrue("应显式注入 resourceScope", sysMsg.contains("notes/"))
+        assertTrue("应要求提供可核验证据", sysMsg.contains("可核验"))
+        assertFalse("不应宣称拥有全部未暴露工具", sysMsg.contains("全部本地工具"))
+    }
+
+    @Test
+    fun `SubagentRunSkill toolDef declares access and profile parameters`() {
+        val def = SubagentRunSkill.toolDef()
+        assertTrue("schema 应声明 access 参数", "access" in def.parameters)
+        assertTrue("schema 应声明 profile 参数", "profile" in def.parameters)
+    }
 }

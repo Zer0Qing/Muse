@@ -36,11 +36,11 @@ import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.settings.ChevronRight
-import io.zer0.muse.ui.common.settings.SectionLabel
-import io.zer0.muse.ui.common.settings.SettingsGroup
-import io.zer0.muse.ui.common.settings.SettingsGroupDivider
-import io.zer0.muse.ui.common.settings.SettingsItemRow
-import io.zer0.muse.ui.common.settings.SettingsSwitchRow
+import io.zer0.muse.ui.common.surface.CardGroup
+import io.zer0.muse.ui.common.surface.navigationItem
+import io.zer0.muse.ui.common.surface.switchItem
+import io.zer0.muse.ui.theme.MuseIconSizes
+import io.zer0.muse.ui.theme.MuseSpacing
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import io.zer0.muse.ui.assistant.ModelSwitchSheet
@@ -127,26 +127,37 @@ fun TaskRoutingSettingsPage(
         title = stringResource(R.string.settings_task_routing_aux_section),
         onBack = onBack,
     ) {
-        // v2.x: 分组拆分 — 「主对话模型」与「辅助模型」各自独立 label(消除混层歧义)
-        item { SectionLabel(stringResource(R.string.settings_task_routing_main_models_label)) }
-        item {
-            SettingsGroup(modifier = Modifier.padding(top = 4.dp)) {
-                // 主对话模型(全局默认) — 主聊天/Agent 共用的主模型
-                SettingsItemRow(
-                    icon = MuseIcons.chat,
+        item(key = "main_models_group") {
+            val mainSubtitle = currentModelName + " · " + stringResource(R.string.settings_agent_current_model_hint)
+            CardGroup(title = { Text(stringResource(R.string.settings_task_routing_main_models_label)) }) {
+                navigationItem(
+                    key = "main_model",
                     title = stringResource(R.string.settings_agent_current_model),
-                    subtitle = currentModelName + " · " + stringResource(R.string.settings_agent_current_model_hint),
+                    subtitle = mainSubtitle,
+                    leadingContent = {
+                        Icon(
+                            imageVector = MuseIcons.chat,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
+                    },
                     onClick = { showMainModelPicker = true },
-                ) {
-                    ChevronRight()
-                }
-                // 默认深度思考：免去每次新会话都要按按钮
-                SettingsSwitchRow(
-                    icon = MuseIcons.atom,
+                )
+                switchItem(
+                    key = "default_deep_thinking",
                     title = stringResource(R.string.settings_chat_default_deep_thinking),
                     checked = chatPrefs.defaultDeepThinking,
                     onCheckedChange = { v ->
                         scope.launch { settings.updateChatPreferences { it.copy(defaultDeepThinking = v) } }
+                    },
+                    leadingContent = {
+                        Icon(
+                            imageVector = MuseIcons.atom,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
                     },
                 )
             }
@@ -154,10 +165,9 @@ fun TaskRoutingSettingsPage(
         utilityFailure?.let { failure ->
             item(key = "aux_utility_failure") {
                 Column(
-                    modifier =
-                    Modifier
+                    modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                        .padding(horizontal = MuseSpacing.xs),
                 ) {
                     Text(
                         text = stringResource(R.string.settings_task_routing_utility_failed_title),
@@ -165,76 +175,109 @@ fun TaskRoutingSettingsPage(
                         color = MaterialTheme.colorScheme.error,
                     )
                     Text(
-                        text =
-                        stringResource(
+                        text = stringResource(
                             R.string.settings_task_routing_utility_failed_desc,
                             failure.modelId,
                             failure.message,
                         ),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
         }
-        item { SectionLabel(stringResource(R.string.settings_task_routing_aux_models_label)) }
-        item {
-            SettingsGroup(modifier = Modifier.padding(top = 4.dp)) {
-                // 小工具模型
-                SettingsItemRow(
-                    icon = MuseIcons.wrench,
-                    title = stringResource(R.string.settings_agent_tool_model_title),
+        item(key = "aux_models_group") {
+            val compressSubtitle = customCompressPrompt?.takeIf { it.isNotBlank() }
+                ?: stringResource(R.string.settings_memory_custom_compress_prompt_default)
+            val visionSubtitle = visionLabel ?: stringResource(R.string.settings_task_routing_vision_unset)
+            CardGroup(title = { Text(stringResource(R.string.settings_task_routing_aux_models_label)) }) {
+                item(
+                    key = "aux_small",
                     onClick = {
                         editingProviderId = utilityBinding?.providerId ?: activeProviderId
                         editingUtilityTier = UtilityTier.SMALL
                     },
-                ) {
-                    ModelValue(
-                        text = utilitySmallLabel ?: utilitySmallInheritText,
-                        bound = utilityBinding != null,
-                    )
-                }
-                // 大工具模型
-                SettingsItemRow(
-                    icon = MuseIcons.bolt,
-                    title = stringResource(R.string.settings_agent_subagent_model_title),
+                    leadingContent = {
+                        Icon(
+                            imageVector = MuseIcons.wrench,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
+                    },
+                    headlineContent = { Text(stringResource(R.string.settings_agent_tool_model_title)) },
+                    trailingContent = {
+                        ModelValue(
+                            text = utilitySmallLabel ?: utilitySmallInheritText,
+                            bound = utilityBinding != null,
+                        )
+                    },
+                )
+                item(
+                    key = "aux_large",
                     onClick = {
                         editingProviderId = utilityLargeBinding?.providerId ?: activeProviderId
                         editingUtilityTier = UtilityTier.LARGE
                     },
-                ) {
-                    ModelValue(
-                        text = utilityLargeLabel ?: utilityLargeInheritText,
-                        bound = utilityLargeBinding != null,
-                    )
-                }
-                // 压缩模型：跟随主对话默认模型，不单独配置
-                SettingsItemRow(
-                    icon = MuseIcons.gauge,
-                    title = stringResource(R.string.settings_chat_compress_model),
-                    onClick = null,
+                    leadingContent = {
+                        Icon(
+                            imageVector = MuseIcons.bolt,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
+                    },
+                    headlineContent = { Text(stringResource(R.string.settings_agent_subagent_model_title)) },
+                    trailingContent = {
+                        ModelValue(
+                            text = utilityLargeLabel ?: utilityLargeInheritText,
+                            bound = utilityLargeBinding != null,
+                        )
+                    },
                 )
-                // v2.x: 自定义压缩提示词(自记忆页归位;上下文压缩归大工具职责)
-                SettingsItemRow(
-                    icon = MuseIcons.edit,
+                item(
+                    key = "aux_compress_model",
+                    leadingContent = {
+                        Icon(
+                            imageVector = MuseIcons.gauge,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
+                    },
+                    headlineContent = { Text(stringResource(R.string.settings_chat_compress_model)) },
+                )
+                navigationItem(
+                    key = "aux_compress_prompt",
                     title = stringResource(R.string.settings_memory_custom_compress_prompt),
-                    subtitle =
-                    customCompressPrompt?.takeIf { it.isNotBlank() }
-                        ?: stringResource(R.string.settings_memory_custom_compress_prompt_default),
+                    subtitle = compressSubtitle,
+                    leadingContent = {
+                        Icon(
+                            imageVector = MuseIcons.edit,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
+                    },
                     onClick = {
                         compressPromptDraft = customCompressPrompt.orEmpty()
                         showCompressPromptDialog = true
                     },
-                ) { ChevronRight() }
-                // 视觉辅助模型(跳独立页配置)
-                SettingsItemRow(
-                    icon = MuseIcons.eye,
+                )
+                navigationItem(
+                    key = "aux_vision",
                     title = stringResource(R.string.settings_vision_title),
-                    subtitle = visionLabel ?: stringResource(R.string.settings_task_routing_vision_unset),
+                    subtitle = visionSubtitle,
+                    leadingContent = {
+                        Icon(
+                            imageVector = MuseIcons.eye,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
+                    },
                     onClick = onOpenVision,
-                ) {
-                    ChevronRight()
-                }
+                )
             }
         }
     }

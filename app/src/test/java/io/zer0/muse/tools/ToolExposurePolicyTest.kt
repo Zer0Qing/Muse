@@ -343,4 +343,124 @@ class ToolExposurePolicyTest {
     fun `rag auto inject defaults to off so casual chat never pulls KB chunks uninvited`() {
         assertFalse("RAG 自动注入默认应关闭，由模型工具或 @文档名 显式触发", io.zer0.muse.rag.RagConfig().enabled)
     }
+
+    @Test
+    fun `demoted optional tools stay hidden on idle chat and expose on family keywords`() {
+        val demoted = listOf(
+            "subagent_task", "subagent_run", "render_data", "send_voice",
+            "delete_memory", "pin_memory", "unpin_memory", "screen_permission_status",
+            "runtime_selfcheck", "platform_selfcheck", "get_device_info", "get_battery_info",
+        )
+        demoted.forEach { name ->
+            assertTrue("$name 应归类为 OPTIONAL", ToolCategories.categoryOf(name) == ToolCategory.OPTIONAL)
+        }
+        val pool = padding + demoted.map { tool(it) } + listOf(tool("calculator"), tool("find_tools"))
+        val idle = ToolExposurePolicy.filterToolsForRequest("你好呀", pool).map { it.name }.toSet()
+        demoted.forEach { name ->
+            assertFalse("闲聊时降级工具 $name 不应常驻暴露", name in idle)
+        }
+        assertTrue("find_tools 属 CORE 应恒可见", "find_tools" in idle)
+
+        val voiceHit = ToolExposurePolicy.filterToolsForRequest("把这段话发语音说给我听", pool).map { it.name }.toSet()
+        assertTrue("语音关键词应带出 send_voice", "send_voice" in voiceHit)
+
+        val subagentHit = ToolExposurePolicy.filterToolsForRequest("开个子代理帮我并行深度研究", pool).map { it.name }.toSet()
+        assertTrue("子代理关键词应带出 subagent_run", "subagent_run" in subagentHit)
+        assertTrue("子代理关键词应带出 subagent_task", "subagent_task" in subagentHit)
+
+        val selfcheckHit = ToolExposurePolicy.filterToolsForRequest("做一下运行时自检", pool).map { it.name }.toSet()
+        assertTrue("自检关键词应带出 runtime_selfcheck", "runtime_selfcheck" in selfcheckHit)
+        assertTrue("自检关键词应带出 platform_selfcheck", "platform_selfcheck" in selfcheckHit)
+        assertTrue("自检关键词应带出 screen_permission_status", "screen_permission_status" in selfcheckHit)
+
+        val deviceHit = ToolExposurePolicy.filterToolsForRequest("查一下手机设备信息", pool).map { it.name }.toSet()
+        assertTrue("设备关键词应带出 get_device_info", "get_device_info" in deviceHit)
+
+        val memHit = ToolExposurePolicy.filterToolsForRequest("把那条旧记忆置顶或删除记忆", pool).map { it.name }.toSet()
+        assertTrue("记忆关键词应带出 pin_memory", "pin_memory" in memHit)
+        assertTrue("记忆关键词应带出 unpin_memory", "unpin_memory" in memHit)
+        assertTrue("记忆关键词应带出 delete_memory", "delete_memory" in memHit)
+
+        val chartHit = ToolExposurePolicy.filterToolsForRequest("帮我做个图表数据可视化", pool).map { it.name }.toSet()
+        assertTrue("图表关键词应带出 render_data", "render_data" in chartHit)
+    }
+
+    @Test
+    fun `orphan tool families match by clear keywords including delegate and workspace additions`() {
+        val pool = padding + listOf(
+            tool("mcp_mgmt_list"), tool("workspace_mounts"), tool("workspace_copy"), tool("workspace_grep"),
+            tool("arxiv_search"), tool("task_plan"), tool("update_plan_step"),
+            tool("install_skill"), tool("author_plugin"), tool("skill_manage_list"),
+            tool("note_thought"), tool("app_list"), tool("app_uninstall"),
+            tool("terminal_job_start"), tool("terminal_job_list"),
+            tool("update_calendar_event"), tool("delete_calendar_event"),
+            tool("assistant_manage_create"), tool("memory_config_get"), tool("memory_config_set"),
+            tool("delegate_agent"),
+        )
+        val skillNames = setOf("arxiv_search", "task_plan", "update_plan_step", "install_skill", "author_plugin")
+
+        fun hit(text: String): Set<String> = ToolExposurePolicy.filterToolsForRequest(
+            userText = text,
+            tools = pool,
+            skillToolNames = skillNames,
+        ).map { it.name }.toSet()
+
+        assertTrue("mcp 关键词应命中 mcp_mgmt_list", "mcp_mgmt_list" in hit("看看已配置的 mcp 服务器"))
+        val ws = hit("查看工作区挂载并搜索代码")
+        assertTrue("工作区关键词应命中 workspace_mounts", "workspace_mounts" in ws)
+        assertTrue("工作区关键词应命中 workspace_copy", "workspace_copy" in ws)
+        assertTrue("工作区关键词应命中 workspace_grep", "workspace_grep" in ws)
+        assertTrue("论文关键词应命中 arxiv_search", "arxiv_search" in hit("查一下 arxiv 论文"))
+        val plan = hit("拆解一个多步计划")
+        assertTrue("计划关键词应命中 task_plan", "task_plan" in plan)
+        assertTrue("计划关键词应命中 update_plan_step", "update_plan_step" in plan)
+        val sk = hit("帮我编写插件或管理技能")
+        assertTrue("技能插件关键词应命中 author_plugin", "author_plugin" in sk)
+        assertTrue("技能插件关键词应命中 install_skill", "install_skill" in sk)
+        assertTrue("技能插件关键词应命中 skill_manage_list", "skill_manage_list" in sk)
+        assertTrue("随记关键词应命中 note_thought", "note_thought" in hit("记一下这条随记灵感"))
+        val app = hit("帮我查看并卸载这个应用")
+        assertTrue("应用关键词应命中 app_list", "app_list" in app)
+        assertTrue("应用卸载关键词应命中 app_uninstall", "app_uninstall" in app)
+        val job = hit("查看后台命令进程")
+        assertTrue("后台命令关键词应命中 terminal_job_list", "terminal_job_list" in job)
+        assertTrue("后台命令关键词应命中 terminal_job_start", "terminal_job_start" in job)
+        val cal = hit("修改明天的日历日程")
+        assertTrue("日历关键词应命中 update_calendar_event", "update_calendar_event" in cal)
+        assertTrue("日历关键词应命中 delete_calendar_event", "delete_calendar_event" in cal)
+        assertTrue("助手管理关键词应命中 assistant_manage_create", "assistant_manage_create" in hit("在助手管理里创建助手人设"))
+        val memCfg = hit("看一下记忆配置")
+        assertTrue("记忆配置关键词应命中 memory_config_get", "memory_config_get" in memCfg)
+        assertTrue("记忆配置关键词应命中 memory_config_set", "memory_config_set" in memCfg)
+        assertTrue("委托协作关键词应命中 delegate_agent", "delegate_agent" in hit("把这项工作委托给其他助手协作"))
+    }
+
+    @Test
+    fun `deprecated ui screen tools are not exposed alongside canonical screen family`() {
+        val autoTools = padding + listOf(
+            tool("screen_read"), tool("screen_permission_status"), tool("screen_open_settings"),
+            tool("screen_tap"), tool("screen_tap_text"),
+            tool("ui_get_page_info"), tool("ui_screenshot"), tool("ui_get_current_app"),
+            tool("ui_click"), tool("ui_long_press"), tool("ui_swipe"),
+            tool("ui_agent"),
+        )
+        val readHit = ToolExposurePolicy.filterToolsForRequest("看看屏幕上是什么", autoTools).map { it.name }.toSet()
+        assertTrue("应暴露规范读屏工具 screen_read", "screen_read" in readHit)
+        assertTrue("应暴露 screen_open_settings", "screen_open_settings" in readHit)
+        assertFalse("不再并行暴露已废弃 ui_get_page_info", "ui_get_page_info" in readHit)
+        assertFalse("不再并行暴露已废弃 ui_screenshot", "ui_screenshot" in readHit)
+
+        val actionHit = ToolExposurePolicy.filterToolsForRequest("帮我点击按钮", autoTools).map { it.name }.toSet()
+        assertTrue("应暴露规范点击工具 screen_tap", "screen_tap" in actionHit)
+        assertTrue("应暴露规范点击工具 screen_tap_text", "screen_tap_text" in actionHit)
+        assertFalse("不再并行暴露已废弃 ui_click", "ui_click" in actionHit)
+        assertFalse("不再并行暴露已废弃 ui_long_press", "ui_long_press" in actionHit)
+    }
+
+    @Test
+    fun `ghost tools are removed and screen_open_settings is categorized`() {
+        assertTrue("幽灵工具 get_calendar_today 应已删除", ToolCategories.categoryOf("get_calendar_today") == null)
+        assertTrue("幽灵工具 quick_note_search 应已删除", ToolCategories.categoryOf("quick_note_search") == null)
+        assertTrue("screen_open_settings 应归类为 OPTIONAL", ToolCategories.categoryOf("screen_open_settings") == ToolCategory.OPTIONAL)
+    }
 }

@@ -127,14 +127,9 @@ class LlmFactConsolidator(
     private suspend fun mergeTexts(texts: List<String>, maxTokens: Int, timeoutMs: Long): String? {
         val totalLength = texts.sumOf { it.length }
         val user = buildString {
-            appendLine("以下是多条内容重复或高度相似的记忆,请把它们合并成一条:保留所有关键信息")
-            appendLine("(人名、时间、地点、数字、事件),去重,语言自然简洁,不要遗漏任何事实细节。")
-            appendLine("如果发现这些记忆其实内容不同、不应该合并,请只输出一个字符串 __SKIP__。")
-            appendLine()
+            appendLine("候选记忆（共 ${texts.size} 条）：")
             texts.forEachIndexed { idx, text -> appendLine("${idx + 1}. $text") }
-            appendLine()
-            append("请直接输出合并后的一条记忆,不要任何前缀、编号或引号:")
-        }
+        }.trimEnd()
         val result = resultOf {
             withTimeoutOrNull(timeoutMs) {
                 llmClient.callText(
@@ -149,8 +144,11 @@ class LlmFactConsolidator(
         }.onError { msg, t -> Logger.w(TAG, "LLM 合并记忆失败: ${t?.message ?: msg}") }
             .getOrNull() ?: return null
 
-        // 启发式护栏: 显式跳过 / 异常输出 / 疑似未合并原样输出
-        val text = result.trim().trim('"', '\'', '「', '」', '“', '”').trim()
+        // 启发式护栏: 剥离可能残留的 <think> 标签、显式跳过 / 异常输出 / 疑似未合并原样输出
+        val noThink = result
+            .replace(THINK_CLOSED_REGEX, "")
+            .replace(THINK_UNCLOSED_REGEX, "")
+        val text = noThink.trim().trim('"', '\'', '「', '」', '“', '”').trim()
         val looksUnmerged = text.length > totalLength ||
             text.startsWith("1.") || text.startsWith("1、") ||
             text.contains("\n2.") || text.contains("\n2、")
@@ -169,6 +167,9 @@ class LlmFactConsolidator(
         /** 模型显式表示"不应合并"的标记。 */
         private const val SKIP_MARKER = "__SKIP__"
 
+        private val THINK_CLOSED_REGEX = Regex("<think(?:ing)?>[\\s\\S]*?</think(?:ing)?>", RegexOption.IGNORE_CASE)
+        private val THINK_UNCLOSED_REGEX = Regex("<think(?:ing)?>[\\s\\S]*$", RegexOption.IGNORE_CASE)
+
         /** 单簇 LLM 超时(毫秒)。 */
         private const val MERGE_TIMEOUT_MS = 30_000L
 
@@ -184,7 +185,9 @@ class LlmFactConsolidator(
         /** 手动合并超时:输入更长,给模型比自动路径更宽的时间。 */
         private const val MANUAL_MERGE_TIMEOUT_MS = 45_000L
 
-        private const val SYSTEM_PROMPT = "你是记忆整理助手。你的任务是把同一簇的重复记忆合并成一条:" +
-            "保留所有关键信息,去重,语言自然简洁。宁可不合并,也不要编造或丢失关键信息。"
+        private const val SYSTEM_PROMPT = "你是记忆整理助手。请把用户提供的多条重复或高度相似的记忆合并为一条：\n" +
+            "- 保留所有人名、时间、地点、数字、事件等关键事实细节，去重，语言自然简洁；\n" +
+            "- 宁可不合并，也不要编造或丢失关键信息；若这些记忆实际描述不同事项、不应合并，只输出 __SKIP__；\n" +
+            "- 直接输出合并后的那一条记忆正文，不要任何前缀、编号、引号或解释。"
     }
 }

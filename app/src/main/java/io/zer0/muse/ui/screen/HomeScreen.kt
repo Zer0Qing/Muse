@@ -230,9 +230,19 @@ fun HomeScreen(
     var homeTopBarHeightPx by remember { androidx.compose.runtime.mutableIntStateOf(0) }
     val homeTopBarHeightDp = with(density) { homeTopBarHeightPx.toDp() }
     val glassConfig = LocalLiquidGlass.current
-    val glassActive = glassConfig.enabled && io.zer0.muse.ui.theme.isRealGlassSupported()
-    val homeLayerBackdrop = if (glassActive) rememberLayerBackdrop() else null
-    val homeWaterState = if (glassActive) rememberLiquidState() else null
+    val glassActive = glassConfig.enabled &&
+        io.zer0.muse.ui.theme.isRealGlassSupported() &&
+        !io.zer0.muse.ui.theme.LocalInsideBackdropRecorder.current
+    val homeLayerBackdrop = if (glassActive && glassConfig.style == io.zer0.muse.ui.theme.GlassStyle.FROST) {
+        rememberLayerBackdrop()
+    } else {
+        null
+    }
+    val homeWaterState = if (glassActive && glassConfig.style == io.zer0.muse.ui.theme.GlassStyle.WATER) {
+        rememberLiquidState()
+    } else {
+        null
+    }
     val homeBackgroundIsDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
 
     val botViewModel: AgentBotViewModel? = if (io.zer0.muse.feature.FeatureFlags.AGENT_BOT) {
@@ -554,6 +564,15 @@ fun HomeScreen(
                         .then(if (homeWaterState != null) Modifier.liquefiable(homeWaterState) else Modifier),
                     userScrollEnabled = true,
                 ) { page ->
+                    // 关键防崩隔离：HorizontalPager 正在被 homeLayerBackdrop / homeWaterState 录制，
+                    // 内部子树必须清空外层 backdrop 并标记已处于录制器内，
+                    // 杜绝 AgentInlineIdentityBar 等子组件反向采样外层 backdrop 或嵌套第二层 RenderNode 导致 RenderThread SIGSEGV。
+                    androidx.compose.runtime.CompositionLocalProvider(
+                        LocalLayerBackdrop provides null,
+                        LocalWaterGlassState provides null,
+                        io.zer0.muse.ui.theme.LocalInsideBackdropRecorder provides
+                            (homeLayerBackdrop != null || homeWaterState != null),
+                    ) {
                 when (page) {
                     0 -> {
                         Column(
@@ -752,6 +771,7 @@ fun HomeScreen(
                         }
                     }
                 }
+                    }
             }
 
             // 顶部镂空三岛悬浮层：叠在 HorizontalPager 上方，Agent 页消息可直接滑到三颗按钮两侧镂空区

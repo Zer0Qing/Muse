@@ -589,6 +589,7 @@
     <string name="search_custom_engine_method">Método</string>
     <string name="search_custom_engine_body">Plantilla del cuerpo (POST; {query} se reemplaza)</string>
     <string name="search_custom_engine_results_path">Ruta de resultados (p. ej. data.results; vacío = raíz es array)</string>
+    <string name="search_custom_engine_delete_confirm">¿Eliminar «%1$s»? Dejará de usarse en la cadena de búsqueda.</string>
     <string name="settings_chat_carry_over_section">Continuidad entre chats</string>
     <string name="settings_chat_carry_over">Traer el chat anterior al empezar uno nuevo</string>
     <string name="settings_chat_carry_over_count">Traer %1$d mensajes</string>

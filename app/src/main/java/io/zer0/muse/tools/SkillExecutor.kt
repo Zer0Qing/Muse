@@ -645,7 +645,7 @@ class SkillExecutor(
                     id = "web_search",
                     name = "网页搜索",
                     // v1.0.75 fix (工具审查 01): 删冗余 time_period,补 date_range 使用指引
-                    description = "搜索网页，返回标题、URL 和摘要。定时间时传 date_range(如用户说'最近一周',传 past_week);查询里带'今天/最近/最新/本月'等词也会自动推断时间范围。支持 site:域名、filetype:类型、intitle:关键词 操作符,会作为结果过滤生效。用完整的自然语言或关键词串提问即可,不要只给一个单词。不要使用: 常识性问题或用户已提供足够信息时;搜索结果不相关时换关键词重搜,不要编造。",
+                    description = "搜索网页，返回标题、URL 和摘要。限定时间时传 date_range(如用户说'最近一周',传 past_week);查询里带'今天/最近/最新/本月'等词也会自动推断时间范围。支持 site:域名、filetype:类型、intitle:关键词 操作符,会作为结果过滤生效。用完整的自然语言或关键词串提问即可,不要只给一个单词。不要使用: 常识性问题或用户已提供足够信息时;搜索结果不相关时换关键词重搜,不要编造。",
                     parametersJson =
                     buildJsonObject {
                         put("type", "object")
@@ -687,7 +687,7 @@ class SkillExecutor(
                 SkillEntity(
                     id = "web_fetch",
                     name = "网页抓取",
-                    description = "抓取指定 URL 的网页正文，返回纯文本。测内容。",
+                    description = "抓取指定 URL 的网页正文，返回提取后的纯文本内容；长正文会保存到可分段读取的应用文件。",
                     parametersJson =
                     buildJsonObject {
                         put("type", "object")
@@ -721,7 +721,7 @@ class SkillExecutor(
                     name = "知识库搜索",
                     // v1.0.75 fix (工具审查 01): 明确与 web_search 的边界,
                     // 原"可能与已导入文档相关时优先调用"太模糊,模型先试本地再退搜索浪费轮次。
-                    description = "在用户导入的知识库中语义搜索（向量检索 + 标题/内容匹配）。web_search,不要先用本工具试探。用户问 muse app 自身功能(如怎么用深度思考/主动消息怎么设置)时,传 include_internal=true 可检索内置功能文档。",
+                    description = "在用户知识库中语义+关键词检索；问及个人文档/笔记时主动调用，查公开实时信息请用 web_search；查 Muse 本应用设置/用法时传 include_internal=true。",
                     parametersJson =
                     buildJsonObject {
                         put("type", "object")
@@ -836,7 +836,7 @@ class SkillExecutor(
                 SkillEntity(
                     id = "install_skill",
                     name = "安装 Skill",
-                    description = "生成并安装新的 skill。skill_json 必填 id/name/description/category/implementationKotlin/parametersJson。ntationKotlin 只接受内置实现（read_file/write_file/http_get/http_post/web_search/web_fetch/knowledge_search/arxiv_search）或 \"prompt\"（指令放 prompt 字段，8KB 上限）。字段取值见参数示例。",
+                    description = "生成并安装新的 skill。skill_json 必填 id/name/description/category/implementationKotlin/parametersJson。implementationKotlin 只接受内置实现（read_file/write_file/http_get/http_post/web_search/web_fetch/knowledge_search/arxiv_search）或 \"prompt\"（指令放 prompt 字段，8KB 上限）。字段取值见参数示例。",
                     parametersJson =
                     buildJsonObject {
                         put("type", "object")
@@ -864,21 +864,10 @@ class SkillExecutor(
                 SkillEntity(
                     id = "author_plugin",
                     name = "编写插件",
-                    description = "让助手自己编写一个带 JS 工具实现的插件。code 是 JS 入口源码（工具实现必须是顶层" +
-                        " function 声明），" +
-                        "tools 是工具声明数组（每项含 name/description/parametersJ" +
-                        "son/requiredJson/functionName），" +
-                        "可选 capabilities 必须覆盖你代码里实际用到的桥接能力（resource.rea" +
-                        "d / resource.write 或同义的 storage.read / storage" +
-                        ".write、network、" +
-                        "clipboard.read / clipboard.write、notify、" +
-                        "device.info、storage（插件私有 KV，与 fs.* 分开授权）、" +
-                        "config.write（写回自己声明过的配置项，敏感项不可写）、" +
-                        "host.tool.invoke（调用其它工具，走同一套人工审批、深度限 1）、" +
-                        "ui / ui.mood / ui.skin）；**未声明的能力在运行时会被直接拒绝**，" +
-                        "忘了声明就等于插件装得上但调不动。本工具只生成【未签名草稿】：草稿已禁用、不可执行，" +
-                        "助手不能调用；必须由用户在「设置 → 插件管理」中审阅工具清单与代码，" +
-                        "点击「签名并启用」后才会由本机作者密钥签名生效。",
+                    description = "编写一个带 JS 工具实现的插件草稿。code 为含顶层 function 声明的 JS 入口源码，" +
+                        "tools 为工具声明数组（每项含 name/description/parametersJson/requiredJson/functionName），" +
+                        "capabilities 必须声明源码用到的全部桥接能力（可用名见参数说明，未声明运行时会被直接拒绝）。" +
+                        "本工具只生成【未签名草稿】（默认禁用、不可执行），须由用户在「设置 → 插件管理」审阅代码并点击「签名并启用」后生效。",
                     parametersJson =
                     buildJsonObject {
                         put("type", "object")
@@ -952,7 +941,7 @@ class SkillExecutor(
                                         put("type", "string")
                                         put(
                                             "description",
-                                            "执行档：node（默认，跑在可中断的内置 Node 子进程里，" +
+                                            "执行档：node（默认，跑在可中断的 Linux 沙盒运行时（按需安装）Node 子进程里，" +
                                                 "能力一律走 muse.bridge/fetch 且受权限账本约束）或 " +
                                                 "js（WebView 沙盒，需要浏览器语义时才选）。python 不接受",
                                         )
@@ -1181,7 +1170,7 @@ class SkillExecutor(
                 SkillEntity(
                     id = "agent_phone",
                     name = "Agent 私聊",
-                    description = "在群聊中向指定 agent 发起私聊。传 chatId、targetAssistantId 和 message。息流。",
+                    description = "在群聊中向指定 agent 发起私聊。传 chatId、targetAssistantId 和 message，私聊内容隔离于公开消息流。",
                     parametersJson =
                     buildJsonObject {
                         put("type", "object")
@@ -1448,7 +1437,7 @@ class SkillExecutor(
                 SkillEntity(
                     id = "list_public_files",
                     name = "列出公共目录",
-                    description = "列出公共目录（Downloads/Documents 等）的文件名与大小，默认 Downloads，最多 50 条。改时间倒序。",
+                    description = "列出公共目录（Downloads/Documents 等）的文件名与大小，默认 Downloads，最多 50 条，按修改时间倒序，并返回可供 read_public_file 读取的 content:// URI。",
                     parametersJson =
                     buildJsonObject {
                         put("type", "object")
@@ -1629,7 +1618,7 @@ class SkillExecutor(
                 SkillEntity(
                     id = "update_skill",
                     name = "更新 Skill",
-                    description = "更新用户自建 skill 的 name / description / parametersJson。律拒绝。",
+                    description = "更新用户自建 skill 的 name / description / parametersJson（提示词技能可改 prompt）。内置与插件 skill 一律拒绝修改。",
                     parametersJson =
                     buildJsonObject {
                         put("type", "object")
@@ -1683,7 +1672,7 @@ class SkillExecutor(
                 SkillEntity(
                     id = "task_plan",
                     name = "创建任务计划",
-                    description = "创建结构化任务计划。传标题和步骤列表（每步含标题和描述）。_step 更新状态。",
+                    description = "创建结构化任务计划。传标题和步骤列表（每步含标题和描述），后续用 update_plan_step 更新各步状态。",
                     parametersJson =
                     buildJsonObject {
                         put("type", "object")
@@ -1847,7 +1836,7 @@ class SkillExecutor(
                 SkillEntity(
                     id = "generate_image",
                     name = "生成图片",
-                    description = "根据文字描述生成图片，返回图片 URL。需配置 OpenAI 兼容绘图供应商。配置);prompt 尽量用英文描述主体/风格/构图。",
+                    description = "根据文字描述生成图片，返回图片 URL。需在设置中配置 OpenAI 兼容绘图供应商；prompt 尽量用英文描述主体、风格与构图。",
                     parametersJson =
                     buildJsonObject {
                         put("type", "object")

@@ -613,6 +613,7 @@
     <string name="search_custom_engine_method">请求方式</string>
     <string name="search_custom_engine_body">请求体模板（POST 用，{query} 会被替换）</string>
     <string name="search_custom_engine_results_path">结果路径（如 data.results，留空表示根是数组）</string>
+    <string name="search_custom_engine_delete_confirm">确定删除「%1$s」？删除后该引擎不再参与搜索链路。</string>
     <string name="settings_chat_carry_over_section">跨会话衔接</string>
     <string name="settings_chat_carry_over">开新对话时带回上文</string>
     <string name="settings_chat_carry_over_count">带入 %1$d 条消息</string>

@@ -2,7 +2,7 @@
 
 package io.zer0.muse.ui.settings
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -17,29 +17,31 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
 import io.zer0.muse.data.ChatPreferences
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.ui.chat.QuickAction
-import io.zer0.muse.ui.common.settings.SectionLabel
-import io.zer0.muse.ui.common.settings.SettingsGroup
-import io.zer0.muse.ui.common.settings.SettingsGroupDivider
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
+import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.icons.MuseIcons
+import io.zer0.muse.ui.common.surface.CardGroup
+import io.zer0.muse.ui.theme.MuseAlpha
+import io.zer0.muse.ui.theme.MuseButtonSize
+import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.theme.MuseSpacing
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
 /**
- * v2.6.0: 消息快捷按钮自定义页（Via 浏览器式）。
+ * 消息快捷按钮自定义页。
  *
  * 三级入口：设置 → 聊天设置 → 消息快捷按钮。
  * 上区「已启用」：有序列表，每项可上移/下移/移除；
  * 下区「动作池」：未启用的全部动作，点击加入（追加到队尾）。
- * 结果写入 ChatPreferences.quickActionOrder；「恢复默认」回到默认排布。
- *
- * 注意：拖拽排序在 Compose 里需要额外手势系统，这里采用 Via 兼容的
- * 上移/下移按钮方案——单击可控、无需长按拖动，后续如需可再加拖拽。
+ * 结果写入 [ChatPreferences.quickActionOrder]；顶栏「恢复默认」回到默认排布。
  */
 @Composable
 fun QuickActionsSettingsPage(onBack: () -> Unit) {
@@ -53,7 +55,6 @@ fun QuickActionsSettingsPage(onBack: () -> Unit) {
         scope.launch { settings.updateChatPreferences(block) }
     }
 
-    // 当前生效顺序：已配置用配置，未配置展示默认（首次编辑时落盘）
     val currentOrder: List<QuickAction> =
         if (prefs.quickActionOrder.isNotEmpty()) {
             prefs.quickActionOrder.mapNotNull { QuickAction.fromId(it) }
@@ -65,185 +66,169 @@ fun QuickActionsSettingsPage(onBack: () -> Unit) {
     SettingsSubPageScaffold(
         title = stringResource(R.string.settings_chat_quick_actions),
         onBack = onBack,
+        headerActions = {
+            MuseCapsuleButton(
+                text = stringResource(R.string.settings_chat_quick_reset),
+                onClick = { update { it.copy(quickActionOrder = emptyList()) } },
+                variant = IosCapsuleButtonVariant.Secondary,
+                size = MuseButtonSize.Compact,
+                fillWidth = false,
+            )
+        },
     ) {
-        item {
-            SettingsGroup {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            update { it.copy(quickActionOrder = emptyList()) }
-                        }
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = stringResource(R.string.settings_chat_quick_reset),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-            }
-        }
-        item { SectionLabel(stringResource(R.string.settings_chat_quick_enabled)) }
-        item {
-            if (currentOrder.isEmpty()) {
-                SettingsGroup {
-                    Text(
-                        text = stringResource(R.string.settings_chat_quick_empty_hint),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = MusePaddings.tinyGap),
-                    )
-                }
-            } else {
-                SettingsGroup {
-                    currentOrder.forEachIndexed { index, action ->
-                        Row(
+        item(key = "quick_enabled_group") {
+            CardGroup(title = { Text(stringResource(R.string.settings_chat_quick_enabled)) }) {
+                if (currentOrder.isEmpty()) {
+                    content(key = "quick_enabled_empty") {
+                        Text(
+                            text = stringResource(R.string.settings_chat_quick_empty_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(
-                                imageVector = action.icon,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.secondary,
-                                modifier = Modifier.size(20.dp),
-                            )
-                            Text(
-                                text = stringResource(action.labelRes),
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .padding(start = MusePaddings.tinyGap),
-                            )
-                            // 上移
-                            Text(
-                                text = "↑",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = if (index > 0) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
-                                },
-                                modifier = Modifier
-                                    .clickable(enabled = index > 0) {
-                                        update { p ->
-                                            val newOrder = currentOrder.toMutableList()
-                                            val tmp = newOrder[index - 1]
-                                            newOrder[index - 1] = newOrder[index]
-                                            newOrder[index] = tmp
-                                            p.copy(quickActionOrder = newOrder.map { it.id })
-                                        }
-                                    }
-                                    .padding(horizontal = 10.dp),
-                            )
-                            // 下移
-                            Text(
-                                text = "↓",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = if (index < currentOrder.lastIndex) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
-                                },
-                                modifier = Modifier
-                                    .clickable(enabled = index < currentOrder.lastIndex) {
-                                        update { p ->
-                                            val newOrder = currentOrder.toMutableList()
-                                            val tmp = newOrder[index + 1]
-                                            newOrder[index + 1] = newOrder[index]
-                                            newOrder[index] = tmp
-                                            p.copy(quickActionOrder = newOrder.map { it.id })
-                                        }
-                                    }
-                                    .padding(horizontal = 10.dp),
-                            )
-                            // 移除
-                            Text(
-                                text = stringResource(R.string.common_delete),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.error,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier
-                                    .clickable {
-                                        update { p ->
-                                            p.copy(quickActionOrder = currentOrder.filter { it != action }.map { it.id })
-                                        }
-                                    }
-                                    .padding(start = 10.dp),
-                            )
-                        }
-                        if (index < currentOrder.lastIndex) {
-                        }
+                                .padding(MusePaddings.cardInner),
+                        )
+                    }
+                } else {
+                    currentOrder.forEachIndexed { index, action ->
+                        val canMoveUp = index > 0
+                        val canMoveDown = index < currentOrder.lastIndex
+                        item(
+                            key = "enabled_${action.id}",
+                            leadingContent = {
+                                Icon(
+                                    imageVector = action.icon,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(MuseIconSizes.iconMedium),
+                                )
+                            },
+                            headlineContent = {
+                                Text(
+                                    text = stringResource(action.labelRes),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            },
+                            trailingContent = {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(MuseSpacing.xxs),
+                                ) {
+                                    MuseTactileButton(
+                                        icon = MuseIcons.arrowUp,
+                                        enabled = canMoveUp,
+                                        tint = if (canMoveUp) {
+                                            MaterialTheme.colorScheme.primary
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = MuseAlpha.disabled)
+                                        },
+                                        compact = true,
+                                        onClick = {
+                                            update { p ->
+                                                val newOrder = currentOrder.toMutableList()
+                                                val tmp = newOrder[index - 1]
+                                                newOrder[index - 1] = newOrder[index]
+                                                newOrder[index] = tmp
+                                                p.copy(quickActionOrder = newOrder.map { it.id })
+                                            }
+                                        },
+                                    )
+                                    MuseTactileButton(
+                                        icon = MuseIcons.arrowDown,
+                                        enabled = canMoveDown,
+                                        tint = if (canMoveDown) {
+                                            MaterialTheme.colorScheme.primary
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = MuseAlpha.disabled)
+                                        },
+                                        compact = true,
+                                        onClick = {
+                                            update { p ->
+                                                val newOrder = currentOrder.toMutableList()
+                                                val tmp = newOrder[index + 1]
+                                                newOrder[index + 1] = newOrder[index]
+                                                newOrder[index] = tmp
+                                                p.copy(quickActionOrder = newOrder.map { it.id })
+                                            }
+                                        },
+                                    )
+                                    MuseTactileButton(
+                                        icon = MuseIcons.x,
+                                        tint = MaterialTheme.colorScheme.error,
+                                        contentDescription = stringResource(R.string.common_delete),
+                                        compact = true,
+                                        onClick = {
+                                            update { p ->
+                                                p.copy(
+                                                    quickActionOrder = currentOrder
+                                                        .filter { it != action }
+                                                        .map { it.id },
+                                                )
+                                            }
+                                        },
+                                    )
+                                }
+                            },
+                        )
                     }
                 }
             }
         }
-        item { SectionLabel(stringResource(R.string.settings_chat_quick_pool)) }
-        item {
-            if (pool.isEmpty()) {
-                SettingsGroup {
-                    Text(
-                        text = stringResource(R.string.settings_chat_quick_pool_empty),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = MusePaddings.tinyGap),
-                    )
-                }
-            } else {
-                SettingsGroup {
-                    pool.forEachIndexed { index, action ->
-                        Row(
+
+        item(key = "quick_pool_group") {
+            CardGroup(title = { Text(stringResource(R.string.settings_chat_quick_pool)) }) {
+                if (pool.isEmpty()) {
+                    content(key = "quick_pool_empty") {
+                        Text(
+                            text = stringResource(R.string.settings_chat_quick_pool_empty),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable {
-                                    update { p ->
-                                        // 首次编辑：从默认排布出发追加，避免把旧开关状态清空
-                                        val base =
-                                            if (p.quickActionOrder.isEmpty()) {
-                                                QuickAction.DEFAULT_ORDER.map { it.id }
-                                            } else {
-                                                p.quickActionOrder
-                                            }
-                                        p.copy(quickActionOrder = base + action.id)
-                                    }
+                                .padding(MusePaddings.cardInner),
+                        )
+                    }
+                } else {
+                    pool.forEach { action ->
+                        item(
+                            key = "pool_${action.id}",
+                            onClick = {
+                                update { p ->
+                                    // 首次编辑：从默认排布出发追加，避免把旧开关状态清空
+                                    val base =
+                                        if (p.quickActionOrder.isEmpty()) {
+                                            QuickAction.DEFAULT_ORDER.map { it.id }
+                                        } else {
+                                            p.quickActionOrder
+                                        }
+                                    p.copy(quickActionOrder = base + action.id)
                                 }
-                                .padding(horizontal = 16.dp, vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(
-                                imageVector = action.icon,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.outline,
-                                modifier = Modifier.size(20.dp),
-                            )
-                            Text(
-                                text = stringResource(action.labelRes),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .padding(start = MusePaddings.tinyGap),
-                            )
-                            Text(
-                                text = "+",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.primary,
-                                maxLines = 1,
-                            )
-                        }
-                        if (index < pool.lastIndex) {
-                        }
+                            },
+                            leadingContent = {
+                                Icon(
+                                    imageVector = action.icon,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(MuseIconSizes.iconMedium),
+                                )
+                            },
+                            headlineContent = {
+                                Text(
+                                    text = stringResource(action.labelRes),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            },
+                            trailingContent = {
+                                Icon(
+                                    imageVector = MuseIcons.plus,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(MuseIconSizes.iconMedium),
+                                )
+                            },
+                        )
                     }
                 }
             }

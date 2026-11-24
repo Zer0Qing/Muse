@@ -1,39 +1,24 @@
 package io.zer0.muse.ui.settings
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.icons.MuseIcons
-import io.zer0.muse.ui.common.navigation.MuseTopBar
-import io.zer0.muse.ui.common.surface.MusePageScaffold
-import io.zer0.muse.ui.common.surface.MuseSurface
-import io.zer0.muse.ui.theme.MusePaddings
-import io.zer0.muse.ui.theme.MuseShapes
-import io.zer0.muse.ui.theme.largeCard
+import io.zer0.muse.ui.common.surface.CardGroup
+import io.zer0.muse.ui.common.surface.navigationItem
+import io.zer0.muse.ui.theme.MuseActionColors
+import io.zer0.muse.ui.theme.MuseIconSizes
 import org.koin.compose.koinInject
 
 /**
@@ -63,78 +48,56 @@ fun ConnectionCenterScreen(
     val skills by skillRepository.observeAll.collectAsStateWithLifecycle(initialValue = emptyList())
     val (skillCount, packageCount) = skillAndPackageCounts(skills)
 
-    MusePageScaffold(
-        topBar = {
-            MuseTopBar(
-                title = stringResource(R.string.connection_center_title),
-                onBack = onBack,
-            )
-        },
-        containerColor = MaterialTheme.colorScheme.background,
-    ) { innerPadding ->
-        // v2.0.1 fix（真机崩溃）: OPPO 等边到边路径下 Scaffold content 可能收到无限高度约束，
-        // 直接 Column+verticalScroll / Lazy 系会抛 IllegalStateException。
-        // 沿用设置域既有防抖模式：BoxWithConstraints + boundedSettingsScrollHeight 收口有限高度。
-        BoxWithConstraints(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-        ) {
-            val boundedHeight = boundedSettingsScrollHeight(
-                parentMaxHeight = maxHeight,
-                windowHeight = LocalConfiguration.current.screenHeightDp.dp,
-            )
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = boundedHeight),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                    start = MusePaddings.screen,
-                    end = MusePaddings.screen,
-                    top = 12.dp,
-                    bottom = 24.dp,
-                ),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                item {
-                    ConnectionEntryCard(
-                        icon = MuseIcons.chat,
-                        title = stringResource(R.string.connection_channels_title),
-                        subtitle = stringResource(R.string.connection_channels_subtitle, channels.size),
-                        onClick = onOpenChannels,
-                    )
-                }
-                item {
-                    ConnectionEntryCard(
-                        icon = MuseIcons.share,
-                        title = stringResource(R.string.connection_mcp_title),
-                        subtitle = stringResource(R.string.connection_mcp_subtitle, mcpServers.size),
-                        onClick = onOpenMcp,
-                    )
-                }
-                item {
-                    ConnectionEntryCard(
-                        icon = MuseIcons.puzzle,
-                        title = stringResource(R.string.connection_plugins_title),
-                        subtitle = stringResource(R.string.connection_plugins_subtitle, pluginInstalledCount(skills)),
-                        onClick = onOpenPlugins,
-                    )
-                }
-                item {
-                    ConnectionEntryCard(
-                        icon = MuseIcons.bolt,
-                        title = stringResource(R.string.connection_skills_title),
-                        subtitle = stringResource(R.string.connection_skills_subtitle, skillCount, packageCount),
-                        onClick = onOpenSkills,
-                    )
-                }
-                item {
-                    ConnectionEntryCard(
-                        icon = MuseIcons.shield,
-                        title = stringResource(R.string.connection_tools_title),
-                        onClick = onOpenToolPermissions,
-                    )
-                }
+    // 有限高度收口与状态栏/导航栏避让由 SettingsSubPageScaffold 统一承担：
+    // 此前这里自己拼 MusePageScaffold + BoxWithConstraints，同一套边到边防抖在两处各写一遍，
+    // 迟早会有一处漏改。
+    SettingsSubPageScaffold(
+        title = stringResource(R.string.connection_center_title),
+        onBack = onBack,
+    ) {
+        item(key = "connection_center_entries") {
+            CardGroup {
+                navigationItem(
+                    key = "channels",
+                    title = stringResource(R.string.connection_channels_title),
+                    subtitle = stringResource(R.string.connection_channels_subtitle, channels.size),
+                    onClick = onOpenChannels,
+                    leadingContent = { ConnectionEntryIcon(MuseIcons.chat) },
+                )
+                navigationItem(
+                    key = "mcp",
+                    title = stringResource(R.string.connection_mcp_title),
+                    subtitle = stringResource(R.string.connection_mcp_subtitle, mcpServers.size),
+                    onClick = onOpenMcp,
+                    leadingContent = { ConnectionEntryIcon(MuseIcons.share) },
+                )
+                navigationItem(
+                    key = "plugins",
+                    title = stringResource(R.string.connection_plugins_title),
+                    subtitle = stringResource(
+                        R.string.connection_plugins_subtitle,
+                        pluginInstalledCount(skills),
+                    ),
+                    onClick = onOpenPlugins,
+                    leadingContent = { ConnectionEntryIcon(MuseIcons.puzzle) },
+                )
+                navigationItem(
+                    key = "skills",
+                    title = stringResource(R.string.connection_skills_title),
+                    subtitle = stringResource(
+                        R.string.connection_skills_subtitle,
+                        skillCount,
+                        packageCount,
+                    ),
+                    onClick = onOpenSkills,
+                    leadingContent = { ConnectionEntryIcon(MuseIcons.bolt) },
+                )
+                navigationItem(
+                    key = "tools",
+                    title = stringResource(R.string.connection_tools_title),
+                    onClick = onOpenToolPermissions,
+                    leadingContent = { ConnectionEntryIcon(MuseIcons.shield) },
+                )
             }
         }
     }
@@ -165,57 +128,21 @@ internal fun skillAndPackageCounts(skills: List<io.zer0.muse.data.skill.SkillEnt
  */
 internal fun pluginInstalledCount(skills: List<io.zer0.muse.data.skill.SkillEntity>): Int = skills.count { it.id.startsWith("plugin_") }
 
-/** 连接中心导航卡 — 图标 + 标题 + 状态摘要 + 箭头。 */
+/** 连接中心导航行的前置图标块 — 圆底 + 主题内容色，与设置族其余导航行同一档尺寸。 */
 @Composable
-private fun ConnectionEntryCard(icon: ImageVector, title: String, subtitle: String? = null, onClick: () -> Unit) {
-    MuseSurface(
-        onClick = onClick,
-        shape = MuseShapes.largeCard,
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 1.dp,
-        modifier = Modifier.fillMaxWidth(),
+private fun ConnectionEntryIcon(icon: ImageVector) {
+    Box(
+        modifier = Modifier
+            .size(MuseIconSizes.topBarSolid)
+            .clip(CircleShape)
+            .background(MuseActionColors.tonalContainer),
+        contentAlignment = Alignment.Center,
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                subtitle?.let { sub ->
-                    Text(
-                        text = sub,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-            Icon(
-                imageVector = MuseIcons.chevronRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.outline,
-                modifier = Modifier.size(20.dp),
-            )
-        }
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MuseActionColors.tonalContent,
+            modifier = Modifier.size(MuseIconSizes.iconMedium),
+        )
     }
 }

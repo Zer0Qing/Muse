@@ -9,7 +9,7 @@ import io.zer0.memory.format.RollingSummaryFormat
  */
 object RollingSummaryPrompt {
 
-    const val TEMPLATE_VERSION = "rolling-summary.v3"
+    const val TEMPLATE_VERSION = "rolling-summary.v4"
     const val CACHE_GROUP = "memory.rolling_summary"
 
     /**
@@ -34,31 +34,42 @@ object RollingSummaryPrompt {
     ): String {
         val isZh = locale.startsWith("zh")
         val resolvedAgentName = agentName.ifBlank { if (isZh) "这个 Agent" else "this agent" }
-        val resolvedUserName = userName.ifBlank { if (isZh) "主人" else "the user" }
+        val resolvedUserName = userName.ifBlank { if (isZh) "用户" else "the user" }
         val factTitle = RollingSummaryFormat.getFactSectionTitle(locale)
         val timelineTitle = RollingSummaryFormat.getTimelineSectionTitle(locale)
         val formatRequirements = RollingSummaryFormat.buildFormatRequirements(locale)
 
         if (!isZh) {
+            val optionalBlocks = buildList {
+                if (identityAndPersonality.isNotBlank()) {
+                    add("## Identity And Personality\n${identityAndPersonality.trim()}")
+                }
+                if (userProfile.isNotBlank()) {
+                    add("## User Settings\n${userProfile.trim()}")
+                }
+                if (existingMemory.isNotBlank()) {
+                    add(
+                        "## Existing Long-Term Memory\n" +
+                            "This is what you knew before this conversation began. Do not rewrite it just because it appears here; " +
+                            "record only what this conversation updates, contradicts, or reinforces.\n\n" +
+                            existingMemory.trim(),
+                    )
+                }
+                if (roster.isNotBlank()) {
+                    add(
+                        "## Roster\n" +
+                            "The roster helps you understand the names and collaboration context of other agents " +
+                            "appearing in the conversation; do not treat the roster itself as new memory.\n\n" +
+                            roster.trim(),
+                    )
+                }
+            }
+            val backgroundSection = if (optionalBlocks.isEmpty()) "" else "\n\n" + optionalBlocks.joinToString("\n\n")
+
             return """
 You are $resolvedAgentName, preserving continuity for a conversation you just experienced.
 
-Review the new conversation from your own perspective and decide what deserves long-term memory.
-
-## Identity And Personality
-${identityAndPersonality.ifBlank { "(Not provided)" }}
-
-## User Settings
-${userProfile.ifBlank { "(Not provided)" }}
-
-## Existing Long-Term Memory
-This is what you knew before this conversation began. Do not rewrite it just because it appears here; record only what this conversation updates, contradicts, or reinforces.
-
-${existingMemory.ifBlank { "(No existing long-term memory)" }}
-
-## Roster
-The roster helps you understand the names and collaboration context of other agents appearing in the conversation; do not treat the roster itself as new memory.
-${roster.ifBlank { "(No other agents)" }}
+Review the new conversation from your own perspective and decide what deserves long-term memory.$backgroundSection
 
 ## Core Principle
 The Facts section is for stable information about $resolvedUserName. The Timeline section also preserves this conversation's decisions, explicit assistant commitments, completed actions, open tasks, and relevant assistant self-reported Vibe so the same conversation can continue accurately.
@@ -87,26 +98,40 @@ Record what happened in this session chronologically with YYYY-MM-DD HH:MM times
             """.trimIndent()
         }
 
+        val optionalBlocks = buildList {
+            if (identityAndPersonality.isNotBlank()) {
+                add("## 你的身份与人格\n${identityAndPersonality.trim()}")
+            }
+            if (userProfile.isNotBlank()) {
+                add("## 用户设定\n${userProfile.trim()}")
+            }
+            if (existingMemory.isNotBlank()) {
+                add(
+                    "## 你已有的长期记忆\n" +
+                        "这是你在本次对话开始前已经知道的。不要因为它出现在这里就重复写入；" +
+                        "只有本次对话更新、反驳或强化它时才记录变化。\n\n" +
+                        existingMemory.trim(),
+                )
+            }
+            if (roster.isNotBlank()) {
+                add(
+                    "## 花名册\n" +
+                        "花名册用于理解对话中出现的其他 Agent 名字和协作语境，不要把花名册本身当作新增记忆。\n\n" +
+                        roster.trim(),
+                )
+            }
+        }
+        val introLine = if (optionalBlocks.isNotEmpty()) {
+            "下面是你在本次对话开始前已经拥有的设定和记忆。它们是背景，不是新增事实。请从自己的视角审视本次对话，判断哪些新信息值得进入长期记忆。"
+        } else {
+            "请从自己的视角审视本次对话，判断哪些新信息值得进入长期记忆。"
+        }
+        val backgroundSection = if (optionalBlocks.isEmpty()) "" else "\n\n" + optionalBlocks.joinToString("\n\n")
+
         return """
 你是 $resolvedAgentName，正在为自己刚刚经历的一段对话整理连续性记忆。
 
-下面是你在本次对话开始前已经拥有的设定和记忆。它们是背景，不是新增事实。请从自己的视角审视本次对话，判断哪些新信息值得进入长期记忆。
-
-## 你的身份与人格
-${identityAndPersonality.ifBlank { "（未提供）" }}
-
-## 主人设定
-${userProfile.ifBlank { "（未提供）" }}
-
-## 你已有的长期记忆
-这是你在本次对话开始前已经知道的。不要因为它出现在这里就重复写入；只有本次对话更新、反驳或强化它时才记录变化。
-
-${existingMemory.ifBlank { "（暂无已有长期记忆）" }}
-
-## 花名册
-花名册用于理解对话中出现的其他 Agent 名字和协作语境，不要把花名册本身当作新增记忆。
-
-${roster.ifBlank { "（没有其他 Agent）" }}
+$introLine$backgroundSection
 
 ## 核心原则
 重要事实一节用于整理关于${resolvedUserName}的稳定信息。事情经过一节还要保留本对话的决策、助手明确承诺、已完成行动、未完成事项，以及有意义的助手 Vibe 自述，让同一对话能准确接续。

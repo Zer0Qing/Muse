@@ -7,6 +7,7 @@ import io.zer0.ai.core.UIMessage
 import io.zer0.common.Logger
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.assistant.AssistantRepository
+import io.zer0.muse.transformer.stripThinkTags
 import kotlinx.coroutines.withTimeoutOrNull
 
 /**
@@ -243,20 +244,31 @@ $roster
                     model = routed?.second,
                     providerConfig = routed?.first,
                     temperature = 0f,
-                    maxTokens = 16,
+                    maxTokens = 64,
                     reasoningLevel = io.zer0.ai.core.ReasoningLevel.OFF,
                     mode = ChatRequestMode.UTILITY,
                 )
             } ?: return route(task, excludeAssistantId)
-            val id = completion.text
+            val id = stripThinkTags(completion.text)
                 .trim()
                 .lineSequence()
-                .firstOrNull()
-                ?.trim()
+                .map { it.trim() }
+                .firstOrNull { it.isNotEmpty() }
                 ?.removePrefix("`")
                 ?.removeSuffix("`")
+                ?.trim()
                 .orEmpty()
-            if (id.equals("NONE", ignoreCase = true)) return route(task, excludeAssistantId)
+            // 显式尊重 NONE：LLM 已判定当前助手即可处理，不再回退规则路由强选候补
+            if (id.equals("NONE", ignoreCase = true)) {
+                return RouteResult(
+                    targetType = null,
+                    targetId = null,
+                    targetName = null,
+                    confidence = 0f,
+                    reason = "LLM 路由判定当前助手即可处理，无需委托其他助手或团队",
+                    source = "llm",
+                )
+            }
             // 匹配助手
             val matchedAssistant = assistants.find { it.id == id }
             if (matchedAssistant != null) {

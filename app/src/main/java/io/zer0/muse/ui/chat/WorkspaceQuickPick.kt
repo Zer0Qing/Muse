@@ -1,11 +1,14 @@
 package io.zer0.muse.ui.chat
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -16,13 +19,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import io.zer0.muse.ui.theme.MuseCornerRadius
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.icons.MuseIcons
-import io.zer0.muse.ui.common.settings.SettingsItemRow
-import io.zer0.muse.workspace.WorkspaceManager
-import io.zer0.muse.ui.screen.WorkspaceScreen
+import io.zer0.muse.ui.common.surface.MuseListItem
 import io.zer0.muse.ui.screen.workspaceDirectoryLabelRes
+import io.zer0.muse.ui.theme.MuseCornerRadius
+import io.zer0.muse.ui.theme.MuseIconSizes
+import io.zer0.muse.workspace.WorkspaceManager
 
 /**
  * 当前层的标题：根显示「工作区」；目录显示末段名；
@@ -83,45 +86,76 @@ internal fun WorkspaceQuickPickDialog(onOpen: (String) -> Unit, onDismiss: () ->
             color = MaterialTheme.colorScheme.surface,
         ) {
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                SettingsItemRow(
-                    icon = MuseIcons.arrowLeft,
-                    title = workspacePickTitle(path, mountLabels, stringResource(R.string.workspace_title)),
-                    subtitle = stringResource(R.string.workspace_pick_hint),
-                    enabled = stack.canGoBack,
-                    onClick = {
-                        if (stack.back()) path = stack.current
+                MuseListItem(
+                    onClick = if (stack.canGoBack) {
+                        { if (stack.back()) path = stack.current }
+                    } else {
+                        null
                     },
+                    leadingContent = {
+                        Icon(
+                            imageVector = MuseIcons.arrowLeft,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
+                    },
+                    headlineContent = {
+                        Text(workspacePickTitle(path, mountLabels, stringResource(R.string.workspace_title)))
+                    },
+                    supportingContent = { Text(stringResource(R.string.workspace_pick_hint)) },
                 )
                 val folders = entries.orEmpty()
                 if (folders.isEmpty()) {
-                    SettingsItemRow(
-                        title = stringResource(
-                            if (failure == null) R.string.workspace_pick_empty else R.string.workspace_pick_failed,
-                        ),
-                        subtitle = failure,
-                        enabled = false,
+                    MuseListItem(
+                        headlineContent = {
+                            Text(
+                                stringResource(
+                                    if (failure == null) R.string.workspace_pick_empty else R.string.workspace_pick_failed,
+                                ),
+                            )
+                        },
+                        supportingContent = failure?.let { { Text(it) } },
                     )
                 }
                 folders.forEach { entry ->
-                    SettingsItemRow(
-                        icon = MuseIcons.folder,
-                        // 与 WorkspaceScreen 条目行同一份内置目录映射，选择器与打开页叫法一致。
-                        title = workspaceDirectoryLabelRes(entry.name)
-                            ?.let { stringResource(it) } ?: entry.name,
+                    MuseListItem(
                         onClick = {
                             stack.enter(WorkspacePickStack.normalize(entry.relativePath))
                             path = stack.current
                         },
+                        leadingContent = {
+                            Icon(
+                                imageVector = MuseIcons.folder,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(MuseIconSizes.iconMedium),
+                            )
+                        },
+                        // 与 WorkspaceScreen 条目行同一份内置目录映射，选择器与打开页叫法一致。
+                        headlineContent = {
+                            Text(
+                                workspaceDirectoryLabelRes(entry.name)
+                                    ?.let { stringResource(it) } ?: entry.name,
+                            )
+                        },
                     )
                 }
-                SettingsItemRow(
-                    icon = MuseIcons.folderOpen,
-                    title = stringResource(R.string.workspace_pick_open_here),
+                MuseListItem(
                     onClick = { onOpen(path) },
+                    leadingContent = {
+                        Icon(
+                            imageVector = MuseIcons.folderOpen,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
+                    },
+                    headlineContent = { Text(stringResource(R.string.workspace_pick_open_here)) },
                 )
-                SettingsItemRow(
-                    title = stringResource(R.string.common_cancel),
+                MuseListItem(
                     onClick = onDismiss,
+                    headlineContent = { Text(stringResource(R.string.common_cancel)) },
                 )
             }
         }

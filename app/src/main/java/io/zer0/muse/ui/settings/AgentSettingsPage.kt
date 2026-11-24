@@ -36,7 +36,6 @@ import io.zer0.muse.data.ProactiveMessageConfig
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.assistant.AssistantRepository
-import io.zer0.muse.data.proactive.ProactivePace
 import io.zer0.muse.data.proactive.QuietHoursWindow
 import io.zer0.muse.schedule.DailySummaryWorker
 import io.zer0.muse.ui.common.feedback.MuseDialog
@@ -46,14 +45,14 @@ import io.zer0.muse.ui.common.form.MuseSlider
 import io.zer0.muse.ui.common.form.MuseSwitch
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.media.AssistantAvatar
-import io.zer0.muse.ui.common.settings.ChevronRight
-import io.zer0.muse.ui.common.settings.SectionLabel
-import io.zer0.muse.ui.common.settings.SettingsGroup
-import io.zer0.muse.ui.common.settings.SettingsGroupDivider
-import io.zer0.muse.ui.common.settings.SettingsItemRow
-import io.zer0.muse.ui.common.settings.SettingsSwitchRow
 import io.zer0.muse.ui.common.state.MuseSpinner
+import io.zer0.muse.ui.common.surface.CardGroup
+import io.zer0.muse.ui.common.surface.actionItem
+import io.zer0.muse.ui.common.surface.navigationItem
+import io.zer0.muse.ui.common.surface.switchItem
+import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.theme.MuseSpacing
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import java.util.Locale
@@ -111,11 +110,8 @@ fun AgentSettingsPage(
     // 测试按钮被「上一轮还在生成」拦下时的提示。在组合期取好，
     // 点击回调里只有协程作用域，取不到 stringResource。
     val testAlreadyRunningText = stringResource(R.string.settings_agent_test_already_running)
-    // P0: 主动程度 / 免打扰时段 / 主动内容 / 高级 弹窗
-    var showPacePicker by remember { mutableStateOf(false) }
     var showQuietHoursPicker by remember { mutableStateOf(false) }
-    var showContentPicker by remember { mutableStateOf(false) }
-    var showAdvancedDialog by remember { mutableStateOf(false) }
+    var showAdvancedSection by rememberSaveable { mutableStateOf(false) }
     // v2.6.9: 主动消息重建版 —— 牵挂账本面板
     val proactiveThoughts: io.zer0.muse.data.proactive.ProactiveThoughtRepository = koinInject()
     val proactiveRelations: io.zer0.muse.data.proactive.ProactiveRelationRepository = koinInject()
@@ -160,16 +156,6 @@ fun AgentSettingsPage(
         proactiveConfig.allowedHourEnd,
     )
     val allowedWindowIsEmpty = !proactiveConfig.allDayAllowed && allowedWindow.isEmpty
-    val contentSummary = buildList {
-        if (dailySummaryEnabled) add(stringResource(R.string.settings_agent_content_daily_summary))
-        if (nightPatrolEnabled) add(stringResource(R.string.settings_agent_content_night_diary))
-        if (dailyMomentCount > 0) add(stringResource(R.string.settings_agent_content_moment))
-    }
-    val contentLabel = if (contentSummary.isEmpty()) {
-        stringResource(R.string.settings_agent_content_none)
-    } else {
-        contentSummary.joinToString(" / ")
-    }
 
     // v2.6.9: 账本数据随面板打开刷新；同时把当日额度、等级、冷却一并取出来，
     // 供入口行与面板共用。放在 LaunchedEffect 里而不是每次重组都读库，
@@ -233,147 +219,116 @@ fun AgentSettingsPage(
 
     SettingsSubPageScaffold(
         title = if (proactiveOnly) {
-            stringResource(
-                R.string.settings_agent_proactive_title,
-            )
+            stringResource(R.string.settings_agent_proactive_title)
         } else {
             stringResource(R.string.settings_agent_page_title)
         },
         onBack = onBack,
     ) {
         if (!proactiveOnly) {
-            // ── Agent 默认助手 ──
-            item { SectionLabel(stringResource(R.string.settings_agent_section_assistant)) }
-            item {
-                SettingsGroup(
-                    modifier = Modifier.padding(top = 8.dp),
-                ) {
-                    val currentAgent = assistants?.find { it.id == proactiveConfig.agentId }
-                        ?: assistants?.firstOrNull { it.id == "default" }
-                        ?: assistants?.firstOrNull()
-                    SettingsItemRow(
-                        icon = MuseIcons.user,
+            item(key = "agent_default_group") {
+                val currentAgent = assistants?.find { it.id == proactiveConfig.agentId }
+                    ?: assistants?.firstOrNull { it.id == "default" }
+                    ?: assistants?.firstOrNull()
+                val agentSub = if (assistants == null) {
+                    stringResource(R.string.settings_agent_loading)
+                } else {
+                    currentAgent?.name ?: stringResource(R.string.settings_agent_use_first_assistant)
+                }
+                CardGroup(title = { Text(stringResource(R.string.settings_agent_section_assistant)) }) {
+                    navigationItem(
+                        key = "default_assistant",
                         title = stringResource(R.string.settings_agent_default_assistant_title),
-                        subtitle = if (assistants == null) {
-                            stringResource(
-                                R.string.settings_agent_loading,
-                            )
-                        } else {
-                            currentAgent?.name ?: stringResource(R.string.settings_agent_use_first_assistant)
-                        },
+                        subtitle = agentSub,
+                        leadingContent = { Icon(MuseIcons.user, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
                         onClick = { showAssistantPicker = true },
-                    ) {
-                        ChevronRight()
-                    }
-                    // v2.6.7 fix (AUDIT F9): 用户偏好（助手记住的长期要求）。
-                    // 此前 PreferenceStore 的读取/删除/停用全仓零调用，
-                    // 用户看不到也删不掉一条记错的偏好。
-                    SettingsItemRow(
-                        icon = MuseIcons.check,
+                    )
+                    navigationItem(
+                        key = "user_preferences",
                         title = stringResource(R.string.settings_preference_title),
+                        leadingContent = { Icon(MuseIcons.check, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
                         onClick = onOpenPreferences,
-                    ) {
-                        ChevronRight()
-                    }
+                    )
                 }
             }
 
-            // ── 多 Agent 协作 ──
-            item { SectionLabel(stringResource(R.string.settings_agent_multi_agent_section)) }
-            item {
-                SettingsGroup(
-                    modifier = Modifier.padding(top = 8.dp),
-                ) {
-                    SettingsItemRow(
-                        icon = MuseIcons.users,
+            item(key = "agent_collab_group") {
+                val collabSub = if (multiAgentConfig.enabled) {
+                    stringResource(R.string.settings_agent_multi_agent_enabled, multiAgentConfig.teams.size)
+                } else {
+                    stringResource(R.string.settings_agent_manage_collab_team)
+                }
+                CardGroup(title = { Text(stringResource(R.string.settings_agent_multi_agent_section)) }) {
+                    navigationItem(
+                        key = "collab_team",
                         title = stringResource(R.string.settings_agent_collab_team),
-                        subtitle = if (multiAgentConfig.enabled) {
-                            stringResource(R.string.settings_agent_multi_agent_enabled, multiAgentConfig.teams.size)
-                        } else {
-                            stringResource(R.string.settings_agent_manage_collab_team)
-                        },
+                        subtitle = collabSub,
+                        leadingContent = { Icon(MuseIcons.users, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
                         onClick = onOpenMultiAgentSettings,
-                    ) {
-                        ChevronRight()
-                    }
-                    // v1.126: Agent 私信收件箱入口
-                    SettingsItemRow(
-                        icon = MuseIcons.mail,
+                    )
+                    navigationItem(
+                        key = "agent_dm",
                         title = stringResource(R.string.agent_dm_title),
+                        leadingContent = { Icon(MuseIcons.mail, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
                         onClick = onOpenAgentDm,
-                    ) {
-                        ChevronRight()
-                    }
+                    )
                 }
             }
         }
+
         if (showProactiveSettings) {
-            // ── 主动消息 ──
-            item { SectionLabel(stringResource(R.string.settings_agent_proactive_section)) }
-            item {
-                SettingsGroup(
-                    modifier = Modifier.padding(top = 8.dp),
-                ) {
-                    SettingsSwitchRow(
-                        icon = MuseIcons.bell,
+            item(key = "proactive_core_group") {
+                val ledgerSub = if (ledgerThoughts.isEmpty()) {
+                    stringResource(R.string.settings_proactive_v2_empty)
+                } else {
+                    stringResource(R.string.settings_proactive_v2_ledger_sub, ledgerThoughts.size)
+                }
+                val intensityLabel = stringResource(
+                    when (
+                        ledgerRelation?.intensityEnum()
+                            ?: io.zer0.muse.data.proactive.ProactiveIntensity.DEFAULT
+                    ) {
+                        io.zer0.muse.data.proactive.ProactiveIntensity.QUIET -> R.string.proactive_intensity_quiet
+                        io.zer0.muse.data.proactive.ProactiveIntensity.RESERVED -> R.string.proactive_intensity_reserved
+                        io.zer0.muse.data.proactive.ProactiveIntensity.STANDARD -> R.string.proactive_intensity_standard
+                        io.zer0.muse.data.proactive.ProactiveIntensity.ACTIVE -> R.string.proactive_intensity_active
+                        io.zer0.muse.data.proactive.ProactiveIntensity.CLINGY -> R.string.proactive_intensity_clingy
+                    },
+                )
+                val quietSub = if (allowedWindowIsEmpty) {
+                    quietHoursLabel + " · " + stringResource(R.string.settings_agent_quiet_hours_empty_warning)
+                } else {
+                    quietHoursLabel
+                }
+                val senderAgent = assistants?.find { it.id == proactiveConfig.agentId }
+                val senderName = senderAgent?.name ?: stringResource(R.string.settings_agent_default_assistant_fallback)
+                CardGroup(title = { Text(stringResource(R.string.settings_agent_proactive_section)) }) {
+                    switchItem(
+                        key = "proactive_enabled",
                         title = stringResource(R.string.settings_agent_proactive_title),
                         checked = proactiveConfig.enabled,
                         onCheckedChange = { v ->
                             scope.launch { settings.saveProactiveMessageConfig(proactiveConfig.copy(enabled = v)) }
                         },
+                        leadingContent = { Icon(MuseIcons.bell, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
                     )
                     if (proactiveConfig.enabled) {
-                        // P0 收敛: 「间隔 / 偏移 / 概率 / 每日上限」四个实现参数合并为一个
-                        // v2.6.9: 账本入口 —— 点开能看到它最近在惦记什么、今天还能说几次、
-                        // 以及一键让它安静 7 天。这块 UI 是新机制的兑现方式：
-                        // 用户能看见「它凭什么找我」，也能看见「它什么时候闭嘴」。
-                        SettingsItemRow(
-                            icon = MuseIcons.note,
+                        navigationItem(
+                            key = "proactive_ledger",
                             title = stringResource(R.string.settings_proactive_v2_ledger),
-                            subtitle = if (ledgerThoughts.isEmpty()) {
-                                stringResource(R.string.settings_proactive_v2_empty)
-                            } else {
-                                stringResource(
-                                    R.string.settings_proactive_v2_ledger_sub,
-                                    ledgerThoughts.size,
-                                )
-                            },
+                            subtitle = ledgerSub,
+                            leadingContent = { Icon(MuseIcons.note, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
                             onClick = { showLedger = true },
-                        ) {
-                            ChevronRight()
-                        }
-                        // UI-FIX: 子分组标签 —— 原先十几行开关平铺在同一层，看不出哪几个是一组
-                        // P0 收敛: 「间隔 / 偏移 / 概率 / 每日上限」四个实现参数合并为一个
-                        // 用户能表达的「主动程度」档位(少/标准/多);随机偏移与温度降到「高级」。
-                        ProactiveGroupLabel(stringResource(R.string.settings_agent_group_pace))
-                        SettingsItemRow(
-                            icon = MuseIcons.calendarTime,
+                        )
+                        navigationItem(
+                            key = "proactive_intensity",
                             title = stringResource(R.string.settings_proactive_v2_intensity),
-                            subtitle = stringResource(
-                                when (
-                                    ledgerRelation?.intensityEnum()
-                                        ?: io.zer0.muse.data.proactive.ProactiveIntensity.DEFAULT
-                                ) {
-                                    io.zer0.muse.data.proactive.ProactiveIntensity.QUIET ->
-                                        R.string.proactive_intensity_quiet
-                                    io.zer0.muse.data.proactive.ProactiveIntensity.RESERVED ->
-                                        R.string.proactive_intensity_reserved
-                                    io.zer0.muse.data.proactive.ProactiveIntensity.STANDARD ->
-                                        R.string.proactive_intensity_standard
-                                    io.zer0.muse.data.proactive.ProactiveIntensity.ACTIVE ->
-                                        R.string.proactive_intensity_active
-                                    io.zer0.muse.data.proactive.ProactiveIntensity.CLINGY ->
-                                        R.string.proactive_intensity_clingy
-                                },
-                            ),
+                            value = intensityLabel,
+                            leadingContent = { Icon(MuseIcons.calendarTime, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
                             onClick = { showLedger = true },
-                        ) {
-                            ChevronRight()
-                        }
-                        // v2.6.23(P1): 智能时机 —— 掷骰前先按最近反馈折算有效概率。默认关:
-                        // 开着等于改变用户已调好的「发送概率」语义,必须他自己同意。
-                        SettingsSwitchRow(
-                            icon = MuseIcons.clock,
+                        )
+                        switchItem(
+                            key = "proactive_timing_scoring",
                             title = stringResource(R.string.settings_agent_timing_scoring_title),
                             checked = proactiveConfig.sendTimingScoringEnabled,
                             onCheckedChange = { v ->
@@ -383,92 +338,219 @@ fun AgentSettingsPage(
                                     )
                                 }
                             },
+                            leadingContent = { Icon(MuseIcons.clock, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
                         )
-                        // P0 收敛: 「允许时段开始 / 结束」两个滑块合并为一个「免打扰时段」范围
-                        // 允许窗口为空（起止相同）时红色提示:这种配置一条都不会发，
-                        // 不能让用户只能等到自己发现“怎么没动静”。
-                        SettingsItemRow(
-                            icon = MuseIcons.moon,
+                        navigationItem(
+                            key = "proactive_quiet_hours",
                             title = stringResource(R.string.settings_agent_quiet_hours_title),
-                            subtitle = if (allowedWindowIsEmpty) {
-                                quietHoursLabel + " · " +
-                                    stringResource(R.string.settings_agent_quiet_hours_empty_warning)
-                            } else {
-                                quietHoursLabel
-                            },
+                            subtitle = quietSub,
+                            leadingContent = { Icon(MuseIcons.moon, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
                             onClick = { showQuietHoursPicker = true },
-                        ) {
-                            ChevronRight()
-                        }
-                        // v2.x: 原「发送 Agent」行已删除 — 与「Agent 默认助手」同值同弹窗,合并为单一入口
-                        val senderAgent = assistants?.find { it.id == proactiveConfig.agentId }
-                        SettingsItemRow(
-                            icon = MuseIcons.user,
+                        )
+                        navigationItem(
+                            key = "proactive_sender",
                             title = stringResource(R.string.settings_agent_default_assistant_title),
-                            subtitle = senderAgent?.name ?: stringResource(R.string.settings_agent_default_assistant_fallback),
+                            value = senderName,
+                            leadingContent = { Icon(MuseIcons.user, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
                             onClick = { showAssistantPicker = true },
-                        ) {
-                            ChevronRight()
+                        )
+                    }
+                }
+            }
+
+            if (proactiveConfig.enabled) {
+                item(key = "proactive_content_group") {
+                    val slotsText = dailySummarySlots.joinToString(" ") { String.format(Locale.getDefault(), "%02d:00", it) }
+                    val momentCountSub = if (dailyMomentCount > 0) {
+                        stringResource(R.string.settings_agent_moment_count_per_day, dailyMomentCount)
+                    } else {
+                        stringResource(R.string.settings_agent_moment_count_off)
+                    }
+                    val momentModeSub = when (momentContentMode) {
+                        io.zer0.muse.data.moment.MomentContentMode.REAL -> stringResource(R.string.settings_moment_content_mode_real)
+                        io.zer0.muse.data.moment.MomentContentMode.CHARACTER -> stringResource(R.string.settings_moment_content_mode_character)
+                    }
+                    CardGroup(title = { Text(stringResource(R.string.settings_agent_content_title)) }) {
+                        switchItem(
+                            key = "daily_summary_toggle",
+                            title = stringResource(R.string.settings_agent_content_daily_summary),
+                            checked = dailySummaryEnabled,
+                            onCheckedChange = { v -> scope.launch { settings.saveDailySummaryEnabled(v) } },
+                            leadingContent = { Icon(MuseIcons.calendarStats, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                        )
+                        if (dailySummaryEnabled) {
+                            navigationItem(
+                                key = "daily_summary_slots",
+                                title = stringResource(R.string.settings_agent_daily_summary_slots_title),
+                                subtitle = slotsText,
+                                leadingContent = { Icon(MuseIcons.clock, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                                onClick = { showSlotsDialog = true },
+                            )
                         }
-                        // P0 收敛: 温度 / 概率 / 测试发送 / 仅 Agent 会话 收进「高级」
-                        SettingsItemRow(
-                            icon = MuseIcons.robot,
-                            title = stringResource(R.string.settings_agent_group_advanced),
-                            onClick = { showAdvancedDialog = true },
-                        ) {
-                            ChevronRight()
+                        switchItem(
+                            key = "night_diary_toggle",
+                            title = stringResource(R.string.settings_agent_content_night_diary),
+                            checked = nightPatrolEnabled,
+                            onCheckedChange = { v -> scope.launch { settings.saveNightPatrolEnabled(v) } },
+                            leadingContent = { Icon(MuseIcons.moon, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                        )
+                        switchItem(
+                            key = "moment_toggle",
+                            title = stringResource(R.string.settings_agent_content_moment),
+                            subtitle = momentCountSub,
+                            checked = dailyMomentCount > 0,
+                            onCheckedChange = { v -> scope.launch { settings.saveDailyMomentCount(if (v) 2 else 0) } },
+                            leadingContent = { Icon(MuseIcons.calendarStats, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                        )
+                        if (dailyMomentCount > 0) {
+                            navigationItem(
+                                key = "moment_count",
+                                title = stringResource(R.string.settings_agent_moment_count_title),
+                                value = stringResource(R.string.settings_agent_moment_count_per_day, dailyMomentCount),
+                                leadingContent = { Icon(MuseIcons.clock, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                                onClick = { showMomentCountPicker = true },
+                            )
+                            navigationItem(
+                                key = "moment_mode",
+                                title = stringResource(R.string.settings_moment_content_mode_title),
+                                value = momentModeSub,
+                                leadingContent = { Icon(MuseIcons.typography, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                                onClick = { showMomentContentModePicker = true },
+                            )
                         }
-                        // P0 收敛: 每日总结 / 深夜日记 / 朋友圈 收进「主动内容」入口
-                        ProactiveGroupLabel(stringResource(R.string.settings_agent_group_daily))
-                        SettingsItemRow(
-                            icon = MuseIcons.calendarStats,
-                            title = stringResource(R.string.settings_agent_content_title),
-                            subtitle = contentLabel,
-                            onClick = { showContentPicker = true },
-                        ) {
-                            ChevronRight()
+                    }
+                }
+
+                item(key = "proactive_advanced_group") {
+                    val guaranteeText = guaranteeLabel(proactiveConfig.dailyGuaranteeHours)
+                    val offsetText = offsetLabel(proactiveConfig.randomOffsetMinutes)
+                    CardGroup(title = { Text(stringResource(R.string.settings_agent_group_advanced)) }) {
+                        item(
+                            key = "advanced_expand_toggle",
+                            onClick = { showAdvancedSection = !showAdvancedSection },
+                            leadingContent = { Icon(MuseIcons.robot, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                            headlineContent = { Text(stringResource(R.string.settings_agent_group_advanced)) },
+                            supportingContent = { Text(stringResource(R.string.settings_agent_advanced_hint)) },
+                            trailingContent = {
+                                Icon(
+                                    imageVector = if (showAdvancedSection) MuseIcons.chevronUp else MuseIcons.chevronDown,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(MuseIconSizes.iconMedium),
+                                )
+                            },
+                        )
+                        if (showAdvancedSection) {
+                            switchItem(
+                                key = "adv_agent_session",
+                                title = stringResource(R.string.settings_agent_agent_session_enabled),
+                                checked = proactiveConfig.agentSessionEnabled,
+                                onCheckedChange = { v ->
+                                    scope.launch {
+                                        settings.saveProactiveMessageConfig(proactiveConfig.copy(agentSessionEnabled = v))
+                                    }
+                                },
+                                leadingContent = { Icon(MuseIcons.user, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                            )
+                            switchItem(
+                                key = "adv_plain_chat",
+                                title = stringResource(R.string.settings_agent_plain_chat_enabled),
+                                checked = proactiveConfig.allowPlainChatSession,
+                                onCheckedChange = { v ->
+                                    scope.launch {
+                                        settings.saveProactiveMessageConfig(proactiveConfig.copy(allowPlainChatSession = v))
+                                    }
+                                },
+                                leadingContent = { Icon(MuseIcons.chat, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                            )
+                            navigationItem(
+                                key = "adv_guarantee",
+                                title = stringResource(R.string.settings_agent_daily_guarantee),
+                                value = guaranteeText,
+                                leadingContent = { Icon(MuseIcons.clock, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                                onClick = { showGuaranteePicker = true },
+                            )
+                            navigationItem(
+                                key = "adv_temperature",
+                                title = stringResource(R.string.settings_agent_temperature),
+                                value = "%.1f".format(proactiveConfig.temperature),
+                                leadingContent = { Icon(MuseIcons.switch, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                                onClick = { showTemperaturePicker = true },
+                            )
+                            navigationItem(
+                                key = "adv_offset",
+                                title = stringResource(R.string.settings_agent_random_offset),
+                                value = offsetText,
+                                leadingContent = { Icon(MuseIcons.switch, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                                onClick = { showOffsetPicker = true },
+                            )
+                            actionItem(
+                                key = "adv_test_send",
+                                title = if (testSending) {
+                                    stringResource(R.string.settings_agent_test_generating)
+                                } else {
+                                    stringResource(R.string.settings_agent_test_message)
+                                },
+                                loading = testSending,
+                                enabled = !testSending,
+                                onClick = {
+                                    testSending = true
+                                    scope.launch {
+                                        try {
+                                            val result = proactiveScheduler.runCycle(
+                                                io.zer0.muse.proactive.ProactiveScheduler.TRIGGER_MANUAL,
+                                                force = true,
+                                            )
+                                            MuseToast.show(
+                                                if (result.alreadyRunning) testAlreadyRunningText else result.detail,
+                                                3500,
+                                            )
+                                        } catch (e: Exception) {
+                                            if (e is kotlin.coroutines.cancellation.CancellationException) throw e
+                                            Logger.w("AgentSettingsPage", "测试主动消息失败: ${e.message}")
+                                            MuseToast.show(
+                                                context.getString(R.string.settings_agent_test_failed, e.message),
+                                            )
+                                        } finally {
+                                            testSending = false
+                                        }
+                                    }
+                                },
+                            )
                         }
                     }
                 }
             }
 
-            // P0: 「后台与可靠性」独立分区 —— 后台任务总控管的是全部周期后台任务,
-            // 与主动消息开关解耦;保持后台运行引导也归到这里。
-            item { SectionLabel(stringResource(R.string.settings_agent_group_background)) }
-            item {
-                SettingsGroup(modifier = Modifier.padding(top = 8.dp)) {
-                    SettingsSwitchRow(
-                        icon = MuseIcons.switch,
+            item(key = "proactive_background_group") {
+                CardGroup(title = { Text(stringResource(R.string.settings_agent_group_background)) }) {
+                    switchItem(
+                        key = "schedule_work",
                         title = stringResource(R.string.settings_agent_schedule_work_title),
                         checked = scheduleWorkEnabled,
-                        onCheckedChange = { v ->
-                            scope.launch { settings.saveScheduleWorkEnabled(v) }
-                        },
+                        onCheckedChange = { v -> scope.launch { settings.saveScheduleWorkEnabled(v) } },
+                        leadingContent = { Icon(MuseIcons.switch, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
                     )
-                    // v2.x: 保活开关自记忆页归位(系统级后台行为)
-                    SettingsSwitchRow(
-                        icon = MuseIcons.bolt,
+                    switchItem(
+                        key = "keep_awake",
                         title = stringResource(R.string.settings_memory_keep_awake),
                         checked = keepAwake,
-                        onCheckedChange = { v ->
-                            scope.launch { settings.saveKeepAwake(v) }
-                        },
+                        onCheckedChange = { v -> scope.launch { settings.saveKeepAwake(v) } },
+                        leadingContent = { Icon(MuseIcons.bolt, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
                     )
-                    SettingsSwitchRow(
-                        icon = MuseIcons.power,
+                    switchItem(
+                        key = "auto_launch",
                         title = stringResource(R.string.settings_memory_auto_launch),
                         checked = autoLaunch,
-                        onCheckedChange = { v ->
-                            scope.launch { settings.saveAutoLaunch(v) }
-                        },
+                        onCheckedChange = { v -> scope.launch { settings.saveAutoLaunch(v) } },
+                        leadingContent = { Icon(MuseIcons.power, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
                     )
-                    SettingsItemRow(
-                        icon = MuseIcons.lifebuoy,
+                    navigationItem(
+                        key = "keep_alive_guide",
                         title = stringResource(R.string.settings_agent_keep_alive_title),
+                        leadingContent = { Icon(MuseIcons.lifebuoy, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
                         onClick = { showKeepAliveGuide = true },
-                    ) {
-                        ChevronRight()
-                    }
+                    )
                 }
             }
         }
@@ -663,75 +745,7 @@ fun AgentSettingsPage(
         )
     }
 
-    // ── P0: 主动程度选择弹窗(少/标准/多;反推不到则显示自定义) ──
-    if (showPacePicker) {
-        val currentPace = ProactivePace.from(
-            proactiveConfig.intervalMinutes,
-            proactiveConfig.sendProbability,
-        )
-        MuseDialog(
-            onDismissRequest = { showPacePicker = false },
-            title = stringResource(R.string.settings_agent_pace_title),
-            content = {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = stringResource(R.string.settings_agent_pace_hint),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = 12.dp),
-                    )
-                    ProactivePace.values().forEach { pace ->
-                        val selected = currentPace == pace
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    scope.launch {
-                                        settings.saveProactiveMessageConfig(
-                                            proactiveConfig.copy(
-                                                intervalMinutes = pace.intervalMinutes,
-                                                sendProbability = pace.sendProbability,
-                                                randomOffsetMinutes = proactiveConfig.randomOffsetMinutes
-                                                    .coerceIn(0, pace.intervalMinutes),
-                                            ),
-                                        )
-                                    }
-                                    showPacePicker = false
-                                }
-                                .padding(horizontal = 16.dp, vertical = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = paceTitle(pace),
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                )
-                                Text(
-                                    text = paceSubtitle(pace),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                            if (selected) {
-                                Icon(
-                                    MuseIcons.check,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.size(20.dp),
-                                )
-                            }
-                        }
-                    }
-                }
-            },
-            dismissText = stringResource(R.string.common_cancel),
-            onDismiss = { showPacePicker = false },
-        )
-    }
-
-    // ── P0: 免打扰时段弹窗(起止两个滑块) ──
+    // ── 免打扰时段弹窗（起止两个滑块）──
     //
     // 语义说明（重要）:本弹窗编辑的是「免打扰时段」,存储字段是「允许发送窗口」,
     // 两者互补。旧实现把这个换算写成 `startHour = allowedHourEnd` / `allowedHourStart = e`,
@@ -848,219 +862,6 @@ fun AgentSettingsPage(
             },
             dismissText = stringResource(R.string.common_cancel),
             onDismiss = { showQuietHoursPicker = false },
-        )
-    }
-
-    // ── P0: 主动内容弹窗(每日总结 / 深夜日记 / 朋友圈) ──
-    if (showContentPicker) {
-        MuseDialog(
-            onDismissRequest = { showContentPicker = false },
-            title = stringResource(R.string.settings_agent_content_title),
-            content = {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = stringResource(R.string.settings_agent_content_hint),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = 8.dp),
-                    )
-                    SettingsGroup {
-                        SettingsSwitchRow(
-                            icon = MuseIcons.calendarStats,
-                            title = stringResource(R.string.settings_agent_content_daily_summary),
-                            checked = dailySummaryEnabled,
-                            onCheckedChange = { v ->
-                                scope.launch { settings.saveDailySummaryEnabled(v) }
-                            },
-                        )
-                        if (dailySummaryEnabled) {
-                            SettingsItemRow(
-                                icon = MuseIcons.clock,
-                                title = stringResource(R.string.settings_agent_daily_summary_slots_title),
-                                subtitle = dailySummarySlots.joinToString(" ") { String.format(Locale.getDefault(), "%02d:00", it) },
-                                onClick = {
-                                    showContentPicker = false
-                                    showSlotsDialog = true
-                                },
-                            ) {
-                                ChevronRight()
-                            }
-                        }
-                        SettingsSwitchRow(
-                            icon = MuseIcons.moon,
-                            title = stringResource(R.string.settings_agent_content_night_diary),
-                            checked = nightPatrolEnabled,
-                            onCheckedChange = { v ->
-                                scope.launch { settings.saveNightPatrolEnabled(v) }
-                            },
-                        )
-                        SettingsSwitchRow(
-                            icon = MuseIcons.calendarStats,
-                            title = stringResource(R.string.settings_agent_content_moment),
-                            subtitle = if (dailyMomentCount > 0) {
-                                stringResource(R.string.settings_agent_moment_count_per_day, dailyMomentCount)
-                            } else {
-                                stringResource(R.string.settings_agent_moment_count_off)
-                            },
-                            checked = dailyMomentCount > 0,
-                            onCheckedChange = { v ->
-                                scope.launch { settings.saveDailyMomentCount(if (v) 2 else 0) }
-                            },
-                        )
-                        if (dailyMomentCount > 0) {
-                            SettingsItemRow(
-                                icon = MuseIcons.clock,
-                                title = stringResource(R.string.settings_agent_moment_count_title),
-                                subtitle = stringResource(R.string.settings_agent_moment_count_per_day, dailyMomentCount),
-                                onClick = {
-                                    showContentPicker = false
-                                    showMomentCountPicker = true
-                                },
-                            ) {
-                                ChevronRight()
-                            }
-                            // v2.6.7（P0-1）: 朋友圈内容模式 — 真实系 / 角色系双档
-                            SettingsItemRow(
-                                icon = MuseIcons.typography,
-                                title = stringResource(R.string.settings_moment_content_mode_title),
-                                subtitle = when (momentContentMode) {
-                                    io.zer0.muse.data.moment.MomentContentMode.REAL ->
-                                        stringResource(R.string.settings_moment_content_mode_real_desc)
-                                    io.zer0.muse.data.moment.MomentContentMode.CHARACTER ->
-                                        stringResource(R.string.settings_moment_content_mode_character_desc)
-                                },
-                                onClick = {
-                                    showContentPicker = false
-                                    showMomentContentModePicker = true
-                                },
-                            ) {
-                                ChevronRight()
-                            }
-                        }
-                    }
-                }
-            },
-            dismissText = stringResource(R.string.common_cancel),
-            onDismiss = { showContentPicker = false },
-        )
-    }
-
-    // ── P0: 高级弹窗(仅 Agent 会话 / 生成温度 / 随机偏移 / 测试发送) ──
-    if (showAdvancedDialog) {
-        MuseDialog(
-            onDismissRequest = { showAdvancedDialog = false },
-            title = stringResource(R.string.settings_agent_group_advanced),
-            content = {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = stringResource(R.string.settings_agent_advanced_hint),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = 8.dp),
-                    )
-                    SettingsGroup {
-                        SettingsSwitchRow(
-                            icon = MuseIcons.user,
-                            title = stringResource(R.string.settings_agent_agent_session_enabled),
-                            checked = proactiveConfig.agentSessionEnabled,
-                            onCheckedChange = { v ->
-                                scope.launch {
-                                    settings.saveProactiveMessageConfig(
-                                        proactiveConfig.copy(agentSessionEnabled = v),
-                                    )
-                                }
-                            },
-                        )
-                        SettingsSwitchRow(
-                            icon = MuseIcons.chat,
-                            title = stringResource(R.string.settings_agent_plain_chat_enabled),
-                            checked = proactiveConfig.allowPlainChatSession,
-                            onCheckedChange = { v ->
-                                scope.launch {
-                                    settings.saveProactiveMessageConfig(
-                                        proactiveConfig.copy(allowPlainChatSession = v),
-                                    )
-                                }
-                            },
-                        )
-                        SettingsItemRow(
-                            icon = MuseIcons.clock,
-                            title = stringResource(R.string.settings_agent_daily_guarantee),
-                            subtitle = guaranteeLabel(proactiveConfig.dailyGuaranteeHours),
-                            onClick = {
-                                showAdvancedDialog = false
-                                showGuaranteePicker = true
-                            },
-                        ) {
-                            ChevronRight()
-                        }
-                        SettingsItemRow(
-                            icon = MuseIcons.switch,
-                            title = stringResource(R.string.settings_agent_temperature),
-                            subtitle = "%.1f".format(proactiveConfig.temperature),
-                            onClick = {
-                                showAdvancedDialog = false
-                                showTemperaturePicker = true
-                            },
-                        ) {
-                            ChevronRight()
-                        }
-                        SettingsItemRow(
-                            icon = MuseIcons.switch,
-                            title = stringResource(R.string.settings_agent_random_offset),
-                            subtitle = offsetLabel(proactiveConfig.randomOffsetMinutes),
-                            onClick = {
-                                showAdvancedDialog = false
-                                showOffsetPicker = true
-                            },
-                        ) {
-                            ChevronRight()
-                        }
-                        SettingsItemRow(
-                            icon = MuseIcons.bell,
-                            title = stringResource(R.string.settings_agent_test_message),
-                            subtitle = if (testSending) {
-                                stringResource(R.string.settings_agent_test_generating)
-                            } else {
-                                stringResource(R.string.settings_agent_test_message_subtitle)
-                            },
-                            onClick = {
-                                if (testSending) return@SettingsItemRow
-                                testSending = true
-                                scope.launch {
-                                    try {
-                                        // v2.2.1: 如实展示结果(含失败原因),替代固定的"已发送"文案
-                                        // v2.6.9: 改走重建版调度器 —— 旧 Runner 已不再启动，
-                                        // 若继续指向它，测试按钮会走一条实际不存在的链路。
-                                        val result = proactiveScheduler.runCycle(
-                                            io.zer0.muse.proactive.ProactiveScheduler.TRIGGER_MANUAL,
-                                            force = true,
-                                        )
-                                        MuseToast.show(
-                                            // 跳过的原因是「上一轮还在跑」，这句要说给人听,
-                                            // 走资源而不是把日志里的中文短语直接弹出来。
-                                            if (result.alreadyRunning) testAlreadyRunningText else result.detail,
-                                            3500,
-                                        )
-                                    } catch (e: Exception) {
-                                        if (e is kotlin.coroutines.cancellation.CancellationException) throw e
-                                        Logger.w("AgentSettingsPage", "测试主动消息失败: ${e.message}")
-                                        MuseToast.show(
-                                            context.getString(R.string.settings_agent_test_failed, e.message),
-                                        )
-                                    } finally {
-                                        testSending = false
-                                    }
-                                }
-                            },
-                        ) {
-                            ChevronRight()
-                        }
-                    }
-                }
-            },
-            dismissText = stringResource(R.string.common_cancel),
-            onDismiss = { showAdvancedDialog = false },
         )
     }
 
@@ -1382,33 +1183,4 @@ private fun offsetLabel(minutes: Int): String {
 private fun guaranteeLabel(hours: Int): String {
     if (hours <= 0) return stringResource(R.string.settings_agent_daily_guarantee_off)
     return stringResource(R.string.settings_agent_daily_guarantee_hours, hours)
-}
-
-/** UI-FIX: 主动消息组内的子分组标签，给平铺的开关建立层级。 */
-@Composable
-private fun ProactiveGroupLabel(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.labelSmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(start = 16.dp, top = 14.dp, bottom = 2.dp),
-    )
-}
-
-/** P0: 主动程度档位标题。 */
-@Composable
-private fun paceTitle(pace: ProactivePace): String = when (pace) {
-    ProactivePace.LIGHT -> stringResource(R.string.settings_agent_pace_light)
-    ProactivePace.STANDARD -> stringResource(R.string.settings_agent_pace_standard)
-    ProactivePace.HEAVY -> stringResource(R.string.settings_agent_pace_heavy)
-    ProactivePace.EXTREME -> stringResource(R.string.settings_agent_pace_extreme)
-}
-
-/** P0: 主动程度档位说明。 */
-@Composable
-private fun paceSubtitle(pace: ProactivePace): String = when (pace) {
-    ProactivePace.LIGHT -> stringResource(R.string.settings_agent_pace_light_desc)
-    ProactivePace.STANDARD -> stringResource(R.string.settings_agent_pace_standard_desc)
-    ProactivePace.HEAVY -> stringResource(R.string.settings_agent_pace_heavy_desc)
-    ProactivePace.EXTREME -> stringResource(R.string.settings_agent_pace_extreme_desc)
 }

@@ -589,6 +589,7 @@
     <string name="search_custom_engine_method">Método</string>
     <string name="search_custom_engine_body">Modelo do corpo (POST; {query} é substituído)</string>
     <string name="search_custom_engine_results_path">Caminho dos resultados (ex.: data.results; vazio = raiz é array)</string>
+    <string name="search_custom_engine_delete_confirm">Excluir “%1$s”? Ele deixará de ser usado na cadeia de busca.</string>
     <string name="settings_chat_carry_over_section">Continuidade entre conversas</string>
     <string name="settings_chat_carry_over">Trazer a conversa anterior</string>
     <string name="settings_chat_carry_over_count">Trazer %1$d mensagens</string>

@@ -3,29 +3,17 @@ package io.zer0.muse.ui.chat
 import android.content.Context
 import io.zer0.common.resultOf
 import io.zer0.muse.R
-import io.zer0.muse.asr.ASRController
-import io.zer0.muse.asr.ASRState
-import io.zer0.muse.asr.ASRStatus
-import io.zer0.muse.asr.AsrClientFactory
 import io.zer0.muse.asr.AsrConfig
-import io.zer0.muse.asr.AsrProviderType
+import io.zer0.muse.asr.StreamingAsrCoordinator
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.ui.speech.TtsManager
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.launch
 import kotlin.uuid.Uuid
 
 /**
- * v1.105 阶段 1: 从 ChatViewModel 抽离的音频(TTS / ASR)Coordinator。
+ * 聊天页音频（TTS / ASR）协调器。
  *
- * 职责:
- *  - toggleTts / stopTts: 文本转语音
- *  - 流式 ASR Controller 管理(getOrCreateAsrController / start / stop / cancel / dispose)
- *  - saveAsrConfig / shouldUseApiRecording
- *
- * 持有 [asrController] 和 [asrBaseText] 两个可变状态(原 ChatViewModel 字段迁移过来)。
+ * ASR 生命周期与状态机委托给共享的 [StreamingAsrCoordinator]，确保单聊与 Agent 行为完全一致。
  */
 class ChatAudioCoordinator(
     private val accessor: ChatStateAccessor,
@@ -33,20 +21,16 @@ class ChatAudioCoordinator(
     private val settings: SettingsRepository,
     private val context: Context,
 ) {
+    private val asrCoordinator = StreamingAsrCoordinator(
+        context = context,
+        coroutineScope = accessor.coroutineScope,
+        configProvider = { accessor.snapshot.asrConfig },
+        inputProvider = { accessor.snapshot.input },
+        updateInput = { transform -> accessor.update { it.copy(input = transform(it.input)) } },
+        onStateChange = { asrState -> accessor.update { it.copy(asrState = asrState) } },
+    )
 
-    /** v1.91: 流式 ASR Controller 实例(懒创建,Provider 切换时重建)。 */
-    private var asrController: ASRController? = null
-    private var asrControllerConfig: AsrConfig? = null
-    private var asrStateJob: Job? = null
-
-    // Monotonic session guard: late callbacks from a disposed/replaced controller must not mutate current UI/input.
-    private var asrGeneration: Long = 0L
-
-    /** v1.91: 录音前输入框文本快照(用于结果拼接与取消时恢复)。 */
-    private var asrBaseText = ""
-    private var lastAsrTranscript = ""
-
-    /** Phase 8.7: 切换 TTS 朗读(同条消息停止,不同消息开始新朗读)。 */
+    /** 切换 TTS 朗读（同条消息停止，不同消息开始新朗读）。 */
     fun toggleTts(messageId: Uuid, content: String, reportError: (String) -> Unit) {
         val current = accessor.snapshot.speakingMessageId
         if (current == messageId) {
@@ -54,10 +38,8 @@ class ChatAudioCoordinator(
         } else {
             val utteranceId = messageId.toString()
             accessor.coroutineScope.launch {
-                // P1-2: 长文朗读接入流式 TTS — speakStream 按句合成/播放(云端双 Channel 流水线),
-                // flushStream 冲刷尾部残句;与 [TtsManager.speak] 的串行分片朗读互为备选路径。
                 if (content.isBlank()) {
-                    reportError(context.getString(R.string.speech_tts_engine_not_ready)) // CONS-05: 硬编码中文迁移到字符串资源
+                    reportError(context.getString(R.string.speech_tts_engine_not_ready))
                     return@launch
                 }
                 ttsManager.speakStream(content, utteranceId)
@@ -66,232 +48,46 @@ class ChatAudioCoordinator(
         }
     }
 
-    /** Phase 8.7: 停止当前朗读(切换会话/退出页面时调用)。 */
+    /** 停止当前朗读（切换会话/退出页面时调用）。 */
     fun stopTts() {
         ttsManager.stop()
     }
 
-    /**
-     * v1.91: 创建或复用 ASRController(根据当前 asrConfig)。
-     * - SYSTEM / DASHSCOPE_FILE 返回 null(走旧路径)
-     * - DASHSCOPE / STEP / OPENAI_WHISPER / OPENAI_REALTIME / AGNES 创建对应流式 Controller,并启动状态观察协程
-     */
-    private fun getOrCreateAsrController(): ASRController? {
-        val cfg = accessor.snapshot.asrConfig
-        val supportsStreaming = cfg.provider != AsrProviderType.SYSTEM &&
-            cfg.provider != AsrProviderType.DASHSCOPE_FILE
-        // 与输入栏共用同一判据：本地引擎看模型文件，云端引擎看 apiKey。
-        val configured = io.zer0.muse.asr.isAsrInputAvailable(
-            provider = cfg.provider,
-            apiKey = cfg.apiKey,
-            localModelReady = io.zer0.muse.asr.local.LocalModelStoreBridge.isReady(),
-            systemRecognizerAvailable = io.zer0.muse.ui.speech.SpeechInput.isAvailable(context),
-        )
-        if (!supportsStreaming || !configured) {
-            // Provider 切回系统识别或清空 API Key 时,旧 Controller 不能继续占用麦克风/网络。
-            if (asrController != null || asrStateJob != null) {
-                asrGeneration++
-                asrStateJob?.cancel()
-                asrStateJob = null
-                asrController?.dispose()
-                asrController = null
-                asrControllerConfig = null
-                accessor.update { it.copy(asrState = ASRState()) }
-            }
-            if (!configured && supportsStreaming) {
-                accessor.update {
-                    it.copy(
-                        asrState = ASRState(
-                            status = io.zer0.muse.asr.ASRStatus.Error,
-                            isAvailable = false,
-                            errorMessage = if (cfg.provider == AsrProviderType.LOCAL_SENSEVOICE) {
-                                context.getString(R.string.asr_local_error_model_missing)
-                            } else {
-                                context.getString(R.string.asr_missing_api_key_error)
-                            },
-                        ),
-                    )
-                }
-            }
-            return null
-        }
-        val existing = asrController
-        if (existing != null && asrControllerConfig == cfg) return existing
-        asrGeneration++
-        asrStateJob?.cancel()
-        existing?.dispose()
-        val controller = AsrClientFactory.createController(cfg, context) ?: return null
-        asrController = controller
-        asrControllerConfig = cfg
-        asrStateJob = accessor.coroutineScope.launch {
-            controller.state.collect { state ->
-                if (controller === asrController) {
-                    accessor.update { it.copy(asrState = state) }
-                }
-            }
-        }
-        return controller
-    }
+    fun startStreamingAsr(): Boolean = asrCoordinator.startStreamingAsr()
 
-    /**
-     * v1.91: 开始流式录音识别。
-     *
-     * @return true 表示已真正开始；false 表示没起来（缺 key / 模型未就绪 / 已在录）。
-     *   返回值的意义：调用方据此决定是否进入「录音中」UI 状态。
-     *   以前无论起没起来都返回 Unit，UI 只好假定成功 ——
-     *   于是「按住没反应」时界面毫无反馈，用户以为按钮坏了。
-     */
-    fun startStreamingAsr(): Boolean {
-        val controller = getOrCreateAsrController() ?: return false
-        if (controller.state.value.isRecording) return false
-        asrBaseText = accessor.snapshot.input
-        lastAsrTranscript = ""
-        val generation = ++asrGeneration
-        controller.start { transcript ->
-            if (generation != asrGeneration || controller !== asrController) return@start
-            accessor.update { state ->
-                val current = state.input
-                val base = if (lastAsrTranscript.isNotEmpty() && current.endsWith(lastAsrTranscript)) {
-                    current.removeSuffix(lastAsrTranscript).trimEnd()
-                } else {
-                    current
-                }
-                val spacer = if (base.isBlank() || transcript.isBlank()) "" else " "
-                lastAsrTranscript = transcript
-                state.copy(input = base + spacer + transcript)
-            }
-        }
-        return true
-    }
-
-    /**
-     * 语音对话模式专用:开始流式录音,识别文本通过 [onTranscript] 回调给调用方,
-     * 不写入输入框(语音对话模式不走 InputBar 文本流)。
-     *
-     * 与 [startStreamingAsr] 的区别:
-     *  - [startStreamingAsr]:transcript 回填到 input 字段,用户可编辑后手动发送
-     *  - [startVoiceConversationListening]:transcript 通过回调上报,由 ViewModel 自动发送
-     *
-     * @param onTranscript 实时识别文本回调(主线程,含中间与最终结果)
-     */
     fun startVoiceConversationListening(onTranscript: (String) -> Unit) {
-        val controller = getOrCreateAsrController() ?: return
-        if (controller.state.value.isRecording) return
-        lastAsrTranscript = ""
-        val generation = ++asrGeneration
-        controller.start { transcript ->
-            if (generation != asrGeneration || controller !== asrController) return@start
-            onTranscript(transcript)
-        }
+        asrCoordinator.startVoiceConversationListening(onTranscript)
     }
 
-    /** 语音对话模式专用:停止录音,等待最后一段结果返回后切回 Idle。 */
     fun stopVoiceConversationListening() {
-        asrController?.stop()
+        asrCoordinator.stopVoiceConversationListening()
     }
 
-    /** 退出/中断语音对话：丢弃最后收尾回调，避免停止后迟到 transcript 复活到 UI。 */
     fun cancelVoiceConversationListening() {
-        asrGeneration++
-        asrStateJob?.cancel()
-        asrStateJob = null
-        asrController?.dispose()
-        asrController = null
-        asrControllerConfig = null
-        accessor.update { it.copy(asrState = ASRState()) }
+        asrCoordinator.cancelVoiceConversationListening()
     }
 
-    /**
-     * v2.6.29: 停止录音，最终文本落定后自动发送。
-     *
-     * 语音输入的预期是「说完就发」，不是「说完再点一次发送」。
-     * 但 stop() 是异步的：本地 SenseVoice 要跑完 ONNX 推理才把文本写进 input，
-     * 立刻发会把空串发出去。所以这里盯 state：Stopping → Idle 那一刻才发。
-     *
-     * @param onAutoSend 文本已写进输入框后调用；由调用方决定是否真的发送
-     */
     fun stopStreamingAsrAndSend(onAutoSend: () -> Unit) {
-        val controller = asrController ?: return
-        if (!controller.state.value.isRecording) return
-        val generation = asrGeneration
-        controller.stop()
-        accessor.coroutineScope.launch {
-            // 先等状态真正进入收尾（Stopping），再等它离开。
-            // 直接等 Idle 会踩到竞态：stop() 之前状态可能已经是 Idle，
-            // first{} 立刻返回，此时文本还没写进输入框，发出去就是空消息。
-            // 等最终状态落定。Stopping 是瞬态（本地引擎推理只要几十毫秒，
-            // 可能根本来不及被观察到），所以不强制先等 Stopping，只等「不再是录音中」。
-            // 加超时兜底：模型加载首次可能要几秒，但超过 20s 仍无结论就当失败，
-            // 不能让用户松手后无限等待。
-            withTimeoutOrNull(AUTO_SEND_WAIT_MS) {
-                controller.state.first {
-                    it.status == ASRStatus.Idle || it.status == ASRStatus.Error
-                }
-            }
-            // 只处理「这一次」的收尾：generation 变了说明用户又开了新录音或取消了。
-            if (generation != asrGeneration) return@launch
-            if (controller.state.value.status == ASRStatus.Error) return@launch
-            onAutoSend()
-        }
+        asrCoordinator.stopStreamingAsrAndSend(onAutoSend)
     }
 
-    /** v1.91: 停止流式录音,等待最后结果。 */
     fun stopStreamingAsr() {
-        asrController?.stop()
+        asrCoordinator.stopStreamingAsr()
     }
 
-    /** v1.91: 取消流式录音(恢复原始输入框文本)。 */
     fun cancelStreamingAsr() {
-        // 取消不能走 stop():stop 会 flush 最后一段音频,其异步回调可能在用户上滑取消后
-        // 又把识别文字写回输入框。直接释放当前 Controller,下一次录音按配置重建。
-        asrGeneration++
-        asrStateJob?.cancel()
-        asrStateJob = null
-        asrController?.dispose()
-        asrController = null
-        asrControllerConfig = null
-        accessor.update { state ->
-            val current = state.input
-            val restored = if (lastAsrTranscript.isNotEmpty() && current.endsWith(lastAsrTranscript)) {
-                current.removeSuffix(lastAsrTranscript).trimEnd()
-            } else {
-                // 用户在录音期间继续输入时，保留当前输入，不使用过期快照覆盖。
-                current
-            }
-            lastAsrTranscript = ""
-            state.copy(input = restored.ifBlank { asrBaseText }, asrState = ASRState())
-        }
+        asrCoordinator.cancelStreamingAsr()
     }
 
-    /** v1.91: 释放 ASR Controller(会话切换/ViewModel 销毁时)。 */
     fun disposeAsr() {
-        asrGeneration++
-        asrStateJob?.cancel()
-        asrStateJob = null
-        asrController?.dispose()
-        asrController = null
-        asrControllerConfig = null
-        accessor.update { it.copy(asrState = ASRState()) }
+        asrCoordinator.dispose()
     }
 
-    /** Phase 9.3 (M2): 保存 ASR 配置(Settings 页编辑后调用)。 */
     fun saveAsrConfig(config: AsrConfig) {
         accessor.coroutineScope.launch {
             resultOf { settings.saveAsrConfig(config) }
         }
     }
 
-    /**
-     * Phase 9.3 (M2): 判断当前是否应走 API 录音路径(而非系统 Intent)。
-     * - true: 任意非 SYSTEM / 非文件转录 Provider,即使缺 key 也必须走 API 路径，
-     *   由 getOrCreateAsrController 把“缺少 key”明确展示给用户，而不是悄悄降级到另一套系统识别。
-     * - false: SYSTEM 或 DASHSCOPE_FILE(文件转录不属于输入栏实时录音)。
-     */
-    fun shouldUseApiRecording(): Boolean {
-        val p = accessor.snapshot.asrConfig.provider
-        return p != AsrProviderType.SYSTEM && p != AsrProviderType.DASHSCOPE_FILE
-    }
+    fun shouldUseApiRecording(): Boolean = asrCoordinator.shouldUseApiRecording()
 }
-
-/** 松手后等待识别结论的上限。首次加载本地模型需要几秒，给足余量但不无限等。 */
-private const val AUTO_SEND_WAIT_MS = 20_000L

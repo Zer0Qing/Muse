@@ -64,17 +64,18 @@ import io.zer0.muse.ui.common.form.MuseSwitch
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
-import io.zer0.muse.ui.common.settings.SectionLabel
-import io.zer0.muse.ui.common.settings.SettingsGroup
-import io.zer0.muse.ui.common.settings.SettingsGroupDivider
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import io.zer0.muse.ui.common.state.MuseSpinner
+import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.common.surface.MuseListItem
+import io.zer0.muse.ui.common.surface.actionItem
 import io.zer0.muse.ui.theme.MuseAnimation
+import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.MuseSpacing
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -89,7 +90,7 @@ import org.koin.compose.koinInject
  * 添加按钮放在分组外(对齐系统列表底部的"添加"操作)。
  */
 @Composable
-internal fun McpSection() {
+internal fun McpSection(openAddTrigger: Int = 0) {
     val mcpRegistry: McpRegistry = koinInject()
     // v1.0.79 (E-1): 注入 ToolRegistry,用于统计各 server 已注册工具数(连接但 0 工具时提示)
     val toolRegistry: io.zer0.muse.tools.ToolRegistry = koinInject()
@@ -99,103 +100,109 @@ internal fun McpSection() {
     val serversState by mcpRegistry.serversState.collectAsStateWithLifecycle(initialValue = null)
 
     var showAddDialog by remember { mutableStateOf(false) }
+    // 顶栏「+」由调用方递增该计数触发，避免页面里再放一个位置不明的添加按钮。
+    LaunchedEffect(openAddTrigger) {
+        if (openAddTrigger > 0) showAddDialog = true
+    }
 
-    SectionLabel(stringResource(R.string.settings_mcp_title))
-    Text(
-        text = stringResource(R.string.settings_mcp_desc),
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(top = 4.dp),
-    )
     // v1.0.92 (B-5): 风险自动判定说明(可折叠,解释为何某些工具需要审批)
     var riskNoteExpanded by remember { mutableStateOf(false) }
-    Surface(
-        shape = MuseShapes.medium,
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 8.dp)
-            .clickable { riskNoteExpanded = !riskNoteExpanded },
-    ) {
-        Column(modifier = Modifier.padding(MusePaddings.cardInner)) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+    CardGroup {
+        content(key = "mcp_desc") {
+            Text(
+                text = stringResource(R.string.settings_mcp_desc),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(MusePaddings.cardInner),
+            )
+        }
+        content(key = "mcp_risk_note") {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { riskNoteExpanded = !riskNoteExpanded }
+                    .padding(MusePaddings.cardInner),
             ) {
-                Text(
-                    text = stringResource(R.string.settings_mcp_risk_note_title),
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Medium,
-                    // LAYOUT-01: 折叠标题取剩余宽度 + 限行(仅取宽时剩余宽度仍可能极小,
-                    // 中文会逐字换行撑高整行),防止被右侧 chevron 图标挤成一列。
-                    modifier = Modifier.weight(1f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Icon(
-                    imageVector = if (riskNoteExpanded) MuseIcons.chevronUp else MuseIcons.chevronDown,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(18.dp),
-                )
-            }
-            AnimatedVisibility(
-                visible = riskNoteExpanded,
-                // v2.x: 补令牌 spec(原为默认 spec)
-                enter = fadeIn(animationSpec = MuseMotion.tween(MuseAnimation.FAST_NORMAL_MS)) +
-                    expandVertically(
-                        animationSpec = MuseMotion.tween(MuseAnimation.NORMAL_MS),
-                    ),
-                exit = fadeOut(animationSpec = MuseMotion.tween(MuseAnimation.FAST_MS)) +
-                    shrinkVertically(
-                        animationSpec = MuseMotion.tween(MuseAnimation.FAST_NORMAL_MS),
-                    ),
-            ) {
-                Text(
-                    text = stringResource(R.string.settings_mcp_risk_note_body),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 8.dp),
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
+                ) {
+                    Text(
+                        text = stringResource(R.string.settings_mcp_risk_note_title),
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Medium,
+                        // LAYOUT-01: 折叠标题取剩余宽度 + 限行，防止被右侧 chevron 挤成一列。
+                        modifier = Modifier.weight(1f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Icon(
+                        imageVector = if (riskNoteExpanded) MuseIcons.chevronUp else MuseIcons.chevronDown,
+                        contentDescription = if (riskNoteExpanded) {
+                            stringResource(R.string.settings_common_collapse)
+                        } else {
+                            stringResource(R.string.common_expand)
+                        },
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(MuseIconSizes.iconSmall),
+                    )
+                }
+                AnimatedVisibility(
+                    visible = riskNoteExpanded,
+                    enter = fadeIn(animationSpec = MuseMotion.tween(MuseAnimation.FAST_NORMAL_MS)) +
+                        expandVertically(
+                            animationSpec = MuseMotion.tween(MuseAnimation.NORMAL_MS),
+                        ),
+                    exit = fadeOut(animationSpec = MuseMotion.tween(MuseAnimation.FAST_MS)) +
+                        shrinkVertically(
+                            animationSpec = MuseMotion.tween(MuseAnimation.FAST_NORMAL_MS),
+                        ),
+                ) {
+                    Text(
+                        text = stringResource(R.string.settings_mcp_risk_note_body),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = MuseSpacing.sm),
+                    )
+                }
             }
         }
     }
 
-    SettingsGroup(
-        modifier = Modifier.padding(top = 8.dp),
-    ) {
-        // v1.74: 局部变量捕获避免 !! 非空断言(委托属性无法 smart-cast)
-        val serverList = servers
-        when {
-            serverList == null -> {
-                Box(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    MuseSpinner(
-                        size = 28.dp,
-                    )
+    // v1.74: 局部变量捕获避免 !! 非空断言(委托属性无法 smart-cast)
+    val serverList = servers
+    when {
+        serverList == null -> {
+            CardGroup(modifier = Modifier.padding(top = MusePaddings.cardGap)) {
+                content(key = "mcp_loading") {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = MuseSpacing.xxl),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        MuseSpinner(size = MuseIconSizes.iconLarge)
+                    }
                 }
             }
-            serverList.isEmpty() -> {
-                // 空态直接给出添加入口：此前只有一句「点击下方添加」，
-                // 而真正的 `+` 在页面另一处，用户要满屏找按钮。
-                MuseEmptyState(
-                    icon = MuseIcons.puzzle,
+        }
+
+        serverList.isEmpty() -> {
+            CardGroup(modifier = Modifier.padding(top = MusePaddings.cardGap)) {
+                actionItem(
+                    key = "mcp_empty_add",
                     title = stringResource(R.string.settings_mcp_empty_title),
-                    actionText = stringResource(R.string.settings_mcp_add_action),
-                    onAction = { showAddDialog = true },
+                    onClick = { showAddDialog = true },
                 )
             }
-            else -> {
-                // v1.0.92 性能: 预计算各 server 工具数 — 旧实现每个 server 行各自全量扫描工具表
-                // (O(server×tools),每次重组都跑);改为按连接状态刷新一次、按前缀归属。
-                val toolCountByServerId = remember(serverList, serversState) {
-                    val all = toolRegistry.listTools()
-                    serverList.associate { s -> s.id to all.count { it.name.startsWith("mcp_${s.id}__") } }
-                }
-                serverList.forEachIndexed { index, server ->
-                    if (index > 0) SettingsGroupDivider()
+        }
+
+        else -> {
+            // v1.0.92 性能: 预计算各 server 工具数 — 旧实现每个 server 行各自全量扫描工具表
+            val toolCountByServerId = remember(serverList, serversState) {
+                val all = toolRegistry.listTools()
+                serverList.associate { s -> s.id to all.count { it.name.startsWith("mcp_${s.id}__") } }
+            }
+            CardGroup(modifier = Modifier.padding(top = MusePaddings.cardGap)) {
+                serverList.forEach { server ->
                     val state = serversState?.get(server.id) ?: McpConnectionState.DISCONNECTED
                     val reconnect = {
                         resultOf { mcpRegistry.reconnect(server.id) }
@@ -204,51 +211,50 @@ internal fun McpSection() {
                             }
                         Unit
                     }
-                    McpServerRow(
-                        server = server,
-                        state = state,
-                        mcpRegistry = mcpRegistry,
-                        // v1.0.79 (E-1): 该 server 已注册的工具数(连接成功但 0 工具时警示)
-                        // v1.0.92 性能: 取预计算值,不再逐行扫描工具表
-                        toolCount = toolCountByServerId[server.id] ?: -1,
-                        onToggleEnabled = { enabled ->
-                            scope.launch {
-                                resultOf { mcpRegistry.updateServer(server.copy(enabled = enabled)) }
-                                    .onError { _, t ->
-                                        MuseToast.show(context.getString(R.string.settings_mcp_failed, t?.message))
-                                    }
-                            }
-                        },
-                        onReconnect = reconnect,
-                        onDelete = {
-                            scope.launch {
-                                resultOf { mcpRegistry.removeServer(server.id) }
-                                    .onError { _, t ->
-                                        MuseToast.show(context.getString(R.string.settings_mcp_failed, t?.message))
-                                    }
-                            }
-                        },
-                    )
-                    if (state == McpConnectionState.FAILED) {
-                        MuseErrorStateBox(
-                            message = stringResource(R.string.settings_mcp_failed, server.name),
-                            onRetry = reconnect,
-                            modifier = Modifier.padding(top = MusePaddings.tinyGap),
+                    content(key = "mcp_server_${server.id}") {
+                        McpServerRow(
+                            server = server,
+                            state = state,
+                            mcpRegistry = mcpRegistry,
+                            // v1.0.79 (E-1): 该 server 已注册的工具数(连接成功但 0 工具时警示)
+                            toolCount = toolCountByServerId[server.id] ?: -1,
+                            onToggleEnabled = { enabled ->
+                                scope.launch {
+                                    resultOf { mcpRegistry.updateServer(server.copy(enabled = enabled)) }
+                                        .onError { _, t ->
+                                            MuseToast.show(context.getString(R.string.settings_mcp_failed, t?.message))
+                                        }
+                                }
+                            },
+                            onReconnect = reconnect,
+                            onDelete = {
+                                scope.launch {
+                                    resultOf { mcpRegistry.removeServer(server.id) }
+                                        .onError { _, t ->
+                                            MuseToast.show(context.getString(R.string.settings_mcp_failed, t?.message))
+                                        }
+                                }
+                            },
                         )
                     }
+                    if (state == McpConnectionState.FAILED) {
+                        content(key = "mcp_error_${server.id}") {
+                            MuseErrorStateBox(
+                                message = stringResource(R.string.settings_mcp_failed, server.name),
+                                onRetry = reconnect,
+                                modifier = Modifier.padding(MusePaddings.cardInner),
+                            )
+                        }
+                    }
                 }
+                actionItem(
+                    key = "mcp_add",
+                    title = stringResource(R.string.settings_mcp_add_action),
+                    onClick = { showAddDialog = true },
+                )
             }
         }
     }
-
-    // 添加按钮(分组外)
-    MuseTactileButton(
-        icon = MuseIcons.plus,
-        onClick = { showAddDialog = true },
-        contentDescription = null,
-        tint = MaterialTheme.colorScheme.onSurface,
-        modifier = Modifier.padding(top = 4.dp),
-    )
 
     if (showAddDialog) {
         McpServerAddDialog(
@@ -281,6 +287,8 @@ private fun McpServerRow(
     var menuExpanded by remember { mutableStateOf(false) }
     var showResources by remember { mutableStateOf(false) }
     var showPrompts by remember { mutableStateOf(false) }
+    // 删除是不可撤销的配置丢失，必须先二次确认再执行。
+    var confirmDelete by remember { mutableStateOf(false) }
     // OAuth 支持:启用 OAuth 配置或已注册 clientId
     val oauthSupported = server.oauthConfig.let { it.enabled || it.clientId.isNotBlank() }
     // 状态描述字符串(需在 @Composable 上下文中提取,不能在 semantics{} lambda 内调用 stringResource)
@@ -433,7 +441,7 @@ private fun McpServerRow(
                             contentColor = MaterialTheme.colorScheme.error,
                             onClick = {
                                 menuExpanded = false
-                                onDelete()
+                                confirmDelete = true
                             },
                         )
                     }
@@ -443,6 +451,31 @@ private fun McpServerRow(
                 onDismiss = { menuExpanded = false },
             )
         }
+    }
+
+    if (confirmDelete) {
+        MuseDialog(
+            onDismissRequest = { confirmDelete = false },
+            title = stringResource(R.string.common_delete),
+            content = {
+                Text(
+                    text = stringResource(
+                        R.string.provider_plugins_delete_confirm_named,
+                        server.name.ifBlank { server.id },
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            },
+            confirmText = stringResource(R.string.common_delete),
+            destructive = true,
+            onConfirm = {
+                confirmDelete = false
+                onDelete()
+            },
+            dismissText = stringResource(R.string.common_cancel),
+            onDismiss = { confirmDelete = false },
+        )
     }
 
     if (showResources) {
@@ -698,21 +731,27 @@ private fun McpServerAddDialog(onDismiss: () -> Unit, onAdd: suspend (McpServerC
                         placeholder = { Text("Authorization: Bearer xxx\nX-API-Key: yyy") },
                         singleLine = false,
                     )
+                    // 标题在左、开关在右：此前开关放在标签左边，与全站开关行相反。
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { autoReconnect = !autoReconnect },
                         verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
                     ) {
+                        Text(
+                            text = stringResource(R.string.settings_mcp_auto_reconnect),
+                            style = MaterialTheme.typography.bodySmall,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f),
+                        )
                         MuseSwitch(
                             checked = autoReconnect,
                             onCheckedChange = { autoReconnect = it },
                             modifier = Modifier.semantics {
                                 stateDescription = if (autoReconnect) stateEnabledText else stateDisabledText
                             },
-                        )
-                        Text(
-                            text = stringResource(R.string.settings_mcp_auto_reconnect),
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(start = 8.dp),
                         )
                     }
                     SettingField(

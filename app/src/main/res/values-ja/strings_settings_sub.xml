@@ -589,6 +589,7 @@
     <string name="search_custom_engine_method">メソッド</string>
     <string name="search_custom_engine_body">本文テンプレート（POST 用、{query} が置換されます）</string>
     <string name="search_custom_engine_results_path">結果パス（例 data.results、空ならルートが配列）</string>
+    <string name="search_custom_engine_delete_confirm">「%1$s」を削除しますか？検索チェーンで使われなくなります。</string>
     <string name="settings_chat_carry_over_section">会話の引き継ぎ</string>
     <string name="settings_chat_carry_over">新しい会話に前の文脈を含める</string>
     <string name="settings_chat_carry_over_count">%1$d 件のメッセージを引き継ぐ</string>

@@ -20,7 +20,6 @@ object ToolCategories {
         setOf(
             "get_current_time",
             "calculator",
-            "get_device_info",
             // v2.x 阶段3:工具库按需检索 — 分层收窄的补全通道,必须恒发
             "find_tools",
         )
@@ -31,43 +30,24 @@ object ToolCategories {
             "get_weather",
             "web_search",
             "web_fetch",
-            "get_battery_info",
             "get_network_info",
-            // v2.x 工具瘦身阶段4:冷门设备参数(内存/存储/显示/CPU/传感器)从恒发降级,
-            // 归入 OPTIONAL 与设备信息族同口径收窄。它们只读安全,但不是高频需求,
-            // 每轮恒发会白占 schema 预算;需要时可用设备类关键词命中,或 find_tools 检索。
             "get_foreground_app",
             "clipboard_read",
-            // v2.x: 通道状态自查 — 只读安全,提进 STANDARD 恒可见(否则"需要它时恰恰被 GLOBAL 收窄挡住")
-            "screen_permission_status",
-            // v2.x 扩展运行时(P0):内置 Node 沙盒自检 — 只读状态自查,恒可见
-            "runtime_selfcheck",
-            "platform_selfcheck",
-            // v2.6.10 工具装载整改：自检 / 记忆 / 卡片 / 读文件从 OPTIONAL 上提。
+            // 自检 / 核心记忆读写 / 卡片 / 读文件
             "tool_status",
-            "pin_memory",
-            "unpin_memory",
             "save_memory",
-            "delete_memory",
             "search_memory",
             "search_conversation",
             "recall_experience",
             "record_experience",
             "show_card",
-            "render_data",
             "update_card_data",
             "read_file",
             "read_user_file",
-            // v2.6.10 工具装载整改第二批：状态自查 / 通知 / 任务组织 / 委派入口。
+            // 状态自查 / 通知 / 任务组织 / 音色目录
             "current_status",
             "notify",
             "todo_write",
-            "subagent_task",
-            "subagent_run",
-            // 发语音：需配置云端 TTS 才有意义，但工具本身恒可见 ——
-            // 之前归 OPTIONAL，要等用户说出「语音 / 朗读 / voice」才装载，
-            // 导致配好 key 与音色后角色仍不会发语音（自定义助手设过工具白名单时更彻底搜不到）。
-            "send_voice",
             "list_cloned_voices",
             // 知识库按需检索三件套（knowledge_search 为内置技能始终可用）：
             // 自动注入默认关闭后，模型必须在每轮稳定看到目录与全文读取入口，自行决定何时检索引用。
@@ -122,16 +102,21 @@ object ToolCategories {
             "list_installed_apps",
             "share_text",
             "echo",
-            "get_calendar_today",
             "calendar_today",
             "get_wifi_info",
             "get_bluetooth_devices",
-            // v2.x 工具瘦身阶段4:从 STANDARD 降级 — 冷门设备参数,按设备族关键词收窄
+            // 设备参数与运行环境自检：按需经关键词族或 find_tools 暴露，避免每轮常驻占位
+            "get_device_info",
+            "get_battery_info",
             "get_storage_info",
             "get_memory_info",
             "get_display_info",
             "get_cpu_info",
             "get_sensors_list",
+            "screen_permission_status",
+            "screen_open_settings",
+            "runtime_selfcheck",
+            "platform_selfcheck",
             "make_phone_call",
             "open_maps",
             "url_encode",
@@ -151,7 +136,6 @@ object ToolCategories {
             "resource_delete",
             "quick_note_add",
             "quick_note_list",
-            "quick_note_search",
             "quick_note_get",
             "quick_note_update",
             "quick_note_delete",
@@ -174,18 +158,24 @@ object ToolCategories {
             "create_download",
             "parse_link",
             "parse_pdf",
-            // 媒体生成
+            // 媒体生成与语音
             "generate_image",
             "generate_video",
             "generate_qr_code",
-            // v2.x: 助手发语音消息，已上提为 STANDARD（见上），此处不再列。
+            "send_voice",
+            // 渲染与卡片辅助
+            "render_data",
             // 记忆 / 经验
+            "pin_memory",
+            "unpin_memory",
+            "delete_memory",
             "memory_config_get",
             "memory_config_set",
             // v2.6.7: 用户偏好学习（沉淀硬约束）
             "remember_preference",
-            // 任务卡 / 通知 / 状态
             // 子 agent / 团队 / 群聊
+            "subagent_task",
+            "subagent_run",
             "subagent_close",
             "delegate_agent",
             "proactive_message_wish",

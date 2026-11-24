@@ -7,6 +7,8 @@
     <string name="settings_browser_cookies_title">Cookies</string>
     <string name="settings_browser_accept_cookies">接受 Cookies</string>
     <string name="settings_browser_clear">清除 Cookies 与站点数据</string>
+    <string name="settings_browser_clear_confirm">清除后将退出所有网站的登录状态，此操作不可撤销。</string>
+    <string name="settings_browser_cleared">已清除 Cookies 与站点数据</string>
     <string name="settings_browser_engine_bing">必应</string>
     <string name="settings_browser_engine_baidu">百度</string>
     <string name="settings_browser_engine_sogou">搜狗</string>

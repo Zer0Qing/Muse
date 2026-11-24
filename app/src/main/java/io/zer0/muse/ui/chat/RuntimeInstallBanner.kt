@@ -120,6 +120,8 @@ fun RuntimeInstallBanner(
                     style = MaterialTheme.typography.titleSmall,
                     color = scheme.onSurface,
                     modifier = Modifier.weight(1f),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
                 MuseCapsuleButton(
                     text = stringResource(R.string.runtime_card_later),

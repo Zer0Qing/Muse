@@ -240,4 +240,8 @@
     <string name="agent_bot_result_empty">完了しました</string>
     <string name="agent_bot_prompt_verify_result">結果が正しいか確認してください</string>
     <string name="agent_bot_notification_title">頼んだ作業の結果が出ました</string>
+    <string name="time_picker_hour">時</string>
+    <string name="time_picker_minute">分</string>
+    <string name="time_picker_increase">増やす</string>
+    <string name="time_picker_decrease">減らす</string>
 </resources>

@@ -2,10 +2,8 @@
 
 package io.zer0.muse.ui.settings
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -17,7 +15,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -30,7 +27,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -45,9 +41,8 @@ import io.zer0.muse.ui.common.form.MuseChip
 import io.zer0.muse.ui.common.form.MuseSelectionSheet
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.settings.ChevronRight
-import io.zer0.muse.ui.common.settings.SectionLabel
-import io.zer0.muse.ui.common.settings.SettingsGroup
 import io.zer0.muse.ui.common.state.MuseSpinner
+import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
@@ -55,7 +50,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import androidx.compose.foundation.lazy.items as lazyItems
-import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * 视频生成默认参数设置。
@@ -87,37 +81,47 @@ fun VideoGenSection(settings: SettingsRepository = koinInject(), scope: Coroutin
         scope.launch { settings.saveVideoGenConfig(localConfig) }
     }
 
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
-    ) {
-        SectionLabel(stringResource(R.string.settings_video_gen_section))
-        SettingsGroup {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                // 模型选择卡片
-                if (providers == null) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        MuseSpinner(
-                            size = 24.dp,
-                        )
-                    }
-                } else {
-                    VideoModelSelectorCard(
-                        provider = selectedProvider,
-                        model = selectedModel,
-                        onClick = { showModelSelector = true },
-                    )
+    val selectProviderText = stringResource(R.string.settings_video_gen_select_provider)
+    val selectModelText = stringResource(R.string.settings_video_gen_select_model)
+    val selectDefaultText = stringResource(R.string.settings_video_gen_select_default)
+
+    CardGroup(title = { Text(stringResource(R.string.settings_video_gen_section)) }) {
+        if (providers == null) {
+            content(key = "video_gen_loading") {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(MusePaddings.cardInner),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    MuseSpinner(size = MuseIconSizes.iconMedium)
                 }
             }
+        } else {
+            item(
+                key = "video_gen_model",
+                onClick = { showModelSelector = true },
+                leadingContent = {
+                    MediaProviderAvatar(
+                        provider = selectedProvider,
+                        fallbackIcon = MuseIcons.movie,
+                    )
+                },
+                headlineContent = {
+                    Text(
+                        text = when {
+                            selectedProvider == null -> selectProviderText
+                            selectedModel == null -> selectModelText
+                            else -> selectedModel.name
+                        },
+                    )
+                },
+                supportingContent = {
+                    Text(text = selectedProvider?.displayName ?: selectDefaultText)
+                },
+                trailingContent = { ChevronRight() },
+            )
         }
     }
 
@@ -132,76 +136,6 @@ fun VideoGenSection(settings: SettingsRepository = koinInject(), scope: Coroutin
             },
             onDismiss = { showModelSelector = false },
         )
-    }
-}
-
-@Composable
-private fun VideoModelSelectorCard(provider: ProviderConfig?, model: Model?, onClick: () -> Unit) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        // 外层 SettingsGroup 已经是一张卡，这里再套一层就是卡中卡；压平只留点击区域。
-        color = Color.Transparent,
-        shape = MuseShapes.medium,
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .background(
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                        shape = CircleShape,
-                    ),
-                contentAlignment = Alignment.Center,
-            ) {
-                // 原来这里用圆圈问号兜底：问号是"帮助"语义，读屏也会念成"问号"，
-                // 而这个位置说的是"这一行能生成什么"。
-                val initial = provider?.displayName?.firstOrNull()?.toString()
-                if (initial == null) {
-                    Icon(
-                        imageVector = MuseIcons.movie,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(MuseIconSizes.iconMedium),
-                    )
-                } else {
-                    Text(
-                        text = initial,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold,
-                    )
-                }
-            }
-            Column(modifier = Modifier.weight(1f)) {
-                val selectProviderText = stringResource(R.string.settings_video_gen_select_provider)
-                val selectModelText = stringResource(R.string.settings_video_gen_select_model)
-                val selectDefaultText = stringResource(R.string.settings_video_gen_select_default)
-                Text(
-                    text = when {
-                        provider == null -> selectProviderText
-                        model == null -> selectModelText
-                        else -> model.name
-                    },
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = provider?.displayName ?: selectDefaultText,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            // 全站导航箭头统一走 chevron 图标:ASCII ">" 既不成字形、读屏也读不出语义。
-            ChevronRight()
-        }
     }
 }
 

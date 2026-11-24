@@ -1,21 +1,21 @@
 package io.zer0.muse.ui.settings
 
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.ui.common.icons.MuseIcons
-import io.zer0.muse.ui.common.settings.ChevronRight
-import io.zer0.muse.ui.common.settings.SectionLabel
-import io.zer0.muse.ui.common.settings.SettingsGroup
-import io.zer0.muse.ui.common.settings.SettingsGroupDivider
-import io.zer0.muse.ui.common.settings.SettingsItemRow
+import io.zer0.muse.ui.common.surface.CardGroup
+import io.zer0.muse.ui.common.surface.navigationItem
+import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.web.WebSearchConfig
 import io.zer0.muse.web.WebSearchProviderCatalog
@@ -37,21 +37,23 @@ fun SettingsWebSearchProviderListPage(
         title = stringResource(R.string.settings_web_search_provider_list_title),
         onBack = onBack,
     ) {
-        item {
-            Text(
-                text = stringResource(R.string.settings_web_search_provider_list_desc),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = MusePaddings.tightGap),
-            )
+        item(key = "provider_list_header") {
+            CardGroup {
+                item(
+                    key = "provider_list_desc",
+                    headlineContent = {
+                        Text(
+                            text = stringResource(R.string.settings_web_search_provider_list_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    },
+                )
+            }
         }
-        item {
-            SectionLabel(stringResource(R.string.settings_web_search_provider_selection))
-        }
-        item {
-            SettingsGroup {
-                WebSearchProviderCatalog.selectableTypes.forEachIndexed { index, provider ->
-                    if (index > 0) SettingsGroupDivider()
+        item(key = "provider_list_group") {
+            CardGroup(title = { Text(stringResource(R.string.settings_web_search_provider_selection)) }) {
+                WebSearchProviderCatalog.selectableTypes.forEach { provider ->
                     val state = WebSearchProviderCatalog.setupState(config, provider)
                     val subtitle = when {
                         provider.equals(currentProvider, ignoreCase = true) ->
@@ -62,12 +64,20 @@ fun SettingsWebSearchProviderListPage(
                             stringResource(R.string.settings_web_search_provider_status_needs_url)
                         else -> stringResource(R.string.settings_web_search_provider_status_ready)
                     }
-                    SettingsItemRow(
-                        icon = if (provider == "Auto") MuseIcons.sparkle else MuseIcons.search,
+                    navigationItem(
+                        key = "provider_$provider",
                         title = provider,
                         subtitle = subtitle,
+                        leadingContent = {
+                            Icon(
+                                imageVector = if (provider == "Auto") MuseIcons.sparkle else MuseIcons.search,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(MuseIconSizes.iconMedium),
+                            )
+                        },
                         onClick = { onOpenProvider(provider) },
-                    ) { ChevronRight() }
+                    )
                 }
             }
         }

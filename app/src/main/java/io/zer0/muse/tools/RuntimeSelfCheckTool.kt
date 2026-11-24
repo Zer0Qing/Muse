@@ -11,10 +11,10 @@ import kotlinx.serialization.json.contentOrNull
 import java.io.File
 
 /**
- * v2.x 扩展运行时（P0 打样）：内置 Node 沙盒自检工具。
+ * v2.x 扩展运行时：Linux 沙盒运行时（按需安装）自检工具。
  *
- * 用户可在聊天里让助手调用本工具，验证内置运行时（libmuse_node.so + npm 数据）
- * 在真机上的可用性。除一次性数据解压外均为只读检查，无其它副作用。
+ * 用户可在聊天里让助手调用本工具，验证按需安装的 Linux 沙盒运行时（proot + Ubuntu rootfs 内的 Node/Python）
+ * 与设备控制通道在真机上的可用性。除一次性数据解压外均为只读检查，无其它副作用。
  */
 object RuntimeSelfCheckTool {
 
@@ -22,8 +22,8 @@ object RuntimeSelfCheckTool {
 
     fun toolDef(): ToolRegistry.ToolDef = ToolRegistry.ToolDef(
         name = NAME,
-        description = "检查 Muse 内置 Node 运行时(应用沙盒内的运行环境)状态:node 版本、npm 版本、数据解压情况。" +
-            "当用户询问「内置运行时」「运行时自检」「Node 沙盒」「MCP 运行环境」或需要排查内置运行时问题时调用。" +
+        description = "检查 Muse 的 Linux 沙盒运行时（按需安装，提供 Node/Python 环境）状态：node 版本、npm 版本、Python 与设备通道就绪情况。" +
+            "当用户询问「运行时自检」「Linux 沙盒」「Node/Python 环境」「MCP 运行环境」或需要排查运行时问题时调用。" +
             "返回: 分项检查结果文本。",
         parameters = emptyMap(),
         required = emptySet(),
@@ -36,7 +36,7 @@ object RuntimeSelfCheckTool {
         /** v2.6.7: 可选注入。有则补「设备自动化三档通道」段 —— 自检要一次说完。 */
         automation: io.zer0.muse.automation.core.AutomationManager? = null,
     ): String {
-        val sb = StringBuilder("【内置运行时自检】")
+        val sb = StringBuilder("【Linux 沙盒运行时自检】")
 
         val node = MuseRuntime.nodeBinary(context)
         val externalReady = RuntimeBridge.isReady(context)

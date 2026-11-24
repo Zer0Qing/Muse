@@ -348,11 +348,10 @@ class GroupChatScheduler(
         /**
          * v1.0.53 Phase 5: channel_* 工具决策轮次上限。
          *
-         * 第 1 轮 LLM 可调用 channel_reply / channel_pass / channel_read_context;
-         * 若调用了 read_context,把结果回填后进入第 2 轮(强制 reply/pass,不再给 read_context)。
-         * 第 2 轮仍不决策 → 视为 implicitPass(对齐实现说明 implicitPass)。
+         * 保留 3 轮以支持「读取上下文 / 媒体或常规工具调用 → channel_reply/channel_pass」链路，
+         * 同时防止无限循环。
          */
-        private const val MAX_CHANNEL_DECISION_ROUNDS = 2
+        private const val MAX_CHANNEL_DECISION_ROUNDS = 3
 
         /**
          * issue #6: channel 工具执行失败后的重试上限。
@@ -1018,6 +1017,10 @@ class GroupChatScheduler(
                 val maxTokens = assistant.maxTokens ?: DEFAULT_MAX_TOKENS
 
                 activityHub.updateStatus(chatId, assistant.id, assistant.name, AgentActivityStatus.REPLYING)
+                val groupReasoningLevel = resolveGroupReasoningLevel(assistant)
+                var whisperReasoningStartedAt: Long? = null
+                var whisperReasoningDurationMs: Long? = null
+                var lastWhisperReasoningPushAt = 0L
                 val rawReply = resultOf {
                     withTimeoutOrNull(AGENT_TIMEOUT_MS) {
                         // A-13: 悄悄话同样过限流闸(与主动消息/群聊决策轮共享并发上限)
@@ -1031,14 +1034,45 @@ class GroupChatScheduler(
                                 temperature = temperature,
                                 maxTokens = maxTokens,
                                 providerConfig = providerConfig,
+                                reasoningLevel = groupReasoningLevel,
                             ).collect { event ->
                                 when (event) {
                                     is ChatStreamEvent.ContentDelta -> {
+                                        if (whisperReasoningStartedAt != null && whisperReasoningDurationMs == null) {
+                                            whisperReasoningDurationMs =
+                                                (System.currentTimeMillis() - (whisperReasoningStartedAt ?: 0L))
+                                                    .coerceAtLeast(0L)
+                                            activityHub.updateStreamingReasoning(
+                                                chatId,
+                                                GroupChatActivityHub.StreamingReasoning(
+                                                    text = reasoningBuilder.toString(),
+                                                    startedAtMs = whisperReasoningStartedAt,
+                                                    durationMs = whisperReasoningDurationMs,
+                                                    isThinkingActive = false,
+                                                ),
+                                            )
+                                        }
                                         builder.append(event.delta)
                                         // v1.x: 悄悄话流式输出 — 实时推给 UI
                                         activityHub.updateStreamingContent(chatId, builder.toString())
                                     }
-                                    is ChatStreamEvent.ReasoningDelta -> reasoningBuilder.append(event.delta)
+                                    is ChatStreamEvent.ReasoningDelta -> {
+                                        val now = System.currentTimeMillis()
+                                        if (whisperReasoningStartedAt == null) whisperReasoningStartedAt = now
+                                        reasoningBuilder.append(event.delta)
+                                        if (now - lastWhisperReasoningPushAt >= 60L) {
+                                            lastWhisperReasoningPushAt = now
+                                            activityHub.updateStreamingReasoning(
+                                                chatId,
+                                                GroupChatActivityHub.StreamingReasoning(
+                                                    text = reasoningBuilder.toString(),
+                                                    startedAtMs = whisperReasoningStartedAt,
+                                                    durationMs = whisperReasoningDurationMs,
+                                                    isThinkingActive = true,
+                                                ),
+                                            )
+                                        }
+                                    }
                                     else -> {}
                                 }
                             }
@@ -1052,6 +1086,9 @@ class GroupChatScheduler(
                     if (replyText.isNotBlank() && replyText != PASS_MARKER) {
                         val reply = rawReply
                         val reasoning = reply.second.ifBlank { extractReasoning(reply.first) ?: "" }.ifBlank { null }
+                        val finalWhisperDuration = whisperReasoningDurationMs ?: whisperReasoningStartedAt?.let {
+                            (System.currentTimeMillis() - it).coerceAtLeast(0L)
+                        }
                         if (restoreBlocksWrites(chatId, "私信回复")) return@launchGeneration
                         groupChatRepository.sendMessage(
                             chatId = chatId,
@@ -1061,6 +1098,7 @@ class GroupChatScheduler(
                             body = replyText,
                             mood = extractMood(reply.first),
                             reasoning = reasoning,
+                            reasoningDurationMs = finalWhisperDuration,
                             whisperTargetId = "local_user",
                         )
                         activityHub.clearStreamingContent(chatId)
@@ -1125,7 +1163,14 @@ class GroupChatScheduler(
                 appendLine(assistant.systemPrompt)
                 appendLine()
             }
-            appendLine(SystemPromptAssembler.buildGroupChatHintSection(chat.name, memberNames, assistant.name))
+            appendLine(
+                SystemPromptAssembler.buildGroupChatHintSection(
+                    chatName = chat.name,
+                    members = memberNames,
+                    currentAgentName = assistant.name,
+                    includeChannelTools = false,
+                ),
+            )
             appendLine()
             appendLine("【表决模式】群聊正在对以下议题进行表决:")
             appendLine("议题:$topic")
@@ -1164,10 +1209,11 @@ class GroupChatScheduler(
                         temperature = assistant.temperature ?: DEFAULT_TEMPERATURE,
                         maxTokens = assistant.maxTokens ?: 500,
                         providerConfig = providerConfig,
+                        reasoningLevel = io.zer0.ai.core.ReasoningLevel.OFF,
                     ).collect { event ->
                         if (event is ChatStreamEvent.ContentDelta) builder.append(event.delta)
                     }
-                    builder.toString().trim()
+                    sanitizeAgentReply(builder.toString()).trim()
                 }
             }
         }.getOrNull()
@@ -1199,7 +1245,7 @@ class GroupChatScheduler(
             appendLine("2. 尚有分歧的部分")
             appendLine("3. 建议的下一步行动")
             appendLine()
-            appendLine("用简洁清晰的格式输出,不要输出 [PASS]。")
+            appendLine("用简洁清晰的格式直接输出总结。")
         }
 
         val userContent = buildString {
@@ -1227,10 +1273,11 @@ class GroupChatScheduler(
                         temperature = 0.3f,
                         maxTokens = 1000,
                         providerConfig = providerConfig,
+                        reasoningLevel = io.zer0.ai.core.ReasoningLevel.OFF,
                     ).collect { event ->
                         if (event is ChatStreamEvent.ContentDelta) builder.append(event.delta)
                     }
-                    builder.toString().trim()
+                    sanitizeAgentReply(builder.toString()).trim()
                 }
             }
         }.getOrNull()
@@ -1253,7 +1300,14 @@ class GroupChatScheduler(
                 appendLine(assistant.systemPrompt)
                 appendLine()
             }
-            appendLine(SystemPromptAssembler.buildGroupChatHintSection(chatName, memberNames, assistant.name))
+            appendLine(
+                SystemPromptAssembler.buildGroupChatHintSection(
+                    chatName = chatName,
+                    members = memberNames,
+                    currentAgentName = assistant.name,
+                    includeChannelTools = false,
+                ),
+            )
             appendLine()
             appendLine("【悄悄话】用户给你发了一条私信,仅你可见,其他群成员看不到。")
             appendLine("请以私密方式回复,回复内容也仅用户可见。")
@@ -2027,6 +2081,10 @@ class GroupChatScheduler(
         val rawReplyText = resultOf {
             withTimeoutOrNull(AGENT_TIMEOUT_MS) {
                 // A-13: 辩论同样过限流闸(与主动消息/群聊决策轮共享并发上限)
+                val debateReasoningLevel = resolveGroupReasoningLevel(assistant)
+                var debateReasoningStartedAt: Long? = null
+                var debateReasoningDurationMs: Long? = null
+                var lastDebateReasoningPushAt = 0L
                 GenerationGate.withPermit {
                     val builder = StringBuilder()
                     // v1.x: 累积流式思考过程(reasoning_content),让群聊消息也能展示深度思考块
@@ -2038,14 +2096,45 @@ class GroupChatScheduler(
                         temperature = temperature,
                         maxTokens = maxTokens,
                         providerConfig = providerConfig,
+                        reasoningLevel = debateReasoningLevel,
                     ).collect { event ->
                         when (event) {
                             is ChatStreamEvent.ContentDelta -> {
+                                if (debateReasoningStartedAt != null && debateReasoningDurationMs == null) {
+                                    debateReasoningDurationMs =
+                                        (System.currentTimeMillis() - (debateReasoningStartedAt ?: 0L))
+                                            .coerceAtLeast(0L)
+                                    activityHub.updateStreamingReasoning(
+                                        chatId,
+                                        GroupChatActivityHub.StreamingReasoning(
+                                            text = reasoningBuilder.toString(),
+                                            startedAtMs = debateReasoningStartedAt,
+                                            durationMs = debateReasoningDurationMs,
+                                            isThinkingActive = false,
+                                        ),
+                                    )
+                                }
                                 builder.append(event.delta)
                                 // v1.x: 群聊流式输出 — 实时推给 UI
                                 activityHub.updateStreamingContent(chatId, builder.toString())
                             }
-                            is ChatStreamEvent.ReasoningDelta -> reasoningBuilder.append(event.delta)
+                            is ChatStreamEvent.ReasoningDelta -> {
+                                val now = System.currentTimeMillis()
+                                if (debateReasoningStartedAt == null) debateReasoningStartedAt = now
+                                reasoningBuilder.append(event.delta)
+                                if (now - lastDebateReasoningPushAt >= 60L) {
+                                    lastDebateReasoningPushAt = now
+                                    activityHub.updateStreamingReasoning(
+                                        chatId,
+                                        GroupChatActivityHub.StreamingReasoning(
+                                            text = reasoningBuilder.toString(),
+                                            startedAtMs = debateReasoningStartedAt,
+                                            durationMs = debateReasoningDurationMs,
+                                            isThinkingActive = true,
+                                        ),
+                                    )
+                                }
+                            }
                             is ChatStreamEvent.ImageDelta -> {}
                             is ChatStreamEvent.ToolCallDelta -> {}
                             is ChatStreamEvent.Done -> {}
@@ -2058,7 +2147,10 @@ class GroupChatScheduler(
                         }
                     }
                     if (streamError != null) throw IllegalStateException(streamError)
-                    builder.toString().trim() to reasoningBuilder.toString().trim()
+                    val finalDebateDuration = debateReasoningDurationMs ?: debateReasoningStartedAt?.let {
+                        (System.currentTimeMillis() - it).coerceAtLeast(0L)
+                    }
+                    Triple(builder.toString().trim(), reasoningBuilder.toString().trim(), finalDebateDuration)
                 }
             }
         }.onError { msg, _ ->
@@ -2099,6 +2191,7 @@ class GroupChatScheduler(
             body = replyText,
             mood = extractedMood,
             reasoning = extractedReasoning,
+            reasoningDurationMs = replyPair.third,
         )
         // 审计修复 (5.2) 适配: sendMessage 在群聊已被删除时返回 null(消息未落库),本轮跳过。
         // B-21: 落库失败不再静默 Pass — 记 ERROR 并返回 Error,让调用方感知发言丢失
@@ -2155,6 +2248,7 @@ class GroupChatScheduler(
                     chatName = chatName,
                     members = memberNames,
                     currentAgentName = assistant.name,
+                    includeChannelTools = false,
                 ),
             )
             appendLine()
@@ -2254,23 +2348,21 @@ class GroupChatScheduler(
         val (model, providerConfig) = resolveAssistantModel(host)
 
         val systemContent = buildString {
-            if (host.systemPrompt.isNotBlank()) {
-                appendLine(host.systemPrompt)
-                appendLine()
-            }
-            appendLine("你是群聊「${chat.name}」的主持人。")
-            appendLine("群成员:${otherMembers.joinToString("、") { it.name }}")
-            appendLine()
-            appendLine("你的任务是分析用户的问题,决定哪些成员应该发言以及发言顺序。")
-            appendLine("请只输出需要发言的成员名字,每行一个,按发言顺序排列。")
-            appendLine("不要输出其他任何内容。如果不清楚,输出所有成员名字。")
+            // 主持人派发轮只做发言顺序路由，不混入主持人个人人设提示词，避免风格/格式干扰名单解析
+            appendLine("你是群聊「${chat.name}」的发言路由调度器。")
+            appendLine("根据用户问题与每位成员的专长简介，决定哪些成员应当发言以及发言顺序。")
+            appendLine("只输出需要发言的成员名字，每行一个，按发言顺序排列，不要输出任何解释或多余内容。")
+            appendLine("如果不确定，按顺序列出所有可选成员名字。")
         }
 
         val userContent = buildString {
             appendLine("用户问题:$userMessage")
             appendLine()
             appendLine("可选成员:")
-            otherMembers.forEach { appendLine(it.name) }
+            otherMembers.forEach { member ->
+                val brief = SystemPromptAssembler.delegateBriefOf(member)
+                appendLine(if (brief.isNotEmpty()) "${member.name} — $brief" else member.name)
+            }
             appendLine()
             appendLine("请列出应该发言的成员名字(每行一个):")
         }
@@ -2291,13 +2383,14 @@ class GroupChatScheduler(
                         temperature = 0.3f,
                         maxTokens = 200,
                         providerConfig = providerConfig,
+                        reasoningLevel = io.zer0.ai.core.ReasoningLevel.OFF,
                     ).collect { event ->
                         when (event) {
                             is ChatStreamEvent.ContentDelta -> builder.append(event.delta)
                             else -> {}
                         }
                     }
-                    builder.toString().trim()
+                    sanitizeAgentReply(builder.toString()).trim()
                 }
             }
         }.getOrNull()
@@ -2307,9 +2400,19 @@ class GroupChatScheduler(
             return emptyList()
         }
 
-        // 解析主持人输出的成员名(每行一个,模糊匹配)
+        // 解析主持人输出的成员名(每行一个,去掉序号/列表符与简介后缀后模糊匹配)
         val requestedNames = hostReply.lines()
-            .map { it.trim().removePrefix("-").removePrefix("•").trim() }
+            .map { line ->
+                line.trim()
+                    .replace(Regex("^\\d+[.、)\\s]+"), "")
+                    .removePrefix("-")
+                    .removePrefix("•")
+                    .removePrefix("*")
+                    .substringBefore("—")
+                    .substringBefore(":")
+                    .substringBefore("：")
+                    .trim()
+            }
             .filter { it.isNotBlank() }
 
         val dispatched = mutableListOf<AssistantEntity>()
@@ -2751,6 +2854,10 @@ class GroupChatScheduler(
         var channelEmptyRetryCount = 0
         // v1.x: 跨轮累积流式思考过程(最终回复的深度思考块)
         val accumulatedReasoning = StringBuilder()
+        val mainReasoningLevel = resolveGroupReasoningLevel(assistant)
+        var mainReasoningStartedAt: Long? = null
+        var mainReasoningDurationMs: Long? = null
+        var lastMainReasoningPushAt = 0L
         for (round in 0 until MAX_CHANNEL_DECISION_ROUNDS) {
             replyContent = null
             passReason = null
@@ -2779,16 +2886,61 @@ class GroupChatScheduler(
                         maxTokens = maxTokens,
                         tools = toolsForThisRound,
                         providerConfig = providerConfig,
+                        reasoningLevel = mainReasoningLevel,
                     ).collect { event ->
                         when (event) {
                             is ChatStreamEvent.ContentDelta -> {
+                                if (mainReasoningStartedAt != null && mainReasoningDurationMs == null) {
+                                    mainReasoningDurationMs =
+                                        (System.currentTimeMillis() - (mainReasoningStartedAt ?: 0L))
+                                            .coerceAtLeast(0L)
+                                    activityHub.updateStreamingReasoning(
+                                        chatId,
+                                        GroupChatActivityHub.StreamingReasoning(
+                                            text = reasoningBuilder.toString(),
+                                            startedAtMs = mainReasoningStartedAt,
+                                            durationMs = mainReasoningDurationMs,
+                                            isThinkingActive = false,
+                                        ),
+                                    )
+                                }
                                 builder.append(event.delta)
                                 // v1.x: 群聊流式输出 — 实时推给 UI
                                 activityHub.updateStreamingContent(chatId, builder.toString())
                             }
-                            is ChatStreamEvent.ReasoningDelta -> reasoningBuilder.append(event.delta)
+                            is ChatStreamEvent.ReasoningDelta -> {
+                                val now = System.currentTimeMillis()
+                                if (mainReasoningStartedAt == null) mainReasoningStartedAt = now
+                                reasoningBuilder.append(event.delta)
+                                if (now - lastMainReasoningPushAt >= 60L) {
+                                    lastMainReasoningPushAt = now
+                                    activityHub.updateStreamingReasoning(
+                                        chatId,
+                                        GroupChatActivityHub.StreamingReasoning(
+                                            text = reasoningBuilder.toString(),
+                                            startedAtMs = mainReasoningStartedAt,
+                                            durationMs = mainReasoningDurationMs,
+                                            isThinkingActive = true,
+                                        ),
+                                    )
+                                }
+                            }
                             is ChatStreamEvent.ImageDelta -> { /* 群聊暂不支持图片输出,忽略 */ }
                             is ChatStreamEvent.ToolCallDelta -> {
+                                if (mainReasoningStartedAt != null && mainReasoningDurationMs == null) {
+                                    mainReasoningDurationMs =
+                                        (System.currentTimeMillis() - (mainReasoningStartedAt ?: 0L))
+                                            .coerceAtLeast(0L)
+                                    activityHub.updateStreamingReasoning(
+                                        chatId,
+                                        GroupChatActivityHub.StreamingReasoning(
+                                            text = reasoningBuilder.toString(),
+                                            startedAtMs = mainReasoningStartedAt,
+                                            durationMs = mainReasoningDurationMs,
+                                            isThinkingActive = false,
+                                        ),
+                                    )
+                                }
                                 // 快照帧（isSnapshot=true）携带完整参数，语义是「清空重写」。
                                 // 非流式回退路径用它覆盖流式阶段已累积的残缺参数；
                                 // 若不识别快照而直接 add，两段会被 joinToString 拼在一起
@@ -2833,6 +2985,8 @@ class GroupChatScheduler(
 
             // 处理 tool calls
             var calledReadContext = false
+            var calledMediaTool = false
+            var calledRegularTool = false
             // issue #6: 本轮 channel_* 工具的执行失败信息。
             // 旧实现把 toolExecutors[...]?.invoke(args) 的返回值直接丢弃,
             // 导致 channel_reply 校验失败(如 content 为空)时无人知晓,
@@ -2940,6 +3094,11 @@ class GroupChatScheduler(
                         }
                         val args = parseToolArgs(tc.arguments)
                         val result = toolExecutors[tc.name]?.invoke(args) ?: "(工具不可用)"
+                        if (tc.name in GroupChatToolPolicy.ENABLED_MEDIA_TOOLS) {
+                            calledMediaTool = true
+                        } else {
+                            calledRegularTool = true
+                        }
                         workingMessages.add(
                             UIMessage(
                                 role = MessageRole.TOOL,
@@ -2954,7 +3113,7 @@ class GroupChatScheduler(
             // 决策完成?
             if (replyContent != null) break // 已发言
             if (passReason != null) break // 已跳过
-            if (!calledReadContext) {
+            if (!calledReadContext && !calledMediaTool && !calledRegularTool) {
                 // issue #6: 先处理工具执行失败 —— 这是「模型想发言但工具拒了」,
                 // 不能当成「模型主动跳过」。把失败原因回填给模型,让它修正参数后重试。
                 if (channelToolFailure != null && channelToolRetryCount < MAX_CHANNEL_TOOL_RETRIES) {
@@ -3083,6 +3242,9 @@ class GroupChatScheduler(
         if (restoreBlocksWrites(chatId, "群聊成员回复")) {
             return AgentResult.Error("备份恢复进行中，已跳过群聊消息写入")
         }
+        val finalMainReasoningDuration = mainReasoningDurationMs ?: mainReasoningStartedAt?.let {
+            (System.currentTimeMillis() - it).coerceAtLeast(0L)
+        }
         val msgId = groupChatRepository.sendMessage(
             chatId = chatId,
             senderType = "assistant",
@@ -3093,6 +3255,7 @@ class GroupChatScheduler(
             videoFileUri = generatedMediaVideo,
             mood = extractedMood,
             reasoning = extractedReasoning,
+            reasoningDurationMs = finalMainReasoningDuration,
         )
         // 审计修复 (5.2) 适配: sendMessage 在群聊已被删除时返回 null(消息未落库),本轮跳过。
         // B-21: 落库失败不再静默 Pass — 记 ERROR 并返回 Error,让调用方感知发言丢失
@@ -3403,27 +3566,16 @@ class GroupChatScheduler(
                 appendLine(privateText)
             }
 
-            // v1.0.53 Phase 5: channel_* 工具已接入,告知 LLM 必须通过工具决策
-            // 旧版"不要输出 channel_* 工具调用文本"的提示已废弃(工具已真正注册并传给 streamChat)
+            // channel_* 工具决策、参与原则与格式规则统一在 system prompt 中声明一次，避免与 user prompt 重复或冲突
             appendLine()
             appendLine(
-                "【决策工具】你已获得 channel_reply / channel_pass / channel_read_context 三个工具。" +
-                    "本轮必须调用其中之一表态:",
+                "【决策工具】本轮必须通过工具调用表态（不要直接输出纯文本或 [PASS]）:",
             )
-            appendLine("- 想发言:调用 channel_reply(content=你的回复),content 中先写 <mood>...</mood> 再写正文")
-            appendLine("- 不发言:调用 channel_pass(reason=可选原因)")
-            appendLine("- 需要更多上下文:调用 channel_read_context(limit=条数,默认20,最多50)")
-            appendLine("不要直接输出回复文本,也不要输出 [PASS],必须通过工具调用表态。")
+            appendLine("- 发言:调用 channel_reply(content=你的回复)，content 先写完整闭合的 <mood>...</mood>（用尖括号，勿用方括号），再写自然口语正文")
+            appendLine("- 跳过:调用 channel_pass(reason=可选原因)")
+            appendLine("- 查看更多历史:调用 channel_read_context(limit=条数,默认20,最多50)")
             appendLine(
-                "【发言积极性】默认应该回复:当有人发言(包括简单问候/晚安/寒暄)时,你应当回应," +
-                    "哪怕只是一句简短回应;channel_pass 只用于你真的无话可说或话题与你完全无关时," +
-                    "不要因为觉得没必要而沉默——群聊的意义就是互动,回应是义务。",
-            )
-            // v2.x: 避免重复引导 — 让成员先读本轮已有发言, 减少同质化复读
-            appendLine(
-                "【避免重复】发言前先浏览本轮前面成员说过的内容:" +
-                    "如果观点与已有发言高度重合,优先补充新角度/新证据/不同意见,或调用 channel_pass 跳过;" +
-                    "与其复读他人,宁可简短也不要重复。",
+                "【参与与避重原则】被 @ 提及时必须调用 channel_reply 回应；未被 @ 时，如话题契合你的专长或适合自然寒暄互动，优先调用 channel_reply 补充新视角或简短回应；若前面成员已把同一观点说透且无新信息，或话题与你完全无关，请调用 channel_pass 跳过，避免复读他人。",
             )
             // v2.x: 发言长度档位(brief/standard/detailed) — 群设置控制
             when (chat.replyLengthMode) {
@@ -3547,25 +3699,16 @@ class GroupChatScheduler(
             appendLine(formatMessageTranscript(recentMessages))
             appendLine()
         }
-        // v1.0.53 Phase 5: 决策指令改为工具调用
+        // 仅放本轮动态状态，静态工具/情绪格式规则已在 system prompt 中统一说明
         if (isMentioned) {
-            appendLine("⚠️ 这轮消息明确 @ 了你,你必须调用 channel_reply 回复这条消息。")
-            appendLine("- 用户 @ 你,是因为想听到你的回应。回复应当自然、贴合你的角色。")
-            appendLine("- 被 @ 时不得调用 channel_pass,必须调用 channel_reply 给出你的回应。")
+            appendLine("⚠️ 本轮消息明确 @ 了你，必须调用 channel_reply 回复（不得调用 channel_pass）。")
         } else {
-            appendLine("你也是群聊成员,看到这段消息后可以主动参与。")
-            appendLine("- 简单问候/寒暄/闲聊:调用 channel_reply 回复一句即可,不要 pass。")
-            appendLine("- 只有确实与自己无关、无话可说时,才调用 channel_pass 跳过本轮。")
+            appendLine("请基于以上消息决定调用 channel_reply 参与发言，或调用 channel_pass 跳过本轮。")
         }
         if (isRepair) {
             appendLine()
-            appendLine("⚠️ 上一轮你没有回复,但你被 @ 提及了。本轮必须调用 channel_reply 回复,不得再次 channel_pass。")
+            appendLine("⚠️ 上一轮你未能成功回复且被 @ 提及，本轮必须调用 channel_reply 回复，不得再次跳过。")
         }
-        appendLine()
-        appendLine("发言格式(channel_reply 的 content 参数):")
-        appendLine("- 先写 <mood>...</mood> 块(内部腹稿,系统会自动剥离)")
-        appendLine("- 然后直接写正文(像群聊里的自然发言,口语化)")
-        appendLine("- 用 <mood>...</mood>(尖括号),不要用 [mood]...[/mood](方括号)")
     }
 
     /**
@@ -3660,6 +3803,19 @@ class GroupChatScheduler(
             match = match.next()
         }
         return sb.toString().trim().ifBlank { null }
+    }
+
+    private suspend fun resolveGroupReasoningLevel(assistant: AssistantEntity): io.zer0.ai.core.ReasoningLevel {
+        val assistantLevel = runCatching {
+            io.zer0.ai.core.ReasoningLevel.valueOf(assistant.reasoningLevel)
+        }.getOrNull()
+        if (assistantLevel != null && assistantLevel != io.zer0.ai.core.ReasoningLevel.AUTO) {
+            return assistantLevel
+        }
+        return runCatching {
+            val prefs = settings.getChatPreferences()
+            if (prefs.forceReasoning) prefs.forceReasoningLevel else io.zer0.ai.core.ReasoningLevel.DEFAULT
+        }.getOrDefault(io.zer0.ai.core.ReasoningLevel.DEFAULT)
     }
 
     /**

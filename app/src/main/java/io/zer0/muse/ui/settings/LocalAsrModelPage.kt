@@ -2,20 +2,17 @@ package io.zer0.muse.ui.settings
 
 import android.os.StatFs
 import android.text.format.Formatter
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -38,10 +35,13 @@ import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.icons.MuseIcons
-import io.zer0.muse.ui.common.surface.MuseListItem
+import io.zer0.muse.ui.common.surface.CardGroup
+import io.zer0.muse.ui.common.surface.navigationItem
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.MuseSpacing
+import io.zer0.muse.ui.theme.pill
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
@@ -93,32 +93,20 @@ internal fun LocalModelEntryRow(onClick: () -> Unit) {
         }
     }
 
-    Surface(
-        shape = MuseShapes.extraLarge,
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(0.6.dp, MaterialTheme.colorScheme.outlineVariant),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = MusePaddings.itemGap),
-    ) {
-        MuseListItem(
-            onClick = onClick,
+    CardGroup(modifier = Modifier.padding(top = MusePaddings.itemGap)) {
+        navigationItem(
+            key = "local_asr_model_entry",
+            title = stringResource(R.string.settings_asr_local_model_entry_title),
+            subtitle = subtitle,
             leadingContent = {
                 Icon(
                     imageVector = MuseIcons.download,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(MuseIconSizes.iconMedium),
                 )
             },
-            headlineContent = { Text(stringResource(R.string.settings_asr_local_model_entry_title)) },
-            supportingContent = { Text(subtitle) },
-            trailingContent = {
-                Icon(
-                    imageVector = MuseIcons.chevronRight,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            },
+            onClick = onClick,
         )
     }
 }
@@ -176,158 +164,162 @@ internal fun LocalModelDownloadCard(modifier: Modifier = Modifier) {
         }
     }
 
-    Surface(
-        shape = MuseShapes.extraLarge,
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(0.6.dp, MaterialTheme.colorScheme.outlineVariant),
-        modifier = modifier.fillMaxWidth(),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(MusePaddings.cardInner),
-            verticalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
+    CardGroup(modifier = modifier.fillMaxWidth()) {
+        content(key = "local_model_download_body") {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(MusePaddings.cardInner),
+                verticalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
             ) {
-                ModelIconTile()
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(R.string.asr_local_download_title),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    Text(
-                        text = stringResource(R.string.asr_local_download_desc),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-
-            when (val ds = downloadState) {
-                is LocalModelDownloader.DownloadState.Downloading -> {
-                    val fraction = if (ds.bytesTotal > 0) {
-                        ds.bytesDone.toFloat() / ds.bytesTotal.toFloat()
-                    } else {
-                        0f
-                    }
-                    LinearProgressIndicator(
-                        progress = { fraction },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Text(
-                        text = "${Formatter.formatShortFileSize(context, ds.bytesDone)} / " +
-                            Formatter.formatShortFileSize(context, ds.bytesTotal),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End,
-                    ) {
-                        MuseCapsuleButton(
-                            text = stringResource(R.string.common_cancel),
-                            onClick = { LocalModelDownloader.cancel() },
-                            variant = IosCapsuleButtonVariant.Text,
-                            fillWidth = false,
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
+                ) {
+                    ModelIconTile()
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = stringResource(R.string.asr_local_download_title),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        Text(
+                            text = stringResource(R.string.asr_local_download_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
 
-                else -> {
-                    if (ds is LocalModelDownloader.DownloadState.Failed) {
-                        CardError(ds.message)
-                    }
-                    when (fsStatus) {
-                        LocalModelStore.ModelStatus.READY -> {
-                            Text(
-                                text = stringResource(R.string.asr_local_download_ready, formattedTotal),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.primary,
+                when (val ds = downloadState) {
+                    is LocalModelDownloader.DownloadState.Downloading -> {
+                        val fraction = if (ds.bytesTotal > 0) {
+                            (ds.bytesDone.toFloat() / ds.bytesTotal.toFloat()).coerceIn(0f, 1f)
+                        } else {
+                            0f
+                        }
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(MuseSpacing.smTight)
+                                .clip(MaterialTheme.shapes.pill)
+                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth(fraction)
+                                    .height(MuseSpacing.smTight)
+                                    .clip(MaterialTheme.shapes.pill)
+                                    .background(MaterialTheme.colorScheme.primary),
                             )
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.End,
-                            ) {
-                                MuseCapsuleButton(
-                                    text = stringResource(R.string.asr_local_download_delete),
-                                    onClick = { showDeleteConfirm = true },
-                                    variant = IosCapsuleButtonVariant.Text,
-                                    fillWidth = false,
+                        }
+                        Text(
+                            text = "${Formatter.formatShortFileSize(context, ds.bytesDone)} / " +
+                                Formatter.formatShortFileSize(context, ds.bytesTotal),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End,
+                        ) {
+                            MuseCapsuleButton(
+                                text = stringResource(R.string.common_cancel),
+                                onClick = { LocalModelDownloader.cancel() },
+                                variant = IosCapsuleButtonVariant.Text,
+                                fillWidth = false,
+                            )
+                        }
+                    }
+
+                    else -> {
+                        if (ds is LocalModelDownloader.DownloadState.Failed) {
+                            CardError(ds.message)
+                        }
+                        when (fsStatus) {
+                            LocalModelStore.ModelStatus.READY -> {
+                                Text(
+                                    text = stringResource(R.string.asr_local_download_ready, formattedTotal),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.primary,
                                 )
-                                // 模型就绪不等于正在用：用户可能还没把引擎切过来。
-                                // 给一键切换而不是静默改设置 —— 引擎选择是用户的决定。
-                                if (!usingLocal) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.End,
+                                ) {
                                     MuseCapsuleButton(
-                                        text = stringResource(R.string.asr_local_download_use),
-                                        onClick = {
-                                            scope.launch {
-                                                // 本地模型名固定（对上文件名），必须覆盖旧的云端模型名；
-                                                // 否则请求会带着 whisper-1 之类的名字进入本地控制器。
-                                                val local = io.zer0.muse.asr.AsrConfig(
-                                                    provider = io.zer0.muse.asr.AsrProviderType.LOCAL_SENSEVOICE,
-                                                )
-                                                settings.saveAsrConfig(
-                                                    asrConfig.copy(
-                                                        provider = local.provider,
-                                                        model = local.defaultModel(),
-                                                    ),
-                                                )
-                                                MuseToast.show(context.getString(R.string.asr_local_download_use_done))
-                                            }
-                                        },
+                                        text = stringResource(R.string.asr_local_download_delete),
+                                        onClick = { showDeleteConfirm = true },
+                                        variant = IosCapsuleButtonVariant.Text,
+                                        fillWidth = false,
+                                    )
+                                    if (!usingLocal) {
+                                        MuseCapsuleButton(
+                                            text = stringResource(R.string.asr_local_download_use),
+                                            onClick = {
+                                                scope.launch {
+                                                    val local = io.zer0.muse.asr.AsrConfig(
+                                                        provider = io.zer0.muse.asr.AsrProviderType.LOCAL_SENSEVOICE,
+                                                    )
+                                                    settings.saveAsrConfig(
+                                                        asrConfig.copy(
+                                                            provider = local.provider,
+                                                            model = local.defaultModel(),
+                                                        ),
+                                                    )
+                                                    MuseToast.show(context.getString(R.string.asr_local_download_use_done))
+                                                }
+                                            },
+                                            variant = IosCapsuleButtonVariant.Primary,
+                                            fillWidth = false,
+                                        )
+                                    }
+                                }
+                            }
+
+                            LocalModelStore.ModelStatus.INCOMPLETE -> {
+                                Text(
+                                    text = stringResource(R.string.asr_local_download_incomplete),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.error,
+                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.End,
+                                ) {
+                                    MuseCapsuleButton(
+                                        text = stringResource(
+                                            if (ds is LocalModelDownloader.DownloadState.Failed) {
+                                                R.string.common_retry
+                                            } else {
+                                                R.string.asr_local_download_action
+                                            },
+                                        ),
+                                        onClick = { startDownloadChecked() },
                                         variant = IosCapsuleButtonVariant.Primary,
                                         fillWidth = false,
                                     )
                                 }
                             }
-                        }
 
-                        LocalModelStore.ModelStatus.INCOMPLETE -> {
-                            Text(
-                                text = stringResource(R.string.asr_local_download_incomplete),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.error,
-                            )
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.End,
-                            ) {
-                                MuseCapsuleButton(
-                                    text = stringResource(
-                                        if (ds is LocalModelDownloader.DownloadState.Failed) {
-                                            R.string.common_retry
-                                        } else {
-                                            R.string.asr_local_download_action
-                                        },
-                                    ),
-                                    onClick = { startDownloadChecked() },
-                                    variant = IosCapsuleButtonVariant.Primary,
-                                    fillWidth = false,
-                                )
-                            }
-                        }
-
-                        LocalModelStore.ModelStatus.NOT_DOWNLOADED -> {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.End,
-                            ) {
-                                MuseCapsuleButton(
-                                    text = stringResource(
-                                        if (ds is LocalModelDownloader.DownloadState.Failed) {
-                                            R.string.common_retry
-                                        } else {
-                                            R.string.asr_local_download_action
-                                        },
-                                    ),
-                                    onClick = { startDownloadChecked() },
-                                    variant = IosCapsuleButtonVariant.Primary,
-                                    fillWidth = false,
-                                )
+                            LocalModelStore.ModelStatus.NOT_DOWNLOADED -> {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.End,
+                                ) {
+                                    MuseCapsuleButton(
+                                        text = stringResource(
+                                            if (ds is LocalModelDownloader.DownloadState.Failed) {
+                                                R.string.common_retry
+                                            } else {
+                                                R.string.asr_local_download_action
+                                            },
+                                        ),
+                                        onClick = { startDownloadChecked() },
+                                        variant = IosCapsuleButtonVariant.Primary,
+                                        fillWidth = false,
+                                    )
+                                }
                             }
                         }
                     }

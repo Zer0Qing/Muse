@@ -70,8 +70,6 @@ import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.common.settings.ChevronRight
 import io.zer0.muse.ui.common.settings.ConfirmDeleteDialog
 import io.zer0.muse.ui.common.settings.SectionLabel
-import io.zer0.muse.ui.common.settings.SettingsGroupDivider
-import io.zer0.muse.ui.common.settings.SettingsItemRow
 import io.zer0.muse.ui.common.settings.SettingsSegmentedRow
 import io.zer0.muse.ui.common.settings.SettingsSliderRow
 import io.zer0.muse.ui.common.settings.SettingsSwitchRow
@@ -220,10 +218,10 @@ fun ComponentGalleryScreen(onBack: () -> Unit) {
             onDismissRequest = { overlay = null },
         ) {
             listOf("Option A", "Option B", "Option C").forEach { label ->
-                SettingsItemRow(
-                    title = label,
+                MuseListItem(
                     onClick = { overlay = null },
-                    trailing = { ChevronRight() },
+                    headlineContent = { Text(label) },
+                    trailingContent = { ChevronRight() },
                 )
             }
         }
@@ -531,18 +529,18 @@ private fun SettingsRowsSection() {
     Column(verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap)) {
         SectionLabel(stringResource(R.string.gallery_group_settings))
         GalleryCard {
-            SettingsItemRow(
-                icon = MuseIcons.sliders,
-                title = "SettingsItemRow",
-                subtitle = "icon + subtitle + chevron",
+            MuseListItem(
                 onClick = {},
-                trailing = { ChevronRight() },
+                leadingContent = { Icon(MuseIcons.sliders, contentDescription = null) },
+                headlineContent = { Text("MuseListItem") },
+                supportingContent = { Text("icon + subtitle + chevron") },
+                trailingContent = { ChevronRight() },
             )
-            SettingsItemRow(
-                icon = MuseIcons.bell,
-                title = "SettingsItemRow · trailing",
-                subtitle = "status dot in the trailing slot",
-                trailing = { StatusDot(color = MaterialTheme.colorScheme.primary, pulse = true) },
+            MuseListItem(
+                leadingContent = { Icon(MuseIcons.bell, contentDescription = null) },
+                headlineContent = { Text("MuseListItem · trailing") },
+                supportingContent = { Text("status dot in the trailing slot") },
+                trailingContent = { StatusDot(color = MaterialTheme.colorScheme.primary, pulse = true) },
             )
             SettingsSwitchRow(
                 icon = MuseIcons.check,
@@ -561,12 +559,10 @@ private fun SettingsRowsSection() {
                 valueText = "${(slider * 100).toInt()}%",
                 onValueChange = { slider = it },
             )
-            SettingsItemRow(
-                icon = MuseIcons.user,
-                title = "SettingsItemRow · disabled",
-                subtitle = stringResource(R.string.gallery_state_disabled),
-                enabled = false,
-                onClick = {},
+            MuseListItem(
+                leadingContent = { Icon(MuseIcons.user, contentDescription = null) },
+                headlineContent = { Text("MuseListItem · static") },
+                supportingContent = { Text(stringResource(R.string.gallery_state_disabled)) },
             )
         }
         GalleryCard {

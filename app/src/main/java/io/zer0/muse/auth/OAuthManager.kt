@@ -965,9 +965,9 @@ internal fun parseJwtPayload(jwt: String?): kotlinx.serialization.json.JsonObjec
  * ```json
  * { "https://api.openai.com/auth": { "chatgpt_account_id": "..." } }
  * ```
- * 社区实现（Ruby / LangChain）统一用 `dig('https://api.openai.com/auth',
- * 'chatgpt_account_id')` 取值。原实现只读顶层 claim，恒为 null，
- * 导致 `ChatGPT-Account-ID` 头从未写入 —— Codex 端点全部 403。
+ * 需优先从嵌套命名空间 `https://api.openai.com/auth` 下读取
+ * `chatgpt_account_id`。若仅读顶层 claim 会恒为 null，
+ * 导致 `ChatGPT-Account-ID` 头缺失并触发 Codex 端点 403。
  *
  * 兼容顺序：嵌套命名空间 → 顶层（旧版/个别账号可能直挂顶层）。
  */

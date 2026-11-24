@@ -46,7 +46,6 @@ internal object MiniPhoneToolPolicy {
 
     /** 日历 / 提醒类。 */
     private val CALENDAR_TOOLS: Set<String> = setOf(
-        "get_calendar_today",
         "calendar_today",
         "add_calendar_event",
         "set_alarm",
@@ -72,7 +71,6 @@ internal object MiniPhoneToolPolicy {
     private val NOTES_TOOLS: Set<String> = setOf(
         "quick_note_add",
         "quick_note_list",
-        "quick_note_search",
         "quick_note_get",
         "quick_note_update",
         "quick_note_delete",

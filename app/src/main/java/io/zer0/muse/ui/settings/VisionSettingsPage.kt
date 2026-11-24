@@ -33,11 +33,12 @@ import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.icons.MuseIcons
-import io.zer0.muse.ui.common.settings.SectionLabel
-import io.zer0.muse.ui.common.settings.SettingsGroup
-import io.zer0.muse.ui.common.settings.SettingsGroupDivider
-import io.zer0.muse.ui.common.settings.SettingsSwitchRow
+import io.zer0.muse.ui.common.surface.CardGroup
+import io.zer0.muse.ui.common.surface.actionItem
+import io.zer0.muse.ui.common.surface.switchItem
+import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.theme.MuseSpacing
 import io.zer0.muse.vision.VisionAnalysisException
 import io.zer0.muse.vision.VisionBridge
 import kotlinx.coroutines.launch
@@ -98,242 +99,187 @@ fun VisionSettingsPage(onBack: () -> Unit) {
         title = stringResource(R.string.settings_vision_title),
         onBack = onBack,
     ) {
-        // 功能说明
-        item {
-            SectionLabel(stringResource(R.string.settings_vision_description))
-        }
-
-        // 总开关
-        item {
-            SettingsGroup {
-                SettingsSwitchRow(
-                    icon = MuseIcons.eye,
+        item(key = "vision_enable_group") {
+            CardGroup(title = { Text(stringResource(R.string.settings_vision_description)) }) {
+                switchItem(
+                    key = "vision_enabled",
                     title = stringResource(R.string.settings_vision_enabled),
                     checked = enabled,
-                    onCheckedChange = { v ->
-                        scope.launch { settings.saveVisionEnabled(v) }
+                    onCheckedChange = { v -> scope.launch { settings.saveVisionEnabled(v) } },
+                    leadingContent = {
+                        Icon(
+                            imageVector = MuseIcons.eye,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
                     },
                 )
             }
         }
 
-        // 视觉模型选择(仅在启用时显示)
         if (enabled) {
-            item {
-                SectionLabel(stringResource(R.string.settings_vision_model_section))
-            }
-            item {
-                SettingsGroup {
-                    // v2.x: "显示全部模型"并入模型列表组首行 — 它是列表的筛选控制,不再单独成组
-                    SettingsSwitchRow(
-                        icon = MuseIcons.eye,
+            item(key = "vision_models_group") {
+                val showAllSub = stringResource(
+                    if (hiddenModelCount > 0) {
+                        R.string.settings_vision_show_all_models_subtitle
+                    } else {
+                        R.string.settings_vision_show_all_models_subtitle_no_hidden
+                    },
+                )
+                CardGroup(title = { Text(stringResource(R.string.settings_vision_model_section)) }) {
+                    switchItem(
+                        key = "vision_show_all",
                         title = stringResource(R.string.settings_vision_show_all_models),
-                        subtitle = stringResource(
-                            if (hiddenModelCount > 0) {
-                                R.string.settings_vision_show_all_models_subtitle
-                            } else {
-                                R.string.settings_vision_show_all_models_subtitle_no_hidden
-                            },
-                        ),
+                        subtitle = showAllSub,
                         checked = showAllModels,
-                        // 没有可被「显示出来」的隐藏模型时置灰,并说明原因
                         enabled = hiddenModelCount > 0,
-                        onCheckedChange = { v -> showAllModels = v },
+                        onCheckedChange = { showAllModels = it },
+                        leadingContent = {
+                            Icon(
+                                imageVector = MuseIcons.eye,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(MuseIconSizes.iconMedium),
+                            )
+                        },
                     )
                     if (visionModels.isEmpty()) {
-                        // 无可用的视觉模型提示
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(min = 56.dp)
-                                .padding(MusePaddings.cardInner),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
+                        content(key = "vision_empty") {
                             Text(
                                 text = stringResource(R.string.settings_vision_no_models),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(MusePaddings.cardInner),
                             )
                         }
                     } else {
-                        // 视觉模型列表
-                        visionModels.forEachIndexed { index, item ->
+                        visionModels.forEach { item ->
                             val isSelected = item.modelId == visionModelId && item.providerId == visionProviderId
-                            VisionModelRow(
-                                modelName = item.modelName,
-                                providerName = item.providerName,
-                                // v1.0.1 (P1): 未识别为视觉模型的项标记"手动选择"提示
-                                manualSelected = showAllModels && !item.supportsVision,
-                                isSelected = isSelected,
+                            val manualSelected = showAllModels && !item.supportsVision
+                            val subtitle = if (manualSelected) {
+                                "${item.providerName} · ${stringResource(R.string.settings_vision_manual_selected)}"
+                            } else {
+                                item.providerName
+                            }
+                            item(
+                                key = "${item.providerId}_${item.modelId}",
                                 onClick = {
                                     scope.launch {
                                         settings.saveVisionModelId(item.modelId)
                                         settings.saveVisionProviderId(item.providerId)
                                     }
                                 },
+                                leadingContent = {
+                                    Icon(
+                                        imageVector = if (isSelected) MuseIcons.circleCheck else MuseIcons.circle,
+                                        contentDescription = null,
+                                        tint = if (isSelected) {
+                                            MaterialTheme.colorScheme.primary
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                        },
+                                        modifier = Modifier.size(MuseIconSizes.iconMedium),
+                                    )
+                                },
+                                headlineContent = { Text(item.modelName) },
+                                supportingContent = { Text(subtitle) },
                             )
-                            if (index < visionModels.size - 1) {
-                            }
                         }
                     }
                 }
             }
 
-            // v1.0.5: 探针测试 — 验证所选视觉模型是否真的支持视觉输入并可用
-            item {
-                SectionLabel(stringResource(R.string.settings_vision_probe_section))
-            }
-            item {
-                SettingsGroup {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 56.dp)
-                            .padding(MusePaddings.cardInner),
-                    ) {
-                        Text(
-                            text = stringResource(R.string.settings_vision_probe_desc),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            item(key = "vision_probe_group") {
+                val isRunning = probeState is ProbeState.Running
+                CardGroup(title = { Text(stringResource(R.string.settings_vision_probe_section)) }) {
+                    content(key = "vision_probe_desc") {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(MusePaddings.cardInner),
+                            verticalArrangement = Arrangement.spacedBy(MuseSpacing.xs),
                         ) {
-                            // 测试按钮(Running 时禁用并显示 spinner)
-                            val isRunning = probeState is ProbeState.Running
-                            MuseCapsuleButton(
-                                text = if (isRunning) {
-                                    stringResource(R.string.settings_vision_probe_running)
-                                } else {
-                                    stringResource(R.string.settings_vision_probe_button)
-                                },
-                                onClick = {
-                                    if (isRunning) return@MuseCapsuleButton
-                                    if (visionModelId.isNullOrBlank() || visionProviderId.isNullOrBlank()) {
-                                        probeState = ProbeState.Failed(
-                                            context.getString(R.string.settings_vision_probe_no_model),
-                                        )
-                                        return@MuseCapsuleButton
-                                    }
-                                    if (!enabled) {
-                                        probeState = ProbeState.Failed(
-                                            context.getString(R.string.settings_vision_probe_disabled),
-                                        )
-                                        return@MuseCapsuleButton
-                                    }
-                                    probeState = ProbeState.Running
-                                    scope.launch {
-                                        val result = resultOf {
-                                            visionBridge.prepare(
-                                                text = "探针测试",
-                                                images = listOf(VISION_PROBE_IMAGE_PNG_BASE64),
-                                                userRequest = "探针测试:这张图是什么颜色?",
-                                                sessionId = null, // 不走缓存 key 维度的 session
-                                            )
-                                        }
-                                        probeState = when {
-                                            result.isError -> {
-                                                val ex = (result as io.zer0.common.Result.Error).throwable
-                                                val msg = (ex as? VisionAnalysisException)?.message
-                                                    ?: ex?.message
-                                                    ?: result.message
-                                                ProbeState.Failed(msg)
-                                            }
-                                            result.getOrNull()?.success == true -> ProbeState.Success(
-                                                result.getOrNull()!!.text.length,
-                                            )
-                                            else -> ProbeState.Failed(
-                                                result.getOrNull()?.text
-                                                    ?: context.getString(R.string.code_gap_vision_probe_empty),
-                                            )
-                                        }
-                                    }
-                                },
-                                enabled = !isRunning,
-                                loading = isRunning,
-                                leadingIcon = MuseIcons.bug,
-                                variant = IosCapsuleButtonVariant.Text,
-                                fillWidth = false,
+                            Text(
+                                text = stringResource(R.string.settings_vision_probe_desc),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
-                        }
-                        // 结果展示
-                        when (val s = probeState) {
-                            is ProbeState.Idle -> Unit
-                            is ProbeState.Running -> Unit
-                            is ProbeState.Success -> {
-                                Spacer(Modifier.height(4.dp))
-                                Text(
-                                    text = stringResource(R.string.settings_vision_probe_success, s.chars),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.primary,
-                                )
-                            }
-                            is ProbeState.Failed -> {
-                                Spacer(Modifier.height(4.dp))
-                                Text(
-                                    text = stringResource(R.string.settings_vision_probe_failed, s.message),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.error,
-                                )
+                            when (val s = probeState) {
+                                is ProbeState.Idle -> Unit
+                                is ProbeState.Running -> Unit
+                                is ProbeState.Success -> {
+                                    Text(
+                                        text = stringResource(R.string.settings_vision_probe_success, s.chars),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.primary,
+                                    )
+                                }
+                                is ProbeState.Failed -> {
+                                    Text(
+                                        text = stringResource(R.string.settings_vision_probe_failed, s.message),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.error,
+                                    )
+                                }
                             }
                         }
                     }
+                    actionItem(
+                        key = "vision_probe_run",
+                        title = if (isRunning) {
+                            stringResource(R.string.settings_vision_probe_running)
+                        } else {
+                            stringResource(R.string.settings_vision_probe_button)
+                        },
+                        loading = isRunning,
+                        enabled = !isRunning,
+                        onClick = {
+                            if (visionModelId.isNullOrBlank() || visionProviderId.isNullOrBlank()) {
+                                probeState = ProbeState.Failed(
+                                    context.getString(R.string.settings_vision_probe_no_model),
+                                )
+                                return@actionItem
+                            }
+                            if (!enabled) {
+                                probeState = ProbeState.Failed(
+                                    context.getString(R.string.settings_vision_probe_disabled),
+                                )
+                                return@actionItem
+                            }
+                            probeState = ProbeState.Running
+                            scope.launch {
+                                val result = resultOf {
+                                    visionBridge.prepare(
+                                        text = "探针测试",
+                                        images = listOf(VISION_PROBE_IMAGE_PNG_BASE64),
+                                        userRequest = "探针测试:这张图是什么颜色?",
+                                        sessionId = null,
+                                    )
+                                }
+                                probeState = when {
+                                    result.isError -> {
+                                        val ex = (result as io.zer0.common.Result.Error).throwable
+                                        val msg = (ex as? VisionAnalysisException)?.message
+                                            ?: ex?.message
+                                            ?: result.message
+                                        ProbeState.Failed(msg)
+                                    }
+                                    result.getOrNull()?.success == true -> ProbeState.Success(
+                                        result.getOrNull()?.text?.length ?: 0,
+                                    )
+                                    else -> ProbeState.Failed(
+                                        result.getOrNull()?.text
+                                            ?: context.getString(R.string.code_gap_vision_probe_empty),
+                                    )
+                                }
+                            }
+                        },
+                    )
                 }
             }
-        }
-    }
-}
-
-/**
- * 视觉模型选择行。
- *
- * @param manualSelected v1.0.1 (P1): 是否为用户手动选择的"未识别视觉模型"
- *  (中转站高级模式下选择未被 enhanceModel 识别为视觉的模型)。true 时在副标题加"手动选择"提示。
- */
-@Composable
-private fun VisionModelRow(
-    modelName: String,
-    providerName: String,
-    isSelected: Boolean,
-    manualSelected: Boolean = false,
-    onClick: () -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 56.dp)
-            .clickable(onClick = onClick)
-            .padding(MusePaddings.cardInner),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Icon(
-            imageVector = if (isSelected) MuseIcons.circleCheck else MuseIcons.circle,
-            contentDescription = null,
-            tint = if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(24.dp),
-        )
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = modelName,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            // v1.0.1 (P1): 手动选择模式下显示"手动选择"提示
-            val subtitle = if (manualSelected) {
-                "$providerName · ${stringResource(R.string.settings_vision_manual_selected)}"
-            } else {
-                providerName
-            }
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
         }
     }
 }

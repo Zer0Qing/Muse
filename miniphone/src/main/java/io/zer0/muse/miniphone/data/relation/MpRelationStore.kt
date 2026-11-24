@@ -4,6 +4,7 @@ import io.zer0.muse.miniphone.api.MiniPhoneHost
 import io.zer0.muse.miniphone.data.db.MiniPhoneDb
 import io.zer0.muse.miniphone.data.db.entity.MpRelationEdgeEntity
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 
 /**
  * 关系网门面：记看法、删看法、按两个方向读看法。
@@ -63,13 +64,40 @@ internal class MpRelationStore(
      *
      * 拿不到结果就不写、不编内容 —— 不覆盖既有记录，也不凭空造一条。
      */
-    suspend fun describeEdge(fromId: String, toId: String, fromName: String, toName: String) {
-        val phrase = host.composeScene(
-            fromId,
-            "你是$fromName。用一个短语概括你怎么看$toName（比如「挚友」「竞争对手」「陌生人」）。只输出这个短语，不要解释。",
-        )
-        if (phrase.isNullOrBlank()) return
+    suspend fun describeEdge(
+        fromId: String,
+        toId: String,
+        fromName: String,
+        toName: String,
+        toTagline: String = "",
+    ) {
+        val resolvedTagline = toTagline.trim().ifBlank {
+            runCatching {
+                host.observeCharacters().first().firstOrNull { it.id == toId }?.tagline?.trim().orEmpty()
+            }.getOrDefault("")
+        }
+        val brief = buildString {
+            append("你是$fromName。")
+            if (resolvedTagline.isNotBlank()) {
+                append("$toName 的简介是「$resolvedTagline」。")
+            }
+            append("用一个 2–6 字的短语概括你怎么看$toName（例如「挚友」「竞争对手」「陌生人」）。只输出这个短语，不要句号、引号或任何解释。")
+        }
+        val raw = host.composeScene(fromId, brief)
+        if (raw.isNullOrBlank()) return
+        val phrase = raw.lineSequence()
+            .firstOrNull { it.isNotBlank() }
+            ?.trim()
+            ?.trim('「', '」', '"', '\'', '“', '”', '。', '.', '！', '!')
+            ?.trim()
+            ?.take(MAX_LABEL_CHARS)
+            .orEmpty()
+        if (phrase.isBlank()) return
         val note = db.relationEdgeDao().get(fromId, toId)?.note.orEmpty()
         setEdge(fromId, toId, phrase, note)
+    }
+
+    private companion object {
+        const val MAX_LABEL_CHARS = 12
     }
 }

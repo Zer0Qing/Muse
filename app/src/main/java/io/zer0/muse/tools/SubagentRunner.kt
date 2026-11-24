@@ -192,7 +192,6 @@ class SubagentRunner(
             "search_memory",
             "save_memory",
             "delete_memory",
-            "find_tools",
             "proactive_message_wish",
             "search_conversation",
             // v2.x: 发语音需要宿主会话上下文（回合标识）与可投递的助手消息，子 agent 两样都没有
@@ -423,46 +422,78 @@ class SubagentRunner(
         }
         // 访问级别只解析一次，之后按值传递 —— 不能用共享字段：子代理是并发的。
         val access = profile?.access ?: SubagentAccess.parse(params.access)
+        val isZh = isChineseLocale()
+        val restoredHistory = if (!isNew && params.threadId != null) {
+            threadStore.loadMessages(threadId)
+        } else {
+            emptyList()
+        }
+        val stickyTools = restoredHistory
+            .flatMap { it.toolCalls.orEmpty() }
+            .mapTo(mutableSetOf()) { it.name }
+        val loadedTools = mutableSetOf<String>()
+        var exposureText = buildExposureSeedText(params)
+        val effectiveSessionId = params.toolExecutionContext?.sessionId?.takeIf { it.isNotBlank() }
+
         val agentCapabilities = if (params.unrestrictedAgentMode) {
-            buildAgentCapabilities(access, params.toolCriteria, params.toolExecutionContext?.sessionId)
+            buildAgentCapabilities(
+                access = access,
+                criteriaOverride = params.toolCriteria,
+                sessionId = effectiveSessionId,
+                userText = exposureText,
+                stickyToolNames = stickyTools,
+                loadedToolNames = loadedTools,
+            )
         } else {
             null
         }
-        val allowedTools = agentCapabilities?.snapshot?.definitions ?: buildAllowedToolDefinitions(access)
         val allowedNamesSet = agentCapabilities?.snapshot?.routes?.keys ?: buildAllowedToolNames(access)
+        val fullToolPool = agentCapabilities?.snapshot?.definitions
+            ?: toolRegistry.listToolsAsToolDefinitions(allowedNamesSet.toList())
+        val skillToolNames = agentCapabilities?.skillToolNames ?: emptySet()
+        val initialAllowedTools = agentCapabilities?.initialTools ?: buildAllowedToolDefinitions(
+            access = access,
+            userText = exposureText,
+            stickyToolNames = stickyTools,
+            loadedToolNames = loadedTools,
+            fullPoolOverride = fullToolPool,
+        )
+        val hasFindTools = FindToolsTool.TOOL_NAME in allowedNamesSet
         val systemPrompt = if (params.unrestrictedAgentMode) {
-            buildAgentWorkerSystemPrompt(maxToolCalls, params.targetPaths, params.assistantSystemPrompt)
+            buildAgentWorkerSystemPrompt(
+                maxToolCalls = maxToolCalls,
+                targetPaths = params.targetPaths,
+                assistantSystemPrompt = params.assistantSystemPrompt,
+                resourceScope = params.toolExecutionContext?.resourceScope,
+                hasFindTools = hasFindTools,
+                isZh = isZh,
+            )
         } else {
-            buildSystemPrompt(maxToolCalls, params.targetPaths, access, profile)
+            buildSystemPrompt(
+                maxToolCalls = maxToolCalls,
+                targetPaths = params.targetPaths,
+                access = access,
+                profile = profile,
+                hasFindTools = hasFindTools,
+                isZh = isZh,
+            )
         }
 
         val history = mutableListOf<UIMessage>()
         // v1.0.53: 续接时恢复历史;全新执行时构造 system + user
-        if (!isNew && params.threadId != null) {
-            val restored = threadStore.loadMessages(threadId)
-            if (restored.isNotEmpty()) {
-                // 审计修复 (C-10): 续接前先清理恢复历史尾部的孤儿 tool_call —
-                // SubagentSessionStore.load 按 token 裁剪可能导致末条 assistant 带 toolCalls
-                // 但后续 TOOL 消息被裁掉,原样发给 LLM 会触发 provider HTTP 400。
-                // 复用主会话 ChatStreamCoordinator.prepareHistory 的孤儿清理语义(见下方函数注释)。
-                val cleaned = dropOrphanToolCalls(restored)
-                // 审计修复 (C-09): 续接时在 history 头部插入本次构建的 SYSTEM prompt —
-                // SYSTEM 消息从不持久化(SubagentRunner 仅 append non-SYSTEM;load 也把 SYSTEM
-                // 单独剥离),导致续接后工作准则/配额说明丢失。与首次启动保持一致,头部注入
-                // 本次的 buildSystemPrompt(含 maxToolCalls / targetPaths 当前值)。
-                history.add(UIMessage(role = MessageRole.SYSTEM, content = systemPrompt))
-                history.addAll(cleaned)
-                // 续接时在历史后追加一条 user 消息(新任务)
-                history.add(UIMessage(role = MessageRole.USER, content = buildUserMessage(params)))
-            } else {
-                // 线程存在但无历史(文件被清理):回退全新执行
-                history.add(UIMessage(role = MessageRole.SYSTEM, content = systemPrompt))
-                history.add(UIMessage(role = MessageRole.USER, content = buildUserMessage(params)))
-            }
-        } else {
-            // 全新执行(原逻辑)
+        if (restoredHistory.isNotEmpty()) {
+            // 审计修复 (C-10): 续接前先清理恢复历史尾部的孤儿 tool_call —
+            // SubagentSessionStore.load 按 token 裁剪可能导致末条 assistant 带 toolCalls
+            // 但后续 TOOL 消息被裁掉,原样发给 LLM 会触发 provider HTTP 400。
+            val cleaned = dropOrphanToolCalls(restoredHistory)
+            // 审计修复 (C-09): 续接时在 history 头部插入本次构建的 SYSTEM prompt —
+            // SYSTEM 消息从不持久化,续接后需重新注入当前工作准则与配额。
             history.add(UIMessage(role = MessageRole.SYSTEM, content = systemPrompt))
-            history.add(UIMessage(role = MessageRole.USER, content = buildUserMessage(params)))
+            history.addAll(cleaned)
+            history.add(UIMessage(role = MessageRole.USER, content = buildUserMessage(params, isZh)))
+        } else {
+            history.add(UIMessage(role = MessageRole.SYSTEM, content = systemPrompt))
+            history.add(UIMessage(role = MessageRole.USER, content = buildUserMessage(params, isZh)))
         }
 
         val progressEntries = mutableListOf<ProgressEntry>()
@@ -538,6 +569,7 @@ class SubagentRunner(
                             content = steerLines.joinToString("\n") { "[实时补充要求] $it" },
                         )
                         history.add(mergedSteer)
+                        exposureText = exposureText + "\n" + steerLines.joinToString("\n")
                         if (params.persistSession) {
                             threadStore.appendMessages(threadId, listOf(mergedSteer))
                         }
@@ -549,13 +581,24 @@ class SubagentRunner(
                         summarize()
                         break
                     }
+                    val toolsForRound = if (rounds == 1 && steerLines.isEmpty()) {
+                        initialAllowedTools
+                    } else {
+                        ToolExposurePolicy.filterToolsForRequest(
+                            userText = exposureText,
+                            tools = fullToolPool,
+                            stickyToolNames = stickyTools,
+                            loadedToolNames = loadedTools,
+                            skillToolNames = skillToolNames,
+                        )
+                    }
                     val completion = chatService.completeText(
                         messages = history.toList(),
                         model = subagentModel,
                         providerConfig = subagentProvider,
                         temperature = params.temperature,
                         maxTokens = MAX_TOKENS_PER_ROUND,
-                        tools = allowedTools,
+                        tools = toolsForRound,
                         reasoningLevel = ReasoningLevel.OFF,
                         mode = ChatRequestMode.UTILITY,
                     )
@@ -670,6 +713,11 @@ class SubagentRunner(
                             abortedForLedger = true
                             break
                         }
+                        val beforeLoaded = if (tc.name == FindToolsTool.TOOL_NAME && effectiveSessionId != null) {
+                            SessionToolLoadRegistry.loadedFor(effectiveSessionId)
+                        } else {
+                            emptySet()
+                        }
                         val toolResult = executeAllowedTool(
                             tc,
                             access,
@@ -679,6 +727,16 @@ class SubagentRunner(
                             routeSnapshot = agentCapabilities?.snapshot,
                             allowedNamesOverride = allowedNamesSet,
                         )
+                        if (tc.name in allowedNamesSet) {
+                            stickyTools.add(tc.name)
+                        }
+                        if (tc.name == FindToolsTool.TOOL_NAME && toolResult.success) {
+                            if (effectiveSessionId != null) {
+                                val newlyLoaded = SessionToolLoadRegistry.loadedFor(effectiveSessionId) - beforeLoaded
+                                loadedTools.addAll(newlyLoaded.filter { it in allowedNamesSet })
+                            }
+                            loadedTools.addAll(extractMatchedToolNames(toolResult.result, allowedNamesSet))
+                        }
                         if (stepId.isNotBlank()) {
                             runCatching { params.onToolFinished?.invoke(stepId, toolResult.success) }
                                 .onFailure { Logger.w(TAG, "工具结束回调失败: ${it.message}") }
@@ -881,12 +939,19 @@ class SubagentRunner(
         }
     }
 
-    private data class AgentCapabilities(val snapshot: ToolRouteSnapshot)
+    private data class AgentCapabilities(
+        val snapshot: ToolRouteSnapshot,
+        val skillToolNames: Set<String>,
+        val initialTools: List<ToolDefinition>,
+    )
 
     private suspend fun buildAgentCapabilities(
         access: SubagentAccess,
         criteriaOverride: ToolSchemaRules.Criteria?,
         sessionId: String?,
+        userText: String,
+        stickyToolNames: Set<String> = emptySet(),
+        loadedToolNames: Set<String> = emptySet(),
     ): AgentCapabilities {
         val criteria = criteriaOverride ?: ToolSchemaRules.Criteria()
         val allLocalDefs = toolRegistry.listToolsAsToolDefinitions()
@@ -926,21 +991,70 @@ class SubagentRunner(
             toolRegistry.setVisibleTools(sid, filteredLocalDefs.map { it.name }.toSet() + enabledSkills.map { it.id })
         }
         val snapshot = RouteTable.snapshot(filteredLocalDefs, enabledSkills)
-        return AgentCapabilities(snapshot = snapshot)
+        val skillToolNames = enabledSkills.mapTo(mutableSetOf()) { it.id }
+        val initialTools = ToolExposurePolicy.filterToolsForRequest(
+            userText = userText,
+            tools = snapshot.definitions,
+            stickyToolNames = stickyToolNames,
+            loadedToolNames = loadedToolNames,
+            skillToolNames = skillToolNames,
+        )
+        return AgentCapabilities(
+            snapshot = snapshot,
+            skillToolNames = skillToolNames,
+            initialTools = initialTools,
+        )
     }
 
     /**
-     * 构建允许子 agent 使用的工具定义列表。
+     * 构建允许子 agent 使用的工具定义列表，并按任务文本走分层收窄，避免每轮发送全量 schema。
      *
      * 过滤规则:
-     *  1. 风险等级 = SAFE 或 NORMAL(禁止 HIGH)
-     *  2. 不在 [RECURSIVE_FORBIDDEN_TOOLS] 递归黑名单中
-     *  3. 不在 [EXPLICIT_FORBIDDEN_TOOLS] 显式黑名单中
+     *  1. 风险等级按 [access] 上限过滤
+     *  2. 不在 [RECURSIVE_FORBIDDEN_TOOLS] / [EXPLICIT_FORBIDDEN_TOOLS] 黑名单中
+     *  3. 经 [ToolExposurePolicy.filterToolsForRequest] 收窄（保留 find_tools 及跨轮动态装载/粘性工具）
      */
-    private fun buildAllowedToolDefinitions(access: SubagentAccess): List<ToolDefinition> {
+    private fun buildAllowedToolDefinitions(
+        access: SubagentAccess,
+        userText: String,
+        stickyToolNames: Set<String> = emptySet(),
+        loadedToolNames: Set<String> = emptySet(),
+        fullPoolOverride: List<ToolDefinition>? = null,
+    ): List<ToolDefinition> {
         // 与执行闸门共用同一个集合(见 allowedToolNamesForSubagent):
         // 呈现与放行分开判定时,注册台账与显式表一旦脱节就会出现越权窗口
-        return toolRegistry.listToolsAsToolDefinitions(allowedToolNamesForSubagent(access).toList())
+        val pool = fullPoolOverride
+            ?: toolRegistry.listToolsAsToolDefinitions(allowedToolNamesForSubagent(access).toList())
+        return ToolExposurePolicy.filterToolsForRequest(
+            userText = userText,
+            tools = pool,
+            stickyToolNames = stickyToolNames,
+            loadedToolNames = loadedToolNames,
+        )
+    }
+
+    /** 拼接用于工具暴露筛选的任务/约束/目标路径文本。 */
+    private fun buildExposureSeedText(params: Params): String = buildString {
+        append(params.task.trim())
+        params.contextText?.trim()?.takeIf { it.isNotEmpty() }?.let {
+            append('\n')
+            append(it)
+        }
+        params.targetPaths?.takeIf { it.isNotEmpty() }?.let {
+            append('\n')
+            append(it.joinToString("\n"))
+        }
+    }
+
+    /** 从 find_tools 的关键词检索输出中提取本轮新装载的工具名（不把空查询目录当成装载）。 */
+    private fun extractMatchedToolNames(output: String, allowedNames: Set<String>): Set<String> {
+        if (!output.startsWith("Matched ")) return emptySet()
+        val lineRegex = Regex("""^-\s+([A-Za-z0-9_.-]+)""")
+        return output.lineSequence()
+            .drop(1)
+            .mapNotNull { line -> lineRegex.find(line.trim())?.groupValues?.getOrNull(1) }
+            .filter { it in allowedNames }
+            .toSet()
     }
 
     /**
@@ -1097,6 +1211,15 @@ class SubagentRunner(
         val approvalFailure: String = "",
     )
 
+    private fun isChineseLocale(): Boolean {
+        val lang = settings?.getLanguageSync()
+        val locale = when (lang) {
+            null, "system", "" -> java.util.Locale.getDefault().language
+            else -> lang
+        }
+        return locale.startsWith("zh", ignoreCase = true)
+    }
+
     /**
      * 构造子 agent 系统提示词。
      *
@@ -1104,31 +1227,26 @@ class SubagentRunner(
      *  - 独立上下文,专注委托任务
      *  - 工具调用配额限制
      *  - 完成后输出清晰总结
-     *  - 禁止递归委派
      */
     private fun buildSystemPrompt(
         maxToolCalls: Int,
         targetPaths: List<String>?,
         access: SubagentAccess,
         profile: AgentProfile? = null,
+        hasFindTools: Boolean = false,
+        isZh: Boolean = isChineseLocale(),
     ): String {
-        // v2.6.0: 子 agent 提示词跟随应用 locale（旧版写死"用中文输出"，英文用户委托会被强制中文回复）。
-        val lang = settings?.getLanguageSync()
-        val locale = when (lang) {
-            null, "system", "" -> java.util.Locale.getDefault().language
-            else -> lang
-        }
-        val isZh = locale.startsWith("zh", ignoreCase = true)
         val base = if (isZh) {
-            buildChineseSystemPrompt(maxToolCalls, targetPaths, access)
+            buildChineseSystemPrompt(maxToolCalls, targetPaths, access, hasFindTools)
         } else {
-            buildEnglishSystemPrompt(maxToolCalls, targetPaths, access)
+            buildEnglishSystemPrompt(maxToolCalls, targetPaths, access, hasFindTools)
         }
         // 角色正文追加在末尾：它是"这个身份的额外要求"，不该覆盖上面的执行契约
         return if (profile?.instructions.isNullOrBlank()) {
             base
         } else {
-            base + "\n\n## 角色：${profile?.name}\n${profile?.instructions}"
+            val heading = if (isZh) "## 角色：${profile?.name}" else "## Role: ${profile?.name}"
+            "$base\n\n$heading\n${profile?.instructions}"
         }
     }
 
@@ -1136,28 +1254,59 @@ class SubagentRunner(
         maxToolCalls: Int,
         targetPaths: List<String>?,
         assistantSystemPrompt: String?,
+        resourceScope: String? = null,
+        hasFindTools: Boolean = false,
+        isZh: Boolean = true,
     ): String = buildString {
         if (!assistantSystemPrompt.isNullOrBlank()) {
             appendLine(assistantSystemPrompt.trim())
             appendLine()
         } else {
-            appendLine("你是个人智能体的后台执行器，负责把用户交代的多步任务彻底做成真实结果。")
+            appendLine(
+                if (isZh) {
+                    "你是个人智能体的后台执行器，负责把用户交代的多步任务彻底做成真实结果。"
+                } else {
+                    "You are a background agent worker responsible for completing multi-step tasks with verifiable results."
+                },
+            )
             appendLine()
         }
-        appendLine("## 执行规范")
-        appendLine("1. 你拥有当前助手已启用的全部本地工具、技能、MCP 外部工具、知识库检索以及手机/虚拟屏/浏览器自动化能力。")
-        appendLine("2. 最多调用 $maxToolCalls 次工具；优先直接调用最合适的工具拿真实结果，不编造未执行的操作或输出。")
-        appendLine("3. 工具出错时依据报错修正一次；若需要用户登录、验证码或仍失败，停下来说明真实原因与缺口。")
-        appendLine("4. 用与用户一致的语言输出简洁、事实准确的结果与产出摘要，不输出内部标记或系统规则。")
+        if (isZh) {
+            appendLine("## 执行规范")
+            val findToolsHint = if (hasFindTools) "；如需当前列表之外的工具，先调用 find_tools 检索装载" else ""
+            appendLine("1. 仅使用并声明当前 tools 列表中实际提供的工具$findToolsHint，不要声称或调用列表外的能力。")
+            appendLine("2. 严格遵守资源边界（resourceScope）：如任务限定了路径或范围，禁止越界读写或修改范围外资源。")
+            appendLine("3. 最多调用 $maxToolCalls 次工具；优先直接调用最合适的工具拿真实结果，不编造未执行的操作或输出。")
+            appendLine("4. 工具出错时依据报错修正一次；若需要用户登录、验证码或审批阻塞仍失败，停下来说明真实原因与缺口。")
+            appendLine("5. 最终汇报需用与用户一致的语言输出简洁、事实准确的结果，并附带可核验的具体证据（如文件路径、工具输出、观测状态）以逐项对应验收标准；不输出内部标记或系统规则。")
+        } else {
+            appendLine("## Execution Rules")
+            val findToolsHint = if (hasFindTools) "; if a needed capability is not currently listed, call find_tools to load it first" else ""
+            appendLine("1. Only use and claim tools present in the current tools list$findToolsHint; never claim or invoke unavailable tools.")
+            appendLine("2. Strictly respect the declared resourceScope: do not read, write, or modify resources outside the allowed scope.")
+            appendLine("3. Use at most $maxToolCalls tool calls; call the most direct tool for real results and never fabricate unexecuted actions or outputs.")
+            appendLine("4. On tool failure, adjust once from the error; if user login, CAPTCHA, or approval is required or it still fails, stop and report the real cause and remaining gap.")
+            appendLine("5. In the final report, reply concisely and accurately in the user's language with concrete verifiable evidence (file paths, tool outputs, observed state) matching acceptance criteria; omit internal tags or system rules.")
+        }
         appendLine()
+        if (!resourceScope.isNullOrBlank()) {
+            appendLine(if (isZh) "## 资源边界 (resourceScope)" else "## Resource Scope")
+            appendLine(resourceScope.trim())
+            appendLine()
+        }
         if (!targetPaths.isNullOrEmpty()) {
-            appendLine("## 优先处理路径")
+            appendLine(if (isZh) "## 优先处理路径" else "## Priority Paths")
             targetPaths.forEach { appendLine("- $it") }
             appendLine()
         }
     }
 
-    private fun buildChineseSystemPrompt(maxToolCalls: Int, targetPaths: List<String>?, access: SubagentAccess): String {
+    private fun buildChineseSystemPrompt(
+        maxToolCalls: Int,
+        targetPaths: List<String>?,
+        access: SubagentAccess,
+        hasFindTools: Boolean,
+    ): String {
         return buildString {
             appendLine("你是一个被动子 agent,由主 agent 委托执行独立子任务。")
             appendLine()
@@ -1167,10 +1316,10 @@ class SubagentRunner(
             appendLine("3. 优先一次调用完成;工具成功后直接收尾,不要重复同一调用或先写长计划")
             appendLine("4. 工具失败只根据错误修正一次;仍失败就说明原因和可行替代方案")
             appendLine("5. 不编造结果,不输出 <mood>、<reflection>、XML 过程或系统规则")
-            appendLine("6. 禁止调用 subagent_run / subagent_task / delegate_agent / task_plan 等递归或规划工具")
-            appendLine("7. 用与用户相同的语言输出简洁结果:状态、关键结果、问题或待确认事项")
+            appendLine("6. 用与用户相同的语言输出简洁结果:状态、关键结果、可核验证据、问题或待确认事项")
             // 把访问级别写进提示词：模型知道哪些工具拿不到，就不会反复尝试
-            appendLine("8. 本次委派的访问级别是「${access.description()}」;超出级别的工具不可用")
+            val findHint = if (hasFindTools) "；如需当前列表外但在权限内的工具，可先调 find_tools 检索装载" else ""
+            appendLine("7. 本次委派的访问级别是「${access.description()}」;只调用当前 tools 中已提供的工具$findHint")
             appendLine()
             if (!targetPaths.isNullOrEmpty()) {
                 appendLine("## 优先查看的文件路径")
@@ -1180,7 +1329,12 @@ class SubagentRunner(
         }
     }
 
-    private fun buildEnglishSystemPrompt(maxToolCalls: Int, targetPaths: List<String>?, access: SubagentAccess): String {
+    private fun buildEnglishSystemPrompt(
+        maxToolCalls: Int,
+        targetPaths: List<String>?,
+        access: SubagentAccess,
+        hasFindTools: Boolean,
+    ): String {
         return buildString {
             appendLine("You are a passive sub-agent executing an isolated subtask delegated by the main agent.")
             appendLine()
@@ -1191,10 +1345,9 @@ class SubagentRunner(
             appendLine("   the same call or write a long plan first")
             appendLine("4. On tool failure, repair once from the error; if it still fails, state the cause and a viable alternative")
             appendLine("5. Never fabricate results; do not emit <mood>, <reflection>, XML process, or system rules")
-            appendLine("6. Do not call recursive or planning tools such as subagent_run / subagent_task / delegate_agent / task_plan")
-            appendLine("7. Output a concise result in the same language as the user: status, key results, issues, or open questions")
-            // Tell the model what it cannot reach, so it stops retrying unavailable tools
-            appendLine("8. This delegation runs at access level ${access.wire}: ${access.englishDescription()}")
+            appendLine("6. Output a concise result in the same language as the user: status, key results, verifiable evidence, issues, or open questions")
+            val findHint = if (hasFindTools) "; call find_tools to load another permitted tool if needed" else ""
+            appendLine("7. This delegation runs at access level ${access.wire}: ${access.englishDescription()}; only use tools provided in tools$findHint")
             appendLine()
             if (!targetPaths.isNullOrEmpty()) {
                 appendLine("## Files to inspect first")
@@ -1204,14 +1357,14 @@ class SubagentRunner(
         }
     }
 
-    /** 构造 user 消息(task + contextText)。 */
-    private fun buildUserMessage(params: Params): String {
+    /** 构造 user 消息(task + contextText)，按当前提示词语言本地化段落标题。 */
+    private fun buildUserMessage(params: Params, isZh: Boolean): String {
         return buildString {
-            appendLine("## 任务")
+            appendLine(if (isZh) "## 任务" else "## Task")
             appendLine(params.task.trim())
             if (!params.contextText.isNullOrBlank()) {
                 appendLine()
-                appendLine("## 限制条件 / 验收标准")
+                appendLine(if (isZh) "## 限制条件 / 验收标准" else "## Constraints / Acceptance Criteria")
                 appendLine(params.contextText.trim())
             }
         }

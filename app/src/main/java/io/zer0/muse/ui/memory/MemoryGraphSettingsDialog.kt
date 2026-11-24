@@ -22,7 +22,6 @@ import io.zer0.muse.data.MemoryGraphConfig
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
-import io.zer0.muse.ui.common.settings.SettingsGroupDivider
 import io.zer0.muse.ui.common.settings.SettingsSwitchRow
 import io.zer0.muse.ui.theme.MusePaddings
 

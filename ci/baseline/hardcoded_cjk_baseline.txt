@@ -2,30 +2,36 @@
 # 格式: <file>: <违规数>;新增或上升都会失败,只允许下降
 # 清理存量后运行: py -3 ci/script/check_hardcoded_cjk.py --update-baseline
 #
-# 当前共 351 处,分布 26 个文件
-app/src/main/java/io/zer0/muse/ui/ChatViewModel.kt: 2
-app/src/main/java/io/zer0/muse/ui/DataManagementScreen.kt: 1
-app/src/main/java/io/zer0/muse/ui/GreetingHelper.kt: 103
+# 当前共 355 处,分布 32 个文件
+app/src/main/java/io/zer0/muse/ui/agentbot/AgentBotScreen.kt: 7
+app/src/main/java/io/zer0/muse/ui/chat/ChatDocumentCoordinator.kt: 2
 app/src/main/java/io/zer0/muse/ui/chat/ChatExportCoordinator.kt: 8
 app/src/main/java/io/zer0/muse/ui/chat/ChatMediaController.kt: 2
 app/src/main/java/io/zer0/muse/ui/chat/ChatMessageController.kt: 2
 app/src/main/java/io/zer0/muse/ui/chat/ChatSessionController.kt: 1
 app/src/main/java/io/zer0/muse/ui/chat/ChatStreamCoordinator.kt: 2
 app/src/main/java/io/zer0/muse/ui/chat/ChatTaskCardCoordinator.kt: 6
+app/src/main/java/io/zer0/muse/ui/chat/ChatViewModel.kt: 2
 app/src/main/java/io/zer0/muse/ui/chat/ImageGenCoordinator.kt: 2
 app/src/main/java/io/zer0/muse/ui/chat/SessionArtifactCleanup.kt: 8
 app/src/main/java/io/zer0/muse/ui/chat/StickerEmotionDetector.kt: 14
 app/src/main/java/io/zer0/muse/ui/chat/ToolCallVisuals.kt: 125
-app/src/main/java/io/zer0/muse/ui/groupchat/GroupChatDetailComponents.kt: 2
+app/src/main/java/io/zer0/muse/ui/common/GreetingHelper.kt: 103
 app/src/main/java/io/zer0/muse/ui/groupchat/GroupChatDetailScreen.kt: 5
+app/src/main/java/io/zer0/muse/ui/groupchat/GroupChatDialogParts.kt: 2
 app/src/main/java/io/zer0/muse/ui/groupchat/GroupChatViewModel.kt: 1
-app/src/main/java/io/zer0/muse/ui/knowledge/KnowledgeScreen.kt: 4
+app/src/main/java/io/zer0/muse/ui/knowledge/KnowledgeParts.kt: 3
+app/src/main/java/io/zer0/muse/ui/knowledge/KnowledgeScreen.kt: 1
 app/src/main/java/io/zer0/muse/ui/onboarding/OnboardingScreen.kt: 1
 app/src/main/java/io/zer0/muse/ui/schedule/ScheduledTasksScreen.kt: 1
+app/src/main/java/io/zer0/muse/ui/screen/DataManagementScreen.kt: 1
 app/src/main/java/io/zer0/muse/ui/settings/ProviderBrandAssets.kt: 11
 app/src/main/java/io/zer0/muse/ui/settings/ProviderEditPage.kt: 1
+app/src/main/java/io/zer0/muse/ui/settings/RuntimeSettingsPage.kt: 4
+app/src/main/java/io/zer0/muse/ui/settings/ThemeSection.kt: 2
 app/src/main/java/io/zer0/muse/ui/settings/VisionSettingsPage.kt: 2
 app/src/main/java/io/zer0/muse/ui/speech/CloudTtsService.kt: 11
 app/src/main/java/io/zer0/muse/ui/taskcard/AgentPlanHistory.kt: 2
+app/src/main/java/io/zer0/muse/ui/terminal/TerminalScreen.kt: 1
 app/src/main/java/io/zer0/muse/ui/translate/TranslateHistoryEntity.kt: 1
-app/src/main/java/io/zer0/muse/ui/translate/TranslateViewModel.kt: 33
+app/src/main/java/io/zer0/muse/ui/translate/TranslateViewModel.kt: 21

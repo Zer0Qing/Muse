@@ -2,8 +2,10 @@ package io.zer0.muse.transformer
 
 import io.zer0.ai.ChatService
 import io.zer0.ai.core.ChatCompletion
+import io.zer0.ai.core.ChatRequestMode
 import io.zer0.ai.core.ChatStreamEvent
 import io.zer0.ai.core.MessageRole
+import io.zer0.ai.core.ReasoningLevel
 import io.zer0.ai.core.UIMessage
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
@@ -463,9 +465,10 @@ class ContextCompressTransformer(
                 // 超时后走降级标记路径,不再无限等待。
                 val text =
                     withTimeout(COMPRESS_TIMEOUT_MS) {
-                        if (compressor != null) {
+                        val activeCompressor = compressor
+                        if (activeCompressor != null) {
                             // 优先走分块并行 + 独立便宜模型
-                            compressWithCompressor(toCompress, instruction, previousSummary)
+                            compressWithCompressor(activeCompressor, toCompress, instruction, previousSummary)
                         } else {
                             // 回退:原同步单次 LLM 压缩
                             compressMessages(toCompress, instruction)
@@ -513,60 +516,89 @@ class ContextCompressTransformer(
         return prefix + retained
     }
 
-    /** 调用 LLM 压缩旧消息为摘要。 */
-    private suspend fun compressMessages(oldMessages: List<UIMessage>, instruction: String? = null): String {
-        val prompt =
-            buildString {
-                appendLine("请把下面的对话历史压缩成简洁的摘要,保留关键信息(事实/决策/用户偏好)。")
-                appendLine("- 用要点形式,每点一行")
-                appendLine("- 不要编造未提及的内容")
-                appendLine("- 总长度不超过 800 字")
-                // H10: 手动压缩附加指令(如"重点保留预算讨论"),拼进压缩指令
+    /** 调用 LLM 压缩旧消息为摘要；空输出时返回 null，避免用占位文本冒充真实历史。 */
+    private suspend fun compressMessages(oldMessages: List<UIMessage>, instruction: String? = null): String? {
+        val useChinese = ConversationCompressor.detectChineseConversation(
+            messages = oldMessages,
+            appLocale = java.util.Locale.getDefault().language,
+        )
+        val systemPrompt = buildString {
+            if (useChinese) {
+                appendLine("你是对话压缩助手。请把用户提供的对话历史压缩成简洁摘要，保留关键信息(事实/决策/用户偏好)。")
+                appendLine("- 用要点形式，每点一行；不要编造未提及的内容；总长度不超过 800 字")
                 if (!instruction.isNullOrBlank()) {
                     appendLine("- 附加要求: $instruction")
                 }
-                appendLine()
-                appendLine("对话历史:")
-                oldMessages.forEach { msg ->
-                    val role =
-                        when (msg.role) {
-                            MessageRole.USER -> "用户"
-                            MessageRole.ASSISTANT -> "助手"
-                            MessageRole.SYSTEM -> "系统"
-                            MessageRole.TOOL -> "工具"
-                        }
-                    // L-COMP5: 截断处加 "…" 标记(而非静默截断)
-                    // v1.116 (C1-5): 单条消息截断阈值从 500 提升到 1500 字符,
-                    // 避免长回复(如代码块/详细分析)被过度截断导致摘要丢失关键信息。
-                    val raw = msg.content
-                    // v2.x: 保头尾而非只保头 —— 工具结果与报错的结论在尾部，
-                    // 只留头部会让摘要拿到"调用开始了"却拿不到"结果是什么"。
-                    val text = io.zer0.common.TextTruncation.headTailText(raw, MAX_COMPRESS_MSG_CHARS)
-                    appendLine("[$role] $text")
+            } else {
+                appendLine("You are a conversation compression assistant. Summarize the conversation history concisely in the conversation's language, keeping key facts, decisions, and user preferences.")
+                appendLine("- Use one bullet per line; never fabricate unmentioned facts; keep under 500 words")
+                if (!instruction.isNullOrBlank()) {
+                    appendLine("- Additional requirement: $instruction")
                 }
             }
+        }.trim()
 
-        val request = listOf(UIMessage(role = MessageRole.USER, content = prompt))
+        val userContent = buildString {
+            appendLine(if (useChinese) "对话历史:" else "Conversation history:")
+            oldMessages.forEach { msg ->
+                val role = if (useChinese) {
+                    when (msg.role) {
+                        MessageRole.USER -> "用户"
+                        MessageRole.ASSISTANT -> "助手"
+                        MessageRole.SYSTEM -> "系统"
+                        MessageRole.TOOL -> "工具"
+                    }
+                } else {
+                    when (msg.role) {
+                        MessageRole.USER -> "User"
+                        MessageRole.ASSISTANT -> "Assistant"
+                        MessageRole.SYSTEM -> "System"
+                        MessageRole.TOOL -> "Tool"
+                    }
+                }
+                val raw = msg.content
+                // v2.x: 保头尾而非只保头 —— 工具结果与报错的结论在尾部，
+                // 只留头部会让摘要拿到"调用开始了"却拿不到"结果是什么"。
+                val text = io.zer0.common.TextTruncation.headTailText(raw, MAX_COMPRESS_MSG_CHARS)
+                appendLine("[$role] $text")
+            }
+        }
+
+        val request = listOf(
+            UIMessage(role = MessageRole.SYSTEM, content = systemPrompt),
+            UIMessage(role = MessageRole.USER, content = userContent),
+        )
         // H-COMP2 / L-COMP7: 用 resultOf 替代 runCatching.getOrElse
         //  - resultOf 会重抛 CancellationException(不吞协程取消)
         //  - 其他错误转为 Result.Error,onError 记录原始异常后回退 streamChat
-        //  - CancellationException 不会到达 getOrNull(),因此不会错误回退
+        //  - 统一走 UTILITY + ReasoningLevel.OFF，避免压缩消耗思考 token
         val completion: ChatCompletion =
             resultOf {
-                chatService.completeText(messages = request)
+                chatService.completeText(
+                    messages = request,
+                    temperature = FALLBACK_COMPRESS_TEMPERATURE,
+                    maxTokens = FALLBACK_COMPRESS_MAX_TOKENS,
+                    reasoningLevel = ReasoningLevel.OFF,
+                    mode = ChatRequestMode.UTILITY,
+                )
             }.onError { msg, t ->
                 Logger.w(name, "completeText 失败,回退 streamChat: $msg", t)
             }.getOrNull() ?: run {
                 // 兜底: 流式收集(仅对非 CancellationException 错误到达此处)
                 val sb = StringBuilder()
-                chatService.streamChat(messages = request).collect { ev ->
+                chatService.streamChat(
+                    messages = request,
+                    temperature = FALLBACK_COMPRESS_TEMPERATURE,
+                    maxTokens = FALLBACK_COMPRESS_MAX_TOKENS,
+                    reasoningLevel = ReasoningLevel.OFF,
+                    mode = ChatRequestMode.UTILITY,
+                ).collect { ev ->
                     if (ev is ChatStreamEvent.ContentDelta) sb.append(ev.delta)
                 }
                 ChatCompletion(text = sb.toString())
             }
-        // v1.0.74 fix: 剥离 <think> 推理标签,防止思考内容混入压缩摘要
-        return io.zer0.muse.transformer.stripThinkTags(completion.text)
-            .ifBlank { "历史对话已压缩(摘要为空)" }
+        // v1.0.74 fix: 剥离 <think> 推理标签,防止思考内容混入压缩摘要；空输出返回 null 交由上层保留原文
+        return io.zer0.muse.transformer.stripThinkTags(completion.text).takeIf { it.isNotBlank() }
     }
 
     /**
@@ -579,13 +611,14 @@ class ContextCompressTransformer(
      *    避免下游 transformer / 持久化逻辑感知分块)
      */
     private suspend fun compressWithCompressor(
+        activeCompressor: ConversationCompressor,
         oldMessages: List<UIMessage>,
         instruction: String? = null,
         previousSummary: String? = null,
     ): String? {
-        val summaries = compressor!!.compress(oldMessages, instruction, previousSummary) ?: return null
+        val summaries = activeCompressor.compress(oldMessages, instruction, previousSummary) ?: return null
         return when {
-            summaries.isEmpty() -> "历史对话已压缩(摘要为空)"
+            summaries.isEmpty() -> null
             summaries.size == 1 -> summaries.first()
             else ->
                 buildString {
@@ -608,5 +641,8 @@ class ContextCompressTransformer(
 
         // v2.x: 压缩模型调用超时(毫秒);超时后降级为截断标记,避免拖慢整轮生成
         const val COMPRESS_TIMEOUT_MS = 20_000L
+
+        const val FALLBACK_COMPRESS_TEMPERATURE = 0.3f
+        const val FALLBACK_COMPRESS_MAX_TOKENS = 1000
     }
 }

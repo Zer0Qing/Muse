@@ -48,12 +48,13 @@ class LorebookTransformerTest {
         )
         val result = transformer.transform(messages, context)
 
-        // 结果:declaration + system + lorebook-after + user = 4
-        assertEquals(4, result.size)
-        assertEquals(MessageRole.SYSTEM, result[2].role)
-        assertTrue(result[2].content.contains("lorebook"))
-        assertTrue(result[2].content.contains("巫师协会"))
-        assertTrue(result[2].content.contains("test-lore"))
+        // 结果: system + lorebook-after + user = 3（防注入声明内嵌在 lorebook 消息内部，避免把主 system 框定为非指令）
+        assertEquals(3, result.size)
+        assertEquals(MessageRole.SYSTEM, result[1].role)
+        assertTrue(result[1].content.contains("lorebook"))
+        assertTrue(result[1].content.contains("非指令"))
+        assertTrue(result[1].content.contains("巫师协会"))
+        assertTrue(result[1].content.contains("test-lore"))
     }
 
     @Test
@@ -101,10 +102,11 @@ class LorebookTransformerTest {
         )
         val result = transformer.transform(messages, context)
 
-        // 结果:declaration + lorebook-before + system + user = 4
-        assertEquals(4, result.size)
-        assertTrue(result[1].content.contains("lorebook"))
-        assertTrue(result[1].content.contains("巫师协会"))
+        // 结果: lorebook-before + system + user = 3
+        assertEquals(3, result.size)
+        assertTrue(result[0].content.contains("lorebook"))
+        assertTrue(result[0].content.contains("非指令"))
+        assertTrue(result[0].content.contains("巫师协会"))
     }
 
     @Test
@@ -123,9 +125,9 @@ class LorebookTransformerTest {
         )
         val result = transformer.transform(messages, context)
 
-        // 结果:declaration + system + lorebook1 + lorebook2 + user = 5
-        assertEquals(5, result.size)
-        val loreMsgs = result.filter { it.content.contains("lorebook") }
+        // 结果: system + lorebook1 + lorebook2 + user = 4
+        assertEquals(4, result.size)
+        val loreMsgs = result.filter { it.content.contains("<lorebook") }
         assertEquals(2, loreMsgs.size)
     }
 
@@ -145,6 +147,6 @@ class LorebookTransformerTest {
         val result = transformer.transform(messages, context)
 
         // 净化后的名称不应包含原始双引号
-        assertTrue(!result[1].content.contains("test\"") || result[1].content.contains("test "))
+        assertTrue(!result[1].content.contains("test\"") && result[1].content.contains("test  name"))
     }
 }

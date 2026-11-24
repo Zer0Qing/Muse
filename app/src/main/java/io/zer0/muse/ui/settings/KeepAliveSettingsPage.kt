@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -15,7 +17,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
@@ -23,12 +24,12 @@ import io.zer0.muse.schedule.KeepAliveService
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
-import io.zer0.muse.ui.common.settings.ChevronRight
-import io.zer0.muse.ui.common.settings.SettingsGroup
-import io.zer0.muse.ui.common.settings.SettingsGroupDivider
-import io.zer0.muse.ui.common.settings.SettingsItemRow
-import io.zer0.muse.ui.common.settings.SettingsSwitchRow
+import io.zer0.muse.ui.common.surface.CardGroup
+import io.zer0.muse.ui.common.surface.navigationItem
+import io.zer0.muse.ui.common.surface.switchItem
+import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.theme.MuseSpacing
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
@@ -62,42 +63,88 @@ fun KeepAliveSettingsPage(onBack: () -> Unit) {
         title = stringResource(R.string.settings_keep_alive_title),
         onBack = onBack,
     ) {
-        item {
-            KeepAliveSwitchesGroup(
-                enabled = enabled,
-                wakeLock = wakeLock,
-                onToggleEnabled = { v ->
-                    scope.launch { settings.saveKeepAliveEnabled(v) }
-                    if (v) KeepAliveService.start(context) else KeepAliveService.stop(context)
-                },
-                onToggleWakeLock = { v -> scope.launch { settings.saveKeepAliveWakeLock(v) } },
-                onOpenNotificationEditor = { showNotificationEditor = true },
-            )
+        item(key = "keep_alive_switches") {
+            CardGroup {
+                switchItem(
+                    key = "keep_alive_enabled",
+                    title = stringResource(R.string.settings_keep_alive_title),
+                    subtitle = stringResource(R.string.settings_keep_alive_hint),
+                    checked = enabled,
+                    onCheckedChange = { v ->
+                        scope.launch { settings.saveKeepAliveEnabled(v) }
+                        if (v) KeepAliveService.start(context) else KeepAliveService.stop(context)
+                    },
+                    leadingContent = {
+                        Icon(
+                            imageVector = MuseIcons.deviceMobile,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
+                    },
+                )
+                if (enabled) {
+                    switchItem(
+                        key = "keep_alive_wakelock",
+                        title = stringResource(R.string.settings_keep_alive_wakelock_title),
+                        checked = wakeLock,
+                        onCheckedChange = { v ->
+                            scope.launch { settings.saveKeepAliveWakeLock(v) }
+                        },
+                        leadingContent = {
+                            Icon(
+                                imageVector = MuseIcons.clock,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(MuseIconSizes.iconMedium),
+                            )
+                        },
+                    )
+                    navigationItem(
+                        key = "keep_alive_notification",
+                        title = stringResource(R.string.settings_keep_alive_notification_custom_title),
+                        leadingContent = {
+                            Icon(
+                                imageVector = MuseIcons.edit,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(MuseIconSizes.iconMedium),
+                            )
+                        },
+                        onClick = { showNotificationEditor = true },
+                    )
+                }
+            }
         }
-        item {
-            Text(
-                text = stringResource(R.string.settings_keep_alive_hint),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = MusePaddings.screen, vertical = 4.dp),
-            )
-        }
-        item {
-            SettingsGroup {
-                SettingsItemRow(
-                    icon = MuseIcons.battery,
+
+        item(key = "keep_alive_guides") {
+            CardGroup {
+                navigationItem(
+                    key = "keep_alive_battery",
                     title = stringResource(R.string.settings_keep_alive_battery_title),
+                    leadingContent = {
+                        Icon(
+                            imageVector = MuseIcons.battery,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
+                    },
                     onClick = { showGuide = true },
-                ) {
-                    ChevronRight()
-                }
-                SettingsItemRow(
-                    icon = MuseIcons.sliders,
+                )
+                navigationItem(
+                    key = "keep_alive_rom",
                     title = stringResource(R.string.settings_keep_alive_rom_title),
+                    leadingContent = {
+                        Icon(
+                            imageVector = MuseIcons.sliders,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
+                    },
                     onClick = { showGuide = true },
-                ) {
-                    ChevronRight()
-                }
+                )
             }
         }
     }
@@ -122,51 +169,18 @@ fun KeepAliveSettingsPage(onBack: () -> Unit) {
 }
 
 /**
- * 保活开关组：总开关 + 唤醒锁 + 通知文案入口。
- *
- * 单独成函是为了让 [KeepAliveSettingsPage] 保持在可读长度内。
- */
-@Composable
-private fun KeepAliveSwitchesGroup(
-    enabled: Boolean,
-    wakeLock: Boolean,
-    onToggleEnabled: (Boolean) -> Unit,
-    onToggleWakeLock: (Boolean) -> Unit,
-    onOpenNotificationEditor: () -> Unit,
-) {
-    SettingsGroup {
-        SettingsSwitchRow(
-            icon = MuseIcons.deviceMobile,
-            title = stringResource(R.string.settings_keep_alive_title),
-            checked = enabled,
-            onCheckedChange = onToggleEnabled,
-        )
-        if (enabled) {
-            SettingsSwitchRow(
-                icon = MuseIcons.clock,
-                title = stringResource(R.string.settings_keep_alive_wakelock_title),
-                checked = wakeLock,
-                onCheckedChange = onToggleWakeLock,
-            )
-            SettingsItemRow(
-                icon = MuseIcons.edit,
-                title = stringResource(R.string.settings_keep_alive_notification_custom_title),
-                onClick = onOpenNotificationEditor,
-            ) {
-                ChevronRight()
-            }
-        }
-    }
-}
-
-/**
  * 常驻通知文案编辑器。
  *
  * 通知栏会常驻显示这段文字，可改标题与正文，避免直接把对话内容暴露给旁人。
  * 两项都留空时回落到内置默认文案（见 KeepAliveService.buildNotification）。
  */
 @Composable
-private fun NotificationTextDialog(currentTitle: String, currentText: String, onDismiss: () -> Unit, onSave: (String, String) -> Unit) {
+private fun NotificationTextDialog(
+    currentTitle: String,
+    currentText: String,
+    onDismiss: () -> Unit,
+    onSave: (String, String) -> Unit,
+) {
     var title by remember { mutableStateOf(currentTitle) }
     var text by remember { mutableStateOf(currentText) }
 
@@ -176,7 +190,7 @@ private fun NotificationTextDialog(currentTitle: String, currentText: String, on
         content = {
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
             ) {
                 Text(
                     text = stringResource(R.string.settings_keep_alive_notification_custom_hint),

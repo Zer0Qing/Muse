@@ -1,6 +1,10 @@
 package io.zer0.muse.proactive
 
 import io.zer0.common.Logger
+import io.zer0.muse.transformer.stripThinkTags
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 
 /**
  * 解析模型对主动消息请求的回复。
@@ -38,8 +42,24 @@ object ProactiveReplyParser {
         data class Failed(val reason: String) : Result
     }
 
+    private val replyJson = Json {
+        ignoreUnknownKeys = true
+        isLenient = true
+        coerceInputValues = true
+    }
+
+    @Serializable
+    private data class ReplyPayload(
+        val skip: Boolean = false,
+        val reason: String? = null,
+        val content: String? = null,
+        val tone: String? = null,
+        @SerialName("thought_id")
+        val thoughtId: String? = null,
+    )
+
     fun parse(raw: String): Result {
-        val text = stripFences(raw).trim()
+        val text = stripFences(stripThinkTags(raw)).trim()
         val parsed = when {
             text.isEmpty() -> Result.Failed("模型返回空内容")
             else -> extractJsonObject(text)?.let { parseJson(it) } ?: fallbackToProse(text)
@@ -81,8 +101,28 @@ object ProactiveReplyParser {
         return head.trim()
     }
 
-    /** 已经是纯 JSON 的情况。 */
+    /** 已经是纯 JSON 的情况：优先使用 kotlinx.serialization 解码（正确处理 \uXXXX 与转义换行），失败再降级正则。 */
     private fun parseJson(json: String): Result {
+        val decoded = runCatching { replyJson.decodeFromString(ReplyPayload.serializer(), json) }
+            .onFailure { Logger.w(TAG, "主动消息 JSON 严格解码失败，降级正则解析: ${it.message}") }
+            .getOrNull()
+        if (decoded != null) {
+            if (decoded.skip) {
+                return Result.Skip(decoded.reason.orEmpty().trim().ifBlank { "模型判断现在不适合说" })
+            }
+            val content = decoded.content.orEmpty().trim()
+            if (content.isNotBlank()) {
+                val thoughtId = decoded.thoughtId?.trim()?.takeIf { it.isNotBlank() && it != "null" }
+                val tone = decoded.tone.orEmpty().trim()
+                return Result.Message(thoughtId, content, tone)
+            }
+            return Result.Failed("JSON 缺 content 字段")
+        }
+        return parseJsonRegexFallback(json)
+    }
+
+    /** 非规范 JSON（如字符串内未转义引号）时的正则兜底解析。 */
+    private fun parseJsonRegexFallback(json: String): Result {
         val skipValue = Regex("\"skip\"\\s*:\\s*(true|false)")
             .find(json)?.groupValues?.get(1)?.toBooleanStrictOrNull()
 

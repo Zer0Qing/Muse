@@ -861,8 +861,15 @@ internal class ChatToolLoopRunner(
                                             }
                                             // v1.0.3: 首 token 立即刷新 UI,消除"loading → 大量文字"的视觉断层
                                             val isFirstToken = firstTokenTime == 0L
+                                            val nowForThinkingFreeze = System.currentTimeMillis()
+                                            val frozeThinking = state.reasoningStartedAtMs != null && state.reasoningDurationMs == null
+                                            if (frozeThinking) {
+                                                state.reasoningDurationMs =
+                                                    (nowForThinkingFreeze - (state.reasoningStartedAtMs ?: nowForThinkingFreeze))
+                                                        .coerceAtLeast(0L)
+                                            }
                                             if (isFirstToken) {
-                                                firstTokenTime = System.currentTimeMillis()
+                                                firstTokenTime = nowForThinkingFreeze
                                                 // P3-9: 首字耗时埋点 — 从本轮生成启动到首个正文 token 的间隔
                                                 Perf.log("chat-first-token", firstTokenTime - streamStartedAt)
                                                 // 立即清除"等待首 token"状态,ThinkingBubble 消失,StreamingCursor 接管
@@ -870,7 +877,21 @@ internal class ChatToolLoopRunner(
                                                 host.stateStore.state.update {
                                                     it.copy(
                                                         isWaitingFirstToken = false,
-                                                        streamState = it.streamState.copy(phase = ChatStreamPhase.STREAMING),
+                                                        streamState = it.streamState.copy(
+                                                            phase = ChatStreamPhase.STREAMING,
+                                                            isThinkingActive = false,
+                                                            reasoningDurationMs = state.reasoningDurationMs ?: it.streamState.reasoningDurationMs,
+                                                        ),
+                                                    )
+                                                }
+                                            } else if (frozeThinking || host.stateStore.state.value.streamState.isThinkingActive) {
+                                                host.stateStore.state.update {
+                                                    it.copy(
+                                                        streamState = it.streamState.copy(
+                                                            phase = ChatStreamPhase.STREAMING,
+                                                            isThinkingActive = false,
+                                                            reasoningDurationMs = state.reasoningDurationMs ?: it.streamState.reasoningDurationMs,
+                                                        ),
                                                     )
                                                 }
                                             }
@@ -933,11 +954,25 @@ internal class ChatToolLoopRunner(
                                         is ChatStreamEvent.ReasoningDelta -> {
                                             // v1.0.3: 首 token 立即刷新 UI(ReasoningDelta 也算首 token)
                                             val isFirstToken = firstTokenTime == 0L
+                                            val nowReasoning = System.currentTimeMillis()
+                                            if (state.reasoningStartedAtMs == null) {
+                                                state.reasoningStartedAtMs = nowReasoning
+                                            }
                                             if (isFirstToken) {
-                                                firstTokenTime = System.currentTimeMillis()
+                                                firstTokenTime = nowReasoning
                                                 // P3-9: 首字耗时埋点(reasoning 首 token 同样计入)
                                                 Perf.log("chat-first-token", firstTokenTime - streamStartedAt)
-                                                host.stateStore.state.update { it.copy(isWaitingFirstToken = false) }
+                                            }
+                                            if (isFirstToken || !host.stateStore.state.value.streamState.isThinkingActive) {
+                                                host.stateStore.state.update {
+                                                    it.copy(
+                                                        isWaitingFirstToken = false,
+                                                        streamState = it.streamState.copy(
+                                                            isThinkingActive = true,
+                                                            reasoningStartedAtMs = state.reasoningStartedAtMs,
+                                                        ),
+                                                    )
+                                                }
                                             }
                                             if (exposeRoundThinking) params.reasoningBuilder.append(event.delta)
                                             if (!event.signature.isNullOrBlank()) thinkingSignature = event.signature
@@ -1005,9 +1040,20 @@ internal class ChatToolLoopRunner(
                                             }
                                         }
                                         is ChatStreamEvent.ToolCallDelta -> {
+                                            if (state.reasoningStartedAtMs != null && state.reasoningDurationMs == null) {
+                                                state.reasoningDurationMs =
+                                                    (System.currentTimeMillis() - (state.reasoningStartedAtMs ?: 0L))
+                                                        .coerceAtLeast(0L)
+                                            }
                                             // F-10: 工具调用阶段开始
                                             host.stateStore.state.update {
-                                                it.copy(streamState = it.streamState.copy(phase = ChatStreamPhase.TOOLING))
+                                                it.copy(
+                                                    streamState = it.streamState.copy(
+                                                        phase = ChatStreamPhase.TOOLING,
+                                                        isThinkingActive = false,
+                                                        reasoningDurationMs = state.reasoningDurationMs ?: it.streamState.reasoningDurationMs,
+                                                    ),
+                                                )
                                             }
                                             val acc =
                                                 toolCallAccumulator.getOrPut(event.index) {

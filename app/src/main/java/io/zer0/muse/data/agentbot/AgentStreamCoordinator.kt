@@ -111,6 +111,10 @@ class AgentStreamCoordinator(
     data class StreamingDraft(
         val text: String = "",
         val reasoning: String = "",
+        val reasoningStartedAtMs: Long? = null,
+        val reasoningDurationMs: Long? = null,
+        val isThinkingActive: Boolean = false,
+        val mood: String = "",
         val citationUrls: List<String> = emptyList(),
         val reactions: List<ReactionAction> = emptyList(),
     )
@@ -155,6 +159,8 @@ class AgentStreamCoordinator(
     data class TurnOutcome(
         val text: String = "",
         val reasoning: String = "",
+        val reasoningDurationMs: Long? = null,
+        val mood: String = "",
         val citationUrls: List<String> = emptyList(),
         val reactions: List<ReactionAction> = emptyList(),
         val dispatches: List<MissionDispatch> = emptyList(),
@@ -226,6 +232,56 @@ class AgentStreamCoordinator(
         val collectedMetaCalls = mutableListOf<ToolCall>()
         val stickyToolNames = mutableSetOf<String>()
         var streamError: String? = null
+        var reasoningStartedAtMs: Long? = null
+        var reasoningDurationMs: Long? = null
+        var isThinkingActive = false
+        var lastDraftEmitAtMs = 0L
+        var pendingDraftChars = 0
+
+        fun buildSanitizedDraft(
+            rawText: String,
+            rawReasoning: String,
+            thinkingNow: Boolean,
+        ): StreamingDraft {
+            val extractedFromBody = io.zer0.muse.transformer.InternalMarkupSanitizer.extractMood(rawText)
+            val extractedFromReasoning = if (extractedFromBody == null && rawReasoning.isNotEmpty()) {
+                io.zer0.muse.transformer.InternalMarkupSanitizer.extractMood(rawReasoning)
+            } else {
+                null
+            }
+            val cleanedReasoning = if (extractedFromReasoning != null) {
+                io.zer0.muse.transformer.InternalMarkupSanitizer.stripContainerTags(
+                    io.zer0.muse.transformer.InternalMarkupSanitizer.stripMoodBlocks(rawReasoning),
+                )
+            } else {
+                rawReasoning
+            }
+            val cleanedText = io.zer0.muse.transformer.InternalMarkupSanitizer.stripForDisplay(rawText)
+            return StreamingDraft(
+                text = cleanedText,
+                reasoning = cleanedReasoning,
+                reasoningStartedAtMs = reasoningStartedAtMs,
+                reasoningDurationMs = reasoningDurationMs,
+                isThinkingActive = thinkingNow,
+                mood = extractedFromBody ?: extractedFromReasoning ?: "",
+                citationUrls = citationSet.toList(),
+            )
+        }
+
+        fun emitDraftThrottled(
+            rawText: String,
+            rawReasoning: String,
+            deltaLen: Int,
+            force: Boolean = false,
+        ) {
+            pendingDraftChars += deltaLen
+            val now = System.currentTimeMillis()
+            if (force || pendingDraftChars >= DRAFT_CHAR_THRESHOLD || now - lastDraftEmitAtMs >= DRAFT_INTERVAL_MS) {
+                lastDraftEmitAtMs = now
+                pendingDraftChars = 0
+                onDraft(buildSanitizedDraft(rawText, rawReasoning, isThinkingActive))
+            }
+        }
 
         loop@ for (round in 0 until MAX_FOREGROUND_TOOL_ROUNDS) {
             val filteredHostTools = if (hostToolset != null) {
@@ -235,7 +291,7 @@ class AgentStreamCoordinator(
                     stickyToolNames = stickyToolNames,
                     loadedToolNames = SessionToolLoadRegistry.loadedFor(identity.sessionId),
                     skillToolNames = hostToolset.skillNames,
-                )
+                ).filterNot { it.name in FOREGROUND_EXCLUDED_HOST_TOOLS }
             } else {
                 emptyList()
             }
@@ -279,41 +335,58 @@ class AgentStreamCoordinator(
                     when (event) {
                         is ChatStreamEvent.ContentDelta -> {
                             if (event.delta.isNotEmpty()) {
+                                val transitionedFromThinking = isThinkingActive
+                                if (isThinkingActive) {
+                                    isThinkingActive = false
+                                    val started = reasoningStartedAtMs
+                                    if (started != null && reasoningDurationMs == null) {
+                                        reasoningDurationMs = (System.currentTimeMillis() - started).coerceAtLeast(0L)
+                                    }
+                                }
                                 roundTextBuilder.append(event.delta)
-                                onDraft(
-                                    StreamingDraft(
-                                        text = baseTextPrefix + roundTextBuilder.toString(),
-                                        reasoning = baseReasoningPrefix + roundReasoningBuilder.toString(),
-                                        citationUrls = citationSet.toList(),
-                                    ),
+                                emitDraftThrottled(
+                                    rawText = baseTextPrefix + roundTextBuilder.toString(),
+                                    rawReasoning = baseReasoningPrefix + roundReasoningBuilder.toString(),
+                                    deltaLen = event.delta.length,
+                                    force = transitionedFromThinking,
                                 )
                             }
                         }
                         is ChatStreamEvent.ReasoningDelta -> {
                             if (event.delta.isNotEmpty()) {
+                                val firstThinking = !isThinkingActive
+                                if (reasoningStartedAtMs == null) {
+                                    reasoningStartedAtMs = System.currentTimeMillis()
+                                }
+                                isThinkingActive = true
                                 roundReasoningBuilder.append(event.delta)
-                                onDraft(
-                                    StreamingDraft(
-                                        text = baseTextPrefix + roundTextBuilder.toString(),
-                                        reasoning = baseReasoningPrefix + roundReasoningBuilder.toString(),
-                                        citationUrls = citationSet.toList(),
-                                    ),
+                                emitDraftThrottled(
+                                    rawText = baseTextPrefix + roundTextBuilder.toString(),
+                                    rawReasoning = baseReasoningPrefix + roundReasoningBuilder.toString(),
+                                    deltaLen = event.delta.length,
+                                    force = firstThinking,
                                 )
                             }
                         }
                         is ChatStreamEvent.CitationDelta -> {
                             if (event.urls.isNotEmpty()) {
                                 citationSet.addAll(event.urls)
-                                onDraft(
-                                    StreamingDraft(
-                                        text = baseTextPrefix + roundTextBuilder.toString(),
-                                        reasoning = baseReasoningPrefix + roundReasoningBuilder.toString(),
-                                        citationUrls = citationSet.toList(),
-                                    ),
+                                emitDraftThrottled(
+                                    rawText = baseTextPrefix + roundTextBuilder.toString(),
+                                    rawReasoning = baseReasoningPrefix + roundReasoningBuilder.toString(),
+                                    deltaLen = 0,
+                                    force = true,
                                 )
                             }
                         }
                         is ChatStreamEvent.ToolCallDelta -> {
+                            if (isThinkingActive) {
+                                isThinkingActive = false
+                                val started = reasoningStartedAtMs
+                                if (started != null && reasoningDurationMs == null) {
+                                    reasoningDurationMs = (System.currentTimeMillis() - started).coerceAtLeast(0L)
+                                }
+                            }
                             val acc = toolAccumulators.getOrPut(event.index) { ToolCallAccumulator() }
                             event.id?.takeIf { it.isNotBlank() }?.let { acc.id = it }
                             event.name?.takeIf { it.isNotBlank() }?.let { acc.name = it }
@@ -332,7 +405,23 @@ class AgentStreamCoordinator(
                                 streamError = event.message
                             }
                         }
-                        is ChatStreamEvent.Done,
+                        is ChatStreamEvent.Done -> {
+                            if (isThinkingActive) {
+                                isThinkingActive = false
+                                val started = reasoningStartedAtMs
+                                if (started != null && reasoningDurationMs == null) {
+                                    reasoningDurationMs = (System.currentTimeMillis() - started).coerceAtLeast(0L)
+                                }
+                            }
+                            if (pendingDraftChars > 0) {
+                                emitDraftThrottled(
+                                    rawText = baseTextPrefix + roundTextBuilder.toString(),
+                                    rawReasoning = baseReasoningPrefix + roundReasoningBuilder.toString(),
+                                    deltaLen = 0,
+                                    force = true,
+                                )
+                            }
+                        }
                         is ChatStreamEvent.FallbackNotice,
                         is ChatStreamEvent.ImageDelta,
                         is ChatStreamEvent.UsageDelta,
@@ -430,16 +519,34 @@ class AgentStreamCoordinator(
             }
         }
 
-        val replyText = parsed.sayText.trim()
+        val rawReplyText = parsed.sayText.trim()
+        val rawReasoningText = totalReasoningBuilder.toString().trim()
+        val moodFromReply = io.zer0.muse.transformer.InternalMarkupSanitizer.extractMood(rawReplyText)
+        val moodFromReasoning = if (moodFromReply == null && rawReasoningText.isNotBlank()) {
+            io.zer0.muse.transformer.InternalMarkupSanitizer.extractMood(rawReasoningText)
+        } else {
+            null
+        }
+        val finalMood = (moodFromReply ?: moodFromReasoning).orEmpty().trim()
+        val cleanReplyText = io.zer0.muse.transformer.InternalMarkupSanitizer.stripForDisplay(rawReplyText).trim()
         val effectiveText = when {
-            replyText.isNotBlank() -> replyText
+            cleanReplyText.isNotBlank() -> cleanReplyText
             finalDispatches.isNotEmpty() -> DEFAULT_ACK_TEXT
             parsed.steerings.isNotEmpty() -> DEFAULT_STEER_ACK_TEXT
             parsed.routineCreations.isNotEmpty() -> DEFAULT_ROUTINE_ACK_TEXT
             else -> ""
         }
 
-        val finalReasoning = totalReasoningBuilder.toString().trim()
+        val finalReasoning = if (moodFromReasoning != null) {
+            io.zer0.muse.transformer.InternalMarkupSanitizer.stripContainerTags(
+                io.zer0.muse.transformer.InternalMarkupSanitizer.stripMoodBlocks(rawReasoningText),
+            ).trim()
+        } else {
+            rawReasoningText
+        }
+        val finalReasoningDurationMs = reasoningDurationMs ?: reasoningStartedAtMs?.let {
+            (System.currentTimeMillis() - it).coerceAtLeast(0L)
+        }
         val finalCitations = citationSet.toList()
         var publishedMessageId = ""
         if (effectiveText.isNotBlank()) {
@@ -453,6 +560,8 @@ class AgentStreamCoordinator(
                     items = listOf(PublicationService.Item(PublicationKind.TEXT, effectiveText)),
                     currentRequestRevision = currentRequestRevision(),
                     reasoningByItem = listOf(finalReasoning.ifBlank { null }),
+                    reasoningDurationMsByItem = listOf(finalReasoningDurationMs),
+                    moodByItem = listOf(finalMood.ifBlank { null }),
                     citationsByItem = listOf(finalCitations),
                 )
             }.onFailure {
@@ -464,6 +573,8 @@ class AgentStreamCoordinator(
         return TurnOutcome(
             text = effectiveText,
             reasoning = finalReasoning,
+            reasoningDurationMs = finalReasoningDurationMs,
+            mood = finalMood,
             citationUrls = finalCitations,
             reactions = finalReactions,
             dispatches = finalDispatches,
@@ -776,6 +887,16 @@ class AgentStreamCoordinator(
             ForegroundCoordinator.TOOL_SAY,
         )
 
+        /** Agent 前台统一走 `launch_mission` 派发后台任务，屏蔽会造成角色混淆的重复委派工具。 */
+        private val FOREGROUND_EXCLUDED_HOST_TOOLS = setOf(
+            "subagent_run",
+            "subagent_task",
+            "delegate_agent",
+        )
+
+        private const val DRAFT_INTERVAL_MS = 50L
+        private const val DRAFT_CHAR_THRESHOLD = 12
+
         private val json = Json { ignoreUnknownKeys = true }
 
         fun fromChatService(chatService: ChatService): StreamingClient =
@@ -862,7 +983,7 @@ class AgentStreamCoordinator(
                                 "assignee_bot_id",
                                 buildJsonObject {
                                     put("type", "string")
-                                    put("description", "委派助手 id；留空由当前执行")
+                                    put("description", "委派助手 id（照抄环境信息「可协作助手」里的 id=...）；留空由当前助手执行")
                                 },
                             )
                         },
@@ -929,8 +1050,20 @@ class AgentStreamCoordinator(
                                             put(
                                                 "properties",
                                                 buildJsonObject {
-                                                    put("label", buildJsonObject { put("type", "string") })
-                                                    put("prompt", buildJsonObject { put("type", "string") })
+                                                    put(
+                                                        "label",
+                                                        buildJsonObject {
+                                                            put("type", "string")
+                                                            put("description", "按钮上展示的短选项文字")
+                                                        },
+                                                    )
+                                                    put(
+                                                        "prompt",
+                                                        buildJsonObject {
+                                                            put("type", "string")
+                                                            put("description", "用户点选后发出的完整指令；留空则发 label")
+                                                        },
+                                                    )
                                                 },
                                             )
                                             put("required", buildJsonArray { add(JsonPrimitive("label")) })
@@ -951,13 +1084,34 @@ class AgentStreamCoordinator(
                     put(
                         "properties",
                         buildJsonObject {
-                            put("title", buildJsonObject { put("type", "string") })
-                            put("goal", buildJsonObject { put("type", "string") })
+                            put(
+                                "title",
+                                buildJsonObject {
+                                    put("type", "string")
+                                    put("description", "自动化任务简短标题")
+                                },
+                            )
+                            put(
+                                "goal",
+                                buildJsonObject {
+                                    put("type", "string")
+                                    put("description", "每次触发时要执行的目标说明")
+                                },
+                            )
                             put(
                                 "trigger_type",
                                 buildJsonObject {
                                     put("type", "string")
-                                    put("description", "MANUAL / CRON / NOTIFICATION / CHANNEL")
+                                    put(
+                                        "enum",
+                                        buildJsonArray {
+                                            add(JsonPrimitive("MANUAL"))
+                                            add(JsonPrimitive("CRON"))
+                                            add(JsonPrimitive("NOTIFICATION"))
+                                            add(JsonPrimitive("CHANNEL"))
+                                        },
+                                    )
+                                    put("description", "触发类型：MANUAL/CRON/NOTIFICATION/CHANNEL")
                                 },
                             )
                             put(
@@ -967,7 +1121,13 @@ class AgentStreamCoordinator(
                                     put("description", "Cron（如 0 8 * * *）或触发关键词")
                                 },
                             )
-                            put("resource_scope", buildJsonObject { put("type", "string") })
+                            put(
+                                "resource_scope",
+                                buildJsonObject {
+                                    put("type", "string")
+                                    put("description", "允许改动的路径范围；只读留空")
+                                },
+                            )
                         },
                     )
                     put(

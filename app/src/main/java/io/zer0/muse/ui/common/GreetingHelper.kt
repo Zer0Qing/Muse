@@ -8,8 +8,24 @@ import java.time.LocalDate
 import java.time.LocalTime
 
 object GreetingHelper {
-    /** 首页问候区个性化提醒的单行字符预算。 */
+    /** 首页问候区个性化提醒的单行字符预算（CJK 文本）。 */
     internal const val PERSONALIZED_HINT_MAX_LENGTH = 18
+
+    /** 首页问候区个性化提醒的单行字符预算（拉丁/非 CJK 文本，对应约 8 词以内）。 */
+    internal const val PERSONALIZED_HINT_MAX_LENGTH_LATIN = 48
+
+    /** 按文本是否含 CJK 字符返回对应的单行个性化提醒上限。 */
+    internal fun personalizedHintMaxLengthFor(text: String): Int =
+        if (containsCjk(text)) PERSONALIZED_HINT_MAX_LENGTH else PERSONALIZED_HINT_MAX_LENGTH_LATIN
+
+    /** 文本是否包含中日韩表意/假名/谚文字符。 */
+    internal fun containsCjk(text: String): Boolean = text.any { ch ->
+        val code = ch.code
+        code in 0x4E00..0x9FFF ||
+            code in 0x3400..0x4DBF ||
+            code in 0x3040..0x30FF ||
+            code in 0xAC00..0xD7AF
+    }
 
     /** 首页问候区每日总结的单行字符预算。 */
     internal const val DAILY_SUMMARY_HINT_MAX_LENGTH = 24
@@ -287,7 +303,7 @@ object GreetingHelper {
         }
         return best?.second
             ?.replace("用户", "你")
-            ?.let { compactGreetingText(it, PERSONALIZED_HINT_MAX_LENGTH) }
+            ?.let { compactGreetingText(it, personalizedHintMaxLengthFor(it)) }
     }
 
     /**
@@ -305,14 +321,28 @@ object GreetingHelper {
             .replace(Regex("[（(]\\s*\\u65F6\\u95F4\\s*[:：][^）)]*[）)]"), " ")
             .replace(Regex("\\s+"), " ")
             .trim()
+        val isCjk = containsCjk(normalized)
+        val effectiveMaxChars = if (maxChars == PERSONALIZED_HINT_MAX_LENGTH && !isCjk) {
+            PERSONALIZED_HINT_MAX_LENGTH_LATIN
+        } else {
+            maxChars
+        }
         val compacted = normalized
-            .take(maxChars)
+            .take(effectiveMaxChars)
             .trimEnd(' ', ',', '，', '.', '。', ';', '；', ':', '：')
         if (compacted.isBlank()) return null
         // v1.0.92: 超长时用省略号显式收尾 — 旧实现直接硬切,用户反馈"老是显示不全";
-        // 保持总长≤maxChars(take(maxChars-1) + 省略号)。
-        return if (normalized.length > maxChars) {
-            compacted.take((maxChars - 1).coerceAtLeast(1)) + "…"
+        // 保持总长≤effectiveMaxChars(非 CJK 优先在词边界断开，避免截断英文单词)。
+        return if (normalized.length > effectiveMaxChars) {
+            val headLimit = (effectiveMaxChars - 1).coerceAtLeast(1)
+            val head = compacted.take(headLimit)
+            val wordBound = if (!isCjk) {
+                val space = head.lastIndexOf(' ')
+                if (space >= headLimit / 2) head.substring(0, space).trimEnd() else head.trimEnd()
+            } else {
+                head
+            }
+            wordBound + "…"
         } else {
             compacted
         }

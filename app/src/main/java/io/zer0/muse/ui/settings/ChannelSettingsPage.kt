@@ -62,9 +62,11 @@ import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.common.surface.CardGroup
+import io.zer0.muse.ui.common.surface.actionItem
 import io.zer0.muse.ui.qrcode.QrCodeGenerator
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.theme.MuseSpacing
 import io.zer0.muse.ui.theme.MuseShapes
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -124,28 +126,28 @@ fun ChannelSettingsScreen(onBack: () -> Unit, onOpenConversations: (String) -> U
                 text = stringResource(R.string.channel_intro),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp),
+                modifier = Modifier.padding(vertical = MuseSpacing.xs),
             )
         }
 
         // ── 渠道列表 ──
         channels.forEach { cfg ->
             item(key = cfg.id) {
-                CardGroup(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
-                    item {
-                        ChannelRow(
-                            config = cfg,
-                            onOpenChat = { onOpenConversations(cfg.id) },
-                            onToggle = { enabled ->
-                                scope.launch {
-                                    manager.upsert(cfg.copy(enabled = enabled))
-                                    restartReceiverFor(cfg.platform)
-                                }
-                            },
-                            onEdit = { editTarget = cfg },
-                            onDelete = { deleteTarget = cfg },
-                        )
-                    }
+                CardGroup(modifier = Modifier.padding(vertical = MuseSpacing.xs)) {
+            content(key = "channel_row") {
+                ChannelRow(
+                    config = cfg,
+                    onOpenChat = { onOpenConversations(cfg.id) },
+                    onToggle = { enabled ->
+                        scope.launch {
+                            manager.upsert(cfg.copy(enabled = enabled))
+                            restartReceiverFor(cfg.platform)
+                        }
+                    },
+                    onEdit = { editTarget = cfg },
+                    onDelete = { deleteTarget = cfg },
+                )
+            }
                 }
             }
         }
@@ -156,42 +158,19 @@ fun ChannelSettingsScreen(onBack: () -> Unit, onOpenConversations: (String) -> U
                     text = stringResource(R.string.channel_empty),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
+                    modifier = Modifier.padding(vertical = MusePaddings.cardGap),
                 )
             }
         }
 
         // ── 添加按钮（v2.0.1: 上移至「最近收到」之前） ──
         item(key = "add") {
-            Surface(
-                shape = MuseShapes.medium,
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp)
-                    .clickable { showAdd = true },
-            ) {
-                Row(
-                    modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(MusePaddings.cardInner),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Icon(
-                        imageVector = MuseIcons.plus,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(MuseIconSizes.iconSmall),
-                    )
-                    Text(
-                        text = stringResource(R.string.channel_add),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
+            CardGroup(modifier = Modifier.padding(vertical = MuseSpacing.xs)) {
+                actionItem(
+                    key = "channel_add",
+                    title = stringResource(R.string.channel_add),
+                    onClick = { showAdd = true },
+                )
             }
         }
 
@@ -202,13 +181,13 @@ fun ChannelSettingsScreen(onBack: () -> Unit, onOpenConversations: (String) -> U
                     text = stringResource(R.string.channel_inbox_title),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+                    modifier = Modifier.padding(vertical = MuseSpacing.sm),
                 )
             }
             inbox.take(5).forEach { msg ->
                 item(key = "inbox_${msg.timestamp}_${msg.platform}") {
-                    CardGroup(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
-                        item {
+                    CardGroup(modifier = Modifier.padding(vertical = MuseSpacing.xs)) {
+                        content(key = "inbox_${msg.timestamp}_${msg.platform}") {
                             // v2.0.1: 平台名本地化（历史数据存的是枚举名，如 WECLAW）。
                             val inboxPlatform =
                                 remember(msg.platform) {

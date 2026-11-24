@@ -36,6 +36,7 @@ object NoteThoughtTool {
                 "真正要紧的事才给 0.8 以上。",
             "within_hours" to "如果是 immediate 或 window，多少小时内说都算合适。默认 168（一周）。",
         ),
+        required = setOf("seed"),
         category = "built-in",
         riskLevel = ToolRiskLevel.NORMAL,
     )

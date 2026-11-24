@@ -3,7 +3,6 @@ package io.zer0.muse.ui.settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -21,7 +20,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.common.Logger
 import io.zer0.muse.R
@@ -31,14 +29,14 @@ import io.zer0.muse.crash.SubmitOutcome
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
-import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.icons.MuseIcons
-import io.zer0.muse.ui.common.settings.SectionLabel
-import io.zer0.muse.ui.common.settings.SettingsGroup
-import io.zer0.muse.ui.common.settings.SettingsGroupDivider
-import io.zer0.muse.ui.common.settings.SettingsSwitchRow
 import io.zer0.muse.ui.common.state.MuseSpinner
+import io.zer0.muse.ui.common.surface.CardGroup
+import io.zer0.muse.ui.common.surface.actionItem
+import io.zer0.muse.ui.common.surface.switchItem
+import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.theme.MuseSpacing
 import io.zer0.muse.ui.theme.titleSmallStrong
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
@@ -48,22 +46,12 @@ import org.koin.core.qualifier.named
 /**
  * 崩溃上报页 — 一个按钮，没有需要用户填的东西。
  *
- * ## 这一版改了什么
+ * 三件事：看有多少条待上报、点「立即上报」直接发到服务器、服务器不可达时自动改用邮件。
  *
- * 旧版让用户选「邮件 / Webhook」，再填收件邮箱或 Webhook URL。这是把开发者的基础设施
- * 配置推给了终端用户：他不知道该填谁，填错就静默失败，而设置页看上去像在要求他做技术决策。
- *
- * 现在只有三件事：
- *  1. 看有多少条待上报
- *  2. 点「立即上报」→ 直接发到开发者服务器（museai.ltd），一次点击完成
- *  3. 服务器不可达时自动改用邮件，收件人已经填好，用户只需在邮件应用里点发送
- *
- * ## 隐私边界（没有放宽）
- *
+ * 隐私边界：
  *  - 上报只发生在用户点按钮时，无任何后台静默上报
- *  - 崩溃堆栈先经 [MuseCrashHandler.redactSensitive] 脱敏（API key / Bearer token 替换为 ***）
+ *  - 崩溃堆栈先经 [MuseCrashHandler.redactSensitive] 脱敏
  *  - 只收集型号 / 品牌 / Android 版本 / ABI / App 版本 / 时间戳
- *  - 不收集 IMEI / Android ID / MAC / 位置 / 账号
  */
 @Composable
 fun CrashReportSettingsPage(onBack: () -> Unit) {
@@ -84,101 +72,106 @@ fun CrashReportSettingsPage(onBack: () -> Unit) {
     var reporting by remember { mutableStateOf(false) }
 
     SettingsSubPageScaffold(title = stringResource(R.string.settings_crash_page_title), onBack = onBack) {
-        // ── 1. 待上报崩溃 + 立即上报 ──
-        item { SectionLabel(stringResource(R.string.settings_crash_pending_section)) }
-        item {
-            SettingsGroup {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(MusePaddings.cardInner),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Icon(
-                        imageVector = MuseIcons.bug,
-                        contentDescription = null,
-                        tint = if (pendingCount > 0) {
-                            MaterialTheme.colorScheme.onSurface
-                        } else {
-                            MaterialTheme.colorScheme.outline
-                        },
-                        modifier = Modifier.size(20.dp),
-                    )
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = stringResource(R.string.settings_crash_pending_count, pendingCount),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                        Text(
-                            text = if (pendingCount > 0) {
-                                stringResource(R.string.settings_crash_pending_hint_active)
+        item(key = "crash_pending") {
+            CardGroup(title = { Text(stringResource(R.string.settings_crash_pending_section)) }) {
+                content(key = "crash_pending_count") {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(MusePaddings.cardInner),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(MuseSpacing.md),
+                    ) {
+                        Icon(
+                            imageVector = MuseIcons.bug,
+                            contentDescription = null,
+                            tint = if (pendingCount > 0) {
+                                MaterialTheme.colorScheme.onSurface
                             } else {
-                                stringResource(R.string.settings_crash_pending_hint_idle)
+                                MaterialTheme.colorScheme.onSurfaceVariant
                             },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
                         )
-                    }
-                    if (reporting) {
-                        MuseSpinner(size = 20.dp)
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = stringResource(R.string.settings_crash_pending_count, pendingCount),
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                            Text(
+                                text = if (pendingCount > 0) {
+                                    stringResource(R.string.settings_crash_pending_hint_active)
+                                } else {
+                                    stringResource(R.string.settings_crash_pending_hint_idle)
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        if (reporting) {
+                            MuseSpinner(size = MuseIconSizes.iconSmall)
+                        }
                     }
                 }
-                MuseCapsuleButton(
-                    text = stringResource(R.string.settings_crash_report_now_button),
-                    onClick = { showConfirm = true },
+                actionItem(
+                    key = "crash_report_now",
+                    title = stringResource(R.string.settings_crash_report_now_button),
+                    loading = reporting,
                     enabled = pendingCount > 0 && !reporting,
-                    leadingIcon = MuseIcons.cloudUpload,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    onClick = { showConfirm = true },
                 )
-                // 目的地是固定的，写在按钮下面一行就够，不是一个需要用户操作的控件。
-                Text(
-                    text = stringResource(R.string.settings_crash_target_hint),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
-                )
+                content(key = "crash_target_hint") {
+                    Text(
+                        text = stringResource(R.string.settings_crash_target_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(MusePaddings.cardInner),
+                    )
+                }
             }
         }
 
-        // ── 2. 设置(ANR 检测) ──
-        item { SectionLabel(stringResource(R.string.settings_crash_settings_section)) }
-        item {
-            SettingsGroup {
-                SettingsSwitchRow(
-                    icon = MuseIcons.bell,
+        item(key = "crash_settings") {
+            CardGroup(title = { Text(stringResource(R.string.settings_crash_settings_section)) }) {
+                switchItem(
+                    key = "crash_anr_detection",
                     title = stringResource(R.string.settings_crash_anr_title),
                     checked = anrDetection,
                     onCheckedChange = { v ->
                         scope.launch { settings.saveAnrDetection(v) }
                     },
+                    leadingContent = {
+                        Icon(
+                            imageVector = MuseIcons.bell,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
+                    },
                 )
             }
         }
 
-        // ── 3. 隐私说明 ──
-        item { SectionLabel(stringResource(R.string.settings_crash_privacy_section)) }
-        item {
-            SettingsGroup {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(MusePaddings.screen),
-                ) {
-                    Text(
-                        text = stringResource(R.string.settings_crash_privacy_title),
-                        style = MaterialTheme.typography.titleSmallStrong,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    Spacer(Modifier.size(8.dp))
-                    Text(
-                        text = stringResource(R.string.settings_crash_privacy_content),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+        item(key = "crash_privacy") {
+            CardGroup(title = { Text(stringResource(R.string.settings_crash_privacy_section)) }) {
+                content(key = "crash_privacy_body") {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(MusePaddings.cardInner),
+                        verticalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.settings_crash_privacy_title),
+                            style = MaterialTheme.typography.titleSmallStrong,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        Text(
+                            text = stringResource(R.string.settings_crash_privacy_content),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
         }

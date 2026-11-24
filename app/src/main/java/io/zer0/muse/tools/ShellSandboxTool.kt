@@ -9,10 +9,10 @@ import java.util.concurrent.atomic.AtomicReference
 import kotlin.concurrent.thread
 
 /**
- * v1.0.47 P2-6: 本地 Shell 沙箱工具(仅 Agent Mode 可用)。
+ * v1.0.47 P2-6: 本地 Shell 沙箱工具。
  *
  * Android 上无 root 的 Shell 能力有限,但可执行白名单内的只读/安全命令,
- * 让 AI 能查询设备状态(文件列表/磁盘/进程等),辅助 Agent Mode 自主决策。
+ * 让 AI 能查询应用沙盒内的文件/磁盘/环境状态。
  *
  * 安全设计:
  *  - 命令白名单:仅允许 ls/cat/grep/echo/wc/head/tail/find/file/stat/df/du/uname/whoami/date/pwd
@@ -20,7 +20,7 @@ import kotlin.concurrent.thread
  *  - 禁止 &、&&、||、; 命令分隔符(防止注入第二条命令)
  *  - 工作目录锁定到应用 filesDir(禁止 cd 到外部)
  *  - 超时 10s,长输出完整落盘并提供分页读取
- *  - 仅注册为 HIGH 风险等级,Agent Mode + 用户审批才能执行
+ *  - 注册为 HIGH 风险等级,按会话审批策略执行
  *
  * 注意:Android 上部分命令可能不可用(toybox 实现),执行失败时返回明确错误。
  */
@@ -55,7 +55,7 @@ object ShellSandboxTool {
         name = NAME,
         // v1.0.75 fix (工具审查 02): 补触发场景与返回格式
         // C-26: 示例改为沙箱内路径(/sdcard 等外部路径已被路径限制拦截)
-        description = "在应用沙箱内执行白名单 Shell 命令,用于查询设备状态(文件/磁盘/进程)后做决策(仅 Agent Mode)。" +
+        description = "在应用沙箱内执行白名单 Shell 命令,用于查询沙盒内文件与环境状态。" +
             "**只读、不改变设备状态**;要 tap/启动 App/改设置请用 device_shell(需 Shizuku 或 Root)。" +
             "允许的命令:ls/cat/grep/echo/wc/head/tail/find/file/stat/df/du/uname/whoami/date/pwd/tree。" +
             "工作目录为应用数据目录,路径参数仅允许应用数据目录内;禁止命令分隔符(&;|)和重定向(<>),超时 10 秒。" +

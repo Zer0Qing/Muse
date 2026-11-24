@@ -38,6 +38,7 @@ import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.theme.MuseSpacing
 import io.zer0.muse.ui.theme.MuseShapes
 import kotlinx.coroutines.launch
 
@@ -82,13 +83,13 @@ fun ConnectorSettingsPage(onBack: () -> Unit) {
                     text = stringResource(R.string.connector_config_corrupt),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
+                    modifier = Modifier.padding(vertical = MusePaddings.cardGap),
                 )
             }
         }
         connectors.forEach { cfg ->
             item(key = cfg.id) {
-                CardGroup(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+                CardGroup(modifier = Modifier.padding(vertical = MuseSpacing.xs)) {
                     item {
                         ConnectorRow(
                             config = cfg,
@@ -142,7 +143,7 @@ fun ConnectorSettingsPage(onBack: () -> Unit) {
                     text = stringResource(R.string.connector_empty),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
+                    modifier = Modifier.padding(vertical = MusePaddings.cardGap),
                 )
             }
         }

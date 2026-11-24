@@ -8,8 +8,8 @@ import io.zer0.muse.ui.chat.parseShowCardArgs
  *
  * ## 卡片身份归属
  *
- * 工具不产生、也不返回卡片的身份标识。卡片的身份是**承载它的那条消息的 id**，
- * 只有渲染层知道。卡片脚本通过 `window.muse.cardId` 读到它。
+ * 工具不自造一次性 id。卡片的身份是**承载它的那条消息的 id**，由宿主在调用时注入，
+ * 并在执行回执中作为 `card_id` 返回给模型；卡片脚本通过只读的 `window.muse.cardId` 读取。
  *
  * 这里曾有过一个自己生成的一次性 id（`c_<ts>_<seq>`）并把它当作数据绑定的 key，
  * 结果是两端各存一个 id：卡片按消息 id 去查、工具按 `c_xxx` 去写，
@@ -31,16 +31,32 @@ object ShowCardTool {
 
     fun toolDef() = ToolRegistry.ToolDef(
         name = "show_card",
-        description = "展示可视化内容(SVG 图形、图表或交互式 HTML),在沙箱 WebView 里内联渲染成可交互卡片。" +
-            "适用于流程图、仪表盘、数据表、时间线,或任何需要空间布局的内容。" +
-            "不要包含 DOCTYPE、<html>、<head>、<body> 标签,只给内容片段。" +
-            "卡片通过 window.muse.cardId 读取自身身份;本工具不返回 id。",
+        description = "展示可视化/交互式 HTML 或 SVG 卡片，在沙箱 WebView 内联渲染（适用于对比、图表、仪表盘、流程图、参数调节工具）。" +
+            "【片段约束】只给内容片段，禁止 DOCTYPE/<html>/<head>/<body>、禁止外链资源、禁止只有 <style> 没有内容结构；" +
+            "竖屏窄屏优先（flex/grid/百分比，触控热区≥44px），右上角 100×40 留空给宿主控件。" +
+            "【样式词汇（宿主已注入，直接用类名与变量，勿写字面色或整段自定义 CSS）】" +
+            "外框 <div class=\"m-shell\">；布局 .m-stack/.m-split/.m-flow/.m-panel/.m-section/.m-footer；" +
+            "文字 .m-eyebrow/.m-title/.m-lead/.m-heading/.m-copy/.m-caption/.m-label；" +
+            "数据 .m-metrics>.m-metric>(.m-metric-value+.m-metric-label)、.m-table-region>.m-table、.m-kv；" +
+            "点缀 .m-badge(.m-badge--good/--warn/--danger)/.m-highlight/.m-disclosure；" +
+            "控件 .m-button(.m-button--quiet)/.m-input/.m-textarea/.m-field/.m-check/.m-range/.m-select/.m-tabs>.m-tab；" +
+            "媒体 .m-banner/.m-media-frame。" +
+            "CSS 变量：--muse-fg/--muted/--faint、--muse-surface/-2/-3、--muse-border/--card-line-soft、" +
+            "--muse-accent/--accent-soft、--muse-good/--warn/--danger、--muse-d1..--muse-d6、--muse-s1..--muse-s6、--muse-radius-sm/-lg。" +
+            "【图表】勿手画 SVG 数据图，用 var c = window.MuseCharts.render(el, {kind:'line'|'area'|'column'|'stacked'|'bar'|'pie'|'donut', labels:[...], series:[{id,label,values}], unit})（最多 6 系列，勿用 NaN，重绘前调 c.destroy()）。" +
+            "【交互与脚本】优先声明式 data-m-invoke=\"文字\"（可配 data-m-state='{\"k\":v}'）；" +
+            "复杂逻辑写在 <script> 中用 addEventListener 绑定，禁止内联 JS 事件属性（如 onclick=\"...\"）。" +
+            "渲染可提交控件前先调 var cap = window.muse.capabilities()，仅 cap.emit==='available' 时启用提交，否则降级静态展示。" +
+            "必须由用户点击触发 window.muse.send(summary, state)（严禁自动发送），状态会以 <card_state> 附在用户消息后返回。" +
+            "【身份与数据更新】卡片内通过只读 window.muse.cardId 读自身身份、window.muse.getData()/getJSON() 读绑定数据，" +
+            "需动态刷新时注册 window.muse.data.onChange(fn)。成功时返回绑定消息的 card_id，后续可用 update_card_data(card_id, data_json) 更新（更新当前消息上的卡片可省略 card_id）。" +
+            "【高度契约】简单内容用 height=\"auto\"（默认）；多行看板/表格传固定 dp 如 \"520\"（并给根容器 max-height:100%;overflow:auto）；固定比例传 \"16:9\"（不写 px）。",
         parameters = mapOf(
             "title" to "Required. Short snake_case identifier (e.g. 'q4_revenue_chart').",
-            "code" to "Required. HTML or SVG fragment. Use CSS variables for theming.",
-            "data" to "Optional. JSON bound to this card; the card reads it via window.muse.getData().",
+            "code" to "Required. HTML or SVG fragment rooted in <div class=\"m-shell\"> using host .m-* classes and --muse-* CSS variables; no inline JS handlers (onclick etc.).",
+            "data" to "Optional. JSON bound to this card; read via window.muse.getData() / window.muse.getJSON().",
             "height" to "Optional. Card height: \"auto\" (fit content, default), " +
-                "\"520\" or \"520dp\" (fixed, content scrolls inside), or \"16:9\" (aspect ratio). " +
+                "\"520\" or \"520dp\" (fixed dp, content scrolls inside), or \"16:9\" (aspect ratio). " +
                 "Prefer giving an explicit size for dashboards and multi-row layouts — " +
                 "content-fit measurement underestimates async content.",
         ),

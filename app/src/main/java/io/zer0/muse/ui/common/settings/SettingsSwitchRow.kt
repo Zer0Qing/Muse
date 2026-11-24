@@ -21,15 +21,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.form.MuseSwitch
+import io.zer0.muse.ui.theme.MuseAlpha
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMotion
@@ -47,9 +46,9 @@ import io.zer0.muse.ui.theme.MusePaddings
  * @param subtitle 副标题(null 则不显示)
  * @param checked 开关状态
  * @param onCheckedChange 开关切换回调
- * @param contentPadding 行内容内边距。默认 [MusePaddings.cardInner],与
- *   [SettingsGroup] / [SettingsItemRow] 内的行对齐;全宽表单(自身已加
- *   `MusePaddings.screen` 水平边距、与 `MuseTextField` 同列)传 `PaddingValues(0.dp)`,
+ * @param contentPadding 行内容内边距。默认 [MusePaddings.cardInner]，与
+ *   [io.zer0.muse.ui.common.surface.CardGroup] / [io.zer0.muse.ui.common.surface.MuseListItem] 内的行对齐；全宽表单(自身已加
+ *   `MusePaddings.screen` 水平边距、与 `MuseTextField` 同列)传 `PaddingValues(0.dp)`，
  *   避免二次缩进。
  */
 @Composable
@@ -68,8 +67,7 @@ fun SettingsSwitchRow(
     val rowInteractionSource = remember { MutableInteractionSource() }
     val isRowPressed by rowInteractionSource.collectIsPressedAsState()
     val colorScheme = MaterialTheme.colorScheme
-    val isLight = colorScheme.surface.luminance() > 0.5f
-    val pressColor = if (isLight) Color.Black.copy(alpha = 0.06f) else Color.White.copy(alpha = 0.08f)
+    val pressColor = colorScheme.onSurface.copy(alpha = MuseAlpha.rowPressed)
     val rowBgColor by animateColorAsState(
         targetValue = if (isRowPressed) pressColor else Color.Transparent,
         animationSpec = MuseMotion.tween(MuseAnimation.NORMAL_MS, easing = MuseAnimation.EaseOutCubic),
@@ -102,8 +100,8 @@ fun SettingsSwitchRow(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (enabled) 1f else 0.38f),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (enabled) 1f else MuseAlpha.disabledContent),
                 // LAYOUT-01: 标题限行。仅 weight 取宽不够 —— 剩余宽度极小时仍会逐字换行撑高整行，
                 // 由外层卡片裁掉(线上事故形态)。限 1 行 + 省略号是最后一道兜底。
                 maxLines = 1,

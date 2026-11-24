@@ -215,13 +215,13 @@ internal fun IntensityRow(current: ProactiveIntensity, onSelect: (ProactiveInten
             .fillMaxWidth()
             .height(56.dp),
     ) {
-        // 轨道底：一整条 surfaceVariant
+        // 轨道底：一整条 surfaceVariant（先偏移位置再设高度，避免 padding 吃掉 6dp 轨道高度）
         Box(
             modifier = Modifier
-                .align(Alignment.CenterStart)
+                .align(Alignment.TopStart)
+                .padding(top = 12.dp)
                 .fillMaxWidth()
                 .height(6.dp)
-                .padding(top = 12.dp)
                 .background(
                     MaterialTheme.colorScheme.surfaceVariant,
                     RoundedCornerShape(3.dp),
@@ -230,10 +230,10 @@ internal fun IntensityRow(current: ProactiveIntensity, onSelect: (ProactiveInten
         // 已填充段：primary，长度由纯函数算出（可测）
         Box(
             modifier = Modifier
-                .align(Alignment.CenterStart)
+                .align(Alignment.TopStart)
+                .padding(top = 12.dp)
                 .fillMaxWidth(intensityFillFraction(selectedIndex, levels.size))
                 .height(6.dp)
-                .padding(top = 12.dp)
                 .background(
                     MaterialTheme.colorScheme.primary,
                     RoundedCornerShape(3.dp),

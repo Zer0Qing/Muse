@@ -564,4 +564,8 @@
     <string name="chat_hold_to_record_hint">長押しで話し、離すと終了します</string>
     <string name="chat_input_action_fullscreen_subtitle">全画面入力</string>
     <string name="chat_camera_unavailable_hint">カメラを開けません。端末のカメラまたは権限設定を確認してください。</string>
+    <string name="chat_thinking_active">思考中</string>
+    <string name="chat_thinking_active_topic">思考中 · %1$s</string>
+    <string name="chat_thinking_done_duration">%1$d 秒間思考</string>
+    <string name="chat_thinking_done">思考プロセス</string>
 </resources>

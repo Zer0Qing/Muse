@@ -561,6 +561,7 @@
     <string name="permission_level_shizuku">Shizuku 承認済み（UI + シェルコマンドを利用可能）</string>
     <string name="permission_wizard_desc">Muse の UI 自動化は3チャネルの権限モデルを使用します。下の各項目を有効にしてください。レベルが高いほど、より多くの操作が利用できます。UI操作はアクセシビリティのみ、シェルコマンドは Shizuku または Root が必要です。</string>
     <string name="permission_wizard_title">権限ウィザード</string>
+    <string name="permission_refresh">更新</string>
     <string name="root_section_title">Root 権限</string>
     <string name="root_status_available">Root 承認済み（フォールバックチャネル。su コマンドを直接実行可能）</string>
     <string name="root_status_unavailable">Root 非取得または未承認（Shizuku 利用不可時のフォールバック）</string>

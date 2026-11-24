@@ -726,22 +726,26 @@ fun ChatScreen(
             covered - inlineDeliverableMessageIds(visibleMessages)
         }
     }
-    val groupedRuns by remember(visibleMessages, state.taskCards, showToolCallDetails) {
+    val groupedRuns by remember(visibleMessages, state.taskCards, showToolCallDetails, isStreaming, state.chatPreferences.showReasoning) {
         derivedStateOf {
             if (!showToolCallDetails) return@derivedStateOf emptyMap()
+            val liveStreamingLastId = if (isStreaming) visibleMessages.lastOrNull()?.id else null
             // 过程消息 = 没有最终正文、且带工具或思考内容的助手侧消息。
             //
             // v2.6.8: 交付物(show_card)永不入组 —— 组卡默认折叠，
             // 把卡片收进去等于又让它藏起来，与“不展开就能看到”相反。
+            // 正在流式思考中的最新纯思考助手消息保留在 MessageBubble 内，避免正文首字到达时
+            // 从 ToolRunCard 切到 MessageBubble 导致卡片闪跳与计时归零。
             io.zer0.muse.ui.chat.ChatDisplayGrouper.group(
                 messages = visibleMessages,
                 isGroupable = { msg ->
                     !isInlineDeliverableTool(msg.toolCallInfo?.toolName) &&
+                        !(liveStreamingLastId != null && msg.id == liveStreamingLastId && msg.toolCallInfo == null) &&
                         // 「纯过程」= 没有最终正文。用净化后的可见文本判断，与渲染口径一致。
                         io.zer0.muse.transformer.InternalMarkupSanitizer
                             .displayContent(msg.content)
                             .isBlank() &&
-                        (msg.toolCallInfo != null || !msg.reasoning.isNullOrBlank())
+                        (msg.toolCallInfo != null || (state.chatPreferences.showReasoning && !msg.reasoning.isNullOrBlank()))
                 },
                 // 挂任务卡的那条消息：不进组（任务卡要自己渲染），也不截断分组。
                 // 否则一轮回复会被劈成「思考 / 工具 / 执行计划」几块卡。
@@ -1382,12 +1386,23 @@ fun ChatScreen(
     // 的渲染递归,导致 RenderThread 栈溢出(SIGSEGV,不报 Java 崩溃)。
     val glassConfig = io.zer0.muse.ui.theme.LocalLiquidGlass.current
     val realGlassAvailable = io.zer0.muse.ui.theme.isRealGlassSupported()
-    val glassActive = glassConfig.enabled && realGlassAvailable
+    val glassActive = glassConfig.enabled &&
+        realGlassAvailable &&
+        !io.zer0.muse.ui.theme.LocalInsideBackdropRecorder.current
     // 本页专属 backdrop 层:只采样本页背景图/渐变,使顶栏岛/输入岛的玻璃有真实质感。
+    // 按当前风格只创建实际生效的那一套，避免同时录制双份全屏离屏 GraphicsLayer。
     val pageLayerBackdrop =
-        if (glassActive) com.kyant.backdrop.backdrops.rememberLayerBackdrop() else null
+        if (glassActive && glassConfig.style == io.zer0.muse.ui.theme.GlassStyle.FROST) {
+            com.kyant.backdrop.backdrops.rememberLayerBackdrop()
+        } else {
+            null
+        }
     val pageWaterState =
-        if (glassActive) io.github.fletchmckee.liquid.rememberLiquidState() else null
+        if (glassActive && glassConfig.style == io.zer0.muse.ui.theme.GlassStyle.WATER) {
+            io.github.fletchmckee.liquid.rememberLiquidState()
+        } else {
+            null
+        }
     // v2.6: 玻璃透出的背景是否偏暗 —— 用于让岛内内容色自适应(深背景→浅字)。
     // 有背景图时无法廉价获知图片亮度,保守按暗处理(深色壁纸更常见);
     // 无背景图时按渐变的两端色亮度判断。
@@ -2134,9 +2149,10 @@ fun ChatScreen(
                                                     // 起不来时给出原因，而不是让界面假装在录。
                                                     val ok = viewModel.startStreamingAsr()
                                                     if (!ok) {
-                                                        MuseToast.show(
-                                                            context.getString(R.string.asr_missing_api_key_error),
-                                                        )
+                                                        val err = viewModel.state.value.asrState.errorMessage
+                                                            ?.takeIf { it.isNotBlank() }
+                                                            ?: context.getString(R.string.asr_missing_api_key_error)
+                                                        MuseToast.show(err)
                                                     }
                                                     ok
                                                 } else {
@@ -2939,6 +2955,17 @@ fun ChatScreen(
                                                     // v1.0.20 (Task 3): isStreaming 读派生值,避免每条消息因 input 按键重组
                                                     isStreaming = isStreaming,
                                                     isLastAssistant = isLast && msg.role == MessageRole.ASSISTANT,
+                                                    isThinkingActive = isLast && msg.role == MessageRole.ASSISTANT && state.streamState.isThinkingActive,
+                                                    reasoningStartedAtMs = if (isLast && msg.role == MessageRole.ASSISTANT) {
+                                                        state.streamState.reasoningStartedAtMs
+                                                    } else {
+                                                        null
+                                                    },
+                                                    liveReasoningDurationMs = if (isLast && msg.role == MessageRole.ASSISTANT) {
+                                                        state.streamState.reasoningDurationMs
+                                                    } else {
+                                                        null
+                                                    },
                                                     // v2.x: 从搜索结果跳转时,state.highlightedMessageId 命中本消息 →
                                                     // 传 searchHighlightQuery 让 MessageBubble 高亮匹配文本;否则 null
                                                     highlightText =

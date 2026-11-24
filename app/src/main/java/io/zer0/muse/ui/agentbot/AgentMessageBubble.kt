@@ -113,7 +113,26 @@ fun AgentMessageBubble(
     var reasoningExpanded by rememberSaveable(message.messageId) {
         mutableStateOf(chatPreferences.reasoningExpandedByDefault)
     }
-    val inlineLinks = remember(message.text) { extractInlineSourceLinks(message.text) }
+    var moodExpanded by rememberSaveable(message.messageId) {
+        mutableStateOf(chatPreferences.moodExpandedByDefault)
+    }
+    val visibleMood = remember(message.mood, message.text, message.reasoning, isUser) {
+        if (isUser) {
+            null
+        } else {
+            message.mood.takeIf { it.isNotBlank() }
+                ?: io.zer0.muse.transformer.InternalMarkupSanitizer.extractMood(message.text)
+                ?: io.zer0.muse.transformer.InternalMarkupSanitizer.extractMood(message.reasoning)
+        }
+    }
+    val displayText = remember(message.text, isUser) {
+        if (isUser) {
+            message.text
+        } else {
+            io.zer0.muse.transformer.InternalMarkupSanitizer.displayContent(message.text)
+        }
+    }
+    val inlineLinks = remember(displayText) { extractInlineSourceLinks(displayText) }
     val bubbleRadius = chatPreferences.bubbleRadius.coerceIn(0, 28).toFloat()
     val bubbleShape = if (isUser) {
         MuseBubbleStyles.userBubbleShape(bubbleRadius)
@@ -158,14 +177,31 @@ fun AgentMessageBubble(
         menuExpanded = true
     }
 
-    Row(
+    Column(
         modifier = modifier
             .fillMaxWidth()
             .padding(
                 bottom = if (reactions.isNotEmpty()) MusePaddings.auxGap else MusePaddings.tinyGap,
             ),
-        horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start,
+        horizontalAlignment = if (isUser) Alignment.End else Alignment.Start,
+        verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
     ) {
+        if (!isUser && chatPreferences.showMoodBlock && !visibleMood.isNullOrBlank()) {
+            io.zer0.muse.ui.common.chat.MuseMoodCard(
+                mood = visibleMood,
+                expanded = moodExpanded,
+                onToggle = { moodExpanded = !moodExpanded },
+                modifier = if (chatPreferences.bubbleFullWidth) {
+                    Modifier.fillMaxWidth()
+                } else {
+                    Modifier.widthIn(max = MuseBubbleStyles.maxBubbleWidth())
+                },
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start,
+        ) {
         Box {
             Box(
                 modifier = if (chatPreferences.bubbleFullWidth && !isUser) {
@@ -206,39 +242,16 @@ fun AgentMessageBubble(
                         verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
                     ) {
                         if (!isUser && chatPreferences.showReasoning && message.reasoning.isNotBlank()) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { reasoningExpanded = !reasoningExpanded },
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
-                            ) {
-                                Icon(
-                                    imageVector = MuseIcons.sparkle,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(MuseIconSizes.iconTiny),
-                                )
-                                Text(
-                                    text = stringResource(R.string.agent_hub_thinking),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.weight(1f),
-                                )
-                                Icon(
-                                    imageVector = if (reasoningExpanded) MuseIcons.chevronUp else MuseIcons.chevronDown,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(MuseIconSizes.iconTiny),
-                                )
-                            }
-                            if (reasoningExpanded) {
-                                Text(
-                                    text = message.reasoning,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
+                            io.zer0.muse.ui.common.chat.MuseThinkingPanel(
+                                reasoning = message.reasoning,
+                                expanded = reasoningExpanded,
+                                onToggle = { reasoningExpanded = !reasoningExpanded },
+                                isThinkingActive = false,
+                                reasoningDurationMs = message.reasoningDurationMs,
+                                cacheKey = message.messageId,
+                                onLongPressOutside = { openMenu() },
+                                modifier = Modifier.fillMaxWidth(),
+                            )
                         }
                         val imageModels = message.imageUrls + message.imageBase64List.map {
                             "data:image/jpeg;base64,$it"
@@ -265,9 +278,9 @@ fun AgentMessageBubble(
                                 }
                             }
                         }
-                        if (message.text.isNotBlank()) {
+                        if (displayText.isNotBlank()) {
                             MarkdownText(
-                                text = message.text,
+                                text = displayText,
                                 style = bodyStyle,
                                 color = contentColor,
                                 citationUrls = message.citationUrls,
@@ -515,7 +528,7 @@ fun AgentMessageBubble(
                             menuExpanded = false
                             val sendIntent = Intent(Intent.ACTION_SEND).apply {
                                 type = "text/plain"
-                                putExtra(Intent.EXTRA_TEXT, message.text)
+                                putExtra(Intent.EXTRA_TEXT, displayText)
                             }
                             runCatching {
                                 ShareIntentHelper.startChooserSafely(context, sendIntent)
@@ -563,6 +576,7 @@ fun AgentMessageBubble(
                 )
             }
         }
+        }
     }
 
     if (showSelectTextDialog) {
@@ -572,7 +586,7 @@ fun AgentMessageBubble(
             content = {
                 SelectionContainer {
                     Text(
-                        text = message.text,
+                        text = displayText,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.fillMaxWidth(),
@@ -671,11 +685,27 @@ fun AgentStreamingBubble(
     chatPreferences: ChatPreferences = ChatPreferences(),
 ) {
     if (!streaming.active) return
-    var reasoningExpanded by rememberSaveable {
+    var reasoningExpanded by rememberSaveable(streaming.reasoningStartedAtMs) {
         mutableStateOf(chatPreferences.reasoningExpandedByDefault)
     }
     val bubbleRadius = chatPreferences.bubbleRadius.coerceIn(0, 28).toFloat()
     val bubbleShape = MuseBubbleStyles.assistantBubbleShape(bubbleRadius)
+    val glassConfig = LocalLiquidGlass.current
+    val useFakeGlass = glassConfig.enabled
+    val monoFlatGlass = useFakeGlass && MuseBubbleStyles.isMonoBubbleTheme()
+    val baseSurfaceColor = MuseBubbleStyles.assistantSurfaceColor()
+    val glassBubbleModifier = when {
+        !useFakeGlass -> Modifier
+        monoFlatGlass -> Modifier
+            .clip(bubbleShape)
+            .glassEdgeHighlight(bubbleShape, glassConfig)
+            .glassBorder(bubbleShape, glassConfig)
+        else -> Modifier
+            .clip(bubbleShape)
+            .background(glassFakeSurfaceColor(baseSurfaceColor, glassConfig))
+            .glassEdgeHighlight(bubbleShape, glassConfig)
+            .glassBorder(bubbleShape, glassConfig)
+    }
     val bodyScale = chatPreferences.messageFontScale.coerceIn(0.85f, 1.3f)
     val baseBodyStyle = MaterialTheme.typography.bodyMedium
     val bodyStyle = remember(baseBodyStyle, bodyScale, chatPreferences.messageLetterSpacingEm) {
@@ -686,71 +716,69 @@ fun AgentStreamingBubble(
         )
     }
 
-    Row(
+    Column(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Start,
+        horizontalAlignment = Alignment.Start,
+        verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
     ) {
+        if (chatPreferences.showMoodBlock && streaming.mood.isNotBlank()) {
+            io.zer0.muse.ui.common.chat.MuseMoodCard(
+                mood = streaming.mood,
+                expanded = false,
+                onToggle = {},
+                isStreaming = true,
+                modifier = if (chatPreferences.bubbleFullWidth) {
+                    Modifier.fillMaxWidth()
+                } else {
+                    Modifier.widthIn(max = MuseBubbleStyles.maxBubbleWidth())
+                },
+            )
+        }
         Surface(
-            color = MuseBubbleStyles.assistantSurfaceColor(),
+            color = if (useFakeGlass && !monoFlatGlass) Color.Transparent else baseSurfaceColor,
             contentColor = MaterialTheme.colorScheme.onSurface,
             shape = bubbleShape,
-            border = BorderStroke(
-                width = MuseBorderWidth.hairline,
-                color = MuseBubbleStyles.assistantBorderColor(),
-            ),
-            modifier = if (chatPreferences.bubbleFullWidth) {
-                Modifier.fillMaxWidth()
+            border = if (useFakeGlass) {
+                null
             } else {
-                Modifier.widthIn(max = MuseBubbleStyles.maxBubbleWidth())
+                BorderStroke(
+                    width = MuseBorderWidth.hairline,
+                    color = MuseBubbleStyles.assistantBorderColor(),
+                )
             },
+            modifier = (
+                if (chatPreferences.bubbleFullWidth) {
+                    Modifier.fillMaxWidth()
+                } else {
+                    Modifier.widthIn(max = MuseBubbleStyles.maxBubbleWidth())
+                }
+                ).then(glassBubbleModifier),
         ) {
             Column(
                 modifier = Modifier.padding(MusePaddings.bubbleInner),
                 verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
             ) {
                 if (chatPreferences.showReasoning && streaming.reasoning.isNotBlank()) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { reasoningExpanded = !reasoningExpanded },
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
-                    ) {
-                        Icon(
-                            imageVector = MuseIcons.sparkle,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(MuseIconSizes.iconTiny),
-                        )
-                        Text(
-                            text = stringResource(R.string.agent_hub_thinking),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.weight(1f),
-                        )
-                        Icon(
-                            imageVector = if (reasoningExpanded) MuseIcons.chevronUp else MuseIcons.chevronDown,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(MuseIconSizes.iconTiny),
-                        )
-                    }
-                    if (reasoningExpanded) {
-                        Text(
-                            text = streaming.reasoning,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
+                    io.zer0.muse.ui.common.chat.MuseThinkingPanel(
+                        reasoning = streaming.reasoning,
+                        expanded = reasoningExpanded,
+                        onToggle = { reasoningExpanded = !reasoningExpanded },
+                        isThinkingActive = streaming.isThinkingActive || streaming.text.isBlank(),
+                        reasoningStartedAtMs = streaming.reasoningStartedAtMs,
+                        reasoningDurationMs = streaming.reasoningDurationMs,
+                        cacheKey = "agent-stream-${streaming.reasoningStartedAtMs ?: 0L}",
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
                 if (streaming.text.isNotBlank()) {
                     MarkdownText(
                         text = streaming.text,
                         style = bodyStyle,
                         color = MaterialTheme.colorScheme.onSurface,
+                        isStreaming = true,
                         citationUrls = streaming.citationUrls,
                     )
-                } else {
+                } else if (!chatPreferences.showReasoning || streaming.reasoning.isBlank()) {
                     Text(
                         text = "…",
                         style = bodyStyle,

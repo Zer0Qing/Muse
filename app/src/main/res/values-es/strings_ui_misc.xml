@@ -240,4 +240,8 @@ Toca actualizar para obtener la lista</string>
     <string name="agent_bot_result_empty">Hecho</string>
     <string name="agent_bot_prompt_verify_result">Comprueba si el resultado es correcto</string>
     <string name="agent_bot_notification_title">Tu tarea tiene un resultado</string>
+    <string name="time_picker_hour">Hora</string>
+    <string name="time_picker_minute">Minuto</string>
+    <string name="time_picker_increase">Aumentar</string>
+    <string name="time_picker_decrease">Disminuir</string>
 </resources>

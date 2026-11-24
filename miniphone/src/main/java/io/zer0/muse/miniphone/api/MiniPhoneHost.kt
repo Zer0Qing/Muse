@@ -108,6 +108,15 @@ interface MiniPhoneHost {
      */
     fun respond(characterId: String, history: List<MpChatTurn>): Flow<MpReplyEvent>
 
+    /**
+     * 带通话场景标记的回复入口。
+     *
+     * 默认直接委托给双参 [respond]，不破坏既有实现与测试替身；
+     * 宿主实现可覆写以在实时通话场景附加口语短句、优先语音段、禁用 Markdown 等约束。
+     */
+    fun respond(characterId: String, history: List<MpChatTurn>, isVoiceCall: Boolean): Flow<MpReplyEvent> =
+        respond(characterId, history)
+
     /** 让某个角色发一条动态;失败返回 null。 */
     suspend fun composeMoment(characterId: String, hint: String?): String?
 

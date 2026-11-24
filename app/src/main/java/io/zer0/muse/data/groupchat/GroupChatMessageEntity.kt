@@ -52,6 +52,8 @@ data class GroupChatMessageEntity(
     @ColumnInfo(defaultValue = "0") val timestamp: Long = System.currentTimeMillis(),
     val mood: String? = null,
     val reasoning: String? = null,
+    /** 思考阶段耗时（毫秒），旧数据兼容默认 NULL。 */
+    @ColumnInfo(defaultValue = "NULL") val reasoningDurationMs: Long? = null,
     // ── v2.x 群聊增强功能 ──
     /**
      * 悄悄话目标 AI id(null = 公开消息;非 null = 仅目标 AI 可见的私信)。

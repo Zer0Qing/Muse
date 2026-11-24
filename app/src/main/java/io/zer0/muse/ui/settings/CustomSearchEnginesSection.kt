@@ -1,14 +1,14 @@
 package io.zer0.muse.ui.settings
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -20,18 +20,23 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.form.MuseAnchoredMenu
+import io.zer0.muse.ui.common.form.MuseChip
+import io.zer0.muse.ui.common.form.MuseSecretTextField
+import io.zer0.muse.ui.common.form.MuseSwitch
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
-import io.zer0.muse.ui.common.settings.SectionLabel
-import io.zer0.muse.ui.common.settings.SettingsGroup
-import io.zer0.muse.ui.common.settings.SettingsGroupDivider
-import io.zer0.muse.ui.common.settings.SettingsItemRow
+import io.zer0.muse.ui.common.surface.CardGroup
+import io.zer0.muse.ui.common.surface.MuseListItem
+import io.zer0.muse.ui.common.surface.actionItem
+import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.theme.MuseSpacing
 import io.zer0.muse.web.CustomSearchEngine
 import io.zer0.muse.web.WebSearchConfig
 import kotlinx.coroutines.launch
@@ -47,50 +52,57 @@ internal fun CustomSearchEnginesSection(webSearchConfig: WebSearchConfig, settin
     val scope = rememberCoroutineScope()
     val savedMessage = stringResource(R.string.search_custom_engine_saved)
     var editing by remember { mutableStateOf<CustomSearchEngine?>(null) }
+    var deleting by remember { mutableStateOf<CustomSearchEngine?>(null) }
     val engines = webSearchConfig.customEngines
 
-    SectionLabel(
-        stringResource(R.string.search_custom_engines_section),
-        modifier = Modifier.padding(top = MusePaddings.cardGap),
-    )
-    Column(modifier = Modifier.padding(horizontal = MusePaddings.screen, vertical = 4.dp)) {
-        Text(
-            text = stringResource(R.string.search_custom_engines_hint),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+    fun persist(next: List<CustomSearchEngine>) {
+        scope.launch {
+            settings.saveWebSearchConfig(webSearchConfig.copy(customEngines = next))
+        }
     }
 
-    SettingsGroup(modifier = Modifier.padding(top = 8.dp)) {
-        if (engines.isEmpty()) {
-            SettingsItemRow(
-                icon = MuseIcons.search,
-                title = stringResource(R.string.search_custom_engine_empty),
-                onClick = { editing = newEngine() },
-            )
-        } else {
-            engines.forEachIndexed { index, engine ->
-                if (index > 0) SettingsGroupDivider()
+    CardGroup(
+        title = { Text(stringResource(R.string.search_custom_engines_section)) },
+        modifier = Modifier.padding(top = MusePaddings.cardGap),
+    ) {
+        item(
+            key = "custom_engine_hint",
+            headlineContent = {
+                Text(
+                    text = stringResource(R.string.search_custom_engines_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            },
+        )
+        engines.forEach { engine ->
+            content(key = "engine_${engine.id}") {
                 CustomEngineRow(
                     engine = engine,
                     enabled = engine.enabled,
                     onToggle = { enabled ->
-                        val updated =
-                            engines.toMutableList().also {
-                                it[index] = engine.copy(enabled = enabled)
-                            }
-                        scope.launch {
-                            settings.saveWebSearchConfig(webSearchConfig.copy(customEngines = updated))
-                        }
+                        persist(
+                            engines.map { if (it.id == engine.id) it.copy(enabled = enabled) else it },
+                        )
                     },
+                    onEdit = { editing = engine },
+                    onDelete = { deleting = engine },
                 )
             }
         }
-    }
-
-    SettingsGroup(modifier = Modifier.padding(top = 8.dp)) {
-        SettingsItemRow(
-            icon = MuseIcons.plus,
+        if (engines.isEmpty()) {
+            item(
+                key = "custom_engine_empty",
+                headlineContent = {
+                    Text(
+                        text = stringResource(R.string.search_custom_engine_empty),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                },
+            )
+        }
+        actionItem(
+            key = "custom_engine_add",
             title = stringResource(R.string.search_custom_engine_add),
             onClick = { editing = newEngine() },
         )
@@ -106,14 +118,32 @@ internal fun CustomSearchEnginesSection(webSearchConfig: WebSearchConfig, settin
                         val at = list.indexOfFirst { it.id == saved.id }
                         if (at >= 0) list[at] = saved else list.add(saved)
                     }
-                scope.launch {
-                    settings.saveWebSearchConfig(webSearchConfig.copy(customEngines = updated))
-                    MuseToast.show(
-                        savedMessage,
-                    )
-                }
+                persist(updated)
+                scope.launch { MuseToast.show(savedMessage) }
                 editing = null
             },
+        )
+    }
+
+    deleting?.let { target ->
+        MuseDialog(
+            onDismissRequest = { deleting = null },
+            title = stringResource(R.string.common_delete),
+            content = {
+                Text(
+                    text = stringResource(R.string.search_custom_engine_delete_confirm, target.name.ifBlank { target.endpoint }),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            },
+            confirmText = stringResource(R.string.common_delete),
+            destructive = true,
+            onConfirm = {
+                deleting = null
+                persist(engines.filterNot { it.id == target.id })
+            },
+            dismissText = stringResource(R.string.common_cancel),
+            onDismiss = { deleting = null },
         )
     }
 }
@@ -143,7 +173,7 @@ private fun CustomEngineEditor(initial: CustomSearchEngine, onDismiss: () -> Uni
 
     MuseDialog(
         onDismissRequest = onDismiss,
-        title = stringResource(R.string.search_custom_engine_add),
+        title = stringResource(if (initial.endpoint.isBlank()) R.string.search_custom_engine_add else R.string.common_edit),
         content = {
             CustomEngineFields(
                 name = name,
@@ -163,9 +193,7 @@ private fun CustomEngineEditor(initial: CustomSearchEngine, onDismiss: () -> Uni
         confirmText = stringResource(R.string.common_save),
         onConfirm = {
             if (endpoint.isBlank()) {
-                MuseToast.show(
-                    endpointRequiredMessage,
-                )
+                MuseToast.show(endpointRequiredMessage)
             } else {
                 onSave(
                     initial.copy(
@@ -184,33 +212,92 @@ private fun CustomEngineEditor(initial: CustomSearchEngine, onDismiss: () -> Uni
     )
 }
 
-/** 列表里的一行自定义引擎。 */
+/** 列表里的一行自定义引擎：启停开关 + 编辑/删除菜单。 */
 @Composable
-private fun CustomEngineRow(engine: CustomSearchEngine, enabled: Boolean, onToggle: (Boolean) -> Unit) {
+private fun CustomEngineRow(
+    engine: CustomSearchEngine,
+    enabled: Boolean,
+    onToggle: (Boolean) -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    var menuExpanded by remember { mutableStateOf(false) }
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = MuseSpacing.md, vertical = MuseSpacing.sm),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(MuseSpacing.md),
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = engine.name.ifBlank { engine.endpoint },
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.titleMedium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
                 text = "${engine.method.uppercase()} ${engine.endpoint}",
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        io.zer0.muse.ui.common.form.MuseSwitch(
+        MuseSwitch(
             checked = enabled,
             onCheckedChange = onToggle,
         )
+        Box {
+            MuseTactileButton(
+                icon = MuseIcons.moreHorizontal,
+                onClick = { menuExpanded = true },
+                contentDescription = stringResource(R.string.settings_mcp_more),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                compact = true,
+            )
+            MuseAnchoredMenu(
+                expanded = menuExpanded,
+                onDismissRequest = { menuExpanded = false },
+                alignEnd = true,
+            ) {
+                MuseListItem(
+                    onClick = {
+                        menuExpanded = false
+                        onEdit()
+                    },
+                    leadingContent = {
+                        Icon(
+                            imageVector = MuseIcons.edit,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconSmall),
+                        )
+                    },
+                    headlineContent = { Text(stringResource(R.string.common_edit)) },
+                )
+                MuseListItem(
+                    onClick = {
+                        menuExpanded = false
+                        onDelete()
+                    },
+                    leadingContent = {
+                        Icon(
+                            imageVector = MuseIcons.trash,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(MuseIconSizes.iconSmall),
+                        )
+                    },
+                    headlineContent = {
+                        Text(
+                            text = stringResource(R.string.common_delete),
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    },
+                )
+            }
+        }
     }
 }
 
@@ -245,7 +332,7 @@ private fun CustomEngineFields(
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
     ) {
         EngineTextField(
             value = name,
@@ -257,10 +344,11 @@ private fun CustomEngineFields(
             onValueChange = onEndpointChange,
             labelRes = R.string.search_custom_engine_endpoint,
         )
-        EngineTextField(
+        MuseSecretTextField(
             value = apiKey,
             onValueChange = onApiKeyChange,
-            labelRes = R.string.search_custom_engine_key,
+            label = stringResource(R.string.search_custom_engine_key),
+            modifier = Modifier.fillMaxWidth(),
         )
         MethodPicker(method = method, onMethodChange = onMethodChange)
         MuseTextField(
@@ -284,7 +372,7 @@ private fun CustomEngineFields(
 private fun MethodPicker(method: String, onMethodChange: (String) -> Unit) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
     ) {
         Text(
             text = stringResource(R.string.search_custom_engine_method),
@@ -292,20 +380,10 @@ private fun MethodPicker(method: String, onMethodChange: (String) -> Unit) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         listOf("GET", "POST").forEach { m ->
-            val selected = method.equals(m, ignoreCase = true)
-            Text(
-                text = m,
-                style = MaterialTheme.typography.labelMedium,
-                color =
-                if (selected) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
-                modifier =
-                Modifier
-                    .clickable { onMethodChange(m) }
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
+            MuseChip(
+                selected = method.equals(m, ignoreCase = true),
+                onClick = { onMethodChange(m) },
+                label = m,
             )
         }
     }

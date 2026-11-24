@@ -232,6 +232,8 @@ private fun ProviderCategoryHeader(
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.weight(1f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
         if (showTestAll) {
             if (isTestingAll) {

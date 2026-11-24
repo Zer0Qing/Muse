@@ -166,6 +166,8 @@ data class MessageEntity(
      *    `cachedTokens + COALESCE(cacheWriteTokens, 0)`，不要直接用 `cachedTokens`。
      */
     @ColumnInfo(defaultValue = "NULL") val durationMs: Long? = null,
+    /** 思考阶段独立耗时（毫秒，首个思考片段至首个正文/工具调用/结束），兼容旧行为 NULL。 */
+    @ColumnInfo(defaultValue = "NULL") val reasoningDurationMs: Long? = null,
     @ColumnInfo(defaultValue = "NULL") val promptTokens: Int? = null,
     @ColumnInfo(defaultValue = "NULL") val completionTokens: Int? = null,
     @ColumnInfo(defaultValue = "NULL") val reasoningTokens: Int? = null,

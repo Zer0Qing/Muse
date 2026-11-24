@@ -7,6 +7,8 @@
     <string name="settings_browser_cookies_title">Cookies</string>
     <string name="settings_browser_accept_cookies">Accept cookies</string>
     <string name="settings_browser_clear">Clear cookies and site data</string>
+    <string name="settings_browser_clear_confirm">You will be signed out of every site. This cannot be undone.</string>
+    <string name="settings_browser_cleared">Cookies and site data cleared</string>
     <string name="settings_browser_engine_bing">Bing</string>
     <string name="settings_browser_engine_baidu">Baidu</string>
     <string name="settings_browser_engine_sogou">Sogou</string>

@@ -23,6 +23,8 @@ package io.zer0.muse.tools
  *  - timeout_ms: 可选,整体执行超时(默认 240s,范围 30s~900s)——深度任务建议拉满
  *  - thread_id: 可选(v1.0.53+),续接线程 id;传上一次 subagent_run 返回的 thread_id 继续同一子 agent 会话
  *  - close_thread: 可选(v1.0.53+),"true" 时执行完毕后关闭线程(一次性委派场景)
+ *  - access: 可选,子 agent 访问级别(read / write / full,默认 write)
+ *  - profile: 可选,角色名(对应 agents/<name>.md,优先级高于 access)
  *
  * 返回:三阶段 XML 协议字符串
  *  <subagent_start .../>
@@ -48,6 +50,8 @@ object SubagentRunSkill {
             "thread_id" to "Optional. Thread id from a previous subagent_run call; continues that sub-agent session.",
             "close_thread" to "Optional. 'true' to close the thread after this run (one-shot delegation).",
             "token_budget" to "Optional. Token budget; when exhausted the sub-agent summarizes early.",
+            "access" to "Optional. Sub-agent access level: 'read' (read-only), 'write' (default, reversible writes), or 'full' (high-risk with approval).",
+            "profile" to "Optional. Named role profile from agents/<name>.md; overrides access level and appends role instructions.",
         ),
         required = setOf("task"),
         category = "built-in",

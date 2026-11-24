@@ -77,11 +77,9 @@ object SubagentTool {
             "task" to "Required for launch/reply. Task description / prompt.",
             "task_id" to "Required for status/cancel. Task id returned by launch.",
             "thread_id" to "Required for reply/close. Thread id returned by launch.",
-            // A-10: parent_session_id 必填 —— 缺省时异步结果无法归属到发起会话而静默丢失。
-            "parent_session_id" to "REQUIRED for launch/reply. Parent session id for context isolation and " +
-                "result delivery. If omitted, the async result is silently lost.",
-            "access" to "Optional, accepted for compatibility but has NO effect on this tool: the delegate runs with a single " +
-                "delegate_agent tool and never touches files or the device. Use subagent_run when the task needs tools.",
+            // 省略时由执行层从当前会话上下文自动注入，无需模型猜测或手动填写
+            "parent_session_id" to "Optional. Auto-injected from the current session context when omitted; " +
+                "only specify explicitly if routing async results to another session.",
             "label" to "Optional. Display label for the task.",
         ),
         required = setOf("action"),

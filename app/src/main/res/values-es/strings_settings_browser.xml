@@ -7,6 +7,8 @@
     <string name="settings_browser_cookies_title">Cookies</string>
     <string name="settings_browser_accept_cookies">Aceptar cookies</string>
     <string name="settings_browser_clear">Borrar cookies y datos del sitio</string>
+    <string name="settings_browser_clear_confirm">Se cerrará la sesión en todos los sitios. No se puede deshacer.</string>
+    <string name="settings_browser_cleared">Cookies y datos del sitio borrados</string>
     <string name="settings_browser_engine_bing">Bing</string>
     <string name="settings_browser_engine_baidu">Baidu</string>
     <string name="settings_browser_engine_sogou">Sogou</string>

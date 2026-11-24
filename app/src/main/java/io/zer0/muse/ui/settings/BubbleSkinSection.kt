@@ -41,12 +41,13 @@ import io.zer0.common.Logger
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.form.MuseAnchoredMenu
 import io.zer0.muse.ui.common.form.MuseCapsuleTab
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.icons.MuseIcons
-import io.zer0.muse.ui.common.navigation.MuseTopBarIconButton
-import io.zer0.muse.ui.common.settings.SectionLabel
-import io.zer0.muse.ui.common.settings.SettingsGroup
-import io.zer0.muse.ui.common.settings.SettingsGroupDivider
+import io.zer0.muse.ui.common.surface.CardGroup
+import io.zer0.muse.ui.common.surface.MuseListItem
+import io.zer0.muse.ui.common.surface.actionItem
 import io.zer0.muse.ui.theme.BubbleRole
 import io.zer0.muse.ui.theme.BubbleSkin
 import io.zer0.muse.ui.theme.BubbleSkinCatalog
@@ -54,6 +55,7 @@ import io.zer0.muse.ui.theme.BubbleSkinResolver
 import io.zer0.muse.ui.theme.BubbleSkinStore
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.theme.MuseSpacing
 import io.zer0.muse.ui.theme.PluginSkinSource
 import kotlinx.coroutines.launch
 import io.zer0.muse.ui.chat.MessageBubble
@@ -128,94 +130,71 @@ internal fun BubbleSkinSection(fontSizeScale: String, defaultDark: Boolean) {
         )
     }
 
-    // 本函数在 ThemeSection 体内中途出现，节内没有 LazyColumn 的 spacedBy 可借，
-    // 首个与后续小标题都自带与一级页同值的顶部间距，避免贴住上方卡片。
-    SectionLabel(
-        stringResource(R.string.settings_bubble_skin_section),
+    CardGroup(
+        title = { Text(stringResource(R.string.settings_bubble_skin_section)) },
         modifier = Modifier.padding(top = MusePaddings.cardGap),
-    )
-    SettingsGroup(
-        modifier = Modifier.padding(top = 8.dp),
     ) {
-        // 内置默认皮肤:选中即清空自定义选择,渲染保持既有外观
-        BubbleSkinRow(
-            name = stringResource(R.string.settings_bubble_skin_builtin),
-            isSelected = selectedId == BubbleSkinCatalog.DEFAULT_SKIN_ID,
-            onClick = { scope.launch { store.saveSelectedSkinId(BubbleSkinCatalog.DEFAULT_SKIN_ID) } },
-            onExport = null,
-            onDelete = null,
-        )
-        customSkins.forEach { skin ->
+        content(key = "bubble_skin_builtin") {
             BubbleSkinRow(
-                name = skin.name,
-                subtitle = skin.author.ifBlank {
-                    stringResource(R.string.settings_bubble_skin_custom_desc)
-                },
-                isSelected = skin.id == selectedId,
-                onClick = { scope.launch { store.saveSelectedSkinId(skin.id) } },
-                onExport = { shareSkin(skin) },
-                onDelete = { deletingSkin = skin },
+                name = stringResource(R.string.settings_bubble_skin_builtin),
+                isSelected = selectedId == BubbleSkinCatalog.DEFAULT_SKIN_ID,
+                onClick = { scope.launch { store.saveSelectedSkinId(BubbleSkinCatalog.DEFAULT_SKIN_ID) } },
+                onExport = null,
+                onDelete = null,
             )
         }
-        // 导入操作行(与自定义主题区的导入入口同款)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable {
-                    io.zer0.muse.util.ShareIntentHelper.run {
-                        importLauncher.launchSafely(
-                            arrayOf("application/json", "text/plain", "application/octet-stream"),
-                            context,
-                        )
-                    }
-                }
-                .padding(MusePaddings.cardInner),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Icon(
-                imageVector = MuseIcons.upload,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.size(MuseIconSizes.iconMedium),
-            )
-            Text(
-                text = stringResource(R.string.settings_bubble_skin_import),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.primary,
-            )
+        customSkins.forEach { skin ->
+            content(key = "bubble_skin_${skin.id}") {
+                BubbleSkinRow(
+                    name = skin.name,
+                    subtitle = skin.author.ifBlank {
+                        stringResource(R.string.settings_bubble_skin_custom_desc)
+                    },
+                    isSelected = skin.id == selectedId,
+                    onClick = { scope.launch { store.saveSelectedSkinId(skin.id) } },
+                    onExport = { shareSkin(skin) },
+                    onDelete = { deletingSkin = skin },
+                )
+            }
         }
+        actionItem(
+            key = "bubble_skin_import",
+            title = stringResource(R.string.settings_bubble_skin_import),
+            onClick = {
+                importLauncher.launchSafely(
+                    arrayOf("application/json", "text/plain", "application/octet-stream"),
+                    context,
+                )
+            },
+        )
     }
 
-    // ── Phase 4: 已安装插件的声明式皮肤(只读展示/选择,不支持导出与删除) ──
     if (pluginSkins.isNotEmpty()) {
-        SectionLabel(
-            stringResource(R.string.settings_bubble_skin_plugin_section),
+        CardGroup(
+            title = { Text(stringResource(R.string.settings_bubble_skin_plugin_section)) },
             modifier = Modifier.padding(top = MusePaddings.cardGap),
-        )
-        SettingsGroup(
-            modifier = Modifier.padding(top = 8.dp),
         ) {
-            pluginSkins.forEachIndexed { index, installed ->
-                if (index > 0) SettingsGroupDivider()
-                BubbleSkinRow(
-                    name = installed.skin.name,
-                    subtitle = stringResource(
-                        R.string.settings_bubble_skin_plugin_source,
-                        installed.pluginName,
-                        installed.version,
-                    ),
-                    isSelected = installed.skin.id == selectedId,
-                    onClick = { scope.launch { store.saveSelectedSkinId(installed.skin.id) } },
-                    onExport = null,
-                    onDelete = null,
-                    enabled = installed.enabled,
-                    note = if (installed.enabled) {
-                        null
-                    } else {
-                        stringResource(R.string.settings_bubble_skin_plugin_disabled)
-                    },
-                )
+            pluginSkins.forEach { installed ->
+                content(key = "plugin_skin_${installed.skin.id}") {
+                    BubbleSkinRow(
+                        name = installed.skin.name,
+                        subtitle = stringResource(
+                            R.string.settings_bubble_skin_plugin_source,
+                            installed.pluginName,
+                            installed.version,
+                        ),
+                        isSelected = installed.skin.id == selectedId,
+                        onClick = { scope.launch { store.saveSelectedSkinId(installed.skin.id) } },
+                        onExport = null,
+                        onDelete = null,
+                        enabled = installed.enabled,
+                        note = if (installed.enabled) {
+                            null
+                        } else {
+                            stringResource(R.string.settings_bubble_skin_plugin_disabled)
+                        },
+                    )
+                }
             }
         }
     }
@@ -333,86 +312,121 @@ private fun BubbleSkinRow(
                 modifier = Modifier.size(MuseIconSizes.iconMedium),
             )
         }
-        if (onExport != null) {
-            // CMP-11: 裸 IconButton → 收敛到 Muse 组件 MuseTopBarIconButton
-            MuseTopBarIconButton(
-                icon = MuseIcons.share,
-                contentDescription = stringResource(R.string.settings_bubble_skin_export),
-                onClick = onExport,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                // UI-FIX A: 列表行内联小操作保持裸图标（行内两个黑圆太吵）
-                solid = false,
-            )
-        }
-        if (onDelete != null) {
-            MuseTopBarIconButton(
-                icon = MuseIcons.trash,
-                contentDescription = stringResource(R.string.settings_bubble_skin_delete),
-                onClick = onDelete,
-                tint = MaterialTheme.colorScheme.error,
-                solid = false,
-            )
+        if (onExport != null || onDelete != null) {
+            var menuExpanded by remember { mutableStateOf(false) }
+            Box {
+                MuseTactileButton(
+                    icon = MuseIcons.moreHorizontal,
+                    contentDescription = stringResource(R.string.settings_mcp_more),
+                    onClick = { menuExpanded = true },
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    compact = true,
+                )
+                MuseAnchoredMenu(
+                    expanded = menuExpanded,
+                    onDismissRequest = { menuExpanded = false },
+                    alignEnd = true,
+                ) {
+                    if (onExport != null) {
+                        MuseListItem(
+                            onClick = {
+                                menuExpanded = false
+                                onExport()
+                            },
+                            leadingContent = {
+                                Icon(
+                                    imageVector = MuseIcons.share,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(MuseIconSizes.iconSmall),
+                                )
+                            },
+                            headlineContent = { Text(stringResource(R.string.settings_bubble_skin_export)) },
+                        )
+                    }
+                    if (onDelete != null) {
+                        MuseListItem(
+                            onClick = {
+                                menuExpanded = false
+                                onDelete()
+                            },
+                            leadingContent = {
+                                Icon(
+                                    imageVector = MuseIcons.trash,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(MuseIconSizes.iconSmall),
+                                )
+                            },
+                            headlineContent = {
+                                Text(
+                                    text = stringResource(R.string.settings_bubble_skin_delete),
+                                    color = MaterialTheme.colorScheme.error,
+                                )
+                            },
+                        )
+                    }
+                }
+            }
         }
     }
 }
 
 /**
  * 皮肤预览面板 — 覆盖 user / assistant / 群聊助手 × light / dark × 字体缩放。
- *
- * 每个气泡都用 [BubbleSkinResolver.resolve] 解析,与 MessageBubble /
- * GroupChatMessageBubble 走同一条回退链路:皮肤为 null 或校验失败时解析结果即内置 default。
  */
 @Composable
 private fun BubbleSkinPreviewPanel(skin: BubbleSkin?, dark: Boolean, fontSizeScale: String, onDarkChange: (Boolean) -> Unit) {
-    SectionLabel(
-        stringResource(R.string.settings_bubble_skin_preview),
+    CardGroup(
+        title = { Text(stringResource(R.string.settings_bubble_skin_preview)) },
         modifier = Modifier.padding(top = MusePaddings.cardGap),
-    )
-    SettingsGroup(
-        modifier = Modifier.padding(top = 8.dp),
     ) {
-        MuseCapsuleTab(
-            tabs = listOf(
-                stringResource(R.string.settings_theme_light),
-                stringResource(R.string.settings_theme_dark),
-            ),
-            selectedIndex = if (dark) 1 else 0,
-            onSelect = { onDarkChange(it == 1) },
-            modifier = Modifier.padding(MusePaddings.cardInner),
-        )
-        BubbleSkinPreviewBubble(
-            role = BubbleRole.USER,
-            roleLabel = stringResource(R.string.settings_bubble_skin_role_user),
-            text = stringResource(R.string.settings_theme_preview_hello),
-            skin = skin,
-            dark = dark,
-            fontSizeScale = fontSizeScale,
-            alignEnd = true,
-        )
-        BubbleSkinPreviewBubble(
-            role = BubbleRole.ASSISTANT,
-            roleLabel = stringResource(R.string.settings_bubble_skin_role_assistant),
-            text = stringResource(R.string.settings_theme_preview_reply),
-            skin = skin,
-            dark = dark,
-            fontSizeScale = fontSizeScale,
-            alignEnd = false,
-        )
-        BubbleSkinPreviewBubble(
-            role = BubbleRole.GROUP_ASSISTANT,
-            roleLabel = stringResource(R.string.settings_bubble_skin_role_group_assistant),
-            text = stringResource(R.string.settings_theme_preview_reply),
-            skin = skin,
-            dark = dark,
-            fontSizeScale = fontSizeScale,
-            alignEnd = false,
-        )
-        Text(
-            text = stringResource(R.string.settings_bubble_skin_preview_note),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-        )
+        content(key = "bubble_skin_preview_body") {
+            Column {
+                MuseCapsuleTab(
+                    tabs = listOf(
+                        stringResource(R.string.settings_theme_light),
+                        stringResource(R.string.settings_theme_dark),
+                    ),
+                    selectedIndex = if (dark) 1 else 0,
+                    onSelect = { onDarkChange(it == 1) },
+                    modifier = Modifier.padding(MusePaddings.cardInner),
+                )
+                BubbleSkinPreviewBubble(
+                    role = BubbleRole.USER,
+                    roleLabel = stringResource(R.string.settings_bubble_skin_role_user),
+                    text = stringResource(R.string.settings_theme_preview_hello),
+                    skin = skin,
+                    dark = dark,
+                    fontSizeScale = fontSizeScale,
+                    alignEnd = true,
+                )
+                BubbleSkinPreviewBubble(
+                    role = BubbleRole.ASSISTANT,
+                    roleLabel = stringResource(R.string.settings_bubble_skin_role_assistant),
+                    text = stringResource(R.string.settings_theme_preview_reply),
+                    skin = skin,
+                    dark = dark,
+                    fontSizeScale = fontSizeScale,
+                    alignEnd = false,
+                )
+                BubbleSkinPreviewBubble(
+                    role = BubbleRole.GROUP_ASSISTANT,
+                    roleLabel = stringResource(R.string.settings_bubble_skin_role_group_assistant),
+                    text = stringResource(R.string.settings_theme_preview_reply),
+                    skin = skin,
+                    dark = dark,
+                    fontSizeScale = fontSizeScale,
+                    alignEnd = false,
+                )
+                Text(
+                    text = stringResource(R.string.settings_bubble_skin_preview_note),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = MusePaddings.screen, vertical = MuseSpacing.sm),
+                )
+            }
+        }
     }
 }
 

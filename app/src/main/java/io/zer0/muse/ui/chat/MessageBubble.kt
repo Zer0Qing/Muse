@@ -450,6 +450,12 @@ internal fun MessageBubble(
      * 亮背景用深字，避免"深色壁纸下黑字什么都看不见"。有气泡底时不生效（气泡自带底色）。
      */
     backgroundIsDark: Boolean = false,
+    /** 当前消息是否正处于实时思考阶段（用于驱动实时思考区间与秒表）。 */
+    isThinkingActive: Boolean = false,
+    /** 当前思考阶段起始时间戳（epoch ms）。 */
+    reasoningStartedAtMs: Long? = null,
+    /** 流式期间已冻结的思考耗时（ms），优先于持久态之前的空值。 */
+    liveReasoningDurationMs: Long? = null,
 ) {
     val isUser = msg.role == MessageRole.USER
     val outerLayout = messageBubbleLayout(
@@ -725,226 +731,52 @@ internal fun MessageBubble(
                 visibleMood?.let { mood ->
                     // v1.45: 优先使用外部受控状态;未控制时用默认值
                     val moodExpanded = isMoodExpanded ?: chatPrefs.moodExpandedByDefault
-                    // 流式阶段不展开:标签文本还在逐段解析,强制展开会让整段腹稿在某一帧集中闪出。
-                    val showMoodExpanded = if (isLastAssistant && isStreaming) false else moodExpanded
-                    val moodSections = remember(mood) { MoodSectionParser.parse(mood) }
-                    // v2.6.10: 跟随主题色 —— 原先固定 surfaceVariant（灰白），换主题不同步。
-                    val moodContainerColor =
-                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f)
-                    val moodBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
-                    Surface(
-                        color = moodContainerColor,
-                        shape = MuseShapes.medium,
-                        tonalElevation = MuseElevation.none,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, moodBorderColor),
+                    io.zer0.muse.ui.common.chat.MuseMoodCard(
+                        mood = mood,
+                        expanded = moodExpanded,
+                        onToggle = onToggleMoodExpanded,
+                        isStreaming = isLastAssistant && isStreaming,
                         modifier = Modifier
                             .padding(horizontal = MusePaddings.screen)
                             .widthIn(max = 360.dp)
                             .padding(bottom = 6.dp),
-                    ) {
-                        Column(modifier = Modifier.padding(MusePaddings.bubbleInner)) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { onToggleMoodExpanded() }
-                                    .padding(vertical = MusePaddings.tinyGap),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Text(
-                                    text = if (showMoodExpanded) {
-                                        stringResource(R.string.chat_mood_label)
-                                    } else {
-                                        // 折叠时带上首行摘要：只显示「MOOD」标题等于把内容完全藏起来，
-                                        // 用户看不出这条消息的情绪基调。
-                                        val summary = moodSections
-                                            .firstOrNull { !it.title.isNullOrBlank() || it.lines.isNotEmpty() }
-                                            ?.let { section ->
-                                                section.lines.firstOrNull()
-                                                    ?: section.title.orEmpty()
-                                            }
-                                            ?.replace('\n', ' ')
-                                            ?.trim()
-                                            .orEmpty()
-                                        if (summary.isBlank()) {
-                                            stringResource(R.string.chat_mood_label)
-                                        } else {
-                                            stringResource(R.string.chat_mood_label) + " · " + summary
-                                        }
-                                    },
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier.weight(1f),
-                                )
-                                Icon(
-                                    imageVector = if (showMoodExpanded) MuseIcons.chevronUp else MuseIcons.chevronDown,
-                                    contentDescription = if (showMoodExpanded) {
-                                        stringResource(R.string.chat_mood_collapse_cd)
-                                    } else {
-                                        stringResource(R.string.chat_mood_expand_cd)
-                                    },
-                                    tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f),
-                                    modifier = Modifier.size(MuseIconSizes.iconTiny),
-                                )
-                            }
-                            if (showMoodExpanded) {
-                                Spacer(Modifier.height(MusePaddings.tinyGap))
-                                moodSections.forEachIndexed { sectionIndex, section ->
-                                    if (sectionIndex > 0) {
-                                        Spacer(Modifier.height(MusePaddings.tinyGap))
-                                    }
-                                    section.title?.let { title ->
-                                        Text(
-                                            text = title,
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.primary,
-                                            fontWeight = FontWeight.Medium,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
-                                        )
-                                    }
-                                    section.lines.forEach { rawLine ->
-                                        if (rawLine.isBlank()) return@forEach
-                                        val line = MoodSectionParser.toLine(rawLine)
-                                        // v2.7: 点直接拼进文本 —— 独立 Text 画点时基线和正文对不齐，会浮在行首上方。
-                                        Text(
-                                            text = if (line.bullet) "·  ${line.text}" else line.text,
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f),
-                                            modifier = Modifier.fillMaxWidth(),
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    )
                 }
             }
 
 // Phase 8.3: 推理过程折叠卡片(推理折叠区)
             // v0.31: 受 chatPrefs.showReasoning 开关控制,默认展开状态由 chatPrefs.reasoningExpandedByDefault 决定
             // v1.45: 改为外部受控,切页/后台后保持折叠状态
-            // v1.118: 折叠时标题显示思考内容摘要(而非静态"思考过程"四字),让用户快速了解思考了什么
             // v2.x: 工具轮也保留思考块；用户开启思考后需要能查看和复制工具调用前的推理。
             if (chatPrefs.showReasoning) {
                 msg.reasoning?.takeIf { it.isNotBlank() }?.let { reasoning ->
                     val reasoningExpanded = isReasoningExpanded ?: chatPrefs.reasoningExpandedByDefault
-
-                    // v2.7: 过程摘要里的操作数。任务卡按步骤计，孤立工具调用计 1；
-
-                    // 贴纸类静默工具不展示卡片，这里也不计入。
-
                     val processOps = run {
                         val silentTool = msg.toolCallInfo?.toolName == "send_sticker" ||
-
                             msg.toolCallInfo?.toolName == "list_stickers"
-
                         when {
                             taskCard != null -> taskCard.steps.size
-
                             msg.toolCallInfo != null && !silentTool -> 1
-
                             else -> 0
                         }
                     }
-                    // v1.0.92: 移除"流式最后一条强制展开"(用户反馈:没开默认展开但思考仍自动展开);
-                    // 思考块只按默认值/手动切换展开,流式进度改由标题行右侧的实时计时器呈现。
-                    val showExpanded = reasoningExpanded
-                    // v1.0.92: 思考计时器 — 流式期间每秒刷新;结束后保留本次展示生命周期的累计时长
-                    // (回收/切页后重新计时,不做持久化;数据源为本地时钟,不触碰消息存储)。
-                    var reasoningElapsedSec by remember(msg.id) { mutableStateOf(0) }
-                    LaunchedEffect(isLastAssistant, isStreaming) {
-                        if (isLastAssistant && isStreaming) {
-                            val startedAt = System.currentTimeMillis()
-                            while (true) {
-                                reasoningElapsedSec = ((System.currentTimeMillis() - startedAt) / 1000L).toInt()
-                                delay(1_000L)
-                            }
-                        }
-                    }
-                    Surface(
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        shape = MuseShapes.medium,
-                        tonalElevation = MuseElevation.low,
+                    val thinkingNow = isLastAssistant && isStreaming &&
+                        (isThinkingActive || (body.isBlank() && msg.toolCallInfo == null))
+                    io.zer0.muse.ui.common.chat.MuseThinkingPanel(
+                        reasoning = reasoning,
+                        expanded = reasoningExpanded,
+                        onToggle = onToggleReasoningExpanded,
+                        isThinkingActive = thinkingNow,
+                        reasoningStartedAtMs = if (isLastAssistant) reasoningStartedAtMs else null,
+                        reasoningDurationMs = msg.reasoningDurationMs ?: liveReasoningDurationMs,
+                        processOpsCount = processOps,
+                        cacheKey = msg.id.toString(),
+                        hasBackgroundImage = hasBackgroundImage,
                         modifier = Modifier
                             .padding(horizontal = MusePaddings.screen)
                             .widthIn(max = 360.dp)
                             .padding(bottom = 6.dp),
-                    ) {
-                        Column(modifier = Modifier.padding(MusePaddings.bubbleInner)) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { onToggleReasoningExpanded() }
-                                    .padding(vertical = MusePaddings.tinyGap),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                // v1.118: 折叠时标题显示思考内容摘要,展开时显示"思考过程"标题
-                                // 摘要取 reasoning 前约 40 字符(合并换行),前缀"思考 · "标识来源
-                                val titleText = when {
-                                    showExpanded -> stringResource(R.string.chat_reasoning_title)
-
-                                    processOps > 0 ->
-
-                                        stringResource(R.string.chat_process_thinking) + " · " +
-
-                                            pluralStringResource(R.plurals.chat_process_ops, processOps, processOps)
-
-                                    else -> {
-                                        val cleaned = reasoning.replace("\n", " ").trim()
-
-                                        if (cleaned.length > 40) {
-                                            stringResource(R.string.chat_thinking_preview, cleaned.take(40) + "…")
-                                        } else {
-                                            stringResource(R.string.chat_thinking_preview, cleaned)
-                                        }
-                                    }
-                                }
-                                Text(
-                                    text = titleText,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier.weight(1f),
-                                )
-                                // v1.0.92: 标题行右侧的思考计时(流式实时 / 结束后定格)
-                                if (reasoningElapsedSec > 0) {
-                                    Text(
-                                        text = stringResource(R.string.chat_reasoning_elapsed, reasoningElapsedSec),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                    Spacer(Modifier.width(MusePaddings.tightGap))
-                                }
-                                Icon(
-                                    imageVector = if (showExpanded) MuseIcons.chevronUp else MuseIcons.chevronDown,
-                                    // L-MB1: contentDescription 更明确
-                                    contentDescription = if (showExpanded) {
-                                        stringResource(
-                                            R.string.chat_reasoning_collapse_cd,
-                                        )
-                                    } else {
-                                        stringResource(R.string.chat_reasoning_expand_cd)
-                                    },
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(MuseIconSizes.iconTiny),
-                                )
-                            }
-                            if (showExpanded) {
-                                Spacer(Modifier.height(MusePaddings.tinyGap))
-                                SelectionContainer {
-                                    Text(
-                                        text = reasoning,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
-                            }
-                        }
-                    }
+                    )
                 }
             }
 
@@ -1487,8 +1319,9 @@ internal fun MessageBubble(
                             },
                             verticalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
-                            // 流式/思考状态:AI 消息顶部显示"正在思考…"带绿色脉动圆点
-                            if (isLastAssistant && isStreaming && !isPureToolBubble) {
+                            // 流式/思考状态:顶部 MuseThinkingPanel 未展示时才显示气泡内轻量脉动指示，避免双份「正在思考」
+                            val hasVisibleThinkingPanel = chatPrefs.showReasoning && !msg.reasoning.isNullOrBlank()
+                            if (isLastAssistant && isStreaming && !isPureToolBubble && !hasVisibleThinkingPanel) {
                                 ThinkingIndicator()
                             }
                             // v2.6.16: 语音消息条 — 与图片/视频同层分流,不参与正文渲染

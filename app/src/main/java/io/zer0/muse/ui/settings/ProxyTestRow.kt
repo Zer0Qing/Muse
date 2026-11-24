@@ -165,9 +165,9 @@ private fun runProbe(config: ProxyConfig, texts: ProbeTexts): TestOutcome {
             TestOutcome(
                 ok = resp.code in 200..399,
                 message = when {
-                    resp.code in 200..399 -> "$texts.connected${ms}ms (HTTP ${resp.code})"
+                    resp.code in 200..399 -> "${texts.connected} ${ms}ms (HTTP ${resp.code})"
                     resp.code == 407 -> texts.needAuth
-                    else -> "$texts.reachableFailed${resp.code}"
+                    else -> "${texts.reachableFailed} ${resp.code}"
                 },
             )
         }
@@ -179,7 +179,7 @@ private fun runProbe(config: ProxyConfig, texts: ProbeTexts): TestOutcome {
         TestOutcome(false, "${texts.dnsFailed} (${e.message ?: e::class.simpleName})")
     } catch (e: java.io.IOException) {
         Logger.w(TAG, "代理探测连接失败: ${e.message}")
-        TestOutcome(false, "${texts.connectFailed}${e.message ?: e::class.simpleName}")
+        TestOutcome(false, "${texts.connectFailed} ${e.message ?: e::class.simpleName}")
     } catch (e: kotlinx.coroutines.CancellationException) {
         // v2.6.9（真 bug 修复）: CancellationException 的继承链是
         //   IllegalStateException -> RuntimeException -> Exception
@@ -193,6 +193,6 @@ private fun runProbe(config: ProxyConfig, texts: ProbeTexts): TestOutcome {
         // v2.6.9: 只捕具体类型。探针里可能抛 IllegalArgumentException 的点是
         // URI 构造与 JSON 解析（SerializationException 即其子类）。
         Logger.w(TAG, "代理探测参数异常: ${e.message}", e)
-        TestOutcome(false, "${texts.unexpected}${e.message ?: e::class.simpleName}")
+        TestOutcome(false, "${texts.unexpected} ${e.message ?: e::class.simpleName}")
     }
 }

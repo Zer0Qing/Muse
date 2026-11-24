@@ -32,6 +32,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -65,23 +66,23 @@ import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.findActivity
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
+import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.navigation.MuseCompactTitleHeader
 import io.zer0.muse.ui.common.navigation.MuseStickyBackButton
 import io.zer0.muse.ui.common.settings.ChevronRight
-import io.zer0.muse.ui.common.settings.SectionLabel
-import io.zer0.muse.ui.common.settings.SettingsGroup
-import io.zer0.muse.ui.common.settings.SettingsGroupDivider
-import io.zer0.muse.ui.common.settings.SettingsItemRow
 import io.zer0.muse.ui.common.settings.SettingsSegmentedRow
-import io.zer0.muse.ui.common.settings.SettingsSwitchRow
 import io.zer0.muse.ui.common.state.MuseSpinner
+import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.common.surface.museSafeTopInsetPadding
+import io.zer0.muse.ui.common.surface.navigationItem
+import io.zer0.muse.ui.common.surface.switchItem
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.MuseSpacing
 import io.zer0.muse.update.UpdateCheckResult
 import io.zer0.muse.update.UpdateChecker
 import io.zer0.muse.update.UpdateNotifier
@@ -180,7 +181,7 @@ fun SettingsSubPageScaffold(
                         MuseCompactTitleHeader(
                             title = title,
                             onBack = onBack,
-                            horizontalPadding = 0.dp,
+                            horizontalPadding = 0.dp, // inset-guard: allow — LazyColumn 外层已加 pageMargin，头部再加会双重缩进
                             actions = headerActions,
                         )
                     }
@@ -194,7 +195,7 @@ fun SettingsSubPageScaffold(
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .museSafeTopInsetPadding()
-                        .padding(start = 8.dp, top = 8.dp)
+                        .padding(start = MuseSpacing.sm, top = MuseSpacing.sm)
                         .alpha(backStuckProgress),
                 )
             }
@@ -775,8 +776,20 @@ fun SettingsAsrPage(onBack: () -> Unit, onOpenProviderSettings: () -> Unit = {},
  */
 @Composable
 fun SettingsMcpPage(onBack: () -> Unit) {
-    SettingsSubPageScaffold(title = stringResource(R.string.section_mcp), onBack = onBack) {
-        item { McpSection() }
+    var openAddTrigger by remember { mutableIntStateOf(0) }
+    SettingsSubPageScaffold(
+        title = stringResource(R.string.section_mcp),
+        onBack = onBack,
+        headerActions = {
+            MuseTactileButton(
+                icon = MuseIcons.plus,
+                onClick = { openAddTrigger++ },
+                contentDescription = stringResource(R.string.settings_mcp_add_action),
+                tint = MaterialTheme.colorScheme.onSurface,
+            )
+        },
+    ) {
+        item(key = "mcp_section") { McpSection(openAddTrigger = openAddTrigger) }
     }
 }
 
@@ -786,7 +799,11 @@ fun SettingsMcpPage(onBack: () -> Unit) {
  * 云备份配置通过独立的 CloudBackupPage 管理；本页保留状态、上传/恢复和自动同步快捷入口。
  */
 @Composable
-fun SettingsDataPage(onBack: () -> Unit, onOpenCloudBackup: () -> Unit = {}) {
+fun SettingsDataPage(
+    onBack: () -> Unit,
+    onOpenCloudBackup: () -> Unit = {},
+    onOpenWebAccess: () -> Unit = {},
+) {
     val settings: SettingsRepository = koinInject()
     val sessionRepository: io.zer0.muse.data.session.SessionRepository = koinInject()
     val backupService: io.zer0.muse.backup.BackupService = koinInject()
@@ -794,7 +811,7 @@ fun SettingsDataPage(onBack: () -> Unit, onOpenCloudBackup: () -> Unit = {}) {
     val messageCount by sessionRepository.observeMessageCount().collectAsStateWithLifecycle(initialValue = 0)
 
     SettingsSubPageScaffold(title = stringResource(R.string.settings_sub_data_backup), onBack = onBack) {
-        item {
+        item(key = "data_backup") {
             BackupSection(
                 sessionCount = sessionCount,
                 messageCount = messageCount,
@@ -805,10 +822,13 @@ fun SettingsDataPage(onBack: () -> Unit, onOpenCloudBackup: () -> Unit = {}) {
                 onOpenCloudBackup = onOpenCloudBackup,
             )
         }
-        item {
+        item(key = "data_web_server") {
+            // 完整配置（端口 / 密码 / PIN / HTTPS）在独立的 Web 访问页；这里只留摘要与导航，
+            // 避免同一组字段在两处各维护一份。
             WebServerSection(
                 settings = settings,
                 webServer = koinInject(),
+                onOpenWebAccess = onOpenWebAccess,
             )
         }
     }
@@ -844,18 +864,14 @@ fun SettingsAppearancePage(onBack: () -> Unit) {
             )
         }
         // ── 消息气泡 ──
-        item { SectionLabel(stringResource(R.string.settings_screen_group_bubble)) }
-        item { BubbleStyleSection() }
+        item(key = "appearance_bubble") { BubbleStyleSection() }
         // ── 卡片与生成式界面（从聊天页归位）──
-        item { SectionLabel(stringResource(R.string.settings_screen_group_cards)) }
-        item { GenerativeUiSection() }
+        item(key = "appearance_generative_ui") { GenerativeUiSection() }
     }
 }
 
 /**
  * 消息气泡外观：气泡宽度 / 用户头像 / 圆角档位。
- *
- * 这些都是「消息长什么样」，与主题配色是两件事，所以单独成段。
  */
 @Composable
 private fun BubbleStyleSection() {
@@ -867,46 +883,63 @@ private fun BubbleStyleSection() {
         scope.launch { settings.updateChatPreferences(block) }
     }
 
-    SettingsGroup {
-        SettingsSwitchRow(
-            icon = MuseIcons.layoutColumns,
+    val radiusOptions =
+        listOf(
+            stringResource(R.string.settings_bubble_radius_none),
+            stringResource(R.string.settings_bubble_radius_small),
+            stringResource(R.string.settings_bubble_radius_large),
+            stringResource(R.string.settings_bubble_radius_pill),
+        )
+    val radiusValues = listOf(0, 8, 20, 28)
+    val selectedRadiusIndex =
+        radiusValues.indexOf(prefs.bubbleRadius)
+            .coerceIn(0, radiusValues.lastIndex)
+
+    CardGroup(title = { Text(stringResource(R.string.settings_screen_group_bubble)) }) {
+        switchItem(
+            key = "bubble_full_width",
             title = stringResource(R.string.settings_chat_bubble_full_width),
             checked = prefs.bubbleFullWidth,
             onCheckedChange = { v -> update { it.copy(bubbleFullWidth = v) } },
+            leadingContent = {
+                Icon(
+                    imageVector = MuseIcons.layoutColumns,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(MuseIconSizes.iconMedium),
+                )
+            },
         )
-        SettingsSwitchRow(
-            icon = MuseIcons.user,
+        switchItem(
+            key = "bubble_user_avatar",
             title = stringResource(R.string.settings_chat_show_user_avatar),
             checked = prefs.showUserAvatar,
             onCheckedChange = { v -> update { it.copy(showUserAvatar = v) } },
-        )
-        // 四档气泡圆角：方形 / 圆角 / 大圆角 / 胶囊
-        val radiusOptions =
-            listOf(
-                stringResource(R.string.settings_bubble_radius_none),
-                stringResource(R.string.settings_bubble_radius_small),
-                stringResource(R.string.settings_bubble_radius_large),
-                stringResource(R.string.settings_bubble_radius_pill),
-            )
-        val radiusValues = listOf(0, 8, 20, 28)
-        val selectedRadiusIndex =
-            radiusValues.indexOf(prefs.bubbleRadius)
-                .coerceIn(0, radiusValues.lastIndex)
-        SettingsSegmentedRow(
-            icon = MuseIcons.square,
-            title = stringResource(R.string.settings_bubble_radius_title),
-            options = radiusOptions,
-            selectedIndex = selectedRadiusIndex,
-            onSelectedChange = { idx ->
-                update { it.copy(bubbleRadius = radiusValues[idx]) }
+            leadingContent = {
+                Icon(
+                    imageVector = MuseIcons.user,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(MuseIconSizes.iconMedium),
+                )
             },
         )
+        content(key = "bubble_radius") {
+            SettingsSegmentedRow(
+                icon = MuseIcons.square,
+                title = stringResource(R.string.settings_bubble_radius_title),
+                options = radiusOptions,
+                selectedIndex = selectedRadiusIndex,
+                onSelectedChange = { idx ->
+                    update { it.copy(bubbleRadius = radiusValues[idx]) }
+                },
+            )
+        }
     }
 }
 
 /**
- * 卡片与生成式界面：是否允许模型用可交互卡片承载内容，
- * 以及是否主动优先卡片而不是长文字。
+ * 卡片与生成式界面：是否允许模型用可交互卡片承载内容，以及是否主动优先卡片而不是长文字。
  */
 @Composable
 private fun GenerativeUiSection() {
@@ -918,20 +951,35 @@ private fun GenerativeUiSection() {
         scope.launch { settings.updateChatPreferences(block) }
     }
 
-    SettingsGroup {
-        SettingsSwitchRow(
-            icon = MuseIcons.sparkle,
+    CardGroup(title = { Text(stringResource(R.string.settings_screen_group_cards)) }) {
+        switchItem(
+            key = "gen_ui_enabled",
             title = stringResource(R.string.settings_chat_generative_ui),
             checked = prefs.generativeUiEnabled,
             onCheckedChange = { v -> update { it.copy(generativeUiEnabled = v) } },
+            leadingContent = {
+                Icon(
+                    imageVector = MuseIcons.sparkle,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(MuseIconSizes.iconMedium),
+                )
+            },
         )
-        // 比「允许」更主动一级，默认开。
         if (prefs.generativeUiEnabled) {
-            SettingsSwitchRow(
-                icon = MuseIcons.sparkle,
+            switchItem(
+                key = "gen_ui_prefer_card",
                 title = stringResource(R.string.settings_chat_prefer_card_output),
                 checked = prefs.preferCardOutput,
                 onCheckedChange = { v -> update { it.copy(preferCardOutput = v) } },
+                leadingContent = {
+                    Icon(
+                        imageVector = MuseIcons.sparkle,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(MuseIconSizes.iconMedium),
+                    )
+                },
             )
         }
     }
@@ -993,185 +1041,149 @@ fun SettingsAboutPage(
     var upToDate by remember { mutableStateOf(false) }
 
     SettingsSubPageScaffold(title = stringResource(R.string.section_about), onBack = onBack) {
-        // 应用信息
-        item {
-            SectionLabel(stringResource(R.string.settings_about_app_info))
-        }
-        item {
-            SettingsGroup(
-                modifier = Modifier.padding(top = 8.dp),
-            ) {
-                Column(
-                    modifier = Modifier.padding(MusePaddings.cardInner),
-                ) {
-                    Text(
-                        text = "muse",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    Text(
-                        text = stringResource(R.string.settings_about_version_full, versionName, versionCode),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        // v1.66: 改为动态 BuildConfig 值,不再硬编码 "debug"
-                        text = "Build: ${if (BuildConfig.DEBUG) "debug" else "release"}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        // 堆上限由 ROM 决定( dalvik.vm.heapsize / heapgrowthlimit ),
-                        // 应用无法调大。写在这里是为了让“为什么堆只有这么点”有据可查。
-                        text = stringResource(
-                            R.string.settings_about_memory_limit,
-                            MemoryBudget.heapMaxMb,
-                            if (MemoryBudget.isLowHeap) {
-                                stringResource(R.string.settings_about_memory_low_heap)
-                            } else {
-                                stringResource(R.string.settings_about_memory_normal_heap)
-                            },
-                        ),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+        item(key = "about_app_info") {
+            CardGroup(title = { Text(stringResource(R.string.settings_about_app_info)) }) {
+                content(key = "app_info_body") {
+                    Column(
+                        modifier = Modifier.padding(MusePaddings.cardInner),
+                        verticalArrangement = Arrangement.spacedBy(MuseSpacing.xxs),
+                    ) {
+                        Text(
+                            text = "muse",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        Text(
+                            text = stringResource(R.string.settings_about_version_full, versionName, versionCode),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            text = "Build: ${if (BuildConfig.DEBUG) "debug" else "release"}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            text = stringResource(
+                                R.string.settings_about_memory_limit,
+                                MemoryBudget.heapMaxMb,
+                                if (MemoryBudget.isLowHeap) {
+                                    stringResource(R.string.settings_about_memory_low_heap)
+                                } else {
+                                    stringResource(R.string.settings_about_memory_normal_heap)
+                                },
+                            ),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
         }
-        // 贡献者：本地化等外部贡献的署名。
-        // 不写进提交作者（保持历史作者单一），但必须在用户能看到的界面里留名，
-        // 否则贡献者的工作在成品上完全不可见。
-        item {
-            SectionLabel(stringResource(R.string.settings_about_contributors))
-        }
-        item {
-            SettingsGroup(
-                modifier = Modifier.padding(top = 8.dp),
-            ) {
-                SettingsItemRow(
-                    title = "joselofarias-byte",
-                    subtitle = stringResource(
-                        R.string.settings_about_contributors_subtitle,
-                        "José Luis Farías",
-                    ),
+        item(key = "about_contributors") {
+            CardGroup(title = { Text(stringResource(R.string.settings_about_contributors)) }) {
+                item(
+                    key = "contributor_jose",
+                    headlineContent = { Text("joselofarias-byte") },
+                    supportingContent = {
+                        Text(
+                            stringResource(
+                                R.string.settings_about_contributors_subtitle,
+                                "José Luis Farías",
+                            ),
+                        )
+                    },
                 )
             }
         }
-        // P3-14: 反馈入口 — 调起邮件 Intent,fallback 到剪贴板
-        item {
-            SectionLabel(stringResource(R.string.settings_about_feedback_section))
-        }
-        item {
-            SettingsGroup(
-                modifier = Modifier.padding(top = 8.dp),
-            ) {
-                SettingsItemRow(
+        item(key = "about_feedback") {
+            CardGroup(title = { Text(stringResource(R.string.settings_about_feedback_section)) }) {
+                navigationItem(
+                    key = "feedback_email",
                     title = stringResource(R.string.settings_about_feedback),
                     onClick = { sendFeedback(context, versionName) },
-                ) {
-                    ChevronRight()
-                }
-                SettingsItemRow(
+                )
+                navigationItem(
+                    key = "feedback_qq",
                     title = stringResource(R.string.settings_about_join_qq_group),
                     onClick = { openQQGroup(context) },
-                ) {
-                    ChevronRight()
-                }
-                SettingsItemRow(
+                )
+                navigationItem(
+                    key = "feedback_crash",
                     title = stringResource(R.string.settings_crash_page_title),
                     onClick = onOpenCrashReport,
-                ) {
-                    ChevronRight()
-                }
+                )
             }
         }
-        // P3-15: 检查更新入口 — 异步请求 GitHub Releases
-        item {
-            SectionLabel(stringResource(R.string.settings_about_update_section))
-        }
-        item {
-            SettingsGroup(
-                modifier = Modifier.padding(top = 8.dp),
-            ) {
-                SettingsItemRow(
-                    title = stringResource(R.string.settings_about_check_update),
-                    enabled = !checking,
-                    onClick = {
-                        checking = true
-                        scope.launch {
-                            val result = try {
-                                updateNotifier.checkManually(context)
-                            } finally {
-                                checking = false
-                            }
-                            when (result) {
-                                is UpdateCheckResult.NewVersion -> newVersion = result.release
-                                UpdateCheckResult.UpToDate -> upToDate = true
-                                is UpdateCheckResult.Failed -> MuseToast.show(
-                                    context.getString(R.string.settings_about_update_check_failed, result.message),
-                                )
-                                UpdateCheckResult.Skipped -> Unit
+        item(key = "about_update") {
+            CardGroup(title = { Text(stringResource(R.string.settings_about_update_section)) }) {
+                item(
+                    key = "check_update",
+                    onClick = if (!checking) {
+                        {
+                            checking = true
+                            scope.launch {
+                                val result = try {
+                                    updateNotifier.checkManually(context)
+                                } finally {
+                                    checking = false
+                                }
+                                when (result) {
+                                    is UpdateCheckResult.NewVersion -> newVersion = result.release
+                                    UpdateCheckResult.UpToDate -> upToDate = true
+                                    is UpdateCheckResult.Failed -> MuseToast.show(
+                                        context.getString(R.string.settings_about_update_check_failed, result.message),
+                                    )
+                                    UpdateCheckResult.Skipped -> Unit
+                                }
                             }
                         }
-                    },
-                ) {
-                    if (checking) {
-                        MuseSpinner(
-                            size = 20.dp,
-                        )
                     } else {
-                        ChevronRight()
-                    }
-                }
-                SettingsSwitchRow(
-                    icon = MuseIcons.refresh,
+                        null
+                    },
+                    headlineContent = { Text(stringResource(R.string.settings_about_check_update)) },
+                    trailingContent = {
+                        if (checking) {
+                            MuseSpinner(size = MuseIconSizes.iconMedium)
+                        } else {
+                            ChevronRight()
+                        }
+                    },
+                )
+                switchItem(
+                    key = "auto_update",
                     title = stringResource(R.string.settings_about_auto_update),
                     checked = updateCheckEnabled,
                     onCheckedChange = { v -> scope.launch { settings.saveUpdateCheckEnabled(v) } },
                 )
             }
         }
-        item {
-            SectionLabel(stringResource(R.string.settings_about_legal_section))
-        }
-        item {
-            SettingsGroup(
-                modifier = Modifier.padding(top = 8.dp),
-            ) {
-                SettingsItemRow(
+        item(key = "about_legal") {
+            CardGroup(title = { Text(stringResource(R.string.settings_about_legal_section)) }) {
+                navigationItem(
+                    key = "oss_licenses",
                     title = stringResource(R.string.about_oss_licenses),
                     onClick = onOpenLicenses,
-                ) {
-                    ChevronRight()
-                }
+                )
             }
         }
-        // v1.119: 开源仓库分组 — 仓库主页 / Star / 问题反馈(均跳转 GitHub)
-        item {
-            SectionLabel(stringResource(R.string.settings_about_repo_section))
-        }
-        item {
-            SettingsGroup(
-                modifier = Modifier.padding(top = 8.dp),
-            ) {
-                SettingsItemRow(
+        item(key = "about_repo") {
+            CardGroup(title = { Text(stringResource(R.string.settings_about_repo_section)) }) {
+                navigationItem(
+                    key = "repo_home",
                     title = stringResource(R.string.settings_about_repo_home),
                     onClick = { openUrl(context, "https://github.com/Zer0Qing/Muse") },
-                ) {
-                    ChevronRight()
-                }
-                SettingsItemRow(
+                )
+                navigationItem(
+                    key = "repo_star",
                     title = stringResource(R.string.settings_about_star),
                     onClick = { openUrl(context, "https://github.com/Zer0Qing/Muse") },
-                ) {
-                    ChevronRight()
-                }
-                SettingsItemRow(
+                )
+                navigationItem(
+                    key = "repo_issues",
                     title = stringResource(R.string.settings_about_issues),
                     onClick = { openUrl(context, "https://github.com/Zer0Qing/Muse/issues") },
-                ) {
-                    ChevronRight()
-                }
+                )
             }
         }
     }

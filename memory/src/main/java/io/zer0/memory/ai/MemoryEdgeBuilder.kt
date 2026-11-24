@@ -230,10 +230,12 @@ class MemoryEdgeBuilder(
     /**
      * v2.6.2: 用 LLM 深化弱边的具体关系类型。
      *
-     * 只处理 linkType==related_to 的边（实体键/已有类型不动）。逐条调用，失败降级保留原类型。
+     * 只处理 linkType==related_to 的边（已有特定类型不动）。逐条调用，失败降级保留原类型；
+     * 若判定为无明显关联（none/unrelated）且为弱边（权重低于同实体键），移除该弱边以减少噪声。
      */
     private suspend fun enhanceWithLlm(pending: MutableList<MemoryLinkEntity>, model: io.zer0.ai.core.Model?) {
         val client = llmClient ?: return
+        val toRemove = mutableListOf<Int>()
         for (i in pending.indices) {
             val edge = pending[i]
             if (edge.linkType != "related_to") continue
@@ -248,22 +250,51 @@ class MemoryEdgeBuilder(
                 )
                 parseLinkType(raw)
             }.getOrNull() ?: continue
-            if (judged != null) {
+            if (judged == LINK_NONE) {
+                if (edge.weight < ENTITY_WEIGHT) {
+                    toRemove.add(i)
+                }
+            } else {
                 pending[i] = edge.copy(linkType = judged)
             }
         }
+        for (idx in toRemove.asReversed()) {
+            pending.removeAt(idx)
+        }
     }
 
-    /** 从 LLM 输出中解析关系类型；识别不到返回 null。 */
-    private fun parseLinkType(raw: String): String? {
-        val lower = raw.lowercase()
-        return when {
-            "contradict" in lower -> "contradicts"
-            "causes" in lower || "因果" in raw || "because" in lower -> "causes"
-            "part_of" in lower || "part of" in lower || "包含" in raw || "属于" in raw -> "part_of"
-            "related" in lower || "关联" in raw -> "related_to"
-            else -> null
+    /**
+     * 从 LLM 输出中解析关系类型；识别不到返回 null，明确无关联返回 [LINK_NONE]。
+     *
+     * 严格使用词边界与否定前置检查，避免 `"unrelated"` 误命中 `"related"`、
+     * 或 `"not contradicts"` 误命中 `"contradicts"` 等子串假阳性。
+     */
+    internal fun parseLinkType(raw: String): String? {
+        val stripped = raw
+            .replace(THINK_CLOSED_REGEX, "")
+            .replace(THINK_UNCLOSED_REGEX, "")
+            .trim()
+        if (stripped.isEmpty()) return null
+        val firstLine = stripped.lineSequence().firstOrNull { it.isNotBlank() }?.trim().orEmpty()
+        val lower = firstLine.lowercase()
+        val exactToken = lower.trim('"', '\'', '`', '.', '。', '!', '！', ':', '：', ' ')
+        when (exactToken) {
+            "none", "unrelated", "无关联", "无明显关联", "无关" -> return LINK_NONE
+            "causes", "因果" -> return "causes"
+            "contradicts", "contradict", "矛盾" -> return "contradicts"
+            "part_of", "part of", "包含", "属于" -> return "part_of"
+            "related_to", "related", "关联" -> return "related_to"
         }
+        // 非单词回复时只接受明确词边界匹配，并优先排除无关联与否定句。
+        if (UNRELATED_REGEX.containsMatchIn(lower) || "无明显关联" in firstLine || "无关联" in firstLine || "不相关" in firstLine) {
+            return LINK_NONE
+        }
+        if (NEGATION_PREFIX_REGEX.containsMatchIn(lower)) return null
+        if (CONTRADICT_WORD_REGEX.containsMatchIn(lower) || "矛盾" in firstLine) return "contradicts"
+        if (CAUSES_WORD_REGEX.containsMatchIn(lower) || "因果" in firstLine) return "causes"
+        if (PART_OF_WORD_REGEX.containsMatchIn(lower)) return "part_of"
+        if (RELATED_TO_WORD_REGEX.containsMatchIn(lower)) return "related_to"
+        return null // 模型回复未匹配任何已知关系标签，保留原始边类型
     }
 
     private fun pairKey(a: Long, b: Long): Long {
@@ -315,10 +346,22 @@ class MemoryEdgeBuilder(
         /** 同分类 + 时间窗口（24 小时）。 */
         private const val CATEGORY_TIME_WINDOW_MS = 24 * 60 * 60 * 1000L
 
+        /** LLM 判定两条事实无明显关联的内部哨兵。 */
+        internal const val LINK_NONE = "none"
+
+        private val THINK_CLOSED_REGEX = Regex("<think(?:ing)?>[\\s\\S]*?</think(?:ing)?>", RegexOption.IGNORE_CASE)
+        private val THINK_UNCLOSED_REGEX = Regex("<think(?:ing)?>[\\s\\S]*$", RegexOption.IGNORE_CASE)
+        private val UNRELATED_REGEX = Regex("""\b(?:none|unrelated|not\s+related|no\s+relation(?:ship)?)\b""")
+        private val NEGATION_PREFIX_REGEX = Regex("""\b(?:not|no|never|neither|don't|doesn't|do\s+not|does\s+not)\b""")
+        private val CONTRADICT_WORD_REGEX = Regex("""\bcontradicts?\b""")
+        private val CAUSES_WORD_REGEX = Regex("""\bcauses?\b""")
+        private val PART_OF_WORD_REGEX = Regex("""\bpart[_\s]of\b""")
+        private val RELATED_TO_WORD_REGEX = Regex("""\brelated_to\b""")
+
         /** v2.6.2: LLM 深化关系类型的 system prompt。 */
         private const val EDGE_ENHANCE_SYSTEM_PROMPT =
             "你是记忆关系分析器。给定两条事实 A 与 B，判断它们的关系类型。" +
                 "只回复一个词：causes（A 导致 B）/ contradicts（互相矛盾）/ " +
-                "part_of（B 是 A 的一部分或反之）/ related_to（普通关联）。不要解释。"
+                "part_of（B 是 A 的一部分或反之）/ related_to（有明确关联）/ none（无明显关联）。不要解释。"
     }
 }

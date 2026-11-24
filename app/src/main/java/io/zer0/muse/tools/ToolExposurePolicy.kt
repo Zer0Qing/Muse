@@ -149,8 +149,12 @@ object ToolExposurePolicy {
     private val TOOL_FAMILIES =
         listOf(
             ToolFamily(
-                keywords = setOf("搜索", "搜一下", "查一下", "查资料", "联网", "最新", "新闻", "search", "latest news"),
-                toolNames = setOf("web_search", "web_fetch", "parse_link"),
+                keywords = setOf("搜索", "搜一下", "查一下", "查资料", "联网", "最新", "新闻", "http", "接口", "api", "search", "latest news"),
+                toolNames = setOf("web_search", "web_fetch", "parse_link", "http_get", "http_post"),
+            ),
+            ToolFamily(
+                keywords = setOf("论文", "arxiv", "学术", "paper", "research paper"),
+                toolNames = setOf("arxiv_search"),
             ),
             ToolFamily(
                 keywords = setOf("天气", "气温", "下雨", "weather", "forecast"),
@@ -164,7 +168,8 @@ object ToolExposurePolicy {
                     "get_location",
                     "set_timer",
                     "add_calendar_event",
-                    "get_calendar_today",
+                    "update_calendar_event",
+                    "delete_calendar_event",
                     "calendar_today",
                     "schedule_reminder",
                     "cancel_reminder",
@@ -184,13 +189,21 @@ object ToolExposurePolicy {
                 ),
             ),
             ToolFamily(
+                keywords = setOf("计划", "步骤", "拆解", "规划", "plan", "task plan"),
+                toolNames = setOf("task_plan", "update_plan_step"),
+            ),
+            ToolFamily(
                 keywords = setOf("电量", "电池", "充电", "battery"),
                 toolNames = setOf("get_battery_info", "screen_time"),
             ),
             ToolFamily(
-                keywords = setOf("内存", "存储", "屏幕参数", "分辨率", "cpu", "处理器", "传感器", "设备信息", "手机型号", "memory", "storage"),
+                keywords = setOf(
+                    "内存", "存储", "屏幕参数", "分辨率", "cpu", "处理器", "传感器",
+                    "设备信息", "手机型号", "设备", "device", "memory", "storage",
+                ),
                 toolNames =
                 setOf(
+                    "get_device_info",
                     "get_storage_info",
                     "get_memory_info",
                     "get_display_info",
@@ -198,6 +211,13 @@ object ToolExposurePolicy {
                     "get_sensors_list",
                     "get_network_info",
                 ),
+            ),
+            ToolFamily(
+                keywords = setOf(
+                    "自检", "运行时", "平台能力", "沙盒", "工具能不能用", "权限状态", "通道状态",
+                    "runtime", "selfcheck", "platform", "permission",
+                ),
+                toolNames = setOf("runtime_selfcheck", "platform_selfcheck", "screen_permission_status", "screen_open_settings", "tool_status"),
             ),
             ToolFamily(
                 keywords = setOf("蓝牙", "wifi", "无线网", "网络状态", "bluetooth"),
@@ -216,12 +236,24 @@ object ToolExposurePolicy {
                 ),
             ),
             ToolFamily(
-                keywords = setOf("装了哪些应用", "安装的应用", "应用列表", "最近通知", "通知栏", "系统设置", "installed apps"),
-                toolNames = setOf("list_installed_apps", "get_recent_notifications", "open_system_setting"),
+                keywords = setOf(
+                    "应用", "打开", "打开应用", "启动应用", "装了哪些应用", "安装的应用", "应用列表",
+                    "最近通知", "通知栏", "系统设置", "应用设置", "app", "open app", "launch app", "installed apps",
+                ),
+                toolNames =
+                setOf(
+                    "app_list",
+                    "app_launch",
+                    "app_settings",
+                    "open_app",
+                    "list_installed_apps",
+                    "get_recent_notifications",
+                    "open_system_setting",
+                ),
             ),
             ToolFamily(
-                keywords = setOf("打开应用", "启动应用", "open app", "launch app"),
-                toolNames = setOf("open_app"),
+                keywords = setOf("应用", "卸载", "强行停止", "强制停止", "清除数据", "清缓存", "app", "uninstall", "force stop", "clear data"),
+                toolNames = setOf("app_force_stop", "app_clear_data", "app_uninstall"),
             ),
             ToolFamily(
                 keywords = setOf("发短信", "发邮件", "打电话", "拨号", "send sms", "send email", "make a call"),
@@ -246,6 +278,7 @@ object ToolExposurePolicy {
             ToolFamily(
                 keywords = setOf(
                     "记忆", "记住", "记住这个", "回忆", "经验", "memory", "忘掉", "忘记", "forget",
+                    "置顶", "取消置顶", "删除记忆", "pin", "unpin",
                     // v2.6.7 fix (AUDIT F4): 用户提长期要求（“以后别…”）应能带出偏好沉淀工具。
                     "以后", "别再", "不要再", "习惯", "偏好", "preference",
                 ),
@@ -261,6 +294,14 @@ object ToolExposurePolicy {
                     "delete_memory",
                     "remember_preference",
                 ),
+            ),
+            ToolFamily(
+                keywords = setOf("记忆配置", "记忆设置", "memory config"),
+                toolNames = setOf("memory_config_get", "memory_config_set"),
+            ),
+            ToolFamily(
+                keywords = setOf("随记", "灵感", "想法", "牵挂", "thought"),
+                toolNames = setOf("note_thought", "proactive_message_wish"),
             ),
             ToolFamily(
                 // v2.6.2（用户反馈）: 助手翻看其他会话 —— session_* 工具族
@@ -284,7 +325,6 @@ object ToolExposurePolicy {
                 setOf(
                     "quick_note_add",
                     "quick_note_list",
-                    "quick_note_search",
                     "quick_note_get",
                     "quick_note_update",
                     "quick_note_delete",
@@ -319,7 +359,7 @@ object ToolExposurePolicy {
                 toolNames = setOf("echo"),
             ),
             ToolFamily(
-                keywords = setOf("通知", "卡片", "进度", "todo", "提醒我", "喊我", "渲染", "render"),
+                keywords = setOf("通知", "卡片", "进度", "todo", "提醒我", "喊我", "渲染", "图表", "数据可视化", "可视化", "render", "chart"),
                 toolNames =
                 setOf(
                     "notify",
@@ -347,37 +387,48 @@ object ToolExposurePolicy {
                 ),
             ),
             ToolFamily(
-                // v2.x: 关键词里必须有「语音 / 发语音 / voice」—— find_tools 按空白/逗号切词后做 contains，
-                // 用户说“发个语音”“念给我听”才会把 send_voice 拉进当前会话工具面。
+                // 关键词覆盖语音/朗读/画图/视频/二维码，命中即装载
                 keywords = setOf(
                     "画图", "画", "图片", "生成图", "视频", "二维码", "朗读", "图像",
-                    "语音", "发语音", "念一下", "语音消息",
-                    "image", "video", "qr code", "voice",
+                    "语音", "发语音", "念一下", "说给我听", "语音消息",
+                    "image", "video", "qr code", "voice", "tts",
                 ),
                 toolNames = setOf("generate_image", "generate_video", "generate_qr_code", "speak_text", "send_voice", "list_cloned_voices"),
             ),
             ToolFamily(
-                keywords = setOf("子代理", "群聊", "渠道", "表情包", "subagent", "channel"),
+                keywords = setOf("子代理", "后台", "并行", "多步", "深度研究", "委托", "助手", "协作", "转交", "subagent", "delegate"),
+                toolNames = setOf("subagent_task", "subagent_run", "subagent_close", "delegate_agent"),
+            ),
+            ToolFamily(
+                keywords = setOf("助手管理", "创建助手", "人设", "删除助手", "助手列表", "assistant"),
+                toolNames = setOf("assistant_manage_list", "assistant_manage_create", "assistant_manage_update_persona", "assistant_manage_delete"),
+            ),
+            ToolFamily(
+                keywords = setOf("群聊", "渠道", "表情包", "私聊", "channel", "sticker"),
                 toolNames =
                 setOf(
-                    "subagent_task", "subagent_run", "subagent_close", "delegate_agent",
-                    "channel_pass", "channel_read_context", "channel_reply", "list_stickers", "send_sticker",
+                    "channel_pass", "channel_read_context", "channel_reply", "agent_phone",
+                    "list_stickers", "send_sticker",
                     "send_channel_message", "relay_channel_message", "channel_list",
                 ),
             ),
             ToolFamily(
-                keywords = setOf("文件", "文档", "pdf", "链接", "下载", "file", "document", "download"),
+                keywords = setOf("文件", "文档", "目录", "公共目录", "pdf", "链接", "下载", "file", "document", "download"),
                 // v2.6.7 fix (AUDIT F4): read_user_file 是“读用户设备上的文件”的入口，
                 // 不补进本族时，说“读一下这个文件”带不出它。
                 toolNames =
                 setOf(
                     "read_file",
+                    "write_file",
+                    "list_dir",
+                    "delete_file",
+                    "file_exists",
                     "read_user_file",
+                    "read_public_file",
+                    "list_public_files",
                     "create_download",
                     "parse_pdf",
                     "parse_link",
-                    // v2.6.10 工具装载整改：技能侧文件工具之前漏登记，
-                    // 说「下载这个文件」命中不了同名能力。
                     "file_download",
                     "save_to_downloads",
                 ),
@@ -387,7 +438,7 @@ object ToolExposurePolicy {
                 toolNames = setOf("ping_host", "dns_lookup", "get_public_ip"),
             ),
             ToolFamily(
-                keywords = setOf("工作区", "项目", "工程", "代码", "仓库", "脚本", "workspace"),
+                keywords = setOf("工作区", "挂载", "项目", "工程", "代码", "仓库", "脚本", "搜索代码", "文件", "workspace", "grep", "mount"),
                 toolNames =
                 setOf(
                     "workspace_list",
@@ -397,6 +448,9 @@ object ToolExposurePolicy {
                     "workspace_delete",
                     "workspace_mkdir",
                     "workspace_move",
+                    "workspace_copy",
+                    "workspace_grep",
+                    "workspace_mounts",
                 ),
             ),
             ToolFamily(
@@ -414,18 +468,49 @@ object ToolExposurePolicy {
                 ),
             ),
             ToolFamily(
-                keywords = setOf("插件", "plugin"),
+                keywords = setOf("mcp", "插件服务", "服务器", "mcp server"),
+                toolNames =
+                setOf(
+                    "mcp_mgmt_list",
+                    "mcp_mgmt_configure",
+                    "mcp_mgmt_remove",
+                    "mcp_mgmt_bind_assistant",
+                    "mcp_mgmt_reconnect",
+                ),
+            ),
+            ToolFamily(
+                keywords = setOf("技能", "插件", "skill", "plugin"),
                 toolNames =
                 setOf(
                     "plugin_market_search",
                     "plugin_market_install",
                     "plugin_market_uninstall",
                     "plugin_market_set_enabled",
+                    "install_skill",
+                    "author_plugin",
+                    "list_skills",
+                    "enable_skill",
+                    "disable_skill",
+                    "update_skill",
+                    "uninstall_skill",
+                    "skill_resource",
+                    "skill_manage_list",
+                    "skill_manage_toggle",
+                    "skill_manage_delete",
                 ),
             ),
             ToolFamily(
-                keywords = setOf("终端", "命令行", "shell", "adb", "termux", "系统命令", "执行命令"),
-                toolNames = setOf("device_shell", "terminal_exec", "termux_exec"),
+                keywords = setOf("终端", "命令行", "后台命令", "进程", "终端任务", "shell", "adb", "termux", "系统命令", "执行命令"),
+                toolNames =
+                setOf(
+                    "device_shell",
+                    "terminal_exec",
+                    "terminal_job_start",
+                    "terminal_job_status",
+                    "terminal_job_kill",
+                    "terminal_job_list",
+                    "termux_exec",
+                ),
             ),
             ToolFamily(
                 // v2.6.1（用户反馈）: Python 请求此前不命中任何族。内置 Python 工具属 GLOBAL 分类，
@@ -467,18 +552,18 @@ object ToolExposurePolicy {
                 ),
             ),
             ToolFamily(
+                // 仅暴露规范的 screen_* 族，不再并行暴露已弃用的重复 ui_* 工具
                 keywords = setOf("屏幕", "界面", "当前应用", "前台应用", "读屏", "屏幕上", "screen content", "what's on screen"),
                 toolNames =
                 setOf(
-                    "ui_get_page_info",
-                    "ui_screenshot",
-                    "ui_get_current_app",
                     "screen_read",
                     "screen_current_app",
                     "screen_permission_status",
+                    "screen_open_settings",
                 ),
             ),
             ToolFamily(
+                // 仅暴露规范的 screen_* 操作工具，避免与废弃 ui_* 重复混淆
                 keywords =
                 setOf(
                     "自动点击", "点击屏幕", "点击按钮", "帮我点", "滑动屏幕",
@@ -487,10 +572,9 @@ object ToolExposurePolicy {
                 ),
                 toolNames =
                 setOf(
-                    "ui_click", "ui_long_press", "ui_swipe", "ui_set_text", "ui_back", "ui_home", "ui_global_action",
                     "screen_back", "screen_home", "screen_tap", "screen_tap_text", "screen_swipe",
                     "screen_input", "screen_open_notifications", "screen_wait", "screen_pinch",
-                    "screen_swipe_path",
+                    "screen_swipe_path", "screen_open_settings",
                 ),
             ),
             ToolFamily(

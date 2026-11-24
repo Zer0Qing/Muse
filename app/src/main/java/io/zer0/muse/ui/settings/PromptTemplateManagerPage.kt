@@ -1,12 +1,14 @@
 package io.zer0.muse.ui.settings
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -19,7 +21,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -27,24 +28,22 @@ import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.prompttemplate.PromptTemplate
 import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.form.MuseAnchoredMenu
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
-import io.zer0.muse.ui.common.settings.SectionLabel
-import io.zer0.muse.ui.common.settings.SettingsGroup
-import io.zer0.muse.ui.common.settings.SettingsGroupDivider
+import io.zer0.muse.ui.common.state.MuseEmptyState
+import io.zer0.muse.ui.common.surface.CardGroup
+import io.zer0.muse.ui.common.surface.MuseListItem
 import io.zer0.muse.ui.theme.MuseIconSizes
-import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.MuseSpacing
 import io.zer0.muse.ui.theme.pill
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
 /**
- * B0-07: Prompt 模板管理页。
- *
- * 支持新建 / 编辑 / 删除 / 上下排序;内置模板不可删除但可复制为自定义模板。
- * 保存走 [SettingsRepository.savePromptTemplates],重启后保留。
+ * Prompt 模板管理页：支持新建 / 编辑 / 复制 / 删除 / 上下排序。
  */
 @Composable
 fun PromptTemplateManagerPage(onBack: () -> Unit) {
@@ -63,39 +62,74 @@ fun PromptTemplateManagerPage(onBack: () -> Unit) {
         scope.launch { settings.savePromptTemplates(updated) }
     }
 
+    val openCreate: () -> Unit = {
+        editing = PromptTemplate(
+            id = "",
+            name = "",
+            category = "",
+            content = "",
+            builtIn = false,
+        )
+        isNew = true
+        editorName = ""
+        editorCategory = ""
+        editorContent = ""
+    }
+
+    val openEdit: (PromptTemplate) -> Unit = { template ->
+        editing = template
+        isNew = false
+        editorName = template.name
+        editorCategory = template.category
+        editorContent = template.content
+    }
+
     SettingsSubPageScaffold(
         title = stringResource(R.string.prompt_template_manager_title),
         onBack = onBack,
+        headerActions = {
+            MuseTactileButton(
+                icon = MuseIcons.plus,
+                onClick = openCreate,
+                contentDescription = stringResource(R.string.prompt_template_manager_add),
+                tint = MaterialTheme.colorScheme.primary,
+                compact = true,
+            )
+        },
     ) {
-        item { SectionLabel(stringResource(R.string.prompt_template_manager_list)) }
-        item {
-            SettingsGroup {
-                if (templates.isEmpty()) {
-                    Text(
-                        text = stringResource(R.string.prompt_template_manager_empty),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(MusePaddings.cardInner),
+        if (templates.isEmpty()) {
+            item(key = "templates_empty") {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = MuseSpacing.xxxl),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    MuseEmptyState(
+                        icon = MuseIcons.note,
+                        title = stringResource(R.string.prompt_template_manager_empty),
+                        actionText = stringResource(R.string.prompt_template_manager_add),
+                        onAction = openCreate,
                     )
-                } else {
+                }
+            }
+        } else {
+            item(key = "templates_list") {
+                CardGroup(title = { Text(stringResource(R.string.prompt_template_manager_list)) }) {
                     templates.forEachIndexed { index, template ->
-                        if (index > 0) SettingsGroupDivider()
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(MusePaddings.bubbleInner),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        item(
+                            key = template.id,
+                            onClick = { openEdit(template) },
+                            headlineContent = {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(MuseSpacing.smTight),
+                                ) {
                                     Text(
                                         text = template.name,
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        fontWeight = FontWeight.Medium,
-                                        color = MaterialTheme.colorScheme.onSurface,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(1f, fill = false),
                                     )
                                     if (template.builtIn) {
                                         Surface(
@@ -106,115 +140,148 @@ fun PromptTemplateManagerPage(onBack: () -> Unit) {
                                                 text = stringResource(R.string.prompt_template_manager_built_in),
                                                 style = MaterialTheme.typography.labelSmall,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp),
+                                                modifier = Modifier.padding(
+                                                    horizontal = MuseSpacing.smTight,
+                                                    vertical = MuseSpacing.xxs,
+                                                ),
                                             )
                                         }
                                     }
                                 }
+                            },
+                            supportingContent = {
                                 Text(
                                     text = template.category.ifBlank { "-" },
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                 )
-                            }
-                            MuseTactileButton(
-                                icon = MuseIcons.arrowUp,
-                                onClick = {
-                                    val list = templates.toMutableList()
-                                    val tmp = list[index - 1]
-                                    list[index - 1] = list[index]
-                                    list[index] = tmp
-                                    persist(list)
-                                },
-                                contentDescription = stringResource(R.string.prompt_template_manager_move_up),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                enabled = index > 0,
-                                size = MuseIconSizes.touchTarget,
-                                iconSize = MuseIconSizes.iconSmall,
-                            )
-                            MuseTactileButton(
-                                icon = MuseIcons.arrowDown,
-                                onClick = {
-                                    val list = templates.toMutableList()
-                                    val tmp = list[index + 1]
-                                    list[index + 1] = list[index]
-                                    list[index] = tmp
-                                    persist(list)
-                                },
-                                contentDescription = stringResource(R.string.prompt_template_manager_move_down),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                enabled = index < templates.lastIndex,
-                                size = MuseIconSizes.touchTarget,
-                                iconSize = MuseIconSizes.iconSmall,
-                            )
-                            MuseTactileButton(
-                                icon = MuseIcons.edit,
-                                onClick = {
-                                    editing = template
-                                    isNew = false
-                                    editorName = template.name
-                                    editorCategory = template.category
-                                    editorContent = template.content
-                                },
-                                contentDescription = stringResource(R.string.common_edit),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                size = MuseIconSizes.touchTarget,
-                                iconSize = MuseIconSizes.iconSmall,
-                            )
-                            if (template.builtIn) {
-                                MuseTactileButton(
-                                    icon = MuseIcons.copy,
-                                    onClick = {
-                                        val copy = template.copy(
-                                            id = "custom_${System.currentTimeMillis()}",
-                                            builtIn = false,
-                                            name = "${template.name} (copy)",
+                            },
+                            trailingContent = {
+                                var menuExpanded by remember { mutableStateOf(false) }
+                                Box {
+                                    MuseTactileButton(
+                                        icon = MuseIcons.moreHorizontal,
+                                        onClick = { menuExpanded = true },
+                                        contentDescription = stringResource(R.string.settings_mcp_more),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        compact = true,
+                                    )
+                                    MuseAnchoredMenu(
+                                        expanded = menuExpanded,
+                                        onDismissRequest = { menuExpanded = false },
+                                        alignEnd = true,
+                                    ) {
+                                        if (index > 0) {
+                                            MuseListItem(
+                                                onClick = {
+                                                    menuExpanded = false
+                                                    val list = templates.toMutableList()
+                                                    val tmp = list[index - 1]
+                                                    list[index - 1] = list[index]
+                                                    list[index] = tmp
+                                                    persist(list)
+                                                },
+                                                leadingContent = {
+                                                    Icon(
+                                                        imageVector = MuseIcons.arrowUp,
+                                                        contentDescription = null,
+                                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                        modifier = Modifier.size(MuseIconSizes.iconSmall),
+                                                    )
+                                                },
+                                                headlineContent = {
+                                                    Text(stringResource(R.string.prompt_template_manager_move_up))
+                                                },
+                                            )
+                                        }
+                                        if (index < templates.lastIndex) {
+                                            MuseListItem(
+                                                onClick = {
+                                                    menuExpanded = false
+                                                    val list = templates.toMutableList()
+                                                    val tmp = list[index + 1]
+                                                    list[index + 1] = list[index]
+                                                    list[index] = tmp
+                                                    persist(list)
+                                                },
+                                                leadingContent = {
+                                                    Icon(
+                                                        imageVector = MuseIcons.arrowDown,
+                                                        contentDescription = null,
+                                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                        modifier = Modifier.size(MuseIconSizes.iconSmall),
+                                                    )
+                                                },
+                                                headlineContent = {
+                                                    Text(stringResource(R.string.prompt_template_manager_move_down))
+                                                },
+                                            )
+                                        }
+                                        MuseListItem(
+                                            onClick = {
+                                                menuExpanded = false
+                                                openEdit(template)
+                                            },
+                                            leadingContent = {
+                                                Icon(
+                                                    imageVector = MuseIcons.edit,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    modifier = Modifier.size(MuseIconSizes.iconSmall),
+                                                )
+                                            },
+                                            headlineContent = { Text(stringResource(R.string.common_edit)) },
                                         )
-                                        persist(templates + copy)
-                                    },
-                                    contentDescription = stringResource(R.string.common_copy),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    size = MuseIconSizes.touchTarget,
-                                    iconSize = MuseIconSizes.iconSmall,
-                                )
-                            } else {
-                                MuseTactileButton(
-                                    icon = MuseIcons.trash,
-                                    onClick = { deleting = template },
-                                    contentDescription = stringResource(R.string.common_delete),
-                                    tint = MaterialTheme.colorScheme.error,
-                                    size = MuseIconSizes.touchTarget,
-                                    iconSize = MuseIconSizes.iconSmall,
-                                )
-                            }
-                        }
+                                        if (template.builtIn) {
+                                            MuseListItem(
+                                                onClick = {
+                                                    menuExpanded = false
+                                                    val copy = template.copy(
+                                                        id = "custom_${System.currentTimeMillis()}",
+                                                        builtIn = false,
+                                                        name = "${template.name} (copy)",
+                                                    )
+                                                    persist(templates + copy)
+                                                },
+                                                leadingContent = {
+                                                    Icon(
+                                                        imageVector = MuseIcons.copy,
+                                                        contentDescription = null,
+                                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                        modifier = Modifier.size(MuseIconSizes.iconSmall),
+                                                    )
+                                                },
+                                                headlineContent = { Text(stringResource(R.string.common_copy)) },
+                                            )
+                                        } else {
+                                            MuseListItem(
+                                                onClick = {
+                                                    menuExpanded = false
+                                                    deleting = template
+                                                },
+                                                leadingContent = {
+                                                    Icon(
+                                                        imageVector = MuseIcons.trash,
+                                                        contentDescription = null,
+                                                        tint = MaterialTheme.colorScheme.error,
+                                                        modifier = Modifier.size(MuseIconSizes.iconSmall),
+                                                    )
+                                                },
+                                                headlineContent = {
+                                                    Text(
+                                                        text = stringResource(R.string.common_delete),
+                                                        color = MaterialTheme.colorScheme.error,
+                                                    )
+                                                },
+                                            )
+                                        }
+                                    }
+                                }
+                            },
+                        )
                     }
                 }
             }
-        }
-        item {
-            MuseTactileButton(
-                icon = MuseIcons.plus,
-                onClick = {
-                    editing = PromptTemplate(
-                        id = "",
-                        name = "",
-                        category = "",
-                        content = "",
-                        builtIn = false,
-                    )
-                    isNew = true
-                    editorName = ""
-                    editorCategory = ""
-                    editorContent = ""
-                },
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier
-                    .padding(MusePaddings.bubbleInner),
-            )
         }
     }
 
@@ -231,7 +298,7 @@ fun PromptTemplateManagerPage(onBack: () -> Unit) {
             content = {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
                 ) {
                     MuseTextField(
                         value = editorName,
@@ -253,7 +320,7 @@ fun PromptTemplateManagerPage(onBack: () -> Unit) {
                         label = { Text(stringResource(R.string.prompt_template_manager_content)) },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(min = 120.dp),
+                            .heightIn(min = EDITOR_CONTENT_MIN_HEIGHT),
                     )
                 }
             },
@@ -313,3 +380,5 @@ fun PromptTemplateManagerPage(onBack: () -> Unit) {
         )
     }
 }
+
+private val EDITOR_CONTENT_MIN_HEIGHT = 120.dp

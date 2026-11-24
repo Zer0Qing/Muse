@@ -240,4 +240,8 @@
     <string name="agent_bot_result_empty">Готово</string>
     <string name="agent_bot_prompt_verify_result">Проверьте, верный ли результат</string>
     <string name="agent_bot_notification_title">По вашему делу есть результат</string>
+    <string name="time_picker_hour">Часы</string>
+    <string name="time_picker_minute">Минуты</string>
+    <string name="time_picker_increase">Увеличить</string>
+    <string name="time_picker_decrease">Уменьшить</string>
 </resources>

@@ -589,6 +589,7 @@
     <string name="search_custom_engine_method">메서드</string>
     <string name="search_custom_engine_body">본문 템플릿(POST용, {query} 치환됨)</string>
     <string name="search_custom_engine_results_path">결과 경로(예: data.results, 비우면 루트가 배열)</string>
+    <string name="search_custom_engine_delete_confirm">“%1$s”을(를) 삭제할까요? 검색 체인에서 더 이상 사용되지 않습니다.</string>
     <string name="settings_chat_carry_over_section">대화 이어가기</string>
     <string name="settings_chat_carry_over">새 대화에 이전 맥락 포함</string>
     <string name="settings_chat_carry_over_count">메시지 %1$d개 가져오기</string>

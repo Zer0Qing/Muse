@@ -29,9 +29,10 @@ class VirtualDisplayTool(
                 description =
                 "虚拟屏(后台隐藏屏幕):在独立显示里运行应用,截图/操作不占用前台、不打扰用户。" +
                     "action=ensure 创建或复用虚拟屏(返回 displayId);action=open 在虚拟屏里打开应用(需 package);" +
+                    "action=read 读取虚拟屏当前界面的控件树与可交互控件;" +
                     "action=shot 截取虚拟屏画面(保存为 JPEG 文件,返回路径);action=close 销毁虚拟屏;" +
-                    "action=status 查询状态。在虚拟屏里点按/滑动/按键:用 device_shell 执行 " +
-                    "`input -d <displayId> tap/swipe/keyevent ...`。需要 Shizuku 或 Root 权限通道(设置→权限向导)。",
+                    "action=status 查询状态。在虚拟屏里点按/滑动/输入/按键请调用 virtual_screen_input(勿用 device_shell)。" +
+                    "需要 Shizuku 或 Root 权限通道(设置→权限向导)。",
                 parameters =
                 mapOf(
                     "action" to "必填:ensure | open | read | shot | close | status",
@@ -93,7 +94,7 @@ class VirtualDisplayTool(
         return client.ensureDisplay(width, height, dpi).fold(
             onSuccess = {
                 "虚拟屏已就绪:displayId=${it.displayId}(${it.width}x${it.height})。" +
-                    "用 virtual_screen open 打开应用,用 device_shell `input -d ${it.displayId} ...` 做输入。"
+                    "用 virtual_screen action=open 打开应用，action=read/shot 查看界面，用 virtual_screen_input(display=${it.displayId}) 执行输入。"
             },
             onFailure = { "虚拟屏创建失败:${it.message}" },
         )

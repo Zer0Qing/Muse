@@ -10,9 +10,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -30,6 +32,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.common.Logger
@@ -46,15 +49,16 @@ import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.settings.ChevronRight
-import io.zer0.muse.ui.common.settings.SectionLabel
-import io.zer0.muse.ui.common.settings.SettingsGroup
-import io.zer0.muse.ui.common.settings.SettingsGroupDivider
-import io.zer0.muse.ui.common.settings.SettingsItemRow
-import io.zer0.muse.ui.common.settings.SettingsSwitchRow
 import io.zer0.muse.ui.common.settings.StatusDot
 import io.zer0.muse.ui.common.state.MuseSpinner
+import io.zer0.muse.ui.common.surface.CardGroup
+import io.zer0.muse.ui.common.surface.MuseListItem
+import io.zer0.muse.ui.common.surface.actionItem
+import io.zer0.muse.ui.common.surface.switchItem
 import io.zer0.muse.ui.theme.MuseDateFormats
+import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.theme.MuseSpacing
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Date
@@ -222,51 +226,71 @@ internal fun BackupSection(
     }
 
     // ── 使用统计 ──
-    SectionLabel(stringResource(R.string.settings_backup_usage_stats))
-    SettingsGroup(
-        modifier = Modifier.padding(top = 8.dp),
-    ) {
-        SettingsItemRow(
-            icon = MuseIcons.messages,
-            title = stringResource(R.string.settings_backup_session_count),
-        ) {
-            Text(
-                text = "$sessionCount",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.primary,
-            )
-        }
-        SettingsItemRow(
-            icon = MuseIcons.chat,
-            title = stringResource(R.string.settings_backup_message_count),
-        ) {
-            Text(
-                text = "$messageCount",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.primary,
-            )
-        }
+    CardGroup(title = { Text(stringResource(R.string.settings_backup_usage_stats)) }) {
+        item(
+            key = "backup_session_count",
+            leadingContent = {
+                Icon(
+                    imageVector = MuseIcons.messages,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(MuseIconSizes.iconMedium),
+                )
+            },
+            headlineContent = { Text(stringResource(R.string.settings_backup_session_count)) },
+            trailingContent = {
+                Text(
+                    text = "$sessionCount",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            },
+        )
+        item(
+            key = "backup_message_count",
+            leadingContent = {
+                Icon(
+                    imageVector = MuseIcons.chat,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(MuseIconSizes.iconMedium),
+                )
+            },
+            headlineContent = { Text(stringResource(R.string.settings_backup_message_count)) },
+            trailingContent = {
+                Text(
+                    text = "$messageCount",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            },
+        )
     }
 
     // ── 本地备份与恢复 ──
-    SectionLabel(
-        stringResource(R.string.settings_backup_local_title),
+    var includeSecrets by rememberSaveable { mutableStateOf(false) }
+    CardGroup(
+        title = { Text(stringResource(R.string.settings_backup_local_title)) },
         modifier = Modifier.padding(top = MusePaddings.cardGap),
-    )
-    SettingsGroup(
-        modifier = Modifier.padding(top = 8.dp),
     ) {
         // v2.6.0: 包含供应商密钥（用户反馈：密钥多，希望备份能全量带走）。
         // 默认关 —— 开启后 providers_json（含 apiKey/OAuth token）明文进入备份文件。
-        var includeSecrets by rememberSaveable { mutableStateOf(false) }
-        SettingsSwitchRow(
-            icon = MuseIcons.key,
+        switchItem(
+            key = "backup_include_secrets",
             title = stringResource(R.string.settings_backup_include_secrets),
             checked = includeSecrets,
             onCheckedChange = { includeSecrets = it },
+            leadingContent = {
+                Icon(
+                    imageVector = MuseIcons.key,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(MuseIconSizes.iconMedium),
+                )
+            },
         )
-        SettingsItemRow(
-            icon = MuseIcons.upload,
+        actionItem(
+            key = "backup_export",
             title = stringResource(R.string.settings_backup_export),
             onClick = {
                 runCatching {
@@ -286,13 +310,13 @@ internal fun BackupSection(
                 }
             },
         )
-        SettingsItemRow(
-            icon = MuseIcons.file,
+        actionItem(
+            key = "backup_export_session",
             title = stringResource(R.string.settings_backup_export_session),
             onClick = { showSessionExportDialog = true },
         )
-        SettingsItemRow(
-            icon = MuseIcons.download,
+        actionItem(
+            key = "backup_import",
             title = stringResource(R.string.settings_backup_import),
             onClick = {
                 runCatching {
@@ -344,17 +368,9 @@ internal fun BackupSection(
                                 // v2.5.2 fix: 与首页列表(CHAT-16)同口径 —— 历史导入/自动命名
                                 // 可能把标题存成 "…"/"..." 等纯省略号,导出列表此前直接显示像坏数据。
                                 val sessionDefaultTitle = stringResource(R.string.session_repo_default_title)
-                                SettingsItemRow(
-                                    icon = MuseIcons.chat,
-                                    title = io.zer0.muse.data.session.displaySessionTitle(
-                                        session.title,
-                                        sessionDefaultTitle,
-                                    ),
-                                    titleMaxLines = 2,
-                                    subtitle = stringResource(
-                                        R.string.settings_backup_export_session_count,
-                                        session.messageCount,
-                                    ),
+                                // 长标题仍可区分：导出列表比普通设置行多给一行。
+                                val titleMaxLines = 2
+                                MuseListItem(
                                     onClick = {
                                         showSessionExportDialog = false
                                         sessionExportQuery = ""
@@ -373,9 +389,33 @@ internal fun BackupSection(
                                             )
                                         }
                                     },
+                                    leadingContent = {
+                                        Icon(
+                                            imageVector = MuseIcons.chat,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                                        )
+                                    },
+                                    headlineContent = {
+                                        Text(
+                                            text = io.zer0.muse.data.session.displaySessionTitle(
+                                                session.title,
+                                                sessionDefaultTitle,
+                                            ),
+                                            maxLines = titleMaxLines,
+                                            overflow = TextOverflow.Ellipsis,
+                                        )
+                                    },
+                                    supportingContent = {
+                                        Text(
+                                            stringResource(
+                                                R.string.settings_backup_export_session_count,
+                                                session.messageCount,
+                                            ),
+                                        )
+                                    },
                                 )
-                                if (session != filteredExportSessions.lastOrNull()) {
-                                }
                             }
                         }
                     }
@@ -388,12 +428,9 @@ internal fun BackupSection(
     }
 
     // ── 云备份(P1 新增;v2.x: 收敛为单行入口 — 配置、开关与操作统一在独立云备份页)──
-    SectionLabel(
-        stringResource(R.string.settings_backup_cloud_title),
+    CardGroup(
+        title = { Text(stringResource(R.string.settings_backup_cloud_title)) },
         modifier = Modifier.padding(top = MusePaddings.cardGap),
-    )
-    SettingsGroup(
-        modifier = Modifier.padding(top = 8.dp),
     ) {
         // 云端备份状态(StatusDot + 文字);点击进入独立云备份页
         val statusColor = when {
@@ -410,19 +447,27 @@ internal fun BackupSection(
             hasCloudBackup -> stringResource(R.string.settings_backup_status_has_backup)
             else -> stringResource(R.string.settings_backup_status_no_backup)
         }
-        SettingsItemRow(
-            icon = MuseIcons.cloud,
-            title = stringResource(R.string.settings_backup_cloud_title),
-            subtitle = statusText,
+        item(
+            key = "backup_cloud_entry",
             onClick = showGoToPageHint,
-            trailing = {
+            leadingContent = {
+                Icon(
+                    imageVector = MuseIcons.cloud,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(MuseIconSizes.iconMedium),
+                )
+            },
+            headlineContent = { Text(stringResource(R.string.settings_backup_cloud_title)) },
+            supportingContent = { Text(statusText) },
+            trailingContent = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier.semantics { contentDescription = statusText },
                     ) {
                         StatusDot(color = statusColor, pulse = checkingCloudBackup)
                     }
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(MuseSpacing.sm))
                     ChevronRight()
                 }
             },
@@ -430,46 +475,72 @@ internal fun BackupSection(
     }
 
     // ── F-04: 最近备份记录(诊断可见,来自 auto_backup_log 表)──
-    SectionLabel(
-        stringResource(R.string.settings_backup_log_title),
-        modifier = Modifier.padding(top = MusePaddings.cardGap),
-    )
-    SettingsGroup {
+    CardGroup(title = { Text(stringResource(R.string.settings_backup_log_title)) }) {
         val logs by autoBackupLogDao.observeRecent(10)
             .collectAsStateWithLifecycle(initialValue = emptyList())
         if (logs.isEmpty()) {
-            SettingsItemRow(
-                icon = MuseIcons.info,
-                title = stringResource(R.string.settings_backup_log_empty),
+            item(
+                key = "backup_log_empty",
+                leadingContent = {
+                    Icon(
+                        imageVector = MuseIcons.info,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(MuseIconSizes.iconMedium),
+                    )
+                },
+                headlineContent = { Text(stringResource(R.string.settings_backup_log_empty)) },
             )
         } else {
             val logFmt = remember { MuseDateFormats.dateTimeShort() }
             logs.forEach { log ->
                 val isSuccess = log.status == "success"
-                SettingsItemRow(
-                    icon = if (isSuccess) MuseIcons.check else MuseIcons.x,
-                    title = logFmt.format(Date(log.createdAt)) + " · " +
-                        stringResource(
-                            if (isSuccess) {
-                                R.string.settings_backup_log_success
-                            } else {
-                                R.string.settings_backup_log_failed
-                            },
-                        ),
-                    // 成功显示备份体量;失败显示错误摘要(errorMessage 为英文诊断串,
-                    // 缺失时回退失败文案,便于用户理解而非显示空行)
-                    subtitle = if (isSuccess) {
-                        // F-27: 成功行提示可点击恢复(含记忆/经验数据)
-                        stringResource(R.string.settings_backup_log_restore_hint, formatBackupSize(log.fileSizeBytes))
-                    } else {
-                        log.errorMessage.takeIf { it.isNotBlank() }
-                            ?: stringResource(R.string.settings_backup_log_failed)
-                    },
-                    // F-27: 成功的自动备份可一键恢复(含确认对话框 + 进度反馈)
+                item(
+                    key = "backup_log_${log.id}",
                     onClick = if (isSuccess && !autoRestoring) {
                         { autoRestoreTarget = log }
                     } else {
                         null
+                    },
+                    leadingContent = {
+                        Icon(
+                            imageVector = if (isSuccess) MuseIcons.check else MuseIcons.x,
+                            contentDescription = null,
+                            tint = if (isSuccess) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.error
+                            },
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
+                    },
+                    headlineContent = {
+                        Text(
+                            logFmt.format(Date(log.createdAt)) + " · " +
+                                stringResource(
+                                    if (isSuccess) {
+                                        R.string.settings_backup_log_success
+                                    } else {
+                                        R.string.settings_backup_log_failed
+                                    },
+                                ),
+                        )
+                    },
+                    // 成功显示备份体量;失败显示错误摘要(errorMessage 为英文诊断串,
+                    // 缺失时回退失败文案,便于用户理解而非显示空行)
+                    supportingContent = {
+                        Text(
+                            if (isSuccess) {
+                                // F-27: 成功行提示可点击恢复(含记忆/经验数据)
+                                stringResource(
+                                    R.string.settings_backup_log_restore_hint,
+                                    formatBackupSize(log.fileSizeBytes),
+                                )
+                            } else {
+                                log.errorMessage.takeIf { it.isNotBlank() }
+                                    ?: stringResource(R.string.settings_backup_log_failed)
+                            },
+                        )
                     },
                 )
             }
@@ -520,7 +591,9 @@ internal fun BackupSection(
             confirmText = stringResource(R.string.settings_backup_plaintext_export_action),
             onConfirm = {
                 pendingPlainExportUri = null
-                startExport(uri)
+                // 明文确认只是多一步；「包含密钥」是上一步的选择，必须一起传下去，
+                // 否则用户勾了密钥、确认明文后又悄悄变成不含密钥的备份。
+                startExport(uri, pendingExportSecrets)
             },
             dismissText = stringResource(R.string.common_cancel),
             onDismiss = { pendingPlainExportUri = null },
