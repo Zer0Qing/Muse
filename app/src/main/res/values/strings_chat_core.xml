@@ -30,7 +30,7 @@
     <!-- ===== 朋友圈动态 (MomentCard/MomentComponents) ===== -->
     <!-- v1.0.72: Telegram 风格顶栏三点菜单 -->
     <string name="chat_top_menu_cd">更多操作</string>
-    <string name="chat_select_provider">选择供应商</string>
+    <string name="chat_select_provider">选择模型供应商</string>
     <string name="chat_switch_assistant">切换助手</string>
     <string name="chat_proactive_toggle">主动消息</string>
     <string name="chat_proactive_muted">本会话的主动消息已关闭</string>
@@ -307,7 +307,7 @@
     <string name="chat_cancelled">已取消</string>
     <!-- v1.95: 系统语音识别首次使用提示 -->
     <string name="chat_asr_tip_title">语音识别提示</string>
-    <string name="chat_asr_tip_message">系统语音识别每次会弹出系统对话框。如需应用内录音体验，可在设置→语音识别中配置 DashScope 或 Step。</string>
+    <string name="chat_asr_tip_message">系统语音识别每次会弹出系统对话框。如需应用内录音体验，可在「设置 → 语音识别」中配置 DashScope 或 Step。</string>
     <string name="chat_asr_tip_confirm">继续</string>
 
     <!-- 绘图参数面板 -->
@@ -359,11 +359,11 @@
     <!-- v2.x: 回顾条 + 伙伴横排 -->
     <string name="chat_list_add_partner">添加伙伴</string>
     <string name="chat_list_new_folder">新建文件夹</string>
-    <string name="chat_list_folder_name_required">请输入文件夹名称</string>
+    <string name="chat_list_folder_name_required">请填写文件夹名称</string>
 
     <!-- 任务首页 -->
     <string name="chat_list_no_recent_title">暂无会话</string>
-    <string name="chat_list_no_recent_subtitle">点击下方 + 号开始新对话</string>
+    <string name="chat_list_no_recent_subtitle">暂无对话</string>
     <string name="chat_list_knowledge_title">知识库</string>
     <string name="chat_list_knowledge_count">%1$d 个文档</string>
     <string name="chat_list_knowledge_empty">点击添加文档</string>
@@ -519,10 +519,10 @@
 
     <!-- ===== UI链路体验修复 ===== -->
     <!-- U-1: 未配置模型服务常驻提示条(点击跳转模型设置) -->
-    <string name="chat_model_not_configured_hint">尚未配置模型服务，请先设置 API Key</string>
+    <string name="chat_model_not_configured_hint">还没配置模型供应商，请先填写 API Key</string>
     <!-- U-6: 手势操作一次性提示 -->
     <!-- U-17: 语音服务尚未就绪(区别于权限缺失) -->
-    <string name="chat_voice_not_ready">语音尚未就绪，请稍后再试</string>
+    <string name="chat_voice_not_ready">语音功能正在准备，请稍后再试</string>
     <string name="chat_token_output">输出</string>
     <string name="chat_token_prompt">输入上下文</string>
 
@@ -575,7 +575,7 @@
     <string name="backup_import_error_missing">找不到备份文件，可能已被移动或删除</string>
     <string name="backup_import_error_space">存储空间不足，请清理后重试</string>
     <string name="backup_import_error_unknown">备份文件异常，已回滚到导入前的状态</string>
-    <string name="onboarding_connect_error_unauthorized">API 密钥无效或已过期，请重新填写</string>
+    <string name="onboarding_connect_error_unauthorized">API Key 无效或已过期，请重新填写</string>
     <string name="onboarding_connect_error_forbidden">没有访问权限，请确认该密钥已开通此模型</string>
     <string name="onboarding_connect_error_not_found">接口地址或模型名称不对，请核对后重试</string>
     <string name="onboarding_connect_error_rate_limit">请求过于频繁，请稍后再试</string>

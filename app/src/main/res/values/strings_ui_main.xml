@@ -122,7 +122,7 @@
     <string name="qr_scan_pick_image">从相册选择二维码图片</string>
     <string name="qr_scan_scanning">正在识别…</string>
     <string name="qr_scan_pick_button">选择图片</string>
-    <string name="qr_scan_failed">未能识别二维码，请确认图片清晰后再试</string>
+    <string name="qr_scan_failed">没能识别二维码，请换一张更清晰的图片再试</string>
     <string name="qr_import_success">已导入供应商： %1$s</string>
     <string name="qr_import_invalid">二维码格式不正确，非供应商配置</string>
     <string name="qr_share_btn">分享二维码</string>
@@ -162,7 +162,7 @@
     <string name="permission_termux_permission_missing">调用权限未授予（需到 应用信息 → 权限 → 附加权限 勾选「运行 Termux 命令」）</string>
     <string name="permission_termux_probe_ok">外部调用配置正常</string>
     <string name="permission_termux_probe_failed">外部调用未配置或未响应</string>
-    <string name="permission_termux_probe_unchecked">尚未检测配置</string>
+    <string name="permission_termux_probe_unchecked">还没检测配置</string>
     <string name="permission_termux_get_btn">获取 Termux</string>
     <string name="permission_termux_open_btn">打开 Termux</string>
     <string name="permission_termux_grant_denied_hint">未获得 Termux 调用权限。请点击重试，在系统弹窗中选择「允许」。</string>
@@ -266,7 +266,7 @@
     <string name="connector_connect">连接</string>
     <string name="connector_connect_success">已连接 %1$s</string>
     <string name="connector_connect_failed">连接失败： %1$s</string>
-    <string name="connector_empty">尚未添加连接器。</string>
+    <string name="connector_empty">还没添加连接器</string>
     <string name="connector_config_corrupt">配置损坏，数据已保留，可重新导入</string>
     <string name="connector_field_authorize">授权端点</string>
     <string name="connector_field_token">Token 端点</string>
@@ -278,7 +278,7 @@
     <string name="channel_add">添加渠道</string>
     <string name="channel_edit_title">编辑渠道</string>
     <string name="channel_delete_confirm">删除该渠道？</string>
-    <string name="channel_empty">尚未配置渠道，点上方按钮添加。</string>
+    <string name="channel_empty">还没配置消息渠道</string>
     <string name="channel_field_platform">平台</string>
     <!-- v2.0.1: 平台本地化显示名 -->
     <string name="channel_platform_feishu">飞书</string>
@@ -420,7 +420,7 @@
     <string name="settings_vision_description">当使用不支持图片输入的文本模型时，自动调用视觉模型分析图片内容，将描述注入对话。</string>
     <string name="settings_vision_enabled">启用视觉辅助</string>
     <string name="settings_vision_model_section">视觉模型</string>
-    <string name="settings_vision_no_models">未找到支持视觉输入的模型，请在供应商设置中添加视觉模型。</string>
+    <string name="settings_vision_no_models">未找到支持视觉输入的模型，请在「设置 → 模型供应商」中添加视觉模型。</string>
     <!-- v1.0.1: 中转站支持 — 手动选择未识别视觉模型 -->
     <string name="settings_vision_show_all_models">显示全部模型</string>
     <string name="settings_vision_show_all_models_subtitle">中转站高级模式：显示所有模型，可手动选择未被自动识别的视觉模型</string>
@@ -494,11 +494,11 @@
     <string name="search_time_yesterday">昨天 %1$s</string>
 
     <!-- ===== Skill 页 SkillScreen ===== -->
-    <string name="skill_management">Skill 管理</string>
+    <string name="skill_management">技能管理</string>
     <string name="skill_import_cd">导入 .skill.json</string>
     <string name="skill_share_no_target">没有可用于分享的应用</string>
-    <string name="skill_no_skill_title">还没有 Skill</string>
-    <string name="skill_no_skill_subtitle">直接对 AI 说"帮我创建一个 XX 技能"，或点右下角 + 导入 Skill 文件</string>
+    <string name="skill_no_skill_title">还没有技能</string>
+    <string name="skill_no_skill_subtitle">可直接让助手创建技能，或导入本地技能文件</string>
     <string name="skill_importing">正在导入</string>
     <string name="skill_importing_detail">正在读取并解析文档...</string>
     <string name="skill_open_picker_failed">无法打开文件选择器： %1$s</string>
@@ -548,7 +548,7 @@
     <string name="oauth_login_success">OAuth 登录成功</string>
     <string name="oauth_login_failed">OAuth 登录失败：%1$s</string>
     <string name="oauth_reason_no_browser">无法打开浏览器</string>
-    <string name="oauth_reason_no_activity">取不到当前界面上下文，请重试</string>
+    <string name="oauth_reason_no_activity">无法打开授权页面，请重试</string>
     <string name="oauth_reason_not_configured">未配置 OAuth</string>
     <string name="provider_test_no_api_key">未填写 API Key</string>
     <string name="oauth_activity_context_unavailable">无法获取 Activity 上下文</string>
@@ -630,7 +630,7 @@
     <string name="video_gen_failed">生成失败：%1$s</string>
     <string name="video_gen_open_video">打开视频</string>
     <string name="video_gen_no_app">未找到可播放视频的应用</string>
-    <string name="video_gen_no_provider">尚未配置可用供应商，请先到「供应商」菜单添加并填写 API Key</string>
+    <string name="video_gen_no_provider">还没配置可用的模型供应商，请先在「设置 → 模型供应商」中添加并填写 API Key</string>
 
     <!-- ===== P2-5: SiliconFlow 免费模型兜底(PresetProviders / ProviderEditPage) ===== -->
     <string name="preset_siliconflow">硅基流动</string>
@@ -722,7 +722,7 @@
     <!-- P0-9: 信任管理(撤销入口) -->
     <string name="muse_plugins_trust_title">信任管理</string>
     <string name="muse_plugins_trust_publishers_title">信任的发行者</string>
-    <string name="muse_plugins_trust_publishers_empty">尚未信任任何发行者。安装未知发行者的插件时会引导你确认信任。</string>
+    <string name="muse_plugins_trust_publishers_empty">还没信任任何发行者，安装未知来源插件时会提示你确认</string>
     <string name="muse_plugins_trust_publisher_fingerprint">指纹 %1$s</string>
     <string name="muse_plugins_trust_revoke_title">撤销发行者信任？</string>
     <string name="muse_plugins_trust_revoke_confirm">撤销后，发行者 %1$s 的已装插件将被自动禁用，且需再次明确信任才能重新安装或更新。</string>
@@ -735,7 +735,7 @@
     <!-- B7-01: 插件配置贡献 -->
     <string name="muse_plugins_config">插件配置</string>
     <string name="muse_plugins_open_panel">打开面板</string>
-    <string name="muse_plugins_view_broken">界面未能渲染（点开看原因）</string>
+    <string name="muse_plugins_view_broken">界面没能渲染（点开查看原因）</string>
     <string name="muse_plugins_view_image_missing">（图片缺失）</string>
     <string name="plugin_ui_busy">上一次仍在执行，请等它结束</string>
     <string name="plugin_ui_render_failed">插件返回的界面无法解析</string>
@@ -892,6 +892,6 @@
     <string name="channel_weclaw_summary">通过微信 iLink 协议接入个人号；一个微信号只能绑一个渠道，绑新的会让旧的失效。主动提醒依赖最近收到消息后打开的回复窗口，没送达就先给这个渠道发一条微信激活它。</string>    <string name="assistant_detail_pinned_injection">注入置顶记忆</string>
     <string name="assistant_detail_pinned_injection_desc">关闭后置顶内容仍保留在记忆库，但不再随每轮对话注入</string>
     <string name="assistant_detail_pinned_remove_cd">取消置顶</string>
-    <string name="runtime_ready_continue_prompt">运行时环境已就绪，继续刚才的任务。</string>
-    <string name="offline_resources_entry_title">运行时</string>
+    <string name="runtime_ready_continue_prompt">运行环境已就绪，继续刚才的任务。</string>
+    <string name="offline_resources_entry_title">运行环境</string>
 </resources>

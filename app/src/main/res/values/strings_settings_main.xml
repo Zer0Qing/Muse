@@ -3,10 +3,10 @@
     <!-- ==================== 通用 ==================== -->
     <string name="settings_slider_input_hint">输入数值</string>
     <string name="settings_slider_input_confirm">确定</string>
-    <string name="settings_rag_embedding_provider_hint">注意：并非所有供应商都提供 embedding 模型（只有对话模型的供应商会失败）。配置后请先点下方「测试 Embedding」再重建索引。</string>
+    <string name="settings_rag_embedding_provider_hint">并非所有模型供应商都提供向量模型，配置后请先测试连接再重建索引。</string>
     <string name="settings_rag_onnx_section">本地模型（可选）</string>
     <string name="settings_rag_onnx_model_title">ONNX Embedding 模型</string>
-    <string name="settings_rag_onnx_model_empty">未选择 —— 当前降级为关键词检索（非语义）</string>
+    <string name="settings_rag_onnx_model_empty">未选择（当前使用关键词检索）</string>
     <string name="settings_rag_onnx_pick">选择模型文件</string>
     <string name="settings_rag_onnx_clear">清除</string>
     <string name="settings_rag_onnx_hint">选择一个 .onnx 模型文件与同目录的 vocab.txt。选择后自动复制到应用私有目录，无需再次授权。</string>
@@ -23,38 +23,38 @@
     <string name="settings_common_advanced">高级</string>
 
     <!-- ==================== Provider 设置 ==================== -->
-    <string name="settings_provider_list_title">Provider 列表</string>
-    <string name="settings_provider_empty_title">还没有供应商</string>
-    <string name="settings_provider_empty_action">添加供应商</string>
+    <string name="settings_provider_list_title">模型供应商列表</string>
+    <string name="settings_provider_empty_title">还没有模型供应商</string>
+    <string name="settings_provider_empty_action">添加模型供应商</string>
     <string name="settings_provider_free_ready_title">内置免费模型已就绪</string>
     <string name="settings_provider_category_official">官方厂商</string>
     <string name="settings_provider_category_relay">中转站</string>
     <string name="settings_provider_category_custom">自定义</string>
-    <string name="settings_provider_add">添加 Provider</string>
+    <string name="settings_provider_add">添加模型供应商</string>
     <string name="settings_provider_status_disabled">禁用</string>
     <string name="settings_provider_json_parse_failed">JSON 解析失败：缺少 private_key / client_email</string>
     <string name="settings_provider_imported_from_json">已从 JSON 导入服务账号凭证</string>
-    <string name="settings_provider_import_failed">导入失败： %1$s</string>
+    <string name="settings_provider_import_failed">导入失败：%1$s</string>
     <string name="settings_provider_fill_api_key_first">请先填写 API Key</string>
-    <string name="settings_provider_no_models_returned">上游未返回任何模型，请检查接口地址是否正确</string>
+    <string name="settings_provider_no_models_returned">未获取到任何模型，请检查接口地址是否正确</string>
     <string name="settings_provider_unknown_error">未知错误</string>
-    <string name="settings_provider_404_error">该供应商不支持 /models 接口，请手动添加模型</string>
+    <string name="settings_provider_404_error">该模型供应商不支持 /models 接口，请手动添加模型</string>
     <string name="settings_provider_auth_error">API Key 无效或权限不足</string>
     <string name="settings_provider_unable_to_resolve">无法连接到服务器，请检查接口地址</string>
     <string name="settings_provider_connection_timeout">连接超时</string>
-    <string name="settings_provider_fetch_failed">拉取失败： %1$s</string>
+    <string name="settings_provider_fetch_failed">拉取失败：%1$s</string>
     <string name="settings_provider_configure_balance_first">请先配置余额查询端点路径</string>
-    <string name="settings_provider_balance_query_failed_http">查询失败（HTTP %1$d）: %2$s</string>
+    <string name="settings_provider_balance_query_failed_http">查询失败（HTTP %1$d）：%2$s</string>
     <string name="settings_provider_balance_response">余额响应：\n%1$s</string>
-    <string name="settings_provider_balance_result">余额结果： %1$s</string>
+    <string name="settings_provider_balance_result">余额结果：%1$s</string>
     <string name="settings_provider_balance_path_not_found">未找到路径 %1$s，原始响应：\n%2$s</string>
     <string name="settings_provider_unable_to_resolve_server">无法解析服务器地址</string>
     <string name="settings_provider_query_timeout">查询超时</string>
-    <string name="settings_provider_query_failed">查询失败： %1$s</string>
+    <string name="settings_provider_query_failed">查询失败：%1$s</string>
     <string name="settings_unsaved_changes_title">放弃修改？</string>
     <string name="settings_unsaved_changes_content">当前有未保存的修改，退出将丢失。确认放弃？</string>
     <string name="settings_unsaved_discard">放弃</string>
-    <string name="settings_provider_new">新增 Provider</string>
+    <string name="settings_provider_new">新增模型供应商</string>
     <!-- F-12: 端点测试按钮(仅调 /models 轻量校验连通性) -->
     <string name="settings_provider_test_connection_endpoint">测试并自动识别</string>
     <string name="settings_provider_test_connection_endpoint_sub">自动尝试各协议，通了就保存</string>
@@ -65,20 +65,20 @@
     <string name="settings_provider_test_error_404">URL 不支持</string>
     <string name="settings_provider_test_error_timeout">连接超时</string>
     <string name="settings_provider_test_error_unknown_host">无法连接服务器</string>
-    <string name="settings_provider_test_error_failed">连接失败： %1$s</string>
+    <string name="settings_provider_test_error_failed">连接失败：%1$s</string>
     <string name="settings_provider_test_error_html">服务器返回了网页而不是 API JSON。NewAPI 等兼容接口通常需要在基址后添加 /v1；请检查 API 路径和反向代理。</string>
     <!-- v1.133: 供应商批量健康检测(列表头部"全部检测"按钮 + 行内状态显示) -->
     <string name="settings_provider_test_all">全部检测</string>
-    <string name="settings_provider_test_all_done">完成： 成功 %1$d / 失败 %2$d</string>
-    <string name="settings_provider_test_all_no_providers">没有可检测的供应商</string>
+    <string name="settings_provider_test_all_done">完成：成功 %1$d / 失败 %2$d</string>
+    <string name="settings_provider_test_all_no_providers">没有可检测的模型供应商</string>
     <string name="settings_provider_test_result_ok">%1$d ms</string>
     <string name="settings_provider_test_result_failed">失败</string>
     <string name="settings_provider_test_row_testing">检测中</string>
     <string name="settings_provider_test_skip_no_key">未配置 API Key</string>
     <string name="settings_provider_tab_config">配置</string>
     <string name="settings_provider_tab_models">模型</string>
-    <string name="settings_provider_file_picker_failed">无法打开文件选择器： %1$s</string>
-    <string name="settings_provider_delete_title">删除供应商</string>
+    <string name="settings_provider_file_picker_failed">无法打开文件选择器：%1$s</string>
+    <string name="settings_provider_delete_title">删除模型供应商</string>
     <string name="settings_provider_delete_consequence">其 API Key 与已配置的模型清单会一并删除。</string>
     <string name="settings_provider_delete_content">确定删除 %1$s？该操作不可恢复。</string>
     <string name="settings_provider_action_activate">设为当前</string>
@@ -91,21 +91,21 @@
     <string name="settings_provider_display_name">显示名</string>
     <string name="settings_provider_base_url">接口地址（留空用默认）</string>
     <!-- F-11: 多 Key 池 UI -->
-    <string name="settings_provider_api_key_pool">API 密钥池（可粘贴多个 Key）</string>
+    <string name="settings_provider_api_key_pool">API Key 池（可粘贴多个 Key）</string>
     <string name="settings_provider_keys_count">已配置 %1$d 个 Key</string>
     <string name="settings_provider_active_key">当前使用 %1$s</string>
     <string name="settings_provider_clear_keys">全部清空</string>
     <string name="settings_provider_remove_key">删除该 Key</string>
-    <string name="settings_provider_manual_add_hint">该供应商可能不支持自动获取模型，请点击\"添加新模型\"手动添加</string>
-    <string name="settings_provider_vertex_ai">Vertex AI(企业级)</string>
+    <string name="settings_provider_manual_add_hint">该模型供应商可能不支持自动获取模型，可手动添加模型</string>
+    <string name="settings_provider_vertex_ai">Vertex AI（企业级）</string>
     <string name="settings_provider_enable_vertex">启用 Vertex AI 端点</string>
-    <string name="settings_provider_location">Location(如 us-central1)</string>
+    <string name="settings_provider_location">Location（如 us-central1）</string>
     <string name="settings_provider_project_id">Project ID</string>
-    <string name="settings_provider_use_service_account">用服务账号认证（否则用 API Key 兜底）</string>
+    <string name="settings_provider_use_service_account">使用服务账号认证（未启用时使用 API Key）</string>
     <string name="settings_provider_import_from_json">从 JSON 文件导入凭证</string>
     <string name="settings_provider_service_account_email">服务账号邮箱</string>
     <string name="settings_provider_private_key">私钥（PEM 格式，含 BEGIN/END 行）</string>
-    <string name="settings_provider_enable_this">启用此 Provider(禁用后不出现在模型切换列表)</string>
+    <string name="settings_provider_enable_this">启用此模型供应商（禁用后不出现在模型切换列表）</string>
     <string name="settings_provider_balance_api_path">余额查询端点路径（如 /dashboard/billing/usage）</string>
     <string name="settings_provider_balance_result_path">余额结果 JSON 路径（如 $.data.total_usage）</string>
     <string name="settings_provider_query_balance">查询余额</string>
@@ -113,23 +113,23 @@
     <string name="settings_provider_rate_limit_rpm_hint">留空表示不限，如 60</string>
     <string name="settings_provider_max_concurrent">最大并发请求数</string>
     <string name="settings_provider_max_concurrent_hint">留空表示不限，如 5</string>
-    <string name="settings_provider_custom_specific">自定义特定</string>
+    <string name="settings_provider_custom_specific">自定义协议设置</string>
     <string name="settings_provider_chat_completions_path">Chat Completions 路径</string>
-    <string name="settings_provider_custom_headers">Custom Headers(每行 Key: Value)</string>
-    <string name="settings_provider_custom_body">Custom Body(JSON 对象)</string>
-    <string name="settings_provider_openai_specific">OpenAI 特定</string>
+    <string name="settings_provider_custom_headers">Custom Headers（每行 Key: Value）</string>
+    <string name="settings_provider_custom_body">Custom Body（JSON 对象）</string>
+    <string name="settings_provider_openai_specific">OpenAI 专属设置</string>
     <string name="settings_provider_use_responses_api">使用 Responses API</string>
     <string name="settings_provider_include_history_reasoning">历史消息包含推理内容</string>
     <string name="settings_provider_embeddings_path">Embeddings 路径</string>
     <string name="settings_provider_images_path">Images 路径</string>
     <string name="settings_provider_strip_model_prefix">模型 ID 前缀剥离（留空不剥离）</string>
     <string name="settings_provider_strip_model_prefix_placeholder">如 opencode-go/</string>
-    <string name="settings_provider_anthropic_specific">Anthropic 特定</string>
+    <string name="settings_provider_anthropic_specific">Anthropic 专属设置</string>
     <string name="settings_provider_enable_prompt_caching">启用 Prompt Caching</string>
-    <string name="settings_provider_prompt_cache_ttl">Prompt Cache TTL(仅 5m / 1h)</string>
+    <string name="settings_provider_prompt_cache_ttl">Prompt Cache TTL（仅 5m / 1h）</string>
     <string name="settings_provider_messages_path">Messages 路径</string>
     <string name="settings_provider_models_path">Models 路径</string>
-    <string name="settings_provider_refresh_models">刷新上游模型</string>
+    <string name="settings_provider_refresh_models">刷新模型列表</string>
     <string name="settings_provider_edit_model_abilities">编辑模型能力</string>
     <!-- v1.97: ModelRegistry 一键自动检测能力按钮 -->
     <string name="settings_provider_ability_tools">工具调用</string>
@@ -144,7 +144,7 @@
     <string name="settings_provider_max_output_tokens">最大输出 token(可选)</string>
     <string name="settings_provider_remove_model">从列表移除该模型</string>
     <string name="settings_provider_no_models">暂无模型</string>
-    <string name="settings_provider_no_models_hint">点击下方按钮拉取上游模型</string>
+    <string name="settings_provider_no_models_hint">还没有可用模型，可获取或手动添加</string>
     <string name="settings_provider_select_models">选择要添加的模型</string>
     <string name="settings_provider_models_count">共 %1$d 个模型 · 上下文自动识别</string>
     <string name="settings_provider_search_models">搜索模型 id</string>
@@ -175,18 +175,18 @@
     <string name="settings_backup_export_session_empty">暂无可导出的会话</string>
     <string name="settings_backup_export_session_search">搜索会话标题</string>
     <string name="settings_backup_export_session_count">%1$d 条消息</string>
-    <string name="settings_backup_export_session_success">会话导出成功： %1$d 条消息</string>
-    <string name="settings_backup_export_session_failed">会话导出失败： %1$s</string>
+    <string name="settings_backup_export_session_success">会话导出成功：%1$d 条消息</string>
+    <string name="settings_backup_export_session_failed">会话导出失败：%1$s</string>
     <string name="settings_backup_plaintext_export_title">导出未加密备份？</string>
     <string name="settings_backup_plaintext_export_message">当前未设置备份密码。继续后会生成未加密的备份文件，任何拿到文件的人都能读取其中内容。建议先到云备份页面设置密码。</string>
     <string name="settings_backup_plaintext_export_action">继续导出明文</string>
     <string name="settings_backup_import">导入备份</string>
-    <string name="settings_backup_export_success">导出成功： %1$d 个会话 / %2$d 条消息</string>
-    <string name="settings_backup_export_failed">导出失败： %1$s</string>
+    <string name="settings_backup_export_success">导出成功：%1$d 个会话 / %2$d 条消息</string>
+    <string name="settings_backup_export_failed">导出失败：%1$s</string>
     <string name="settings_backup_import_success">已导入 %1$d 个会话 / %2$d 条消息</string>
-    <string name="settings_backup_import_failed">导入失败： %1$s</string>
-    <string name="settings_backup_export_start_failed">无法启动导出： %1$s</string>
-    <string name="settings_backup_import_start_failed">无法启动导入： %1$s</string>
+    <string name="settings_backup_import_failed">导入失败：%1$s</string>
+    <string name="settings_backup_export_start_failed">无法启动导出：%1$s</string>
+    <string name="settings_backup_import_start_failed">无法启动导入：%1$s</string>
     <string name="settings_backup_cloud_title">云备份</string>
     <string name="settings_backup_status_unconfigured">未配置云存储</string>
     <string name="settings_backup_status_checking">检查中...</string>
@@ -196,7 +196,7 @@
     <!-- U-10: 与独立"云备份"页统一,间隔单位统一为"天"(底层仍以小时存储) -->
     <!-- U-4: 覆盖式导入/恢复共用确认文案(本地导入 + 云端恢复 + 按版本恢复) -->
     <string name="settings_backup_overwrite_confirm">将用所选备份覆盖当前全部会话、消息、记忆与经验数据（恢复前会自动生成保护副本）。确定继续？</string>
-    <string name="settings_backup_overwrite_confirm_action">确定继续</string>
+    <string name="settings_backup_overwrite_confirm_action">覆盖并恢复</string>
     <string name="settings_backup_upload_subtitle_configured">覆盖云端最新备份</string>
     <string name="settings_backup_upload_subtitle_unconfigured">请先配置云存储</string>
     <string name="settings_backup_configure_first">请先配置云存储</string>
@@ -265,7 +265,7 @@
     <!-- ==================== MCP 设置 ==================== -->
     <string name="settings_mcp_title">MCP 服务器</string>
     <string name="settings_mcp_desc">连接外部 MCP 服务器，自动把它的工具注册到本地工具表（SSE / StreamableHTTP）</string>
-    <string name="settings_mcp_empty_title">尚未配置 MCP server</string>
+    <string name="settings_mcp_empty_title">还没配置 MCP 服务</string>
     <string name="settings_mcp_failed">失败： %1$s</string>
     <string name="settings_mcp_more">更多</string>
     <string name="settings_mcp_oauth_authorize">OAuth 授权</string>
@@ -281,10 +281,10 @@
     <string name="settings_mcp_display_name">显示名</string>
     <string name="settings_mcp_display_name_placeholder">如 GitHub MCP</string>
     <string name="settings_mcp_transport_type">传输类型</string>
-    <string name="settings_mcp_stdio_hint">支持本地 STDIO（应用内置 Node 运行时）与远程 SSE / StreamableHTTP 连接。</string>
+    <string name="settings_mcp_stdio_hint">支持本地 STDIO（应用内置 Node 运行环境）与远程 SSE / StreamableHTTP 连接。</string>
     <string name="settings_mcp_stdio_command">命令</string>
     <string name="settings_mcp_stdio_command_placeholder">npx -y @modelcontextprotocol/server-filesystem /sdcard/Documents</string>
-    <string name="settings_mcp_stdio_command_help">在内置 Node 运行时中启动本地 MCP server；支持 node / npm / npx 命令，首次运行需联网下载依赖。</string>
+    <string name="settings_mcp_stdio_command_help">在内置 Node 运行环境中启动本地 MCP 服务；支持 node / npm / npx 命令，首次运行需联网下载依赖。</string>
     <string name="settings_mcp_stdio_command_required">请填写启动命令</string>
     <string name="settings_mcp_bearer_token">Bearer Token(可选)</string>
     <string name="settings_mcp_custom_headers">自定义请求头（每行 key:value）</string>
@@ -346,7 +346,7 @@
     <string name="settings_web_port_number">端口号（1024-65535）</string>
     <string name="settings_web_port_hint">避开 8080/3000 等常见端口。保存后会立即重启 Web 服务。</string>
     <string name="settings_web_port_invalid">端口无效（1024-65535）</string>
-    <string name="settings_web_port_updated">端口已更新,Web 服务已重新应用</string>
+    <string name="settings_web_port_updated">端口已更新，Web 服务已重新应用</string>
     <string name="settings_web_failed">失败： %1$s</string>
     <string name="settings_web_status_running">服务运行中，端口 %1$d</string>
     <string name="settings_web_status_stopped">服务未运行</string>
@@ -372,7 +372,7 @@
     <string name="settings_chat_randomness">回答随机性</string>
     <string name="settings_chat_temp_hint_certain">偏确定，回答稳定可预期</string>
     <string name="settings_chat_temp_hint_balanced_low">偏平衡，兼顾稳定与多样</string>
-    <string name="settings_chat_temp_hint_balanced">平衡,0=确定 1=平衡 2=创造性</string>
+    <string name="settings_chat_temp_hint_balanced">平衡，0=确定 1=平衡 2=创造性</string>
     <string name="settings_chat_temp_hint_creative_low">偏创造性，回答更多样</string>
     <string name="settings_chat_temp_hint_creative">创造性，回答发散多变</string>
     <string name="settings_chat_style">语气风格</string>
@@ -450,5 +450,5 @@
     <string name="settings_provider_clear_models">清空全部</string>
     <string name="settings_mcp_add_action">添加服务器</string>
     <string name="settings_model_catalog_counts">%1$d 个供应商 · %2$d 个模型</string>
-    <string name="settings_provider_api_key_pool_hint">粘贴一个或多个 API 密钥，可用换行或逗号分隔</string>
+    <string name="settings_provider_api_key_pool_hint">粘贴一个或多个 API Key，可用换行或逗号分隔</string>
 </resources>

@@ -74,8 +74,8 @@
     <string name="import_default_provider_name">导入的供应商</string>
     <string name="import_default_assistant_name">导入的助手</string>
     <string name="import_default_session_title">导入的会话</string>
-    <string name="import_error_provider_failed">Provider 导入失败： %1$s</string>
-    <string name="import_error_provider_with_key_failed">Provider \'%1$s\' 导入失败： %2$s</string>
+    <string name="import_error_provider_failed">模型供应商导入失败：%1$s</string>
+    <string name="import_error_provider_with_key_failed">模型供应商「%1$s」导入失败：%2$s</string>
     <string name="import_error_assistant_failed">助手导入失败： %1$s</string>
     <string name="import_error_session_failed">会话导入失败： %1$s</string>
     <string name="import_error_rikka_parse_failed">RikkaHub 备份解析失败： %1$s</string>

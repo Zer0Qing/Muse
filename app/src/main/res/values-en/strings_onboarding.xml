@@ -4,23 +4,23 @@
     <!-- Step 0: Welcome -->
 
     <!-- Step 1: Language & Appearance -->
-    <string name="onboarding_language_title">Pick a language.</string>
-    <string name="onboarding_theme_title">Pick a look you like.</string>
+    <string name="onboarding_language_title">Pick a language</string>
+    <string name="onboarding_theme_title">Pick a look you like</string>
 
     <!-- Step 2: Your Name -->
-    <string name="onboarding_names_title">Let\'s get to know each other.</string>
+    <string name="onboarding_names_title">Let\'s get to know each other</string>
     <string name="onboarding_names_user_label">What should I call you?</string>
     <string name="onboarding_names_agent_label">Give it a name</string>
     <string name="onboarding_names_user_placeholder">e.g. Alex</string>
     <string name="onboarding_names_agent_placeholder">e.g. Nova</string>
     <string name="onboarding_names_hint">It applies to your default assistant; change it anytime.</string>
-    <string name="onboarding_memory_title">Let me remember you.</string>
-    <string name="onboarding_memory_subtitle">With this on, conversations are organized into long-term memories. Frequent memory updates lower model cache hits (off is usually cheaper), but long-term companionship gets much better.</string>
+    <string name="onboarding_memory_title">Let me remember you</string>
+    <string name="onboarding_memory_subtitle">When enabled, conversations are organized into long-term memories so replies stay tailored to you (uses slightly more tokens).</string>
     <string name="onboarding_memory_switch_title">Enable memory</string>
     <string name="onboarding_memory_switch_subtitle">Auto-organized after each chat; turn off anytime in Settings.</string>
 
     <!-- Step 3: Configure Provider -->
-    <string name="onboarding_provider_title">Connect a brain.</string>
+    <string name="onboarding_provider_title">Connect a brain</string>
     <string name="onboarding_provider_subtitle">Pick a model service, enter your key and test the connection. On success, we fetch the model list and match capabilities.</string>
     <string name="onboarding_provider_caps">Capabilities matched: Vision %1$d · Reasoning %2$d · Tools %3$d</string>
     <string name="onboarding_provider_select_label">Select Provider</string>
@@ -39,14 +39,14 @@
     <string name="onboarding_provider_custom_baseurl_input">https://api.example.com/v1</string>
 
     <!-- Step 4: Select Model -->
-    <string name="onboarding_model_title">Pick a main model.</string>
+    <string name="onboarding_model_title">Pick a main model</string>
     <string name="onboarding_model_search_label">Search models</string>
     <string name="onboarding_model_empty_title">No Provider Configured</string>
     <string name="onboarding_model_empty_desc">You can configure a provider and select a model later in Settings.</string>
 
     <!-- Step 5: Complete -->
-    <string name="onboarding_complete_title">Ready.</string>
-    <string name="onboarding_provider_next_hint">Pick a provider, add its key and pass the test to continue — or configure it later below.</string>
+    <string name="onboarding_complete_title">Ready</string>
+    <string name="onboarding_provider_next_hint">Pass the connection test to continue, or configure later in Settings</string>
     <string name="onboarding_complete_subtitle">A few things to try next</string>
     <string name="onboarding_restore_from_backup">Restore data from a backup</string>
     <string name="onboarding_tutorial_chat_title">Daily Chat</string>
@@ -62,6 +62,6 @@
     <string name="onboarding_button_start">Start Setup</string>
     <string name="onboarding_button_previous">Previous</string>
     <string name="onboarding_button_next">Next</string>
-    <string name="onboarding_button_finish">Let\'s chat</string>
+    <string name="onboarding_button_finish">Start chatting</string>
     <string name="onboarding_step_progress">Step %1$d of %2$d</string>
 </resources>

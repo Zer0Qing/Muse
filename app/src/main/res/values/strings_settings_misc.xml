@@ -112,17 +112,17 @@
     <!-- AssistantSection.kt -->
     <string name="settings_assistant_section">助手</string>
     <string name="settings_assistant_manage">助手管理</string>
-    <string name="settings_assistant_manage_subtitle">助手管理世界书</string>
+    <string name="settings_assistant_manage_subtitle">管理助手与世界书</string>
     <string name="settings_assistant_favorites">收藏夹</string>
     <string name="settings_assistant_favorites_subtitle">跨会话查看收藏的消息</string>
     <string name="settings_assistant_lorebook">世界书 Lorebook</string>
     <string name="settings_assistant_lorebook_subtitle">关键词触发的上下文注入（角色扮演/世界观设定）</string>
     <string name="settings_assistant_quick_messages">快捷消息</string>
-    <string name="settings_assistant_quick_messages_subtitle">预设消息模板，支持变量替换，一键插入输入框</string>
+    <string name="settings_assistant_quick_messages_subtitle">预设常用消息模板，支持变量替换并快速插入</string>
     <string name="settings_assistant_prompt_injection">模式注入</string>
     <string name="settings_assistant_prompt_injection_subtitle">切换模式时自动注入对应提示词（创意/编程/角色扮演等）</string>
-    <string name="settings_assistant_skills">Skill 管理</string>
-    <string name="settings_assistant_skills_subtitle">查看/启用/禁用 LLM 可调用的工具（读写文件/HTTP 等）</string>
+    <string name="settings_assistant_skills">技能管理</string>
+    <string name="settings_assistant_skills_subtitle">查看、启用或停用助手可调用的技能（读写文件、网络请求等）</string>
     <string name="settings_assistant_memory_enable">启用记忆系统</string>
 
     <!-- MultiAgentSettingsPage.kt -->
@@ -270,7 +270,7 @@
     <string name="diagnostic_export_subject">Muse 诊断信息</string>
     <string name="settings_crash_pending_section">待上报崩溃</string>
     <string name="settings_crash_pending_count">待上报崩溃： %1$d 条</string>
-    <string name="settings_crash_pending_hint_active">点击下方按钮上报，无需任何配置</string>
+    <string name="settings_crash_pending_hint_active">有待上报的崩溃记录，上报无需额外配置</string>
     <string name="settings_crash_pending_hint_idle">应用崩溃后会自动加入待上报队列</string>
     <string name="settings_crash_report_now_button">立即上报待处理崩溃</string>
     <string name="settings_crash_settings_section">上报设置</string>
@@ -289,8 +289,8 @@
     <string name="settings_web_search_native_unavailable">模型原生搜索已接入 Gemini Grounding 与 OpenAI Responses；其他协议会自动忽略原生搜索。</string>
     <string name="settings_web_search_default_path">默认搜索路径</string>
     <string name="settings_web_search_default_path_desc">优先模型原生搜索，其次用户 API，最后按 Bing HTTP → 百度 HTTP 尝试</string>
-    <string name="settings_web_search_provider_status_bing">Bing HTTP：中国区入口，免费兜底</string>
-    <string name="settings_web_search_provider_status_jina">百度 HTTP：国内网页抓取兜底，免费</string>
+    <string name="settings_web_search_provider_status_bing">Bing HTTP：中国区入口，免费备用</string>
+    <string name="settings_web_search_provider_status_jina">百度 HTTP：国内网页抓取备用，免费</string>
     <string name="settings_web_search_provider_status_searxng">仅保留用户自己配置的搜索 API</string>
     <string name="settings_web_search_strategy">搜索策略</string>
     <string name="settings_web_search_budget">单轮最多搜索</string>

@@ -100,7 +100,7 @@
     <string name="notif_listener_category_label">Category: %1$s</string>
     <string name="safe_mode_data_recovery">Data Recovery Guide</string>
     <string name="safe_mode_data_recovery_title">Data Recovery Guide</string>
-    <string name="safe_mode_data_recovery_desc">This crash does not affect your local data; chats and settings are intact. To restore from a cloud backup: after restarting, go to Settings → Data Backup → Restore from Cloud.</string>
+    <string name="safe_mode_data_recovery_desc">This crash does not affect your local data; chats and settings are intact. To restore from cloud backup, open Settings → Full Backup → Restore from Cloud after restarting.</string>
     <string name="safe_mode_continue_normal_desc">Keep chats and settings, then try opening Muse again</string>
     <string name="safe_mode_disable_plugins">Disable all plugins and restart</string>
     <string name="safe_mode_disable_plugins_desc">Plugins are the most common cause of crashes. The app still starts; you can restore them in the plugin page anytime.</string>
@@ -175,7 +175,7 @@
     <string name="runtime_custom_url_sha256">SHA-256 (optional)</string>
     <string name="runtime_custom_url_unverified_warning">Without SHA-256, this archive will be installed as an unverified source.</string>
     <string name="runtime_upgrade_title">Runtime is now separate</string>
-    <string name="runtime_upgrade_desc">This version moves the Node runtime out of the APK, so the app is much smaller. Install it once before using scripts, MCP, or the terminal (about 76 MB download, 230 MB installed).</string>
+    <string name="runtime_upgrade_desc">Install the runtime once before using scripts, MCP, or the terminal (about 76 MB download, 230 MB installed).</string>
     <string name="terminal_send_to_ai_cd">Send this round to AI</string>
     <string name="settings_provider_test_autofixed">Auto-fixed and saved a working setup: %1$s (%2$s).</string>
     <string name="memory_dream_title">Tidy memory (Dream)</string>

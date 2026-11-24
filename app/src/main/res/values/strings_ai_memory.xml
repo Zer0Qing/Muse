@@ -33,7 +33,7 @@
     <string name="memory_created_today">今天入库</string>
     <string name="memory_created_yesterday">昨天入库</string>
     <string name="memory_created_days_ago">%1$d 天前入库</string>
-    <string name="memory_sync_never">尚未编译记忆，对话内容暂未进入长期记忆</string>
+    <string name="memory_sync_never">还没整理记忆，对话内容还没进入长期记忆</string>
     <string name="memory_sync_recent">最近编译 %1$d 分钟前，记忆已同步</string>
     <string name="memory_sync_stale">最近记忆已整理于 %1$d 分钟前；继续对话会持续更新</string>
     <string name="memory_chart_type_distribution_cd">记忆类型分布环形图</string>

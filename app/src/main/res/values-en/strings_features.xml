@@ -813,7 +813,7 @@
     <string name="agent_screen_tool_search">Search workspace</string>
     <string name="agent_screen_tool_mounts">Workspace mounts</string>
     <string name="agent_hub_open_workbench">Control panel</string>
-    <string name="agent_hub_switch_bot">Switch agent</string>
+    <string name="agent_hub_switch_bot">Switch assistant</string>
     <string name="agent_hub_input_placeholder">Hold to speak, tap to type…</string>
     <string name="agent_hub_voice_recording">Listening, release to finish…</string>
     <string name="agent_hub_voice_cd">Voice input</string>
@@ -835,7 +835,7 @@
     <string name="agent_hub_choice_selected">Selected</string>
     <string name="agent_hub_cue_trigger_briefing">Generate briefing</string>
     <string name="agent_hub_cue_briefing_title">Status briefing</string>
-    <string name="agent_hub_cue_briefing_empty">Everything is up to date. Hand off a new task anytime.</string>
+    <string name="agent_hub_cue_briefing_empty">No pending briefings</string>
     <string name="agent_hub_quick_briefing">Briefing</string>
     <string name="agent_hub_quick_teach">Record steps</string>
     <string name="agent_hub_quick_workbench">Task panel</string>

@@ -24,7 +24,7 @@
     <!-- ── StorageError ── -->
     <string name="error_storage_db_full">Database is full, please clear data and retry</string>
     <string name="error_storage_io_error">Local storage read/write failed, please restart the app</string>
-    <string name="error_storage_migration_failed">Database upgrade failed, please restart or reinstall the app</string>
+    <string name="error_storage_migration_failed">Database upgrade failed. Restart the app first; do not uninstall directly — export a backup in Safe Mode if the issue persists</string>
 
     <!-- ── ValidationError ── -->
     <string name="error_validation_empty_input">Input cannot be empty</string>
@@ -95,9 +95,9 @@
     <string name="err_chat_translate_failed">Translation failed: %1$s</string>
     <string name="err_chat_rag_failed">Knowledge base retrieval failed: %1$s</string>
     <string name="err_chat_prompt_unavailable">Failed to assemble persona and tool instructions, so this turn was aborted (no reply generated). Please retry; if it keeps happening, check the current assistant settings</string>
-    <string name="err_chat_vision_fallback">Vision assist failed, a fallback prompt was injected (see logs)</string>
+    <string name="err_chat_vision_fallback">Image recognition failed; replying based on text only</string>
     <!-- 以前 Agent 会话建不起来时异常直接冒出去：用户按下发送什么都没发生，也没有任何告知 -->
-    <string name="err_chat_agent_session_failed">Failed to create the Agent session; this send was canceled (see logs)</string>
+    <string name="err_chat_agent_session_failed">Unable to start Agent chat; this message was not sent. Please retry</string>
     <string name="err_chat_no_reply">The model service did not answer this round. Retry, or check the provider settings.</string>
     <string name="err_chat_no_provider">No model service is connected yet. Add an API key to continue.</string>
     <string name="err_chat_reply_save_failed">Failed to save reply: %1$s</string>
@@ -110,8 +110,8 @@
     <string name="err_chat_assistant_save_failed">Failed to save assistant: %1$s</string>
     <string name="err_chat_assistant_delete_failed">Failed to delete assistant: %1$s</string>
     <string name="err_chat_assistant_delete_last">At least two assistants must remain before one can be deleted</string>
-    <string name="err_chat_voice_no_asr">Voice conversation mode requires configuring an ASR API in settings first</string>
-    <string name="err_chat_tool_timeout">[Timeout] Tool %1$s did not respond within %2$d seconds, terminated</string>
+    <string name="err_chat_voice_no_asr">Voice conversation requires configuring a speech recognition service in Settings → Speech Recognition</string>
+    <string name="err_chat_tool_timeout">Tool "%1$s" did not respond within %2$d seconds and was stopped</string>
 
     <!-- ── ChatViewModel: tool execution progress text (updateAssistant content, user-visible) ── -->
     <string name="err_chat_img_generating">Generating image…</string>

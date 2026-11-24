@@ -18,7 +18,7 @@
     <string name="translate_page_send_to_chat_session">发送到会话</string>
     <string name="translate_page_more">更多</string>
     <string name="translate_page_style_label">翻译风格</string>
-    <string name="translate_page_tts_not_ready">TTS 尚未就绪，请稍后重试</string>
+    <string name="translate_page_tts_not_ready">语音播报正在准备，请稍后再试</string>
     <!-- v1.97: 翻译历史记录(内存保留最近 20 条,不持久化) -->
     <string name="translate_page_history_section">历史记录</string>
     <string name="translate_page_history_empty">暂无翻译历史</string>

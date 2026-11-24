@@ -402,7 +402,7 @@
     <string name="settings_backup_import_password_hint">Backup password (can be left empty if the backup is encrypted)</string>
     <string name="settings_backup_log_restore_hint">Click to restore (all sessions, messages, memories) · %1$s</string>
     <string name="settings_backup_overwrite_confirm">The selected backup will overwrite all current sessions, messages, memories, and experience data (a protected copy is automatically created before restoring). Continue?</string>
-    <string name="settings_backup_overwrite_confirm_action">Continue</string>
+    <string name="settings_backup_overwrite_confirm_action">Overwrite &amp; Restore</string>
     <string name="settings_backup_password_unavailable">The backup password is no longer valid. Set a new backup password before uploading.</string>
     <string name="settings_backup_restore_auto_confirm">The selected automatic backup will overwrite all sessions, messages, memories, and experience data. A protective copy of the current data is generated before restoring, and it can be rolled back automatically on failure. Continue?</string>
     <string name="settings_backup_restore_auto_confirm_action">Restore</string>

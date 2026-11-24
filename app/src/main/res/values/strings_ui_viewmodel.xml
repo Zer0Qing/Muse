@@ -67,7 +67,7 @@
 
     <!-- ===== PromptInjectionScreen 模式注入页 ===== -->
     <!-- 顶部栏 -->
-    <string name="prompt_injection_screen_title">模式注入 PromptInjection</string>
+    <string name="prompt_injection_screen_title">模式注入</string>
     <string name="prompt_injection_new_cd">新建 PromptInjection</string>
     <string name="prompt_injection_empty_title">还没有 PromptInjection</string>
     <string name="prompt_injection_delete_title">删除 PromptInjection</string>
@@ -101,7 +101,7 @@
     <string name="assistant_default_picker_title">选择默认助手</string>
     <string name="assistant_default_hint">新任务默认使用的助手</string>
     <string name="assistant_section_actions">添加或导入</string>
-    <string name="assistant_empty_create">尚未创建助手，点击新建</string>
+    <string name="assistant_empty_create">还没创建助手，点此新建</string>
     <string name="assistant_unnamed">（未命名）</string>
     <string name="assistant_current">当前</string>
     <string name="assistant_more_cd">更多操作</string>

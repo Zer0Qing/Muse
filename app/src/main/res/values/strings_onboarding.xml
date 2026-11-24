@@ -4,26 +4,26 @@
     <!-- 步骤 0:欢迎页 -->
 
     <!-- 步骤 1:语言与外观 -->
-    <string name="onboarding_language_title">先选个语言。</string>
-    <string name="onboarding_theme_title">换个喜欢的模样。</string>
+    <string name="onboarding_language_title">先选个语言</string>
+    <string name="onboarding_theme_title">换个喜欢的模样</string>
 
     <!-- 步骤 2:你的名字 -->
-    <string name="onboarding_names_title">先认识一下。</string>
+    <string name="onboarding_names_title">先认识一下</string>
     <string name="onboarding_names_user_label">我该怎么称呼你？</string>
     <string name="onboarding_names_agent_label">给它起个名字</string>
     <string name="onboarding_names_user_placeholder">例：小明</string>
     <string name="onboarding_names_agent_placeholder">例：Nova</string>
-    <string name="onboarding_names_hint">名字会用在默认助手上，随时可改。</string>
-    <string name="onboarding_memory_title">让我记住你。</string>
-    <string name="onboarding_memory_subtitle">开启后，对话结束会自动整理成长记忆。记忆频繁更新会降低模型缓存命中率（关掉通常更省钱），但长期陪伴会好得多。</string>
+    <string name="onboarding_names_hint">名字会用在默认助手上，随时可改</string>
+    <string name="onboarding_memory_title">让我记住你</string>
+    <string name="onboarding_memory_subtitle">开启后，对话结束会自动沉淀长期记忆，让你越聊越顺手（开启会略增 Token 消耗）。</string>
     <string name="onboarding_memory_switch_title">启用记忆系统</string>
-    <string name="onboarding_memory_switch_subtitle">对话结束自动整理；随时可在设置中关闭</string>
+    <string name="onboarding_memory_switch_subtitle">对话结束自动整理，随时可在设置中关闭</string>
 
     <!-- 步骤 3:配置供应商 -->
-    <string name="onboarding_provider_title">接上大脑。</string>
-    <string name="onboarding_provider_subtitle">选一个模型服务，填好 Key 并测试连接。成功后自动拉取模型清单并匹配能力。</string>
+    <string name="onboarding_provider_title">接上大脑</string>
+    <string name="onboarding_provider_subtitle">选择模型供应商，填写 API Key 并测试连接，通过后自动获取可用模型。</string>
     <string name="onboarding_provider_caps">能力已匹配：视觉 %1$d · 推理 %2$d · 工具 %3$d</string>
-    <string name="onboarding_provider_select_label">选择供应商</string>
+    <string name="onboarding_provider_select_label">选择模型供应商</string>
     <string name="onboarding_provider_apikey_label">API Key</string>
     <string name="onboarding_provider_apikey_input">在供应商控制台生成，通常形如 sk-…</string>
     <string name="onboarding_provider_apikey_show">显示密钥</string>
@@ -38,14 +38,14 @@
     <string name="onboarding_provider_custom_baseurl_input">https://api.example.com/v1</string>
 
     <!-- 步骤 4:选择模型 -->
-    <string name="onboarding_model_title">挑一个主力模型。</string>
+    <string name="onboarding_model_title">挑一个主力模型</string>
     <string name="onboarding_model_search_label">搜索模型</string>
-    <string name="onboarding_model_empty_title">未配置供应商</string>
-    <string name="onboarding_model_empty_desc">可稍后在设置中配置供应商并选择模型。</string>
+    <string name="onboarding_model_empty_title">还没配置模型供应商</string>
+    <string name="onboarding_model_empty_desc">可稍后在设置中配置模型供应商并选择模型</string>
 
     <!-- 步骤 5:完成页 -->
-    <string name="onboarding_complete_title">准备好了。</string>
-    <string name="onboarding_provider_next_hint">选好供应商、填好密钥并测试通过后即可继续；也可以点下方稍后配置。</string>
+    <string name="onboarding_complete_title">准备好了</string>
+    <string name="onboarding_provider_next_hint">测试通过后即可继续，或稍后在设置中配置</string>
     <string name="onboarding_complete_subtitle">接下来可以试试这些</string>
     <string name="onboarding_restore_from_backup">从备份恢复数据</string>
     <string name="onboarding_tutorial_chat_title">日常聊天</string>
@@ -61,6 +61,6 @@
     <string name="onboarding_button_start">开始设置</string>
     <string name="onboarding_button_previous">上一步</string>
     <string name="onboarding_button_next">下一步</string>
-    <string name="onboarding_button_finish">去聊聊吧</string>
+    <string name="onboarding_button_finish">开始聊天</string>
     <string name="onboarding_step_progress">第 %1$d 步 / 共 %2$d 步</string>
 </resources>

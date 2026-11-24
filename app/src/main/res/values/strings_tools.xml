@@ -220,7 +220,7 @@
     <string name="plugin_download_failed">插件下载失败</string>
     <string name="plugin_review_failed">插件包审查失败</string>
     <string name="plugin_install_failed">安装失败</string>
-    <string name="plugin_json_too_large">Provider 插件 JSON 超过大小上限（%1$dKB）</string>
+    <string name="plugin_json_too_large">模型供应商插件 JSON 超过大小上限（%1$d KB）</string>
     <string name="plugin_file_read_failed">无法读取所选文件</string>
     <string name="plugin_public_key_invalid">公钥无效</string>
     <string name="plugin_rollback_failed">回滚失败</string>

@@ -84,7 +84,7 @@
     <string name="safe_mode_view_full_log_desc">查看或分享完整日志，方便定位问题</string>
     <string name="safe_mode_clear_data_restart">删除全部数据并重新开始（不可撤销）</string>
     <string name="safe_mode_clear_data_restart_desc">删除聊天、设置和本地文件，只在 Muse 无法正常启动时使用</string>
-    <string name="safe_mode_clear_data_confirm_title">确定要删除全部数据吗？</string>
+    <string name="safe_mode_clear_data_confirm_title">删除全部本地数据？</string>
     <string name="safe_mode_clear_data_confirm_desc">这会删除聊天记录、设置、头像和本地文件，而且无法恢复。只有在 Muse 始终无法正常打开时才建议使用。</string>
     <string name="safe_mode_clear_data_confirm_action">删除全部数据</string>
     <string name="safe_mode_copy_crash_info">复制崩溃信息</string>
@@ -106,12 +106,12 @@
     <string name="notif_listener_cleared_toast">已清空通知记录</string>
     <string name="notif_listener_clear_records">清空记录</string>
     <string name="notif_listener_feature_title">功能说明</string>
-    <string name="notif_listener_feature_desc">授权后,Muse 可感知其他 App 的通知作为事件源，供 AI 在聊天中查询。例如你可以问：\"今天微信有什么通知？\"\"未读消息里有没有重要的\"</string>
+    <string name="notif_listener_feature_desc">授权后，Muse 可感知其他 App 的通知作为事件源，供 AI 在聊天中查询。例如你可以问：\"今天微信有什么通知？\"\"未读消息里有没有重要的\"</string>
     <string name="notif_listener_privacy_title">隐私边界</string>
     <string name="notif_listener_privacy_desc">• 通知内容仅存储在本地（最多 200 条，超出自动丢弃最旧）\n• 系统 UI、Muse 自身通知已过滤，不会被采集\n• 不上报任何通知数据到服务器\n• 可随时在此页\"清空记录\"或到系统设置撤销授权</string>
     <string name="notif_listener_recent_header">最近通知（%1$d/200）</string>
     <string name="notif_listener_empty_connected">暂无通知记录\n授权后新通知会自动出现在这里</string>
-    <string name="notif_listener_empty_disconnected">尚未授权\n请先点击上方\"授权设置\"</string>
+    <string name="notif_listener_empty_disconnected">还没开启通知读取权限</string>
     <string name="notif_listener_authorized">已授权</string>
     <string name="notif_listener_unauthorized">未授权</string>
     <string name="notif_listener_recent_count_disconnected">最近通知： %1$d 条 · 请先到系统设置授权</string>
@@ -146,9 +146,9 @@
     <string name="safe_mode_data_recovery">先看数据恢复说明</string>
     <string name="safe_mode_data_recovery_desc_short">了解哪些数据会保留，以及如何从备份恢复</string>
     <string name="safe_mode_data_recovery_title">数据恢复引导</string>
-    <string name="safe_mode_data_recovery_desc">本次崩溃不影响本地数据，聊天记录与设置均完好保留。如需从云端备份恢复数据：启动后进入 设置 → 数据备份 → 从云端恢复。</string>
+    <string name="safe_mode_data_recovery_desc">本次崩溃不影响本地数据，聊天记录与设置均完好保留。如需从云端恢复，启动后进入「设置 → 完整备份 → 从云端恢复」。</string>
     <string name="notif_auto_backup_success_title">自动备份成功</string>
-    <string name="notif_auto_backup_success_text">您的数据已自动备份到云端</string>
+    <string name="notif_auto_backup_success_text">你的数据已自动备份到云端</string>
     <string name="notif_auto_backup_failed_title">自动备份失败</string>
     <string name="notif_auto_backup_failed_write_text">写入云端失败，请检查网络与云备份配置</string>
     <string name="notif_auto_backup_failed_verify_text">备份写入成功但校验失败，数据可能不完整</string>
@@ -157,7 +157,7 @@
     <string name="notif_permission_guide">开启后 Muse 才能推送消息完成提醒与备份通知</string>
     <string name="notif_permission_open">去开启</string>
     <string name="runtime_notif_channel_name">运行环境安装</string>
-    <string name="runtime_notif_channel_desc">下载并安装运行时所需的文件</string>
+    <string name="runtime_notif_channel_desc">下载并安装运行环境所需的文件</string>
     <string name="runtime_notif_installing">正在安装运行环境</string>
     <string name="runtime_notif_done">运行环境已就绪</string>
     <string name="runtime_notif_failed">运行环境安装失败：%1$s</string>
@@ -183,7 +183,7 @@
     <string name="runtime_custom_url_sha256">SHA-256（可选）</string>
     <string name="runtime_custom_url_unverified_warning">未填写 SHA-256，此归档将按未验证来源安装。</string>
     <string name="runtime_upgrade_title">运行环境已独立</string>
-    <string name="runtime_upgrade_desc">新版把 Node 运行环境从安装包拆出来了，APK 体积更小。首次使用脚本、MCP 或终端前需要安装一次（下载约 76MB，安装后约 230MB）。</string>
+    <string name="runtime_upgrade_desc">首次使用脚本、MCP 或终端前，需安装一次运行环境（下载约 76 MB，安装后约 230 MB）。</string>
     <string name="terminal_send_to_ai_cd">把这轮发给 AI</string>
     <string name="settings_provider_test_autofixed">已自动修正并保存为可用配置：%1$s（%2$s）。</string>
     <string name="memory_dream_title">整理记忆（Dream）</string>

@@ -35,10 +35,10 @@
     <string name="skill_url_invalid_scheme">URL 必须以 http:// 或 https:// 开头</string>
     <string name="skill_url_invalid_scheme_err">error: url 必须以 http:// 或 https:// 开头</string>
     <string name="skill_path_violation_err">error: path 路径越权（仅允许 filesDir/cacheDir 下）</string>
-    <string name="skill_web_search_not_configured">web_search 未配置：WebSearchService 未注入</string>
+    <string name="skill_web_search_not_configured">联网搜索暂不可用，请先在「设置 → 联网搜索」中配置搜索服务</string>
     <string name="skill_search_no_result">搜索 \"%1$s\" 无结果（可能未配置搜索 provider 或网络失败）</string>
     <string name="skill_search_result_header">搜索 \"%1$s\" 的结果（%2$d 条）:\n</string>
-    <string name="skill_knowledge_not_configured">knowledge_search 未配置：KnowledgeDocDao 未注入</string>
+    <string name="skill_knowledge_not_configured">知识库检索暂不可用，请先导入知识库文档或重启应用</string>
     <string name="skill_query_blank">查询词不能为空</string>
     <string name="skill_knowledge_vector_header">知识库语义搜索 \"%1$s\" 命中 %2$d 个片段（阈值 %3$s，上限 %4$d）:\n</string>
     <string name="skill_knowledge_no_match">知识库中未找到匹配 \"%1$s\" 的文档（阈值 %2$s）</string>
@@ -46,17 +46,17 @@
     <string name="skill_arxiv_search_failed">arXiv 搜索失败： HTTP %1$d</string>
     <string name="skill_arxiv_no_result">arXiv 搜索 \"%1$s\" 无结果</string>
     <string name="skill_arxiv_result_header">arXiv 搜索 \"%1$s\" 的结果（%2$d 篇）:\n</string>
-    <string name="skill_install_not_configured">install_skill 未配置：SkillRepository 未注入</string>
+    <string name="skill_install_not_configured">技能安装暂不可用，请重启应用后再试</string>
     <string name="skill_install_conflict">拒绝安装： id \'%1$s\' 与内置技能冲突，不允许覆盖内置技能</string>
     <string name="skill_install_db_failed">入库失败： %1$s</string>
-    <string name="skill_installed">已安装技能： %1$s(id=%2$s，实现=%3$s）。用户可在设置 → 技能中查看/启停。</string>
+    <string name="skill_installed">已安装技能：%1$s（ID：%2$s，方式：%3$s）。可在「设置 → 技能管理」中查看或启停。</string>
     <string name="skill_install_validate_failed">skill 定义校验失败： %1$s</string>
     <!-- ===== author_plugin:助手自写插件(宿主只产出未签名草稿,用户签名后才生效) ===== -->
-    <string name="plugin_author_not_configured">author_plugin 未配置：PluginManager 未注入</string>
+    <string name="plugin_author_not_configured">插件创建暂不可用，请重启应用后再试</string>
     <string name="plugin_author_invalid_tools">参数 tools 必须是 JSON 数组，元素需包含 name/description/parametersJson/requiredJson/functionName 字符串字段</string>
     <string name="plugin_author_invalid_capabilities">参数 capabilities 必须是字符串数组（可省略）</string>
     <string name="plugin_author_progress">正在生成插件草稿...</string>
-    <string name="plugin_author_draft_created">已创建未签名草稿插件：%1$s(id=%2$s, v%3$s, 工具=%4$s）。草稿当前禁用且不可执行，助手还不能调用；请让用户在「设置 → 插件管理」中审阅工具清单与代码后点击「签名并启用」，由本机作者密钥签名后才会生效。</string>
+    <string name="plugin_author_draft_created">已创建未签名草稿插件：%1$s（ID：%2$s，v%3$s，工具：%4$s）。草稿当前已禁用，请在「设置 → 插件管理」中审阅后签名启用。</string>
     <string name="skill_unknown_error">未知错误</string>
     <string name="chat_auto_route_prefix">已自动委派给「%1$s」</string>
     <string name="skill_assistant_not_found">未找到 id 为 %1$s 的子助手，请在助手管理中创建</string>
@@ -72,17 +72,17 @@
     <string name="skill_plan_not_found">未找到计划： %1$s</string>
     <string name="skill_step_index_out_of_range">stepIndex 超范围： %1$d(计划共 %2$d 步)</string>
     <string name="skill_unknown_status">未知 status: %1$s(支持： done/failed/in_progress/skipped)</string>
-    <string name="skill_channel_reply_not_configured">channel_reply 未配置：GroupChatRepository 未注入</string>
+    <string name="skill_channel_reply_not_configured">群聊回复功能暂不可用，请重启应用后再试</string>
     <string name="skill_body_blank">body 不能为空</string>
     <string name="skill_message_sent">已发送消息： %1$s</string>
     <string name="skill_skipped">已跳过（chatId=%1$s, assistantId=%2$s）</string>
-    <string name="skill_channel_read_not_configured">channel_read_context 未配置：GroupChatRepository 未注入</string>
+    <string name="skill_channel_read_not_configured">群聊记录读取暂不可用，请重启应用后再试</string>
     <string name="skill_chat_no_messages">群聊 %1$s 暂无消息</string>
     <!-- v1.0.53 Phase 5: Agent Phone(agent_phone 工具) -->
     <string name="skill_missing_param_target_assistant_id">缺少参数： targetAssistantId(目标 agent id)</string>
     <string name="skill_missing_param_message">缺少参数： message(消息正文)</string>
     <string name="skill_message_blank">message 不能为空</string>
-    <string name="skill_agent_phone_not_configured">agent_phone 未配置：GroupChatScheduler 未注入</string>
+    <string name="skill_agent_phone_not_configured">小手机调度暂不可用，请重启应用后再试</string>
     <string name="skill_agent_phone_target_not_found">目标 agent 不存在</string>
     <string name="skill_whisper_sent">已向 %1$s 发起私聊</string>
     <string name="skill_progress_whispering">正在发起私聊...</string>
@@ -110,22 +110,22 @@
     <string name="skill_query_failed">查询失败： %1$s</string>
     <string name="skill_query_failed_short">查询失败</string>
     <string name="skill_dir_empty">目录为空</string>
-    <string name="skill_list_not_configured">list_skills 未配置：SkillRepository 未注入</string>
+    <string name="skill_list_not_configured">技能列表暂不可用，请重启应用后再试</string>
     <string name="skill_no_category_skill">没有分类为 %1$s 的技能</string>
-    <string name="skill_no_skill_installed">尚未安装任何技能</string>
-    <string name="skill_uninstall_not_configured">uninstall_skill 未配置：SkillRepository 未注入</string>
+    <string name="skill_no_skill_installed">还没安装任何技能</string>
+    <string name="skill_uninstall_not_configured">技能卸载暂不可用，请重启应用后再试</string>
     <string name="skill_skill_not_found_by_name">未找到名为 %1$s 的技能</string>
     <string name="skill_skill_not_found">未找到 skill: %1$s</string>
     <string name="skill_uninstalled">已卸载 skill: %1$s(id=%2$s)</string>
     <string name="skill_uninstall_reserved_rejected">拒绝卸载： id \'%1$s\' 是内置保留 skill，不允许卸载</string>
     <string name="skill_uninstall_plugin_rejected">拒绝卸载： %1$s(id=%2$s）是插件技能，由插件管理页管理，助手不能卸载</string>
-    <string name="skill_disable_not_configured">disable_skill 未配置：SkillRepository 未注入</string>
+    <string name="skill_disable_not_configured">停用技能暂不可用，请重启应用后再试</string>
     <string name="skill_disabled_result">已禁用 skill: %1$s(id=%2$s)</string>
     <string name="skill_disable_plugin_rejected">无法单独禁用： %1$s(id=%2$s）是插件技能，随插件启停，请到插件管理页操作</string>
-    <string name="skill_enable_not_configured">enable_skill 未配置：SkillRepository 未注入</string>
+    <string name="skill_enable_not_configured">启用技能暂不可用，请重启应用后再试</string>
     <string name="skill_enabled_result">已启用 skill: %1$s(id=%2$s)</string>
     <string name="skill_enable_plugin_rejected">无法单独启用： %1$s(id=%2$s）是插件技能，随插件启停，请到插件管理页操作</string>
-    <string name="skill_update_not_configured">update_skill 未配置：SkillRepository 未注入</string>
+    <string name="skill_update_not_configured">更新技能暂不可用，请重启应用后再试</string>
     <string name="skill_update_reserved_rejected">拒绝修改： id \'%1$s\' 是内置保留 skill，不允许修改</string>
     <string name="skill_update_plugin_rejected">拒绝修改： %1$s(id=%2$s）是插件技能，由插件管理页管理，助手不能修改</string>
     <string name="skill_update_prompt_not_supported">拒绝修改： %1$s(id=%2$s）不是提示词技能，不能用 prompt 参数更新指令文本</string>
@@ -143,7 +143,7 @@
     <string name="skill_progress_planning">正在创建计划...</string>
     <string name="skill_unknown_agent">未知 Agent</string>
     <string name="skill_progress_generating_image">正在生成图片...</string>
-    <string name="skill_image_not_configured">generate_image 未配置： ImageService 未注入（请配置 OpenAI 兼容绘图供应商）</string>
+    <string name="skill_image_not_configured">图片生成暂不可用，请先在「设置 → 模型供应商」中配置支持绘图的模型</string>
     <string name="skill_missing_param_prompt">缺少参数： prompt(图片描述)</string>
     <string name="skill_image_no_result">图片生成无结果： %1$s</string>
     <string name="skill_image_generated">已根据「%1$s」生成图片：\n%2$s</string>
@@ -172,7 +172,7 @@
     <string name="tool_clipboard_content">剪贴板内容： %1$s</string>
     <string name="tool_clipboard_written">已写入剪贴板（%1$d 字符）</string>
     <string name="tool_missing_param_text">缺少参数： text</string>
-    <string name="tool_screen_time_unavailable">无法获取屏幕使用时间（可能缺少 PACKAGE_USAGE_STATS 权限，请在设置→应用→特殊权限中授予）</string>
+    <string name="tool_screen_time_unavailable">无法获取屏幕使用时间，请在系统「设置 → 应用 → 特殊权限」中授予使用情况访问权限</string>
     <string name="tool_screen_time_header">今日屏幕使用时间 Top 10:\n</string>
     <string name="tool_screen_time_item">  - %1$s: %2$d 分钟</string>
     <string name="tool_date_format_error">date 参数格式错误（应为 YYYY-MM-DD）: %1$s</string>
@@ -274,7 +274,7 @@
     <string name="tool_battery_charging">充电中</string>
     <string name="tool_battery_not_charging">未充电</string>
     <string name="tool_no_notifications">暂无通知记录</string>
-    <string name="tool_notification_not_connected">通知监听未连接，请前往系统设置→通知使用权，授权 Muse</string>
+    <string name="tool_notification_not_connected">通知监听未连接，请前往系统「设置 → 通知使用权」授权 Muse</string>
     <string name="tool_missing_param_location">缺少参数： location(城市名)</string>
     <string name="tool_weather_api_error">天气 API 请求失败： HTTP %1$d</string>
     <string name="tool_weather_no_data">%1$s 当前无天气数据</string>
@@ -388,7 +388,7 @@
     <string name="tool_reminder_scheduled_inexact">已创建定时提醒（id: %1$s）\n触发时间： %2$s\n注意：未授予「闹钟和提醒」权限，这条提醒只能近似时间响铃（可能晚几分钟）。建议在系统设置中为本应用开启该权限。</string>
     <string name="tool_reminder_status_scheduled">已排期，将准时响铃</string>
     <string name="tool_reminder_status_inexact">已排期，但未获精确闹钟权限，可能晚几分钟</string>
-    <string name="tool_reminder_status_unscheduled">闹钟未能排上，可能不会响，请重新设置</string>
+    <string name="tool_reminder_status_unscheduled">闹钟没能排上，可能不会响，请重新设置</string>
     <string name="tool_reminder_status_lost">未确认排期，可能不会响</string>
     <string name="tool_reminder_catchup_title">%1$s（补）</string>
     <string name="reminder_exact_permission_hint">未开启「闹钟和提醒」权限，提醒只能晚几分钟响，可能不准时。</string>

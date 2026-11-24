@@ -29,7 +29,7 @@
     <!-- v1.x: 保持后台运行引导 -->
     <string name="settings_agent_keep_alive_title">保持后台运行</string>
     <string name="keep_alive_dialog_title">%1$s · 保持后台运行</string>
-    <string name="keep_alive_manual_hint">未能自动跳转，请按上方步骤在系统设置中手动开启</string>
+    <string name="keep_alive_manual_hint">没能自动跳转，请按上方步骤在系统设置中手动开启</string>
     <string name="keep_alive_dialog_desc">主动消息依赖后台进程。国产系统默认会清理后台应用，按下面步骤放行后，即使划掉最近任务也能继续收到消息：</string>
     <string name="keep_alive_dialog_open">去设置</string>
     <string name="settings_agent_proactive_title">主动消息</string>
@@ -44,10 +44,10 @@
     <string name="settings_agent_default_assistant_fallback">默认助手</string>
     <string name="settings_agent_select_assistant_title">选择 Agent 助手</string>
     <string name="settings_agent_no_assistants_hint">暂无助手，请先在「助手」页面创建。</string>
-    <string name="settings_agent_offset_hint">让发送时间在间隔基础上自然漂移,0 为关闭（固定间隔）</string>
+    <string name="settings_agent_offset_hint">让发送时间在间隔基础上自然漂移，0 为关闭（固定间隔）</string>
     <string name="settings_agent_offset_off_label">关闭</string>
     <string name="settings_agent_select_model">选择 Agent 模型</string>
-    <string name="settings_agent_no_models_hint">暂无可用模型，请先在「模型与服务」中配置供应商。</string>
+    <string name="settings_agent_no_models_hint">暂无可用模型，请先在「设置 → 模型供应商」中配置。</string>
     <string name="settings_agent_unnamed_assistant">未命名助手</string>
     <string name="settings_agent_interval_minutes">每 %1$d 分钟</string>
     <string name="settings_agent_interval_hourly">每小时</string>
@@ -129,7 +129,7 @@
     <string name="settings_theme_custom_secondary_color">辅色（可选）</string>
     <string name="settings_theme_custom_tertiary_color">强调色（可选）</string>
     <string name="settings_theme_custom_preview">配色预览</string>
-    <string name="settings_theme_custom_delete_confirm">确定删除此主题？</string>
+    <string name="settings_theme_custom_delete_confirm">删除此自定义主题？</string>
     <string name="settings_theme_custom_delete_confirm_msg">删除后无法恢复，使用此主题的界面将回退到默认主题。</string>
     <string name="settings_theme_custom_export">导出主题</string>
     <string name="settings_theme_custom_import">导入主题</string>
@@ -173,7 +173,7 @@
     <string name="prompt_template_manager_built_in">内置</string>
     <string name="prompt_template_manager_move_up">上移</string>
     <string name="prompt_template_manager_move_down">下移</string>
-    <string name="prompt_template_manager_delete_confirm">确定删除模板“%1$s”?</string>
+    <string name="prompt_template_manager_delete_confirm">删除模板「%1$s」？删除后无法恢复。</string>
     <string name="prompt_template_manager_add">新建模板</string>
     <string name="prompt_template_manager_category">分类</string>
     <string name="prompt_template_manager_content">内容</string>
@@ -234,7 +234,7 @@
     <!-- 数据导入 -->
     <string name="settings_import_page_title">数据导入</string>
     <string name="settings_import_migrate_title">从其他应用迁移数据</string>
-    <string name="settings_import_migrate_desc">如果您之前使用过 RikkaHub 或 Kelivo，可以把它们的备份文件导入到 Muse。导入内容包括：供应商配置（API Key 等）、助手角色、对话记录。</string>
+    <string name="settings_import_migrate_desc">如果你之前使用过 RikkaHub 或 Kelivo，可以把它们的备份文件导入到 Muse。导入内容包括：模型供应商配置（API Key 等）、助手角色、对话记录。</string>
     <string name="settings_import_step1">第一步：了解如何导出备份</string>
     <string name="settings_import_rikkahub_desc">Android AI 聊天客户端</string>
     <string name="settings_import_rikkahub_step1">1. 在 RikkaHub 应用中打开设置</string>
@@ -253,7 +253,7 @@
     <string name="settings_import_step2_title">第二步：选择备份文件</string>
     <string name="settings_import_select_backup">选择备份文件（ZIP 格式）</string>
     <string name="settings_importing">正在导入，请稍候...</string>
-    <string name="settings_import_tips">温馨提示：\n• 导入的供应商配置中,API Key 可能需要您手动确认是否正确\n• 导入的对话记录会创建为新会话，不会覆盖现有数据\n• 如果导入失败，请检查备份文件是否完整</string>
+    <string name="settings_import_tips">注意事项：\n• 导入的模型供应商配置中，API Key 可能需要你手动确认是否正确\n• 导入的对话记录会创建为新对话，不会覆盖现有数据\n• 如果导入失败，请检查备份文件是否完整</string>
     <string name="settings_import_ready">我已经准备好了，选择文件</string>
     <string name="settings_import_complete">导入完成</string>
     <string name="settings_import_providers_count">供应商： %1$d 个</string>
@@ -276,7 +276,7 @@
     <string name="settings_asr_provider_hint">系统引擎使用本机语音服务，部分国产系统可能不支持；云端引擎（DashScope / Step / Whisper / Realtime 等）为流式识别，需配置对应 API Key。</string>
     <string name="settings_asr_provider_system">系统</string>
     <string name="settings_asr_provider_file">文件（实验）</string>
-    <string name="settings_asr_api_key">API 密钥</string>
+    <string name="settings_asr_api_key">API Key</string>
     <!-- ASR：跟随供应商配置 -->
     <string name="settings_asr_follow_provider">跟随供应商配置</string>
     <!-- 跟随模式共用的占位与回退提示 -->
@@ -284,7 +284,7 @@
     <!-- 语音模型选择（TTS / ASR 共用）：模型只在供应商里维护 -->
     <string name="settings_speech_model_hint">模型由供应商统一管理，这里只是选择</string>
     <string name="settings_speech_model_empty">还没有可用模型，请先在供应商里添加</string>
-    <string name="settings_speech_model_open_providers">前往供应商设置</string>
+    <string name="settings_speech_model_open_providers">前往模型供应商设置</string>
     <string name="settings_speech_model_custom_prefix">自定义：%1$s</string>
     <string name="settings_speech_model_custom_entry">改为自定义…</string>
     <string name="settings_speech_follow_fallback_notice">已回退到手动配置：%1$s</string>
@@ -330,12 +330,12 @@
     <string name="settings_rag_active_backend_section">当前后端</string>
     <string name="settings_rag_active_backend_label">当前实际在用</string>
     <string name="settings_rag_active_backend_degraded_unknown">已降级到其它后端，具体原因未记录</string>
-    <string name="settings_rag_cloud_provider_section">云端 Provider</string>
-    <string name="settings_rag_no_provider_hint">尚未配置任何 Provider，将使用当前激活的聊天 Provider</string>
+    <string name="settings_rag_cloud_provider_section">云端模型供应商</string>
+    <string name="settings_rag_no_provider_hint">还没配置模型供应商，将使用当前对话的模型供应商</string>
     <string name="settings_rag_baseurl_not_set">未设置 baseUrl</string>
-    <string name="settings_rag_deselect_hint">点击已选 Provider 可取消选择（回退到当前激活 Provider）</string>
+    <string name="settings_rag_deselect_hint">点击已选模型供应商可取消选择（回退到当前对话的模型供应商）</string>
     <string name="settings_rag_embedding_model_section">Embedding 模型</string>
-    <string name="settings_rag_model_name_hint">模型名（留空用 Provider 默认）</string>
+    <string name="settings_rag_model_name_hint">模型名（留空使用默认）</string>
     <string name="settings_rag_common_models">常见模型： text-embedding-3-small(1536维) / text-embedding-3-large(3072维) / embedding-2(1024维)</string>
     <string name="settings_rag_search_params_section">检索参数</string>
     <string name="settings_rag_top_k">检索数量 (top-K)</string>
@@ -372,7 +372,7 @@
     <string name="kb_manage_desc_label">描述（可选）</string>
     <!-- F-31: 向本知识库添加文档 -->
     <string name="kb_manage_add_doc">向本知识库添加文档</string>
-    <string name="kb_manage_delete_confirm">确认删除知识库 "%1$s"?</string>
+    <string name="kb_manage_delete_confirm">删除知识库「%1$s」？已导入的文档索引将一并移除，无法恢复。</string>
     <string name="kb_manage_default_no_delete">默认知识库不可删除</string>
     <string name="kb_manage_doc_count">%1$d 篇文档</string>
     <string name="kb_manage_name_empty">名称不能为空</string>
@@ -381,7 +381,7 @@
     <string name="kb_manage_deleted">已删除知识库 "%1$s"</string>
     <string name="kb_reindex_all">重新索引全部文档</string>
     <string name="kb_reindex_kb_confirm">将重建「%1$s」的全部索引（共 %2$d 篇文档）。</string>
-    <string name="kb_reindex_unavailable_warning">重建期间检索不可用,AI 将暂时无法引用知识库内容。</string>
+    <string name="kb_reindex_unavailable_warning">重建期间检索不可用，AI 将暂时无法引用知识库内容。</string>
     <string name="kb_reindex_in_progress">正在重新索引…%1$d/%2$d</string>
     <string name="kb_reindex_done">重新索引完成，共 %1$d 篇文档</string>
     <string name="kb_reindex_failed">重新索引失败：%1$s</string>

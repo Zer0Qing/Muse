@@ -101,8 +101,8 @@
 
     <!-- ===== ui/ModelSwitchSheet 模型切换面板 ===== -->
     <string name="model_switch_title">模型</string>
-    <string name="model_switch_no_provider">尚未配置任何 Provider\n请到「设置 → Provider 管理」添加</string>
-    <string name="model_switch_no_provider_selected">未选择 Provider</string>
+    <string name="model_switch_no_provider">还没配置模型供应商\n请到「设置 → 模型供应商」添加</string>
+    <string name="model_switch_no_provider_selected">未选择模型供应商</string>
     <string name="model_switch_models_label">模型（%1$s）</string>
     <string name="model_switch_fetching">拉取中</string>
     <string name="model_switch_refresh">刷新</string>
@@ -251,7 +251,7 @@
     <string name="common_clear">清空</string>
     <string name="common_all">全部</string>
     <string name="common_enable">启用</string>
-    <string name="common_provider">供应商</string>
+    <string name="common_provider">模型供应商</string>
     <string name="common_share">分享</string>
     <string name="common_done">已完成</string>
     <string name="agent_bot_result_failed">这件事没做成</string>

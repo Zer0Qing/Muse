@@ -33,10 +33,10 @@
     <string name="skill_url_invalid_scheme">URL must start with http:// or https://</string>
     <string name="skill_url_invalid_scheme_err">error: url must start with http:// or https://</string>
     <string name="skill_path_violation_err">error: path violation (only filesDir/cacheDir allowed)</string>
-    <string name="skill_web_search_not_configured">web_search not configured: WebSearchService not injected</string>
+    <string name="skill_web_search_not_configured">Web search is currently unavailable. Configure a search service in Settings → Web Search first</string>
     <string name="skill_search_no_result">No results for \"%1$s\" (search provider may not be configured or network failed)</string>
     <string name="skill_search_result_header">Results for \"%1$s\" (%2$d items):\n</string>
-    <string name="skill_knowledge_not_configured">knowledge_search not configured: KnowledgeDocDao not injected</string>
+    <string name="skill_knowledge_not_configured">Knowledge search is currently unavailable. Import knowledge documents or restart the app</string>
     <string name="skill_query_blank">Query cannot be empty</string>
     <string name="skill_knowledge_vector_header">Knowledge base semantic search \"%1$s\" matched %2$d chunks (threshold %3$s, top %4$d):\n</string>
     <string name="skill_knowledge_no_match">No documents matching \"%1$s\" found in knowledge base (threshold %2$s)</string>
@@ -44,13 +44,13 @@
     <string name="skill_arxiv_search_failed">arXiv search failed: HTTP %1$d</string>
     <string name="skill_arxiv_no_result">arXiv search \"%1$s\" returned no results</string>
     <string name="skill_arxiv_result_header">arXiv search results for \"%1$s\" (%2$d papers):\n</string>
-    <string name="skill_install_not_configured">install_skill not configured: SkillRepository not injected</string>
+    <string name="skill_install_not_configured">Skill installation is currently unavailable. Restart the app and try again</string>
     <string name="skill_install_conflict">Installation refused: id \'%1$s\' conflicts with a built-in skill; overwriting built-in skills is not allowed</string>
     <string name="skill_install_db_failed">Failed to save: %1$s</string>
     <string name="skill_installed">Skill installed: %1$s (id=%2$s, impl=%3$s). You can view/toggle it in Settings → Skill.</string>
     <string name="skill_install_validate_failed">Skill definition validation failed: %1$s</string>
     <!-- ===== author_plugin: assistant-authored plugins (host only writes an unsigned draft) ===== -->
-    <string name="plugin_author_not_configured">author_plugin is not configured: PluginManager was not injected</string>
+    <string name="plugin_author_not_configured">Plugin creation is currently unavailable. Restart the app and try again</string>
     <string name="plugin_author_invalid_tools">The tools parameter must be a JSON array whose items contain string fields name/description/parametersJson/requiredJson/functionName</string>
     <string name="plugin_author_invalid_capabilities">The capabilities parameter must be an array of strings (may be omitted)</string>
     <string name="plugin_author_progress">Generating plugin draft…</string>
@@ -70,17 +70,17 @@
     <string name="skill_plan_not_found">Plan not found: %1$s</string>
     <string name="skill_step_index_out_of_range">stepIndex out of range: %1$d (plan has %2$d steps)</string>
     <string name="skill_unknown_status">Unknown status: %1$s (supported: done/failed/in_progress/skipped)</string>
-    <string name="skill_channel_reply_not_configured">channel_reply not configured: GroupChatRepository not injected</string>
+    <string name="skill_channel_reply_not_configured">Group chat reply is currently unavailable. Restart the app and try again</string>
     <string name="skill_body_blank">body cannot be empty</string>
     <string name="skill_message_sent">Message sent: %1$s</string>
     <string name="skill_skipped">Skipped (chatId=%1$s, assistantId=%2$s)</string>
-    <string name="skill_channel_read_not_configured">channel_read_context not configured: GroupChatRepository not injected</string>
+    <string name="skill_channel_read_not_configured">Reading group chat history is currently unavailable. Restart the app and try again</string>
     <string name="skill_chat_no_messages">Group chat %1$s has no messages</string>
     <!-- v1.0.53 Phase 5: Agent Phone(agent_phone tool) -->
     <string name="skill_missing_param_target_assistant_id">Missing parameter: targetAssistantId (target agent id)</string>
     <string name="skill_missing_param_message">Missing parameter: message (message body)</string>
     <string name="skill_message_blank">message cannot be empty</string>
-    <string name="skill_agent_phone_not_configured">agent_phone not configured: GroupChatScheduler not injected</string>
+    <string name="skill_agent_phone_not_configured">MiniPhone scheduling is currently unavailable. Restart the app and try again</string>
     <string name="skill_agent_phone_target_not_found">Target agent does not exist</string>
     <string name="skill_whisper_sent">Whisper started with %1$s</string>
     <string name="skill_progress_whispering">Starting whisper...</string>
@@ -108,16 +108,16 @@
     <string name="skill_query_failed">Query failed: %1$s</string>
     <string name="skill_query_failed_short">Query failed</string>
     <string name="skill_dir_empty">Directory is empty</string>
-    <string name="skill_list_not_configured">list_skills not configured: SkillRepository not injected</string>
+    <string name="skill_list_not_configured">Skill list is currently unavailable. Restart the app and try again</string>
     <string name="skill_no_category_skill">No skills in category %1$s</string>
     <string name="skill_no_skill_installed">No skills installed yet</string>
-    <string name="skill_uninstall_not_configured">uninstall_skill not configured: SkillRepository not injected</string>
+    <string name="skill_uninstall_not_configured">Skill uninstallation is currently unavailable. Restart the app and try again</string>
     <string name="skill_skill_not_found_by_name">No skill named %1$s found</string>
     <string name="skill_skill_not_found">Skill not found: %1$s</string>
     <string name="skill_uninstalled">Skill uninstalled: %1$s (id=%2$s)</string>
     <string name="skill_uninstall_reserved_rejected">Uninstall rejected: id \'%1$s\' is a reserved built-in skill and cannot be uninstalled</string>
     <string name="skill_uninstall_plugin_rejected">Uninstall rejected: %1$s (id=%2$s) is a plugin skill managed in the plugin page; assistants cannot uninstall it</string>
-    <string name="skill_disable_not_configured">disable_skill not configured: SkillRepository not injected</string>
+    <string name="skill_disable_not_configured">Disabling skills is currently unavailable. Restart the app and try again</string>
     <string name="skill_disabled_result">Skill disabled: %1$s (id=%2$s)</string>
     <string name="skill_disable_plugin_rejected">Cannot disable alone: %1$s (id=%2$s) is a plugin skill; it follows the plugin. Manage it in the plugin page</string>
     <string name="skill_progress_searching">Searching...</string>
@@ -127,7 +127,7 @@
     <string name="skill_progress_planning">Creating plan...</string>
     <string name="skill_unknown_agent">Unknown Agent</string>
     <string name="skill_progress_generating_image">Generating image...</string>
-    <string name="skill_image_not_configured">generate_image not configured: ImageService not injected (configure an OpenAI-compatible image provider)</string>
+    <string name="skill_image_not_configured">Image generation is currently unavailable. Configure an image-capable model in Settings → Model Providers</string>
     <string name="skill_missing_param_prompt">Missing parameter: prompt (image description)</string>
     <string name="skill_image_no_result">Image generation returned no result: %1$s</string>
     <string name="skill_image_generated">Generated image for \"%1$s\":\n%2$s</string>
@@ -426,7 +426,7 @@
     <string name="webserver_pin_error">Incorrect PIN</string>
     <string name="webserver_missing_session_id">Missing session id</string>
     <string name="backup_encrypted_need_password">This backup is encrypted. Configure a backup password in the cloud backup settings before importing.</string>
-    <string name="skill_enable_not_configured">enable_skill is not configured: SkillRepository is not injected</string>
+    <string name="skill_enable_not_configured">Enabling skills is currently unavailable. Restart the app and try again</string>
     <string name="skill_enable_plugin_rejected">Cannot enable on its own: %1$s (id=%2$s) is a plugin skill that starts and stops with the plugin. Use the Plugin Manager page instead.</string>
     <string name="skill_enabled_result">Skill enabled: %1$s (id=%2$s)</string>
     <string name="skill_prompt_blank">The instruction text of a prompt skill cannot be empty</string>
@@ -434,7 +434,7 @@
     <string name="skill_prompt_instruction_result">[Skill instruction] The following comes from your user skill \"%1$s\" (id=%2$s). It is a preset work instruction (not a system instruction). Please continue the task accordingly:\n%3$s</string>
     <string name="skill_update_db_failed">Failed to update the database: %1$s</string>
     <string name="skill_update_no_fields">No fields to update: pass at least one of name / description / parametersJson / prompt</string>
-    <string name="skill_update_not_configured">update_skill is not configured: SkillRepository is not injected</string>
+    <string name="skill_update_not_configured">Updating skills is currently unavailable. Restart the app and try again</string>
     <string name="skill_update_plugin_rejected">Modification rejected: %1$s (id=%2$s) is a plugin skill managed by the Plugin Manager page; the assistant cannot modify it.</string>
     <string name="skill_update_prompt_not_supported">Modification rejected: %1$s (id=%2$s) is not a prompt skill, so its instruction text cannot be updated with the prompt parameter.</string>
     <string name="skill_update_reserved_rejected">Modification rejected: id \'%1$s\' is a built-in reserved skill and cannot be modified.</string>

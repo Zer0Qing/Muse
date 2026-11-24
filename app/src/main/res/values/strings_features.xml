@@ -63,7 +63,7 @@
     <string name="groupchat_minutes_ago">%1$d分钟前</string>
     <string name="groupchat_create_title">新建群聊</string>
     <string name="groupchat_name_label">群聊名称</string>
-    <string name="groupchat_name_required">请输入群聊名称</string>
+    <string name="groupchat_name_required">请填写群聊名称</string>
     <string name="groupchat_select_members">选择成员</string>
     <string name="groupchat_no_assistants">暂无助手，请先在 Agent 管理页创建</string>
     <string name="groupchat_member_required">请至少选择一名成员</string>
@@ -396,11 +396,11 @@
     <string name="knowledge_zip_done">已创建知识库「%1$s」：导入 %2$d 个文档，跳过 %3$d 个</string>
     <string name="knowledge_zip_empty">压缩包内没有可导入的文档</string>
     <!-- 回滚没清干净时说这句：否则列表里留着一个打不开的条目，而提示只说「没有可导入的文档」，用户两句对不上 -->
-    <string name="knowledge_zip_empty_leftover">压缩包内没有可导入的文档，且临时条目未能自动清理：请在列表里手动删除「%1$s」</string>
+    <string name="knowledge_zip_empty_leftover">压缩包内没有可导入的文档，且临时条目没能自动清理，请在列表里手动删除「%1$s」</string>
     <string name="knowledge_import_empty">导入失败： 文件内容为空</string>
     <!-- v1.0.47 P7-3: 文件大小友好提示 -->
     <string name="knowledge_file_too_large_title">文件过大</string>
-    <string name="knowledge_file_too_large_msg">文件大小 %1$s，超过 %2$s 限制。\n建议：\n• 分批上传较小的文件\n• 使用云端解析器（设置→RAG→文档解析器）</string>
+    <string name="knowledge_file_too_large_msg">文件大小 %1$s，超过 %2$s 限制。\n建议：\n• 分批上传较小的文件\n• 使用云端解析器（设置 → 知识库检索 → 文档解析器）</string>
     <string name="knowledge_imported_indexed">已导入： %1$s (%2$d 块已索引)</string>
     <string name="knowledge_import_batch_progress">正在导入 %1$d/%2$d</string>
     <string name="knowledge_import_batch_done">批量导入完成：成功 %1$d 个，失败 %2$d 个</string>
@@ -644,11 +644,11 @@
     <!-- 后台唤醒诊断:系统到底有没有为 Muse 排后台唤醒(只读,不改动任何调度) -->
     <string name="wake_diagnostics_open">后台唤醒状态</string>
     <string name="wake_diagnostics_title">后台唤醒状态</string>
-    <string name="wake_diagnostics_subtitle">这里是系统后台队列的真实排期，包含 App 自己的备份、总结等任务，不等于你创建的定时任务。只读，不会改动调度。</string>
+    <string name="wake_diagnostics_subtitle">仅展示系统后台队列的实际排期（含自动备份、总结等），不会修改你的定时任务。</string>
     <string name="wake_diagnostics_refresh">重新读取</string>
     <string name="wake_diagnostics_copy">复制快照</string>
     <string name="wake_diagnostics_copied">快照已复制</string>
-    <string name="wake_diagnostics_hint">「跑过但失败」看任务历史里的 failed／skipped／missed 记录；「一次都没跑」通常就是这里的未注册、被限制，或总控关着。</string>
+    <string name="wake_diagnostics_hint">执行失败请查看任务历史中的失败、跳过或错过记录；从未执行通常是未注册、被系统限制或总开关未开启。</string>
     <string name="wake_diagnostics_total_control">后台任务总控：%1$s</string>
     <string name="wake_diagnostics_total_control_on">已开启</string>
     <string name="wake_diagnostics_total_control_off">已关闭（唤醒照旧，执行体会直接返回）</string>
@@ -699,7 +699,7 @@
     <string name="wake_stop_launch_time">预估启动时间变化</string>
     <string name="plugin_permission_section_title">能力与权限</string>
     <string name="plugin_permission_hint">未声明或已关闭的能力会被直接拒绝；开关改动立即生效。</string>
-    <string name="plugin_permission_pending_title">该插件升级后新增了尚未批准的能力</string>
+    <string name="plugin_permission_pending_title">该插件升级后新增了还没批准的能力</string>
     <string name="plugin_permission_approve">同意新增</string>
     <string name="plugin_permission_none">该插件未声明任何能力，只能运行纯计算逻辑。</string>
     <string name="plugin_permission_denied_title">被拒绝的调用</string>
@@ -753,7 +753,7 @@
     <string name="plugin_cap_ui_skin">更换界面外观</string>
     <string name="plugin_cap_ui_interactive">显示可提交的表单，并运行插件的界面处理函数（会改动数据，默认关闭）</string>
     <string name="plugin_cap_runtime_python">以 Python 运行代码，能离开沙盒（高信任，请单独确认）</string>
-    <string name="video_no_video_model_hint">当前供应商没有支持视频输出的模型。请在「设置 → 模型与供应商」中为模型开启「视频输出」能力。</string>
+    <string name="video_no_video_model_hint">当前模型供应商没有支持视频输出的模型。请在「设置 → 模型供应商」中为模型开启「视频输出」能力。</string>
     <plurals name="groupchat_selected_members">
         <item quantity="other">已选 %1$d 个成员</item>
     </plurals>
@@ -793,7 +793,7 @@
     <string name="agent_screen_add_image">添加图片</string>
     <string name="agent_screen_remove_image">移除图片</string>
     <string name="agent_screen_open_model">模型：%1$s</string>
-    <string name="agent_screen_provider_settings">供应商设置</string>
+    <string name="agent_screen_provider_settings">模型供应商设置</string>
     <string name="agent_screen_runtime_install">运行环境</string>
     <string name="agent_screen_model_missing">未选择模型</string>
     <string name="agent_screen_attachment_failed">图片读取失败，请换一张重试</string>
@@ -835,7 +835,7 @@
     <string name="agent_screen_tool_search">搜索工作区</string>
     <string name="agent_screen_tool_mounts">工作区挂载</string>
     <string name="agent_hub_open_workbench">任务面板</string>
-    <string name="agent_hub_switch_bot">切换智能体</string>
+    <string name="agent_hub_switch_bot">切换助手</string>
     <string name="agent_hub_input_placeholder">发消息…</string>
     <string name="agent_hub_voice_recording">正在聆听，松手结束…</string>
     <string name="agent_hub_voice_cd">语音输入</string>
@@ -857,7 +857,7 @@
     <string name="agent_hub_choice_selected">已选择</string>
     <string name="agent_hub_cue_trigger_briefing">简报</string>
     <string name="agent_hub_cue_briefing_title">简报</string>
-    <string name="agent_hub_cue_briefing_empty">当前一切井然有序，随时可以给我交代新任务。</string>
+    <string name="agent_hub_cue_briefing_empty">暂无待处理简报</string>
     <string name="agent_hub_quick_briefing">简报</string>
     <string name="agent_hub_quick_teach">录制步骤</string>
     <string name="agent_hub_quick_workbench">任务面板</string>
