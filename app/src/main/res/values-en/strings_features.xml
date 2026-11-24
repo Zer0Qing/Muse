@@ -49,7 +49,8 @@
     <string name="groupchat_pin">Pin</string>
     <string name="groupchat_delete_chat">Delete group chat</string>
     <string name="groupchat_delete_chat_confirm">Are you sure you want to delete "%1$s"? All messages in this group chat will be cleared and cannot be recovered.</string>
-    <string name="assistant_delete_consequence">The dedicated memory store of this assistant will be deleted as well. Its conversations are kept but lose the assistant binding. This cannot be undone.</string>
+    <string name="assistant_delete_consequence">The dedicated memory store of this assistant will be deleted as well. Its conversations are kept but lose the assistant binding. Global memory is not affected. This cannot be undone.</string>
+    <string name="assistant_delete_consequence_default">This assistant owns global memory. Deleting it also wipes the shared global facts and summaries for every assistant, and that cannot be undone. Its conversations are kept but lose the assistant binding.</string>
     <string name="assistant_memory_delete_consequence">The assistant will no longer reference this memory. This cannot be undone.</string>
     <string name="memory_delete_consequence">The AI will no longer reference this memory. This cannot be undone.</string>
     <string name="groupchat_sender_user">Me</string>

@@ -413,6 +413,14 @@
     <string name="settings_backup_merge_nothing_to_import">This backup contains no chats to merge</string>
     <string name="settings_backup_merge_unsupported">Older backups only support replacing. Use the replace option instead</string>
     <string name="settings_backup_merge_success">Merged %1$d sessions / %2$d messages</string>
+    <string name="settings_backup_summary_title">Import finished</string>
+    <string name="settings_backup_summary_sessions">Sessions %1$d · Messages %2$d</string>
+    <string name="settings_backup_summary_assets">Assistants %1$d · Knowledge docs %2$d · Scheduled tasks %3$d · Notes %4$d · Group chats %5$d</string>
+    <string name="settings_backup_summary_settings_count">%1$d settings restored</string>
+    <string name="settings_backup_summary_providers_included">The backup includes model provider settings and they were restored</string>
+    <string name="settings_backup_summary_providers_missing">This backup has no model providers. Enter your API keys again under Settings → Model Providers</string>
+    <string name="settings_backup_summary_skipped_files">Skipped %1$d attachments/avatars for exceeding the size limit</string>
+    <string name="settings_backup_summary_skipped_miniphone">Skipped %1$d legacy MiniPhone sessions (feature removed)</string>
     <string name="settings_backup_password_unavailable">The backup password is no longer valid. Set a new backup password before uploading.</string>
     <string name="settings_backup_restore_auto_confirm">The selected automatic backup will overwrite all sessions, messages, memories, and experience data. A protective copy of the current data is generated before restoring, and it can be rolled back automatically on failure. Continue?</string>
     <string name="settings_backup_restore_auto_confirm_action">Restore</string>

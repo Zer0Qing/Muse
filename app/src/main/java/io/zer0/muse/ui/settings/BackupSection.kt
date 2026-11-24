@@ -139,6 +139,8 @@ internal fun BackupSection(
     var pendingPlainExportUri by remember { mutableStateOf<android.net.Uri?>(null) }
     // v2.6.0: 待执行的导出是否包含密钥（SAF 回调前记录用户勾选）
     var pendingExportSecrets by remember { mutableStateOf(false) }
+    // 导入完成摘要：让"某块是空的"能当场判读，而不是让用户猜是没恢复还是备份里本来没有。
+    var importSummary by remember { mutableStateOf<io.zer0.muse.backup.BackupImportSummary?>(null) }
 
     fun startExport(uri: android.net.Uri, includeSecrets: Boolean = false) {
         scope.launch {
@@ -669,6 +671,9 @@ internal fun BackupSection(
                             R.string.settings_backup_import_success
                         }
                         MuseToast.show(context.getString(messageRes, s, m))
+                        // 摘要放在 toast 之后：toast 只报"导了多少对话"，
+                        // 知识库/定时任务/便签是不是真的空，要看这份快照。
+                        importSummary = backupService.lastImportSummary
                     }.onError { _, t ->
                         MuseToast.show(
                             context.getString(
@@ -687,6 +692,72 @@ internal fun BackupSection(
             },
             dismissText = stringResource(R.string.common_cancel),
             onDismiss = { pendingImportUri = null },
+        )
+    }
+
+    // 导入完成摘要：把"备份里到底有什么"如实摊开
+    importSummary?.let { summary ->
+        MuseDialog(
+            onDismissRequest = { importSummary = null },
+            title = stringResource(R.string.settings_backup_summary_title),
+            content = {
+                Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(MusePaddings.tightGap)) {
+                    Text(
+                        stringResource(
+                            R.string.settings_backup_summary_sessions,
+                            summary.sessions,
+                            summary.messages,
+                        ),
+                    )
+                    if (summary.mode == BackupImportMode.OVERWRITE) {
+                        Text(
+                            stringResource(
+                                R.string.settings_backup_summary_assets,
+                                summary.assistants,
+                                summary.knowledgeDocs,
+                                summary.scheduledTasks,
+                                summary.quickNotes,
+                                summary.groupChats,
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                        Text(
+                            stringResource(R.string.settings_backup_summary_settings_count, summary.settingsKeys),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                        Text(
+                            stringResource(
+                                if (summary.providersIncluded) {
+                                    R.string.settings_backup_summary_providers_included
+                                } else {
+                                    R.string.settings_backup_summary_providers_missing
+                                },
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    if (summary.skippedFiles > 0) {
+                        Text(
+                            stringResource(R.string.settings_backup_summary_skipped_files, summary.skippedFiles),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    if (summary.skippedMiniPhoneSessions > 0) {
+                        Text(
+                            stringResource(
+                                R.string.settings_backup_summary_skipped_miniphone,
+                                summary.skippedMiniPhoneSessions,
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            },
+            confirmText = stringResource(R.string.common_close),
+            onConfirm = { importSummary = null },
         )
     }
 

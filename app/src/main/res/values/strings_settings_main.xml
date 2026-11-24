@@ -207,6 +207,14 @@
     <string name="settings_backup_merge_nothing_to_import">备份里没有可叠加的对话记录</string>
     <string name="settings_backup_merge_unsupported">旧格式备份只支持覆盖恢复，请改用覆盖导入</string>
     <string name="settings_backup_merge_success">已叠加 %1$d 个会话 / %2$d 条消息</string>
+    <string name="settings_backup_summary_title">导入完成</string>
+    <string name="settings_backup_summary_sessions">会话 %1$d · 消息 %2$d</string>
+    <string name="settings_backup_summary_assets">助手 %1$d · 知识库文档 %2$d · 定时任务 %3$d · 便签 %4$d · 群聊 %5$d</string>
+    <string name="settings_backup_summary_settings_count">设置项 %1$d 项已恢复</string>
+    <string name="settings_backup_summary_providers_included">备份包含模型供应商配置，已一并恢复</string>
+    <string name="settings_backup_summary_providers_missing">备份未包含模型供应商，请在「设置 → 模型供应商」中重新填写 API Key</string>
+    <string name="settings_backup_summary_skipped_files">因超出大小上限跳过 %1$d 个附件/头像文件</string>
+    <string name="settings_backup_summary_skipped_miniphone">跳过 %1$d 条旧小手机会话（该功能已下线）</string>
     <string name="settings_backup_upload_subtitle_configured">覆盖云端最新备份</string>
     <string name="settings_backup_upload_subtitle_unconfigured">请先配置云存储</string>
     <string name="settings_backup_configure_first">请先配置云存储</string>

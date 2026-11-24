@@ -2868,9 +2868,14 @@ class SettingsRepository(
     /**
      * 备份用: 导出所有非敏感 DataStore 设置为 Map<String, String>。
      *
-     * 敏感 key(PIN/Provider API Key/MCP token/云备份凭据/代理密码等)被跳过,
-     * 因为加密依赖设备级 SecureKeyStore,跨设备解密会失败。
-     * 用户在恢复后需重新输入这些敏感配置。
+     * 敏感 key(PIN/MCP token/云备份凭据/代理密码等)被跳过,因为加密依赖设备级
+     * SecureKeyStore,跨设备解密会失败。用户在恢复后需重新输入这些敏感配置。
+     *
+     * [includeSecrets] 为 true 时额外导出供应商配置，且**必须解密后再写出**：
+     * 盘上的 `providers_json` 里 apiKey 是 `enc_v1:` 密文，靠本机 Keystore 才能解开。
+     * 直接把密文塞进备份，换机后 [decodeProviders] 解不开 → 供应商列表整体消失，
+     * 用户看到的就是"勾了包含密钥却什么也没有"。这里逐条解密后重新序列化，
+     * 才让"包含密钥"真正可用（代价：备份文件里是明文，UI 必须警示）。
      */
     suspend fun exportSettingsSnapshot(includeSecrets: Boolean = false): Map<String, String> {
         val prefs = store.data.first()
@@ -2906,7 +2911,34 @@ class SettingsRepository(
                 result[SettingsSnapshotPolicy.STRING_SET_PREFIX + name] = encodeStringSet(set)
             }
         }
+        // 供应商配置必须解密后再写进备份：盘上是 enc_v1 密文，绑定本机 Keystore。
+        // 不解密就导出，等于把一串换机后打不开的密文当成"密钥"给用户。
+        if (includeSecrets) {
+            val providersKey = KEY_PROVIDERS.name
+            result[providersKey]?.let { raw ->
+                result[providersKey] = decryptProvidersForExport(raw)
+            }
+        }
         return result
+    }
+
+    /**
+     * 把 `providers_json` 逐条解密后重新序列化。
+     *
+     * 解析失败时原样返回：宁可导出"已知不可用"的原文，也不要因为一条坏配置
+     * 让整份备份的供应商配置消失。解密失败的单条 apiKey 会变成空串，
+     * 恢复后用户重填即可，其余字段（地址/模型/能力）仍然保留。
+     */
+    private suspend fun decryptProvidersForExport(raw: String): String {
+        val decoded = resultOf {
+            AppJson.decodeFromString(ListSerializer(ProviderConfig.serializer()), raw)
+        }.onError { msg, t ->
+            Logger.w("SettingsRepository", "导出供应商配置解析失败，保留原文: ${t?.message ?: msg}", t)
+        }.getOrNull() ?: return raw
+        val decrypted = decoded.map { config ->
+            config.copy(apiKey = SecureKeyStore.decrypt(config.apiKey))
+        }
+        return AppJson.encodeToString(ListSerializer(ProviderConfig.serializer()), decrypted)
     }
 
     /**

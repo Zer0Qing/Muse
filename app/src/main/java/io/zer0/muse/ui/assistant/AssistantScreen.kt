@@ -672,11 +672,20 @@ fun AssistantScreen(onBack: () -> Unit, onOpenDetail: (String) -> Unit, viewMode
 
     // 删除确认对话框
     deleteTarget?.let { target ->
+        // 默认助手是全局记忆的主人（事实落在主库 scope="main"），删它会连带清空全局记忆；
+        // 其余助手只清自己那份独立记忆库，全局记忆不受影响。两种后果必须说清楚。
+        val isDefaultAssistant = target.id == defaultAssistantId || target.id == "default"
         ConfirmDeleteDialog(
             title = deleteDialogTitle,
             itemName = target.name,
             // MEM-04: 点名助手 + 说明后果(其独立记忆库会被删除;已属于它的对话保留但失去绑定)
-            consequence = stringResource(R.string.assistant_delete_consequence),
+            consequence = stringResource(
+                if (isDefaultAssistant) {
+                    R.string.assistant_delete_consequence_default
+                } else {
+                    R.string.assistant_delete_consequence
+                },
+            ),
             onConfirm = {
                 // v2.x（用户反馈）: 默认助手也可删（条件保护）——
                 // ① 至少保留两个助手；

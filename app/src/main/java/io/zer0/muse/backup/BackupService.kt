@@ -148,6 +148,16 @@ class BackupService(
     private val singleJsonMaxBytes: Long = MAX_SINGLE_JSON_BACKUP_BYTES,
     private val afterRestore: suspend () -> Unit = {},
 ) {
+    /**
+     * 最近一次导入的可读摘要，供 UI 在完成后如实展示。
+     *
+     * 放在服务上而不是返回值里：`import` 的返回类型 `Pair<Int, Int>` 被界面、
+     * 云端恢复、测试多处依赖，改成新类型会牵连一大片无关代码；
+     * 而"这次导入了什么"本质上是给用户看的结果快照，读一次就该被丢弃。
+     */
+    @Volatile
+    var lastImportSummary: BackupImportSummary? = null
+        private set
     private val json = Json {
         prettyPrint = true
         ignoreUnknownKeys = true
@@ -1173,6 +1183,7 @@ class BackupService(
      * @return 导入的会话数 + 消息数
      */
     private suspend fun applyNdJsonStreaming(lines: Sequence<String>, allowEmptyBackup: Boolean = false): Pair<Int, Int> {
+        lastImportSummary = null
         // v1.0.74 fix: 空备份保护 — 云端路径有"0 会话 0 消息拒绝恢复",本地路径没有,
         // 误选空/损坏文件会先清空全部表。先读 meta 行校验再决定是否继续。
         val lineIter = lines.iterator()
@@ -1199,6 +1210,21 @@ class BackupService(
                 if (!allowEmptyBackup && (expectedCounts.isEmpty() || expectedCounts.values.sum() == 0)) {
                     throw IllegalArgumentException("空备份文件(meta 无任何数据),已拒绝导入")
                 }
+                // 把 meta 声明拍成摘要快照：导入结束后用户要看到的"备份里到底有什么"，
+                // 只能从这里取，库里行数在覆盖模式下相等、合并模式下只会有对话部分。
+                lastImportSummary = BackupImportSummary(
+                    mode = BackupImportMode.OVERWRITE,
+                    sessions = expectedCounts["sessions"] ?: 0,
+                    messages = expectedCounts["messages"] ?: 0,
+                    assistants = expectedCounts["assistants"] ?: 0,
+                    knowledgeDocs = expectedCounts["knowledgeDocs"] ?: 0,
+                    scheduledTasks = expectedCounts["scheduledTasks"] ?: 0,
+                    quickNotes = expectedCounts["quickNotes"] ?: 0,
+                    groupChats = expectedCounts["groupChats"] ?: 0,
+                    settingsKeys = 0,
+                    // 供应商是否随备份带来：meta 不记这个，只能等设置行实际出现时再补。
+                    providersIncluded = false,
+                )
             }.onError { msg, t ->
                 // meta 解析失败或空备份:抛给调用方,不清空任何表
                 throw IllegalArgumentException(t?.message ?: msg)
@@ -1312,6 +1338,10 @@ class BackupService(
                                 ),
                                 it,
                             )
+                            lastImportSummary = lastImportSummary?.copy(
+                                settingsKeys = settingsSnapshot.size,
+                                providersIncluded = settingsSnapshot.containsKey(KEY_PROVIDERS_SETTING),
+                            )
                         }
                         else -> museImporter.ingestRecord(type, obj)
                     }
@@ -1397,6 +1427,13 @@ class BackupService(
             )
         }
         if (binaryFileBuf.toMap().isNotEmpty()) writeBinaryFiles(binaryFileBuf.toMap())
+
+        // 跳过项如实记账：用户看到附件变少时，这里能说清是"备份里没有"还是"被容量上限裁掉"。
+        lastImportSummary = lastImportSummary?.copy(
+            skippedFiles = binaryFileBuf.stats.skippedFiles,
+            skippedMiniPhoneSessions = museImporter.skippedMiniPhoneSessions,
+            skippedMiniPhoneMessages = museImporter.skippedMiniPhoneMessages,
+        )
 
         Logger.i("BackupService", "流式导入完成: ${museImporter.sessionCount} 会话, ${museImporter.messageCount} 消息")
         return museImporter.sessionCount to museImporter.messageCount
@@ -2199,6 +2236,7 @@ class BackupService(
      * - 不走 recovery journal：没有任何破坏性写点，失败只需整体事务回滚。
      */
     private suspend fun applyNdJsonMerge(lines: Sequence<String>): Pair<Int, Int> {
+        lastImportSummary = null
         val importer = BackupMergeImporter(db)
         var sawMeta = false
         var sawAnyRecord = false
@@ -2223,6 +2261,12 @@ class BackupService(
             // 备份里一条对话都没有（例如只有供应商配置的备份）：明确告知，不要假装成功。
             error(context.getString(R.string.settings_backup_merge_nothing_to_import))
         }
+        lastImportSummary = BackupImportSummary(
+            mode = BackupImportMode.MERGE,
+            sessions = result.first,
+            messages = result.second,
+            skippedMiniPhoneSessions = importer.skippedRecords,
+        )
         Logger.i("BackupService", "合并导入完成: ${result.first} 会话, ${result.second} 消息")
         return result
     }
@@ -2448,6 +2492,9 @@ class BackupService(
             .onFailure { Logger.w("BackupService", "导入后清理待办快照失败", it) }
     }
     companion object {
+        /** 供应商配置在设置快照里的键名（与 [SettingsRepository] 的落盘键一致）。 */
+        internal const val KEY_PROVIDERS_SETTING = "providers_json"
+
         /** v4: 纳入备份的文件型存储(相对 filesDir)。 */
         internal val backupFileStorePaths = listOf(
             "channel_configs.json",

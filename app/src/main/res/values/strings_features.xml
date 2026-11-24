@@ -55,7 +55,8 @@
     <string name="groupchat_pin">置顶</string>
     <string name="groupchat_delete_chat">删除群聊</string>
     <string name="groupchat_delete_chat_confirm">确定要删除「%1$s」吗？群聊中的所有消息将被清空且不可恢复。</string>
-    <string name="assistant_delete_consequence">该助手的独立记忆库会被一并删除；已属于它的对话会保留，但会失去助手绑定。此操作不可恢复。</string>
+    <string name="assistant_delete_consequence">该助手的独立记忆库会被一并删除；已属于它的对话会保留，但会失去助手绑定。全局记忆不受影响。此操作不可恢复。</string>
+    <string name="assistant_delete_consequence_default">该助手是全局记忆的主人：删除后全局记忆（所有助手共享的那份事实与摘要）会被一并清空，且无法恢复。已属于它的对话会保留，但会失去助手绑定。</string>
     <string name="assistant_memory_delete_consequence">删除后该助手不再引用这条记忆，且无法恢复。</string>
     <string name="memory_delete_consequence">删除后 AI 将不再引用这条记忆，且无法恢复。</string>
     <string name="groupchat_sender_user">我</string>
