@@ -664,9 +664,17 @@ private fun MuseNavGraph(
                                 }
                             }
                             is ShareIntentHandler.ShareResult.OpenSession -> {
-                                navController.navigate(ChatDetailRoute) {
-                                    popUpTo(HomeRoute) { inclusive = false }
-                                    launchSingleTop = true
+                                val isAgent = sharedViewModel.isAgentSession(result.sessionId)
+                                if (isAgent) {
+                                    navController.navigate(HomeRoute) {
+                                        popUpTo(HomeRoute) { inclusive = false }
+                                        launchSingleTop = true
+                                    }
+                                } else {
+                                    navController.navigate(ChatDetailRoute) {
+                                        popUpTo(HomeRoute) { inclusive = false }
+                                        launchSingleTop = true
+                                    }
                                 }
                                 sharedViewModel.openSessionFromNotification(
                                     result.sessionId,

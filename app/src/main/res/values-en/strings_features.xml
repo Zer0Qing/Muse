@@ -871,4 +871,20 @@
     <string name="agent_hub_route_vision">Vision control</string>
     <string name="agent_hub_route_follow_default">Follow main model</string>
     <string name="agent_hub_artifacts_history">Generated files</string>
+    <string name="settings_agent_display_section">Agent chat display</string>
+    <string name="settings_agent_show_thinking_title">Show thinking process</string>
+    <string name="settings_agent_show_mood_title">Show assistant mood</string>
+    <string name="settings_agent_show_plan_cards_title">Show plan cards in chat</string>
+    <string name="settings_agent_show_plan_cards_subtitle">When off, task progress stays in the top-right computer badge</string>
+    <string name="agent_task_decision_action">Add decision</string>
+    <string name="agent_task_decision_input_hint">Add your decision or update the plan…</string>
+    <string name="agent_task_decision_continue">Continue with update</string>
+    <string name="agent_hub_routines_chat_first_hint">Tell your assistant what to schedule in chat; approved automations appear here for quick toggle or removal.</string>
+    <string name="agent_approval_intent_summary">Ready to run: %1$s. Confirm to continue</string>
+    <string name="agent_approval_view_details">View detailed parameters</string>
+    <string name="agent_welcome_prompt_remind">Remind me tomorrow at 7 AM</string>
+    <string name="agent_welcome_prompt_morning_brief">Compile a daily 9 AM AI briefing</string>
+    <string name="agent_welcome_prompt_notifications">Check today\'s important notifications</string>
+    <string name="agent_waiting_thinking">Thinking…</string>
+    <string name="agent_waiting_preparing">Preparing reply…</string>
 </resources>

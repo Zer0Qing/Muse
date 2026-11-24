@@ -177,8 +177,11 @@ object ThirdPartyImporter {
                             entry.name == DEEPSEEK_INDEX ||
                             DEEPSEEK_SESSION_PREFIX in entry.name
                         // 单文件兜底限制:流式落盘,避免把大条目整体读入 Android 堆。
+                        // 注意: entry.name 可能包含子目录前缀（如 DeepSeek 的 chat_sessions/<uuid>.json），
+                        // 不能直接拼进 createTempFile 的 prefix，否则会被解析成不存在的子目录导致解压必败。
                         if (keep) {
-                            val tmp = java.io.File.createTempFile("zip_${name}_", ".tmp", context.cacheDir)
+                            val safePrefix = "zip_${name.replace(Regex("[^A-Za-z0-9._-]"), "_").takeLast(48)}_"
+                            val tmp = java.io.File.createTempFile(safePrefix, ".tmp", context.cacheDir)
                             try {
                                 val entryBytes = tmp.outputStream().buffered().use { output ->
                                     copyZipEntryWithLimit(zis, output, MAX_SINGLE_FILE, entry.name)
@@ -248,7 +251,10 @@ object ThirdPartyImporter {
             // DeepSeek 官方导出：有 manifest.json + chat_sessions/*.json。
             // 放在最前判断——它的文件组合与其他格式不重叠，先认出来最省事。
             val deepSeekSessions = extracted.entries
-                .filter { it.key.startsWith(DEEPSEEK_SESSION_PREFIX) && it.key.endsWith(".json") }
+                .filter {
+                    (it.key.startsWith(DEEPSEEK_SESSION_PREFIX) || "/$DEEPSEEK_SESSION_PREFIX" in it.key) &&
+                        it.key.endsWith(".json")
+                }
                 .map { it.value }
             val deepSeekManifest = byBaseName(DEEPSEEK_MANIFEST)
             val isDeepSeek = deepSeekManifest != null && deepSeekSessions.isNotEmpty()

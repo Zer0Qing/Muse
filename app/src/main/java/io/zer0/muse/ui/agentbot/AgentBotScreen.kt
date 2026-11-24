@@ -127,7 +127,6 @@ fun AgentBotScreen(
     topOverlayInset: Dp = MuseSpacing.xxs,
     externalWorkbenchTab: AgentWorkbenchTab? = null,
     onExternalWorkbenchTabConsumed: () -> Unit = {},
-    externalBriefingTick: Int = 0,
 ) {
     val composer by viewModel.composer.collectAsStateWithLifecycle()
     val transcript by viewModel.transcript.collectAsStateWithLifecycle()
@@ -339,36 +338,6 @@ fun AgentBotScreen(
     val activeBadgeCount = inProgressTasks.size + needsActionTasks.size + pendingApprovals.size
     val latestRunningNote = inProgressTasks.firstOrNull()?.note.orEmpty()
         .ifBlank { inProgressTasks.firstOrNull()?.goal.orEmpty() }
-    val briefingTitle = stringResource(R.string.agent_hub_cue_briefing_title)
-    val briefingEmpty = stringResource(R.string.agent_hub_cue_briefing_empty)
-    val triggerBriefing: () -> Unit = {
-        val summary = buildString {
-            if (inProgressTasks.isNotEmpty()) append("进行中任务 ${inProgressTasks.size} 项；")
-            if (pendingApprovals.isNotEmpty()) append("待拍板审批 ${pendingApprovals.size} 项；")
-            if (routines.isNotEmpty()) append("已配置自动化 ${routines.size} 条。")
-        }.ifBlank { briefingEmpty }
-        viewModel.publishCueBriefing(
-            title = briefingTitle,
-            summary = summary,
-            actions = listOf(
-                AgentStreamCoordinator.ChoiceOption(
-                    id = "brief_review",
-                    label = "帮我梳理今天的优先级",
-                    prompt = "结合我目前的任务和自动化安排，帮我梳理一下今天最值得先做的三件事。",
-                ),
-                AgentStreamCoordinator.ChoiceOption(
-                    id = "brief_check_env",
-                    label = "自检电脑运行环境",
-                    prompt = "检查一下你当前这台电脑的运行环境和工具状态，简短告诉我结果。",
-                ),
-            ),
-        )
-    }
-    LaunchedEffect(externalBriefingTick) {
-        if (externalBriefingTick > 0) {
-            triggerBriefing()
-        }
-    }
 
     val isWelcomeEmpty = transcript.isEmpty() && allTasks.isEmpty() && cueCards.isEmpty() && !streaming.active
     val density = LocalDensity.current
@@ -480,19 +449,8 @@ fun AgentBotScreen(
 
             if (isWelcomeEmpty) {
                 AgentWelcomeCanvas(
-                    assistantName = resolvedName,
-                    assistant = activeAssistant,
-                    avatarUri = resolvedAvatar,
-                    modelLabel = visibleModel,
                     hasConfiguredModel = modelName.isNotBlank() && providers.any { it.enabled },
-                    onOpenIdentitySwitch = { workbenchTab = AgentWorkbenchTab.SQUAD },
-                    onOpenModel = onOpenModel,
-                    onTriggerBriefing = triggerBriefing,
-                    onOpenTeach = {
-                        viewModel.startTeachRecording()
-                        workbenchTab = AgentWorkbenchTab.ROUTINES
-                    },
-                    onOpenWorkbench = { workbenchTab = AgentWorkbenchTab.LIVE },
+                    onSendSuggestion = viewModel::sendQuickPrompt,
                     onOpenProviderSettings = onOpenProviderSettings,
                     modifier = Modifier
                         .align(Alignment.Center)
@@ -513,18 +471,6 @@ fun AgentBotScreen(
                     ),
                     verticalArrangement = Arrangement.spacedBy(MusePaddings.auxGap),
                 ) {
-                    if (topOverlayInset > 0.dp) {
-                        item(key = "agent_inline_identity") {
-                            AgentInlineIdentityBar(
-                                assistantName = resolvedName,
-                                assistant = activeAssistant,
-                                avatarUri = resolvedAvatar,
-                                modelLabel = visibleModel,
-                                onOpenIdentitySwitch = { workbenchTab = AgentWorkbenchTab.SQUAD },
-                                onOpenModel = onOpenModel,
-                            )
-                        }
-                    }
                     if (hasOlderTranscript) {
                         item(key = "load-older") {
                             Box(
@@ -586,17 +532,19 @@ fun AgentBotScreen(
                                 },
                             )
 
-                                tasksByAnchor[message.messageId].orEmpty().forEach { taskRow ->
-                                    AgentLiveMissionCard(
-                                        row = taskRow,
-                                        onOpenDetails = onOpenTask ?: viewModel::openTaskDetails,
-                                        onOpenComputer = { workbenchTab = AgentWorkbenchTab.LIVE },
-                                        onSteer = viewModel::steerTask,
-                                        onSaveAsRoutine = { taskId -> viewModel.saveTaskAsRoutine(taskId) },
-                                        onContinue = viewModel::continueTask,
-                                        onRetry = viewModel::retryTask,
-                                        onCancel = viewModel::cancelTask,
-                                    )
+                                if (chatPreferences.agentShowPlanCards) {
+                                    tasksByAnchor[message.messageId].orEmpty().forEach { taskRow ->
+                                        AgentLiveMissionCard(
+                                            row = taskRow,
+                                            onOpenDetails = onOpenTask ?: viewModel::openTaskDetails,
+                                            onOpenComputer = { workbenchTab = AgentWorkbenchTab.LIVE },
+                                            onSteer = viewModel::steerTask,
+                                            onSaveAsRoutine = { taskId -> viewModel.saveTaskAsRoutine(taskId) },
+                                            onContinue = viewModel::continueTask,
+                                            onRetry = viewModel::retryTask,
+                                            onCancel = viewModel::cancelTask,
+                                        )
+                                    }
                                 }
 
                                 choiceCardsByAnchor[message.messageId].orEmpty().forEach { choice ->
@@ -608,32 +556,34 @@ fun AgentBotScreen(
                             }
                         }
 
-                        // 未绑定具体回复消息的近期已完成任务
-                        items(unanchoredRecentTasks, key = { "recent-task:${it.taskId}" }) { taskRow ->
-                            AgentLiveMissionCard(
-                                row = taskRow,
-                                onOpenDetails = onOpenTask ?: viewModel::openTaskDetails,
-                                onOpenComputer = { workbenchTab = AgentWorkbenchTab.LIVE },
-                                onSteer = viewModel::steerTask,
-                                onSaveAsRoutine = { taskId -> viewModel.saveTaskAsRoutine(taskId) },
-                                onContinue = viewModel::continueTask,
-                                onRetry = viewModel::retryTask,
-                                onCancel = viewModel::cancelTask,
-                            )
-                        }
+                        // 未绑定具体回复消息的近期已完成任务（按设置开关决定是否在对话流展示）
+                        if (chatPreferences.agentShowPlanCards) {
+                            items(unanchoredRecentTasks, key = { "recent-task:${it.taskId}" }) { taskRow ->
+                                AgentLiveMissionCard(
+                                    row = taskRow,
+                                    onOpenDetails = onOpenTask ?: viewModel::openTaskDetails,
+                                    onOpenComputer = { workbenchTab = AgentWorkbenchTab.LIVE },
+                                    onSteer = viewModel::steerTask,
+                                    onSaveAsRoutine = { taskId -> viewModel.saveTaskAsRoutine(taskId) },
+                                    onContinue = viewModel::continueTask,
+                                    onRetry = viewModel::retryTask,
+                                    onCancel = viewModel::cancelTask,
+                                )
+                            }
 
-                        // 进行中与待处理任务：统一置于对话流底部（输入栏上方），不再挤在顶部用户消息与助手回复之间
-                        items(activeStreamTasks, key = { "active-task:${it.taskId}" }) { taskRow ->
-                            AgentLiveMissionCard(
-                                row = taskRow,
-                                onOpenDetails = onOpenTask ?: viewModel::openTaskDetails,
-                                onOpenComputer = { workbenchTab = AgentWorkbenchTab.LIVE },
-                                onSteer = viewModel::steerTask,
-                                onSaveAsRoutine = { taskId -> viewModel.saveTaskAsRoutine(taskId) },
-                                onContinue = viewModel::continueTask,
-                                onRetry = viewModel::retryTask,
-                                onCancel = viewModel::cancelTask,
-                            )
+                            // 进行中与待处理任务：统一置于对话流底部（输入栏上方）
+                            items(activeStreamTasks, key = { "active-task:${it.taskId}" }) { taskRow ->
+                                AgentLiveMissionCard(
+                                    row = taskRow,
+                                    onOpenDetails = onOpenTask ?: viewModel::openTaskDetails,
+                                    onOpenComputer = { workbenchTab = AgentWorkbenchTab.LIVE },
+                                    onSteer = viewModel::steerTask,
+                                    onSaveAsRoutine = { taskId -> viewModel.saveTaskAsRoutine(taskId) },
+                                    onContinue = viewModel::continueTask,
+                                    onRetry = viewModel::retryTask,
+                                    onCancel = viewModel::cancelTask,
+                                )
+                            }
                         }
 
                         // 流内原生审批拍板卡
@@ -726,25 +676,25 @@ fun AgentBotScreen(
                     }
                 }
 
-        // 顶部透明悬浮层：置于首页 Tab 下时已由首页统一接管顶栏，此处仅保留无遮挡加载条/错误横幅
+        // 顶部透明悬浮层：常驻紧凑居中圆形头像压边名牌（紧贴 3 Tab 下方），两侧完全镂空
         Column(
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .fillMaxWidth()
                 .onSizeChanged { topOverlayHeightPx = it.height }
-                .padding(top = topOverlayInset),
+                .padding(top = (topOverlayInset - MusePaddings.contentGap).coerceAtLeast(0.dp)),
         ) {
-            if (topOverlayInset == 0.dp) {
-                AgentFloatingHeader(
-                    assistantName = resolvedName,
-                    avatarUri = resolvedAvatar,
-                    modelLabel = visibleModel,
-                    activeBadgeCount = activeBadgeCount,
-                    hasPendingApproval = pendingApprovals.isNotEmpty(),
-                    onOpenIdentitySwitch = { workbenchTab = AgentWorkbenchTab.SQUAD },
-                    onOpenWorkbench = { workbenchTab = AgentWorkbenchTab.LIVE },
-                )
-            }
+            AgentFloatingHeader(
+                assistantName = resolvedName,
+                assistant = activeAssistant,
+                avatarUri = resolvedAvatar,
+                modelLabel = visibleModel,
+                activeBadgeCount = activeBadgeCount,
+                hasPendingApproval = pendingApprovals.isNotEmpty(),
+                onOpenIdentitySwitch = { workbenchTab = AgentWorkbenchTab.SQUAD },
+                onOpenWorkbench = { workbenchTab = AgentWorkbenchTab.LIVE },
+                showWorkbenchButton = topOverlayInset == 0.dp,
+            )
 
             if (isLoading) {
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
@@ -854,7 +804,6 @@ fun AgentBotScreen(
                     }
                 },
                 onOpenWorkbench = { workbenchTab = AgentWorkbenchTab.LIVE },
-                onTriggerBriefing = triggerBriefing,
                 onStartTeach = {
                     viewModel.startTeachRecording()
                     workbenchTab = AgentWorkbenchTab.ROUTINES
@@ -983,6 +932,8 @@ fun AgentBotScreen(
     }
 
     taskDetails?.let { details ->
+        val needsDecision = details.status == io.zer0.muse.data.agentbot.BotTaskStatus.NEEDS_USER
+        var decisionDraft by remember(details.taskId) { mutableStateOf("") }
         MuseDialog(
             onDismissRequest = viewModel::closeTaskDetails,
             title = stringResource(R.string.agent_screen_task_details),
@@ -1016,10 +967,33 @@ fun AgentBotScreen(
                     details.candidateRefs.forEach { candidate ->
                         Text(candidate, style = MaterialTheme.typography.bodySmall)
                     }
+                    if (needsDecision) {
+                        io.zer0.muse.ui.common.form.MuseTextField(
+                            value = decisionDraft,
+                            onValueChange = { decisionDraft = it },
+                            placeholder = {
+                                Text(stringResource(R.string.agent_task_decision_input_hint))
+                            },
+                            maxLines = 4,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
                 }
             },
-            confirmText = stringResource(R.string.common_close),
-            onConfirm = viewModel::closeTaskDetails,
+            confirmText = if (needsDecision) {
+                stringResource(R.string.agent_task_decision_continue)
+            } else {
+                stringResource(R.string.common_close)
+            },
+            onConfirm = {
+                if (needsDecision) {
+                    viewModel.resolveNeedsDecision(details.taskId, decisionDraft)
+                } else {
+                    viewModel.closeTaskDetails()
+                }
+            },
+            dismissText = if (needsDecision) stringResource(R.string.common_close) else null,
+            onDismiss = if (needsDecision) viewModel::closeTaskDetails else null,
         )
     }
 
@@ -1061,19 +1035,14 @@ fun AgentBotScreen(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun AgentWelcomeCanvas(
-    assistantName: String,
-    assistant: io.zer0.muse.data.assistant.AssistantEntity?,
-    avatarUri: String?,
-    modelLabel: String,
     hasConfiguredModel: Boolean,
-    onOpenIdentitySwitch: () -> Unit,
-    onOpenModel: (() -> Unit)?,
-    onTriggerBriefing: () -> Unit,
-    onOpenTeach: () -> Unit,
-    onOpenWorkbench: () -> Unit,
+    onSendSuggestion: (String) -> Unit,
     onOpenProviderSettings: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
+    val promptMorning = stringResource(R.string.agent_welcome_prompt_morning_brief)
+    val promptRemind = stringResource(R.string.agent_welcome_prompt_remind)
+    val promptNotif = stringResource(R.string.agent_welcome_prompt_notifications)
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -1081,14 +1050,6 @@ private fun AgentWelcomeCanvas(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
     ) {
-        AgentInlineIdentityBar(
-            assistantName = assistantName,
-            assistant = assistant,
-            avatarUri = avatarUri,
-            modelLabel = modelLabel,
-            onOpenIdentitySwitch = onOpenIdentitySwitch,
-            onOpenModel = onOpenModel,
-        )
         if (!hasConfiguredModel && onOpenProviderSettings != null) {
             MuseCapsuleButton(
                 text = stringResource(R.string.agent_screen_provider_settings),
@@ -1105,30 +1066,15 @@ private fun AgentWelcomeCanvas(
             ),
             verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
         ) {
-            MuseCapsuleButton(
-                text = stringResource(R.string.agent_hub_quick_briefing),
-                onClick = onTriggerBriefing,
-                leadingIcon = MuseIcons.sun,
-                variant = IosCapsuleButtonVariant.Secondary,
-                fillWidth = false,
-                size = MuseButtonSize.Compact,
-            )
-            MuseCapsuleButton(
-                text = stringResource(R.string.agent_hub_quick_teach),
-                onClick = onOpenTeach,
-                leadingIcon = MuseIcons.handFinger,
-                variant = IosCapsuleButtonVariant.Secondary,
-                fillWidth = false,
-                size = MuseButtonSize.Compact,
-            )
-            MuseCapsuleButton(
-                text = stringResource(R.string.agent_hub_quick_workbench),
-                onClick = onOpenWorkbench,
-                leadingIcon = MuseIcons.computer,
-                variant = IosCapsuleButtonVariant.Secondary,
-                fillWidth = false,
-                size = MuseButtonSize.Compact,
-            )
+            listOf(promptRemind, promptMorning, promptNotif).forEach { prompt ->
+                MuseCapsuleButton(
+                    text = prompt,
+                    onClick = { onSendSuggestion(prompt) },
+                    variant = IosCapsuleButtonVariant.Secondary,
+                    fillWidth = false,
+                    size = MuseButtonSize.Compact,
+                )
+            }
         }
     }
 }

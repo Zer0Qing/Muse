@@ -293,6 +293,14 @@ fun AgentLiveMissionCard(
                         fillWidth = false,
                         size = MuseButtonSize.Compact,
                     )
+                } else if (row.status == BotTaskStatus.NEEDS_USER) {
+                    MuseCapsuleButton(
+                        text = stringResource(R.string.agent_task_decision_action),
+                        onClick = { onOpenDetails(row.taskId) },
+                        leadingIcon = MuseIcons.edit,
+                        fillWidth = false,
+                        size = MuseButtonSize.Compact,
+                    )
                 }
                 if (AgentBotUiState.TaskAction.RETRY in row.actions) {
                     MuseCapsuleButton(
@@ -448,6 +456,14 @@ fun AgentInlineApprovalCard(
                     compact = true,
                 )
             }
+            Text(
+                text = stringResource(
+                    R.string.agent_approval_intent_summary,
+                    agentApprovalToolLabel(row.toolName),
+                ),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
             if (row.argumentsPreview.isNotBlank()) {
                 Surface(
                     onClick = { argsExpanded = !argsExpanded },
@@ -455,10 +471,18 @@ fun AgentInlineApprovalCard(
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = MuseAlpha.subtleBorder),
                 ) {
                     Text(
-                        text = stringResource(R.string.agent_screen_approval_arguments, row.argumentsPreview),
+                        text = if (argsExpanded) {
+                            stringResource(R.string.agent_screen_approval_arguments, row.argumentsPreview)
+                        } else {
+                            stringResource(R.string.agent_approval_view_details)
+                        },
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = if (argsExpanded) 24 else 4,
+                        color = if (argsExpanded) {
+                            MaterialTheme.colorScheme.onSurface
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                        maxLines = if (argsExpanded) 24 else 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier
                             .fillMaxWidth()

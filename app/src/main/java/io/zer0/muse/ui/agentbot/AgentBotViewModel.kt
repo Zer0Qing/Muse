@@ -977,12 +977,13 @@ class AgentBotViewModel(
         history: List<io.zer0.ai.core.UIMessage>,
         userText: String,
         imageBase64List: List<String>,
-    ) {
+    ): Boolean {
         val isCurrentScope = { currentBotId == identity.assistantId && currentSessionId == identity.sessionId }
         if (isCurrentScope()) {
             ui.setTyping(true)
             ui.setStreaming(AgentBotUiState.StreamingBubble(active = true))
         }
+        var published = false
         try {
             val assistant = runCatching { assistantRepository?.getById(identity.assistantId) }.getOrNull()
             val activeMissions = runCatching {
@@ -1070,7 +1071,7 @@ class AgentBotViewModel(
                     }
                 },
             )
-            if (outcome.requestSuperseded) return
+            if (outcome.requestSuperseded) return false
 
             // 1. 气泡角标 Emoji 反应
             val userHash = BotAnnotationService.hashOf(userText)
@@ -1089,19 +1090,22 @@ class AgentBotViewModel(
             }
 
             // 2. 落盘后的自然流式回复并入对话流
-            if (outcome.publishedMessageId.isNotBlank() && isCurrentScope()) {
-                ui.appendPublished(
-                    AgentBotUiState.PublishedMessage(
-                        messageId = outcome.publishedMessageId,
-                        role = AgentBotUiState.Role.BOT,
-                        text = outcome.text,
-                        createdAt = System.currentTimeMillis(),
-                        reasoning = outcome.reasoning,
-                        reasoningDurationMs = outcome.reasoningDurationMs,
-                        mood = outcome.mood,
-                        citationUrls = outcome.citationUrls,
-                    ),
-                )
+            if (outcome.publishedMessageId.isNotBlank()) {
+                published = true
+                if (isCurrentScope()) {
+                    ui.appendPublished(
+                        AgentBotUiState.PublishedMessage(
+                            messageId = outcome.publishedMessageId,
+                            role = AgentBotUiState.Role.BOT,
+                            text = outcome.text,
+                            createdAt = System.currentTimeMillis(),
+                            reasoning = outcome.reasoning,
+                            reasoningDurationMs = outcome.reasoningDurationMs,
+                            mood = outcome.mood,
+                            citationUrls = outcome.citationUrls,
+                        ),
+                    )
+                }
             }
 
             // 3. 派发后台任务并 0ms 唤醒调度器
@@ -1165,24 +1169,53 @@ class AgentBotViewModel(
                 }
             }
 
-            // 6. 一句话沉淀为惯例
+            // 6. 自然语言编排自动化：先弹出轻确认卡，由用户点一下「批准并启用」再生效
             outcome.routineCreations.forEach { routine ->
                 runCatching {
-                    routineEngine?.createOrUpdate(
-                        botId = identity.assistantId,
-                        title = routine.title,
-                        goalPrompt = routine.goalPrompt,
-                        resourceScope = routine.resourceScope,
-                        triggerType = routine.triggerType,
-                        triggerExpr = routine.triggerExpr,
-                        originSessionId = identity.sessionId,
+                    val triggerDesc = when (routine.triggerType) {
+                        RoutineTriggerType.CRON -> routine.triggerExpr.ifBlank { "按计划定时" }
+                        RoutineTriggerType.MANUAL -> "手动触发"
+                        else -> routine.triggerExpr.ifBlank { "按条件触发" }
+                    }
+                    val draftPayload = cardJson.encodeToString(
+                        PendingRoutineApproval(
+                            title = routine.title,
+                            goalPrompt = routine.goalPrompt,
+                            resourceScope = routine.resourceScope,
+                            triggerType = routine.triggerType,
+                            triggerExpr = routine.triggerExpr,
+                        ),
                     )
-                }.onFailure { Logger.w("AgentBotVM", "流式创建惯例失败: ${it.message}") }
+                    val options = listOf(
+                        AgentStreamCoordinator.ChoiceOption(
+                            id = ROUTINE_APPROVE_OPTION_ID,
+                            label = "批准并启用",
+                            prompt = draftPayload,
+                        ),
+                        AgentStreamCoordinator.ChoiceOption(
+                            id = ROUTINE_DISMISS_OPTION_ID,
+                            label = "暂不启用",
+                            prompt = "",
+                        ),
+                    )
+                    repository.upsertMessageCard(
+                        BotMessageCardEntity(
+                            cardId = "routine-approve:${java.util.UUID.randomUUID()}",
+                            botId = identity.assistantId,
+                            originSessionId = identity.sessionId,
+                            anchorMessageId = outcome.publishedMessageId.ifBlank { identity.requestId },
+                            cardKind = BotCardKind.CHOICE,
+                            title = "自动化确认：${routine.title}（$triggerDesc）",
+                            payloadJson = cardJson.encodeToString(options),
+                        ),
+                    )
+                }.onFailure { Logger.w("AgentBotVM", "创建自动化确认卡失败: ${it.message}") }
             }
 
             if (outcome.streamError != null && !outcome.hasAnyAction && isCurrentScope()) {
                 ui.setError(AgentBotError.SAVE_FAILED)
             }
+            return published
         } finally {
             if (isCurrentScope()) {
                 ui.setTyping(false)
@@ -1218,14 +1251,23 @@ class AgentBotViewModel(
                 BotEventKind.USER_INPUT_RECEIVED -> true
                 BotEventKind.TASK_ACCEPTED -> true
                 BotEventKind.TASK_PROGRESSED -> true
-                // 对外发言只能由"审核允许"的发布事实触发。
-                // 执行结果事件同样走这里，但共享发布器对它只做确认消费，不产出正文。
-                BotEventKind.TASK_PUBLICATION_READY,
+                // 后台审核完成或需要用户拍板时，优先回传给主助手消化并用人设/卡片自然回复；失败再回退静态摘要
+                BotEventKind.TASK_PUBLICATION_READY -> {
+                    relayBackgroundDecisionToAssistant(event, botId, sessionId, needsDecision = false)
+                        ?: publishResult(event, botId, sessionId)
+                }
                 BotEventKind.TASK_RESULT_READY,
                 BotEventKind.TASK_FAILED,
                 -> publishResult(event, botId, sessionId)
-                // 审核事实不是给用户看的话，是给看板与排障用的。
-                BotEventKind.REVIEW_READY -> true
+                // 审核结论为 NEEDS_USER 时主动唤醒主助手向用户发问，其余仅更新看板
+                BotEventKind.REVIEW_READY -> {
+                    val decision = ReviewDecision.decode(event.payloadRef)
+                    if (decision?.disposition == io.zer0.muse.data.agentbot.ReviewDisposition.NEEDS_USER) {
+                        relayBackgroundDecisionToAssistant(event, botId, sessionId, needsDecision = true) ?: true
+                    } else {
+                        true
+                    }
+                }
                 // 未识别的类型同样保留：宁可堆积也不静默丢弃。
                 else -> false
             }
@@ -1234,6 +1276,82 @@ class AgentBotViewModel(
             refreshBoard()
         }
     }
+
+    /**
+     * 将后台任务完成或「需要用户决定」的事实回传给主助手，让主助手带着人设与卡片/产物展示能力自然回复用户。
+     *
+     * @return true 表示主助手已完成转述可消费该事件；false 表示前台正忙暂缓；null 表示走静态兜底。
+     */
+    private suspend fun relayBackgroundDecisionToAssistant(
+        event: io.zer0.muse.data.agentbot.BotEventEntity,
+        botId: String,
+        sessionId: String,
+        needsDecision: Boolean,
+    ): Boolean? {
+        val streamingEngine = streamCoordinator ?: return null
+        if (botId != currentBotId || sessionId != currentSessionId) return null
+        if (streaming.value.active) return false
+        val decision = ReviewDecision.decode(event.payloadRef) ?: return null
+        val task = runCatching { repository.getTask(event.taskId) }.getOrNull()
+        val goal = task?.goal?.trim().orEmpty().ifBlank { "后台任务" }
+        val relayPrompt = buildString {
+            appendLine("[系统内部回传 · 请以你的助手人设自然向用户汇报，不要照抄工程术语或审核模板]")
+            appendLine("任务目标：$goal")
+            appendLine("当前状态：${if (needsDecision) "需要用户做决定才能继续" else "已完成"}")
+            if (decision.userVisibleSummary.isNotBlank()) {
+                appendLine("执行摘要：${decision.userVisibleSummary}")
+            }
+            if (decision.candidateRefs.isNotEmpty()) {
+                appendLine("生成产物：${decision.candidateRefs.joinToString("、")}")
+            }
+            if (decision.unverifiedItems.isNotEmpty()) {
+                appendLine("待确认/阻塞项：${decision.unverifiedItems.joinToString("、")}")
+            }
+            if (needsDecision) {
+                appendLine("请你直接向用户简明说明卡在哪里、需要他做什么决定或补充什么信息，语气自然。")
+            } else {
+                appendLine("请你用自然口吻把结果告诉用户；若有结构化信息或产物文件，可按需调用 show_card 或给出清晰摘要。")
+            }
+        }
+        val history = buildRecentHistory()
+        val identity = io.zer0.muse.data.agentbot.AgentTurnIdentity(
+            assistantId = botId,
+            sessionId = sessionId,
+            requestId = "relay:${event.eventId}",
+            requestRevision = repository.latestUserInputSequence(botId, sessionId),
+        )
+        val ok = runCatching {
+            runStreamingForegroundTurn(
+                streamingEngine = streamingEngine,
+                identity = identity,
+                history = history,
+                userText = relayPrompt,
+                imageBase64List = emptyList(),
+            )
+        }.onFailure {
+            Logger.w("AgentBotVM", "主助手转述后台事件失败，回退兜底: ${it.message}")
+        }.getOrDefault(false)
+        return if (ok) true else null
+    }
+
+    /** 点击欢迎页示范或快捷建议时直接发送自然语言消息给助手。 */
+    fun sendQuickPrompt(text: String) {
+        val cleaned = text.trim()
+        if (cleaned.isBlank()) return
+        submit(cleaned, emptyList(), submittedComposer = null)
+    }
+
+    private fun buildRecentHistory(): List<io.zer0.ai.core.UIMessage> =
+        transcript.value.takeLast(16).map { msg ->
+            io.zer0.ai.core.UIMessage(
+                role = if (msg.role == AgentBotUiState.Role.USER) {
+                    io.zer0.ai.core.MessageRole.USER
+                } else {
+                    io.zer0.ai.core.MessageRole.ASSISTANT
+                },
+                content = msg.text,
+            )
+        }
 
     /** 结果事件交给共享发布器：页面与后台必须说一模一样的话。 */
     private suspend fun publishResult(
@@ -1393,11 +1511,33 @@ class AgentBotViewModel(
         }
     }
 
-    /** 点击流内决策/建议卡上的某个选项。 */
+    /** 点击流内决策/建议卡或自动化确认卡上的某个选项。 */
     fun selectChoiceOption(cardId: String, option: AgentStreamCoordinator.ChoiceOption) {
         viewModelScope.launch {
             runCatching { repository.resolveMessageCard(cardId, option.id) }
                 .onFailure { Logger.w("AgentBotVM", "更新选项卡片状态失败: ${it.message}") }
+            when (option.id) {
+                ROUTINE_APPROVE_OPTION_ID -> {
+                    val draft = runCatching {
+                        cardJson.decodeFromString(PendingRoutineApproval.serializer(), option.prompt)
+                    }.getOrNull()
+                    if (draft != null) {
+                        runCatching {
+                            routineEngine?.createOrUpdate(
+                                botId = currentBotId,
+                                title = draft.title,
+                                goalPrompt = draft.goalPrompt,
+                                resourceScope = draft.resourceScope,
+                                triggerType = draft.triggerType,
+                                triggerExpr = draft.triggerExpr,
+                                originSessionId = currentSessionId,
+                            )
+                        }.onFailure { Logger.w("AgentBotVM", "批准自动化失败: ${it.message}") }
+                    }
+                    return@launch
+                }
+                ROUTINE_DISMISS_OPTION_ID -> return@launch
+            }
             val reply = option.prompt.ifBlank { option.label }
             if (reply.isNotBlank()) {
                 submit(reply, emptyList(), submittedComposer = null)
@@ -1559,6 +1699,31 @@ class AgentBotViewModel(
     fun clearSandboxLogs() {
         progressBus?.clearSandboxLogs()
     }
+
+    /**
+     * 用户在 NEEDS_USER（需要你决定）详情中手动补充决定或修改要求后继续执行。
+     */
+    fun resolveNeedsDecision(taskId: String, instruction: String) {
+        viewModelScope.launch {
+            try {
+                val cleaned = instruction.trim()
+                if (cleaned.isNotBlank()) {
+                    scheduler.steerTask(taskId, cleaned)
+                }
+                if (repository.transition(taskId, BotTaskStatusMachine.Event.USER_CONFIRMED_CONTINUE) != null) {
+                    scheduler.tick()
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Logger.w("AgentBotVM", "提交任务决定并继续失败: ${itMessage(e)}", e)
+            }
+            _taskDetails.value = null
+            refreshBoard()
+        }
+    }
+
+    private fun itMessage(e: Exception): String = e.message.orEmpty()
 
     /**
      * 用户在 NEEDS_USER 状态点"继续"。
@@ -1948,7 +2113,18 @@ class AgentBotViewModel(
         )
     }
 
+    @kotlinx.serialization.Serializable
+    private data class PendingRoutineApproval(
+        val title: String,
+        val goalPrompt: String,
+        val resourceScope: String = "",
+        val triggerType: String = RoutineTriggerType.MANUAL,
+        val triggerExpr: String = "",
+    )
+
     companion object {
+        private const val ROUTINE_APPROVE_OPTION_ID = "approve_routine"
+        private const val ROUTINE_DISMISS_OPTION_ID = "dismiss_routine"
         private val cardJson = Json { ignoreUnknownKeys = true }
         /** 默认 Bot id。单 Bot 场景下固定值，多 Bot 时由绑定表给出。 */
         const val DEFAULT_BOT_ID = "default"

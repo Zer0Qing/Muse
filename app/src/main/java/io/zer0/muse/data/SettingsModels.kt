@@ -290,6 +290,12 @@ data class ChatPreferences(
      * 用户可在「设置 → 用户画像」里关掉,关掉后注入立即回到仅手填字段。
      */
     val profileSnapshotEnabled: Boolean = true,
+    /** Agent 界面是否显示思考过程（默认关闭，保持对话前台简洁，可在 Agent 设置中开启）。 */
+    val agentShowThinking: Boolean = false,
+    /** Agent 界面是否显示助手心情卡片（默认关闭，可在 Agent 设置中开启）。 */
+    val agentShowMood: Boolean = false,
+    /** Agent 界面是否在对话流内展示计划/任务卡（默认关闭，仅在顶栏电脑图标显示角标，可在 Agent 设置中开启）。 */
+    val agentShowPlanCards: Boolean = false,
 )
 
 /**

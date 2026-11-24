@@ -186,7 +186,7 @@ fun AgentMessageBubble(
         horizontalAlignment = if (isUser) Alignment.End else Alignment.Start,
         verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
     ) {
-        if (!isUser && chatPreferences.showMoodBlock && !visibleMood.isNullOrBlank()) {
+        if (!isUser && chatPreferences.agentShowMood && !visibleMood.isNullOrBlank()) {
             io.zer0.muse.ui.common.chat.MuseMoodCard(
                 mood = visibleMood,
                 expanded = moodExpanded,
@@ -241,7 +241,7 @@ fun AgentMessageBubble(
                         modifier = Modifier.padding(MusePaddings.bubbleInner),
                         verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
                     ) {
-                        if (!isUser && chatPreferences.showReasoning && message.reasoning.isNotBlank()) {
+                        if (!isUser && chatPreferences.agentShowThinking && message.reasoning.isNotBlank()) {
                             io.zer0.muse.ui.common.chat.MuseThinkingPanel(
                                 reasoning = message.reasoning,
                                 expanded = reasoningExpanded,
@@ -721,7 +721,7 @@ fun AgentStreamingBubble(
         horizontalAlignment = Alignment.Start,
         verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
     ) {
-        if (chatPreferences.showMoodBlock && streaming.mood.isNotBlank()) {
+        if (chatPreferences.agentShowMood && streaming.mood.isNotBlank()) {
             io.zer0.muse.ui.common.chat.MuseMoodCard(
                 mood = streaming.mood,
                 expanded = false,
@@ -758,7 +758,7 @@ fun AgentStreamingBubble(
                 modifier = Modifier.padding(MusePaddings.bubbleInner),
                 verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
             ) {
-                if (chatPreferences.showReasoning && streaming.reasoning.isNotBlank()) {
+                if (chatPreferences.agentShowThinking && streaming.reasoning.isNotBlank()) {
                     io.zer0.muse.ui.common.chat.MuseThinkingPanel(
                         reasoning = streaming.reasoning,
                         expanded = reasoningExpanded,
@@ -778,10 +778,15 @@ fun AgentStreamingBubble(
                         isStreaming = true,
                         citationUrls = streaming.citationUrls,
                     )
-                } else if (!chatPreferences.showReasoning || streaming.reasoning.isBlank()) {
+                } else if (!chatPreferences.agentShowThinking || streaming.reasoning.isBlank()) {
+                    val waitingLabel = if (streaming.isThinkingActive || streaming.reasoning.isNotBlank()) {
+                        stringResource(R.string.agent_waiting_thinking)
+                    } else {
+                        stringResource(R.string.agent_waiting_preparing)
+                    }
                     Text(
-                        text = "…",
-                        style = bodyStyle,
+                        text = waitingLabel,
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }

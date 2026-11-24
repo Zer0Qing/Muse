@@ -588,31 +588,13 @@ private fun WorkbenchRoutinesTab(
     var draftExpr by rememberSaveable { mutableStateOf("") }
     var teachStepDraft by rememberSaveable { mutableStateOf("") }
 
-    // 顶部极简操作栏：新建 + 录制示范（空闲不占大卡片）
-    Row(
+    // 聊天优先引导：由对话中的助手自然语言编排自动化，这里作为已生效自动化的监督与启停台
+    Text(
+        text = stringResource(R.string.agent_hub_routines_chat_first_hint),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
-    ) {
-        MuseCapsuleButton(
-            text = stringResource(R.string.agent_hub_routines_new),
-            onClick = { creatingOpen = !creatingOpen },
-            leadingIcon = MuseIcons.plus,
-            variant = IosCapsuleButtonVariant.Secondary,
-            fillWidth = false,
-            size = MuseButtonSize.Compact,
-        )
-        if (!teachState.recording) {
-            MuseCapsuleButton(
-                text = stringResource(R.string.agent_hub_teach_start),
-                onClick = { onStartTeach("") },
-                leadingIcon = MuseIcons.handFinger,
-                variant = IosCapsuleButtonVariant.Secondary,
-                fillWidth = false,
-                size = MuseButtonSize.Compact,
-            )
-        }
-    }
+    )
 
     // 仅在录制示范时展开录制卡片
     if (teachState.recording) {

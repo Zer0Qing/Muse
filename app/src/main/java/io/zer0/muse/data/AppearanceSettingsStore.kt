@@ -57,13 +57,13 @@ class AppearanceSettingsStore(private val context: Context) {
 
     /**
      * v2.5.5: 液态玻璃模式 — off/water(水玻璃)/frost(磨砂玻璃)。
-     * 默认 frost（磨砂玻璃）—— 新用户首装与旧用户升级（未主动设置过）都拿到这个默认。
+     * v2.7.0 起默认 off（关闭），避免部分 Android 13+ 设备首次启动即承受额外渲染开销；
+     * 用户显式选择过 frost/water 时保留其选择，不会被覆盖。
      * 旧布尔键值兼容: true→frost, false→off。
-     * 注意:只有键为 null（从未写过）才用兜底，用户显式选过 off 不会被覆盖。
      */
     val liquidGlassModeFlow: Flow<String> = store.data.mapDistinct { prefs ->
         when (val legacy = prefs[KEY_LIQUID_GLASS]) {
-            null -> prefs[KEY_LIQUID_GLASS_MODE] ?: "frost"
+            null -> prefs[KEY_LIQUID_GLASS_MODE] ?: "off"
             else -> if (legacy) "frost" else "off"
         }
     }

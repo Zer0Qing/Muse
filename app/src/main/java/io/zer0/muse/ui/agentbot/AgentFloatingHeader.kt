@@ -167,71 +167,94 @@ fun AgentInlineIdentityBar(
 @Composable
 fun AgentFloatingHeader(
     assistantName: String,
+    assistant: AssistantEntity? = null,
     avatarUri: String?,
     modelLabel: String,
     activeBadgeCount: Int,
     hasPendingApproval: Boolean,
     onOpenIdentitySwitch: () -> Unit,
     onOpenWorkbench: () -> Unit,
+    showWorkbenchButton: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     val switchCd = stringResource(R.string.agent_hub_switch_bot)
     val workbenchCd = stringResource(R.string.agent_hub_open_workbench)
     val glassConfig = LocalLiquidGlass.current
+    val resolvedName = assistantName.ifBlank { stringResource(R.string.agent_screen_title) }
 
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(
-                horizontal = MusePaddings.screen,
-                vertical = MusePaddings.tightGap,
-            ),
+            .padding(horizontal = MusePaddings.screen),
     ) {
-        // 中央：紧凑横向悬浮头像名牌胶囊，支持液态玻璃，两侧完全透明镂空
-        GlassIsland(
-            config = glassConfig,
-            shape = MuseShapes.pill,
-            solidColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
+        // 中央：紧凑圆形头像 + 底部压边白色名牌胶囊，点击直接切换助手，两侧完全透明镂空
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .align(Alignment.Center)
-                .clip(MuseShapes.pill)
+                .clip(MuseShapes.medium)
                 .clickable(onClick = onOpenIdentitySwitch)
                 .semantics { contentDescription = switchCd },
         ) {
-            Row(
-                modifier = Modifier.padding(
-                    start = MusePaddings.tightGap,
-                    end = MusePaddings.auxGap,
-                    top = MusePaddings.tinyGap,
-                    bottom = MusePaddings.tinyGap,
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surface,
+                shadowElevation = MuseElevation.card,
+                border = BorderStroke(
+                    width = MuseBorderWidth.thin,
+                    color = MaterialTheme.colorScheme.surface,
                 ),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
             ) {
-                AgentAvatarCircle(
-                    name = assistantName,
-                    avatarUri = avatarUri,
-                    compact = true,
-                )
-                Text(
-                    text = assistantName.ifBlank { stringResource(R.string.agent_screen_title) },
-                    style = MaterialTheme.typography.labelLarge,
-                    color = LocalContentColor.current,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.widthIn(max = MusePaddings.maxInlineWidth),
-                )
-                Icon(
-                    imageVector = MuseIcons.chevronRight,
-                    contentDescription = null,
-                    tint = LocalContentColor.current.copy(alpha = MuseAlpha.subtleBorder),
-                    modifier = Modifier.size(MuseIconSizes.iconTiny),
-                )
+                if (assistant != null) {
+                    AssistantAvatar(
+                        assistant = assistant,
+                        avatarSize = MuseAvatarSize.list,
+                    )
+                } else {
+                    AgentAvatarCircle(
+                        name = resolvedName,
+                        avatarUri = avatarUri,
+                        compact = true,
+                    )
+                }
+            }
+            GlassIsland(
+                config = glassConfig,
+                shape = MuseShapes.pill,
+                solidColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+                modifier = Modifier.offset(y = -MusePaddings.contentGap),
+            ) {
+                Row(
+                    modifier = Modifier.padding(
+                        start = MusePaddings.auxGap,
+                        end = MusePaddings.contentGap,
+                        top = MusePaddings.compactChipVertical,
+                        bottom = MusePaddings.compactChipVertical,
+                    ),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(MusePaddings.tinyGap),
+                ) {
+                    Text(
+                        text = resolvedName,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = LocalContentColor.current,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.widthIn(max = MusePaddings.maxInlineWidth),
+                    )
+                    Icon(
+                        imageVector = MuseIcons.chevronRight,
+                        contentDescription = null,
+                        tint = LocalContentColor.current.copy(alpha = MuseAlpha.subtleBorder),
+                        modifier = Modifier.size(MuseIconSizes.iconTiny),
+                    )
+                }
             }
         }
 
-        // 右侧：圆形工作台按钮 + 活跃徽章（支持液态玻璃）
-        Box(modifier = Modifier.align(Alignment.CenterEnd)) {
+        // 右侧：独立页时显示圆形工作台按钮 + 活跃徽章；嵌入首页 3 Tab 时由顶栏右上角承载
+        if (showWorkbenchButton) {
+            Box(modifier = Modifier.align(Alignment.CenterEnd)) {
             GlassIsland(
                 config = glassConfig,
                 shape = CircleShape,
@@ -281,6 +304,7 @@ fun AgentFloatingHeader(
                     )
                 }
             }
+        }
         }
     }
 }

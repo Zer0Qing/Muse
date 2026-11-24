@@ -103,6 +103,9 @@ fun AgentSettingsPage(
     val multiAgentConfig by settings.multiAgentConfigFlow.collectAsStateWithLifecycle(
         initialValue = io.zer0.muse.data.MultiAgentConfig(),
     )
+    val chatPrefs by settings.chatPreferencesFlow.collectAsStateWithLifecycle(
+        initialValue = io.zer0.muse.data.ChatPreferences(),
+    )
     val scope = rememberCoroutineScope()
     val context = androidx.compose.ui.platform.LocalContext.current
     // v1.0.72: 主动消息测试发送(避免重复触发)
@@ -248,6 +251,39 @@ fun AgentSettingsPage(
                         title = stringResource(R.string.settings_preference_title),
                         leadingContent = { Icon(MuseIcons.check, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
                         onClick = onOpenPreferences,
+                    )
+                }
+            }
+
+            item(key = "agent_display_group") {
+                CardGroup(title = { Text(stringResource(R.string.settings_agent_display_section)) }) {
+                    switchItem(
+                        key = "agent_show_thinking",
+                        title = stringResource(R.string.settings_agent_show_thinking_title),
+                        checked = chatPrefs.agentShowThinking,
+                        onCheckedChange = { v ->
+                            scope.launch { settings.updateChatPreferences { it.copy(agentShowThinking = v) } }
+                        },
+                        leadingContent = { Icon(MuseIcons.brain, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                    )
+                    switchItem(
+                        key = "agent_show_mood",
+                        title = stringResource(R.string.settings_agent_show_mood_title),
+                        checked = chatPrefs.agentShowMood,
+                        onCheckedChange = { v ->
+                            scope.launch { settings.updateChatPreferences { it.copy(agentShowMood = v) } }
+                        },
+                        leadingContent = { Icon(MuseIcons.moodSmile, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                    )
+                    switchItem(
+                        key = "agent_show_plan_cards",
+                        title = stringResource(R.string.settings_agent_show_plan_cards_title),
+                        subtitle = stringResource(R.string.settings_agent_show_plan_cards_subtitle),
+                        checked = chatPrefs.agentShowPlanCards,
+                        onCheckedChange = { v ->
+                            scope.launch { settings.updateChatPreferences { it.copy(agentShowPlanCards = v) } }
+                        },
+                        leadingContent = { Icon(MuseIcons.computer, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
                     )
                 }
             }

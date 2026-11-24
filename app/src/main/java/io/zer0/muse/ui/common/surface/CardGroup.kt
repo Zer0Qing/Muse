@@ -50,7 +50,8 @@ import io.zer0.muse.ui.theme.largeCard
  *
  * 适配 muse 的 Material Icons(而非 HugeIcons)和 warm-paper 主题。
  */
-private sealed interface CardGroupEntry {
+@PublishedApi
+internal sealed interface CardGroupEntry {
     val key: Any?
     val hasLeading: Boolean
 
@@ -109,7 +110,8 @@ interface CardGroupScope {
     fun content(key: Any? = null, content: @Composable () -> Unit)
 }
 
-private class CardGroupScopeImpl : CardGroupScope {
+@PublishedApi
+internal class CardGroupScopeImpl : CardGroupScope {
     val items = mutableListOf<CardGroupEntry>()
 
     override fun item(
@@ -142,27 +144,40 @@ private class CardGroupScopeImpl : CardGroupScope {
 }
 
 /**
- * v0.34 / v1.0.26: 卡片分组容器(Muse UI Kit 重写)。
+ * 卡片分组容器（Muse UI Kit）。
  *
- * 用法见文件顶部文档。所有 [content] 内的 [CardGroupScope.item] 调用会被收集,
- * 渲染为一个共享圆角背景的卡片组。
+ * 必须声明为 `inline`（且 [content] 不得 `noinline`）：否则 Compose 会为 [content] 生成独立的
+ * RecomposeScope，导致块内读取的 State（如 `switchItem` 的 `checked` 或 `if (enabled)` 条件项）
+ * 变化时只重组 [content] 自身而不重组外层容器，界面卡死在初始状态。
  *
  * @param modifier 整个卡片组(含标题)的 Modifier
- * @param title 可选的分组标题(primary 色,显示在卡片上方)
+ * @param title 可选的分组标题(显示在卡片上方)
  * @param content DSL 内容块,内部用 [CardGroupScope.item] 添加项
  */
 @Composable
-fun CardGroup(
+inline fun CardGroup(
     modifier: Modifier = Modifier,
-    title: (@Composable () -> Unit)? = null,
+    noinline title: (@Composable () -> Unit)? = null,
     content: @Composable CardGroupScope.() -> Unit,
 ) {
     val scope = CardGroupScopeImpl()
     scope.content()
+    CardGroupContainer(
+        modifier = modifier,
+        title = title,
+        entries = scope.items,
+    )
+}
 
+@PublishedApi
+@Composable
+internal fun CardGroupContainer(
+    modifier: Modifier,
+    title: (@Composable () -> Unit)?,
+    entries: List<CardGroupEntry>,
+) {
     Column(modifier = modifier) {
         // 标题在卡片外部,不被卡片 clip 影响
-        // v1.0.27 修复:对齐系统设置分组标题 — 灰色小字、紧凑间距
         if (title != null) {
             CompositionLocalProvider(
                 LocalContentColor provides MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = MuseAlpha.titleMuted),
@@ -186,9 +201,6 @@ fun CardGroup(
         }
 
         // 卡片容器:用 MuseSurface 基元统一 clip/color/shadow
-        // v1.0.27 修复:背景改为 surface(纯白/暖白),取消阴影 — 根治"灰块拼接"错觉
-        // v2.0.1 双平面:层级由"底色(压深) vs 卡面(白)"的明度差承载——
-        // 去掉描边、阴影降为 micro,不再用"线"和"影"分层。
         MuseSurface(
             modifier = Modifier.fillMaxWidth(),
             shape = MuseShapes.largeCard,
@@ -199,11 +211,11 @@ fun CardGroup(
             enablePressedFeedback = false,
         ) {
             Column {
-                val count = scope.items.size
-                // 双平面翻新：分隔线起点跟随内容左边线——整组有 leading 图标时缩到图标右侧文字列,
-                // 无图标卡落到行内边距(不再无条件 56dp,根治无图标卡比内容线多缩 40dp)。
-                val dividerIndent = museDividerStartIndent(hasLeading = scope.items.any { it.hasLeading })
-                scope.items.fastForEachIndexed { index, entry ->
+                val count = entries.size
+                // 分隔线起点跟随内容左边线——整组有 leading 图标时缩到图标右侧文字列,
+                // 无图标卡落到行内边距。
+                val dividerIndent = museDividerStartIndent(hasLeading = entries.any { it.hasLeading })
+                entries.fastForEachIndexed { index, entry ->
                     // 用 key 包裹,使带 key 的列表项在增删/重排时保留 remember 状态(如交互源、展开态)
                     key(entry.key ?: index) {
                         when (entry) {

@@ -3785,6 +3785,16 @@ class ChatViewModel(
      * 普通会话属于任务 Tab;Agent 会话不在任务列表中,必须切换到 Agent Tab
      * 并使用通知携带的精确会话 id,不能按默认助手重新猜测。
      */
+    private val _pendingHomeTab = MutableStateFlow<Int?>(null)
+    val pendingHomeTab: StateFlow<Int?> = _pendingHomeTab.asStateFlow()
+
+    fun consumePendingHomeTab() {
+        _pendingHomeTab.value = null
+    }
+
+    suspend fun isAgentSession(sessionId: String): Boolean =
+        runCatching { sessionRepository.getSessionById(sessionId)?.isAgentSession == true }.getOrDefault(false)
+
     fun openSessionFromNotification(sessionId: String, proactiveOutcomeId: String? = null) {
         viewModelScope.launch {
             if (!proactiveOutcomeId.isNullOrBlank()) {
@@ -3799,6 +3809,7 @@ class ChatViewModel(
             val target = sessionRepository.getSessionById(sessionId)
             if (target?.isAgentSession == true) {
                 setAgentMode(true, requestedSessionId = sessionId)
+                _pendingHomeTab.value = 1
                 return@launch
             }
             val ready =

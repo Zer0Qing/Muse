@@ -205,6 +205,13 @@ fun HomeScreen(
     // 窄屏保持原单栏 + push 详情页交互
     val widthClass = rememberWindowWidthClass()
     val isWideTasks = widthClass == WindowWidthClass.Expanded
+    val pendingHomeTab by viewModel.pendingHomeTab.collectAsStateWithLifecycle()
+    LaunchedEffect(pendingHomeTab) {
+        val target = pendingHomeTab ?: return@LaunchedEffect
+        pagerState.scrollToPage(target.coerceIn(0, 2))
+        initialPageSynced = true
+        viewModel.consumePendingHomeTab()
+    }
     LaunchedEffect(pagerState.isScrollInProgress) {
         if (!pagerState.isScrollInProgress) clickAnimating = false
     }
@@ -251,7 +258,6 @@ fun HomeScreen(
         null
     }
     var requestedWorkbenchTab by rememberSaveable { mutableStateOf<AgentWorkbenchTab?>(null) }
-    var requestedBriefingTick by remember { mutableIntStateOf(0) }
     val botTaskBoardState by (botViewModel?.taskBoard ?: kotlinx.coroutines.flow.flowOf(
         io.zer0.muse.data.agentbot.AgentBotUiState.TaskBoard(),
     )).collectAsStateWithLifecycle(
@@ -324,7 +330,6 @@ fun HomeScreen(
             val editListLabel = stringResource(R.string.common_edit)
             val providerLabel = stringResource(R.string.chat_select_provider)
             val switchAssistantLabel = stringResource(R.string.agent_hub_switch_bot)
-            val briefingLabel = stringResource(R.string.agent_hub_quick_briefing)
             val teachLabel = stringResource(R.string.agent_hub_quick_teach)
             val topMenuItems = buildList {
                 add(
@@ -356,14 +361,6 @@ fun HomeScreen(
                     )
                 }
                 if (pagerState.currentPage == 1 && botViewModel != null) {
-                    add(
-                        MuseFloatingActionItem(
-                            key = "briefing",
-                            icon = MuseIcons.sun,
-                            label = briefingLabel,
-                            onClick = { requestedBriefingTick++ },
-                        ),
-                    )
                     add(
                         MuseFloatingActionItem(
                             key = "teach",
@@ -744,7 +741,6 @@ fun HomeScreen(
                                 topOverlayInset = homeTopBarHeightDp,
                                 externalWorkbenchTab = requestedWorkbenchTab,
                                 onExternalWorkbenchTabConsumed = { requestedWorkbenchTab = null },
-                                externalBriefingTick = requestedBriefingTick,
                             )
                         } else {
                             ChatScreen(

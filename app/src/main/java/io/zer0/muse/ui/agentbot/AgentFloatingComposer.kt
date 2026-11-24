@@ -114,7 +114,6 @@ fun AgentFloatingComposer(
     onRemoveImage: (String) -> Unit,
     onVoiceInput: () -> Unit = {},
     onOpenWorkbench: () -> Unit,
-    onTriggerBriefing: () -> Unit,
     onStartTeach: () -> Unit,
     onOpenModel: (() -> Unit)?,
     onOpenProviderSettings: (() -> Unit)?,
@@ -629,7 +628,6 @@ fun AgentFloatingComposer(
 
     if (showToolSheet) {
         val workbenchTitle = stringResource(R.string.agent_hub_quick_workbench)
-        val briefingTitle = stringResource(R.string.agent_hub_cue_trigger_briefing)
         val teachTitle = stringResource(R.string.agent_hub_quick_teach)
         val webSearchTitle = stringResource(R.string.chat_web_search_cd)
         val deepThinkingLabel = stringResource(R.string.chat_deep_thinking_cd)
@@ -698,18 +696,6 @@ fun AgentFloatingComposer(
                         MuseHaptics.light(hapticFeedback)
                         showToolSheet = false
                         onOpenKnowledgePicker()
-                    },
-                ),
-            )
-            add(
-                ToolEntry(
-                    icon = MuseIcons.sun,
-                    title = briefingTitle,
-                    titleRes = R.string.agent_hub_cue_trigger_briefing,
-                    onClick = {
-                        MuseHaptics.light(hapticFeedback)
-                        showToolSheet = false
-                        onTriggerBriefing()
                     },
                 ),
             )

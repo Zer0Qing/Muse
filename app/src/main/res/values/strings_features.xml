@@ -893,4 +893,20 @@
     <string name="agent_hub_route_vision">视觉操控</string>
     <string name="agent_hub_route_follow_default">跟随默认</string>
     <string name="agent_hub_artifacts_history">历史文件</string>
+    <string name="settings_agent_display_section">Agent 对话显示</string>
+    <string name="settings_agent_show_thinking_title">显示思考过程</string>
+    <string name="settings_agent_show_mood_title">显示助手心情</string>
+    <string name="settings_agent_show_plan_cards_title">在对话中展示计划卡</string>
+    <string name="settings_agent_show_plan_cards_subtitle">关闭后仅在右上角电脑图标显示角标</string>
+    <string name="agent_task_decision_action">补充决定</string>
+    <string name="agent_task_decision_input_hint">补充你的决定或修改计划要求…</string>
+    <string name="agent_task_decision_continue">按此继续执行</string>
+    <string name="agent_hub_routines_chat_first_hint">直接对助手说出你的定时或习惯需求，确认后会自动生效，这里可随时启停或删除。</string>
+    <string name="agent_approval_intent_summary">准备执行：%1$s，确认后继续</string>
+    <string name="agent_approval_view_details">查看详细参数</string>
+    <string name="agent_welcome_prompt_remind">明天早上 7 点提醒我</string>
+    <string name="agent_welcome_prompt_morning_brief">每天早 9 点整理 AI 早报</string>
+    <string name="agent_welcome_prompt_notifications">看看今天有没有重要通知</string>
+    <string name="agent_waiting_thinking">正在思考…</string>
+    <string name="agent_waiting_preparing">正在整理回复…</string>
 </resources>

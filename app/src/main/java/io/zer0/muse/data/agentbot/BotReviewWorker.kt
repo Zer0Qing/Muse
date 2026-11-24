@@ -241,7 +241,7 @@ class BotReviewWorker {
     ): String = buildString {
         append("「")
         append(goal.trim().take(MAX_GOAL_CHARS).ifBlank { "这件事" })
-        append("」审核结论：")
+        append("」")
         append(dispositionText(decision.disposition))
         if (candidateRefs.isNotEmpty()) {
             append("\n产物：")
@@ -256,8 +256,11 @@ class BotReviewWorker {
             append(sideEffects.joinToString("、"))
         }
         if (decision.unverifiedItems.isNotEmpty()) {
-            append("\n未验项：")
+            append("\n待确认：")
             append(decision.unverifiedItems.joinToString("、"))
+        }
+        if (decision.disposition == ReviewDisposition.NEEDS_USER) {
+            append("\n请直接回复我下一步怎么做，或在右上角电脑面板点开该计划补充决定后继续。")
         }
     }
 
