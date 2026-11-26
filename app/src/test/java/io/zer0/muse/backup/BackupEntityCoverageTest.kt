@@ -74,6 +74,11 @@ class BackupEntityCoverageTest {
         "io.zer0.muse.data.agentbot.BotAnnotationEntity" to "botAnnotations",
         "io.zer0.muse.data.agentbot.BotMessageCardEntity" to "botMessageCards",
         "io.zer0.muse.data.agentbot.BotRoutineEntity" to "botRoutines",
+        // v2.7.x: 帮你跟进与长期目标（用户资产，换机后必须还在）
+        "io.zer0.muse.data.agentbot.AgentWatcherEntity" to "agentWatchers",
+        "io.zer0.muse.data.agentbot.AgentGoalEntity" to "agentGoals",
+        // v2.7.x: Linux 轻量云电脑节点（元数据必须随备份迁移，凭据按 includeSecrets 策略处理）
+        "io.zer0.muse.data.computenode.RemoteComputeNodeEntity" to "remoteComputeNodes",
         // v2.6.21: 单个对话的主动消息静音偏好，换机后必须保留。
         "io.zer0.muse.proactive.SessionProactivePreferenceEntity" to "sessionProactivePreferences",
         // v2.7.x(E2): 术语表 —— 用户确认过的既定说法，不可从历史重新推导

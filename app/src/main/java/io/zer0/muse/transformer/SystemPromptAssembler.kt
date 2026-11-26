@@ -645,6 +645,8 @@ class SystemPromptAssembler(
                     buildPinnedMemoriesSection(
                         assistantId = resolvedAssistantId,
                         includeGlobal = canReadGlobalMemory || resolvedAssistantId == "default",
+                        scope = resolvedMemoryScope,
+                        spaceId = resolvedMemorySpaceId,
                     )
                 } else {
                     ""
@@ -1183,10 +1185,12 @@ class SystemPromptAssembler(
         if (!enabled) return ""
         val provider = factDbProvider ?: return ""
         val rows = resultOf {
-            val db = provider.getFactDb("main")
+            // 库按助手 id 取：主助手的库是 facts.db（provider 内部映射 "default"），
+            // 传 "main" 会打开 facts_main.db —— 那是另一个助手的库，快照永远读空。
+            val db = provider.getFactDb("default")
             val dao = db.profileSnapshotDao()
-            // 快照与相关记忆同源：都按助手从 provider 取库，不再有全局 factStore 这一档。
-            val store = provider.getFactStore("main")
+            // scope/space 仍是 main/default（主记忆池的作用域口径），与库 id 是两回事。
+            val store = provider.getFactStore("default")
             val facts = store.getByScope(scope = "main", includeSuppressed = false)
                 .filter { it.spaceId == "default" }
             ProfileSnapshotRefresher(dao).refresh(scope = "main", spaceId = "default", facts = facts)
@@ -1232,18 +1236,27 @@ class SystemPromptAssembler(
      * 置顶内容永不注入),写入侧(pin_memory 工具/记忆页 UI)走 PinnedMemoryStore。
      * 现统一从 [PinnedMemoryStore] 读取,并做一次性迁移旧文件(store 为空时导入)。
      *
+     * 作用域:按当前会话真实的 scope/space 读取 —— 事实层置顶存在 `facts.pinned_at` 里,
+     * 读端按 (scope, space) 取。写死 "main"/"default" 会让子助手、非默认 Space 的
+     * 置顶永远取不到,而主助手却看到别的空间的内容。
+     *
      * 安全:M-ASM2 — 用户/LLM 写入的内容视为"数据"而非"指令",用明确边界标签包裹,
      * 并在 section 头部声明标签内为数据,防止持久化提示词注入。
      * L-ASM7 — 限制条目数,防止记忆膨胀撑爆 system prompt。
      */
-    private suspend fun buildPinnedMemoriesSection(assistantId: String, includeGlobal: Boolean): String {
+    private suspend fun buildPinnedMemoriesSection(
+        assistantId: String,
+        includeGlobal: Boolean,
+        scope: String,
+        spaceId: String,
+    ): String {
         val store = pinnedMemoryStore ?: return ""
         migrateLegacyPinnedMemories(store)
         val runtime = memoryRuntime ?: return ""
         val result = resultOf {
             runtime.read(
                 io.zer0.memory.runtime.MemoryReadRequest(
-                    scope = io.zer0.memory.runtime.MemoryScopeKey(assistantId, "main", "default"),
+                    scope = io.zer0.memory.runtime.MemoryScopeKey(assistantId, scope, spaceId),
                     tokenBudget = 0,
                     includeCompiled = false,
                     includeFacts = false,

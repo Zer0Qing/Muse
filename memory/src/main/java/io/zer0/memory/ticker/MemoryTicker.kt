@@ -117,7 +117,27 @@ class MemoryTicker(
      * 供 daily pipeline 的 facts 对账使用，避免子助手/非默认 Space 把默认库事实投影到当前槽位。
      */
     private val resolveFactStore: ((io.zer0.memory.compile.MemoryCompileTarget) -> io.zer0.memory.fact.FactStore?)? = null,
+    /**
+     * 备份/恢复写闸。不传时只认进程闸 [io.zer0.common.ProcessWriteGate],
+     * 与旧的 `ProcessWriteGate.restoring` 检查等价。
+     */
+    private val writeGate: io.zer0.memory.runtime.MemoryWriteGate? = null,
 ) {
+
+    /**
+     * 入口闸判定。
+     *
+     * 闸目前是进程级的,不看 scope 细分;这里给一个固定的粗粒度键,避免为了过接口而
+     * 编造一个有意义的 scope(那只会让后人误以为闸已经按 scope 隔离了)。
+     *
+     * 传入 [fence] 时额外判断「这个 fence 之后是否有过恢复窗口」—— 模型调用可能让
+     * 一次恢复完整地发生在里面,那时 restoring 已经复位,只看当前状态会误以为可以写。
+     */
+    private fun writesBlocked(fence: io.zer0.memory.runtime.MemoryWriteFence? = null): Boolean =
+        writeGate?.blocksWrite(PROCESS_GATE_SCOPE, fence) ?: io.zer0.common.ProcessWriteGate.restoring
+
+    /** 取一次恢复栅栏(未接闸时为 null)。 */
+    private fun dailyFence(): io.zer0.memory.runtime.MemoryWriteFence? = writeGate?.fence()
 
     /** v2.6.2: 解析 target 对应的 FactStore，未注入 resolver 时回退默认 [factStore]。 */
     private fun factStoreForTarget(target: io.zer0.memory.compile.MemoryCompileTarget): io.zer0.memory.fact.FactStore? =
@@ -162,6 +182,9 @@ class MemoryTicker(
 
         /** 含 rollingSummary 在内的全部 6 步(health 报告用)。 */
         val STEP_KEYS = listOf("rollingSummary") + DAILY_STEP_KEYS
+
+        /** 进程级写闸的占位 scope(闸本身不按 scope 细分)。 */
+        private val PROCESS_GATE_SCOPE = io.zer0.memory.runtime.MemoryScopeKey("default", "main", "default")
     }
 
     private val json = Json {
@@ -456,10 +479,21 @@ class MemoryTicker(
         dailyStateDao.get(context.stateKey)
     }.getOrNull()
 
-    private suspend fun writeDailyState(context: DailyContext, completedSteps: Map<String, String>, dailyCompletedAt: String?) {
-        if (io.zer0.common.ProcessWriteGate.restoring) {
+    /**
+     * 写入当日进度 checkpoint。
+     *
+     * @return true 表示已落库。恢复窗口内一律 false —— 调用方据此不标成功、不记当日完成,
+     *         否则本轮"跳过写入"会被当成"跑完了",当天后面再也不会重试。
+     */
+    private suspend fun writeDailyState(
+        context: DailyContext,
+        completedSteps: Map<String, String>,
+        dailyCompletedAt: String?,
+        fence: io.zer0.memory.runtime.MemoryWriteFence? = null,
+    ): Boolean {
+        if (writesBlocked(fence)) {
             Logger.d(TAG, "daily state: 备份恢复进行中，跳过 checkpoint 写入")
-            return
+            return false
         }
         val entity = DailyStateEntity(
             key = context.stateKey,
@@ -472,9 +506,29 @@ class MemoryTicker(
             updatedAt = Instant.now().toString(),
         )
         // v1.78 (H5): 包装 suspend DAO 调用必须用 resultOf,避免吞 CancellationException
-        resultOf { dailyStateDao.upsert(entity) }.onError { msg, t ->
+        return resultOf { dailyStateDao.upsert(entity) }.onError { msg, t ->
             Logger.w(TAG, "daily state write failed: $msg", t)
+        }.isSuccess
+    }
+
+    /**
+     * 记一步完成:先写 checkpoint,写不进去就返回 null,调用方据此中止本轮。
+     *
+     * 旧实现先改内存里的 completed 再写,写被闸跳过时内存已认"完成",
+     * 本轮后续步骤与当日完成标记都建立在一次不存在的落盘上。
+     */
+    private suspend fun markStepDone(
+        stepKey: String,
+        context: DailyContext,
+        completed: Map<String, String>,
+        fence: io.zer0.memory.runtime.MemoryWriteFence? = null,
+    ): Map<String, String>? {
+        val next = completed + (stepKey to Instant.now().toString())
+        if (!writeDailyState(context, next, null, fence)) {
+            Logger.d(TAG, "daily: $stepKey checkpoint 未写入(恢复窗口),本轮中止")
+            return null
         }
+        return next
     }
 
     /**
@@ -515,6 +569,11 @@ class MemoryTicker(
         assistantId: String = "",
         spaceId: String? = null,
     ): Boolean {
+        // 入口闸:恢复窗口内不发起模型调用 —— 结果落不进库,白跑一次只烧 token。
+        if (writesBlocked()) {
+            Logger.d(TAG, "rollingSummary: 备份恢复进行中,跳过 (${sessionId.take(8)}…)")
+            return false
+        }
         // 重入保护: 同一 session 不并发跑两次 rolling
         _summaryInProgressLock.withLock {
             if (sessionId in _summaryInProgress) return false
@@ -605,6 +664,10 @@ class MemoryTicker(
         timeZone: String,
         targetOverride: MemoryCompileTarget? = null,
     ) {
+        if (writesBlocked()) {
+            Logger.d(TAG, "compileToday: 备份恢复进行中,跳过")
+            return
+        }
         if (!stepBackoff.shouldRun("compileToday")) return
         try {
             markStepStart("compileToday", "turn")
@@ -613,6 +676,11 @@ class MemoryTicker(
             _compileTodayLock.withLock {
                 // A-19: 只编译主助手摘要,子助手会话摘要不得串台进入"今天"段
                 compiler.compileToday(summaryManager, model, locale, timeZone, target = target)
+            }
+            // 编译期间闸变严 = 本次写入被写入边界拦下，不能当成功上报。
+            if (writesBlocked()) {
+                Logger.d(TAG, "compileToday: 恢复窗口内未落库,不计成功")
+                return
             }
             // assemble 在 muse 是 lazy 的:readCompiledMemoryMarkdown 由 ChatService 实时调用
             // 这里不显式触发文件写,只通知 health
@@ -638,6 +706,9 @@ class MemoryTicker(
         // v1.78 (H7): 用 compareAndSet 原子化 check-then-act,消除竞态
         if (!_dailyRunning.compareAndSet(false, true)) return
         try {
+            // 本轮 daily 的恢复栅栏:模型调用可能让一次恢复完整发生在步骤里面,
+            // 结束时 restoring 已复位,但产物和 checkpoint 都基于旧库。
+            val fence = dailyFence()
             val context = currentContext()
             val target = currentCompileTarget()
             var completed = restoreDailyProgress(context)
@@ -679,8 +750,7 @@ class MemoryTicker(
                                 timeZone,
                                 target = target,
                             )
-                            completed = completed + ("compileDaily" to Instant.now().toString())
-                            writeDailyState(context, completed, null)
+                            completed = markStepDone("compileDaily", context, completed, fence) ?: return
                             markSuccess("compileDaily")
                             markStepRecovered("compileDaily")
                         } else {
@@ -704,8 +774,7 @@ class MemoryTicker(
                         markStepStart("compileToday", "daily")
                         // A-19: 只编译主助手摘要
                         compiler.compileToday(summaryManager, model, locale, timeZone, target = target)
-                        completed = completed + ("compileToday" to Instant.now().toString())
-                        writeDailyState(context, completed, null)
+                        completed = markStepDone("compileToday", context, completed, fence) ?: return
                         markSuccess("compileToday")
                         markStepRecovered("compileToday(daily)")
                     } catch (e: CancellationException) {
@@ -736,8 +805,7 @@ class MemoryTicker(
                 try {
                     markStepStart("rollDailyWindow", "daily")
                     compiler.rollDailyWindow(model, locale, context.logicalDate, target)
-                    completed = completed + ("rollDailyWindow" to Instant.now().toString())
-                    writeDailyState(context, completed, null)
+                    completed = markStepDone("rollDailyWindow", context, completed, fence) ?: return
                     markSuccess("rollDailyWindow")
                     markStepRecovered("rollDailyWindow")
                 } catch (e: CancellationException) {
@@ -775,8 +843,7 @@ class MemoryTicker(
                                 }
                                 .onError { msg, t -> Logger.w(TAG, "facts 表读取失败(对账跳过): ${t?.message ?: msg}") }
                         }
-                        completed = completed + ("compileFacts" to Instant.now().toString())
-                        writeDailyState(context, completed, null)
+                        completed = markStepDone("compileFacts", context, completed, fence) ?: return
                         markSuccess("compileFacts")
                         markStepRecovered("compileFacts")
                     } catch (e: CancellationException) {
@@ -795,11 +862,11 @@ class MemoryTicker(
                 try {
                     markStepStart("deepMemory", "daily")
                     val result = deepProcessor.processDirtySessions(summaryManager, model, locale, runtimeContext.getConfig())
-                    completed = completed + ("deepMemory" to Instant.now().toString())
+                    val stepCompleted = markStepDone("deepMemory", context, completed, fence) ?: return
                     if (result.processed > 0) {
                         Logger.i(TAG, "deep-memory: ${result.processed} session, ${result.factsAdded} 条新事实")
                     }
-                    writeDailyState(context, completed, null)
+                    completed = stepCompleted
                     markSuccess("deepMemory")
                     markStepRecovered("deepMemory")
                 } catch (e: CancellationException) {
@@ -818,42 +885,58 @@ class MemoryTicker(
                 .orEmpty()
             val maintenanceStores = (listOfNotNull(factStore) + additionalStores)
                 .distinctBy { it.assistantId.ifBlank { "default" } }
+            // 下面三步都写库,且都要先调模型:入口栅栏失效就不能落库 ——
+            // 拿旧库算出来的合并/反思结果去删现在的事实,删错就找不回来了。
             for (store in maintenanceStores) {
-                resultOf { store.dedupPassAllSpaces() }
-                    .onError { msg, t ->
-                        Logger.w(TAG, "每日记忆去重失败(${store.assistantId}): ${t?.message ?: msg}")
-                    }
-                    .onSuccess { count ->
-                        if (count > 0) Logger.i(TAG, "每日记忆去重(${store.assistantId}): 合并 $count 条")
-                    }
-                factConsolidator?.let { consolidator ->
-                    resultOf { consolidator.consolidateAll(store) }
+                if (writesBlocked(fence)) {
+                    Logger.d(TAG, "每日记忆去重: 恢复窗口内跳过(${store.assistantId})")
+                } else {
+                    resultOf { store.dedupPassAllSpaces() }
                         .onError { msg, t ->
-                            Logger.w(TAG, "每日 LLM 记忆整合失败(${store.assistantId}): ${t?.message ?: msg}")
+                            Logger.w(TAG, "每日记忆去重失败(${store.assistantId}): ${t?.message ?: msg}")
                         }
                         .onSuccess { count ->
-                            if (count > 0) {
-                                Logger.i(TAG, "每日 LLM 记忆整合(${store.assistantId}): 合并 $count 组")
-                            }
+                            if (count > 0) Logger.i(TAG, "每日记忆去重(${store.assistantId}): 合并 $count 条")
                         }
+                }
+                factConsolidator?.let { consolidator ->
+                    if (writesBlocked(fence)) {
+                        Logger.d(TAG, "每日 LLM 记忆整合: 恢复窗口内跳过(${store.assistantId})")
+                    } else {
+                        resultOf { consolidator.consolidateAll(store, fence = fence) }
+                            .onError { msg, t ->
+                                Logger.w(TAG, "每日 LLM 记忆整合失败(${store.assistantId}): ${t?.message ?: msg}")
+                            }
+                            .onSuccess { count ->
+                                if (count > 0) {
+                                    Logger.i(TAG, "每日 LLM 记忆整合(${store.assistantId}): 合并 $count 组")
+                                }
+                            }
+                    }
                 }
             }
 
             // v12 (T3-1): 记忆反思 — 每日整理(回填实体键/合并同实体重复/矛盾检测/晋升)。
             // 与写入时查重(快路径)互补,清理历史沉淀的重复;失败不影响主流程。
             reflectionRunner?.let { runner ->
-                resultOf { runner.runReflection(scope = target.scope, spaceId = target.spaceId) }
-                    .onError { msg, t -> Logger.w(TAG, "每日记忆反思失败: ${t?.message ?: msg}") }
+                if (writesBlocked(fence)) {
+                    Logger.d(TAG, "每日记忆反思: 恢复窗口内跳过")
+                } else {
+                    resultOf { runner.runReflection(scope = target.scope, spaceId = target.spaceId) }
+                        .onError { msg, t -> Logger.w(TAG, "每日记忆反思失败: ${t?.message ?: msg}") }
+                }
             }
 
             if (hasFailed) {
                 val done = completed.keys.joinToString(", ")
                 Logger.w(TAG, "每日任务部分失败,已完成: [$done],下次 tick 重试未完成步骤")
-            } else {
+            } else if (writeDailyState(context, completed, Instant.now().toString(), fence)) {
                 _lastDailyJobDate = context.logicalDate
                 _lastDailyJobDateByTarget[context.stateKey] = context.logicalDate
-                writeDailyState(context, completed, Instant.now().toString())
                 Logger.i(TAG, "每日任务完成")
+            } else {
+                // 写不进完成标记就不能宣称今天跑完了:否则恢复结束后当天不再重试。
+                Logger.d(TAG, "每日任务: 恢复窗口内不记当日完成标记,下轮重试")
             }
         } finally {
             // v1.78 (H7): AtomicBoolean 用 set(false) 释放

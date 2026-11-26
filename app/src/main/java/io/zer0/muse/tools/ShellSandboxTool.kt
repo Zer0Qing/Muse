@@ -1,7 +1,14 @@
 package io.zer0.muse.tools
 
 import io.zer0.common.Logger
+import io.zer0.muse.computenode.ComputeTarget
+import io.zer0.muse.computenode.ComputeTargetRouter
+import io.zer0.muse.computenode.ExecKind
+import io.zer0.muse.computenode.ExecRequest
+import io.zer0.muse.computenode.RemoteComputeRuntime
+import io.zer0.muse.computenode.TaskCategory
 import io.zer0.muse.tools.system.sanitizeShellCommandForLog
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -63,6 +70,7 @@ object ShellSandboxTool {
             "返回: 成功=命令输出,失败=[错误]原因。",
         parameters = mapOf(
             "command" to "要执行的命令(如 'ls -la' 或 'cat notes.txt')",
+            "target" to "执行位置:auto(默认,有在线云端电脑时优先云端)/local(本机 proot)/cloud(指定云端电脑)",
         ),
         required = setOf("command"),
         category = "built-in",
@@ -74,8 +82,15 @@ object ShellSandboxTool {
      *
      * @param command 用户/AI 提供的命令字符串
      * @param workDir 工作目录(应用 filesDir)
+     * @param target 算力目标:auto/local/cloud
+     * @param remoteRuntime 云端执行入口;为 null 时只走本机
      */
-    suspend fun execute(command: String, workDir: File): String = withContext(Dispatchers.IO) {
+    suspend fun execute(
+        command: String,
+        workDir: File,
+        target: String = ComputeTargetRouter.TARGET_AUTO,
+        remoteRuntime: RemoteComputeRuntime? = null,
+    ): String = withContext(Dispatchers.IO) {
         // 安全检查 0:规则型硬边界防线
         // v1.0.52: 调用 ToolPermissionResolver.isUnsafeCommand 做第一道拦截,
         // 即使白名单/权限模式有 bug,黑名单(rm/sudo/git/curl/wget 等)和不安全语法
@@ -124,6 +139,22 @@ object ShellSandboxTool {
             if (badArg != null) {
                 return@withContext "[错误] 路径 '$badArg' 超出沙箱范围(仅允许应用数据目录内)"
             }
+        }
+
+        if (target.trim().equals(ComputeTargetRouter.TARGET_CLOUD, ignoreCase = true) && remoteRuntime == null) {
+            return@withContext "[错误] 云端电脑未配置"
+        }
+        val computeTarget = try {
+            remoteRuntime?.resolve(target, TaskCategory.SHELL) ?: ComputeTarget.LocalProot
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Logger.w("ShellSandbox", "解析算力目标失败: ${e.message}", e)
+            return@withContext "[错误] 云端电脑不可用: ${e.message}"
+        }
+        if (computeTarget is ComputeTarget.RemoteNode) {
+            val runtime = remoteRuntime ?: return@withContext "[错误] 云端电脑未配置"
+            return@withContext executeRemote(command, computeTarget, runtime)
         }
 
         runCatching {
@@ -176,6 +207,40 @@ object ShellSandboxTool {
             "[错误] 执行失败: ${it.message}"
         }
     }
+
+    /** 在云端节点执行同一条命令，输出由 [RemoteComputeRuntime] 聚合。 */
+    private suspend fun executeRemote(
+        command: String,
+        target: ComputeTarget.RemoteNode,
+        runtime: RemoteComputeRuntime,
+    ): String {
+        val outcome = try {
+            runtime.execute(
+                target = target,
+                request = ExecRequest(
+                    kind = ExecKind.SHELL,
+                    command = command,
+                    cwd = REMOTE_WORK_DIR,
+                    timeoutSec = REMOTE_TIMEOUT_SEC,
+                ),
+            )
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Logger.w("ShellSandbox", "云端执行失败: ${e.message}", e)
+            return "[错误] 云端执行失败: ${e.message}"
+        }
+        val output = outcome.combinedOutput()
+        return when {
+            outcome.exitCode == 0 && output.isBlank() -> "[成功] 云端命令执行完成,无输出"
+            outcome.exitCode == 0 -> output
+            output.isBlank() -> "[退出码 ${outcome.exitCode}] 云端命令执行失败(无输出)"
+            else -> "[退出码 ${outcome.exitCode}]\n" + output
+        }
+    }
+
+    private const val REMOTE_WORK_DIR = "~/muse-workspace"
+    private const val REMOTE_TIMEOUT_SEC = 120
 }
 
 /**
@@ -184,6 +249,7 @@ object ShellSandboxTool {
 class ShellSandboxToolRegistrar(
     private val toolRegistry: ToolRegistry,
     private val workDir: File,
+    private val remoteRuntime: RemoteComputeRuntime? = null,
 ) {
     init {
         registerAll()
@@ -192,7 +258,7 @@ class ShellSandboxToolRegistrar(
     fun registerAll() {
         toolRegistry.register(ShellSandboxTool.toolDef()) { args ->
             val command = args["command"] ?: return@register "[错误] 缺少必填参数 command"
-            ShellSandboxTool.execute(command, workDir)
+            ShellSandboxTool.execute(command, workDir, args["target"].orEmpty(), remoteRuntime)
         }
     }
 }

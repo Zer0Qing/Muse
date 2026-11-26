@@ -23,19 +23,33 @@ import kotlinx.coroutines.withTimeoutOrNull
  *  - 合并结果长度超过簇内全部原文总长 → 视为异常输出,放弃该簇;
  *  - 置顶记忆不参与合并(用户主动固定);
  *  - 关键记忆的变更由 FactStore 的修订记录兜底,可回溯。
+ *
+ * 写入前置闸:合并会删掉簇内其余条目,一旦恢复窗口在模型调用期间完整开合,
+ * 返回的合并结果就是基于旧库算的 —— 删错的事实无法找回。所以每个簇在落库前
+ * 都要用入口栅栏再判一次闸(MemoryWriteGate.blocksWrite)。
  */
 class LlmFactConsolidator(
     private val llmClient: MemoryLlmClient,
     /** 目标模型,null 时由 [MemoryLlmClient] 实现侧用默认模型。 */
     private val model: Model? = null,
+    /** 备份/恢复写闸。null 时不做闸检查(测试/旧装配),行为与接入前一致。 */
+    private val writeGate: io.zer0.memory.runtime.MemoryWriteGate? = null,
 ) {
 
     /**
      * 对指定作用域执行 LLM 合并整合。
      *
+     * @param fence 入口取的恢复栅栏。传入时每个簇在 [FactStore.mergeIntoKeeper] 前复核闸,
+     *   被挡则跳过该簇(模型返回的合并文本基于旧库,不能据此删除任何事实)。
      * @return 实际合并的簇数(0 = 没有可合并的簇或全部失败)
      */
-    suspend fun consolidate(store: FactStore, scope: String, spaceId: String, maxGroups: Int = DEFAULT_MAX_GROUPS): Int =
+    suspend fun consolidate(
+        store: FactStore,
+        scope: String,
+        spaceId: String,
+        maxGroups: Int = DEFAULT_MAX_GROUPS,
+        fence: io.zer0.memory.runtime.MemoryWriteFence? = null,
+    ): Int =
         withContext(Dispatchers.IO) {
             val groups = resultOf { store.findSimilarGroups(scope, spaceId, maxGroups) }
                 .onError { msg, t -> Logger.w(TAG, "查找相似记忆簇失败: ${t?.message ?: msg}") }
@@ -47,6 +61,12 @@ class LlmFactConsolidator(
                 // 置顶记忆保护: 含置顶条目的簇不参与自动合并
                 if (group.any { it.pinnedAt != null }) continue
                 val mergedText = mergeGroupWithLlm(group) ?: continue
+                // 合并会删成员:模型返回后、落库前按入口栅栏复核。恢复窗口内跳过,
+                // 宁可这轮少合并,也不能拿旧库算出的结果去删现在的事实。
+                if (writeGate?.blocksWrite(gateScope(store, scope, spaceId), fence) == true) {
+                    Logger.d(TAG, "恢复窗口内跳过合并(scope=$scope, spaceId=$spaceId)")
+                    continue
+                }
                 // 保留重要度最高的一条作为 keeper
                 val keeper = group.maxByOrNull { it.importance } ?: group.first()
                 // v2.6.2（记忆审计）: 改为 FactStore.mergeIntoKeeper 原子合并 —— keeper 更新与
@@ -76,18 +96,33 @@ class LlmFactConsolidator(
     /**
      * 遍历库内全部 scope+space 组合执行整合(每日流水线用)。
      *
+     * @param fence 每日流水线入口取的恢复栅栏,逐空间透传给 [consolidate]。
      * @return 实际合并的簇数
      */
-    suspend fun consolidateAll(store: FactStore, maxGroups: Int = DEFAULT_MAX_GROUPS): Int {
+    suspend fun consolidateAll(
+        store: FactStore,
+        maxGroups: Int = DEFAULT_MAX_GROUPS,
+        fence: io.zer0.memory.runtime.MemoryWriteFence? = null,
+    ): Int {
         val pairs = resultOf { store.listScopeSpacePairs() }
             .onError { msg, t -> Logger.w(TAG, "枚举记忆空间失败: ${t?.message ?: msg}") }
             .getOrNull() ?: return 0
         var total = 0
         for ((scope, spaceId) in pairs) {
-            total += consolidate(store, scope, spaceId, maxGroups)
+            total += consolidate(store, scope, spaceId, maxGroups, fence)
         }
         return total
     }
+
+    /**
+     * 合并落库的闸键:owner 取事实库所属助手,scope/space 取本簇的目标空间。
+     */
+    private fun gateScope(store: FactStore, scope: String, spaceId: String): io.zer0.memory.runtime.MemoryScopeKey =
+        io.zer0.memory.runtime.MemoryScopeKey(
+            assistantId = store.assistantId.ifBlank { "default" },
+            scope = scope.ifBlank { "main" },
+            spaceId = spaceId.ifBlank { "default" },
+        )
 
     /**
      * v19: 手动合并 —— 把用户选中的若干条记忆合成一条**草稿**,只返回文本、不落库。

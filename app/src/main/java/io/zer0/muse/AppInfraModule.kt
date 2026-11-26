@@ -174,12 +174,23 @@ val appInfraModule = module {
                     ?: "default"
                 factDbProvider.getFactStore(assistantId)
             },
+            // 入口 + 写前都要看闸:恢复窗口内不发起模型调用,写 checkpoint 前再判一次。
+            writeGate = get<io.zer0.memory.runtime.MemoryWriteGate>(),
         )
     }
     // v1.0.92: LLM 记忆整合器(手动"整理记忆"与每日自动整合共用同一实现)
-    single { io.zer0.memory.fact.LlmFactConsolidator(get()) }
+    // 写闸:自动整合要调模型,返回时可能已跨过一次备份恢复 —— 删成员前必须能用栅栏拦下。
+    single {
+        io.zer0.memory.fact.LlmFactConsolidator(
+            llmClient = get(),
+            writeGate = get<io.zer0.memory.runtime.MemoryWriteGate>(),
+        )
+    }
     // 会话/助手删除时的记忆清理(摘要/检查点/事实/编译产物/群聊记忆/矛盾清单)
     single {
+        // 会话删掉后要连它的 AutoSave 指纹一起作废：同 id 的会话（导入/恢复/复用 id）
+        // 会因「这段历史已抽过」被跳过提取，而它写入的事实刚被本次清理删掉。
+        val autoSaveScheduler = get<io.zer0.memory.ai.MemoryAutoSaveScheduler>()
         io.zer0.muse.data.memory.SessionMemoryCleanup(
             summaryDao = get(),
             checkpointDao = get(),
@@ -188,6 +199,15 @@ val appInfraModule = module {
             factDbProvider = get(),
             fileWriter = get(),
             contradictionStore = get(),
+            // 删除助手要连带清掉不属于事实表的残留：置顶、Dream 状态/revision、夜间归档。
+            pinnedMemoryStore = getOrNull(),
+            memoryDreamDao = getOrNull(),
+            legacySectionDao = getOrNull(),
+            dreamArchiveStore = io.zer0.muse.data.agentbot.AgentDreamArchiveStore(
+                java.io.File(androidContext().filesDir, io.zer0.muse.data.agentbot.AgentDreamArchiveStore.DIRECTORY),
+            ),
+            invalidateFingerprintCache = autoSaveScheduler::invalidateFingerprintCacheForSession,
+            invalidateAssistantFingerprintCache = autoSaveScheduler::invalidateFingerprintCacheForAssistant,
         )
     }
     // v1.0.51: 存量记忆迁移 — 升级后首次启动补跑历史 session 的 rollingSummary
@@ -206,6 +226,7 @@ val appInfraModule = module {
             digest = get(),
             memoryTicker = get(),
             scope = get(),
+            writeGate = get<io.zer0.memory.runtime.MemoryWriteGate>(),
         )
     }
 
@@ -236,6 +257,10 @@ val appInfraModule = module {
             edgeEnhanceEnabled = {
                 get<io.zer0.muse.data.SettingsRepository>().memoryGraphConfigCache.aiEnhanceEnabled
             },
+            // 幂等指纹持久化:只落摘要哈希（无原文）,重启后不必把同一段历史再抽一遍。
+            fingerprintFile = java.io.File(androidContext().filesDir, "memory/autosave_fingerprints.json"),
+            // 模型返回后的落库要过闸:恢复窗口内写的是旧库产物。
+            writeGate = get<io.zer0.memory.runtime.MemoryWriteGate>(),
         )
     }
 }

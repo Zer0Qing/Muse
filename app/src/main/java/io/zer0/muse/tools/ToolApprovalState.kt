@@ -112,6 +112,14 @@ enum class ToolApprovalPolicy {
     /** 始终自动批准（如 get_time 等安全工具的默认值）。 */
     ALWAYS_ALLOW,
 
+    /**
+     * AI 自动复核：先由 [ToolAutoReviewer] 按可验证的边界规则复核。
+     *
+     * 只读与工作区内安全写入自动放行并记审计日志；删除、外发、系统包管理、
+     * 资金类操作与越界路径一律升级为 [ToolApprovalState.Pending]，仍由用户拍板。
+     */
+    AUTO_REVIEW,
+
     /** 始终拒绝（相当于禁用该工具）。 */
     ALWAYS_DENY,
 

@@ -12,7 +12,46 @@ import io.zer0.ai.core.RagCitation
  *  3. 超长首块按结构安全截取(不直接终止整个候选集);剩余预算不足时跳过该条继续下一条;
  *  4. 最终只对可发送的完整证据单元编号,citation 编号 1..N 与文本中的 [N] 一一对应;
  *  5. 没有证据时不注入一段空的"资料说明"。
+ *
+ * 可见性合同(本层新增):
+ *  6. 每条证据的可见性由 [EvidenceVisibility] 显式表达,引用上的 `isInternal` 由它推导,
+ *     不再固定写 false;
+ *  7. 已知内部资料只在 [includeInternal] 打开时注入;可见性**未知**的资料默认不注入
+ *     (保守:宁可少注入,也不把不确定归属的内容送进上下文)。
+ *     可见性来源是 [DocumentVisibilityIndex](装配层检索前刷新);未接索引又未传
+ *     `visibilityOf` 时一律 UNKNOWN,不会因为“看起来像用户资料”而放行。
  */
+
+/** 单条证据资料的可见性判定结果。 */
+enum class EvidenceVisibility {
+    /** 用户可读资料(用户库/会话附件):可注入,引用不标内部。 */
+    USER_VISIBLE,
+
+    /** 内部资料(内置帮助等):只在显式允许时注入,引用标记为内部。 */
+    INTERNAL,
+
+    /** 无法判定归属(文档已删、检索链路未携带归属):默认不注入。 */
+    UNKNOWN,
+}
+
+/**
+ * 文档可见性索引 — 装配层在检索前刷新,证据装配时按 docId 查。
+ *
+ * 不存在的 docId 一律返回 [EvidenceVisibility.UNKNOWN](即不注入),
+ * 所以「忘了刷新」的后果是少给上下文,而不是把内部资料送进提示词。
+ */
+class DocumentVisibilityIndex {
+    private val entries = java.util.concurrent.ConcurrentHashMap<String, EvidenceVisibility>()
+
+    fun visibilityOf(docId: String): EvidenceVisibility =
+        entries[docId] ?: EvidenceVisibility.UNKNOWN
+
+    /** 整体替换索引(刷新语义:已删文档不残留旧判定)。 */
+    fun replaceAll(values: Map<String, EvidenceVisibility>) {
+        entries.clear()
+        entries.putAll(values)
+    }
+}
 
 /** 单个证据单元 — 渲染文本、实际 snippet、定位、token 估计。 */
 data class EvidenceUnit(
@@ -26,6 +65,8 @@ data class EvidenceUnit(
     val sentSnippet: String,
     val truncated: Boolean,
     val tokenEstimate: Int,
+    /** 该资料在装配时的可见性判定;引用上的 isInternal 由它推导。 */
+    val visibility: EvidenceVisibility = EvidenceVisibility.UNKNOWN,
 )
 
 data class EvidenceBundle(
@@ -37,15 +78,32 @@ data class EvidenceBundle(
     val traceId: String,
     /** 因预算被跳过的候选数。 */
     val skippedCount: Int,
-    /** 是否发生任何截断/跳过。 */
+    /** 是否发生任何截断/跳过/可见性抑制。 */
     val degraded: Boolean,
+    /** 因判定为内部资料且未允许注入而被抑制的候选数。 */
+    val suppressedInternalCount: Int = 0,
+    /** 因可见性未知而被保守抑制的候选数。 */
+    val suppressedUnknownCount: Int = 0,
 ) {
     val isEmpty: Boolean get() = units.isEmpty()
 }
 
 class EvidenceAssembler(
     private val estimator: (String) -> Int = { text -> (text.length + 3) / 4 },
+    /**
+     * docId → 可见性的显式覆盖。为 null 时读 [visibilityIndex]。两者都判定不了就是
+     * [EvidenceVisibility.UNKNOWN],装配层按保守规则不注入。
+     */
+    private val visibilityOf: ((String) -> EvidenceVisibility)? = null,
+    /** 是否允许注入已知内部资料(内置帮助入口需要显式打开)。 */
+    private val includeInternal: Boolean = false,
+    /** 装配层刷新的可见性索引(未传 lambda 时作为判定来源)。 */
+    val visibilityIndex: DocumentVisibilityIndex = DocumentVisibilityIndex(),
 ) {
+
+    /** 可见性判定:显式 lambda 优先,否则读索引,都没命中就是 UNKNOWN。 */
+    private fun resolveVisibility(docId: String): EvidenceVisibility =
+        visibilityOf?.invoke(docId) ?: visibilityIndex.visibilityOf(docId)
 
     /**
      * 按预算装配证据。
@@ -53,13 +111,16 @@ class EvidenceAssembler(
      * @param outcome 检索结果;只有 Found / Partial 会产出证据。
      * @param budgetTokens 本轮可用 token 预算;<=0 视为无预算,返回空 bundle(不伪造)。
      * @param docTitles docId → 标题(用于引用展示)。
+     * @param allowInternal 本次是否允许内部资料;null = 沿用构造参数(false)。
      */
     fun assemble(
         outcome: RetrievalOutcome,
         budgetTokens: Int,
         docTitles: Map<String, String> = emptyMap(),
         traceId: String = "",
+        allowInternal: Boolean? = null,
     ): EvidenceBundle {
+        val includeInternalResolved = allowInternal ?: includeInternal
         val candidates = when (outcome) {
             is RetrievalOutcome.Found -> outcome.candidates
             is RetrievalOutcome.Partial -> outcome.candidates
@@ -71,54 +132,46 @@ class EvidenceAssembler(
 
         var used = 0
         var skipped = 0
+        var suppressedInternal = 0
+        var suppressedUnknown = 0
         var degraded = false
         val units = mutableListOf<EvidenceUnit>()
 
         for (candidate in candidates) {
-            val title = docTitles[candidate.docId]?.takeIf { it.isNotBlank() } ?: candidate.docId
-            val locatorLabel = candidate.locator.ifBlank { "?" }
-            val header = "【资料 ${units.size + 1}】$title（$locatorLabel）\n"
-            val separator = if (units.isEmpty()) "" else "\n\n"
-            val fixedTokens = estimator(header) + estimator(separator) + estimator("[${units.size + 1}]")
-            val remaining = budgetTokens - used - fixedTokens
-            if (remaining <= MIN_SNIPPET_TOKENS) {
+            val visibility = resolveVisibility(candidate.docId)
+            // 可见性先于预算:被抑制的资料不占编号、不进正文。
+            when (visibility) {
+                EvidenceVisibility.INTERNAL -> if (!includeInternalResolved) {
+                    suppressedInternal++
+                    degraded = true
+                    continue
+                }
+                EvidenceVisibility.UNKNOWN -> {
+                    suppressedUnknown++
+                    degraded = true
+                    continue
+                }
+                EvidenceVisibility.USER_VISIBLE -> Unit
+            }
+            val rendered = renderUnit(candidate, units.size + 1, budgetTokens - used, docTitles)
+            if (rendered == null) {
                 skipped++
                 degraded = true
                 continue
             }
-            val originalTokens = estimator(candidate.text)
-            val snippet = if (originalTokens <= remaining) {
-                candidate.text
-            } else {
-                // 结构安全截取:按字素边界截到预算内,不切断代理对。
-                truncateToTokens(candidate.text, remaining)
-            }
-            if (snippet.isBlank() || estimator(snippet) <= 0) {
-                skipped++
-                degraded = true
-                continue
-            }
-            val truncated = snippet.length < candidate.text.length
-            if (truncated) degraded = true
-            val index = units.size + 1
-            val unitText = "$separator$header$snippet"
-            used += estimator(unitText)
-            units.add(
-                EvidenceUnit(
-                    index = index,
-                    docId = candidate.docId,
-                    chunkId = candidate.chunkId,
-                    generationId = candidate.generationId,
-                    docTitle = title,
-                    locator = locatorLabel,
-                    sentSnippet = snippet,
-                    truncated = truncated,
-                    tokenEstimate = estimator(snippet),
-                ),
-            )
+            if (rendered.truncated) degraded = true
+            used += estimator(rendered.renderedText)
+            units.add(rendered.unit.copy(visibility = visibility))
         }
 
-        if (units.isEmpty()) return emptyBundle(traceId).copy(skippedCount = skipped, degraded = degraded)
+        if (units.isEmpty()) {
+            return emptyBundle(traceId).copy(
+                skippedCount = skipped,
+                degraded = degraded,
+                suppressedInternalCount = suppressedInternal,
+                suppressedUnknownCount = suppressedUnknown,
+            )
+        }
 
         val finalText = units.joinToString("") { unit ->
             val prefix = if (unit.index == 1) "" else "\n\n"
@@ -134,7 +187,8 @@ class EvidenceAssembler(
                 snippet = unit.sentSnippet.take(200),
                 score = 0f,
                 matchType = "knowledge_v2",
-                isInternal = false,
+                // 引用可见性由装配时的判定推导,不写死 false。
+                isInternal = unit.visibility == EvidenceVisibility.INTERNAL,
             )
         }
         return EvidenceBundle(
@@ -145,6 +199,61 @@ class EvidenceAssembler(
             traceId = traceId,
             skippedCount = skipped,
             degraded = degraded || skipped > 0,
+            suppressedInternalCount = suppressedInternal,
+            suppressedUnknownCount = suppressedUnknown,
+        )
+    }
+
+    /** 单条候选的渲染结果 — 完整渲染文本(含标题/分隔符)+ 单元本体。 */
+    private data class RenderedUnit(
+        val renderedText: String,
+        val unit: EvidenceUnit,
+        val truncated: Boolean,
+    )
+
+    /**
+     * 渲染单条候选;预算不足以承载一个完整单元时返回 null(调用方计入 skipped)。
+     *
+     * @param index 本候选的编号(1-based,只数已接纳的单元)
+     * @param budgetRemaining 剩余预算(含本条的标题/分隔符开销)
+     */
+    private fun renderUnit(
+        candidate: EvidenceCandidate,
+        index: Int,
+        budgetRemaining: Int,
+        docTitles: Map<String, String>,
+    ): RenderedUnit? {
+        val title = docTitles[candidate.docId]?.takeIf { it.isNotBlank() } ?: candidate.docId
+        val locatorLabel = candidate.locator.ifBlank { "?" }
+        val header = "【资料 $index】$title（$locatorLabel）\n"
+        val separator = if (index == 1) "" else "\n\n"
+        val fixedTokens = estimator(header) + estimator(separator) + estimator("[$index]")
+        val remaining = budgetRemaining - fixedTokens
+        if (remaining <= MIN_SNIPPET_TOKENS) return null
+
+        val snippet = if (estimator(candidate.text) <= remaining) {
+            candidate.text
+        } else {
+            // 结构安全截取:按字素边界截到预算内,不切断代理对。
+            truncateToTokens(candidate.text, remaining)
+        }
+        if (snippet.isBlank() || estimator(snippet) <= 0) return null
+
+        val truncated = snippet.length < candidate.text.length
+        return RenderedUnit(
+            renderedText = "$separator$header$snippet",
+            unit = EvidenceUnit(
+                index = index,
+                docId = candidate.docId,
+                chunkId = candidate.chunkId,
+                generationId = candidate.generationId,
+                docTitle = title,
+                locator = locatorLabel,
+                sentSnippet = snippet,
+                truncated = truncated,
+                tokenEstimate = estimator(snippet),
+            ),
+            truncated = truncated,
         )
     }
 

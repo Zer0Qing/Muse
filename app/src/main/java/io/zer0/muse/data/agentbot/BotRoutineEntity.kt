@@ -41,7 +41,12 @@ data class BotRoutineEntity(
     @ColumnInfo(defaultValue = "") val scheduledTaskId: String = "",
     /** 从历史任务沉淀时的源 taskId。 */
     @ColumnInfo(defaultValue = "") val sourceTaskId: String = "",
-    /** 关联的技能或示范工作流 id。 */
+    /**
+     * 关联的全局技能 id（对应 skills 表）。
+     *
+     * 技能本身不含 botId，是跨队友共享的能力剧本；惯例只保存引用与触发条件，
+     * 因此同一个技能可以被多个队友各自的惯例复用，删除技能时不会连带删除惯例。
+     */
     @ColumnInfo(defaultValue = "") val skillId: String = "",
     @ColumnInfo(defaultValue = "1") val enabled: Boolean = true,
     @ColumnInfo(defaultValue = "0") val lastRunAt: Long = 0L,
@@ -59,6 +64,22 @@ object RoutineTriggerType {
 
     val all: Set<String> = setOf(MANUAL, CRON, NOTIFICATION, CHANNEL)
 }
+
+/** 惯例最近一次运行的结果标记；用于界面区分“排队中”和“已静默归档”。 */
+object RoutineRunStatus {
+    const val QUEUED = "QUEUED"
+
+    /**
+     * 无异常、无实质变化、无需确认的例行运行。
+     *
+     * 这类运行只在本地留档，不向主对话发布摘要，避免每天固定动作反复刷屏。
+     */
+    const val ARCHIVED = "ARCHIVED"
+}
+
+/** 该惯例是否由共享技能库提供执行剧本（技能负责“怎么做”，惯例负责“何时做”）。 */
+val BotRoutineEntity.isSkillBacked: Boolean
+    get() = skillId.isNotBlank()
 
 @Dao
 interface BotRoutineDao {
@@ -80,6 +101,10 @@ interface BotRoutineDao {
 
     @Query("SELECT * FROM bot_routines WHERE triggerType = :triggerType AND enabled = 1")
     suspend fun listEnabledByTrigger(triggerType: String): List<BotRoutineEntity>
+
+    /** 查询引用了同一技能的惯例；技能跨队友共享，结果可能横跨多个 botId。 */
+    @Query("SELECT * FROM bot_routines WHERE skillId = :skillId ORDER BY updatedAt DESC")
+    suspend fun listBySkillId(skillId: String): List<BotRoutineEntity>
 
     @Query("UPDATE bot_routines SET enabled = :enabled, updatedAt = :updatedAt WHERE routineId = :routineId")
     suspend fun setEnabled(routineId: String, enabled: Boolean, updatedAt: Long): Int

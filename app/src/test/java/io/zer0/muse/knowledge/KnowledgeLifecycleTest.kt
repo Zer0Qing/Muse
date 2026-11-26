@@ -47,6 +47,24 @@ class KnowledgeLifecycleTest {
         publisher = GenerationPublisher(db.knowledgeJobDao())
     }
 
+    /** 记录调用的清理端口:用来断言派生物清理真的被触发,而不是只写日志。 */
+    private class RecordingCleaner(
+        private val citationResult: Int? = null,
+    ) : io.zer0.muse.knowledge.storage.KnowledgeArtifactCleaner {
+        val deletedBlobs = mutableListOf<String>()
+        val citationClears = mutableListOf<String>()
+
+        override suspend fun deleteBlob(contentHash: String): Boolean {
+            deletedBlobs.add(contentHash)
+            return true
+        }
+
+        override suspend fun clearCitationSnapshots(docId: String): Int? {
+            citationClears.add(docId)
+            return citationResult
+        }
+    }
+
     @After
     fun tearDown() {
         db.close()
@@ -164,5 +182,127 @@ class KnowledgeLifecycleTest {
         assertNotNull("文档必须保留", doc)
         assertEquals("文档搬回父目录", parent.folder.folderId, doc!!.folderId)
         assertNull("子目录行已删", db.knowledgeFolderV2Dao().getFolder(child.folder.folderId))
+    }
+
+    @Test
+    fun `delete document purges chunks lexical generations leases blobs and bindings`() = runBlocking {
+        val gen = seedDocWithGeneration("doc-purge", "purge body")
+        // 注入租约与绑定,验证它们真的被清。
+        db.knowledgeV2Dao().insertLease(
+            io.zer0.muse.data.knowledge.KnowledgeV2RetentionLeaseEntity(
+                leaseId = "lease-1",
+                contentKey = KnowledgeContentStore.hashOf("purge body".toByteArray()),
+                holderId = "reader",
+                acquiredAt = 0L,
+                expiresAt = Long.MAX_VALUE,
+            ),
+        )
+        db.knowledgeFolderV2Dao().insertBinding(
+            io.zer0.muse.data.knowledge.KnowledgeV2BindingEntity(
+                bindingId = "bind-doc",
+                ownerType = "Assistant",
+                ownerId = "a1",
+                targetType = "DOC",
+                targetId = "doc-purge",
+            ),
+        )
+        val cleaner = RecordingCleaner()
+        val cleaningService = KnowledgeLifecycleService(
+            folderDao = db.knowledgeFolderV2Dao(),
+            v2Dao = db.knowledgeV2Dao(),
+            jobDao = db.knowledgeJobDao(),
+            clock = { 2000L },
+            artifactCleaner = cleaner,
+        )
+
+        val result = cleaningService.deleteDocument("doc-purge", clearCitationSnapshots = false)!!
+
+        assertNull("活动指针已清", db.knowledgeJobDao().getActiveGeneration("doc-purge"))
+        assertEquals("代内 chunk 已清", 0, db.knowledgeJobDao().countGenChunks(gen))
+        assertEquals("代内词法行已清", 0, db.knowledgeJobDao().countGenLexical(gen))
+        assertNull("代行已删", db.knowledgeJobDao().getGeneration(gen))
+        assertTrue("保留租约已清", db.knowledgeV2Dao().getActiveLeases(
+            KnowledgeContentStore.hashOf("purge body".toByteArray()),
+            0L,
+        ).isEmpty())
+        assertEquals("指向该文档的绑定必须真实删除", 0, db.knowledgeFolderV2Dao().getBindings("Assistant", "a1").size)
+        assertEquals("内容 blob 清理回调被调用", listOf(KnowledgeContentStore.hashOf("purge body".toByteArray())), cleaner.deletedBlobs)
+        assertTrue("请求保留时不得调快照清除", cleaner.citationClears.isEmpty())
+        assertEquals(1, result.clearedGenerationCount)
+    }
+
+    @Test
+    fun `delete folder with docs purges descendant artifacts and folder bindings`() = runBlocking {
+        val folder = service.createFolder("kb-1", "", "docs") as KnowledgeLifecycleService.FolderResult.Ok
+        val folderId = folder.folder.folderId
+        db.knowledgeFolderV2Dao().insertBinding(
+            io.zer0.muse.data.knowledge.KnowledgeV2BindingEntity(
+                bindingId = "bind-folder",
+                ownerType = "Assistant",
+                ownerId = "a1",
+                targetType = "FOLDER",
+                targetId = folderId,
+            ),
+        )
+        val revId = "rev-doc-11-1"
+        db.knowledgeV2Dao().insertDoc(
+            KnowledgeV2DocEntity(
+                docId = "doc-11",
+                ownerType = "UserLibrary",
+                ownerId = "kb-1",
+                folderId = folderId,
+                currentRevisionId = revId,
+            ),
+        )
+        db.knowledgeV2Dao().insertRevision(
+            io.zer0.muse.data.knowledge.KnowledgeV2RevisionEntity(
+                revisionId = revId, docId = "doc-11", revisionNo = 1,
+                contentHash = KnowledgeContentStore.hashOf("folder body".toByteArray()),
+                fullContent = "folder body", preview = "folder body",
+            ),
+        )
+        val gen = publisher.stageGeneration(
+            "doc-11",
+            revId,
+            listOf(LocatedChunk("folder body", "p1s1", "paragraph")),
+        )
+        publisher.publish(gen, revId)
+
+        val result = service.deleteFolder(folderId, KnowledgeLifecycleService.FolderDeletePolicy.DELETE_SUBTREE_DOCS)
+
+        assertTrue(result is KnowledgeLifecycleService.FolderResult.Ok)
+        assertNull("文档行已删", db.knowledgeV2Dao().getDoc("doc-11"))
+        assertEquals("子树文档的 chunk 行已清", 0, db.knowledgeJobDao().countGenChunks(gen))
+        assertNull("子树文档的代行已删", db.knowledgeJobDao().getGeneration(gen))
+        assertEquals("目录绑定必须真实删除", 0, db.knowledgeFolderV2Dao().getBindings("Assistant", "a1").size)
+    }
+
+    @Test
+    fun `citation snapshot message is honest when cleaner is not wired`() = runBlocking {
+        seedDocWithGeneration("doc-honest", "honest body")
+        // 默认端口不支持快照清除:文案必须说明「未清除」,不能谎报已清除。
+        val result = service.deleteDocument("doc-honest", clearCitationSnapshots = true)!!
+        assertTrue(
+            "未接入清除通道时必须如实说明: ${result.citationAction}",
+            result.citationAction.contains("未清除"),
+        )
+        assertEquals(0, result.clearedCitationCount)
+    }
+
+    @Test
+    fun `citation snapshot message reports actual cleared count`() = runBlocking {
+        seedDocWithGeneration("doc-cite", "cite body")
+        val cleaner = RecordingCleaner(citationResult = 3)
+        val cleaningService = KnowledgeLifecycleService(
+            folderDao = db.knowledgeFolderV2Dao(),
+            v2Dao = db.knowledgeV2Dao(),
+            jobDao = db.knowledgeJobDao(),
+            clock = { 2000L },
+            artifactCleaner = cleaner,
+        )
+        val result = cleaningService.deleteDocument("doc-cite", clearCitationSnapshots = true)!!
+        assertEquals(listOf("doc-cite"), cleaner.citationClears)
+        assertEquals(3, result.clearedCitationCount)
+        assertTrue("必须报告实际清除条数: ${result.citationAction}", result.citationAction.contains("3"))
     }
 }

@@ -6,7 +6,6 @@ import io.zer0.ai.core.UIMessage
 import io.zer0.common.Logger
 import io.zer0.common.Perf
 import io.zer0.common.ProcessWriteGate
-import io.zer0.common.Result
 import io.zer0.common.resultOf
 import io.zer0.muse.R
 import io.zer0.muse.chat.InternalPromptMarkers
@@ -96,6 +95,21 @@ internal class ChatGenerationController(
             )
         }.onFailure { Logger.w("ChatVM", "overflow compressor unavailable: ${it.message}") }
             .getOrNull()
+    }
+
+    /**
+     * 取本会话当前可召回的附件 docId。
+     *
+     * 走全局容器按需解析,不为一个旁路能力改动 [GenerationDeps] 的整条构造链;
+     * 取不到时返回空集 = 不召回任何附件(默认语义),不会因为取不到就放开成全库。
+     */
+    private fun activeSessionAttachmentDocIds(sessionId: String?): Set<String> {
+        val sid = sessionId?.takeIf { it.isNotBlank() } ?: return emptySet()
+        val service = runCatching {
+            org.koin.core.context.GlobalContext.get().get<io.zer0.muse.rag.SessionAttachmentService>()
+        }.onFailure { Logger.w("ChatVM", "会话附件服务不可用,本轮不召回附件: ${it.message}") }
+            .getOrNull() ?: return emptySet()
+        return service.activeAttachmentDocIds(sid)
     }
 
     /**
@@ -1238,6 +1252,8 @@ internal class ChatGenerationController(
                                             ragConfig = effectiveRagConfig,
                                             scopeDocIds = scopeDocIds,
                                             locale = deps.settings.getLanguageSync(),
+                                            // 会话附件是会话私有资料,只有本会话的才召回。
+                                            allowedSessionAttachmentDocIds = activeSessionAttachmentDocIds(effSid),
                                         )
                                     }.onError { msg, _ ->
                                         deps.addError(
@@ -1250,16 +1266,26 @@ internal class ChatGenerationController(
                                     null
                                 }
                             if (injection != null) {
-                                if (injection.text.isNotBlank()) {
-                                    val clampedRagText =
-                                        io.zer0.muse.context.ContextBudget().clampText(
-                                            io.zer0.muse.context.ContextSection.RAG_CITATION,
-                                            injection.text,
-                                        )
-                                    add(UIMessage(role = MessageRole.SYSTEM, content = clampedRagText))
+                                // 预算截断与引用裁剪必须同源:截掉的片段其 [n] 已不在正文里,
+                                // 引用留着会渲染出模型没读到的可点标签。
+                                val budgeted =
+                                    io.zer0.muse.rag.RagInjectionBudget.clampAndTrim(
+                                        injection,
+                                        io.zer0.muse.context.ContextBudget(),
+                                        io.zer0.muse.context.ContextSection.RAG_CITATION,
+                                    )
+                                if (budgeted.truncated) {
+                                    Logger.d(
+                                        "ChatVM",
+                                        "RAG 注入按预算截断 | sessionId=$sessionId" +
+                                            " | citations ${injection.citations.size}->${budgeted.citations.size}",
+                                    )
                                 }
-                                if (injection.citations.isNotEmpty()) {
-                                    pendingRagCitations = injection.citations
+                                if (budgeted.text.isNotBlank()) {
+                                    add(UIMessage(role = MessageRole.SYSTEM, content = budgeted.text))
+                                }
+                                if (budgeted.citations.isNotEmpty()) {
+                                    pendingRagCitations = budgeted.citations
                                 }
                             }
                         }

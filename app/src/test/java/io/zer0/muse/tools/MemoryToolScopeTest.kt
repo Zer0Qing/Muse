@@ -4,6 +4,8 @@ import io.zer0.memory.runtime.DedupPinnedRequest
 import io.zer0.memory.runtime.DedupPinnedResult
 import io.zer0.memory.runtime.DeleteMemoryRequest
 import io.zer0.memory.runtime.DeleteMemoryResult
+import io.zer0.memory.runtime.FactPinResult
+import io.zer0.memory.runtime.MemoryScopeKey
 import io.zer0.memory.runtime.MemorySearchRequest
 import io.zer0.memory.runtime.MemorySearchResult
 import io.zer0.memory.runtime.MemoryUseCases
@@ -37,6 +39,7 @@ class MemoryToolScopeTest {
         val deletes = mutableListOf<DeleteMemoryRequest>()
         val pins = mutableListOf<PinMemoryRequest>()
         val unpins = mutableListOf<UnpinMemoryRequest>()
+        val factPins = mutableListOf<Pair<MemoryScopeKey, Long>>()
 
         override suspend fun search(request: MemorySearchRequest): MemorySearchResult {
             searches += request
@@ -65,6 +68,11 @@ class MemoryToolScopeTest {
 
         override suspend fun dedupPinned(request: DedupPinnedRequest): DedupPinnedResult =
             DedupPinnedResult.Removed(count = 0)
+
+        override suspend fun toggleFactPinned(scope: MemoryScopeKey, factId: Long): FactPinResult {
+            factPins += scope to factId
+            return FactPinResult.Changed(pinned = true)
+        }
     }
 
     private fun context(subagent: Boolean = false) = ToolExecutionContext(

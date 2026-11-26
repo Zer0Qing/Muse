@@ -78,4 +78,59 @@ class LlmBudgetTest {
     fun `withReasoningHeadroom null 模型返回原值`() {
         assertEquals(4096, LlmBudget.withReasoningHeadroom(4096, null))
     }
+
+    // ── 共享计数与严格截断（按条扣预算的调用方依赖这两条）────────────────
+
+    @Test
+    fun `countTokens 对中文按字符量级计数而非四字符折一`() {
+        val chinese = "用户希望记忆系统在离线状态下保持稳定并优先保留中文内容"
+        val count = LlmBudget.countTokens(chinese)
+
+        // chars/4 会给 7，实际分词接近字符数；这条把「中文被低估三倍」钉死。
+        assertTrue("中文 token 数应接近字符数：$count / ${chinese.length}", count > chinese.length / 2)
+        assertTrue("中文 token 数不应超过字符数两倍：$count", count <= chinese.length * 2)
+    }
+
+    @Test
+    fun `countTokens 空文本为 0`() {
+        assertEquals(0, LlmBudget.countTokens(""))
+    }
+
+    @Test
+    fun `严格截断结果（含标记）不超过预算`() {
+        val text = "用户在离线记忆项目里写 Android 应用，希望裁剪后仍然可读。".repeat(20)
+
+        for (budget in listOf(24, 40, 80, 160)) {
+            val result = LlmBudget.truncateToTokenBudgetStrict(text, budget)
+            assertTrue("预算 $budget 下应发生截断", result.length < text.length)
+            assertTrue(
+                "预算 $budget 下结果自带标记",
+                result.contains("(memory truncated)"),
+            )
+            // 标记自身也占 token：旧实现只按预算截正文再追加标记，这条会失败
+            val used = LlmBudget.countTokens(result)
+            assertTrue("预算 $budget 下实际 token 数超支：$used", used <= budget)
+        }
+    }
+
+    @Test
+    fun `严格截断在预算内返回原文`() {
+        val text = "Hello World"
+        assertEquals(text, LlmBudget.truncateToTokenBudgetStrict(text, 100))
+    }
+
+    @Test
+    fun `严格截断预算为 0 返回原文`() {
+        val text = "用户在离线记忆项目里写 Android 应用"
+        assertEquals(text, LlmBudget.truncateToTokenBudgetStrict(text, 0))
+        assertEquals(text, LlmBudget.truncateToTokenBudgetStrict(text, -1))
+    }
+
+    @Test
+    fun `严格截断连标记都放不下时返回空串`() {
+        val text = "用户在离线记忆项目里写 Android 应用，希望裁剪后仍然可读。".repeat(10)
+
+        // 空串让调用方把该条当成「未保留」，而不是超预算留一段没用的标记
+        assertEquals("", LlmBudget.truncateToTokenBudgetStrict(text, 2))
+    }
 }

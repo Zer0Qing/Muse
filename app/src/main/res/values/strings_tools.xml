@@ -39,8 +39,8 @@
     <string name="tools_settings_title">工具批准</string>
     <string name="tools_settings_search_hint">搜索工具名称或描述</string>
 
-    <!-- 统计信息(共 N 个工具 · 始终允许 X · 询问 Y · 始终拒绝 Z) -->
-    <string name="tools_settings_stats">共 %1$d 个工具 · 始终允许 %2$d · 询问 %3$d · 始终拒绝 %4$d</string>
+    <!-- 统计信息(共 N 个工具 · 允许 X · 自动复核 Y · 询问 Z · 拒绝 W) -->
+    <string name="tools_settings_stats">共 %1$d 个工具 · 允许 %2$d · 自动复核 %3$d · 询问 %4$d · 拒绝 %5$d</string>
 
     <!-- 风险等级分组标题 -->
     <string name="tools_settings_section_safe">安全工具（只读 / 查询）</string>
@@ -54,13 +54,16 @@
     <string name="tools_settings_footer_section">策略说明</string>
     <string name="tools_settings_policy_always_allow">始终允许</string>
     <string name="tools_settings_policy_always_allow_desc">该工具调用直接放行，不再弹审批卡片</string>
+    <string name="tools_settings_policy_auto_review">AI 自动复核</string>
+    <string name="tools_settings_policy_auto_review_desc">只读与工作区内安全写入自动放行；删除、外发、系统安装、资金与越界路径仍弹审批卡</string>
     <string name="tools_settings_policy_ask">每次询问</string>
     <string name="tools_settings_policy_ask_desc">调用前弹审批卡片，由你决定批准或拒绝</string>
     <string name="tools_settings_policy_always_deny">始终拒绝</string>
     <string name="tools_settings_policy_always_deny_desc">该工具被禁用,AI 无法调用</string>
 
-    <!-- 分段控件短文案(单工具行内三档选择器) -->
+    <!-- 分段控件短文案(单工具行内四档选择器) -->
     <string name="tools_settings_policy_always_allow_short">允许</string>
+    <string name="tools_settings_policy_auto_review_short">复核</string>
     <string name="tools_settings_policy_ask_short">询问</string>
     <string name="tools_settings_policy_always_deny_short">拒绝</string>
     <string name="tools_empty_title">暂无已注册工具</string>

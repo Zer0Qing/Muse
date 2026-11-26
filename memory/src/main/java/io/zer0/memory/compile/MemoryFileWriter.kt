@@ -83,6 +83,9 @@ class MemoryFileWriter(
 
         private val DAILY_FILE_RE = Regex("^(\\d{4}-\\d{2}-\\d{2})\\.md$")
         private val DAILY_HEADING_RE = Regex("^#{1,2}\\s*(\\d{4}-\\d{2}-\\d{2})\\s*$")
+
+        /** 目录段最大长度:超过这个长度已经不是 id 形状,当成路径拼接的输入处理。 */
+        private const val MAX_SEGMENT_LENGTH = 128
     }
 
     /**
@@ -370,6 +373,147 @@ class MemoryFileWriter(
         return "<!-- Generated: ${Instant.now()} | $note -->\n\n"
     }
 
+    /**
+     * Space 合并的文件投影:把 `memory/{scope}/{source}/daily/` 下的日记按日期并进 default,
+     * 然后删掉整个 source 目录。
+     *
+     * 只并 daily 不并 memory.md:memory.md 是四段编译产物的拼接(派生视图),默认空间
+     * 那一份下次读取时就会按库里的段落重写;daily 则是保留下来的原始日摘要,
+     * 删掉就少一天,week 的 6 日窗口会立刻出现空洞。
+     *
+     * 同一天两边都有时按行去重合并(源内容排在后面),然后两边的指纹都清掉:
+     * 指纹描述的是「这份 daily 由哪批输入算出」,内容变过就对不上了。
+     *
+     * @return [SpaceFileMergeResult.Merged] 已处理;[SpaceFileMergeResult.Rejected]
+     *         表示入参不是可用的目录段,源目录原样保留。
+     */
+    fun mergeSpaceIntoDefault(
+        sourceSpaceId: String,
+        targetSpaceId: String = "default",
+    ): SpaceFileMergeResult {
+        val source = sourceSpaceId.trim()
+        val target = targetSpaceId.trim()
+        segmentProblem(source)?.let { return SpaceFileMergeResult.Rejected("source $it") }
+        segmentProblem(target)?.let { return SpaceFileMergeResult.Rejected("target $it") }
+        if (source == target) {
+            // 自己并自己会把同一天的 daily 重复一遍再把目录删掉 —— 等于把记忆删光。
+            return SpaceFileMergeResult.Rejected("source 与 target 相同($source)")
+        }
+
+        val sourceSegment = safePathSegment(source)
+        val targetSegment = safePathSegment(target)
+        var mergedDates = 0
+        var movedDates = 0
+        var failedDates = 0
+        var deletedDirs = 0
+
+        // 文件投影按 scope 分目录:同一个 Space 可能同时在多个 scope 下存在,必须逐个合。
+        for (scopeDir in memoryDir.listFiles { file -> file.isDirectory }.orEmpty()) {
+            val sourceDir = File(scopeDir, sourceSegment)
+            if (!sourceDir.isDirectory) continue
+            val targetDaily = File(File(scopeDir, targetSegment), "daily").apply { mkdirs() }
+            val sourceDaily = File(sourceDir, "daily")
+            var scopeFailures = 0
+            for (file in sourceDaily.listFiles { _, name -> DAILY_FILE_RE.matches(name) }.orEmpty()) {
+                val date = file.nameWithoutExtension
+                val targetFile = File(targetDaily, file.name)
+                when {
+                    !targetFile.exists() -> {
+                        moveFile(file, targetFile)
+                        movedDates += 1
+                    }
+
+                    mergeDailyFile(file, targetFile) -> mergedDates += 1
+                    else -> scopeFailures += 1
+                }
+                deleteFileQuietly(File(targetDaily, "$date.md.fingerprint"))
+                deleteFileQuietly(File(sourceDaily, "$date.md.fingerprint"))
+            }
+            failedDates += scopeFailures
+            if (scopeFailures > 0) {
+                // 有日期没并进去就不能删这个 scope 的源目录:删了等于丢掉那一天的摘要,而且无法重建。
+                Logger.w(TAG, "Space 文件投影: $scopeFailures 天合并失败,保留源目录 ${sourceDir.absolutePath} 供重试")
+            } else if (sourceDir.deleteRecursively()) {
+                deletedDirs += 1
+            } else {
+                Logger.w(TAG, "删除源 Space 目录失败(文件可能被占用): ${sourceDir.absolutePath}")
+            }
+        }
+        Logger.i(
+            TAG,
+            "Space 文件投影合并: $source → $target(合并 $mergedDates 天,搬迁 $movedDates 天," +
+                "删除 $deletedDirs 个目录,失败 $failedDates 天)",
+        )
+        return SpaceFileMergeResult.Merged(
+            mergedDates = mergedDates,
+            movedDates = movedDates,
+            failedDates = failedDates,
+            deletedDirs = deletedDirs,
+        )
+    }
+
+    /** 目录段合法性:路径拼接的前提是它真是一个名字,而不是一段路径。 */
+    private fun segmentProblem(value: String): String? = when {
+        value.isEmpty() -> "为空"
+        value == "." || value == ".." -> "是相对路径占位符($value)"
+        value.any { c -> c == '/' || c == '\\' || c.isISOControl() } -> "含有路径分隔符或控制字符"
+        value.length > MAX_SEGMENT_LENGTH -> "过长(${value.length} 字符)"
+        else -> null
+    }
+
+    /** 跨卷/被占用时 rename 会失败:退回复制后删除源文件,内容优先。 */
+    private fun moveFile(from: File, to: File) {
+        to.parentFile?.mkdirs()
+        if (from.renameTo(to)) return
+        to.writeText(from.readText())
+        if (!from.delete()) Logger.w(TAG, "移动 daily 后删除源文件失败: ${from.absolutePath}")
+    }
+
+    /** 同一天两边都有:按行去重合并,写回目标后删源文件。 */
+    private fun mergeDailyFile(sourceFile: File, targetFile: File): Boolean {
+        val existing = runCatching { targetFile.readText() }.getOrElse {
+            Logger.w(TAG, "读取 daily/${targetFile.name} 失败,跳过这一天: ${it.message}")
+            return false
+        }
+        val incoming = runCatching { sourceFile.readText() }.getOrElse {
+            Logger.w(TAG, "读取 daily/${sourceFile.name} 失败,跳过这一天: ${it.message}")
+            return false
+        }
+        runCatching { writeAtomically(targetFile, mergeDailyText(existing, incoming)) }.onFailure {
+            Logger.w(TAG, "合并 daily/${targetFile.name} 失败,跳过这一天: ${it.message}")
+            return false
+        }
+        if (!sourceFile.delete()) Logger.w(TAG, "合并 daily/${sourceFile.name} 后删除源文件失败")
+        return true
+    }
+
+    /** 去重合并:标题行只留一条,正文按行去重并保持先后顺序。 */
+    private fun mergeDailyText(existing: String, incoming: String): String {
+        val seen = mutableSetOf<String>()
+        var heading = ""
+        val body = mutableListOf<String>()
+        for (raw in existing.lines() + incoming.lines()) {
+            val line = raw.trim()
+            if (line.isEmpty()) continue
+            if (!seen.add(line)) continue
+            if (heading.isEmpty() && DAILY_HEADING_RE.matches(line)) {
+                heading = line
+            } else {
+                body += line
+            }
+        }
+        return when {
+            heading.isEmpty() -> body.joinToString("\n") + if (body.isEmpty()) "" else "\n"
+            body.isEmpty() -> "$heading\n"
+            else -> "$heading\n\n${body.joinToString("\n")}\n"
+        }
+    }
+
+    /** 删除可选文件(指纹等);不存在不算错误,删不掉只记一行。 */
+    private fun deleteFileQuietly(file: File) {
+        if (!file.exists()) return
+        if (!file.delete()) Logger.w(TAG, "删除 ${file.absolutePath} 失败(保留原文件)")
+    }
     /** 剥离 daily 文件中的 "## {date}" 抬头,返回正文。 */
     private fun normalizeDailyBody(raw: String): String {
         val lines = raw.lines()
@@ -397,4 +541,23 @@ class MemoryFileWriter(
         val failed: List<String>,
         val combinedContent: String,
     )
+}
+
+/**
+ * Space 合并的文件投影结果。
+ *
+ * 分开“已处理”与“拒绝”,是为了让调用方能把“参数不像个目录段”当成配置/数据异常记下来,
+ * 而不是悄悄当成功。
+ */
+sealed interface SpaceFileMergeResult {
+    /** 处理完成;失败天数不为 0 时源目录被保留,可以重试。 */
+    data class Merged(
+        val mergedDates: Int,
+        val movedDates: Int,
+        val failedDates: Int,
+        val deletedDirs: Int,
+    ) : SpaceFileMergeResult
+
+    /** 入参不是可用的目录段(空格、相对路径占位符、含分隔符或过长),未动任何文件。 */
+    data class Rejected(val reason: String) : SpaceFileMergeResult
 }

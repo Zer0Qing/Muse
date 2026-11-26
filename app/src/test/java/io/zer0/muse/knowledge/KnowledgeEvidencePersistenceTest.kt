@@ -8,6 +8,7 @@ import io.zer0.muse.data.session.MuseDb
 import io.zer0.muse.knowledge.integration.EvidenceSnapshotCodec
 import io.zer0.muse.knowledge.retrieval.EvidenceAssembler
 import io.zer0.muse.knowledge.retrieval.EvidenceCandidate
+import io.zer0.muse.knowledge.retrieval.EvidenceVisibility
 import io.zer0.muse.knowledge.retrieval.RetrievalOutcome
 import io.zer0.muse.knowledge.retrieval.RetrievalTrace
 import kotlinx.coroutines.runBlocking
@@ -58,7 +59,7 @@ class KnowledgeEvidencePersistenceTest {
             listOf(EvidenceCandidate("c1", "doc-1", "gen-1", "证据正文", "p1s1")),
             RetrievalTrace("r", "CHAT", "docs=1", emptyList(), 1, 0, 1, 1, emptyList(), 1L),
         )
-        return EvidenceAssembler().assemble(
+        return EvidenceAssembler(visibilityOf = { EvidenceVisibility.USER_VISIBLE }).assemble(
             outcome = outcome,
             budgetTokens = 300,
             docTitles = mapOf("doc-1" to "资料一"),

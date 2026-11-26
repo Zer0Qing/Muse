@@ -82,10 +82,11 @@ class V2LexicalRetriever(
     companion object {
         /** 词法规范化版本 — 与 GenerationPublisher.normalizeLexical 同一口径(小写+空白折叠)。 */
         const val NORMALIZATION_VERSION = "v1-lowercase-collapse"
+        private val WHITESPACE_REGEX = Regex("\\s+")
 
         fun tokenize(query: String): List<String> =
             query.lowercase()
-                .replace(Regex("\\s+"), " ")
+                .replace(WHITESPACE_REGEX, " ")
                 .trim()
                 .split(' ')
                 .filter { it.isNotBlank() }

@@ -82,6 +82,7 @@ import io.zer0.muse.ui.theme.MuseMonoFontFamily
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.MuseSpacing
 import io.zer0.muse.ui.theme.bodyLargeStrong
 import io.zer0.muse.ui.theme.bodyMediumStrong
 import io.zer0.muse.ui.theme.semiLarge
@@ -94,6 +95,10 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.koin.compose.koinInject
 import java.security.MessageDigest
 import java.util.Date
@@ -102,6 +107,41 @@ import io.zer0.muse.util.launchSafely
 
 // L-KUI1: 内容截断上限,防止超大文档导致 OOM
 private const val MAX_CONTENT_LENGTH = 500_000
+
+/** 解析覆盖度写入 metadata_json 的键(不新增 Room 列)。 */
+private const val META_COVERAGE = "coverage"
+private const val META_COVERAGE_NOTE = "coverageNote"
+
+/**
+ * 把解析覆盖度写进 metadata_json(与 folderPath 共存,不覆盖其它键)。
+ */
+internal fun withParseCoverage(
+    metadataJson: String,
+    coverage: io.zer0.muse.knowledge.ingest.ParseCoverage,
+    coverageNote: String,
+): String {
+    val existing = runCatching {
+        io.zer0.common.AppJson.parseToJsonElement(metadataJson).jsonObject
+    }.getOrDefault(JsonObject(emptyMap()))
+    val updated = JsonObject(
+        existing + mapOf(
+            META_COVERAGE to JsonPrimitive(coverage.name),
+            META_COVERAGE_NOTE to JsonPrimitive(coverageNote.trim()),
+        ),
+    )
+    return io.zer0.common.AppJson.encodeToString(JsonObject.serializer(), updated)
+}
+
+/** 读出文档的解析覆盖度;未写入过的旧文档返回 null(按完整处理,不改变旧行为)。 */
+internal fun parseCoverageOf(metadataJson: String): io.zer0.muse.knowledge.ingest.ParseCoverage? =
+    runCatching {
+        io.zer0.common.AppJson.parseToJsonElement(metadataJson)
+            .jsonObject[META_COVERAGE]
+            ?.jsonPrimitive
+            ?.content
+    }.getOrNull()?.let { name ->
+        io.zer0.muse.knowledge.ingest.ParseCoverage.entries.firstOrNull { it.name == name }
+    }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -118,9 +158,17 @@ fun KnowledgeScreen(
     folderDao: io.zer0.muse.data.knowledge.KnowledgeFolderDao = koinInject(),
     // v1.0.53: 封面库路由回调(文档详情 → 封面管理页)
     onOpenCoverManager: () -> Unit = {},
+    // 知识库级联写操作(删库/目录重命名/目录删除)的唯一实现 —— 与知识库工具共用
+    chunkDao: io.zer0.muse.data.knowledge.KnowledgeChunkDao = koinInject(),
+    assistantRepository: io.zer0.muse.data.assistant.AssistantRepository = koinInject(),
+    database: io.zer0.muse.data.session.MuseDb = koinInject(),
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    // R3: 解析合同适配器 —— 解析型导入必须走 ParseOutcome,不能只看文本是否为空
+    val documentParserAdapter = remember(documentParser) {
+        io.zer0.muse.knowledge.ingest.DocumentParserAdapter(documentParser)
+    }
     var searchQuery by rememberSaveable { mutableStateOf("") }
     // v1.0.74 fix (前端审计 6.5): 搜索 300ms 防抖 — 原 remember(searchQuery) 每敲一个字符
     // 都重启 Room Flow 查询,输入卡顿。用 snapshotFlow+debounce 驱动实际查询词。
@@ -227,6 +275,20 @@ fun KnowledgeScreen(
     var renamingFolder by remember { mutableStateOf<String?>(null) }
     var deletingFolder by remember { mutableStateOf<String?>(null) }
 
+    // 知识库级联写操作的共享实现:UI 与 knowledge_delete_kb 工具必须走同一套语义,
+    // 否则助手的知识库/文件夹绑定会在删库后变成失效引用。
+    val cascade = remember(dao, chunkDao, kbDao, folderDao, ragService, assistantRepository, database) {
+        io.zer0.muse.tools.KnowledgeCascade(
+            docDao = dao,
+            chunkDao = chunkDao,
+            kbDao = kbDao,
+            folderDao = folderDao,
+            ragService = ragService,
+            assistantRepository = assistantRepository,
+            db = database,
+        )
+    }
+
     // F-33: embedding 模型切换检测 — 当前配置 key 与"最近一次索引所用 key"不一致时提示重新索引
     val currentRagConfig by settings.ragConfigFlow.collectAsStateWithLifecycle(initialValue = io.zer0.muse.rag.RagConfig())
     val lastEmbedKey by settings.lastEmbeddingModelKeyFlow.collectAsStateWithLifecycle(initialValue = null)
@@ -241,6 +303,20 @@ fun KnowledgeScreen(
     // ReturnCount 抑制的理由:这里是逐文件导入的多条失败路径（文件超限、解析失败、内容为空、
     // 分块数为 0、落库后查不到……），每一条都对应一种要告知用户的真实原因。
     // 拆成十几个小函数会把「一次导入」的流程切碎到无法阅读，反而更容易漏掉半成品清理。
+    /**
+     * 删除导入中途建出的文档与分块。
+     *
+     * 分两步:先走 RagService.deleteDocument(清 HNSW/FTS/分块/文档行),
+     * 失败再用 DAO 兜底删行 —— 宁可多删一次,也不能把 0 chunk 的空壳留在库里。
+     */
+    suspend fun cleanupFailedImport(docId: String) {
+        resultOf { ragService.deleteDocument(docId) }.onError { msg, t ->
+            Logger.w("KnowledgeScreen", "导入失败后清理文档失败: $docId: $msg", t)
+            resultOf { chunkDao.deleteByDoc(docId) }
+            resultOf { dao.delete(docId) }
+        }
+    }
+
     @Suppress("ReturnCount")
     suspend fun importOneDocument(uri: Uri, targetKbId: String, targetFolderPath: String?): Boolean {
         val folderPath = targetFolderPath.orEmpty()
@@ -283,11 +359,18 @@ fun KnowledgeScreen(
                 } ?: -1L
             }
             val isParsedDoc = lowerName.endsWith(".pdf") || lowerName.endsWith(".docx") ||
-                lowerName.endsWith(".doc") || lowerName.endsWith(".epub") ||
-                lowerName.endsWith(".pptx")
+                lowerName.endsWith(".epub") || lowerName.endsWith(".pptx") ||
+                lowerName.endsWith(".xlsx")
+            // 旧版 Word(.doc)是 OLE 二进制:既不能当文本读,本地解析链也读不了。
+            // 必须在任何读写之前拒收,否则会走「文本候选」分支写出乱码文档+乱码索引。
+            val isLegacyDoc = lowerName.endsWith(".doc")
+            if (isLegacyDoc) {
+                MuseToast.show(context.getString(R.string.knowledge_import_legacy_doc))
+                return false
+            }
             val isImage = lowerName.endsWith(".png") || lowerName.endsWith(".jpg") ||
                 lowerName.endsWith(".jpeg") || lowerName.endsWith(".bmp") ||
-                lowerName.endsWith(".webp")
+                lowerName.endsWith(".webp") || lowerName.endsWith(".gif")
             val isTextCandidate = !isParsedDoc && !isImage
             val unsupportedTextCandidate =
                 isTextCandidate &&
@@ -374,12 +457,13 @@ fun KnowledgeScreen(
                     },
                 )
                 if (chunkCount <= 0) {
-                    resultOf { ragService.deleteDocument(docId) }
+                    cleanupFailedImport(docId)
+                    createdDocId = null
                     MuseToast.show(context.getString(R.string.knowledge_import_empty))
                     return false
                 }
                 dao.upsert(
-                    (dao.getById(docId) ?: return false).copy(
+                    (dao.getById(docId) ?: error("document vanished after import: $docId")).copy(
                         content = preview.toString(),
                         chunkCount = chunkCount,
                         embeddingModel = io.zer0.muse.rag.RagConfig.embeddingModelKey(parserConfig),
@@ -393,30 +477,48 @@ fun KnowledgeScreen(
                 MuseToast.show(context.getString(R.string.knowledge_imported_indexed, fileName, chunkCount))
                 return true
             }
-            // 根据扩展名选择解析方式
+            // 根据扩展名选择解析方式。解析型文档必须走 ParseOutcome:
+            // 「文本非空」不等于「解析完整」—— 扫描件/超页截断都是非空文本。
+            var parsedCoverage: io.zer0.muse.knowledge.ingest.ParseCoverage =
+                io.zer0.muse.knowledge.ingest.ParseCoverage.COMPLETE
+            var parsedCoverageNote = ""
             val content = when {
                 isParsedDoc -> {
                     importProgress = context.getString(R.string.knowledge_parsing_doc)
-                    val parsed = withContext(Dispatchers.IO) {
-                        documentParser.parseResult(
-                            uri,
-                            context,
-                            parserConfig.documentParserType,
-                            parserConfig.cloudParserEndpoint,
-                            parserConfig.mineruEndpoint,
-                            parserConfig.mineruToken,
+                    val outcome = withContext(Dispatchers.IO) {
+                        documentParserAdapter.parseToOutcome(
+                            uri = uri,
+                            context = context,
+                            fileName = fileName,
+                            parserType = parserConfig.documentParserType,
+                            cloudEndpoint = parserConfig.cloudParserEndpoint,
+                            mineruEndpoint = parserConfig.mineruEndpoint,
+                            mineruToken = parserConfig.mineruToken,
                         )
                     }
-                    if (parsed is io.zer0.common.Result.Error) {
-                        MuseToast.show(parsed.message)
-                        return false
+                    when (outcome.coverage) {
+                        io.zer0.muse.knowledge.ingest.ParseCoverage.FAILED -> {
+                            // 错误串只用于提示,绝不进 chunk 内容
+                            MuseToast.show(
+                                outcome.error.takeIf { it.isNotBlank() }
+                                    ?: context.getString(R.string.knowledge_import_failed_read),
+                            )
+                            return false
+                        }
+                        io.zer0.muse.knowledge.ingest.ParseCoverage.NO_TEXT -> {
+                            // 不建 chunk、不落库:只留一个 0 块的空壳文档等于告诉用户「导入成功」
+                            MuseToast.show(context.getString(R.string.knowledge_import_no_text))
+                            return false
+                        }
+                        io.zer0.muse.knowledge.ingest.ParseCoverage.PARTIAL,
+                        io.zer0.muse.knowledge.ingest.ParseCoverage.COMPLETE,
+                        -> {
+                            parsedCoverage = outcome.coverage
+                            parsedCoverageNote = outcome.coverageNote
+                            // 用 blocks 文本建索引:截断标记已在适配层从 blocks 里剥离
+                            outcome.blocks.joinToString("\n") { it.text }.trim()
+                        }
                     }
-                    val text = parsed.getOrNull()
-                    if (text.isNullOrBlank()) {
-                        MuseToast.show(context.getString(R.string.knowledge_import_empty))
-                        return false
-                    }
-                    text
                 }
                 isImage -> {
                     importProgress = context.getString(R.string.knowledge_ocr)
@@ -431,18 +533,21 @@ fun KnowledgeScreen(
                 }
             }
             if (content.isNullOrBlank()) {
-                MuseToast.show(context.getString(R.string.knowledge_import_empty))
+                // 图片/OCR 路径也在此拦:空正文不建文档
+                MuseToast.show(context.getString(R.string.knowledge_import_no_text))
                 return false
             }
             val fileType = when {
                 lowerName.endsWith(".md") || lowerName.endsWith(".markdown") -> "md"
                 lowerName.endsWith(".pdf") -> "pdf"
-                lowerName.endsWith(".docx") || lowerName.endsWith(".doc") -> "docx"
+                lowerName.endsWith(".docx") -> "docx"
+                lowerName.endsWith(".xlsx") -> "xlsx"
                 lowerName.endsWith(".epub") -> "epub"
+                lowerName.endsWith(".pptx") -> "pptx"
                 lowerName.endsWith(".csv") -> "csv"
                 lowerName.endsWith(".json") -> "json"
                 lowerName.endsWith(".png") || lowerName.endsWith(".jpg") ||
-                    lowerName.endsWith(".jpeg") -> "ocr"
+                    lowerName.endsWith(".jpeg") || lowerName.endsWith(".gif") -> "ocr"
                 else -> "txt"
             }
             val docId = "doc-$now"
@@ -455,22 +560,27 @@ fun KnowledgeScreen(
                 content
             }
             dao.upsert(
-                KnowledgeDocEntity(
-                    id = docId,
-                    title = fileName,
-                    content = truncatedContent,
-                    filePath = uri.toString(),
-                    fileType = fileType,
-                    createdAt = now,
-                    updatedAt = now,
-                    // F-31: 写入导入时选定的目标知识库(空串 → 默认知识库)
-                    kbId = targetKbId,
-                ).let { KnowledgeFolderBrowser.withFolderPath(it, folderPath) },
+                KnowledgeFolderBrowser.withFolderPath(
+                    KnowledgeDocEntity(
+                        id = docId,
+                        title = fileName,
+                        content = truncatedContent,
+                        filePath = uri.toString(),
+                        fileType = fileType,
+                        createdAt = now,
+                        updatedAt = now,
+                        // F-31: 写入导入时选定的目标知识库(空串 → 默认知识库)
+                        kbId = targetKbId,
+                        // 覆盖度写进 metadata_json(不新增 Room 列):UI 靠它显示「部分导入」
+                        metadataJson = withParseCoverage("{}", parsedCoverage, parsedCoverageNote),
+                    ),
+                    folderPath,
+                ),
             )
             // v1.54: 自动分块 + 生成 embedding 向量索引
             importProgress = context.getString(R.string.knowledge_chunking)
             val ragConfig = parserConfig
-            // v1.103: 不再静默吞异常。runCatching 失败时把原因拼进 toast,
+            // v1.103: 不再静默吞异常。失败时把原因拼进 toast,
             // 让用户知道为什么没建索引(网络/模型名/Provider 不兼容等),而不是只看到"已导入但未索引"。
             var indexError: Throwable? = null
             var indexErrorMsg: String? = null
@@ -489,11 +599,11 @@ fun KnowledgeScreen(
             val chunkCount = indexResult.getOrNull()
             if (chunkCount != null && chunkCount > 0) {
                 // 更新文档的分块数和 embedding 模型
-                val modelName = ragConfig.cloudModel.ifBlank { "cloud-default" }
+                val modelKey = io.zer0.muse.rag.RagConfig.embeddingModelKey(ragConfig)
                 dao.upsert(
-                    (dao.getById(docId) ?: return false).copy(
+                    (dao.getById(docId) ?: error("document vanished after import: $docId")).copy(
                         chunkCount = chunkCount,
-                        embeddingModel = modelName,
+                        embeddingModel = modelKey,
                         // Hash the complete extracted text, not the DB preview, so reindexing can
                         // distinguish truncated content instead of silently treating it as canonical.
                         contentHash = io.zer0.muse.rag.RagService.computeContentHash(content),
@@ -501,12 +611,27 @@ fun KnowledgeScreen(
                     ),
                 )
                 // F-33: 记录本次索引用到的 embedding 配置,供切换检测
-                scope.launch { settings.saveLastEmbeddingModelKey(io.zer0.muse.rag.RagConfig.embeddingModelKey(ragConfig)) }
+                scope.launch { settings.saveLastEmbeddingModelKey(modelKey) }
                 browsingKbId = targetKbId
                 currentFolderPath = folderPath
-                MuseToast.show(context.getString(R.string.knowledge_imported_indexed, fileName, chunkCount))
+                if (parsedCoverage == io.zer0.muse.knowledge.ingest.ParseCoverage.PARTIAL) {
+                    // 部分导入必须让用户看见:索引存在但内容不全,检索会缺一块
+                    MuseToast.show(
+                        context.getString(
+                            R.string.knowledge_import_partial,
+                            fileName,
+                            chunkCount,
+                            parsedCoverageNote.ifBlank { context.getString(R.string.knowledge_doc_partial_badge) },
+                        ),
+                    )
+                } else {
+                    MuseToast.show(context.getString(R.string.knowledge_imported_indexed, fileName, chunkCount))
+                }
+                true
             } else {
-                // v1.103: 索引失败时显示具体原因,引导用户去 RAG 设置检查配置
+                // 索引失败/零块:不能留一个 0 chunk 的幽灵文档
+                cleanupFailedImport(docId)
+                createdDocId = null
                 val reason = indexErrorMsg?.take(100)
                 val msg = if (reason.isNullOrBlank()) {
                     context.getString(R.string.knowledge_imported_no_index, fileName)
@@ -516,20 +641,20 @@ fun KnowledgeScreen(
                 }
                 MuseToast.show(msg)
                 Logger.w("KnowledgeScreen", "indexDocument failed for $fileName", indexError)
+                false
             }
-            // 解析型文档/图片路径：走到这里说明该文件已落库(索引与否由上面的 toast 告知)
-            true
         } catch (e: kotlinx.coroutines.CancellationException) {
             // v1.67-B: 用户取消导入,清理半成品文档 + 已生成的分块
-            createdDocId?.let { id ->
-                resultOf { ragService.deleteDocument(id) }
-            }
+            createdDocId?.let { id -> cleanupFailedImport(id) }
             MuseToast.show(context.getString(R.string.knowledge_import_cancelled))
             throw e
         } catch (e: java.io.IOException) {
+            // 文本流式路径的 IO 失败此前会直接冒到外层,已写入的文档行就成了 0 chunk 幽灵
+            createdDocId?.let { id -> cleanupFailedImport(id) }
             MuseToast.show(context.getString(R.string.knowledge_import_failed_read))
             false
         } catch (e: Exception) {
+            createdDocId?.let { id -> cleanupFailedImport(id) }
             MuseToast.show(context.getString(R.string.knowledge_import_failed, e.message?.take(80) ?: ""))
             false
         }
@@ -609,19 +734,29 @@ fun KnowledgeScreen(
         if (!path.startsWith("content://") && !path.startsWith("file://")) return null
         val uri = path.toUri()
         return when (doc.fileType.lowercase(Locale.ROOT)) {
-            "pdf", "docx", "epub", "pptx" -> flow {
-                val parsed = documentParser
-                    .parseResult(
-                        uri,
-                        context,
-                        ragConfig.documentParserType,
-                        ragConfig.cloudParserEndpoint,
-                        ragConfig.mineruEndpoint,
-                        ragConfig.mineruToken,
-                    )
-                    .getOrNull()
-                    .orEmpty()
-                if (parsed.isNotBlank()) emit(parsed)
+            // 重索引与导入同一条解析链：截断标记不进 chunk，非 COMPLETE 不得当成完整正文
+            "pdf", "docx", "epub", "pptx", "xlsx" -> flow {
+                val outcome = documentParserAdapter.parseToOutcome(
+                    uri = uri,
+                    context = context,
+                    fileName = doc.title,
+                    parserType = ragConfig.documentParserType,
+                    cloudEndpoint = ragConfig.cloudParserEndpoint,
+                    mineruEndpoint = ragConfig.mineruEndpoint,
+                    mineruToken = ragConfig.mineruToken,
+                )
+                when (outcome.coverage) {
+                    io.zer0.muse.knowledge.ingest.ParseCoverage.FAILED ->
+                        error(outcome.error.ifBlank { context.getString(R.string.knowledge_source_unavailable) })
+                    io.zer0.muse.knowledge.ingest.ParseCoverage.NO_TEXT ->
+                        error(context.getString(R.string.knowledge_import_no_text))
+                    io.zer0.muse.knowledge.ingest.ParseCoverage.PARTIAL,
+                    io.zer0.muse.knowledge.ingest.ParseCoverage.COMPLETE,
+                    -> {
+                        val text = outcome.blocks.joinToString("\n") { it.text }
+                        if (text.isNotBlank()) emit(text)
+                    }
+                }
             }.flowOn(Dispatchers.IO)
 
             "ocr" -> flow {
@@ -1154,17 +1289,54 @@ fun KnowledgeScreen(
                                         }
                                         items(folderFiles, key = { it.id }) { doc ->
                                             Box(museAnimateItem()) {
-                                                DocCard(
-                                                    doc = doc,
-                                                    highlight = searchQuery.takeIf { it.isNotBlank() },
-                                                    onClick = { detailTarget = doc },
-                                                    onDelete = {
-                                                        scope.launch {
-                                                            ragService.deleteDocument(doc.id)
-                                                        }
-                                                        MuseToast.show(context.getString(R.string.knowledge_deleted))
-                                                    },
-                                                )
+                                                Column {
+                                                    DocCard(
+                                                        doc = doc,
+                                                        highlight = searchQuery.takeIf { it.isNotBlank() },
+                                                        onClick = { detailTarget = doc },
+                                                        onDelete = {
+                                                            // 等真删完再提示：删除失败时弹「已删除」会让用户以为清干净了,
+                                                            // 文档其实还在列表里。
+                                                            scope.launch {
+                                                                resultOf { ragService.deleteDocument(doc.id) }
+                                                                    .onSuccess {
+                                                                        MuseToast.show(context.getString(R.string.knowledge_deleted))
+                                                                    }
+                                                                    .onError { message, error ->
+                                                                        Logger.w(
+                                                                            "KnowledgeScreen",
+                                                                            "删除文档失败: ${doc.id}: $message",
+                                                                            error,
+                                                                        )
+                                                                        MuseToast.show(
+                                                                            context.getString(
+                                                                                R.string.knowledge_delete_failed_reason,
+                                                                                message.take(80).ifBlank {
+                                                                                    context.getString(R.string.common_load_failed)
+                                                                                },
+                                                                            ),
+                                                                        )
+                                                                    }
+                                                            }
+                                                        },
+                                                    )
+                                                    // 部分导入必须在列表上看得见:索引存在但内容不全,
+                                                    // 只靠导入时那一条 toast,过一会儿就没人记得了。
+                                                    if (
+                                                        parseCoverageOf(doc.metadataJson) ==
+                                                        io.zer0.muse.knowledge.ingest.ParseCoverage.PARTIAL
+                                                    ) {
+                                                        Text(
+                                                            text = stringResource(R.string.knowledge_doc_partial_badge),
+                                                            modifier = Modifier.padding(
+                                                                start = MuseSpacing.sm,
+                                                                top = MuseSpacing.xs,
+                                                            ),
+                                                            style = MaterialTheme.typography.labelSmall,
+                                                            color = MaterialTheme.colorScheme.error,
+                                                        )
+                                                    }
+                                                }
                                             }
                                         }
                                     }
@@ -1697,17 +1869,35 @@ fun KnowledgeScreen(
                 itemName = stringResource(R.string.kb_manage_delete_confirm, kb.name),
                 onConfirm = {
                     scope.launch {
-                        withContext(Dispatchers.IO) {
-                            dao.getByKbIds(listOf(kb.id)).forEach { doc -> ragService.deleteDocument(doc.id) }
-                            folderDao.deleteByKb(kb.id)
-                            kbDao.delete(kb.id)
+                        // 与 knowledge_delete_kb 工具走同一级联：文档/分块/文件夹/绑定/助手引用一次清完
+                        when (val result = cascade.deleteKnowledgeBase(kb.id)) {
+                            is io.zer0.common.Result.Success -> {
+                                if (browsingKbId == kb.id) {
+                                    browsingKbId = null
+                                    currentFolderPath = ""
+                                }
+                                deletingKb = null
+                                MuseToast.show(context.getString(R.string.kb_manage_deleted, kb.name))
+                                val details = result.data
+                                Logger.i(
+                                    "KnowledgeScreen",
+                                    "删库 ${kb.id}: 文档 ${details.deletedDocs} 篇，" +
+                                        "内部文档改挂 ${details.reassignedInternalDocs} 篇，" +
+                                        "同步助手 ${details.detachedAssistants} 个",
+                                )
+                            }
+
+                            is io.zer0.common.Result.Error -> {
+                                Logger.w("KnowledgeScreen", "删库失败: ${kb.id}: ${result.message}", result.throwable)
+                                deletingKb = null
+                                MuseToast.show(
+                                    context.getString(
+                                        R.string.knowledge_delete_failed_reason,
+                                        result.message.take(80).ifBlank { context.getString(R.string.common_load_failed) },
+                                    ),
+                                )
+                            }
                         }
-                        if (browsingKbId == kb.id) {
-                            browsingKbId = null
-                            currentFolderPath = ""
-                        }
-                        deletingKb = null
-                        MuseToast.show(context.getString(R.string.kb_manage_deleted, kb.name))
                     }
                 },
                 onDismiss = { deletingKb = null },
@@ -1809,15 +1999,18 @@ fun KnowledgeScreen(
                         val path = KnowledgeFolderBrowser.normalize(
                             if (currentFolderPath.isEmpty()) name else "$currentFolderPath/$name",
                         )
-                        folderDao.upsert(
-                            io.zer0.muse.data.knowledge.KnowledgeFolderEntity(
-                                id = "kbfolder-$kbNow-$path",
-                                kbId = kbNow,
-                                path = path,
-                                name = path.substringAfterLast('/'),
-                            ),
-                        )
-                        MuseToast.show(context.getString(R.string.knowledge_folder_created, path))
+                        // 同层重名不静默 REPLACE:REPLACE 会把已有文件夹的 createdAt 洗掉,
+                        // 也会把两个不同目录合并成一个,而用户以为新建了一个新的。
+                        when (val result = cascade.createFolder(kbNow, path)) {
+                            is io.zer0.muse.tools.KnowledgeCascade.FolderResult.Ok ->
+                                MuseToast.show(context.getString(R.string.knowledge_folder_created, result.path))
+                            io.zer0.muse.tools.KnowledgeCascade.FolderResult.NameConflict ->
+                                MuseToast.show(
+                                    context.getString(R.string.knowledge_folder_name_duplicate, path.substringAfterLast('/')),
+                                )
+                            io.zer0.muse.tools.KnowledgeCascade.FolderResult.NotFound ->
+                                MuseToast.show(context.getString(R.string.knowledge_folder_name_empty))
+                        }
                     }
                 }
                 creatingFolder = false
@@ -1842,42 +2035,20 @@ fun KnowledgeScreen(
                     if (newName.isBlank()) MuseToast.show(context.getString(R.string.knowledge_folder_name_empty))
                 } else {
                     scope.launch {
-                        val parent = KnowledgeFolderBrowser.parent(oldPath)
-                        val newPath = KnowledgeFolderBrowser.normalize(
-                            if (parent.isEmpty()) newName else "$parent/$newName",
-                        )
-                        withContext(Dispatchers.IO) {
-                            // 显式文件夹记录:整棵子树换前缀
-                            folderDao.getByPathRecursive(kbNow, oldPath).forEach { f ->
-                                val suffix = f.path.removePrefix(oldPath)
-                                val nPath = newPath + suffix
-                                folderDao.deleteById(f.id)
-                                folderDao.upsert(
-                                    f.copy(
-                                        id = "kbfolder-$kbNow-$nPath",
-                                        path = nPath,
-                                        name = nPath.substringAfterLast('/'),
-                                        updatedAt = System.currentTimeMillis(),
-                                    ),
-                                )
-                            }
-                            // 文档:同前缀的 folderPath 一起改
-                            dao.getByKbIds(listOf(kbNow)).forEach { doc ->
-                                val p = KnowledgeFolderBrowser.folderPath(doc)
-                                if (p == oldPath || p.startsWith("$oldPath/")) {
-                                    val suffix = p.removePrefix(oldPath)
-                                    val nPath = newPath + suffix
-                                    dao.upsert(
-                                        KnowledgeFolderBrowser.withFolderPath(doc, nPath)
-                                            .copy(updatedAt = System.currentTimeMillis()),
-                                    )
+                        // 文件夹行、文档 folderPath、助手文件夹作用域一起重写 ——
+                        // 少改任何一边都会留下指向旧路径的失效绑定。
+                        when (val result = cascade.renameFolder(kbNow, oldPath, newName)) {
+                            is io.zer0.muse.tools.KnowledgeCascade.FolderResult.Ok -> {
+                                if (currentFolderPath == oldPath || currentFolderPath.startsWith("$oldPath/")) {
+                                    currentFolderPath = result.path + currentFolderPath.removePrefix(oldPath)
                                 }
+                                MuseToast.show(context.getString(R.string.knowledge_folder_renamed, newName))
                             }
+                            io.zer0.muse.tools.KnowledgeCascade.FolderResult.NameConflict ->
+                                MuseToast.show(context.getString(R.string.knowledge_folder_name_duplicate, newName))
+                            io.zer0.muse.tools.KnowledgeCascade.FolderResult.NotFound ->
+                                MuseToast.show(context.getString(R.string.knowledge_folder_deleted))
                         }
-                        if (currentFolderPath == oldPath || currentFolderPath.startsWith("$oldPath/")) {
-                            currentFolderPath = newPath + currentFolderPath.removePrefix(oldPath)
-                        }
-                        MuseToast.show(context.getString(R.string.knowledge_folder_renamed, newName))
                     }
                 }
                 renamingFolder = null
@@ -1895,23 +2066,18 @@ fun KnowledgeScreen(
             onConfirm = {
                 if (kbNow != null) {
                     scope.launch {
-                        withContext(Dispatchers.IO) {
-                            folderDao.deleteByPathRecursive(kbNow, path)
-                            // 文档不删，仅清除匹配目录（含子目录）的 folderPath 归属
-                            dao.getByKbIds(listOf(kbNow)).forEach { doc ->
-                                val p = KnowledgeFolderBrowser.folderPath(doc)
-                                if (p == path || p.startsWith("$path/")) {
-                                    dao.upsert(
-                                        KnowledgeFolderBrowser.withFolderPath(doc, "")
-                                            .copy(updatedAt = System.currentTimeMillis()),
-                                    )
+                        // 文档不删,只回根;助手里指向该目录（含子目录）的作用域同步移除
+                        when (val result = cascade.deleteFolder(kbNow, path)) {
+                            is io.zer0.muse.tools.KnowledgeCascade.FolderResult.Ok -> {
+                                if (currentFolderPath == path || currentFolderPath.startsWith("$path/")) {
+                                    currentFolderPath = KnowledgeFolderBrowser.parent(path)
                                 }
+                                MuseToast.show(context.getString(R.string.knowledge_folder_deleted))
                             }
+                            io.zer0.muse.tools.KnowledgeCascade.FolderResult.NameConflict,
+                            io.zer0.muse.tools.KnowledgeCascade.FolderResult.NotFound,
+                            -> MuseToast.show(context.getString(R.string.knowledge_folder_deleted))
                         }
-                        if (currentFolderPath == path || currentFolderPath.startsWith("$path/")) {
-                            currentFolderPath = KnowledgeFolderBrowser.parent(path)
-                        }
-                        MuseToast.show(context.getString(R.string.knowledge_folder_deleted))
                     }
                 }
                 deletingFolder = null

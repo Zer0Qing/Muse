@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -128,23 +129,47 @@ class MemorySpaceViewModel(
     /**
      * 删除 Space。
      * 默认 Space 不可删除,会返回失败提示。
-     * 删除前会将其中的事实迁移到默认 Space,避免数据丢失。
+     * 删除前会将其中的事实合并到默认 Space,避免数据丢失。
+     *
+     * 删除成功后还要处理「当前选中的正是被删 Space」这一情况:不切回默认空间的话,
+     * 记忆页会继续按一个已不存在的 id 过滤,事实列表直接变空 ——
+     * 用户看到的是「删掉一个空间,记忆全没了」,而那些事实其实已经合并进默认空间。
      */
     fun deleteSpace(id: String) {
         viewModelScope.launch {
+            var failureMessage: String? = null
             val ok = withContext(Dispatchers.IO) {
                 resultOf { spaceRepository.deleteSpace(id) }
                     .onError { msg, t ->
-                        _operationMessage.value = auditMemoryString(R.string.audit_memory_space_delete_failed, msg)
+                        failureMessage = auditMemoryString(R.string.audit_memory_space_delete_failed, msg)
                         Logger.w("MemorySpaceViewModel", "deleteSpace 失败: $msg", t)
                     }
                     .getOrNull() ?: false
             }
-            _operationMessage.value = if (ok) {
-                auditMemoryString(R.string.audit_memory_space_deleted)
-            } else {
-                auditMemoryString(R.string.audit_memory_space_default_not_deletable)
+            if (!ok) {
+                // 仓库用 false 表示「默认空间 / 空间不存在」这类可解释的拒绝,异常则走上面的
+                // onError 给出真实原因。两者不能都显示成「默认空间不可删除」,那会把
+                // 数据库失败说成用户操作非法,线索就此丢掉。
+                _operationMessage.value = failureMessage
+                    ?: auditMemoryString(R.string.audit_memory_space_default_not_deletable)
+                return@launch
             }
+            val currentSpaceId = withContext(Dispatchers.IO) {
+                resultOf { settings.currentSpaceIdFlow.first() }
+                    .onError { msg, t ->
+                        Logger.w("MemorySpaceViewModel", "deleteSpace 后读取当前空间失败: $msg", t)
+                    }
+                    .getOrNull()
+            }
+            if (currentSpaceId == id) {
+                withContext(Dispatchers.IO) {
+                    resultOf { settings.saveCurrentSpaceId(MemorySpaceEntity.DEFAULT_SPACE_ID) }
+                        .onError { msg, t ->
+                            Logger.w("MemorySpaceViewModel", "deleteSpace 后重置当前空间失败: $msg", t)
+                        }
+                }
+            }
+            _operationMessage.value = auditMemoryString(R.string.audit_memory_space_deleted)
         }
     }
 

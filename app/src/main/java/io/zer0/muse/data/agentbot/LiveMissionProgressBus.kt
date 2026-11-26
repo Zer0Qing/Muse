@@ -43,6 +43,8 @@ class LiveMissionProgressBus {
         val displayId: Int,
         val packageName: String,
         val taskId: String = "",
+        /** 当前正在执行的动作字幕；空串表示只展示包名。 */
+        val action: String = "",
         val updatedAt: Long = System.currentTimeMillis(),
     )
 
@@ -158,11 +160,17 @@ class LiveMissionProgressBus {
         return drained
     }
 
-    fun reportVirtualDisplay(displayId: Int, packageName: String, taskId: String = "") {
+    fun reportVirtualDisplay(
+        displayId: Int,
+        packageName: String,
+        taskId: String = "",
+        action: String = "",
+    ) {
         _activeVirtualDisplay.value = ActiveVirtualDisplay(
             displayId = displayId,
             packageName = packageName,
             taskId = taskId,
+            action = action,
         )
     }
 

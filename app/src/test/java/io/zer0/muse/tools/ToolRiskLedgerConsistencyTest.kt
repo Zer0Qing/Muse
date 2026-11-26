@@ -57,8 +57,8 @@ class ToolRiskLedgerConsistencyTest {
             REGISTRARS.size - unavailable.size >= 12,
         )
         // pin_memory / unpin_memory 由 AgentToolsRegistrar 动态注册,静态 toolDef 直接并入台账
-        registry.register(PinMemoryTool.toolDef()) { PinMemoryTool.execute(emptyMap(), mockk()) }
-        registry.register(UnpinMemoryTool.toolDef()) { UnpinMemoryTool.execute(emptyMap(), mockk()) }
+        registry.register(PinMemoryTool.toolDef()) { error("Risk ledger only") }
+        registry.register(UnpinMemoryTool.toolDef()) { error("Risk ledger only") }
         return registry
     }
 

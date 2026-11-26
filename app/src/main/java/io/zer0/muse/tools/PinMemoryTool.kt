@@ -1,13 +1,5 @@
 package io.zer0.muse.tools
 
-import io.zer0.memory.pin.PinnedMemoryStore
-
-/**
- * pin_memory 工具。
- *
- * 允许 AI 置顶重要信息,使其保留在系统提示词中。
- * 通过 AgentToolsRegistrar 动态注册到 ToolRegistry。
- */
 object PinMemoryTool {
 
     fun toolDef() = ToolRegistry.ToolDef(
@@ -19,21 +11,6 @@ object PinMemoryTool {
         ),
         required = setOf("content"),
         category = "built-in",
-        // P0-3: 与 ToolPermissionResolver 显式表一致(HIGH)— 长期记忆写入,隐私敏感
         riskLevel = ToolRiskLevel.HIGH,
     )
-
-    // 生产链路不再走这里：pin/unpin/save/delete/search 的统一入口是 AgentToolsRegistrar 里的 MemoryUseCases 分支。
-    // 仅保留给单测与历史调用点；新增调用请走 use cases。
-    suspend fun execute(args: Map<String, String>, store: PinnedMemoryStore, assistantId: String? = null): String {
-        val content = args["content"]?.trim()
-            ?: return "Error: content parameter is required."
-        if (content.isEmpty()) return "Error: content cannot be empty."
-        val id = store.add(content, assistantId = assistantId)
-        return if (id.isEmpty()) {
-            "Error: failed to pin content."
-        } else {
-            "Pinned successfully (id: ${id.take(8)}...). The information will remain visible in future conversations with this assistant."
-        }
-    }
 }

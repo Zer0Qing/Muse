@@ -1,10 +1,12 @@
 package io.zer0.muse.data.agentbot
 
 import io.zer0.muse.automation.capability.DeviceCapabilityProfile
+import io.zer0.muse.computenode.CloudComputerSummary
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.transformer.PromptTemplateLoader
 import io.zer0.muse.transformer.SystemPromptAssembler
 import kotlinx.coroutines.flow.first
+import java.util.Locale
 
 /**
  * 构建 Agent 前台大脑的系统提示词。
@@ -17,6 +19,7 @@ class AgentCapabilityPromptBuilder(
     private val deviceProfileProvider: (() -> DeviceCapabilityProfile?)? = null,
     private val activeChannelsProvider: (() -> List<String>)? = null,
     private val squadRosterProvider: (suspend () -> List<SquadMemberSummary>)? = null,
+    private val cloudComputersProvider: (suspend () -> List<CloudComputerSummary>)? = null,
     private val promptLoader: PromptTemplateLoader? = null,
     private val settingsRepository: SettingsRepository? = null,
 ) {
@@ -85,6 +88,26 @@ class AgentCapabilityPromptBuilder(
             appendLine("- 可协作助手：${squad.joinToString("；") { "${it.name}(id=${it.id}${if (it.roleHint.isNotBlank()) ", ${it.roleHint}" else ""})" }}")
         }
 
+        val cloudComputers = runCatching { cloudComputersProvider?.invoke().orEmpty() }.getOrDefault(emptyList())
+        if (cloudComputers.isNotEmpty()) {
+            appendLine()
+            appendLine("## 云端电脑")
+            cloudComputers.take(MAX_CLOUD_COMPUTERS).forEach { computer ->
+                val resources = if (computer.memTotalMb > 0) {
+                    "CPU " + String.format(Locale.US, "%.1f", computer.cpuPercent) + "%；内存 " +
+                        computer.memUsedMb.toLong() + "/" + computer.memTotalMb + " MB"
+                } else {
+                    "CPU/内存待心跳上报"
+                }
+                val packs = if (computer.packs.isNotEmpty()) {
+                    "；已装包 " + computer.packs.joinToString("、")
+                } else {
+                    ""
+                }
+                appendLine("- " + computer.name + "：" + computer.os.ifBlank { "OS 未知" } + "；" + resources + packs)
+            }
+        }
+
         if (activeMissions.isNotEmpty()) {
             appendLine()
             appendLine("## 运行中任务")
@@ -110,4 +133,8 @@ class AgentCapabilityPromptBuilder(
             }
         }
     }.trim()
+
+    private companion object {
+        private const val MAX_CLOUD_COMPUTERS = 4
+    }
 }

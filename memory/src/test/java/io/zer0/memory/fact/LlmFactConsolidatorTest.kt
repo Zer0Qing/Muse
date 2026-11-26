@@ -3,7 +3,11 @@ package io.zer0.memory.fact
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import io.zer0.ai.core.Model
+import io.zer0.common.ProcessWriteGate
 import io.zer0.memory.llm.MemoryLlmClient
+import io.zer0.memory.runtime.DefaultMemoryWriteGate
+import io.zer0.memory.runtime.MemoryScopeKey
+import io.zer0.memory.runtime.MemoryWriteGate
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -42,6 +46,8 @@ class LlmFactConsolidatorTest {
 
     @After
     fun tearDown() {
+        // 默认闸会读进程闸:测试里开过的恢复窗口必须复位。
+        ProcessWriteGate.end()
         db.close()
     }
 
@@ -138,6 +144,70 @@ class LlmFactConsolidatorTest {
         )
         assertEquals("归属不符时不改动", -1, removed)
         assertEquals("两条原事实均保留", 2, store.getByScopeAndSpace("main", "default").size)
+    }
+
+    // ── 写闸:合并会删成员,恢复窗口内必须停手 ──
+
+    @Test
+    fun `blocked gate skips the merge`() = runTest {
+        seedSimilarPair()
+        val llm = FakeLlm("用户喜欢吃苹果和香蕉")
+        val consolidator = LlmFactConsolidator(llm, writeGate = blockingGate())
+
+        val merged = consolidator.consolidate(store, "main", "default")
+
+        assertEquals("闸挡下就不能合并", 0, merged)
+        assertEquals(2, store.getByScopeAndSpace("main", "default").size)
+    }
+
+    @Test
+    fun `restore window during the model call aborts the merge`() = runTest {
+        seedSimilarPair()
+        val gate = DefaultMemoryWriteGate()
+        val fence = gate.fence()
+        // 模型调用期间恢复窗口完整开合:返回时 restoring 已复位,只有入口栅栏能作证。
+        val llm = restoreDuringCallLlm("用户喜欢吃苹果和香蕉")
+        val consolidator = LlmFactConsolidator(llm, writeGate = gate)
+
+        val merged = consolidator.consolidate(store, "main", "default", fence = fence)
+
+        assertEquals("过期栅栏的合并结果不得落库", 0, merged)
+        assertEquals("两条事实都不能被删", 2, store.getByScopeAndSpace("main", "default").size)
+    }
+
+    @Test
+    fun `consolidateAll passes the entry fence down to every scope`() = runTest {
+        seedSimilarPair()
+        val gate = DefaultMemoryWriteGate()
+        val fence = gate.fence()
+        val llm = restoreDuringCallLlm("用户喜欢吃苹果和香蕉")
+        val consolidator = LlmFactConsolidator(llm, writeGate = gate)
+
+        val merged = consolidator.consolidateAll(store, fence = fence)
+
+        assertEquals("逐空间下传栅栏:全部跳过", 0, merged)
+        assertEquals(2, store.getByScopeAndSpace("main", "default").size)
+    }
+
+    /** 模型调用期间恢复窗口完整开合过的 LLM。 */
+    private fun restoreDuringCallLlm(response: String): MemoryLlmClient = object : MemoryLlmClient {
+        override suspend fun callText(
+            systemPrompt: String,
+            userContent: String,
+            model: Model?,
+            temperature: Float,
+            maxTokens: Int,
+            timeoutMs: Long,
+        ): String {
+            ProcessWriteGate.begin()
+            ProcessWriteGate.end()
+            return response
+        }
+    }
+
+    private fun blockingGate(): MemoryWriteGate = object : MemoryWriteGate {
+        override fun isBlocked(scope: MemoryScopeKey): Boolean = true
+        override suspend fun <T> withWritesPaused(scope: MemoryScopeKey, block: suspend () -> T): T = block()
     }
 
     @Test

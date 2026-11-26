@@ -667,6 +667,8 @@ private class FakeSessionSummaryDao : SessionSummaryDao {
     override suspend fun deleteById(sessionId: String) {}
     // 助手被删除时要清掉它名下的摘要；空数据 fake 里没有可删的行。
     override suspend fun deleteByAssistant(assistantId: String): Int = 0
+    override suspend fun assistantIdsForSpace(spaceId: String): List<String> = emptyList()
+    override suspend fun migrateSpace(sourceSpaceId: String, targetSpaceId: String): Int = 0
     override suspend fun revisionOf(sessionId: String): Long? = null
     override suspend fun bumpRevisionIfCurrent(sessionId: String, expectedRevision: Long, sourceFingerprint: String): Int = 0
     override suspend fun markProcessedIfCurrent(sessionId: String, expectedRevision: Long, now: String): Int = 0
@@ -708,6 +710,8 @@ private class FakeDailyStateDao : DailyStateDao {
     }
     override suspend fun get(key: String): DailyStateEntity? = byKey[key]
     override suspend fun getAll(): List<DailyStateEntity> = byKey.values.toList()
+    override suspend fun allKeys(): List<String> = byKey.keys.toList()
+    override suspend fun delete(key: String): Int = if (byKey.remove(key) == null) 0 else 1
     override suspend fun deleteAll() {
         byKey.clear()
     }

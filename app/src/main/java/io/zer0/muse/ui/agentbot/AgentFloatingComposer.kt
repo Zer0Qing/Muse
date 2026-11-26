@@ -63,11 +63,14 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import io.zer0.ai.core.ReasoningLevel
 import io.zer0.muse.R
 import io.zer0.muse.asr.ASRStatus
 import io.zer0.muse.data.agentbot.AgentBotUiState
+import io.zer0.muse.data.agentbot.AgentMentionDispatch
+import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.ui.assistant.reasoningLevelLabelRes
 import io.zer0.muse.ui.chat.LoadingDots
 import io.zer0.muse.ui.chat.MentionHighlightTransformation
@@ -75,6 +78,8 @@ import io.zer0.muse.ui.chat.MuseToolSheet
 import io.zer0.muse.ui.chat.RecordingWaveform
 import io.zer0.muse.ui.chat.ToolEntry
 import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
@@ -83,6 +88,7 @@ import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.common.surface.MuseIsland
 import io.zer0.muse.ui.theme.GlassIsland
 import io.zer0.muse.ui.theme.LocalLiquidGlass
+import io.zer0.muse.ui.theme.MuseButtonSize
 import io.zer0.muse.ui.theme.MuseActionColors
 import io.zer0.muse.ui.theme.MuseAlpha
 import io.zer0.muse.ui.theme.MuseAnimation
@@ -93,6 +99,8 @@ import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.pill
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 
 /**
  * 底部独立悬浮药丸输入岛。
@@ -113,6 +121,7 @@ fun AgentFloatingComposer(
     onPickGalleryImage: (Uri) -> Unit,
     onRemoveImage: (String) -> Unit,
     onVoiceInput: () -> Unit = {},
+    onOpenVoiceMode: (() -> Unit)? = null,
     onOpenWorkbench: () -> Unit,
     onStartTeach: () -> Unit,
     onOpenModel: (() -> Unit)?,
@@ -152,6 +161,15 @@ fun AgentFloatingComposer(
     val voiceCd = stringResource(R.string.agent_hub_voice_cd)
     val sendCd = stringResource(R.string.action_send)
     val stopCd = stringResource(R.string.agent_bot_stop_reply)
+    val mentionTargets = rememberMentionTargets(excludeBotId = composer.botId)
+    val mentionQuery = remember(composer.text) { AgentMentionDispatch.activeQuery(composer.text) }
+    val mentionMatches = remember(mentionQuery, mentionTargets) {
+        if (mentionQuery == null) {
+            emptyList()
+        } else {
+            AgentMentionDispatch.filter(mentionTargets, mentionQuery.query)
+        }
+    }
     LaunchedEffect(showCancelledHint) {
         if (showCancelledHint) {
             delay(1_500L)
@@ -300,6 +318,38 @@ fun AgentFloatingComposer(
             }
         }
 
+        if (mentionMatches.isNotEmpty()) {
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+            ) {
+                itemsIndexed(
+                    items = mentionMatches,
+                    key = { _, target -> target.botId },
+                ) { _, target ->
+                    MuseCapsuleButton(
+                        text = target.displayName,
+                        onClick = {
+                            mentionQuery?.let { query ->
+                                MuseHaptics.light(hapticFeedback)
+                                onTextChange(
+                                    AgentMentionDispatch.applySelection(
+                                        text = composer.text,
+                                        query = query,
+                                        target = target,
+                                    ),
+                                )
+                            }
+                        },
+                        variant = IosCapsuleButtonVariant.Secondary,
+                        fillWidth = false,
+                        size = MuseButtonSize.Compact,
+                        leadingIcon = MuseIcons.users,
+                    )
+                }
+            }
+        }
+
         GlassIsland(
             config = glassConfig,
             shape = MuseShapes.pill,
@@ -326,6 +376,18 @@ fun AgentFloatingComposer(
                         showToolSheet = true
                     },
                 )
+
+                if (onOpenVoiceMode != null) {
+                    MuseTactileButton(
+                        icon = MuseIcons.phone,
+                        contentDescription = stringResource(R.string.agent_hub_voice_mode_cd),
+                        tint = islandContentColor.copy(alpha = MuseAlpha.disabledContent),
+                        onClick = {
+                            MuseHaptics.light(hapticFeedback)
+                            onOpenVoiceMode()
+                        },
+                    )
+                }
 
                 MuseTextField(
                     value = composer.text,
@@ -784,5 +846,35 @@ fun AgentFloatingComposer(
                 R.string.chat_web_search_cd,
             ),
         )
+    }
+}
+
+/**
+ * 输入框 `@` 胶囊条的队友数据源。
+ *
+ * 只读取已启用且昵称非空的助手；当前正在对话的助手不出现在候选里，
+ * 避免用户 @ 自己形成一次无意义的转派。仓储从容器按需取，预览或极早初始化阶段
+ * 取不到时退化为空列表，由输入框保持普通文本行为。
+ */
+@Composable
+private fun rememberMentionTargets(excludeBotId: String): List<AgentMentionDispatch.Target> {
+    val repository = remember {
+        org.koin.core.context.GlobalContext.getOrNull()
+            ?.getOrNull<io.zer0.muse.data.assistant.AssistantRepository>()
+    }
+    val assistantsFlow: Flow<List<AssistantEntity>> = remember(repository) {
+        repository?.observeAll ?: flowOf(emptyList())
+    }
+    val assistants by assistantsFlow.collectAsStateWithLifecycle(initialValue = emptyList())
+    return remember(assistants, excludeBotId) {
+        assistants.asSequence()
+            .filter { it.enabled && it.id != excludeBotId && it.name.isNotBlank() }
+            .map { assistant ->
+                AgentMentionDispatch.Target(
+                    botId = assistant.id,
+                    displayName = assistant.name.trim(),
+                )
+            }
+            .toList()
     }
 }

@@ -15,6 +15,7 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,14 +28,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -50,10 +52,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -66,21 +71,31 @@ import io.zer0.muse.data.agentbot.AgentBotError
 import io.zer0.muse.data.agentbot.AgentBotScopeState
 import io.zer0.muse.data.agentbot.AgentBotUiState
 import io.zer0.muse.data.agentbot.AgentStreamCoordinator
+import io.zer0.muse.data.agentbot.AgentSuggestion
+import io.zer0.muse.data.agentbot.AgentWatcherEngine
+import io.zer0.muse.data.agentbot.BotCardStatus
+import io.zer0.muse.data.agentbot.ReconnectActionKind
+import io.zer0.muse.data.agentbot.ReconnectCardPayload
 import io.zer0.muse.data.agentbot.BotCardKind
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseBottomSheet
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.settings.ConfirmDeleteDialog
+import io.zer0.muse.ui.common.state.MuseIndeterminateProgressBar
 import io.zer0.muse.ui.markdown.MarkdownText
 import io.zer0.muse.ui.speech.SpeechInput
+import io.zer0.muse.ui.speech.VoiceConversationMode
 import io.zer0.muse.ui.theme.MuseBorderWidth
 import io.zer0.muse.ui.theme.MuseButtonSize
 import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.MuseSpacing
+import io.zer0.muse.ui.theme.pill
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.Dp
@@ -133,6 +148,14 @@ fun AgentBotScreen(
     val busy by viewModel.busy.collectAsStateWithLifecycle()
     val streaming by viewModel.streaming.collectAsStateWithLifecycle()
     val scopeState by viewModel.scopeState.collectAsStateWithLifecycle()
+    val suggestions by viewModel.suggestions.collectAsStateWithLifecycle()
+    val aboutYouProfile by viewModel.aboutYouProfile.collectAsStateWithLifecycle()
+    val connectorHealth by viewModel.connectorHealth.collectAsStateWithLifecycle()
+    val computeNodes by viewModel.computeNodes.collectAsStateWithLifecycle()
+    val computeNodeSnapshots by viewModel.computeNodeSnapshots.collectAsStateWithLifecycle()
+    val computeNodeSetup by viewModel.computeNodeSetup.collectAsStateWithLifecycle()
+    val computeTerminal by viewModel.computeTerminal.collectAsStateWithLifecycle()
+    val computeFiles by viewModel.computeFiles.collectAsStateWithLifecycle()
     val allowedTools by viewModel.allowedTools.collectAsStateWithLifecycle()
     val hasOlderTranscript by viewModel.hasOlderTranscript.collectAsStateWithLifecycle()
     val loadingOlderTranscript by viewModel.loadingOlderTranscript.collectAsStateWithLifecycle()
@@ -140,8 +163,12 @@ fun AgentBotScreen(
     val candidatePreview by viewModel.candidatePreview.collectAsStateWithLifecycle()
     val sandboxLogs by viewModel.sandboxLogs.collectAsStateWithLifecycle()
     val activeVirtualDisplay by viewModel.activeVirtualDisplay.collectAsStateWithLifecycle()
+    val remoteBrowser by viewModel.remoteBrowser.collectAsStateWithLifecycle()
+    var showRemoteBrowser by rememberSaveable { mutableStateOf(false) }
     val modelRoutes by viewModel.modelRoutes.collectAsStateWithLifecycle()
     val routines by viewModel.routinesFlow.collectAsStateWithLifecycle(initialValue = emptyList())
+    val watchers by viewModel.watchersFlow.collectAsStateWithLifecycle(initialValue = emptyList())
+    val goals by viewModel.goalsFlow.collectAsStateWithLifecycle(initialValue = emptyList())
     val teachState by viewModel.teachState.collectAsStateWithLifecycle()
     val assistants by viewModel.assistantsFlow.collectAsStateWithLifecycle(initialValue = emptyList())
     val channels by viewModel.channelsFlow.collectAsStateWithLifecycle()
@@ -227,13 +254,48 @@ fun AgentBotScreen(
 
     var deleteTarget by remember { mutableStateOf<AgentBotUiState.PublishedMessage?>(null) }
     var workbenchTab by rememberSaveable { mutableStateOf<AgentWorkbenchTab?>(null) }
+    var showComputeNodeSetup by rememberSaveable { mutableStateOf(false) }
     var showKnowledgePicker by rememberSaveable { mutableStateOf(false) }
+    var showVoiceMode by rememberSaveable { mutableStateOf(false) }
     var viewerMedia by remember { mutableStateOf<Pair<List<String>, Int>?>(null) }
+    val voiceBridge = remember(viewModel) { viewModel.createVoiceBridge() }
+
+    val openComputerForTask: (String) -> Unit = { taskId ->
+        val browser = remoteBrowser
+        when {
+            browser != null && browser.taskId == taskId -> showRemoteBrowser = true
+            activeVirtualDisplay?.taskId == taskId -> workbenchTab = AgentWorkbenchTab.FOLLOW_UP
+            viewModel.hasOnlineComputeNode() -> {
+                showRemoteBrowser = true
+                viewModel.openRemoteBrowserForTask(taskId)
+            }
+            else -> workbenchTab = AgentWorkbenchTab.FOLLOW_UP
+        }
+    }
+    val handleFixReconnect: (ReconnectActionKind?) -> Unit = { action ->
+        when (action) {
+            ReconnectActionKind.API_KEY -> onOpenProviderSettings?.invoke()
+            ReconnectActionKind.RUNTIME -> onOpenRuntimeInstall?.invoke()
+            ReconnectActionKind.ACCESSIBILITY -> openAccessibilitySettings(context)
+            ReconnectActionKind.CHANNEL -> workbenchTab = AgentWorkbenchTab.SQUAD
+            ReconnectActionKind.COMPUTE_NODE -> {
+                workbenchTab = AgentWorkbenchTab.SQUAD
+                viewModel.refreshComputeNodes()
+            }
+            null -> viewModel.refreshConnectorHealth()
+        }
+    }
 
     LaunchedEffect(externalWorkbenchTab) {
         if (externalWorkbenchTab != null) {
             workbenchTab = externalWorkbenchTab
             onExternalWorkbenchTabConsumed()
+        }
+    }
+    LaunchedEffect(workbenchTab) {
+        if (workbenchTab != null) {
+            viewModel.refreshConnectorHealth()
+            viewModel.refreshComputeNodes()
         }
     }
 
@@ -330,6 +392,27 @@ fun AgentBotScreen(
     val cueCards = remember(cards) {
         cards.filter { it.kind == BotCardKind.CUE_BRIEFING }
     }
+    val reconnectCards = remember(cards) {
+        cards.filter { it.kind == BotCardKind.RECONNECT && it.status == BotCardStatus.ACTIVE }
+    }
+    val watcherConfirmCardsByAnchor = remember(cards, transcript) {
+        val messageIds = transcript.mapTo(mutableSetOf()) { it.messageId }
+        cards
+            .filter {
+                it.kind == AgentWatcherEngine.CARD_KIND_WATCHER_CONFIRM &&
+                    it.status == BotCardStatus.ACTIVE &&
+                    it.anchorMessageId in messageIds
+            }
+            .groupBy { it.anchorMessageId }
+    }
+    val unanchoredWatcherConfirmCards = remember(cards, watcherConfirmCardsByAnchor) {
+        val anchoredIds = watcherConfirmCardsByAnchor.values.flatten().mapTo(mutableSetOf()) { it.cardId }
+        cards.filter {
+            it.kind == AgentWatcherEngine.CARD_KIND_WATCHER_CONFIRM &&
+                it.status == BotCardStatus.ACTIVE &&
+                it.cardId !in anchoredIds
+        }
+    }
     val unanchoredChoiceCards = remember(cards, choiceCardsByAnchor) {
         val anchoredIds = choiceCardsByAnchor.values.flatten().mapTo(mutableSetOf()) { it.cardId }
         cards.filter { it.kind == BotCardKind.CHOICE && it.cardId !in anchoredIds }
@@ -338,6 +421,12 @@ fun AgentBotScreen(
     val activeBadgeCount = inProgressTasks.size + needsActionTasks.size + pendingApprovals.size
     val latestRunningNote = inProgressTasks.firstOrNull()?.note.orEmpty()
         .ifBlank { inProgressTasks.firstOrNull()?.goal.orEmpty() }
+    val presenceState = when {
+        showVoiceMode -> AgentPresenceState.VOICE
+        pendingApprovals.isNotEmpty() -> AgentPresenceState.NEEDS_ATTENTION
+        inProgressTasks.isNotEmpty() || needsActionTasks.isNotEmpty() -> AgentPresenceState.WORKING
+        else -> AgentPresenceState.IDLE
+    }
 
     val isWelcomeEmpty = transcript.isEmpty() && allTasks.isEmpty() && cueCards.isEmpty() && !streaming.active
     val density = LocalDensity.current
@@ -450,7 +539,9 @@ fun AgentBotScreen(
             if (isWelcomeEmpty) {
                 AgentWelcomeCanvas(
                     hasConfiguredModel = modelName.isNotBlank() && providers.any { it.enabled },
+                    suggestions = suggestions,
                     onSendSuggestion = viewModel::sendQuickPrompt,
+                    onDismissSuggestion = viewModel::dismissSuggestion,
                     onOpenProviderSettings = onOpenProviderSettings,
                     modifier = Modifier
                         .align(Alignment.Center)
@@ -498,6 +589,17 @@ fun AgentBotScreen(
                         )
                     }
 
+                    // 可修复故障（断连 / 权限 / 运行环境 / 云端节点）重连卡
+                    items(reconnectCards, key = { "reconnect:${it.cardId}" }) { card ->
+                        val payload = remember(card.payloadJson) { ReconnectCardPayload.decode(card.payloadJson) }
+                        AgentReconnectCard(
+                            card = card,
+                            onFix = { handleFixReconnect(payload?.action) },
+                            onResume = { viewModel.retryReconnect(card.cardId, card.taskId) },
+                            onDismiss = viewModel::dismissCard,
+                        )
+                    }
+
                     // 对话气泡 + 锚定动态任务卡 + 锚定后续建议卡
                     items(transcript, key = { it.messageId }) { message ->
                         Column(verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap)) {
@@ -537,12 +639,16 @@ fun AgentBotScreen(
                                         AgentLiveMissionCard(
                                             row = taskRow,
                                             onOpenDetails = onOpenTask ?: viewModel::openTaskDetails,
-                                            onOpenComputer = { workbenchTab = AgentWorkbenchTab.LIVE },
+                                            onOpenComputer = { openComputerForTask(taskRow.taskId) },
                                             onSteer = viewModel::steerTask,
                                             onSaveAsRoutine = { taskId -> viewModel.saveTaskAsRoutine(taskId) },
                                             onContinue = viewModel::continueTask,
                                             onRetry = viewModel::retryTask,
                                             onCancel = viewModel::cancelTask,
+                                            activeVirtualDisplay = activeVirtualDisplay?.takeIf { it.taskId == taskRow.taskId },
+                                            onOpenVirtualDisplay = { workbenchTab = AgentWorkbenchTab.FOLLOW_UP },
+                                            remoteBrowser = remoteBrowser?.takeIf { it.taskId == taskRow.taskId },
+                                            onOpenRemoteBrowser = { showRemoteBrowser = true },
                                         )
                                     }
                                 }
@@ -551,6 +657,14 @@ fun AgentBotScreen(
                                     AgentChoiceCard(
                                         card = choice,
                                         onSelectOption = viewModel::selectChoiceOption,
+                                    )
+                                }
+
+                                watcherConfirmCardsByAnchor[message.messageId].orEmpty().forEach { card ->
+                                    AgentWatcherConfirmCard(
+                                        card = card,
+                                        onSelectOption = viewModel::selectChoiceOption,
+                                        onDismiss = viewModel::dismissCard,
                                     )
                                 }
                             }
@@ -562,12 +676,16 @@ fun AgentBotScreen(
                                 AgentLiveMissionCard(
                                     row = taskRow,
                                     onOpenDetails = onOpenTask ?: viewModel::openTaskDetails,
-                                    onOpenComputer = { workbenchTab = AgentWorkbenchTab.LIVE },
+                                    onOpenComputer = { openComputerForTask(taskRow.taskId) },
                                     onSteer = viewModel::steerTask,
                                     onSaveAsRoutine = { taskId -> viewModel.saveTaskAsRoutine(taskId) },
                                     onContinue = viewModel::continueTask,
                                     onRetry = viewModel::retryTask,
                                     onCancel = viewModel::cancelTask,
+                                    activeVirtualDisplay = activeVirtualDisplay?.takeIf { it.taskId == taskRow.taskId },
+                                    onOpenVirtualDisplay = { workbenchTab = AgentWorkbenchTab.FOLLOW_UP },
+                                    remoteBrowser = remoteBrowser?.takeIf { it.taskId == taskRow.taskId },
+                                    onOpenRemoteBrowser = { showRemoteBrowser = true },
                                 )
                             }
 
@@ -576,12 +694,16 @@ fun AgentBotScreen(
                                 AgentLiveMissionCard(
                                     row = taskRow,
                                     onOpenDetails = onOpenTask ?: viewModel::openTaskDetails,
-                                    onOpenComputer = { workbenchTab = AgentWorkbenchTab.LIVE },
+                                    onOpenComputer = { openComputerForTask(taskRow.taskId) },
                                     onSteer = viewModel::steerTask,
                                     onSaveAsRoutine = { taskId -> viewModel.saveTaskAsRoutine(taskId) },
                                     onContinue = viewModel::continueTask,
                                     onRetry = viewModel::retryTask,
                                     onCancel = viewModel::cancelTask,
+                                    activeVirtualDisplay = activeVirtualDisplay?.takeIf { it.taskId == taskRow.taskId },
+                                    onOpenVirtualDisplay = { workbenchTab = AgentWorkbenchTab.FOLLOW_UP },
+                                    remoteBrowser = remoteBrowser?.takeIf { it.taskId == taskRow.taskId },
+                                    onOpenRemoteBrowser = { showRemoteBrowser = true },
                                 )
                             }
                         }
@@ -612,6 +734,15 @@ fun AgentBotScreen(
                             AgentChoiceCard(
                                 card = choice,
                                 onSelectOption = viewModel::selectChoiceOption,
+                            )
+                        }
+
+                        // 未锚定的新跟进确认卡
+                        items(unanchoredWatcherConfirmCards, key = { "watcher-confirm:${it.cardId}" }) { card ->
+                            AgentWatcherConfirmCard(
+                                card = card,
+                                onSelectOption = viewModel::selectChoiceOption,
+                                onDismiss = viewModel::dismissCard,
                             )
                         }
 
@@ -692,12 +823,13 @@ fun AgentBotScreen(
                 activeBadgeCount = activeBadgeCount,
                 hasPendingApproval = pendingApprovals.isNotEmpty(),
                 onOpenIdentitySwitch = { workbenchTab = AgentWorkbenchTab.SQUAD },
-                onOpenWorkbench = { workbenchTab = AgentWorkbenchTab.LIVE },
+                onOpenWorkbench = { workbenchTab = AgentWorkbenchTab.FOLLOW_UP },
                 showWorkbenchButton = topOverlayInset == 0.dp,
+                presenceState = presenceState,
             )
 
             if (isLoading) {
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                MuseIndeterminateProgressBar(modifier = Modifier.fillMaxWidth())
             }
             if (scopeError) {
                 ScopeErrorRow(onRetry = viewModel::retryScope)
@@ -711,12 +843,19 @@ fun AgentBotScreen(
                 .fillMaxWidth()
                 .onSizeChanged { bottomOverlayHeightPx = it.height },
         ) {
+            if (!isWelcomeEmpty && suggestions.isNotEmpty()) {
+                AgentSuggestionStrip(
+                    suggestions = suggestions,
+                    onSendSuggestion = viewModel::sendQuickPrompt,
+                    onDismissSuggestion = viewModel::dismissSuggestion,
+                )
+            }
             AgentLiveActivityStrip(
                 runningCount = inProgressTasks.size,
                 approvalCount = pendingApprovals.size,
                 latestRunningNote = latestRunningNote,
                 activeVirtualDisplay = activeVirtualDisplay,
-                onClick = { workbenchTab = AgentWorkbenchTab.LIVE },
+                onClick = { workbenchTab = AgentWorkbenchTab.FOLLOW_UP },
             )
 
             AgentFloatingComposer(
@@ -752,6 +891,11 @@ fun AgentBotScreen(
                 },
                 onPickGalleryImage = { uri -> viewModel.addPendingImage(uri, context) },
                 onRemoveImage = viewModel::removePendingImage,
+                onOpenVoiceMode = {
+                    viewModel.cancelStreamingAsr()
+                    systemRecording = false
+                    showVoiceMode = true
+                },
                 onStartRecording = {
                     if (viewModel.shouldUseApiRecording()) {
                         val hasMic = androidx.core.content.ContextCompat.checkSelfPermission(
@@ -803,7 +947,7 @@ fun AgentBotScreen(
                         systemRecording = false
                     }
                 },
-                onOpenWorkbench = { workbenchTab = AgentWorkbenchTab.LIVE },
+                onOpenWorkbench = { workbenchTab = AgentWorkbenchTab.FOLLOW_UP },
                 onStartTeach = {
                     viewModel.startTeachRecording()
                     workbenchTab = AgentWorkbenchTab.ROUTINES
@@ -814,6 +958,13 @@ fun AgentBotScreen(
             )
         }
             }
+        }
+
+        if (showVoiceMode) {
+            VoiceConversationMode(
+                onClose = { showVoiceMode = false },
+                bridge = voiceBridge,
+            )
         }
     }
 
@@ -884,6 +1035,46 @@ fun AgentBotScreen(
             channels = channels,
             squadIdentities = squadIdentities,
             artifacts = artifacts,
+            watchers = watchers,
+            goals = goals,
+            aboutYouProfile = aboutYouProfile,
+            connectorHealth = connectorHealth,
+            computeNodes = computeNodes,
+            computeNodeSnapshots = computeNodeSnapshots,
+            onDeleteMemoryFact = viewModel::deleteMemoryFact,
+            onTogglePinMemoryFact = viewModel::togglePinMemoryFact,
+            onCorrectFactInChat = viewModel::correctFactInChat,
+            onFixConnector = { key ->
+                when (key) {
+                    "proot" -> onOpenRuntimeInstall?.invoke()
+                    "mcp" -> onOpenProviderSettings?.invoke()
+                    else -> viewModel.refreshConnectorHealth()
+                }
+            },
+            onOpenComputeNodeSetup = {
+                workbenchTab = null
+                showComputeNodeSetup = true
+            },
+            onRefreshComputeNode = viewModel::refreshComputeNode,
+            onInstallComputeBrowserPack = { nodeId ->
+                workbenchTab = null
+                showComputeNodeSetup = true
+                viewModel.installBrowserPack(nodeId)
+            },
+            onRepairComputeNode = { nodeId ->
+                workbenchTab = null
+                showComputeNodeSetup = true
+                viewModel.repairComputeNode(nodeId)
+            },
+            onDeleteComputeNode = viewModel::deleteComputeNode,
+            onOpenComputeTerminal = { nodeId ->
+                workbenchTab = null
+                viewModel.openComputeTerminal(nodeId)
+            },
+            onOpenComputeFiles = { nodeId ->
+                workbenchTab = null
+                viewModel.openComputeFiles(nodeId)
+            },
             onDismiss = { workbenchTab = null },
             onOpenTask = onOpenTask ?: viewModel::openTaskDetails,
             onSteerTask = viewModel::steerTask,
@@ -916,7 +1107,72 @@ fun AgentBotScreen(
             onOpenCandidate = onOpenArtifact ?: viewModel::openCandidatePreview,
             onDiscardCandidate = viewModel::discardCandidate,
             onRevokeAllowance = viewModel::revokeAllowance,
+            onCheckWatcherNow = viewModel::checkWatcherNow,
+            onPauseWatcher = viewModel::pauseWatcher,
+            onResumeWatcher = viewModel::resumeWatcher,
+            onEndWatcher = viewModel::endWatcher,
+            onToggleGoalMilestone = viewModel::toggleGoalMilestone,
+            onRefineGoalInChat = { goalId, title -> viewModel.refineEntityInChat("goal", goalId, title) },
+            onFixReconnect = handleFixReconnect,
+            onResumeReconnect = viewModel::retryReconnect,
+            onDismissCard = viewModel::dismissCard,
         )
+    }
+
+    if (showComputeNodeSetup) {
+        ComputeNodeSetupSheet(
+            state = computeNodeSetup,
+            nodes = computeNodes,
+            onDismiss = {
+                showComputeNodeSetup = false
+                viewModel.clearComputeNodeSetupState()
+            },
+            onStartSsh = viewModel::startSshBootstrap,
+            onStartPairing = viewModel::startPairing,
+            onDeleteNode = viewModel::deleteComputeNode,
+        )
+    }
+
+    if (computeTerminal.nodeId.isNotBlank()) {
+        ComputeNodeTerminalSheet(
+            state = computeTerminal,
+            onDismiss = viewModel::closeComputeTerminal,
+            onRun = viewModel::runRemoteCommand,
+            onClear = viewModel::clearComputeTerminal,
+        )
+    }
+
+    if (computeFiles.nodeId.isNotBlank()) {
+        ComputeNodeFilesSheet(
+            state = computeFiles,
+            onDismiss = viewModel::closeComputeFiles,
+            onOpenDirectory = viewModel::loadRemoteDirectory,
+            onPreview = viewModel::previewRemoteFile,
+            onClosePreview = viewModel::closeRemoteFilePreview,
+        )
+    }
+
+    if (showRemoteBrowser) {
+        remoteBrowser?.let { browser ->
+            MuseBottomSheet(
+                onDismissRequest = {
+                    showRemoteBrowser = false
+                    viewModel.closeRemoteBrowser()
+                },
+                maxHeightFraction = 0.92f,
+            ) {
+                RemoteBrowserLivePanel(
+                    state = browser,
+                    onTap = viewModel::tapRemoteBrowser,
+                    onType = viewModel::typeRemoteBrowserText,
+                    onTakeoverChange = viewModel::setRemoteBrowserTakeover,
+                    onClose = {
+                        showRemoteBrowser = false
+                        viewModel.closeRemoteBrowser()
+                    },
+                )
+            }
+        }
     }
 
     deleteTarget?.let { message ->
@@ -1036,7 +1292,9 @@ fun AgentBotScreen(
 @Composable
 private fun AgentWelcomeCanvas(
     hasConfiguredModel: Boolean,
+    suggestions: List<AgentSuggestion>,
     onSendSuggestion: (String) -> Unit,
+    onDismissSuggestion: (String) -> Unit,
     onOpenProviderSettings: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
@@ -1059,25 +1317,180 @@ private fun AgentWelcomeCanvas(
                 size = MuseButtonSize.Compact,
             )
         }
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(
-                MusePaddings.contentGap,
-                Alignment.CenterHorizontally,
-            ),
-            verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+        if (suggestions.isNotEmpty()) {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(
+                    MusePaddings.contentGap,
+                    Alignment.CenterHorizontally,
+                ),
+                verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+            ) {
+                suggestions.forEach { suggestion ->
+                    val title = suggestionTitle(suggestion)
+                    val prompt = suggestionPrompt(suggestion)
+                    AgentSuggestionPill(
+                        title = title,
+                        onClick = { onSendSuggestion(prompt) },
+                        onDismiss = { onDismissSuggestion(suggestion.id) },
+                    )
+                }
+            }
+        } else {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(
+                    MusePaddings.contentGap,
+                    Alignment.CenterHorizontally,
+                ),
+                verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+            ) {
+                listOf(promptRemind, promptMorning, promptNotif).forEach { prompt ->
+                    MuseCapsuleButton(
+                        text = prompt,
+                        onClick = { onSendSuggestion(prompt) },
+                        variant = IosCapsuleButtonVariant.Secondary,
+                        fillWidth = false,
+                        size = MuseButtonSize.Compact,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AgentSuggestionStrip(
+    suggestions: List<AgentSuggestion>,
+    onSendSuggestion: (String) -> Unit,
+    onDismissSuggestion: (String) -> Unit,
+) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = MusePaddings.inputIslandHorizontal, vertical = MusePaddings.tinyGap),
+        verticalArrangement = Arrangement.spacedBy(MusePaddings.tinyGap),
+    ) {
+        Surface(
+            shape = MuseShapes.pill,
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            modifier = Modifier
+                .clip(MuseShapes.pill)
+                .clickable { expanded = !expanded },
         ) {
-            listOf(promptRemind, promptMorning, promptNotif).forEach { prompt ->
-                MuseCapsuleButton(
-                    text = prompt,
-                    onClick = { onSendSuggestion(prompt) },
-                    variant = IosCapsuleButtonVariant.Secondary,
-                    fillWidth = false,
-                    size = MuseButtonSize.Compact,
+            Row(
+                modifier = Modifier.padding(
+                    horizontal = MusePaddings.inputPadding,
+                    vertical = MusePaddings.contentGap,
+                ),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+            ) {
+                Icon(
+                    imageVector = MuseIcons.sparkle,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(MuseIconSizes.iconTiny),
+                )
+                Text(
+                    text = stringResource(R.string.agent_suggestion_strip_title),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    text = suggestions.size.toString(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Icon(
+                    imageVector = MuseIcons.chevronRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(MuseIconSizes.iconTiny),
+                )
+            }
+        }
+        AnimatedVisibility(visible = expanded, enter = fadeIn(), exit = fadeOut()) {
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+                contentPadding = PaddingValues(horizontal = MusePaddings.tinyGap),
+            ) {
+                items(suggestions, key = { it.id }) { suggestion ->
+                    val prompt = suggestionPrompt(suggestion)
+                    AgentSuggestionPill(
+                        title = suggestionTitle(suggestion),
+                        onClick = { onSendSuggestion(prompt) },
+                        onDismiss = { onDismissSuggestion(suggestion.id) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AgentSuggestionPill(
+    title: String,
+    onClick: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val dismissCd = stringResource(R.string.agent_suggestion_dismiss_cd)
+    Surface(
+        shape = MuseShapes.pill,
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        modifier = Modifier.clip(MuseShapes.pill).clickable(onClick = onClick),
+    ) {
+        Row(
+            modifier = Modifier.padding(
+                start = MusePaddings.contentGap,
+                end = MusePaddings.tinyGap,
+                top = MusePaddings.tinyGap,
+                bottom = MusePaddings.tinyGap,
+            ),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(MusePaddings.tinyGap),
+        ) {
+            Icon(
+                imageVector = MuseIcons.sparkle,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(MuseIconSizes.iconTiny),
+            )
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.widthIn(max = MusePaddings.maxInlineWidth),
+            )
+            Box(
+                modifier = Modifier
+                    .size(MuseIconSizes.touchTarget)
+                    .clickable(onClick = onDismiss)
+                    .semantics { contentDescription = dismissCd },
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = MuseIcons.x,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(MuseIconSizes.iconTiny),
                 )
             }
         }
     }
 }
+
+@Composable
+private fun suggestionTitle(suggestion: AgentSuggestion): String =
+    suggestion.titleCount?.let { stringResource(suggestion.titleRes, it) }
+        ?: stringResource(suggestion.titleRes)
+
+@Composable
+private fun suggestionPrompt(suggestion: AgentSuggestion): String =
+    suggestion.promptCount?.let { stringResource(suggestion.promptRes, it) }
+        ?: stringResource(suggestion.promptRes)
 
 @Composable
 private fun ScopeErrorRow(onRetry: () -> Unit) {
@@ -1136,4 +1549,15 @@ private fun candidateStateLabel(state: String): String = when (state) {
     io.zer0.muse.data.agentbot.VerificationState.APPLIED_PENDING_COMMIT ->
         stringResource(R.string.agent_screen_candidate_applied_pending)
     else -> stringResource(R.string.agent_screen_candidate_verified)
+}
+
+private fun openAccessibilitySettings(context: Context) {
+    runCatching {
+        context.startActivity(
+            Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+        )
+    }.onFailure { error ->
+        Logger.w("AgentBotScreen", "无法打开无障碍设置: ${error.message}", error)
+    }
 }

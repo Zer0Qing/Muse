@@ -30,13 +30,20 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.zer0.common.FileSizeFormatter
 import io.zer0.common.Logger
+import io.zer0.memory.ai.MemoryAutoSaveScheduler
 import io.zer0.memory.compile.MemoryCompiler
 import io.zer0.memory.compile.MemoryFileWriter
+import io.zer0.memory.dream.MemoryMaintenanceLock
 import io.zer0.memory.fact.FactDbProvider
 import io.zer0.memory.fact.FactStore
+import io.zer0.memory.pin.PinnedMemoryStore
+import io.zer0.memory.reflection.MemoryContradictionStore
+import io.zer0.memory.summary.MemoryDb
 import io.zer0.memory.summary.SessionSummaryManager
 import io.zer0.muse.R
+import io.zer0.muse.data.agentbot.AgentDreamArchiveStore
 import io.zer0.muse.data.chat.ConversationTreeSnapshotStore
+import io.zer0.muse.data.groupchat.GroupChatMemoryRepository
 import io.zer0.muse.data.session.SessionRepository
 import io.zer0.muse.ui.chat.SessionArtifactCleanup
 import io.zer0.muse.ui.common.feedback.MuseDialog
@@ -48,6 +55,7 @@ import io.zer0.muse.ui.common.surface.MuseSurface
 import io.zer0.muse.ui.theme.MuseShapes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 import java.io.File
@@ -62,8 +70,19 @@ fun DataManagementScreen(
     // P0-10: 注入分库提供者与 daily 文件写入器,重置记忆需级联清理子助手分库与 daily/*.md
     factDbProvider: FactDbProvider = koinInject(),
     memoryFileWriter: MemoryFileWriter = koinInject(),
+    // 重置记忆还要清掉不属于事实表的残留:置顶、Dream 状态/快照/归档、自动保存指纹。
+    pinnedMemoryStore: PinnedMemoryStore = koinInject(),
+    memoryDb: MemoryDb = koinInject(),
+    autoSaveScheduler: MemoryAutoSaveScheduler = koinInject(),
+    // 重置还要覆盖上下文检查点、群聊记忆与历史矛盾清单：它们都不在事实表里，
+    // 不清的话重置后仍会接回“上次聊到哪”、群聊摘要卡片与旧的矛盾清单。
+    groupChatMemoryRepository: GroupChatMemoryRepository = koinInject(),
+    contradictionStore: MemoryContradictionStore = koinInject(),
 ) {
     val context = LocalContext.current
+    val clearChatsDone = stringResource(R.string.data_management_clear_chats_done)
+    val clearCacheDone = stringResource(R.string.data_management_clear_cache_done)
+    val resetMemoryDone = stringResource(R.string.data_management_reset_memory_done)
     val scope = rememberCoroutineScope()
     var dbSizeText by remember { mutableStateOf("") }
     var cacheSizeText by remember { mutableStateOf("") }
@@ -169,7 +188,7 @@ fun DataManagementScreen(
                         snapshotStore = snapshotStore,
                         reason = "清除全部聊天",
                     )
-                    MuseToast.show(context.getString(R.string.data_management_clear_chats_done))
+                    MuseToast.show(clearChatsDone)
                     sessionCount = 0
                     messageCount = 0
                 }
@@ -189,7 +208,7 @@ fun DataManagementScreen(
                     withContext(Dispatchers.IO) {
                         context.cacheDir.listFiles()?.forEach { it.delete() }
                     }
-                    MuseToast.show(context.getString(R.string.data_management_clear_cache_done))
+                    MuseToast.show(clearCacheDone)
                     cacheSizeText = "0 B"
                 }
             },
@@ -206,25 +225,53 @@ fun DataManagementScreen(
                 showResetMemoryDialog = false
                 scope.launch {
                     withContext(Dispatchers.IO) {
-                        // P0-10: 重置级联清理 — 默认库 + 所有子助手分库(事实/FTS/墓碑/图谱边)
-                        // + daily/*.md + 会话摘要 + 编译段。此前只清默认库与部分文件,
-                        // 旧日记经 assembleWeekFromDaily 从 daily/*.md 复活,子助手分库完全未清理。
-                        factStore.clearAllWithLinks()
-                        context.filesDir.listFiles { f ->
-                            f.name.startsWith("facts_") && f.name.endsWith(".db") && f.name != "facts.db"
-                        }?.forEach { file ->
-                            val assistantId = file.name.removePrefix("facts_").removeSuffix(".db")
-                                .takeIf { it.isNotBlank() } ?: return@forEach
-                            runCatching { factDbProvider.getFactStore(assistantId).clearAllWithLinks() }
-                                .onFailure { error ->
-                                    Logger.w("DataManagementScreen", "清理子助手记忆分库失败: $assistantId", error)
-                                }
+                        // 与 Dream 发布/回滚、助手删除清理共享同一把维护锁：
+                        // 否则重置删到一半时一次 Dream 回滚会把旧段落写回来。
+                        MemoryMaintenanceLock.mutex.withLock {
+                            // P0-10: 重置级联清理 — 默认库 + 所有子助手分库(事实/FTS/墓碑/图谱边)
+                            // + daily/*.md + 会话摘要 + 编译段。此前只清默认库与部分文件,
+                            // 旧日记经 assembleWeekFromDaily 从 daily/*.md 复活,子助手分库完全未清理。
+                            factStore.clearAllWithLinks()
+                            // 只遍历磁盘上真实存在的分库：按 filesDir 里的文件名猜 id 会把 -wal/-shm
+                            // 和别的 db 一起误认成助手 id，还会为已删助手凭空建库。
+                            factDbProvider.listAssistantDbIds().forEach { assistantId ->
+                                runCatching { factDbProvider.getFactStore(assistantId).clearAllWithLinks() }
+                                    .onFailure { error ->
+                                        Logger.w("DataManagementScreen", "清理子助手记忆分库失败: $assistantId", error)
+                                    }
+                            }
+                            memoryFileWriter.clearAllDailyFiles()
+                            summaryManager.clearAll()
+                            memoryCompiler.clearAll()
+                            // 升级前的单空间编译表也要清空：scoped 行被清成空串后读取会优先看它，
+                            // 但旧表里的内容仍会在 scoped 行缺失时被兜底读回。
+                            memoryDb.compiledSectionDao().clearAll(java.time.Instant.now().toString())
+                            // 上下文检查点是“下次接着聊”的隐性记忆，群聊记忆与矛盾清单也各自落盘/落表：
+                            // 只清事实与段落，它们在重置后依旧会把旧内容带回界面。
+                            runCatching { memoryDb.contextCheckpointDao().deleteAll() }
+                                .onFailure { error -> Logger.w("DataManagementScreen", "清理上下文检查点失败", error) }
+                            runCatching { groupChatMemoryRepository.deleteAll() }
+                                .onFailure { error -> Logger.w("DataManagementScreen", "清理群聊记忆失败", error) }
+                            runCatching { contradictionStore.clearAll() }
+                                .onFailure { error -> Logger.w("DataManagementScreen", "清理矛盾清单失败", error) }
+                            // 事实/段落之外的相关残留：置顶记忆、Dream 状态与 revision、归档 JSONL、
+                            // 自动保存指纹。少了这些，重置后仍会显示置顶卡、可回滚到旧记忆、
+                            // 或因为指纹命中而跳过对同一段历史的重新提取。
+                            runCatching { pinnedMemoryStore.clearAll() }
+                                .onFailure { error -> Logger.w("DataManagementScreen", "清理置顶记忆失败", error) }
+                            runCatching {
+                                memoryDb.memoryDreamDao().deleteAllStates()
+                                memoryDb.memoryDreamDao().deleteAllRevisions()
+                            }.onFailure { error -> Logger.w("DataManagementScreen", "清理 Dream 状态失败", error) }
+                            runCatching {
+                                AgentDreamArchiveStore(
+                                    File(context.filesDir, AgentDreamArchiveStore.DIRECTORY),
+                                ).clear()
+                            }.onFailure { error -> Logger.w("DataManagementScreen", "清理夜间归档失败", error) }
+                            runCatching { autoSaveScheduler.invalidateFingerprintCache() }
                         }
-                        memoryFileWriter.clearAllDailyFiles()
-                        summaryManager.clearAll()
-                        memoryCompiler.clearAll()
                     }
-                    MuseToast.show(context.getString(R.string.data_management_reset_memory_done))
+                    MuseToast.show(resetMemoryDone)
                     memoryCount = 0
                 }
             },

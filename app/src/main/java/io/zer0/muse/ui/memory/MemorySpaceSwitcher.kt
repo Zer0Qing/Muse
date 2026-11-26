@@ -276,6 +276,9 @@ fun MemorySpaceManageScreen(onBack: () -> Unit, viewModel: MemorySpaceViewModel 
         ConfirmDeleteDialog(
             title = stringResource(R.string.common_delete),
             itemName = memorySpaceDisplayName(target.name, defaultSpaceLabel),
+            // 删除 Space 不是「彻底删除」:事实与摘要会合并到默认空间保留,只有整理回滚点失效。
+            // 不给 consequence 的话这里会退回通用文案「此操作不可撤销」,把可挽回说成不可挽回。
+            consequence = stringResource(R.string.audit_memory_space_delete_consequence),
             onConfirm = {
                 viewModel.deleteSpace(target.id)
                 deleteTarget = null

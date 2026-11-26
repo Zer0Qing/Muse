@@ -70,6 +70,86 @@ class MemoryContradictionStore(private val file: File) {
         }
     }
 
+    /**
+     * 清空整份清单（记忆重置用）。
+     *
+     * 重置的预期是「回到刚装好的状态」，所以直接写一份空表：不读旧内容、不逐条删，
+     * 旧文件已损坏也不该让重置失败。写失败只记日志 —— 清单是派生视图，
+     * 不能因为它拖住同一次重置里的其它环节。
+     *
+     * 损坏文件的归档/拒写语义只属于 [readAllForWrite]，这里不读、不走那条路。
+     *
+     * @return true 表示空表已落盘
+     */
+    // 重置是收尾动作:清不掉只该记日志,不能把同一次重置的其它环节拖下水。
+    @Suppress("TooGenericExceptionCaught")
+    suspend fun clearAll(): Boolean = mutex.withLock {
+        withContext(Dispatchers.IO) {
+            try {
+                write(StoreData())
+                true
+            } catch (e: Exception) {
+                Logger.w(TAG, "矛盾清单清空失败（原文件保留原状）: ${e.message}", e)
+                false
+            }
+        }
+    }
+
+    /**
+     * Space 合并:把每个 scope 下 `scope|source` 的矛盾清单并进 `scope|target`,同一对只留一份。
+     *
+     * 与 [save] 一样在 mutex 下走 [readAllForWrite] → 一次 [write]:这是「读改写」,
+     * 分两次写会让并发保存的其它 key 丢掉一半。
+     *
+     * @return 真正新并入的矛盾对数（目标里已存在的同一对不重复计数）
+     */
+    suspend fun mergeSpaceInto(sourceSpaceId: String, targetSpaceId: String): Int = mutex.withLock {
+        withContext(Dispatchers.IO) {
+            val source = sourceSpaceId.trim()
+            val target = targetSpaceId.trim()
+            if (source.isEmpty() || target.isEmpty() || source == target) {
+                Logger.w(TAG, "mergeSpaceInto: 空间 id 不合法(source=$sourceSpaceId, target=$targetSpaceId)")
+                return@withContext 0
+            }
+            val all = readAllForWrite()
+            val sourceSuffix = "|$source"
+            val movingByTarget = all.entries
+                .filter { entry -> entry.key.endsWith(sourceSuffix) }
+                .associate { entry ->
+                    val scope = entry.key.removeSuffix(sourceSuffix)
+                    "$scope|$target" to entry.pairs
+                }
+            if (movingByTarget.isEmpty()) return@withContext 0
+
+            var merged = 0
+            val rebuilt = mutableListOf<Entry>()
+            all.entries.forEach { entry ->
+                val movingPairs = movingByTarget[entry.key]
+                when {
+                    // 源条目本身丢弃（它的内容已经在 movingByTarget 里）
+                    entry.key.endsWith(sourceSuffix) -> Unit
+
+                    movingPairs != null -> {
+                        val seen = entry.pairs.map { pair -> pair.a to pair.b }.toMutableSet()
+                        val additions = movingPairs.filter { pair -> seen.add(pair.a to pair.b) }
+                        merged += additions.size
+                        rebuilt += Entry(entry.key, entry.pairs + additions)
+                    }
+
+                    else -> rebuilt += entry
+                }
+            }
+            // 目标 key 原本不存在:直接落一份（空对不必造一个空 key）。
+            for ((key, pairs) in movingByTarget) {
+                if (pairs.isEmpty() || rebuilt.any { it.key == key }) continue
+                merged += pairs.size
+                rebuilt += Entry(key, pairs)
+            }
+            write(StoreData(rebuilt))
+            merged
+        }
+    }
+
     /** 用户确认后清除其中一对矛盾。 */
     suspend fun removePair(scope: String, spaceId: String, pair: ContradictionPair) = mutex.withLock {
         withContext(Dispatchers.IO) {

@@ -33,6 +33,8 @@ class NotificationMemoryScheduler(
     private val digest: NotificationMemoryDigest,
     private val memoryTicker: MemoryTicker,
     private val scope: CoroutineScope,
+    /** 备份/恢复写闸。恢复窗口内不拉取、不推进通知游标。 */
+    private val writeGate: io.zer0.memory.runtime.MemoryWriteGate? = null,
 ) {
 
     private var job: kotlinx.coroutines.Job? = null
@@ -69,6 +71,10 @@ class NotificationMemoryScheduler(
     /** 收集游标之后的新鲜通知；无新通知或前置条件不满足时返回 null。 */
     private suspend fun collectFresh(): List<NotificationRecord>? {
         if (!shouldRun()) return null
+        if (writeGate?.isBlocked(GATE_SCOPE) == true) {
+            Logger.d(TAG, "备份恢复进行中,跳过本次通知梳理")
+            return null
+        }
         val windowStart = System.currentTimeMillis() - WINDOW_MS
         val since = maxOf(windowStart, lastProcessedAt)
         return MuseNotificationListenerService.recentNotifications.value
@@ -84,17 +90,25 @@ class NotificationMemoryScheduler(
 
     /** 把一批新鲜通知交给大工具模型梳理并落库。 */
     private suspend fun runDigest(fresh: List<NotificationRecord>): NotificationMemoryDigest.DigestResult {
-        val assistantId = settings.getDefaultAssistantId().ifBlank { "main" }
-        val scopeId = if (assistantId == "default") "main" else assistantId
+        // 默认助手是 "default"(拥有者),其事实主作用域是 "main" —— 两者不能混用:
+        // 旧实现把 assistantId 的空值兜底成 "main",于是去查了一个叫 "main" 的助手库。
+        val assistantId = settings.getDefaultAssistantId().ifBlank { DEFAULT_ASSISTANT_ID }
+        val scopeId = if (assistantId == DEFAULT_ASSISTANT_ID) "main" else assistantId
         val spaceId = settings.currentSpaceIdFlow.first().ifBlank { "default" }
         val result = digest.digest(
             notifications = fresh.map { it.toInput() },
+            assistantId = assistantId,
             scope = scopeId,
             spaceId = spaceId,
             model = null,
             // 由 MemoryLlmClient 路由到大工具档
             locale = settings.getLanguageSync().let { if (it == "system" || it.isBlank()) "zh-CN" else it },
         )
+        // 被闸拦下的批次不能推进游标:那等于把这些通知永久标成已处理。
+        if (result.gated || writeGate?.isBlocked(GATE_SCOPE) == true) {
+            Logger.d(TAG, "通知梳理被备份恢复阻断,不推进游标: ${result.reason}")
+            return result
+        }
         // 无论是否落库，都推进游标，避免同一批通知反复送 LLM。
         lastProcessedAt = fresh.maxOf { it.timestamp }
         if (result.extracted > 0) {
@@ -114,6 +128,12 @@ class NotificationMemoryScheduler(
 
     companion object {
         private const val TAG = "NotifMemorySched"
+
+        /** 主助手固定 id；拥有者 id 为空时兜底用它，不能拿 "main" 冒充助手。 */
+        private const val DEFAULT_ASSISTANT_ID = "default"
+
+        /** 进程级写闸的占位 scope(闸本身不按 scope 细分)。 */
+        private val GATE_SCOPE = io.zer0.memory.runtime.MemoryScopeKey("default", "main", "default")
 
         /** 检查间隔（10 分钟）——通知梳理不是实时需求，低频即可。 */
         private const val POLL_INTERVAL_MS = 10 * 60 * 1000L

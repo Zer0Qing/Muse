@@ -8,6 +8,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.PrimaryKey
 import androidx.room.Query
+import androidx.room.withTransaction
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -144,6 +145,31 @@ data class KnowledgeActiveGenerationEntity(
     @ColumnInfo(name = "updated_at", defaultValue = "0") val updatedAt: Long = 0L,
 )
 
+/**
+ * 数据库事务边界 — 让上层服务(代发布/作业入队/生命周期)声明「这一段必须原子」,
+ * 而不必各自持有 RoomDatabase。
+ *
+ * [direct] 不开启事务,只用于没有数据库句柄的单元测试;生产装配必须用 [room],
+ * 否则多步写入在中途失败时会留下半套状态。
+ */
+interface KnowledgeTransactionRunner {
+    suspend fun <T> run(block: suspend () -> T): T
+
+    companion object {
+        /** 无外层事务(测试用):逐条写入,失败后由调用方自行补偿。 */
+        fun direct(): KnowledgeTransactionRunner = object : KnowledgeTransactionRunner {
+            override suspend fun <T> run(block: suspend () -> T): T = block()
+        }
+
+        /** Room 事务:块内所有 DAO 调用共用同一事务,异常即整体回滚。 */
+        fun room(db: androidx.room.RoomDatabase): KnowledgeTransactionRunner =
+            object : KnowledgeTransactionRunner {
+                override suspend fun <T> run(block: suspend () -> T): T =
+                    db.withTransaction { block() }
+            }
+    }
+}
+
 /** R6 词法召回投影 — 词法行 + chunk 正文/定位 + 文档归属。 */
 data class KnowledgeLexicalRow(
     val generationId: String,
@@ -254,6 +280,24 @@ interface KnowledgeJobDao {
     @Query("UPDATE knowledge_v2_job_items SET generation_fence = :fence WHERE jobItemId = :jobItemId")
     suspend fun setGenerationFence(jobItemId: String, fence: Long)
 
+    /**
+     * 重试回排:把可重试失败项从 FAILED 退回 QUEUED,并释放租约。
+     *
+     * 必需而不是可选的:JobRunner 把可重试失败也落成 FAILED 终态,而终态不再被领取。
+     * 没有这一步,Worker 返回 retry 只会重跑一遍空转。
+     * @return 1 = 已回排;0 = 已被其他路径改写(不强行覆盖)。
+     */
+    @Query(
+        "UPDATE knowledge_v2_job_items SET state = :queuedState, lease_holder = '', lease_expires_at = 0, " +
+            "updated_at = :updatedAt WHERE jobItemId = :jobItemId AND state = :failedState",
+    )
+    suspend fun requeueFailedItem(
+        jobItemId: String,
+        failedState: String,
+        queuedState: String,
+        updatedAt: Long,
+    ): Int
+
     @Query("DELETE FROM knowledge_v2_job_items WHERE jobId = :jobId")
     suspend fun deleteJobItems(jobId: String)
 
@@ -261,6 +305,28 @@ interface KnowledgeJobDao {
 
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertGeneration(gen: KnowledgeGenerationEntity)
+
+    /**
+     * 并发安全的代号占位:(docId, generation_no) 唯一索引冲突时返回 -1 而不是抛异常,
+     * 调用方据此重算下一个代号。避免「两个 Worker 同时 max+1 抢同一号」变成永久失败。
+     */
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertGenerationIfAbsent(gen: KnowledgeGenerationEntity): Long
+
+    /** 某文档的全部代(生命周期删除时按代清理 chunk/词法行)。 */
+    @Query("SELECT generationId FROM knowledge_v2_generations WHERE docId = :docId")
+    suspend fun getGenerationIdsByDoc(docId: String): List<String>
+
+    /** 删除文档时连同其代行一起清掉(行已无用,残留会让协调器反复扫描)。 */
+    @Query("DELETE FROM knowledge_v2_generations WHERE docId = :docId")
+    suspend fun deleteGenerationsByDoc(docId: String): Int
+
+    /**
+     * 删除前的可见性撤回:该文档所有未 RETIRED 的代一律置 RETIRED。
+     * 只改最新一代会留下早先的 ACTIVE 残留,协调器会反复把它们当悬挂状态处理。
+     */
+    @Query("UPDATE knowledge_v2_generations SET state = :retiredState WHERE docId = :docId AND state != :retiredState")
+    suspend fun retireGenerationsByDoc(docId: String, retiredState: String): Int
 
     @Query("SELECT * FROM knowledge_v2_generations WHERE generationId = :generationId")
     suspend fun getGeneration(generationId: String): KnowledgeGenerationEntity?
@@ -368,6 +434,19 @@ interface KnowledgeJobDao {
 
     @Query("DELETE FROM knowledge_v2_active_generation WHERE docId = :docId")
     suspend fun clearActiveGeneration(docId: String)
+
+    // ---------- 生命周期删除:内容保留租约 / KB 存在性 ----------
+
+    /**
+     * 回收被删文档的保留租约(按内容键)。租约表没有 docId 列,内容键是唯一关联,
+     * 因此由调用方传入待删文档的内容键集合。
+     */
+    @Query("DELETE FROM knowledge_v2_retention_leases WHERE content_key IN (:contentKeys)")
+    suspend fun deleteLeasesByContentKeys(contentKeys: List<String>): Int
+
+    /** 恢复 KB 绑定时校验目标库真实存在(绑定不隐式改指全库)。 */
+    @Query("SELECT COUNT(*) FROM knowledge_bases WHERE id = :kbId")
+    suspend fun countKnowledgeBase(kbId: String): Int
 
     // ---------- R9 备份恢复:清空 ----------
 

@@ -9,15 +9,33 @@ import io.zer0.muse.R
 import io.zer0.muse.data.agentbot.AgentBotProjection
 import io.zer0.muse.data.agentbot.AgentBotRepository
 import io.zer0.muse.data.agentbot.AgentCapabilityPromptBuilder
+import io.zer0.muse.data.agentbot.AgentMentionDispatch
+import io.zer0.muse.data.agentbot.AgentTurnIdentity
 import io.zer0.muse.data.agentbot.AgentModelRouter
 import io.zer0.muse.data.agentbot.AgentRoutineEngine
 import io.zer0.muse.data.agentbot.AgentSquadIdentityStore
 import io.zer0.muse.data.agentbot.AgentStreamCoordinator
+import io.zer0.muse.data.agentbot.AgentSuggestion
+import io.zer0.muse.data.agentbot.AgentSuggestionEngine
+import io.zer0.muse.data.agentbot.AgentSuggestionInput
+import io.zer0.muse.data.agentbot.AgentSpaceEngine
+import io.zer0.muse.data.agentbot.SpaceRefreshOutcome
+import io.zer0.muse.data.card.CardEntity
+import io.zer0.muse.data.card.CardEntityDao
+import io.zer0.muse.data.agentbot.AgentGoalEngine
+import io.zer0.muse.data.agentbot.AgentGoalEntity
+import io.zer0.muse.data.agentbot.AgentGoalStatus
+import io.zer0.muse.data.agentbot.AgentWatcherEngine
+import io.zer0.muse.data.agentbot.AgentWatcherEntity
 import io.zer0.muse.data.agentbot.AgentTeachRecorder
+import io.zer0.muse.data.agentbot.ChatTeachSkillRefiner
+import io.zer0.muse.data.agentbot.TeachSkillCompiler
 import io.zer0.muse.data.agentbot.AnnotationKind
 import io.zer0.muse.data.agentbot.BotAnnotationService
 import io.zer0.muse.data.agentbot.BotCardKind
 import io.zer0.muse.data.agentbot.BotCardStatus
+import io.zer0.muse.data.agentbot.ReconnectActionKind
+import io.zer0.muse.data.agentbot.ReconnectCardPayload
 import io.zer0.muse.data.agentbot.BotMessageCardEntity
 import io.zer0.muse.data.agentbot.BotRoutineEntity
 import io.zer0.muse.data.agentbot.LiveMissionProgressBus
@@ -32,6 +50,8 @@ import io.zer0.muse.data.agentbot.ApprovalRequestEntity
 import io.zer0.muse.data.agentbot.ApprovalStatus
 import io.zer0.muse.data.agentbot.AgentBotPrompt
 import io.zer0.muse.data.agentbot.AgentBotUiState
+import io.zer0.muse.data.agentbot.AgentConnectorHealthSnapshot
+import io.zer0.muse.data.agentbot.AgentConnectorHealthSnapshotFactory
 import io.zer0.muse.data.agentbot.AgentConversationFacade
 import io.zer0.muse.data.agentbot.ApprovalService
 import io.zer0.muse.data.agentbot.BotEventKind
@@ -73,6 +93,34 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import io.zer0.muse.ui.chat.ChatViewModel
 import io.zer0.muse.ui.chat.readImageContentBase64
+import io.zer0.muse.computenode.BootstrapEvent
+import io.zer0.muse.computenode.BootstrapMode
+import io.zer0.muse.computenode.BootstrapOptions
+import io.zer0.muse.computenode.BootstrapPhase
+import io.zer0.muse.computenode.BootstrapStatus
+import io.zer0.muse.computenode.ComputeNodeManager
+import io.zer0.muse.computenode.ComputeNodeSnapshot
+import io.zer0.muse.computenode.ExecEvent
+import io.zer0.muse.computenode.ExecKind
+import io.zer0.muse.computenode.ExecRequest
+import io.zer0.muse.computenode.ExecStream
+import io.zer0.muse.computenode.MuseNodeClient
+import io.zer0.muse.computenode.NodePairingPayload
+import io.zer0.muse.computenode.NodePairingResult
+import io.zer0.muse.computenode.SshBootstrapEngine
+import io.zer0.muse.computenode.SshBootstrapException
+import io.zer0.muse.data.SecureKeyStore
+import io.zer0.muse.data.computenode.ComputeNodeMode
+import io.zer0.muse.data.computenode.ComputeNodeStatus
+import io.zer0.muse.data.computenode.RemoteComputeNodeDao
+import io.zer0.muse.data.computenode.RemoteComputeNodeEntity
+import io.zer0.muse.data.skill.SkillRepository
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.put
 
 /**
  * Agent 中枢页的 ViewModel。
@@ -108,6 +156,7 @@ class AgentBotViewModel(
     private val modelRouter: AgentModelRouter? = null,
     private val configStore: io.zer0.ai.ProviderConfigStore? = null,
     private val routineEngine: AgentRoutineEngine? = null,
+    private val watcherEngine: AgentWatcherEngine? = null,
     private val squadIdentities: AgentSquadIdentityStore? = null,
     private val teachRecorder: AgentTeachRecorder? = null,
     private val assistantRepository: io.zer0.muse.data.assistant.AssistantRepository? = null,
@@ -116,6 +165,8 @@ class AgentBotViewModel(
     private val settingsRepository: io.zer0.muse.data.SettingsRepository? = null,
     private val knowledgeDocDao: io.zer0.muse.data.knowledge.KnowledgeDocDao? = null,
     private val appContext: android.content.Context? = null,
+    /** 记忆读写、开关判定与管线通知的统一入口；为空时全部退化为不注入、不通知。 */
+    private val memoryBridge: io.zer0.muse.data.agentbot.AgentMemoryBridge? = null,
 ) : ViewModel() {
 
     private val ui = AgentBotUiState()
@@ -140,6 +191,31 @@ class AgentBotViewModel(
         squadIdentities?.bindings ?: MutableStateFlow(emptyMap())
     val teachState: StateFlow<AgentTeachRecorder.State> =
         teachRecorder?.state ?: MutableStateFlow(AgentTeachRecorder.State())
+
+    private val teachOverlayController: TeachOverlayController? =
+        if (appContext != null && teachRecorder != null) {
+            TeachOverlayController(
+                context = appContext,
+                recorder = teachRecorder,
+                onFinishRequested = ::finishTeachRecording,
+            )
+        } else {
+            null
+        }
+    val teachControlState: StateFlow<TeachOverlayController.UiState> =
+        teachOverlayController?.state ?: MutableStateFlow(TeachOverlayController.UiState())
+
+    private val teachSkillCompiler = TeachSkillCompiler(
+        refiner = runCatching {
+            org.koin.core.context.GlobalContext.getOrNull()
+                ?.get<io.zer0.ai.ChatService>()
+                ?.let(::ChatTeachSkillRefiner)
+        }.getOrNull(),
+    )
+    private val teachSkillRepository: SkillRepository? = runCatching {
+        org.koin.core.context.GlobalContext.getOrNull()?.get<SkillRepository>()
+    }.getOrNull()
+
     val channelsFlow: StateFlow<List<io.zer0.muse.channel.ChannelConfig>> =
         channelManager?.channels ?: MutableStateFlow(emptyList())
     val assistantsFlow: Flow<List<io.zer0.muse.data.assistant.AssistantEntity>> =
@@ -186,6 +262,94 @@ class AgentBotViewModel(
     private val _scopeState = MutableStateFlow<AgentBotScopeState>(AgentBotScopeState.Loading)
     val scopeState: StateFlow<AgentBotScopeState> = _scopeState.asStateFlow()
 
+    private val _suggestions = MutableStateFlow<List<AgentSuggestion>>(emptyList())
+    val suggestions: StateFlow<List<AgentSuggestion>> = _suggestions.asStateFlow()
+    private val dismissedSuggestionIds = mutableSetOf<String>()
+    private var enabledRoutineCount = 0
+
+    private val _aboutYouProfile = MutableStateFlow(AboutYouProfile())
+    val aboutYouProfile: StateFlow<AboutYouProfile> = _aboutYouProfile.asStateFlow()
+    private var aboutYouJob: Job? = null
+    /** 当前列表的底稿：动作必须带着这里的完整 scope 行身份，不能只用 Long id 反查。 */
+    private var aboutYouRows: List<io.zer0.muse.data.agentbot.AgentMemoryBridge.ScopedFactRow> = emptyList()
+
+    /**
+     * 本会话最近一次发送时捕获的记忆空间。
+     *
+     * 切会话/退出时的收尾要写回「当时那个 Space」，而不是收尾那一刻设置里的值。
+     */
+    private var lastMemorySpaceId: String = ""
+
+    private val _connectorHealth = MutableStateFlow(AgentConnectorHealthSnapshot())
+    val connectorHealth: StateFlow<AgentConnectorHealthSnapshot> = _connectorHealth.asStateFlow()
+
+    // ── 云端电脑（W1-T6）────────────────────────────────────────────
+    // 服务实例从 Koin 容器按需取：构造函数由 AppKoinModule 统一创建，这里不新增注入参数，
+    // 避免任务卡白名单外的注册文件改动；预览/单测环境没有容器时全部退化为空实现。
+    private val koinContext: org.koin.core.Koin? by lazy {
+        org.koin.core.context.GlobalContext.getOrNull()
+    }
+    private val computeNodeDao: RemoteComputeNodeDao? by lazy {
+        koinContext?.getOrNull<RemoteComputeNodeDao>()
+    }
+    private val computeNodeManagerRef: ComputeNodeManager? by lazy {
+        koinContext?.getOrNull<ComputeNodeManager>()
+    }
+    private val sshBootstrapEngineRef: SshBootstrapEngine? by lazy {
+        koinContext?.getOrNull<SshBootstrapEngine>()
+    }
+    private val museNodeClientRef: MuseNodeClient? by lazy {
+        koinContext?.getOrNull<MuseNodeClient>()
+    }
+
+    // ── 长期目标（Goals）────────────────────────────────────────────
+    // 引擎从同一个数据库连接按需构造，不新增 Koin 注册；预览/单测环境没有容器时退化为空实现。
+    private val goalEngine: AgentGoalEngine? by lazy {
+        koinContext?.getOrNull<io.zer0.muse.data.session.MuseDb>()?.let { db ->
+            AgentGoalEngine(db.agentGoalDao())
+        }
+    }
+
+    // ── Spaces 常驻小应用（W2-T6）──────────────────────────────────
+    // 引擎与卡片 DAO 同样从容器按需取；预览/单测环境没有容器时退化为空实现。
+    private val spaceEngine: AgentSpaceEngine? by lazy {
+        koinContext?.getOrNull<AgentSpaceEngine>()
+    }
+    private val cardEntityDao: CardEntityDao? by lazy {
+        koinContext?.getOrNull<io.zer0.muse.data.session.MuseDb>()?.cardEntityDao()
+    }
+
+    private val _refreshingSpaceIds = MutableStateFlow<Set<String>>(emptySet())
+    val refreshingSpaceIds: StateFlow<Set<String>> = _refreshingSpaceIds.asStateFlow()
+
+    /** 「聊着改」当前引用的实体；发送后据此注入最新 JSON 上下文。 */
+    private var pendingRefineTarget: RefineTarget? = null
+
+    private val _computeNodes = MutableStateFlow<List<RemoteComputeNodeEntity>>(emptyList())
+    val computeNodes: StateFlow<List<RemoteComputeNodeEntity>> = _computeNodes.asStateFlow()
+
+    /** 心跳快照；状态以这里为准，数据库里的 status 只做持久化兜底。 */
+    val computeNodeSnapshots: StateFlow<Map<String, ComputeNodeSnapshot>> =
+        computeNodeManagerRef?.snapshots ?: MutableStateFlow(emptyMap())
+
+    private val _computeNodeSetup = MutableStateFlow(ComputeNodeSetupUiState())
+    val computeNodeSetup: StateFlow<ComputeNodeSetupUiState> = _computeNodeSetup.asStateFlow()
+
+    private val _computeTerminal = MutableStateFlow(ComputeRemoteTerminalUiState())
+    val computeTerminal: StateFlow<ComputeRemoteTerminalUiState> = _computeTerminal.asStateFlow()
+
+    private val _computeFiles = MutableStateFlow(ComputeRemoteFilesUiState())
+    val computeFiles: StateFlow<ComputeRemoteFilesUiState> = _computeFiles.asStateFlow()
+
+    // ── 远程浏览器观战（W1-T7）────────────────────────────────────
+    private val remoteBrowserFallback = MutableStateFlow<RemoteBrowserLiveState?>(null)
+    private val remoteBrowserController by lazy {
+        museNodeClientRef?.let { RemoteBrowserLiveController(it, viewModelScope) }
+    }
+    val remoteBrowser: StateFlow<RemoteBrowserLiveState?> by lazy {
+        remoteBrowserController?.state ?: remoteBrowserFallback
+    }
+
     private val _taskDetails = MutableStateFlow<AgentBotUiState.TaskDetails?>(null)
     val taskDetails: StateFlow<AgentBotUiState.TaskDetails?> = _taskDetails.asStateFlow()
 
@@ -205,6 +369,30 @@ class AgentBotViewModel(
             val botId = req?.assistantId.orEmpty().ifBlank { DEFAULT_BOT_ID }
             routineEngine?.observeByBot(botId) ?: flowOf(emptyList())
         }
+
+    val watchersFlow: Flow<List<AgentWatcherEntity>> =
+        scopeRequest.flatMapLatest { req ->
+            val sessionId = req?.sessionId.orEmpty()
+            if (sessionId.isBlank()) {
+                flowOf(emptyList())
+            } else {
+                watcherEngine?.observeBySession(sessionId) ?: flowOf(emptyList())
+            }
+        }
+
+    val goalsFlow: Flow<List<AgentGoalEntity>> =
+        scopeRequest.flatMapLatest { req ->
+            val sessionId = req?.sessionId.orEmpty()
+            if (sessionId.isBlank()) {
+                flowOf(emptyList())
+            } else {
+                goalEngine?.observeBySession(sessionId) ?: flowOf(emptyList())
+            }
+        }
+
+    /** Spaces 是全局常驻区，不按会话过滤；切换助手时仍展示同一组已钉入小应用。 */
+    val spacesFlow: Flow<List<CardEntity>> =
+        spaceEngine?.observePinnedSpaces() ?: flowOf(emptyList())
 
     /** 重试计数。每点一次重试 +1，flatMapLatest 据此重新收集一遍。 */
     private val scopeRetry = MutableStateFlow(0L)
@@ -229,6 +417,9 @@ class AgentBotViewModel(
     private var currentBotId: String = DEFAULT_BOT_ID
     private var currentSessionId: String = ""
 
+    /** 主对话输入框 @ 的队友快照；由助手列表持续刷新，提交时只读。 */
+    private var mentionRoster: List<AgentMentionDispatch.Target> = emptyList()
+
     init {
         viewModelScope.launch {
             combine(scopeRequest, scopeRetry) { request, token -> request to token }
@@ -251,6 +442,1031 @@ class AgentBotViewModel(
                 }
             }
         }
+        viewModelScope.launch {
+            routinesFlow.collect { routines ->
+                enabledRoutineCount = routines.count { it.enabled }
+                refreshSuggestions()
+            }
+        }
+        viewModelScope.launch {
+            transcript.collect { refreshSuggestions() }
+        }
+        viewModelScope.launch {
+            assistantsFlow.collect { assistants ->
+                mentionRoster = assistants.asSequence()
+                    .filter { it.enabled && it.id.isNotBlank() && it.name.isNotBlank() }
+                    .map { assistant ->
+                        AgentMentionDispatch.Target(
+                            botId = assistant.id,
+                            displayName = assistant.name.trim(),
+                            roleHint = squadIdentities?.specialtyOf(assistant.id).orEmpty(),
+                        )
+                    }
+                    .toList()
+            }
+        }
+        refreshConnectorHealth()
+        computeNodeDao?.let { dao ->
+            viewModelScope.launch {
+                dao.observeAll()
+                    .catch { e -> Logger.w("AgentBotVM", "读取云端电脑列表失败: " + e.message, e) }
+                    .collect { nodes -> _computeNodes.value = nodes }
+            }
+        }
+    }
+
+    private fun refreshSuggestions() {
+        val projection = lastProjection
+        val input = AgentSuggestionInput(
+            hourOfDay = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY),
+            activeTaskCount = projection?.inProgress?.size ?: 0,
+            pendingApprovalCount = projection?.pendingApprovals?.size ?: 0,
+            enabledRoutineCount = enabledRoutineCount,
+            hasConversationHistory = transcript.value.isNotEmpty(),
+        )
+        _suggestions.value = AgentSuggestionEngine.generate(input)
+            .filterNot { it.id in dismissedSuggestionIds }
+    }
+
+    /** 重新探测本机能力与连接器状态，供「连接与队友」健康灯使用。 */
+    fun refreshConnectorHealth() {
+        val context = appContext
+        if (context == null) {
+            _connectorHealth.value = AgentConnectorHealthSnapshotFactory.from(
+                prootReady = false,
+                accessibilityReady = false,
+                virtualDisplayReady = false,
+                notificationReady = false,
+                calendarReady = false,
+                mcpEnabledCount = 0,
+                channelCount = 0,
+            )
+            return
+        }
+        viewModelScope.launch {
+            val prootReady = runCatching { io.zer0.muse.runtime.RuntimeBridge.isReady(context) }
+                .getOrDefault(false)
+            val accessibilityReady = runCatching {
+                io.zer0.muse.automation.executors.AccessibilityExecutor(context).isAvailableSync()
+            }.getOrDefault(false)
+            val virtualDisplayReady = runCatching {
+                progressBus?.activeVirtualDisplay?.value != null ||
+                    io.zer0.muse.automation.vdisplay.VirtualDisplayHandoffRegistry
+                        .list(System.currentTimeMillis()).isNotEmpty()
+            }.getOrDefault(false)
+            val notificationReady = runCatching {
+                io.zer0.muse.notification.MuseNotificationListenerService.hasListenerAccess(context)
+            }.getOrDefault(false)
+            val calendarReady = androidx.core.content.ContextCompat.checkSelfPermission(
+                context,
+                android.Manifest.permission.READ_CALENDAR,
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            val mcpEnabledCount = runCatching {
+                settingsRepository?.mcpServersFlow?.first()?.count { it.enabled } ?: 0
+            }.getOrDefault(0)
+            val channelCount = channelManager?.channels?.value?.size ?: 0
+            _connectorHealth.value = AgentConnectorHealthSnapshotFactory.from(
+                prootReady = prootReady,
+                accessibilityReady = accessibilityReady,
+                virtualDisplayReady = virtualDisplayReady,
+                notificationReady = notificationReady,
+                calendarReady = calendarReady,
+                mcpEnabledCount = mcpEnabledCount,
+                channelCount = channelCount,
+            )
+        }
+    }
+
+    // ── 云端电脑（W1-T6）：接入、修复、终端与文件 ─────────────────────
+
+    /** SSH 一键接入：先加密凭据落库，再按四阶段脚本流式推进。 */
+    fun startSshBootstrap(request: ComputeNodeSshRequest) {
+        if (_computeNodeSetup.value.running) return
+        val engine = sshBootstrapEngineRef
+        val dao = computeNodeDao
+        if (engine == null || dao == null) {
+            _computeNodeSetup.value = ComputeNodeSetupUiState(
+                error = appString(R.string.compute_node_error_unavailable),
+            )
+            return
+        }
+        val host = request.host.trim()
+        val username = request.username.trim()
+        val credential = when (request.authType) {
+            ComputeNodeSshAuthType.PASSWORD -> request.password
+            ComputeNodeSshAuthType.PRIVATE_KEY -> request.privateKey
+        }
+        if (host.isBlank() || username.isBlank() || credential.isBlank()) {
+            _computeNodeSetup.value = ComputeNodeSetupUiState(
+                error = appString(R.string.compute_node_error_missing_fields),
+            )
+            return
+        }
+        if (request.sshPort !in 1..65535 || request.daemonPort !in 1..65535) {
+            _computeNodeSetup.value = ComputeNodeSetupUiState(
+                error = appString(R.string.compute_node_error_invalid_port),
+            )
+            return
+        }
+        val nodeId = newComputeNodeId()
+        _computeNodeSetup.value = ComputeNodeSetupUiState(
+            running = true,
+            action = ComputeNodeSetupAction.SSH_INSTALL,
+            nodeId = nodeId,
+            phaseRows = initialComputeNodePhaseRows(),
+        )
+        viewModelScope.launch {
+            try {
+                val now = System.currentTimeMillis()
+                // 凭据只在内存中存在到加密完成；落库字段永远只放密文。
+                val encryptedCredential = SecureKeyStore.encrypt(credential)
+                val entity = RemoteComputeNodeEntity(
+                    nodeId = nodeId,
+                    name = request.name.trim().ifBlank { host },
+                    connectionMode = ComputeNodeMode.SSH_TUNNEL.wireValue,
+                    host = host,
+                    sshPort = request.sshPort,
+                    daemonPort = request.daemonPort,
+                    username = username,
+                    authType = when (request.authType) {
+                        ComputeNodeSshAuthType.PASSWORD -> AUTH_TYPE_PASSWORD
+                        ComputeNodeSshAuthType.PRIVATE_KEY -> AUTH_TYPE_PRIVATE_KEY
+                    },
+                    encryptedCredential = encryptedCredential,
+                    status = ComputeNodeStatus.BOOTSTRAPPING.wireValue,
+                    createdAt = now,
+                    updatedAt = now,
+                )
+                dao.upsert(entity)
+                runBootstrapFlow(
+                    node = entity,
+                    mode = BootstrapMode.INSTALL,
+                    packs = buildBootstrapPacks(installBrowser = request.installBrowserPack),
+                    createSwapMb = if (request.createSwap) COMPUTE_NODE_SWAP_MB else 0,
+                )
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                onComputeNodeSetupFailure(nodeId, e)
+            }
+        }
+    }
+
+    /** 扫码/粘贴配对串接入；配对串里的 Token 只经 SecureKeyStore 加密后落库。 */
+    fun startPairing(raw: String) {
+        if (_computeNodeSetup.value.running) return
+        val dao = computeNodeDao
+        val manager = computeNodeManagerRef
+        if (dao == null || manager == null) {
+            _computeNodeSetup.value = ComputeNodeSetupUiState(
+                error = appString(R.string.compute_node_error_unavailable),
+            )
+            return
+        }
+        when (val parsed = NodePairingPayload.parse(raw)) {
+            is NodePairingResult.Failure -> {
+                _computeNodeSetup.value = ComputeNodeSetupUiState(
+                    error = appString(R.string.compute_node_pairing_invalid, parsed.reason),
+                )
+            }
+            is NodePairingResult.Success -> {
+                val nodeId = newComputeNodeId()
+                _computeNodeSetup.value = ComputeNodeSetupUiState(
+                    running = true,
+                    action = ComputeNodeSetupAction.PAIRING,
+                    nodeId = nodeId,
+                    message = appString(R.string.compute_node_pairing_connecting),
+                )
+                viewModelScope.launch {
+                    try {
+                        val entity = parsed.payload.toEntity(nodeId)
+                        dao.upsert(entity)
+                        val status = manager.refresh(entity)
+                        val online = status == ComputeNodeStatus.ONLINE
+                        _computeNodeSetup.update { state ->
+                            state.copy(
+                                running = false,
+                                finished = online,
+                                totalPercent = if (online) 100 else state.totalPercent,
+                                error = if (online) "" else appString(R.string.compute_node_pairing_unreachable),
+                            )
+                        }
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        onComputeNodeSetupFailure(nodeId, e)
+                    }
+                }
+            }
+        }
+    }
+
+    /** 一键补装浏览器包（已在线节点原地续装，不重建守护进程）。 */
+    fun installBrowserPack(nodeId: String) {
+        if (_computeNodeSetup.value.running) return
+        val dao = computeNodeDao ?: run {
+            _computeNodeSetup.value = ComputeNodeSetupUiState(
+                error = appString(R.string.compute_node_error_unavailable),
+            )
+            return
+        }
+        viewModelScope.launch {
+            val node = dao.getById(nodeId)
+            if (node == null) {
+                _computeNodeSetup.value = ComputeNodeSetupUiState(
+                    error = appString(R.string.compute_node_error_missing_node),
+                )
+                return@launch
+            }
+            if (ComputeNodeMode.fromWire(node.connectionMode) != ComputeNodeMode.SSH_TUNNEL) {
+                _computeNodeSetup.value = ComputeNodeSetupUiState(
+                    error = appString(R.string.compute_node_error_repair_requires_ssh),
+                )
+                return@launch
+            }
+            _computeNodeSetup.value = ComputeNodeSetupUiState(
+                running = true,
+                action = ComputeNodeSetupAction.BROWSER_PACK,
+                nodeId = nodeId,
+                phaseRows = initialComputeNodePhaseRows(),
+            )
+            try {
+                runBootstrapFlow(
+                    node = node,
+                    mode = BootstrapMode.PACK,
+                    packs = buildBootstrapPacks(installBrowser = true),
+                    createSwapMb = 0,
+                )
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                onComputeNodeSetupFailure(nodeId, e)
+            }
+        }
+    }
+
+    /** 修复入口：SSH 节点重跑幂等安装；直连节点重做一次健康校验。 */
+    fun repairComputeNode(nodeId: String) {
+        if (_computeNodeSetup.value.running) return
+        val dao = computeNodeDao ?: run {
+            _computeNodeSetup.value = ComputeNodeSetupUiState(
+                error = appString(R.string.compute_node_error_unavailable),
+            )
+            return
+        }
+        viewModelScope.launch {
+            val node = dao.getById(nodeId)
+            if (node == null) {
+                _computeNodeSetup.value = ComputeNodeSetupUiState(
+                    error = appString(R.string.compute_node_error_missing_node),
+                )
+                return@launch
+            }
+            _computeNodeSetup.value = ComputeNodeSetupUiState(
+                running = true,
+                action = ComputeNodeSetupAction.REPAIR,
+                nodeId = nodeId,
+                phaseRows = if (ComputeNodeMode.fromWire(node.connectionMode) == ComputeNodeMode.SSH_TUNNEL) {
+                    initialComputeNodePhaseRows()
+                } else {
+                    emptyList()
+                },
+            )
+            try {
+                when (ComputeNodeMode.fromWire(node.connectionMode)) {
+                    ComputeNodeMode.SSH_TUNNEL -> runBootstrapFlow(
+                        node = node,
+                        mode = BootstrapMode.INSTALL,
+                        packs = parsePacksJson(node.installedPacksJson).ifEmpty {
+                            buildBootstrapPacks(installBrowser = false)
+                        },
+                        createSwapMb = 0,
+                    )
+                    ComputeNodeMode.DIRECT_TLS -> {
+                        val status = computeNodeManagerRef?.refresh(node)
+                        val online = status == ComputeNodeStatus.ONLINE
+                        _computeNodeSetup.update { state ->
+                            state.copy(
+                                running = false,
+                                finished = online,
+                                totalPercent = if (online) 100 else state.totalPercent,
+                                error = if (online) "" else appString(R.string.compute_node_pairing_unreachable),
+                            )
+                        }
+                    }
+                    null -> {
+                        _computeNodeSetup.value = ComputeNodeSetupUiState(
+                            error = appString(R.string.compute_node_error_generic, "unsupported connection mode"),
+                        )
+                    }
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                onComputeNodeSetupFailure(nodeId, e)
+            }
+        }
+    }
+
+    /** 删除节点及其本机加密凭据。 */
+    fun deleteComputeNode(nodeId: String) {
+        viewModelScope.launch {
+            runCatching { computeNodeDao?.deleteById(nodeId) }
+                .onFailure { Logger.w("AgentBotVM", "删除云端电脑失败: " + it.message, it) }
+            if (_computeNodeSetup.value.nodeId == nodeId && !_computeNodeSetup.value.running) {
+                _computeNodeSetup.value = ComputeNodeSetupUiState()
+            }
+        }
+    }
+
+    /** 立即刷新全部节点（打开工作台时触发一轮，避免等待下一次心跳）。 */
+    fun refreshComputeNodes() {
+        viewModelScope.launch {
+            runCatching { computeNodeManagerRef?.refreshAll() }
+                .onFailure { Logger.w("AgentBotVM", "刷新云端电脑列表失败: " + it.message, it) }
+        }
+    }
+
+    /** 立即刷新单个节点的在线状态。 */
+    fun refreshComputeNode(nodeId: String) {
+        viewModelScope.launch {
+            runCatching { computeNodeManagerRef?.refresh(nodeId) }
+                .onFailure { Logger.w("AgentBotVM", "刷新云端电脑失败: " + it.message, it) }
+        }
+    }
+
+    /** 重置接入面板的完成/错误提示；正在执行的自举流程不会被取消。 */
+    fun clearComputeNodeSetupState() {
+        if (_computeNodeSetup.value.running) return
+        _computeNodeSetup.value = ComputeNodeSetupUiState()
+    }
+
+    fun openComputeTerminal(nodeId: String) {
+        _computeTerminal.value = ComputeRemoteTerminalUiState(nodeId = nodeId)
+    }
+
+    fun closeComputeTerminal() {
+        _computeTerminal.value = ComputeRemoteTerminalUiState()
+    }
+
+    /** 在指定节点执行一条 shell 命令，输出实时追加到面板。 */
+    fun runRemoteCommand(command: String) {
+        val cleaned = command.trim()
+        if (cleaned.isEmpty()) return
+        val state = _computeTerminal.value
+        if (state.running || state.nodeId.isBlank()) return
+        val client = museNodeClientRef
+        val dao = computeNodeDao
+        if (client == null || dao == null) {
+            _computeTerminal.update { it.copy(error = appString(R.string.compute_node_error_unavailable)) }
+            return
+        }
+        viewModelScope.launch {
+            _computeTerminal.update {
+                it.copy(running = true, error = "", lines = (it.lines + "> " + cleaned).takeLast(MAX_TERMINAL_LINES))
+            }
+            try {
+                val node = dao.getById(state.nodeId)
+                    ?: throw IllegalStateException("compute node not found")
+                client.exec(
+                    node,
+                    ExecRequest(kind = ExecKind.SHELL, command = cleaned, timeoutSec = REMOTE_COMMAND_TIMEOUT_SEC),
+                ).collect { event ->
+                    when (event) {
+                        is ExecEvent.Output -> appendTerminalText(event.text, event.stream == ExecStream.STDERR)
+                        is ExecEvent.Exit -> appendTerminalText(
+                            appString(R.string.compute_node_terminal_exit, event.exitCode),
+                            false,
+                        )
+                    }
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _computeTerminal.update { it.copy(error = computeNodeErrorMessage(e)) }
+            } finally {
+                _computeTerminal.update { it.copy(running = false) }
+            }
+        }
+    }
+
+    fun clearComputeTerminal() {
+        _computeTerminal.update { it.copy(lines = emptyList(), error = "") }
+    }
+
+    fun openComputeFiles(nodeId: String) {
+        _computeFiles.value = ComputeRemoteFilesUiState(nodeId = nodeId)
+        loadRemoteDirectory("")
+    }
+
+    fun closeComputeFiles() {
+        _computeFiles.value = ComputeRemoteFilesUiState()
+    }
+
+    /** 列出远程工作区目录；path 为空表示工作区根目录。 */
+    fun loadRemoteDirectory(path: String) {
+        val state = _computeFiles.value
+        if (state.nodeId.isBlank() || state.loading) return
+        val normalized = normalizeRemotePath(path)
+        if (normalized == null) {
+            _computeFiles.update { it.copy(error = appString(R.string.compute_node_files_invalid_path)) }
+            return
+        }
+        val client = museNodeClientRef
+        val dao = computeNodeDao
+        if (client == null || dao == null) {
+            _computeFiles.update { it.copy(error = appString(R.string.compute_node_error_unavailable)) }
+            return
+        }
+        viewModelScope.launch {
+            _computeFiles.update { it.copy(loading = true, error = "", path = normalized, previewPath = "", previewText = "") }
+            try {
+                val node = dao.getById(state.nodeId)
+                    ?: throw IllegalStateException("compute node not found")
+                val target = if (normalized.isEmpty()) "." else normalized
+                val output = StringBuilder()
+                client.exec(
+                    node,
+                    ExecRequest(
+                        kind = ExecKind.SHELL,
+                        command = "ls -1Ap -- " + shellQuote(target),
+                        cwd = REMOTE_WORKSPACE,
+                        timeoutSec = REMOTE_LIST_TIMEOUT_SEC,
+                    ),
+                ).collect { event ->
+                    when (event) {
+                        is ExecEvent.Output -> output.append(event.text)
+                        is ExecEvent.Exit -> Unit
+                    }
+                }
+                val entries = output.toString()
+                    .split('\n')
+                    .filter { it.isNotBlank() }
+                    .map { line -> RemoteFileEntry(name = line.removeSuffix("/"), isDirectory = line.endsWith("/")) }
+                    .sortedWith(compareByDescending<RemoteFileEntry> { it.isDirectory }.thenBy { it.name })
+                _computeFiles.update { it.copy(loading = false, entries = entries) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _computeFiles.update { it.copy(loading = false, error = computeNodeErrorMessage(e)) }
+            }
+        }
+    }
+
+    /** 读取一个远程文本文件并显示预览；路径仍受服务端 ~/muse-workspace 边界约束。 */
+    fun previewRemoteFile(name: String) {
+        val state = _computeFiles.value
+        if (state.nodeId.isBlank() || state.loading) return
+        val path = if (state.path.isEmpty()) name else state.path + "/" + name
+        val client = museNodeClientRef
+        val dao = computeNodeDao
+        if (client == null || dao == null) {
+            _computeFiles.update { it.copy(error = appString(R.string.compute_node_error_unavailable)) }
+            return
+        }
+        viewModelScope.launch {
+            _computeFiles.update { it.copy(loading = true, error = "", previewPath = path, previewText = "") }
+            try {
+                val node = dao.getById(state.nodeId)
+                    ?: throw IllegalStateException("compute node not found")
+                val text = client.readTextFile(node, path)
+                _computeFiles.update {
+                    it.copy(loading = false, previewText = text.take(MAX_FILE_PREVIEW_CHARS))
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _computeFiles.update { it.copy(loading = false, error = computeNodeErrorMessage(e)) }
+            }
+        }
+    }
+
+    fun closeRemoteFilePreview() {
+        _computeFiles.update { it.copy(previewPath = "", previewText = "") }
+    }
+
+    /** 当前是否有在线节点；界面据此决定"看电脑实况"是打开远程浏览器还是回退工作台。 */
+    fun hasOnlineComputeNode(): Boolean = computeNodes.value.any { node ->
+        isComputeNodeOnline(node)
+    }
+
+    /**
+     * 为任务打开远程浏览器观战。
+     *
+     * 节点选择顺序：默认节点 → 已装浏览器包节点 → 任一在线节点。没有节点时保留
+     * 错误态，让观战面板直接说明原因，而不是点了没反应。
+     */
+    fun openRemoteBrowserForTask(taskId: String) {
+        viewModelScope.launch {
+            val controller = remoteBrowserController
+            if (controller == null) {
+                remoteBrowserFallback.value = RemoteBrowserLiveState(
+                    taskId = taskId,
+                    error = appString(R.string.compute_node_error_unavailable),
+                )
+                return@launch
+            }
+            val dao = computeNodeDao
+            if (dao == null) {
+                controller.showError(taskId, appString(R.string.compute_node_error_unavailable))
+                return@launch
+            }
+            val nodes = try {
+                dao.getAll()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Logger.w("AgentBotVM", "读取云端电脑失败: " + e.javaClass.simpleName)
+                controller.showError(taskId, appString(R.string.compute_node_error_generic, e.javaClass.simpleName))
+                return@launch
+            }
+            val online = nodes.filter { isComputeNodeOnline(it) }
+            val withBrowser = online.filter { node ->
+                parsePacksJson(node.installedPacksJson).contains(PACK_BROWSER)
+            }
+            val node = withBrowser.firstOrNull { it.isDefault }
+                ?: withBrowser.firstOrNull()
+                ?: online.firstOrNull()
+            if (node == null) {
+                controller.showError(taskId, appString(R.string.compute_node_error_unavailable))
+                return@launch
+            }
+            controller.open(node = node, taskId = taskId, url = DEFAULT_BROWSER_URL)
+        }
+    }
+
+    /** 按指定节点打开远程浏览器；不存在时在面板里给出错误。 */
+    fun openRemoteBrowser(nodeId: String, taskId: String = "", url: String = DEFAULT_BROWSER_URL) {
+        val controller = remoteBrowserController
+        if (controller == null) {
+            remoteBrowserFallback.value = RemoteBrowserLiveState(
+                nodeId = nodeId,
+                taskId = taskId,
+                error = appString(R.string.compute_node_error_unavailable),
+            )
+            return
+        }
+        viewModelScope.launch {
+            val node = computeNodeDao?.getById(nodeId)
+            if (node == null) {
+                controller.showError(taskId, appString(R.string.compute_node_error_missing_node))
+            } else {
+                controller.open(node = node, taskId = taskId, url = url)
+            }
+        }
+    }
+
+    fun closeRemoteBrowser() {
+        remoteBrowserController?.close()
+        remoteBrowserFallback.value = null
+    }
+
+    fun tapRemoteBrowser(x: Float, y: Float) {
+        remoteBrowserController?.tap(x, y)
+    }
+
+    fun typeRemoteBrowserText(text: String) {
+        remoteBrowserController?.type(text)
+    }
+
+    fun setRemoteBrowserTakeover(takeover: Boolean) {
+        remoteBrowserController?.setTakeover(takeover)
+    }
+
+    private fun isComputeNodeOnline(node: RemoteComputeNodeEntity): Boolean {
+        val snapshotStatus = computeNodeSnapshots.value[node.nodeId]?.status
+        return snapshotStatus == ComputeNodeStatus.ONLINE ||
+            ComputeNodeStatus.fromWire(node.status) == ComputeNodeStatus.ONLINE
+    }
+
+    private fun newComputeNodeId(): String = "node-" + java.util.UUID.randomUUID().toString()
+
+    private fun buildBootstrapPacks(installBrowser: Boolean): List<String> =
+        if (installBrowser) listOf(PACK_CORE, PACK_BROWSER) else listOf(PACK_CORE)
+
+    private fun initialComputeNodePhaseRows(): List<ComputeNodePhaseUi> =
+        BootstrapPhase.entries.map { phase -> ComputeNodePhaseUi(phase = phase) }
+
+    private fun applyBootstrapEvent(event: BootstrapEvent) {
+        _computeNodeSetup.update { state ->
+            val rows = state.phaseRows.map { row ->
+                if (row.phase == event.phase) {
+                    row.copy(status = event.status, percent = event.percent, message = event.message)
+                } else {
+                    row
+                }
+            }
+            state.copy(
+                running = state.running && event.status != BootstrapStatus.ERROR,
+                totalPercent = maxOf(state.totalPercent, event.percent),
+                phaseRows = rows,
+                message = event.message,
+                error = if (event.status == BootstrapStatus.ERROR) event.message else state.error,
+            )
+        }
+    }
+
+    /** 把四阶段事件里可持久化的身份信息写回节点；Token 在这一步即时加密。 */
+    private suspend fun bootstrapPatch(
+        event: BootstrapEvent,
+        current: RemoteComputeNodeEntity,
+    ): BootstrapEntityPatch? {
+        if (event.status != BootstrapStatus.OK) return null
+        return when (event.phase) {
+            BootstrapPhase.PROBE -> if (event.step == "done") {
+                BootstrapEntityPatch(osInfoJson = event.data.toString())
+            } else {
+                null
+            }
+            BootstrapPhase.DAEMON -> if (event.step == "done") {
+                val token = event.stringValue("token")?.takeIf { it.isNotBlank() }
+                BootstrapEntityPatch(
+                    daemonPort = (event.data["port"] as? JsonPrimitive)?.intOrNull,
+                    encryptedNodeToken = token?.let { SecureKeyStore.encrypt(it) },
+                )
+            } else {
+                null
+            }
+            BootstrapPhase.PACKS -> {
+                val merged = (parsePacksJson(current.installedPacksJson) + eventPacks(event)).distinct()
+                if (merged.isEmpty()) null else BootstrapEntityPatch(
+                    installedPacksJson = JsonArray(merged.map { JsonPrimitive(it) }).toString(),
+                )
+            }
+            BootstrapPhase.VERIFY -> null
+        }
+    }
+
+    private suspend fun runBootstrapFlow(
+        node: RemoteComputeNodeEntity,
+        mode: BootstrapMode,
+        packs: List<String>,
+        createSwapMb: Int,
+    ) {
+        val engine = sshBootstrapEngineRef
+            ?: throw IllegalStateException("bootstrap engine is unavailable")
+        var current = node
+        engine.bootstrap(
+            node = node,
+            options = BootstrapOptions(
+                mode = mode,
+                bindAddress = "127.0.0.1",
+                packs = packs,
+                createSwapMb = createSwapMb,
+                port = node.daemonPort,
+            ),
+        ).collect { event ->
+            applyBootstrapEvent(event)
+            val patch = bootstrapPatch(event, current)
+            if (patch != null) {
+                current = current.copy(
+                    daemonPort = patch.daemonPort ?: current.daemonPort,
+                    encryptedNodeToken = patch.encryptedNodeToken ?: current.encryptedNodeToken,
+                    osInfoJson = patch.osInfoJson ?: current.osInfoJson,
+                    installedPacksJson = patch.installedPacksJson ?: current.installedPacksJson,
+                    updatedAt = System.currentTimeMillis(),
+                )
+                computeNodeDao?.upsert(current)
+            }
+        }
+        val refreshed = computeNodeDao?.getById(node.nodeId) ?: current
+        computeNodeManagerRef?.refresh(refreshed)
+        _computeNodeSetup.update { state ->
+            state.copy(
+                running = false,
+                finished = true,
+                totalPercent = 100,
+                message = appString(R.string.compute_node_setup_done),
+            )
+        }
+    }
+
+    private suspend fun onComputeNodeSetupFailure(nodeId: String, e: Exception) {
+        Logger.w(
+            "AgentBotVM",
+            "云端电脑接入失败: " + e.javaClass.simpleName + " " + e.message.orEmpty().take(160),
+        )
+        runCatching {
+            computeNodeDao?.updateStatus(
+                nodeId = nodeId,
+                status = ComputeNodeStatus.ERROR.wireValue,
+                lastSeenAt = 0L,
+                updatedAt = System.currentTimeMillis(),
+            )
+        }.onFailure { Logger.w("AgentBotVM", "写入云端电脑失败状态失败: " + it.message, it) }
+        _computeNodeSetup.update { state ->
+            state.copy(running = false, finished = false, error = computeNodeErrorMessage(e))
+        }
+    }
+
+    private fun computeNodeErrorMessage(e: Exception): String = when (e) {
+        is SshBootstrapException -> e.message.orEmpty().take(MAX_ERROR_MESSAGE_CHARS).ifBlank {
+            appString(R.string.compute_node_error_generic, e.javaClass.simpleName)
+        }
+        is java.security.KeyStoreException -> appString(R.string.compute_node_error_encrypt)
+        else -> appString(R.string.compute_node_error_generic, e.javaClass.simpleName)
+    }
+
+    private fun parsePacksJson(raw: String): List<String> {
+        if (raw.isBlank()) return emptyList()
+        val array = try {
+            Json.parseToJsonElement(raw) as? JsonArray
+        } catch (e: Exception) {
+            Logger.w("AgentBotVM", "云端电脑能力包记录无法解析: " + e.javaClass.simpleName)
+            null
+        } ?: return emptyList()
+        return array.mapNotNull { element -> (element as? JsonPrimitive)?.contentOrNull }
+    }
+
+    private fun eventPacks(event: BootstrapEvent): List<String> {
+        val array = event.data["packs"] as? JsonArray ?: return emptyList()
+        return array.mapNotNull { element -> (element as? JsonPrimitive)?.contentOrNull }
+    }
+
+    private fun appendTerminalText(text: String, isError: Boolean) {
+        if (text.isEmpty()) return
+        val prefix = if (isError) TERMINAL_ERROR_PREFIX else ""
+        val lines = text.split('\n')
+            .filter { it.isNotEmpty() }
+            .map { prefix + it }
+        if (lines.isEmpty()) return
+        _computeTerminal.update { state ->
+            state.copy(lines = (state.lines + lines).takeLast(MAX_TERMINAL_LINES))
+        }
+    }
+
+    private fun normalizeRemotePath(raw: String): String? {
+        val value = raw.trim().replace('\\', '/').trim('/')
+        if (value.isEmpty()) return ""
+        val segments = value.split('/')
+        if (segments.any { it.isEmpty() || it == "." || it == ".." }) return null
+        return value
+    }
+
+    private fun shellQuote(value: String): String = "'" + value.replace("'", "'\\''") + "'"
+
+    /** 一次「关于你」列表的数据源快照：助手配置 + 当前 Space + 记忆总开关。 */
+    private data class AboutYouSource(
+        val assistants: List<io.zer0.muse.data.assistant.AssistantEntity>,
+        val spaceId: String,
+        val memoryEnabled: Boolean,
+    )
+
+    /**
+     * 观察当前 Bot 在当前 Space 下的记忆画像。
+     *
+     * 三个输入都要重新观察：助手配置（记忆开关/全局记忆 opt-in）存在 assistants 表里，
+     * 当前 Space 在设置里，总开关也可能是用户刚改的。任一变化都要重新决定该看哪些库 ——
+     * 旧实现只在 bind 时读一次 scope，于是切助手或切 Space 后列表停在旧数据上。
+     *
+     * 切换时先清空：旧列表属于旧作用域，留着比短暂空白更误导。
+     */
+    private fun observeAboutYou() {
+        aboutYouJob?.cancel()
+        aboutYouRows = emptyList()
+        val bridge = memoryBridge
+        val assistants = assistantRepository
+        val settings = settingsRepository
+        if (bridge == null || assistants == null || settings == null) {
+            _aboutYouProfile.value = AboutYouProfile()
+            return
+        }
+        aboutYouJob = viewModelScope.launch {
+            combine(
+                assistants.observeAll,
+                settings.currentSpaceIdFlow,
+                settings.memoryEnabledFlow,
+            ) { list, spaceId, memoryEnabled ->
+                AboutYouSource(assistants = list, spaceId = spaceId, memoryEnabled = memoryEnabled)
+            }.flatMapLatest { source ->
+                val assistant = source.assistants.firstOrNull { it.id == currentBotId }
+                val plan = bridge.aboutYouPlan(
+                    assistantId = currentBotId,
+                    spaceId = source.spaceId,
+                    settingsMemoryEnabled = source.memoryEnabled,
+                    assistant = assistant,
+                )
+                // 切助手 / 切 Space / 关记忆：列表先回到空态，再重新订阅。
+                aboutYouRows = emptyList()
+                _aboutYouProfile.value = AboutYouProfile()
+                if (!plan.enabled) {
+                    return@flatMapLatest flowOf(emptyList<io.zer0.muse.data.agentbot.AgentMemoryBridge.ScopedFactRow>())
+                }
+                bridge.observeAboutYou(plan).catch { error ->
+                    // 读失败不能显示「你没有记忆」——那是两件事。保留空态并留日志。
+                    Logger.w("AgentBotVM", "读取关于你记忆失败: ${error.message}", error)
+                    emit(emptyList())
+                }
+            }.collect { rows ->
+                aboutYouRows = rows
+                _aboutYouProfile.value = AboutYouProfileMapper.map(
+                    rows.map { row ->
+                        AboutYouFact(
+                            id = row.fact.id,
+                            content = row.fact.fact,
+                            category = row.fact.category,
+                            tags = row.fact.tags,
+                            importance = row.fact.importance,
+                            createdAt = row.fact.createdAt,
+                            pinned = row.fact.pinnedAt != null,
+                            scope = row.scope,
+                            readOnly = row.readOnly,
+                        )
+                    },
+                )
+            }
+        }
+    }
+
+    /** 当前 Bot 在本次发送时刻的记忆空间；读不到就落到 default。 */
+    private suspend fun currentMemorySpaceId(): String =
+        runCatching { settingsRepository?.currentSpaceIdFlow?.first() }
+            .getOrNull().orEmpty().ifBlank { "default" }
+
+    /** 当前可写作用域：动作复核用它判断这行到底是不是「当前助手 + 当前 Space」的。 */
+    private suspend fun currentWritableMemoryScope(): io.zer0.memory.runtime.MemoryScopeKey? {
+        val bridge = memoryBridge ?: return null
+        return bridge.writableScope(currentBotId, currentMemorySpaceId())
+    }
+
+    /** 删除一条「关于你」记忆。共享全局库的行只读，不发起写入。 */
+    fun deleteMemoryFact(fact: AboutYouFact) {
+        val bridge = memoryBridge ?: return
+        val row = aboutYouRows.firstOrNull { it.fact.id == fact.id && it.scope == fact.scope }
+        if (row == null) {
+            // 列表已经在别处刷新过：宁可不动，也不拿一个猜出来的 scope 去删。
+            Logger.w("AgentBotVM", "删除关于你记忆跳过：当前列表里找不到该行(id=${fact.id})")
+            return
+        }
+        viewModelScope.launch {
+            val result = bridge.deleteAboutYouFact(row, currentWritableMemoryScope())
+            logAboutYouResult("delete", result)
+        }
+    }
+
+    /** 切换一条「关于你」记忆的置顶状态（同一道只读/作用域复核）。 */
+    fun togglePinMemoryFact(fact: AboutYouFact) {
+        val bridge = memoryBridge ?: return
+        val row = aboutYouRows.firstOrNull { it.fact.id == fact.id && it.scope == fact.scope }
+        if (row == null) {
+            Logger.w("AgentBotVM", "置顶切换跳过：当前列表里找不到该行(id=${fact.id})")
+            return
+        }
+        viewModelScope.launch {
+            val result = bridge.toggleAboutYouPin(row, currentWritableMemoryScope())
+            logAboutYouResult("pin_toggle", result)
+        }
+    }
+
+    private fun logAboutYouResult(
+        action: String,
+        result: io.zer0.muse.data.agentbot.AgentMemoryBridge.AboutYouActionResult,
+    ) {
+        when (result) {
+            is io.zer0.muse.data.agentbot.AgentMemoryBridge.AboutYouActionResult.Applied ->
+                Logger.i("AgentBotVM", "关于你记忆" + action + "完成")
+            io.zer0.muse.data.agentbot.AgentMemoryBridge.AboutYouActionResult.ReadOnly ->
+                Logger.i("AgentBotVM", "关于你记忆" + action + "跳过：共享记忆只读")
+            io.zer0.muse.data.agentbot.AgentMemoryBridge.AboutYouActionResult.Missing ->
+                Logger.w("AgentBotVM", "关于你记忆" + action + "未命中：条目可能已不存在")
+            is io.zer0.muse.data.agentbot.AgentMemoryBridge.AboutYouActionResult.Rejected ->
+                Logger.w("AgentBotVM", "关于你记忆" + action + "被拒绝: " + result.reason)
+        }
+    }
+
+    /**
+     * 成功且已发布的前台回合 → 记忆管线。
+     *
+     * 历史必须从持久层读完整会话：UI 只有最近一页（HISTORY_LIMIT），
+     * 拿截断窗口去做滚动摘要会让早期内容反复“重新摘要”，用户看到的是记忆被重写。
+     * 请求 id 随通知一起下去，同一轮重试不会重复计入。
+     */
+    private suspend fun notifyMemoryTurn(identity: AgentTurnIdentity, spaceId: String) {
+        val bridge = memoryBridge ?: return
+        val history = runCatching { sessions.getAllMessagesForWarmup(identity.sessionId) }
+            .onFailure { Logger.w("AgentBotVM", "记忆管线历史读取失败: ${it.message}", it) }
+            .getOrNull().orEmpty()
+        if (history.isEmpty()) return
+        val model = runCatching { settingsRepository?.getSelectedModel() }.getOrNull()
+        bridge.notifyPublishedTurn(
+            sessionId = identity.sessionId,
+            requestId = identity.requestId,
+            messages = history,
+            model = model,
+            assistantId = identity.assistantId,
+            spaceId = spaceId,
+            locale = java.util.Locale.getDefault().toLanguageTag(),
+        )
+    }
+
+    /**
+     * 给一个会话做记忆收尾（final pass + AutoSave）。
+     *
+     * 走历史 provider 而不是现场快照：onCleared 时 viewModelScope 已经/即将取消，
+     * 拆包后的读取在应用级作用域里跑，不会被销毁协程一起打断。
+     */
+    private fun flushSessionMemory(sessionId: String, assistantId: String) {
+        val bridge = memoryBridge ?: return
+        if (sessionId.isBlank()) return
+        bridge.flushSession(
+            sessionId = sessionId,
+            assistantId = assistantId,
+            spaceId = lastMemorySpaceId.takeIf { it.isNotBlank() },
+            model = null,
+            historyProvider = { sessions.getAllMessagesForWarmup(sessionId) },
+            locale = java.util.Locale.getDefault().toLanguageTag(),
+        )
+    }
+
+    /** 把一条记忆带回输入框，让用户用自然语言修正。 */
+    fun correctFactInChat(factText: String) {
+        ui.setComposerText(appString(R.string.agent_about_you_correct_prompt, factText))
+    }
+
+    /**
+     * 把一条已有实体带入输入框「聊着改」。
+     *
+     * 输入框前置一个轻量引用标签（kind:id 与标题）；发送时从用户原文中剥离标签，
+     * 并把该实体当前 JSON 作为模型上下文注入。用户看到的仍是自己输入的干净文本，
+     * 模型拿到的则是最新快照，避免凭历史记忆改旧版本。
+     */
+    fun refineEntityInChat(kind: String, id: String, title: String) {
+        val safeKind = kind.trim().lowercase().ifBlank { "entity" }
+        val safeId = id.trim()
+        if (safeId.isBlank()) return
+        val target = RefineTarget(
+            kind = safeKind,
+            id = safeId,
+            title = title.trim().ifBlank { safeId },
+        )
+        val previous = pendingRefineTarget
+        pendingRefineTarget = target
+        val tag = refineTagOf(target)
+        val previousTag = previous?.let { refineTagOf(it) }.orEmpty()
+        val current = ui.composer.value.text
+            .let { text -> if (previousTag.isNotBlank()) text.replace(previousTag, "") else text }
+            .trim()
+        if (!current.contains(tag)) {
+            ui.setComposerText(if (current.isBlank()) tag else "$tag $current")
+        }
+    }
+
+    private fun refineTagOf(target: RefineTarget): String =
+        "[" + target.kind + ":" + target.id + "] " + target.title
+
+    /** 把一条已钉入小应用带回输入框，按「聊着改」流程修改卡片数据与刷新策略。 */
+    fun refineSpaceInChat(cardId: String, title: String) {
+        refineEntityInChat("space", cardId, title)
+    }
+
+    /** 把引用目标的最新 JSON 作为仅供模型阅读的附加上下文；失败时降级为原始输入。 */
+    private suspend fun resolveRefineContext(target: RefineTarget): String? {
+        val kind = target.kind.lowercase()
+        if (kind == "goal") {
+            return runCatching { goalEngine?.buildRefineContext(target.id) }
+                .onFailure { Logger.w("AgentBotVM", "读取目标上下文失败: ${it.message}") }
+                .getOrNull()
+        }
+        if (kind == "space") return buildSpaceRefineContext(target.id)
+        return null
+    }
+
+    private suspend fun buildSpaceRefineContext(cardId: String): String? {
+        val card = cardEntityDao?.getById(cardId) ?: return null
+        val snapshot = buildJsonObject {
+            put("title", card.title)
+            put("category", card.spaceCategory)
+            put("refresh_interval_minutes", card.refreshIntervalMinutes)
+            put("refresh_prompt", card.refreshPrompt)
+            put("data_json", card.dataJson.orEmpty().take(4_000))
+        }.toString()
+        return buildString {
+            appendLine("entity_kind: space")
+            appendLine("entity_id: " + card.id)
+            appendLine("current_json: " + snapshot)
+            appendLine(
+                "update_rule: change only the parts the user mentions and keep every other field; " +
+                    "for card data changes call update_card_data with card_id = entity_id; " +
+                    "do not rewrite the card layout unless the user explicitly asks.",
+            )
+        }.trim()
+    }
+
+    private fun buildModelUserText(userText: String, refineContext: String?): String {
+        val context = refineContext?.trim().orEmpty()
+        if (context.isBlank()) return userText
+        return buildString {
+            appendLine(userText)
+            appendLine()
+            appendLine("[entity-refine-context]")
+            append(context)
+        }.trim()
+    }
+
+    /** 用户关闭某条动态建议后，本作用域内不再重复展示。 */
+    fun dismissSuggestion(id: String) {
+        if (id.isBlank() || !dismissedSuggestionIds.add(id)) return
+        refreshSuggestions()
     }
 
     fun shouldUseApiRecording(): Boolean = asrCoordinator?.shouldUseApiRecording() == true
@@ -274,7 +1490,10 @@ class AgentBotViewModel(
     }
 
     override fun onCleared() {
+        teachOverlayController?.release()
         asrCoordinator?.dispose()
+        // 离开页面同样收尾：用户可能再也不回这个会话了。
+        flushSessionMemory(currentSessionId, currentBotId)
         super.onCleared()
     }
 
@@ -291,9 +1510,15 @@ class AgentBotViewModel(
     fun bind(botId: String, originSessionId: String) {
         val assistantId = botId.ifBlank { DEFAULT_BOT_ID }
         val previousBotId = currentBotId
+        val previousSessionId = currentSessionId
         // 会话为空只说明宿主这次没有更好的信息，不代表用户换了作用域。
         val scopeChanged = assistantId != previousBotId ||
             (originSessionId.isNotBlank() && originSessionId != currentSessionId)
+        if (scopeChanged) {
+            // 切走之前先给上一个会话收尾：短会话永远不会攒够轮数，只能靠这里留记忆。
+            flushSessionMemory(previousSessionId, previousBotId)
+            lastMemorySpaceId = ""
+        }
         currentBotId = assistantId
         currentSessionId = resolveBoundSession(assistantId, previousBotId, originSessionId)
         ui.setComposerBot(assistantId)
@@ -303,11 +1528,13 @@ class AgentBotViewModel(
             // 切作用域先清空：Loading 期间继续显示上一个 Bot 的看板比短暂空白更误导。
             lastProjection = null
             _hasOlderTranscript.value = false
+            dismissedSuggestionIds.clear()
             clearProjectionViews()
         }
         // 对话流也必须从库里重建：只在内存里累加的话，重启/切会话后是空白。
         reloadTranscript()
         scopeRequest.value = ScopeRequest(assistantId, originSessionId)
+        observeAboutYou()
     }
 
     /**
@@ -498,7 +1725,11 @@ class AgentBotViewModel(
     }
 
     private fun BotMessageCardEntity.toCardUi(): AgentBotUiState.MessageCardUi {
-        val options = if (cardKind == BotCardKind.CHOICE || cardKind == BotCardKind.CUE_BRIEFING) {
+        val options = if (
+            cardKind == BotCardKind.CHOICE ||
+            cardKind == BotCardKind.CUE_BRIEFING ||
+            cardKind == AgentWatcherEngine.CARD_KIND_WATCHER_CONFIRM
+        ) {
             runCatching {
                 cardJson.decodeFromString<List<AgentStreamCoordinator.ChoiceOption>>(payloadJson)
             }.getOrDefault(emptyList())
@@ -544,6 +1775,7 @@ class AgentBotViewModel(
             AgentBotScopeState.Loading -> Unit
         }
         _scopeState.value = state
+        refreshSuggestions()
     }
 
     /**
@@ -568,6 +1800,7 @@ class AgentBotViewModel(
         )
         // 合并而不是替换：前台回合刚落进内存的那句话还没经过发布通道落库。
         ui.replacePublished(restorer.merge(projection.transcript, ui.transcript.value))
+        refreshSuggestions()
         return true
     }
 
@@ -575,6 +1808,7 @@ class AgentBotViewModel(
         _pendingCandidates.value = emptyList()
         ui.setTaskBoard(AgentBotUiState.TaskBoard())
         ui.replacePublished(emptyList())
+        refreshSuggestions()
     }
 
     /** 会话解析结果。读失败与"确实没绑过"必须分开，否则新会话会把旧绑定挤掉。 */
@@ -725,8 +1959,19 @@ class AgentBotViewModel(
         imageBase64List: List<String>,
         submittedComposer: AgentBotUiState.Composer?,
     ) {
-        val trimmedText = text.trim()
+        val rawTrimmedText = text.trim()
+        val refineTarget = pendingRefineTarget
+        val refineTag = refineTarget?.let { refineTagOf(it) }.orEmpty()
+        val hasRefineTag = refineTag.isNotBlank() && rawTrimmedText.contains(refineTag)
+        val trimmedText = if (hasRefineTag) rawTrimmedText.replace(refineTag, "").trim() else rawTrimmedText
         if (trimmedText.isBlank() && imageBase64List.isEmpty()) return
+        // @队友 是输入框的显式派工指令：在这里解析一次，后续模型回合与兜底派工共用同一份结果。
+        val mentionResolution = AgentMentionDispatch.resolve(
+            text = trimmedText,
+            candidates = mentionRoster.filterNot { it.botId == currentBotId },
+        )
+        if (refineTarget != null && !hasRefineTag) pendingRefineTarget = null
+        val refineContextTarget = refineTarget?.takeIf { hasRefineTag }
         val quotedPreview = submittedComposer?.quotedMessage?.text
             ?.lineSequence()
             ?.firstOrNull()
@@ -770,6 +2015,8 @@ class AgentBotViewModel(
                     ui.replacePublished(ui.transcript.value.filterNot { it.messageId == editingMessageId })
                 }
             }
+            // 「聊着改」的实体快照在发送瞬间读取：用户可能已经切走页面或改过别的字段。
+            val refineContext = refineContextTarget?.let { target -> resolveRefineContext(target) }
             val accepted = facade.acceptUserInput(
                 botId = botId,
                 originSessionId = sessionId,
@@ -780,6 +2027,9 @@ class AgentBotViewModel(
                 ui.setSending(false)
                 ui.setError(AgentBotError.SAVE_FAILED)
                 return@launch
+            }
+            if (refineContextTarget != null && pendingRefineTarget?.id == refineContextTarget.id) {
+                pendingRefineTarget = null
             }
             // 用户消息本身也要落库并显示。
             //
@@ -842,7 +2092,21 @@ class AgentBotViewModel(
             )
             // 记下这一轮的 Job：stopReply() 只取消它，不碰后台任务。
             foregroundTurnJob = viewModelScope.launch {
-                runForegroundTurn(identity, effectiveText, imageBase64List)
+                // 记忆空间在发送瞬间定下来：prompt、工具执行上下文、写入与管线通知共用这一个值。
+                val memorySpaceId = currentMemorySpaceId()
+                lastMemorySpaceId = memorySpaceId
+                memoryBridge?.onSessionActive(sessionId)
+                val published = runForegroundTurn(
+                    identity = identity,
+                    userText = effectiveText,
+                    imageBase64List = imageBase64List,
+                    refineContext = refineContext,
+                    mentionResolution = mentionResolution,
+                    memorySpaceId = memorySpaceId,
+                )
+                if (published) {
+                    notifyMemoryTurn(identity, memorySpaceId)
+                }
                 runTurnOnce(botId, sessionId)
             }
         }
@@ -858,7 +2122,10 @@ class AgentBotViewModel(
         identity: io.zer0.muse.data.agentbot.AgentTurnIdentity,
         userText: String,
         imageBase64List: List<String>,
-    ) {
+        refineContext: String? = null,
+        mentionResolution: AgentMentionDispatch.Resolution? = null,
+        memorySpaceId: String = "",
+    ): Boolean {
         // 多轮上下文：取该会话最近若干条。不传空列表 ——
         // 主 Bot 只看到"这一句"时无法理解"那个""再来一次"这类指代。
         val history = runCatching {
@@ -871,26 +2138,28 @@ class AgentBotViewModel(
 
         val streamingEngine = streamCoordinator
         if (streamingEngine != null) {
-            runStreamingForegroundTurn(
+            return runStreamingForegroundTurn(
                 streamingEngine = streamingEngine,
                 identity = identity,
                 history = history,
                 userText = userText,
                 imageBase64List = imageBase64List,
+                refineContext = refineContext,
+                mentionResolution = mentionResolution,
+                memorySpaceId = memorySpaceId,
             )
-            return
         }
 
         val turn = coordinator.runTurn(
             identity = identity,
             history = history,
-            userText = userText,
+            userText = buildModelUserText(userText, refineContext),
             currentRequestRevision = {
                 repository.latestUserInputSequence(identity.assistantId, identity.sessionId)
             },
             inputImageBase64List = imageBase64List,
-        ) ?: return
-        if (turn.requestSuperseded) return
+        ) ?: return false
+        if (turn.requestSuperseded) return false
         // V15: 模型始终没调 bot_say 时，明确告诉用户"这条没发出去"，并保留重试入口。
         // 不拿模型正文兜底 —— 那会伪造出一条用户以为是回复的消息。
         val isCurrentScope = currentBotId == identity.assistantId && currentSessionId == identity.sessionId
@@ -898,7 +2167,7 @@ class AgentBotViewModel(
             if (isCurrentScope) {
                 ui.setError(AgentBotError.MISSING_BOT_SAY)
             }
-            return
+            return false
         }
         // 清单 F4：Provider 静默返回纯文本（两次都没有 tool_calls）时，
         // 必须明确告知"当前 Provider 不支持工具调用，主 Bot 无法派工"。
@@ -924,7 +2193,7 @@ class AgentBotViewModel(
             } catch (e: Exception) {
                 Logger.w("AgentBotVM", "派工失败: ${e.message}", e)
                 null
-            } ?: return
+            } ?: return false
 
             if (turn.say.isNotBlank()) {
                 val result = try {
@@ -963,6 +2232,7 @@ class AgentBotViewModel(
                 ),
             )
         }
+        return publishedMessageId.isNotBlank()
     }
 
     /**
@@ -977,6 +2247,9 @@ class AgentBotViewModel(
         history: List<io.zer0.ai.core.UIMessage>,
         userText: String,
         imageBase64List: List<String>,
+        refineContext: String? = null,
+        mentionResolution: AgentMentionDispatch.Resolution? = null,
+        memorySpaceId: String = "",
     ): Boolean {
         val isCurrentScope = { currentBotId == identity.assistantId && currentSessionId == identity.sessionId }
         if (isCurrentScope()) {
@@ -1002,6 +2275,21 @@ class AgentBotViewModel(
                 assistantSystemPrompt = assistant?.systemPrompt.orEmpty(),
                 activeMissions = activeMissions,
             ).orEmpty()
+            // 长期记忆按当前助手 + 发送时 Space 注入。
+            // userText 只传用户原话：实体「聊着改」的快照 JSON 属于工具上下文，
+            // 拿它当检索词会把卡片字段当成用户问的记忆。
+            val memorySection = memoryBridge?.buildForegroundInjection(
+                assistantId = identity.assistantId,
+                spaceId = memorySpaceId,
+                assistant = assistant,
+                userText = userText,
+                locale = java.util.Locale.getDefault().toLanguageTag(),
+            )?.text.orEmpty()
+            val effectiveSystemPrompt = when {
+                memorySection.isBlank() -> systemPrompt
+                systemPrompt.isBlank() -> memorySection
+                else -> systemPrompt.trimEnd() + "\n\n" + memorySection
+            }
             val router = modelRouter
             val store = configStore
             val routedFromRouter = if (router != null && store != null) {
@@ -1042,9 +2330,9 @@ class AgentBotViewModel(
 
             val outcome = streamingEngine.runStreamingTurn(
                 identity = identity,
-                systemPrompt = systemPrompt,
+                systemPrompt = effectiveSystemPrompt,
                 history = history,
-                userText = userText,
+                userText = buildModelUserText(userText, refineContext),
                 inputImageBase64List = imageBase64List,
                 providerConfig = routedProvider,
                 model = routedModel,
@@ -1054,6 +2342,8 @@ class AgentBotViewModel(
                 currentRequestRevision = {
                     repository.latestUserInputSequence(identity.assistantId, identity.sessionId)
                 },
+                mentionTarget = mentionResolution?.target,
+                memorySpaceId = memorySpaceId,
                 onDraft = { draft ->
                     if (isCurrentScope()) {
                         ui.setStreaming(
@@ -1110,35 +2400,75 @@ class AgentBotViewModel(
 
             // 3. 派发后台任务并 0ms 唤醒调度器
             var anyDispatched = false
+            suspend fun recordMissionCard(
+                created: io.zer0.muse.data.agentbot.BotTaskEntity,
+                acceptance: String,
+            ) {
+                repository.upsertMessageCard(
+                    BotMessageCardEntity(
+                        cardId = "mission:${created.taskId}",
+                        botId = identity.assistantId,
+                        originSessionId = identity.sessionId,
+                        anchorMessageId = outcome.publishedMessageId.ifBlank { identity.requestId },
+                        taskId = created.taskId,
+                        cardKind = BotCardKind.MISSION,
+                        title = created.goal,
+                        subtitle = acceptance,
+                    ),
+                )
+            }
             outcome.dispatches.forEachIndexed { idx, dispatch ->
                 val targetBotId = dispatch.assigneeBotId.ifBlank { identity.assistantId }
                 val created = runCatching {
-                    repository.createTaskForInput(
-                        TaskCreationInput(
-                            identity = identity.copy(assistantId = targetBotId),
+                    if (targetBotId == identity.assistantId) {
+                        repository.createTaskForInput(
+                            TaskCreationInput(
+                                identity = identity,
+                                goal = dispatch.goal,
+                                acceptanceCriteria = dispatch.acceptance,
+                                resourceScope = dispatch.resourceScope,
+                                dedupeKey = "stream-dispatch:${identity.requestId}:$idx",
+                            ),
+                        )
+                    } else {
+                        // 定向队友任务必须落在队友的 botId 下（调度器按它加载该队友的配置与模型）；
+                        // createTaskForInput 的 revision 校验只认当前 bot，因此这里直接建任务。
+                        repository.createTask(
+                            botId = targetBotId,
+                            originSessionId = identity.sessionId,
+                            requestMessageId = identity.requestId,
                             goal = dispatch.goal,
                             acceptanceCriteria = dispatch.acceptance,
                             resourceScope = dispatch.resourceScope,
                             dedupeKey = "stream-dispatch:${identity.requestId}:$idx",
-                        ),
-                    )
+                        )
+                    }
                 }.onFailure {
                     Logger.w("AgentBotVM", "流式派工失败: ${it.message}", it)
                 }.getOrNull()
                 if (created != null) {
                     anyDispatched = true
-                    repository.upsertMessageCard(
-                        BotMessageCardEntity(
-                            cardId = "mission:${created.taskId}",
-                            botId = identity.assistantId,
-                            originSessionId = identity.sessionId,
-                            anchorMessageId = outcome.publishedMessageId.ifBlank { identity.requestId },
-                            taskId = created.taskId,
-                            cardKind = BotCardKind.MISSION,
-                            title = created.goal,
-                            subtitle = dispatch.acceptance,
-                        ),
+                    recordMissionCard(created, dispatch.acceptance)
+                }
+            }
+            // 模型没有调用 launch_mission 时，@ 仍要生效：用去掉 @ 昵称后的原文直接定向派工。
+            if (!anyDispatched && mentionResolution != null) {
+                val created = runCatching {
+                    repository.createTask(
+                        botId = mentionResolution.target.botId,
+                        originSessionId = identity.sessionId,
+                        requestMessageId = identity.requestId,
+                        goal = mentionResolution.taskText,
+                        acceptanceCriteria = "",
+                        resourceScope = "",
+                        dedupeKey = "mention-dispatch:${identity.requestId}",
                     )
+                }.onFailure {
+                    Logger.w("AgentBotVM", "定向委派兜底派工失败: ${it.message}", it)
+                }.getOrNull()
+                if (created != null) {
+                    anyDispatched = true
+                    recordMissionCard(created, "")
                 }
             }
             if (anyDispatched) {
@@ -1173,9 +2503,13 @@ class AgentBotViewModel(
             outcome.routineCreations.forEach { routine ->
                 runCatching {
                     val triggerDesc = when (routine.triggerType) {
-                        RoutineTriggerType.CRON -> routine.triggerExpr.ifBlank { "按计划定时" }
-                        RoutineTriggerType.MANUAL -> "手动触发"
-                        else -> routine.triggerExpr.ifBlank { "按条件触发" }
+                        RoutineTriggerType.CRON -> routine.triggerExpr.ifBlank {
+                            appString(R.string.agent_routine_trigger_cron)
+                        }
+                        RoutineTriggerType.MANUAL -> appString(R.string.agent_routine_trigger_manual)
+                        else -> routine.triggerExpr.ifBlank {
+                            appString(R.string.agent_routine_trigger_condition)
+                        }
                     }
                     val draftPayload = cardJson.encodeToString(
                         PendingRoutineApproval(
@@ -1189,12 +2523,12 @@ class AgentBotViewModel(
                     val options = listOf(
                         AgentStreamCoordinator.ChoiceOption(
                             id = ROUTINE_APPROVE_OPTION_ID,
-                            label = "批准并启用",
+                            label = appString(R.string.agent_routine_approve_enable),
                             prompt = draftPayload,
                         ),
                         AgentStreamCoordinator.ChoiceOption(
                             id = ROUTINE_DISMISS_OPTION_ID,
-                            label = "暂不启用",
+                            label = appString(R.string.agent_routine_approve_dismiss),
                             prompt = "",
                         ),
                     )
@@ -1205,11 +2539,90 @@ class AgentBotViewModel(
                             originSessionId = identity.sessionId,
                             anchorMessageId = outcome.publishedMessageId.ifBlank { identity.requestId },
                             cardKind = BotCardKind.CHOICE,
-                            title = "自动化确认：${routine.title}（$triggerDesc）",
+                            title = appString(
+                                R.string.agent_routine_confirm_title,
+                                routine.title,
+                                triggerDesc,
+                            ),
                             payloadJson = cardJson.encodeToString(options),
                         ),
                     )
                 }.onFailure { Logger.w("AgentBotVM", "创建自动化确认卡失败: ${it.message}") }
+            }
+
+            // 7. 帮你跟进：先弹流内确认卡，用户点「批准并启用」后才落库开始巡检
+            outcome.watcherCreations.forEach { creation ->
+                runCatching {
+                    val draftPayload = cardJson.encodeToString(
+                        PendingWatcherApproval(
+                            title = creation.title,
+                            instruction = creation.instruction,
+                            script = creation.script,
+                            scriptKind = creation.scriptKind,
+                            computeTarget = creation.computeTarget,
+                            intervalMinutes = creation.intervalMinutes,
+                            webhookUrl = creation.webhookUrl,
+                        ),
+                    )
+                    val options = listOf(
+                        AgentStreamCoordinator.ChoiceOption(
+                            id = AgentWatcherEngine.APPROVE_OPTION_ID,
+                            label = appString(R.string.agent_routine_approve_enable),
+                            prompt = draftPayload,
+                        ),
+                        AgentStreamCoordinator.ChoiceOption(
+                            id = AgentWatcherEngine.DISMISS_OPTION_ID,
+                            label = appString(R.string.agent_routine_approve_dismiss),
+                            prompt = "",
+                        ),
+                    )
+                    repository.upsertMessageCard(
+                        BotMessageCardEntity(
+                            cardId = "watcher-approve:${java.util.UUID.randomUUID()}",
+                            botId = identity.assistantId,
+                            originSessionId = identity.sessionId,
+                            anchorMessageId = outcome.publishedMessageId.ifBlank { identity.requestId },
+                            cardKind = AgentWatcherEngine.CARD_KIND_WATCHER_CONFIRM,
+                            title = creation.title,
+                            subtitle = creation.instruction,
+                            payloadJson = cardJson.encodeToString(options),
+                        ),
+                    )
+                }.onFailure { Logger.w("AgentBotVM", "创建跟进确认卡失败: ${it.message}") }
+            }
+
+            // 8. 长期目标：前台工具直接落库，进度与状态由目标引擎统一计算
+            outcome.goalUpserts.forEach { draft ->
+                runCatching {
+                    goalEngine?.upsertGoal(
+                        goalId = draft.goalId,
+                        botId = identity.assistantId,
+                        originSessionId = identity.sessionId,
+                        title = draft.title,
+                        description = draft.description,
+                        milestones = draft.milestones,
+                        progress = draft.progress,
+                        status = draft.status,
+                        dueAt = draft.dueAt,
+                    )
+                }.onFailure { e ->
+                    if (e is CancellationException) throw e
+                    Logger.w("AgentBotVM", "写入长期目标失败: ${e.message}", e)
+                }
+            }
+            outcome.goalMilestoneUpdates.forEach { update ->
+                runCatching {
+                    goalEngine?.updateMilestone(
+                        goalId = update.goalId,
+                        milestoneId = update.milestoneId,
+                        title = update.title,
+                        done = update.done,
+                        remove = update.remove,
+                    )
+                }.onFailure { e ->
+                    if (e is CancellationException) throw e
+                    Logger.w("AgentBotVM", "更新目标里程碑失败: ${e.message}", e)
+                }
             }
 
             if (outcome.streamError != null && !outcome.hasAnyAction && isCurrentScope()) {
@@ -1258,7 +2671,12 @@ class AgentBotViewModel(
                 }
                 BotEventKind.TASK_RESULT_READY,
                 BotEventKind.TASK_FAILED,
-                -> publishResult(event, botId, sessionId)
+                -> {
+                    if (event.kind == BotEventKind.TASK_FAILED) {
+                        persistReconnectCardIfNeeded(event)
+                    }
+                    publishResult(event, botId, sessionId)
+                }
                 // 审核结论为 NEEDS_USER 时主动唤醒主助手向用户发问，其余仅更新看板
                 BotEventKind.REVIEW_READY -> {
                     val decision = ReviewDecision.decode(event.payloadRef)
@@ -1272,8 +2690,55 @@ class AgentBotViewModel(
                 else -> false
             }
         }
+        // 定向委派给队友的任务，结果事件挂在队友的 botId 下；页面可见时先由主总管接回来消化，
+        // 页面不在前台时仍由后台驱动器按任务 originSessionId 发布到主对话。
+        relayDelegatedTaskResults(mainBotId = botId, sessionId = sessionId)
         if ((result.consumed > 0 || result.hasBacklog) && currentBotId == botId && currentSessionId == sessionId) {
             refreshBoard()
+        }
+    }
+
+    /**
+     * 把当前主对话里由 @队友 派出的后台结果接回主总管。
+     *
+     * 只处理 originSessionId 等于当前会话的队友任务，避免把队友在其他会话里的任务串到本对话；
+     * 事件仍走 [relayBackgroundDecisionToAssistant] 的统一转述链路，因此页面可见时由主助手消化，
+     * 页面不可见时后台驱动器直接发布，二者不会重复消费同一条事件。
+     */
+    private suspend fun relayDelegatedTaskResults(mainBotId: String, sessionId: String) {
+        if (mainBotId != currentBotId || sessionId != currentSessionId || sessionId.isBlank()) return
+        val teammates = mentionRoster.filter { it.botId.isNotBlank() && it.botId != mainBotId }
+        if (teammates.isEmpty()) return
+        for (teammate in teammates) {
+            val delegatedTaskIds = runCatching { repository.listTasks(teammate.botId) }
+                .onFailure { Logger.w("AgentBotVM", "读取队友任务失败: ${it.message}", it) }
+                .getOrDefault(emptyList())
+                .asSequence()
+                .filter { it.originSessionId == sessionId }
+                .map { it.taskId }
+                .toSet()
+            if (delegatedTaskIds.isEmpty()) continue
+            inbox.runTurn(teammate.botId) { event ->
+                when {
+                    event.taskId !in delegatedTaskIds -> false
+                    event.kind == BotEventKind.TASK_PUBLICATION_READY -> {
+                        val relayed = relayBackgroundDecisionToAssistant(
+                            event = event,
+                            botId = mainBotId,
+                            sessionId = sessionId,
+                            needsDecision = false,
+                        )
+                        if (relayed == null) {
+                            results.publish(event, fallbackBotId = mainBotId, fallbackSessionId = sessionId)
+                        } else {
+                            relayed
+                        }
+                    }
+                    event.kind == BotEventKind.TASK_FAILED ->
+                        results.publish(event, fallbackBotId = mainBotId, fallbackSessionId = sessionId)
+                    else -> false
+                }
+            }
         }
     }
 
@@ -1293,24 +2758,47 @@ class AgentBotViewModel(
         if (streaming.value.active) return false
         val decision = ReviewDecision.decode(event.payloadRef) ?: return null
         val task = runCatching { repository.getTask(event.taskId) }.getOrNull()
-        val goal = task?.goal?.trim().orEmpty().ifBlank { "后台任务" }
+        val goal = task?.goal?.trim().orEmpty().ifBlank {
+            appString(R.string.agent_background_task)
+        }
         val relayPrompt = buildString {
-            appendLine("[系统内部回传 · 请以你的助手人设自然向用户汇报，不要照抄工程术语或审核模板]")
-            appendLine("任务目标：$goal")
-            appendLine("当前状态：${if (needsDecision) "需要用户做决定才能继续" else "已完成"}")
+            appendLine(appString(R.string.agent_voice_relay_header))
+            appendLine(appString(R.string.agent_voice_relay_goal, goal))
+            appendLine(
+                appString(
+                    R.string.agent_voice_relay_status,
+                    appString(
+                        if (needsDecision) {
+                            R.string.agent_voice_relay_status_needs_decision
+                        } else {
+                            R.string.agent_voice_relay_status_done
+                        },
+                    ),
+                ),
+            )
             if (decision.userVisibleSummary.isNotBlank()) {
-                appendLine("执行摘要：${decision.userVisibleSummary}")
+                appendLine(appString(R.string.agent_voice_relay_summary, decision.userVisibleSummary))
             }
             if (decision.candidateRefs.isNotEmpty()) {
-                appendLine("生成产物：${decision.candidateRefs.joinToString("、")}")
+                appendLine(
+                    appString(
+                        R.string.agent_voice_relay_artifacts,
+                        decision.candidateRefs.joinToString(appString(R.string.agent_voice_list_separator)),
+                    ),
+                )
             }
             if (decision.unverifiedItems.isNotEmpty()) {
-                appendLine("待确认/阻塞项：${decision.unverifiedItems.joinToString("、")}")
+                appendLine(
+                    appString(
+                        R.string.agent_voice_relay_blockers,
+                        decision.unverifiedItems.joinToString(appString(R.string.agent_voice_list_separator)),
+                    ),
+                )
             }
             if (needsDecision) {
-                appendLine("请你直接向用户简明说明卡在哪里、需要他做什么决定或补充什么信息，语气自然。")
+                appendLine(appString(R.string.agent_voice_relay_decision_hint))
             } else {
-                appendLine("请你用自然口吻把结果告诉用户；若有结构化信息或产物文件，可按需调用 show_card 或给出清晰摘要。")
+                appendLine(appString(R.string.agent_voice_relay_result_hint))
             }
         }
         val history = buildRecentHistory()
@@ -1334,6 +2822,37 @@ class AgentBotViewModel(
         return if (ok) true else null
     }
 
+    /**
+     * 创建 Agent 主舞台的语音桥。
+     *
+     * 语音桥只做三件事：把识别文本交给与输入框相同的 [submit] 入口、把流式生成状态
+     * 暴露给语音页、把最新一条已发布回复交给语音页朗读。它不复制会话逻辑，也不直接
+     * 发起模型请求，因此普通文字聊天与语音聊天走同一条消息通道。
+     */
+    fun createVoiceBridge(): io.zer0.muse.ui.speech.VoiceConversationBridge {
+        val latestReply = transcript.value
+            .lastOrNull { it.role == AgentBotUiState.Role.BOT }
+            ?.text
+            .orEmpty()
+        return io.zer0.muse.ui.speech.AgentVoiceBridge(
+            scope = viewModelScope,
+            assistantNameFlow = combine(composer, assistantsFlow) { composerState, assistants ->
+                assistants.firstOrNull { it.id == composerState.botId }?.name.orEmpty()
+            },
+            isGeneratingFlow = combine(busy, streaming) { busyState, streamingState ->
+                busyState.sending || streamingState.active
+            },
+            latestAssistantReplyFlow = combine(transcript, streaming) { messages, streamingState ->
+                streamingState.text.takeIf { streamingState.active && it.isNotBlank() }
+                    ?: messages.lastOrNull { it.role == AgentBotUiState.Role.BOT }?.text.orEmpty()
+            },
+            initialGenerating = busy.value.sending || streaming.value.active,
+            initialLatestAssistantReply = latestReply,
+            onSendUtterance = { text -> submit(text, emptyList(), submittedComposer = null) },
+            onStopGeneration = ::stopReply,
+        )
+    }
+
     /** 点击欢迎页示范或快捷建议时直接发送自然语言消息给助手。 */
     fun sendQuickPrompt(text: String) {
         val cleaned = text.trim()
@@ -1352,6 +2871,31 @@ class AgentBotViewModel(
                 content = msg.text,
             )
         }
+
+    /**
+     * 失败原因属于可修复故障时，落一张 Reconnect 卡，用户修好后可直接重试原任务。
+     * 不可识别的业务失败保持原有纯文本失败播报，不制造无法执行的修复按钮。
+     */
+    private suspend fun persistReconnectCardIfNeeded(
+        event: io.zer0.muse.data.agentbot.BotEventEntity,
+    ) {
+        val payload = ReconnectCardPayload.classify(event.taskId, event.payloadRef) ?: return
+        val now = System.currentTimeMillis()
+        val card = BotMessageCardEntity(
+            cardId = "reconnect:${event.taskId}:${event.eventId}",
+            botId = event.botId,
+            originSessionId = event.originSessionId,
+            taskId = event.taskId,
+            cardKind = BotCardKind.RECONNECT,
+            title = appString(R.string.agent_reconnect_title),
+            subtitle = payload.reason,
+            payloadJson = cardJson.encodeToString(payload),
+            createdAt = now,
+            updatedAt = now,
+        )
+        runCatching { repository.upsertMessageCard(card) }
+            .onFailure { Logger.w("AgentBotVM", "写入 Reconnect 卡失败: ${it.message}", it) }
+    }
 
     /** 结果事件交给共享发布器：页面与后台必须说一模一样的话。 */
     private suspend fun publishResult(
@@ -1517,6 +3061,28 @@ class AgentBotViewModel(
             runCatching { repository.resolveMessageCard(cardId, option.id) }
                 .onFailure { Logger.w("AgentBotVM", "更新选项卡片状态失败: ${it.message}") }
             when (option.id) {
+                AgentWatcherEngine.APPROVE_OPTION_ID -> {
+                    val draft = runCatching {
+                        cardJson.decodeFromString(PendingWatcherApproval.serializer(), option.prompt)
+                    }.getOrNull()
+                    if (draft != null) {
+                        runCatching {
+                            watcherEngine?.createWatcher(
+                                botId = currentBotId,
+                                originSessionId = currentSessionId,
+                                title = draft.title,
+                                instruction = draft.instruction,
+                                script = draft.script,
+                                scriptKind = draft.scriptKind,
+                                computeTarget = draft.computeTarget,
+                                intervalMinutes = draft.intervalMinutes,
+                                webhookUrl = draft.webhookUrl,
+                            )
+                        }.onFailure { Logger.w("AgentBotVM", "批准跟进项失败: ${it.message}") }
+                    }
+                    return@launch
+                }
+                AgentWatcherEngine.DISMISS_OPTION_ID -> return@launch
                 ROUTINE_APPROVE_OPTION_ID -> {
                     val draft = runCatching {
                         cardJson.decodeFromString(PendingRoutineApproval.serializer(), option.prompt)
@@ -1541,6 +3107,26 @@ class AgentBotViewModel(
             val reply = option.prompt.ifBlank { option.label }
             if (reply.isNotBlank()) {
                 submit(reply, emptyList(), submittedComposer = null)
+            }
+        }
+    }
+
+    /** 用户确认故障已修复后，收起卡片并恢复关联任务或云电脑心跳。 */
+    fun retryReconnect(cardId: String, taskId: String) {
+        viewModelScope.launch {
+            val card = runCatching { repository.getMessageCard(cardId) }.getOrNull()
+            val action = card?.payloadJson?.let { ReconnectCardPayload.decode(it)?.action }
+            runCatching { repository.dismissMessageCard(cardId) }
+                .onFailure { Logger.w("AgentBotVM", "收起卡片失败: ${it.message}") }
+            if (taskId.isBlank()) return@launch
+            when (action) {
+                ReconnectActionKind.COMPUTE_NODE -> refreshComputeNode(taskId)
+                ReconnectActionKind.API_KEY,
+                ReconnectActionKind.ACCESSIBILITY,
+                ReconnectActionKind.RUNTIME,
+                ReconnectActionKind.CHANNEL,
+                null,
+                -> retryTask(taskId)
             }
         }
     }
@@ -1641,6 +3227,128 @@ class AgentBotViewModel(
         }
     }
 
+    /** 工作台勾选/取消勾选目标里程碑；进度与状态由引擎重算。 */
+    fun toggleGoalMilestone(goalId: String, milestoneId: String, done: Boolean) {
+        if (goalId.isBlank() || milestoneId.isBlank()) return
+        viewModelScope.launch {
+            runCatching { goalEngine?.updateMilestone(goalId, milestoneId, done = done) }
+                .onFailure { Logger.w("AgentBotVM", "切换目标里程碑失败: ${it.message}") }
+        }
+    }
+
+    /** 工作台切换目标状态（暂停 / 恢复 / 标记达成 / 放弃）。 */
+    fun setGoalStatus(goalId: String, status: String) {
+        val safeStatus = status.trim().uppercase()
+        if (goalId.isBlank() || !AgentGoalStatus.isValid(safeStatus)) return
+        viewModelScope.launch {
+            runCatching { goalEngine?.setStatus(goalId, safeStatus) }
+                .onFailure { Logger.w("AgentBotVM", "切换目标状态失败: ${it.message}") }
+        }
+    }
+
+    fun deleteGoal(goalId: String) {
+        if (goalId.isBlank()) return
+        viewModelScope.launch {
+            runCatching { goalEngine?.delete(goalId) }
+                .onFailure { Logger.w("AgentBotVM", "删除目标失败: ${it.message}") }
+        }
+    }
+
+    /** 工作台「立即查一次」：只跑这一条，不等待后台轮询。 */
+    fun checkWatcherNow(watcherId: String) {
+        if (watcherId.isBlank()) return
+        viewModelScope.launch {
+            runCatching { watcherEngine?.checkNow(watcherId) }
+                .onFailure { Logger.w("AgentBotVM", "立即检查跟进项失败: ${it.message}", it) }
+        }
+    }
+
+    fun pauseWatcher(watcherId: String) {
+        if (watcherId.isBlank()) return
+        viewModelScope.launch {
+            runCatching { watcherEngine?.pause(watcherId) }
+                .onFailure { Logger.w("AgentBotVM", "暂停跟进项失败: ${it.message}", it) }
+        }
+    }
+
+    fun resumeWatcher(watcherId: String) {
+        if (watcherId.isBlank()) return
+        viewModelScope.launch {
+            runCatching { watcherEngine?.resume(watcherId) }
+                .onFailure { Logger.w("AgentBotVM", "恢复跟进项失败: ${it.message}", it) }
+        }
+    }
+
+    fun endWatcher(watcherId: String) {
+        if (watcherId.isBlank()) return
+        viewModelScope.launch {
+            runCatching { watcherEngine?.delete(watcherId) }
+                .onFailure { Logger.w("AgentBotVM", "结束跟进项失败: ${it.message}", it) }
+        }
+    }
+
+    /** 立即刷新一张已钉入小应用；刷新期间该卡显示圆环进度。 */
+    fun refreshSpaceNow(cardId: String) {
+        val engine = spaceEngine ?: return
+        val safeId = cardId.trim()
+        if (safeId.isBlank() || safeId in _refreshingSpaceIds.value) return
+        _refreshingSpaceIds.update { it + safeId }
+        viewModelScope.launch {
+            try {
+                val outcome = engine.refreshNow(safeId)
+                if (outcome is SpaceRefreshOutcome.Failed) {
+                    Logger.w("AgentBotVM", "刷新小应用失败: " + outcome.reason)
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Logger.w("AgentBotVM", "刷新小应用失败: " + e.message, e)
+            } finally {
+                _refreshingSpaceIds.update { it - safeId }
+            }
+        }
+    }
+
+    /** 修改小应用的自动刷新频率；[intervalMinutes] 为 0 表示关闭。 */
+    fun setSpaceRefreshPolicy(cardId: String, intervalMinutes: Int, refreshPrompt: String = "") {
+        val engine = spaceEngine ?: return
+        if (cardId.isBlank()) return
+        viewModelScope.launch {
+            runCatching { engine.setRefreshPolicy(cardId, intervalMinutes, refreshPrompt) }
+                .onFailure { Logger.w("AgentBotVM", "设置小应用刷新频率失败: " + it.message, it) }
+        }
+    }
+
+    /** 取消钉入；卡片本身与刷新配置保留，之后可以再次钉入。 */
+    fun unpinSpace(cardId: String) {
+        val engine = spaceEngine ?: return
+        if (cardId.isBlank()) return
+        viewModelScope.launch {
+            runCatching { engine.unpinCard(cardId) }
+                .onFailure { Logger.w("AgentBotVM", "取消钉入小应用失败: " + it.message, it) }
+        }
+    }
+
+    /** 一键生成零配置模板卡片。 */
+    fun createSpaceTemplate(template: SpaceTemplateDraft) {
+        val engine = spaceEngine ?: return
+        viewModelScope.launch {
+            runCatching {
+                engine.pinMessageCard(
+                    messageId = "space-template:" + template.id + ":" + java.util.UUID.randomUUID(),
+                    title = template.title,
+                    code = template.html,
+                    isSvg = false,
+                    dataJson = template.dataJson,
+                    originSessionId = currentSessionId,
+                    category = "template",
+                    refreshIntervalMinutes = template.refreshIntervalMinutes,
+                    refreshPrompt = template.refreshPrompt,
+                )
+            }.onFailure { Logger.w("AgentBotVM", "生成小应用模板失败: " + it.message, it) }
+        }
+    }
+
     fun startTeachRecording(title: String = "") {
         teachRecorder?.start(currentBotId, title)
     }
@@ -1653,23 +3361,51 @@ class AgentBotViewModel(
         teachRecorder?.recordStep(action, targetApp)
     }
 
+    fun pauseOrResumeTeachRecording() {
+        teachOverlayController?.togglePause()
+    }
+
+    fun canShowTeachOverlay(): Boolean = teachOverlayController?.canShowOverlay() == true
+
+    fun requestTeachOverlayPermission() {
+        teachOverlayController?.requestOverlayPermission()
+    }
+
     fun cancelTeachRecording() {
-        teachRecorder?.cancel()
+        if (teachOverlayController != null) {
+            teachOverlayController.cancel()
+        } else {
+            teachRecorder?.cancel()
+        }
     }
 
     fun finishTeachRecording() {
-        val draft = teachRecorder?.finish() ?: return
+        val draft = teachOverlayController?.finish() ?: teachRecorder?.finish() ?: return
         viewModelScope.launch {
-            runCatching {
+            try {
+                val compiled = teachSkillCompiler.compileDetailed(draft)
+                val skillRepository = teachSkillRepository
+                val skillId = if (skillRepository != null) {
+                    skillRepository.upsert(compiled.skill)
+                    compiled.skill.id
+                } else {
+                    Logger.w("AgentBotVM", "技能仓库不可用，示范流程只保存为惯例")
+                    ""
+                }
                 routineEngine?.createOrUpdate(
                     botId = draft.botId.ifBlank { currentBotId },
-                    title = draft.title,
-                    goalPrompt = draft.goalPrompt,
+                    title = compiled.title,
+                    goalPrompt = compiled.executionPrompt,
                     stepsSummary = draft.stepsSummary,
                     triggerType = RoutineTriggerType.MANUAL,
+                    skillId = skillId,
                     originSessionId = currentSessionId,
                 )
-            }.onFailure { Logger.w("AgentBotVM", "保存示范惯例失败: ${it.message}") }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Logger.w("AgentBotVM", "保存示范惯例失败: ${e.message}", e)
+            }
         }
     }
 
@@ -1724,6 +3460,10 @@ class AgentBotViewModel(
     }
 
     private fun itMessage(e: Exception): String = e.message.orEmpty()
+
+    /** 读取 Android 字符串资源；测试或极早初始化阶段没有 Context 时返回空串。 */
+    private fun appString(id: Int, vararg args: Any): String =
+        appContext?.getString(id, *args).orEmpty()
 
     /**
      * 用户在 NEEDS_USER 状态点"继续"。
@@ -2113,6 +3853,13 @@ class AgentBotViewModel(
         )
     }
 
+    /** 「聊着改」引用的实体身份；kind 目前支持 goal。 */
+    private data class RefineTarget(
+        val kind: String,
+        val id: String,
+        val title: String,
+    )
+
     @kotlinx.serialization.Serializable
     private data class PendingRoutineApproval(
         val title: String,
@@ -2120,6 +3867,17 @@ class AgentBotViewModel(
         val resourceScope: String = "",
         val triggerType: String = RoutineTriggerType.MANUAL,
         val triggerExpr: String = "",
+    )
+
+    @kotlinx.serialization.Serializable
+    private data class PendingWatcherApproval(
+        val title: String,
+        val instruction: String,
+        val script: String,
+        val scriptKind: String = AgentWatcherEngine.SCRIPT_KIND_PYTHON,
+        val computeTarget: String = "local",
+        val intervalMinutes: Int = AgentWatcherEngine.DEFAULT_INTERVAL_MINUTES,
+        val webhookUrl: String = "",
     )
 
     companion object {
@@ -2169,3 +3927,101 @@ class AgentBotViewModel(
         private const val TRANSCRIPT_FIRST_PAINT = 50
     }
 }
+
+/** SSH 接入表单的认证方式。 */
+enum class ComputeNodeSshAuthType { PASSWORD, PRIVATE_KEY }
+
+/**
+ * SSH 一键接入表单。
+ *
+ * 只在用户点击「开始接入」到 ViewModel 完成加密之间短暂存在；toString 固定脱敏，
+ * 避免任何日志/崩溃报告把它整对象打印出来时带出明文密码或私钥。
+ */
+class ComputeNodeSshRequest(
+    val name: String = "",
+    val host: String = "",
+    val sshPort: Int = 22,
+    val username: String = "",
+    val authType: ComputeNodeSshAuthType = ComputeNodeSshAuthType.PASSWORD,
+    val password: String = "",
+    val privateKey: String = "",
+    val daemonPort: Int = 18765,
+    val createSwap: Boolean = true,
+    val installBrowserPack: Boolean = true,
+) {
+    override fun toString(): String =
+        "ComputeNodeSshRequest(name=" + name + ", host=" + host + ", sshPort=" + sshPort +
+            ", username=" + username + ", authType=" + authType +
+            ", password=***, privateKey=***, daemonPort=" + daemonPort +
+            ", createSwap=" + createSwap + ", installBrowserPack=" + installBrowserPack + ")"
+}
+
+/** 当前接入面板执行的动作，用于标题与按钮文案。 */
+enum class ComputeNodeSetupAction { NONE, SSH_INSTALL, PAIRING, REPAIR, BROWSER_PACK }
+
+/** 四阶段进度中的一行；status 为空表示尚未开始。 */
+data class ComputeNodePhaseUi(
+    val phase: BootstrapPhase,
+    val status: BootstrapStatus? = null,
+    val percent: Int = 0,
+    val message: String = "",
+)
+
+/** 接入向导的展示状态；不含任何密码、私钥或节点 Token。 */
+data class ComputeNodeSetupUiState(
+    val running: Boolean = false,
+    val action: ComputeNodeSetupAction = ComputeNodeSetupAction.NONE,
+    val nodeId: String = "",
+    val totalPercent: Int = 0,
+    val phaseRows: List<ComputeNodePhaseUi> = emptyList(),
+    val message: String = "",
+    val error: String = "",
+    val finished: Boolean = false,
+)
+
+/** 远程终端面板状态。 */
+data class ComputeRemoteTerminalUiState(
+    val nodeId: String = "",
+    val lines: List<String> = emptyList(),
+    val running: Boolean = false,
+    val error: String = "",
+)
+
+/** 远程文件列表的一行。 */
+data class RemoteFileEntry(
+    val name: String,
+    val isDirectory: Boolean,
+)
+
+/** 远程文件浏览器状态。 */
+data class ComputeRemoteFilesUiState(
+    val nodeId: String = "",
+    val path: String = "",
+    val entries: List<RemoteFileEntry> = emptyList(),
+    val loading: Boolean = false,
+    val previewPath: String = "",
+    val previewText: String = "",
+    val error: String = "",
+)
+
+/** 一次自举事件里需要写回节点的字段；Token 已在本对象构造前加密。 */
+private data class BootstrapEntityPatch(
+    val daemonPort: Int? = null,
+    val encryptedNodeToken: String? = null,
+    val osInfoJson: String? = null,
+    val installedPacksJson: String? = null,
+)
+
+private const val AUTH_TYPE_PASSWORD = "PASSWORD"
+private const val AUTH_TYPE_PRIVATE_KEY = "PRIVATE_KEY"
+private const val PACK_CORE = "core"
+private const val PACK_BROWSER = "browser"
+private const val COMPUTE_NODE_SWAP_MB = 2048
+private const val MAX_TERMINAL_LINES = 200
+private const val MAX_FILE_PREVIEW_CHARS = 20_000
+private const val MAX_ERROR_MESSAGE_CHARS = 200
+private const val REMOTE_COMMAND_TIMEOUT_SEC = 120
+private const val REMOTE_LIST_TIMEOUT_SEC = 60
+private const val REMOTE_WORKSPACE = "~/muse-workspace"
+private const val TERMINAL_ERROR_PREFIX = "! "
+private const val DEFAULT_BROWSER_URL = "about:blank"

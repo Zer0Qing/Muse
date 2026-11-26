@@ -114,6 +114,7 @@
     <string name="doc_err_open_pdf">Cannot open PDF file</string>
     <string name="doc_err_pdf_text_empty">PDF text extraction is empty (may be a scanned PDF, OCR required). %1$d pages total.</string>
     <string name="doc_err_docx_no_document">Cannot read DOCX: missing word/document.xml</string>
+    <string name="doc_err_legacy_doc_unsupported">Legacy Word (.doc) files are not supported. Save as .docx and import again.</string>
     <string name="doc_err_pptx_no_slides">Cannot read PPTX: no slides found</string>
     <string name="doc_err_xlsx_no_sheets">Cannot read XLSX: no worksheets found</string>
     <string name="doc_err_epub_no_container">Cannot read EPUB: missing META-INF/container.xml</string>

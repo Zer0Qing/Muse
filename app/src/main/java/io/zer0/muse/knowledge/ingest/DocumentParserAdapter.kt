@@ -20,6 +20,9 @@ import io.zer0.muse.doc.DocumentParser
  *
  * 格式路由:未知/缺失 MIME 且扩展名不在白名单 → FAILED(未知格式),**不再按 txt
  * 强读二进制**(R0 盘点缺陷;白名单见 [KnowledgeParserRegistry.isSupportedFormat])。
+ *
+ * 图片类来源不交给旧链的文本读取:那会把 PNG/JPEG 字节当成字符解码成乱码正文,
+ * 再当成 COMPLETE 建索引。适配层直接报 NO_TEXT + 待授权 OCR,由调用方走真正的 OCR 链。
  */
 class DocumentParserAdapter(
     private val parser: DocumentParser,
@@ -54,10 +57,22 @@ class DocumentParserAdapter(
         return false
     }
 
-    fun parseToOutcome(uri: Uri, context: Context, fileName: String): ParseOutcome {
+    fun parseToOutcome(
+        uri: Uri,
+        context: Context,
+        fileName: String,
+        // 云端/MinerU 解析器的路由参数。默认 LOCAL 时与三参调用完全等价;
+        // 导入链需要保留用户在设置里选的解析器,不能因为接线而退回本地解析。
+        parserType: io.zer0.muse.rag.RagConfig.ParserType = io.zer0.muse.rag.RagConfig.ParserType.LOCAL,
+        cloudEndpoint: String = "",
+        mineruEndpoint: String = "",
+        mineruToken: String = "",
+    ): ParseOutcome {
         // 格式白名单路由:未知格式显式拒绝(不再按 txt 强读二进制)
         val resolver = context.contentResolver
         val mimeType = resolver.getType(uri)
+        val ext = fileName.substringAfterLast('.', "").lowercase()
+        val isImage = mimeType?.startsWith("image/") == true || ext in IMAGE_EXTS
         val extKnown = KnowledgeParserRegistry.isSupportedFormat(fileName)
         val mimeKnown = mimeType != null && (
             mimeType.startsWith("text/") ||
@@ -70,38 +85,58 @@ class DocumentParserAdapter(
                 ) ||
                 mimeType.startsWith("image/")
             )
+        // 旧版 Word(.doc)是 OLE 二进制:既不是文本也不是 OOXML,本地解析链读不了。
+        // 必须在交给 parseResult 之前拒收,否则会落到 readAsText 产出整篇乱码。
+        if (mimeType == LEGACY_WORD_MIME || ext == LEGACY_WORD_EXT) {
+            return ParseOutcome(
+                coverage = ParseCoverage.FAILED,
+                blocks = emptyList(),
+                error = context.getString(io.zer0.muse.R.string.doc_err_legacy_doc_unsupported),
+            )
+        }
+
         if (!mimeKnown && !extKnown) {
             return ParseOutcome(
                 coverage = ParseCoverage.FAILED,
                 blocks = emptyList(),
-                error = "未知文件格式,不支持导入: $fileName",
+                error = context.getString(io.zer0.muse.R.string.knowledge_import_unknown_format, fileName),
             )
         }
 
-        return when (val result = parser.parseResult(uri, context)) {
+        // 图片:不读文本,直接交给 OCR 策略层(读字节只会得到乱码正文)
+        if (isImage) {
+            return ParseOutcome(
+                coverage = ParseCoverage.NO_TEXT,
+                blocks = emptyList(),
+                ocrRequirement = OcrRequirement.REQUIRED_PENDING_POLICY,
+            )
+        }
+
+        return when (
+            val result = parser.parseResult(
+                uri,
+                context,
+                parserType,
+                cloudEndpoint,
+                mineruEndpoint,
+                mineruToken,
+            )
+        ) {
             is io.zer0.common.Result.Success -> {
                 val text = result.data
                 when {
                     text.isBlank() -> ParseOutcome(
                         coverage = ParseCoverage.NO_TEXT,
                         blocks = emptyList(),
-                        ocrRequirement = if (
-                            mimeType?.startsWith("image/") == true ||
-                            fileName.substringAfterLast('.', "").lowercase() in IMAGE_EXTS
-                        ) {
-                            OcrRequirement.REQUIRED_PENDING_POLICY
-                        } else {
-                            OcrRequirement.NONE
-                        },
+                        ocrRequirement = OcrRequirement.NONE,
                     )
                     else -> {
-                        val ext = fileName.substringAfterLast('.', "").lowercase()
                         if (!hasMeaningfulBody(text)) {
                             // 只有元数据/截断提示的 PDF 多为扫描件:不得报 COMPLETE。
                             ParseOutcome(
                                 coverage = ParseCoverage.NO_TEXT,
                                 blocks = emptyList(),
-                                ocrRequirement = if (ext == "pdf" || ext in IMAGE_EXTS) {
+                                ocrRequirement = if (ext == "pdf") {
                                     OcrRequirement.REQUIRED_PENDING_POLICY
                                 } else {
                                     OcrRequirement.NONE
@@ -139,5 +174,9 @@ class DocumentParserAdapter(
 
     companion object {
         private val IMAGE_EXTS = setOf("png", "jpg", "jpeg", "webp", "gif")
+
+        /** 旧版 Word 是 OLE 二进制，本地解析链读不了，也不能当文本读。 */
+        private const val LEGACY_WORD_MIME = "application/msword"
+        private const val LEGACY_WORD_EXT = "doc"
     }
 }

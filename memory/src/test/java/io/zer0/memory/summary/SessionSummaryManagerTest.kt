@@ -88,6 +88,8 @@ private class EmptySessionSummaryDao : SessionSummaryDao {
     override suspend fun deleteById(sessionId: String) = Unit
     // 助手被删除时要清掉它名下的摘要；空数据 fake 里没有可删的行。
     override suspend fun deleteByAssistant(assistantId: String): Int = 0
+    override suspend fun assistantIdsForSpace(spaceId: String): List<String> = emptyList()
+    override suspend fun migrateSpace(sourceSpaceId: String, targetSpaceId: String): Int = 0
     override suspend fun revisionOf(sessionId: String): Long? = null
     override suspend fun bumpRevisionIfCurrent(sessionId: String, expectedRevision: Long, sourceFingerprint: String): Int = 0
     override suspend fun markProcessedIfCurrent(sessionId: String, expectedRevision: Long, now: String): Int = 0
@@ -148,6 +150,13 @@ private class InMemorySessionSummaryDao : SessionSummaryDao {
     override suspend fun deleteByAssistant(assistantId: String): Int {
         val victims = rows.filterValues { it.assistantId == assistantId }.keys.toList()
         victims.forEach { rows.remove(it) }
+        return victims.size
+    }
+    override suspend fun assistantIdsForSpace(spaceId: String): List<String> =
+        rows.values.filter { it.spaceId == spaceId }.map { it.assistantId }.distinct()
+    override suspend fun migrateSpace(sourceSpaceId: String, targetSpaceId: String): Int {
+        val victims = rows.values.filter { it.spaceId == sourceSpaceId }
+        victims.forEach { rows[it.sessionId] = it.copy(spaceId = targetSpaceId) }
         return victims.size
     }
     override suspend fun revisionOf(sessionId: String): Long? = rows[sessionId]?.summaryRevision

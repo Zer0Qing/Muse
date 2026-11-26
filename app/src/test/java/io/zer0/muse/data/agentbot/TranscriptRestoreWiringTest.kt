@@ -29,7 +29,9 @@ class TranscriptRestoreWiringTest {
     fun `binding a conversation rebuilds the transcript`() {
         val bindAt = vm.indexOf("fun bind(");
         assertTrue("bind 必须存在", bindAt > 0);
-        val body = vm.substring(bindAt, minOf(bindAt + 900, vm.length));
+        val bindEnd = Regex("\\R    \\}\\R").find(vm, bindAt)?.range?.first
+            ?: error("找不到 bind 函数结尾")
+        val body = vm.substring(bindAt, bindEnd);
         assertTrue(
             "绑定会话时必须重建对话流，否则重启后是空白",
             body.contains("reloadTranscript()"),

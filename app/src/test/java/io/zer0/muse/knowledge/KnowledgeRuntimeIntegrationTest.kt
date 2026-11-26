@@ -87,7 +87,7 @@ class KnowledgeRuntimeIntegrationTest {
         assertTrue("作业应成功: $result", result is JobStepResult.Succeeded)
         assertNotNull(runtime.jobDao.getActiveGeneration("doc-1"))
 
-        val contribution = runtime.contributor.prepareEvidence(
+        val contribution = runtime.prepareEvidence(
             context = TrustedGenerationContext(
                 entry = KnowledgeEntryType.CHAT,
                 assistantId = "a1",

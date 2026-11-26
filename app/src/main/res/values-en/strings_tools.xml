@@ -39,8 +39,8 @@
     <string name="tools_settings_title">Tool Approval</string>
     <string name="tools_settings_search_hint">Search tool name or description</string>
 
-    <!-- Stats (N tools · always-allow X · ask Y · always-deny Z) -->
-    <string name="tools_settings_stats">%1$d tools · always-allow %2$d · ask %3$d · always-deny %4$d</string>
+    <!-- Stats (N tools · allow X · auto-review Y · ask Z · deny W) -->
+    <string name="tools_settings_stats">%1$d tools · allow %2$d · auto-review %3$d · ask %4$d · deny %5$d</string>
 
     <!-- Risk level group titles -->
     <string name="tools_settings_section_safe">Safe Tools (read-only / query)</string>
@@ -54,6 +54,8 @@
     <string name="tools_settings_footer_section">Policy Explanation</string>
     <string name="tools_settings_policy_always_allow">Always Allow</string>
     <string name="tools_settings_policy_always_allow_desc">Tool calls are auto-approved; no approval card is shown</string>
+    <string name="tools_settings_policy_auto_review">AI Auto Review</string>
+    <string name="tools_settings_policy_auto_review_desc">Read-only tools and safe workspace writes run automatically; deletes, external sends, system package installs, payments, and out-of-workspace paths still show an approval card</string>
     <string name="tools_settings_policy_ask">Ask Every Time</string>
     <string name="tools_settings_policy_ask_desc">An approval card is shown before invocation; you decide whether to approve or deny</string>
     <string name="tools_settings_policy_always_deny">Always Deny</string>
@@ -61,6 +63,7 @@
 
     <!-- Short labels for the per-tool segmented control -->
     <string name="tools_settings_policy_always_allow_short">Allow</string>
+    <string name="tools_settings_policy_auto_review_short">Review</string>
     <string name="tools_settings_policy_ask_short">Ask</string>
     <string name="tools_settings_policy_always_deny_short">Deny</string>
     <string name="tools_empty_title">No registered tools</string>

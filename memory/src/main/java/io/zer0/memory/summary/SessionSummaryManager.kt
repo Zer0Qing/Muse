@@ -31,6 +31,13 @@ private val VIBE_LINE_REGEX = Regex("""(?im)^\s*Vibe\s*:\s*(.+)$""")
 class SessionSummaryManager(
     private val dao: SessionSummaryDao,
     private val llmClient: MemoryLlmClient,
+    /**
+     * 备份/恢复写闸。null 时不做闸检查(测试/旧装配),行为与接入前一致。
+     *
+     * 摘要写入是「旧内容 + 模型输出 → 覆盖」:模型调用可能在恢复窗口完整开合之后才返回,
+     * 那份摘要基于已被替换的库。所以除了入口查一次,写摘要前还要用入口取的栅栏再判一次。
+     */
+    private val writeGate: io.zer0.memory.runtime.MemoryWriteGate? = null,
 ) {
 
     /**
@@ -57,6 +64,24 @@ class SessionSummaryManager(
         val assistantId: String = "",
         val spaceId: String = "default",
     )
+
+    /**
+     * 摘要行的归属键 → 写闸 scope 键。
+     *
+     * 摘要本身不按 scope 分档,但闸键要求三项非空;主助手的 facts 主作用域约定是 `main`,
+     * 这里按同一约定归一,不要用空串冒充 scope。
+     */
+    private fun SummaryOwnership.toGateScope(): io.zer0.memory.runtime.MemoryScopeKey {
+        val owner = assistantId.ifBlank { "default" }
+        return io.zer0.memory.runtime.MemoryScopeKey(
+            assistantId = owner,
+            scope = owner.takeIf { it != "default" } ?: "main",
+            spaceId = spaceId.ifBlank { "default" },
+        )
+    }
+
+    /** 进程级闸键:闸目前不按 scope 细分,但接口要求三项非空。 */
+    private val processGateScope = io.zer0.memory.runtime.MemoryScopeKey("default", "main", "default")
 
     /** 业务层数据结构(与 Entity 分离,屏蔽 snapshot/snapshotAt 等内部字段)。 */
     data class SummaryData(
@@ -97,9 +122,18 @@ class SessionSummaryManager(
         dao.revisionOf(sessionId) == revision
     }
 
-    /** 写入摘要(覆盖式)。 */
-    suspend fun saveSummary(sessionId: String, data: SummaryData) = withContext(Dispatchers.IO) {
+    /**
+     * 写入摘要(覆盖式)。备份恢复期间不写 —— 恢复后这份摘要是旧库的产物。
+     *
+     * @return true 表示已落库
+     */
+    suspend fun saveSummary(sessionId: String, data: SummaryData): Boolean = withContext(Dispatchers.IO) {
+        if (writeGate?.isBlocked(processGateScope) == true) {
+            Logger.d("SessionSummaryManager", "saveSummary: 备份恢复进行中,跳过 (${sessionId.take(8)}…)")
+            return@withContext false
+        }
         dao.upsert(data.toEntity(sessionId))
+        true
     }
 
     /** 获取所有"脏" session(summary !== snapshot),供深度记忆用。 */
@@ -109,13 +143,21 @@ class SessionSummaryManager(
             .map { it.toSummaryData() }
     }
 
-    /** 标记 session 已被深度记忆处理(snapshot = summary)。 */
+    /** 标记 session 已被深度记忆处理(snapshot = summary)。恢复期间不写:否则未提取的内容会被当成已处理。 */
     suspend fun markProcessed(sessionId: String) = withContext(Dispatchers.IO) {
+        if (writeGate?.isBlocked(processGateScope) == true) {
+            Logger.d("SessionSummaryManager", "markProcessed: 备份恢复进行中,跳过 (${sessionId.take(8)}…)")
+            return@withContext
+        }
         dao.markProcessed(sessionId, Instant.now().toString())
     }
 
     /** 仅当 revision 仍为 [expectedRevision] 时标记已处理；否则 false。 */
     suspend fun markProcessedIfCurrent(sessionId: String, expectedRevision: Long): Boolean = withContext(Dispatchers.IO) {
+        if (writeGate?.isBlocked(processGateScope) == true) {
+            Logger.d("SessionSummaryManager", "markProcessedIfCurrent: 备份恢复进行中,跳过 (${sessionId.take(8)}…)")
+            return@withContext false
+        }
         dao.markProcessedIfCurrent(sessionId, expectedRevision, Instant.now().toString()) > 0
     }
 
@@ -229,21 +271,31 @@ class SessionSummaryManager(
         timeZone: String = TimeContext.DEFAULT_TIMEZONE,
         ownership: SummaryOwnership = SummaryOwnership(),
     ): RollingResult = withContext(Dispatchers.IO) {
+        // 恢复栅栏:入口取一次,模型返回后真正写摘要前再判一次(窗口可能已开合完)。
+        val fence = writeGate?.fence()
         // v2.6.2（记忆审计）: 整个 read-modify-write 按 session 串行，避免并发覆盖。
         lockFor(sessionId).withLock {
             val current = readRevisionToken(sessionId)
             val draft = createRollingSummaryDraft(sessionId, messages, model, locale, timeZone, ownership)
                 ?: return@withLock RollingResult(summary = "", changed = false)
             if (draft.changed && draft.data != null) {
+                if (writeGate?.blocksWrite(ownership.toGateScope(), fence) == true) {
+                    // 不写库、不确认成功指纹:调用方看到 changed=false 不会向下游宣告成功。
+                    Logger.d("SessionSummaryManager", "rollingSummary: 恢复窗口内跳过摘要写入 (${sessionId.take(8)}…)")
+                    return@withLock RollingResult(summary = draft.summary, changed = false)
+                }
                 val data = draft.data
                 val expectedRevision = current?.revision
                 if (expectedRevision != null && !isRevisionCurrent(sessionId, expectedRevision)) {
                     Logger.w("SessionSummaryManager", "rollingSummary CAS superseded for ${sessionId.take(8)}")
                     return@withLock RollingResult(summary = draft.summary, changed = false)
                 }
-                saveSummary(sessionId, data)
+                if (!saveSummary(sessionId, data)) {
+                    // 写入被闸跳过:不推算成功,也不 bump revision。
+                    return@withLock RollingResult(summary = draft.summary, changed = false)
+                }
                 if (expectedRevision != null) {
-                    dao.bumpRevisionIfCurrent(sessionId, expectedRevision, draft.data?.sourceFingerprint ?: "")
+                    dao.bumpRevisionIfCurrent(sessionId, expectedRevision, data.sourceFingerprint)
                 }
             }
             RollingResult(summary = draft.summary, changed = draft.changed)

@@ -521,6 +521,8 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging)
     implementation(libs.okhttp.sse)
+    // v2.7.x: SSH 自举与本地端口转发（纯 Java 实现，不含 native 库）
+    implementation(libs.jsch)
     // DNS/SSRF 专项测试：验证 MockWebServer 实际建立的 socket 地址。
     testImplementation("com.squareup.okhttp3:mockwebserver:5.3.2")
     // v1.94: Jsoup — HTML 解析(搜索结果 + web_fetch 正文提取,替代 regex + Html.fromHtml)

@@ -23,7 +23,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -55,7 +57,10 @@ import io.zer0.muse.ui.common.surface.MuseDialogWindowEffect
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.common.Logger
+import io.zer0.muse.data.agentbot.AgentSpaceEngine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.encodeToString
@@ -131,8 +136,14 @@ internal fun RichContentCard(
      *
      * 卡片被裁的根因之一是「高度只能靠测」。模型生成时是知道这张卡要多高的，
      * 让声明优先于测量：说了就按说的来，没说才去测。
+     *
+     * @param onPinToSpaces 可选：把这张卡片钉入 Spaces。null 时对带 cardId 的 HTML/SVG 卡片
+     *        启用内置钉入动作，已经钉入的卡片不再重复展示入口。
+     * @param onRefineInChat 可选：带着这张卡片回到对话里继续修改。
      */
     heightSpec: String? = null,
+    onPinToSpaces: (() -> Unit)? = null,
+    onRefineInChat: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
     // 渐进渲染节流 —— 流式期间源码持续增长，每交一次新内容给 WebView 就是一次整页重载
@@ -155,6 +166,57 @@ internal fun RichContentCard(
         "mermaid" -> stringResource(R.string.markdown_mermaid_label)
         else -> language.uppercase()
     }
+
+    // 内置钉入入口只对可渲染为卡片的 HTML/SVG 生效；已经有 cardId 的卡片先查一次
+    // 是否已经在 Spaces 里，避免在「小应用」页重复出现钉入按钮。
+    val appKoin = remember { org.koin.core.context.GlobalContext.getOrNull() }
+    val stableCardId = cardId?.takeIf { it.isNotBlank() }
+    val normalizedLanguage = language.lowercase().trim()
+    val cardEntityDao = remember(appKoin, stableCardId) {
+        if (stableCardId == null) null else {
+            appKoin?.getOrNull<io.zer0.muse.data.session.MuseDb>()?.cardEntityDao()
+        }
+    }
+    val spaceEngine = remember(appKoin, stableCardId, normalizedLanguage) {
+        if (stableCardId == null || normalizedLanguage !in PINNABLE_LANGUAGES) null else {
+            appKoin?.getOrNull<AgentSpaceEngine>()
+        }
+    }
+    var alreadyPinned by remember(stableCardId) { mutableStateOf(false) }
+    LaunchedEffect(stableCardId) {
+        alreadyPinned = stableCardId?.let { id -> cardEntityDao?.getById(id)?.spacePinned } == true
+    }
+    val coroutineScope = rememberCoroutineScope()
+    val builtInPinAction: (() -> Unit)? = if (
+        onPinToSpaces == null &&
+        !alreadyPinned &&
+        stableCardId != null &&
+        spaceEngine != null &&
+        normalizedLanguage in PINNABLE_LANGUAGES
+    ) {
+        val targetCardId = stableCardId
+        val engine = spaceEngine
+        {
+            coroutineScope.launch {
+                runCatching {
+                    engine.pinMessageCard(
+                        messageId = targetCardId,
+                        title = AgentSpaceEngine.deriveSpaceTitle(content, normalizedLanguage == "svg"),
+                        code = content,
+                        isSvg = normalizedLanguage == "svg",
+                        dataJson = inlineCardData,
+                    )
+                }.onSuccess { card ->
+                    if (card != null) alreadyPinned = true
+                }.onFailure {
+                    Logger.w("RichContentCard", "pin to spaces failed: " + it.message, it)
+                }
+            }
+        }
+    } else {
+        null
+    }
+    val pinToSpaces = onPinToSpaces ?: builtInPinAction
     Surface(
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
         shape = MuseShapes.medium,
@@ -186,6 +248,26 @@ internal fun RichContentCard(
                     size = MuseIconSizes.touchTarget,
                     iconSize = MuseIconSizes.iconSmall,
                 )
+                if (pinToSpaces != null) {
+                    MuseTactileButton(
+                        icon = MuseIcons.pin,
+                        onClick = pinToSpaces,
+                        contentDescription = stringResource(R.string.agent_space_pin_card_cd),
+                        tint = MaterialTheme.colorScheme.outline,
+                        size = MuseIconSizes.touchTarget,
+                        iconSize = MuseIconSizes.iconSmall,
+                    )
+                }
+                if (onRefineInChat != null) {
+                    MuseTactileButton(
+                        icon = MuseIcons.edit,
+                        onClick = onRefineInChat,
+                        contentDescription = stringResource(R.string.agent_space_refine_card_cd),
+                        tint = MaterialTheme.colorScheme.outline,
+                        size = MuseIconSizes.touchTarget,
+                        iconSize = MuseIconSizes.iconSmall,
+                    )
+                }
                 if (onCardAction != null || (supportsPreview && showPreviewButton)) {
                     MuseTactileButton(
                         icon = MuseIcons.moreVertical,
@@ -198,9 +280,12 @@ internal fun RichContentCard(
                 }
             }
             Spacer(Modifier.height(4.dp))
+            // 有 cardId 的卡片始终装配数据桥：Spaces 常驻卡不带交互回调，但仍要能读
+            // CardDataStore 里的绑定数据并接收后台刷新推送。无回调时用无操作接收器。
+            val dataBridgeAction = onCardAction ?: if (cardId != null) NoopCardAction else null
             when (language.lowercase().trim()) {
-                "svg" -> SvgCard(effectiveContent, onCardAction, inlineCardData, cardId, heightSpec)
-                "html" -> HtmlCard(effectiveContent, onCardAction, inlineCardData, cardId, heightSpec)
+                "svg" -> SvgCard(effectiveContent, dataBridgeAction, inlineCardData, cardId, heightSpec)
+                "html" -> HtmlCard(effectiveContent, dataBridgeAction, inlineCardData, cardId, heightSpec)
                 "chart" -> ChartCard(effectiveContent)
                 "mermaid" -> MermaidBlock(effectiveContent)
                 else -> Text(effectiveContent, style = MaterialTheme.typography.bodySmall)
@@ -288,6 +373,12 @@ internal fun richContentSupportsPreview(language: String): Boolean = language.lo
 
 /** 全屏预览语言集合。 */
 private val RICH_PREVIEW_LANGUAGES = setOf("html", "svg", "chart", "mermaid")
+
+/** 可钉入 Spaces 的语言：只有真正的 HTML/SVG 卡片源码能作为常驻小应用渲染。 */
+private val PINNABLE_LANGUAGES = setOf("html", "svg")
+
+/** 只读宿主的数据桥接收器：卡片可读绑定数据，但没有回传动作。 */
+private val NoopCardAction: (CardAction) -> Unit = {}
 
 /**
  * 依赖本地 assets 脚本渲染、需在卡片内全屏 WebView 预览的语言。

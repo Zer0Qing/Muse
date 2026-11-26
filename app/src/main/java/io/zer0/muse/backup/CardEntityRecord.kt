@@ -33,6 +33,16 @@ data class CardEntityRecord(
     val dockedAt: Long? = null,
     val createdAt: Long = 0L,
     val updatedAt: Long = 0L,
+    /** 是否钉入 Spaces 常驻小应用区。 */
+    val spacePinned: Boolean = false,
+    /** Spaces 分类标签。 */
+    val spaceCategory: String = "",
+    /** 后台自动刷新周期（分钟），0 = 不自动刷新。 */
+    val refreshIntervalMinutes: Int = 0,
+    /** 自动刷新提示词。 */
+    val refreshPrompt: String = "",
+    /** 最近一次自动刷新时间。 */
+    val lastRefreshedAt: Long = 0L,
 )
 
 internal fun CardEntity.toRecord(): CardEntityRecord = CardEntityRecord(
@@ -48,6 +58,11 @@ internal fun CardEntity.toRecord(): CardEntityRecord = CardEntityRecord(
     dockedAt = dockedAt,
     createdAt = createdAt,
     updatedAt = updatedAt,
+    spacePinned = spacePinned,
+    spaceCategory = spaceCategory,
+    refreshIntervalMinutes = refreshIntervalMinutes,
+    refreshPrompt = refreshPrompt,
+    lastRefreshedAt = lastRefreshedAt,
 )
 
 internal fun CardEntityRecord.toEntity(): CardEntity = CardEntity(
@@ -63,6 +78,11 @@ internal fun CardEntityRecord.toEntity(): CardEntity = CardEntity(
     dockedAt = dockedAt,
     createdAt = createdAt,
     updatedAt = updatedAt,
+    spacePinned = spacePinned,
+    spaceCategory = spaceCategory,
+    refreshIntervalMinutes = refreshIntervalMinutes,
+    refreshPrompt = refreshPrompt,
+    lastRefreshedAt = lastRefreshedAt,
 )
 
 /**

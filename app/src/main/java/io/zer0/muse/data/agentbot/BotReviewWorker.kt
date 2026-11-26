@@ -241,7 +241,7 @@ class BotReviewWorker {
     ): String = buildString {
         append("「")
         append(goal.trim().take(MAX_GOAL_CHARS).ifBlank { "这件事" })
-        append("」")
+        append("」审核结论：")
         append(dispositionText(decision.disposition))
         if (candidateRefs.isNotEmpty()) {
             append("\n产物：")

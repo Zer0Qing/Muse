@@ -2182,6 +2182,37 @@ class FactStore(
     }
 
     /**
+     * 条件置顶切换:只有 (scope, spaceId) 同时匹配的行才被改写。
+     *
+     * 置顶状态与跨 Space 的唯一身份绑定 —— 拿裸 id 改 pinned_at 会写到另一个 Space
+     * 或另一个助手分库里同号的行上(各库自增 id 各自从 1 开始)。
+     *
+     * @return 是否真的改了一行;false = 行不存在或不属于该 scope/space
+     */
+    suspend fun setPinned(id: Long, pinned: Boolean, scope: String, spaceId: String): Boolean =
+        withContext(Dispatchers.IO) {
+            dao.updatePinnedAtScoped(id, if (pinned) Instant.now().toString() else null, scope, spaceId) > 0
+        }
+
+    /**
+     * 置顶事实读取 —— `pinned_at` 是事实置顶的唯一事实源。
+     *
+     * 只给读端用:按置顶时间倒序,不排除过期/低分行。置顶意味着用户要求永远记得,
+     * 与衰减、过期清理里 `pinned_at IS NULL` 的前置条件同一口径。
+     * 其它助手 scope 的行不会出现 —— scope 与 spaceId 都是必传参数。
+     */
+    suspend fun getPinned(scope: String, spaceId: String, limit: Int = FactStore.PINNED_READ_LIMIT): List<Fact> =
+        withContext(Dispatchers.IO) {
+            dao.getPinnedByScopeAndSpace(scope, spaceId, limit.coerceIn(1, FactStore.PINNED_READ_LIMIT))
+                .map { it.toDomainFact() }
+        }
+
+    internal suspend fun getPinnedContentsOutside(scope: String, spaceId: String): Set<String> =
+        withContext(Dispatchers.IO) {
+            dao.getPinnedContentsOutside(scope, spaceId).mapTo(hashSetOf()) { it.trim() }
+        }
+
+    /**
      * v10 P2-3: 更新指定 fact 的分类和标签(用于 AI 记忆管理)。
      *
      * @param category 分类(null 保留原值)
@@ -2364,6 +2395,14 @@ class FactStore(
 
         /** v20(M1): 证据摘录长度上限(字) —— 够回看原话即可,画像/日志不背整段对话。 */
         const val EVIDENCE_MAX_CHARS = 200
+
+        /**
+         * 置顶事实读取上限。
+         *
+         * 置顶是用户逐条点进去的,正常远少于这个数;上限只是防止旧数据批量导入后
+         * 一次拼出无界的固定记忆段。
+         */
+        const val PINNED_READ_LIMIT = 100
 
         /**
          * 全文检索的匹配语义。

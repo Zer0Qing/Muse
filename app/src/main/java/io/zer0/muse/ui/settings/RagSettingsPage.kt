@@ -96,7 +96,19 @@ fun RagSettingsPage(onBack: () -> Unit, onManageKbs: () -> Unit = {}) {
                     }
                 }
                 saved.onSuccess { path ->
-                    settings.saveRagConfig(config.copy(localModelPath = path))
+                    // 模型指纹:同一路径可能被覆盖成另一个模型,只看路径无法发现「模型换了」。
+                    // 本入口是当前唯一写本地模型文件的路径,因此指纹也只能在这里算。
+                    val digest = withContext(Dispatchers.IO) {
+                        runCatching { io.zer0.common.Hashing.sha256Hex(java.io.File(path)) }
+                            .getOrNull()
+                            .orEmpty()
+                    }
+                    if (digest.isBlank()) {
+                        Logger.w("RagSettingsPage", "本地模型文件指纹计算失败，按无指纹处理: $path")
+                    }
+                    settings.saveRagConfig(
+                        config.copy(localModelPath = path, localModelDigest = digest),
+                    )
                     MuseToast.show(context.getString(R.string.settings_rag_onnx_picked))
                 }.onFailure { e ->
                     MuseToast.show(context.getString(R.string.settings_rag_onnx_pick_failed, e.message ?: ""))
@@ -292,7 +304,10 @@ fun RagSettingsPage(onBack: () -> Unit, onManageKbs: () -> Unit = {}) {
                                         text = stringResource(R.string.settings_rag_onnx_clear),
                                         onClick = {
                                             scope.launch {
-                                                settings.saveRagConfig(config.copy(localModelPath = ""))
+                                                // 清路径必须同时清指纹：残留指纹会让「模型已换」判定漏报。
+                                                settings.saveRagConfig(
+                                                    config.copy(localModelPath = "", localModelDigest = ""),
+                                                )
                                             }
                                         },
                                         variant = IosCapsuleButtonVariant.Secondary,

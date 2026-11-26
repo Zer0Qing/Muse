@@ -3,7 +3,6 @@ package io.zer0.memory.ai
 import io.zer0.ai.core.Model
 import io.zer0.ai.core.UIMessage
 import io.zer0.common.Logger
-import io.zer0.common.resultOf
 import io.zer0.memory.fact.FactDbProvider
 import io.zer0.memory.fact.FactStore
 import io.zer0.memory.llm.MemoryLlmClient
@@ -64,6 +63,16 @@ class MemoryAutoSaveScheduler(
      * v2.6.2: LLM 深化开关提供者（读用户配置）；返回 true 时对弱边用大模型判定关系类型。
      */
     private val edgeEnhanceEnabled: (() -> Boolean)? = null,
+    /**
+     * v12 (T2-3): 已处理内容指纹的持久化文件。null 时退化为纯内存缓存（测试/无 filesDir 环境）。
+     * 文件里只有摘要哈希，没有对话原文。
+     */
+    private val fingerprintFile: java.io.File? = null,
+    /**
+     * 备份/恢复写闸。null 时不做闸检查(测试/旧装配)。
+     * 模型调用可能跟着一次完整的恢复窗口才返回，所以写前还要用入口取的栅栏再判一次。
+     */
+    private val writeGate: io.zer0.memory.runtime.MemoryWriteGate? = null,
 ) {
 
     companion object {
@@ -96,6 +105,15 @@ class MemoryAutoSaveScheduler(
 
         /** v2.6.2: 会话结束补边时视为“新事实”的最近条数。 */
         private const val EDGE_NEW_FACTS_LIMIT = 20
+
+        /** 日志标签。 */
+        private const val TAG_LOG = "MemoryAutoSaveScheduler"
+
+        /** 主助手固定 id；拥有者 id 为空时兜底用它，不能用 scope 值冒充。 */
+        private const val DEFAULT_ASSISTANT_ID = "default"
+
+        /** 进程级写闸的占位 scope(闸本身不按 scope 细分)。 */
+        private val GATE_SCOPE = io.zer0.memory.runtime.MemoryScopeKey("default", "main", "default")
     }
 
     // 模型常把可选字段显式写成 null。coerceInputValues 会把 null 恢复为
@@ -108,21 +126,66 @@ class MemoryAutoSaveScheduler(
     private val analysisSemaphore = Semaphore(MAX_CONCURRENT_ANALYSIS)
 
     /**
-     * v12 (T2-3): 已处理内容指纹缓存(进程内 LRU,同步访问)。
-     * 幂等键 = sessionId + 历史消息指纹(最后 20 条消息的 id+content 哈希)。
-     * 同一会话同一段历史只调一次 LLM 提取,防 AutoSave 与 DeepMemory 对同一内容
-     * 重复提取/双写;失败不更新指纹(保留补跑机会)。
+     * v12 (T2-3): 已处理内容指纹缓存（有界 LRU + 原子持久化，只存摘要哈希）。
+     *
+     * 幂等键 = 拥有者 + 作用域 + 空间 + sessionId，同历史变更指纹策略见 [fingerprintHistory]。
+     * 同一会话同一段历史只调一次 LLM 提取，防 AutoSave 与 DeepMemory 对同一内容
+     * 重复提取/双写；失败不记指纹（保留补跑机会）。
+     *
+     * 这不是 DeepMemory 的水位：DeepMemory 的「处理到哪」是 Room summary 的 revision/snapshot，
+     * 输入是摘要 diff。两边口径不同，各自独立 —— 这里处理过最近 30 条，不代表更早的消息
+     * 不需要深度提取；真重复由 FactStore 写入侧去重消除。
      */
-    private val processedFingerprints = object : LinkedHashMap<String, String>(64, 0.75f, true) {
-        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, String>?): Boolean = size > 256
+    private val fingerprints = AutoSaveFingerprintCache(fingerprintFile)
+
+    /** 一次 autoSave 的终态。用密封类型而不是 null 兼代表多种失败，避免“闸拦截”被当成“解析失败”。 */
+    private sealed interface RunOutcome {
+        /** 已解析并落库。 */
+        data class Applied(val stats: AnalysisResult) : RunOutcome
+
+        /** 模型返回不可用（空响应/content_filter/JSON 解析失败）——可预期，不记指纹。 */
+        data object Empty : RunOutcome
+
+        /** 被备份恢复写闸拦下 —— 结果基于旧库，不落库、不记指纹。 */
+        data object Gated : RunOutcome
     }
 
     /**
-     * v12 (T2-3): 计算历史消息指纹 — 取最后 [MAX_HISTORY_MESSAGES] 条消息的
-     * (id + 与实际发给 LLM 的截断长度一致的 content) 哈希。id 相同且内容相同 → 同一段历史,幂等跳过。
+     * 写前闸判定。
      *
-     * 指纹本身必须覆盖完整历史：LLM 输入仍受 [MAX_HISTORY_MESSAGES] 限制，
-     * 但更早消息被编辑时也要允许下一次 auto-save 重跑，避免把旧记忆永久判定为已处理。
+     * 闸目前是进程级的，不看 scope 细分；这里给一个固定的粗粒度键，
+     * 避免为了过接口编造一个有意义的 scope（那会让人误以为闸已按 scope 隔离）。
+     */
+    private fun gateBlocks(fence: io.zer0.memory.runtime.MemoryWriteFence? = null): Boolean =
+        writeGate?.blocksWrite(GATE_SCOPE, fence) ?: false
+
+    /** 主动作废指纹缓存（记忆重置等场景）。 */
+    fun invalidateFingerprintCache() {
+        fingerprints.invalidate()
+    }
+
+    /**
+     * 作废某个会话的指纹（会话/助手删除时）。
+     *
+     * 调用方不必先知道有没有记录：没命中就不落盘、不报错。
+     *
+     * @return 被移除的条目数
+     */
+    fun invalidateFingerprintCacheForSession(sessionId: String): Int =
+        fingerprints.invalidateSession(sessionId)
+
+    /** 作废某个助手的指纹（助手删除时）。 */
+    fun invalidateFingerprintCacheForAssistant(assistantId: String): Int =
+        fingerprints.invalidateAssistant(assistantId)
+
+    /**
+     * v12 (T2-3): 计算历史消息指纹 — 逐条哈希完整历史的 (id + content)，不截断。
+     * id 相同且内容相同 → 同一段历史，幂等跳过。
+     *
+     * 指纹覆盖的是**完整历史**；发给模型时才由 [buildHistoryText] 只取最后
+     * [MAX_HISTORY_MESSAGES] 条、每条再截到 [MAX_MESSAGE_CHARS]。两者口径不同：
+     * 窗口只是成本约束，不能当作幂等边界 —— 更早的消息被编辑也要让下一次 auto-save 重跑，
+     * 否则旧记忆会被永久当成已处理。
      */
     internal fun fingerprintHistory(history: List<UIMessage>): String {
         val digest = java.security.MessageDigest.getInstance("MD5")
@@ -172,82 +235,90 @@ class MemoryAutoSaveScheduler(
         if (history.isEmpty()) return
         // v12 (T2-3): 幂等指纹 — 同一会话同一段历史已成功处理过则跳过,
         // 防止同内容重复调 LLM 提取(与 DeepMemory 双写同一内容的场景)。
-        // 会话 id 可能在导入/多助手场景复用，幂等键必须包含记忆隔离维度。
-        val fpKey = listOf(assistantId, scope, spaceId, sessionId).joinToString("|")
+        // 会话 id 可能在导入/多助手场景复用：幂等键必须包含拥有者/作用域/空间三个隔离维度。
+        val key = AutoSaveFingerprintCache.Key(
+            assistantId = assistantId.ifBlank { DEFAULT_ASSISTANT_ID },
+            scope = scope.ifBlank { "main" },
+            spaceId = spaceId.ifBlank { "default" },
+            sessionId = sessionId,
+        )
         val fp = fingerprintHistory(history)
-        val alreadyProcessed = synchronized(processedFingerprints) {
-            processedFingerprints[fpKey] == fp
-        }
-        if (alreadyProcessed) {
-            Logger.d("MemoryAutoSaveScheduler", "autoSave 幂等跳过(session=${sessionId.take(8)}…, 内容未变化)")
+        // 快路径只为了不白排一个协程;权威判定在 semaphore 内(缓存读写都在那里串行)。
+        if (fingerprints.also { it.invalidateIfRestored() }.isProcessed(key, fp)) {
+            Logger.d(TAG_LOG, "autoSave 幂等跳过(session=${sessionId.take(8)}…, 内容未变化)")
             return
         }
         this.scope.launch {
             analysisSemaphore.withPermit {
-                resultOf {
-                    runAutoSave(sessionId, history, assistantId, spaceId, scope, model, locale)
-                }.onSuccess { result ->
-                    if (result == null) {
-                        // v2.x（日志排障）: 未解析出分析是可预期失败（上游 content_filter /
-                        // 空响应 / JSON 解析失败），不记指纹（下次仍会处理），也不抛异常。
-                        Logger.w(
-                            "MemoryAutoSaveScheduler",
-                            "autoSave 未解析出分析(可预期失败，不记指纹): session=${sessionId.take(8)}…",
-                        )
-                    } else {
-                        // v12 (T2-3): 只有解析并落库成功才记录指纹；LLM 空响应/JSON 解析失败必须补跑。
-                        synchronized(processedFingerprints) { processedFingerprints[fpKey] = fp }
-                        Logger.i(
-                            "MemoryAutoSaveScheduler",
-                            "autoSave 完成(session=${sessionId.take(8)}…): " +
-                                "extracted=${result.extracted}, updated=${result.updated}, " +
-                                "merged=${result.merged}, links=${result.links}",
-                        )
-                    }
-                }.onError { msg, t ->
-                    Logger.w("MemoryAutoSaveScheduler", "autoSave 失败(session=${sessionId.take(8)}…): $msg", t)
-                    // v2.6.9: 配额/余额/鉴权类终态失败不排 30s 补跑。
-                    // 上游已在节流(日志里 agnes 的 "not asked again before 02:49" 就是上游文案),
-                    // 我们 30s 后再打一次只会继续吃 402。其余错误(网络抖动/限流/解析)保持原行为。
-                    if (FailureClassifier.isTerminalQuotaOrAuth(t)) {
-                        Logger.w(
-                            "MemoryAutoSaveScheduler",
-                            "autoSave 失败为配额/鉴权终态错误,不排补跑(重试只会继续吃 402/401): " +
-                                "session=${sessionId.take(8)}…, kind=${FailureClassifier.classify(t)}",
-                        )
-                        return@onError
-                    }
-                    // C-05: 失败后延迟补跑一次 — 调用侧( ChatViewModel)有 30s 同会话去重,
-                    // 失败后立即重试会被去重挡掉,记忆静默丢失;延迟 30s 绕过窗口补跑。
-                    // 注意:本方法参数 scope: String 会遮蔽同名字段,补跑协程须用
-                    // this@MemoryAutoSaveScheduler.scope(CoroutineScope) 显式引用。
-                    this@MemoryAutoSaveScheduler.scope.launch {
-                        delay(30_000)
-                        if (!this@MemoryAutoSaveScheduler.scope.isActive) return@launch
-                        analysisSemaphore.withPermit {
-                            resultOf {
-                                runAutoSave(sessionId, history, assistantId, spaceId, scope, model, locale)
-                                // v2.x（日志排障）: 同主路径 —— null 表示未解析出分析，不抛异常。
-                            }.onSuccess { retryResult ->
-                                if (retryResult == null) {
-                                    Logger.w(
-                                        "MemoryAutoSaveScheduler",
-                                        "autoSave 补跑未解析出分析(可预期失败): session=${sessionId.take(8)}…",
-                                    )
-                                } else {
-                                    synchronized(processedFingerprints) { processedFingerprints[fpKey] = fp }
-                                    Logger.i(
-                                        "MemoryAutoSaveScheduler",
-                                        "autoSave 补跑成功(session=${sessionId.take(8)}…): " +
-                                            "extracted=${retryResult.extracted}, updated=${retryResult.updated}, " +
-                                            "merged=${retryResult.merged}, links=${retryResult.links}",
-                                    )
-                                }
-                            }.onError { retryMsg, retryT ->
-                                Logger.w("MemoryAutoSaveScheduler", "autoSave 补跑仍失败(session=${sessionId.take(8)}…): $retryMsg", retryT)
-                            }
-                        }
-                    }
+                runAttempt(key, fp, history, model, locale, retry = false)
+            }
+        }
+    }
+
+    /**
+     * 一次提取尝试。调用方必须持有 [analysisSemaphore] 许可。
+     *
+     * 缓存读取、闸判定、业务落库后的指纹写入全在这段临界区里，
+     * 两个入口同时通过快路径时也只有这里能决定谁真的跑。
+     */
+    private suspend fun runAttempt(
+        key: AutoSaveFingerprintCache.Key,
+        fingerprint: String,
+        history: List<UIMessage>,
+        model: Model?,
+        locale: String,
+        retry: Boolean,
+    ) {
+        val tag = if (retry) "autoSave 补跑" else "autoSave"
+        val shortId = key.sessionId.take(8)
+        if (fingerprints.also { it.invalidateIfRestored() }.isProcessed(key, fingerprint)) {
+            Logger.d(TAG_LOG, "$tag 幂等跳过(session=$shortId…, 内容未变化)")
+            return
+        }
+        try {
+            when (val outcome = runAutoSave(key, history, model, locale)) {
+                is RunOutcome.Applied -> {
+                    // 只有解析并落库成功才记录指纹；LLM 空响应/JSON 解析失败必须补跑。
+                    fingerprints.markProcessed(key, fingerprint)
+                    val stats = outcome.stats
+                    Logger.i(
+                        TAG_LOG,
+                        "$tag 完成(session=$shortId…): extracted=${stats.extracted}, " +
+                            "updated=${stats.updated}, merged=${stats.merged}, links=${stats.links}",
+                    )
+                }
+                RunOutcome.Empty -> Logger.w(
+                    TAG_LOG,
+                    "$tag 未解析出分析(可预期失败，不记指纹): session=$shortId…",
+                )
+                RunOutcome.Gated -> Logger.d(
+                    TAG_LOG,
+                    "$tag 被备份恢复写闸拦截(不落库、不记指纹): session=$shortId…",
+                )
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            Logger.w(TAG_LOG, "$tag 失败(session=$shortId…): ${e.message}", e)
+            if (retry) return
+            // v2.6.9: 配额/余额/鉴权类终态失败不排 30s 补跑。
+            // 上游已在节流(日志里 agnes 的 "not asked again before 02:49" 就是上游文案),
+            // 我们 30s 后再打一次只会继续吃 402。其余错误(网络抖动/限流/解析)保持原行为。
+            if (FailureClassifier.isTerminalQuotaOrAuth(e)) {
+                Logger.w(
+                    TAG_LOG,
+                    "autoSave 失败为配额/鉴权终态错误,不排补跑(重试只会继续吃 402/401): " +
+                        "session=$shortId…, kind=${FailureClassifier.classify(e)}",
+                )
+                return
+            }
+            // C-05: 失败后延迟补跑一次 — 调用侧( ChatViewModel)有 30s 同会话去重,
+            // 失败后立即重试会被去重挡掉,记忆静默丢失;延迟 30s 绕过窗口补跑。
+            this@MemoryAutoSaveScheduler.scope.launch {
+                delay(30_000)
+                if (!this@MemoryAutoSaveScheduler.scope.isActive) return@launch
+                analysisSemaphore.withPermit {
+                    runAttempt(key, fingerprint, history, model, locale, retry = true)
                 }
             }
         }
@@ -260,17 +331,23 @@ class MemoryAutoSaveScheduler(
      *  1. 获取对应 assistantId 的 FactStore + MemoryLinkDao
      *  2. 构建已有事实预览(供 LLM 去重参考)
      *  3. 调 LLM 提取 ParsedAnalysis
-     *  4. applyAnalysis 落库
+     *  4. 过闸后 applyAnalysis 落库
      */
     private suspend fun runAutoSave(
-        sessionId: String,
+        key: AutoSaveFingerprintCache.Key,
         history: List<UIMessage>,
-        assistantId: String,
-        spaceId: String,
-        scope: String,
         model: Model?,
         locale: String,
-    ): AnalysisResult? = withContext(Dispatchers.IO) {
+    ): RunOutcome = withContext(Dispatchers.IO) {
+        val sessionId = key.sessionId
+        val assistantId = key.assistantId
+        val spaceId = key.spaceId
+        val scope = key.scope
+        // 入口闸:恢复窗口内不发起模型调用。
+        if (gateBlocks()) return@withContext RunOutcome.Gated
+        // 栅栏在模型调用前取:提取跑得慢,恢复窗口可能在等待期间完整开合。
+        val fence = writeGate?.fence()
+
         val factStore = factDbProvider.getFactStore(assistantId)
         val linkDao = factDbProvider.getFactDb(assistantId).memoryLinkDao()
 
@@ -286,14 +363,22 @@ class MemoryAutoSaveScheduler(
 
         // 2. 调 LLM 提取
         val analysis = extractEntities(history, existingPreview, model, locale)
-            ?: return@withContext null
+            ?: return@withContext RunOutcome.Empty
 
-        // 3. 落库(证据已由 extractEntities 回填进 analysis,applyAnalysis 不需要原始消息)
+        // 3. 模型返回后、真正落库前再过一次闸:恢复窗口内写进去的就是旧库的产物。
+        if (gateBlocks(fence)) {
+            Logger.d(TAG_LOG, "autoSave: 恢复窗口内跳过落库(session=${sessionId.take(8)}…)")
+            return@withContext RunOutcome.Gated
+        }
+
+        // 4. 落库(证据已由 extractEntities 回填进 analysis,applyAnalysis 不需要原始消息)
         val result = applyAnalysis(analysis, factStore, linkDao, sessionId, spaceId, scope, assistantId)
         // v2.6.2（用户反馈）: 落库后补边 —— 让本次新增/更新的事实与存量连成网络。
         // 增量策略：取“最近创建的一批事实”作为新事实（补边本就是增量的，不必精确追踪）。
         // 失败不影响主流程。
         edgeBuilder?.let { builder ->
+            // 补边也是写库;恢复窗口内不补(否则给旧库的边又落到新库)。
+            if (gateBlocks(fence)) return@let
             runCatching {
                 val all = factStore.getByScopeAndSpace(scope, spaceId)
                 val recent = all.sortedByDescending { it.createdAt }.take(EDGE_NEW_FACTS_LIMIT)
@@ -311,7 +396,7 @@ class MemoryAutoSaveScheduler(
                 }
             }.onFailure { Logger.w("MemoryAutoSaveScheduler", "会话结束补边失败(不影响记忆): ${it.message}") }
         }
-        result
+        RunOutcome.Applied(result)
     }
 
     /**
@@ -580,6 +665,12 @@ class MemoryAutoSaveScheduler(
         model: Model? = null,
         locale: String = "zh-CN",
     ): Int = withContext(Dispatchers.IO) {
+        // 入口闸:分类结果也要落库,恢复窗口内不白跑一次模型调用。
+        if (gateBlocks()) {
+            Logger.d(TAG_LOG, "autoCategorize: 备份恢复进行中,跳过")
+            return@withContext 0
+        }
+        val fence = writeGate?.fence()
         val factStore = factDbProvider.getFactStore(assistantId)
         val all = factStore.getByScopeAndSpace(scope, spaceId)
         val uncategorized = all.filter { it.category == "general" }.take(CATEGORIZE_BATCH_SIZE)
@@ -606,6 +697,11 @@ class MemoryAutoSaveScheduler(
         }
 
         val categorizations = parseCategorizeResult(raw) ?: return@withContext 0
+        // 模型返回后再判一次:恢复窗口内不写分类结果。
+        if (gateBlocks(fence)) {
+            Logger.d(TAG_LOG, "autoCategorize: 恢复窗口内跳过写入")
+            return@withContext 0
+        }
         var count = 0
         for (cat in categorizations) {
             val target = findFactByTitle(uncategorized, cat.title) ?: continue
@@ -625,6 +721,9 @@ class MemoryAutoSaveScheduler(
         val titleLabel = if (isZh) "## 对话历史" else "## Conversation History"
 
         val recent = history.takeLast(MAX_HISTORY_MESSAGES)
+        // 注意：给模型的只是最近 [MAX_HISTORY_MESSAGES] 条，但幂等指纹覆盖完整历史 ——
+        // 更早的消息被编辑也会让指纹变化，允许下一次重新提取；
+        // 也不能反过来用这个窗口声称「更早的消息不需要 DeepMemory 处理」。
         val sb = StringBuilder(titleLabel).append("\n\n")
         for (msg in recent) {
             val role = when (msg.role) {

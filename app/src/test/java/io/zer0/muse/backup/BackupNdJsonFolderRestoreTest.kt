@@ -77,6 +77,11 @@ class BackupNdJsonFolderRestoreTest {
         "botAnnotation" to "botAnnotationDao().upsert(",
         "botMessageCard" to "botMessageCardDao().upsert(",
         "botRoutine" to "botRoutineDao().upsert(",
+        // v2.7.x: 跟进与目标。清空后必须能按行回填，否则恢复即丢数据。
+        "agentWatcher" to "agentWatcherDao().upsert(",
+        "agentGoal" to "agentGoalDao().upsert(",
+        // v2.7.x: 云电脑节点。恢复分支走附加表 upsert，缺标记会掩盖漏接线。
+        "remoteComputeNode" to "remoteComputeNodeDao().upsert(",
         // v2.7.x(E2): 术语表。用户的确认不可从历史重新推导，恢复分支必须有对应缓冲。
         "sessionTerm" to "sessionTermBuf",
     )

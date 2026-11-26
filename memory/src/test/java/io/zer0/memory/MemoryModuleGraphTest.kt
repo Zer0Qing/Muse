@@ -80,6 +80,8 @@ class MemoryModuleGraphTest {
         assertNotNull(koin.get<io.zer0.memory.summary.SessionSummaryManager>())
         assertNotNull(koin.get<io.zer0.memory.summary.ContextCheckpointReader>())
         assertNotNull(koin.get<io.zer0.memory.space.MemorySpaceRepository>())
+        // Space 合并的数据面也要能解析：少一项绑定，删除 Space 时会静默降级成「只合主库」。
+        assertNotNull(koin.get<io.zer0.memory.space.MemorySpaceMergeDeps>())
         assertNotNull(koin.get<io.zer0.memory.reflection.MemoryContradictionStore>())
         assertNotNull(koin.get<io.zer0.memory.reflection.MemoryReflectionRunner>())
         assertNotNull(koin.get<io.zer0.memory.pin.PinnedMemoryStore>())

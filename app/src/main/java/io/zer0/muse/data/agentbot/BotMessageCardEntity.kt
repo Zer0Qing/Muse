@@ -53,8 +53,9 @@ object BotCardKind {
     const val CHOICE = "CHOICE"
     const val ARTIFACT = "ARTIFACT"
     const val CUE_BRIEFING = "CUE_BRIEFING"
+    const val RECONNECT = "RECONNECT"
 
-    val all: Set<String> = setOf(MISSION, APPROVAL, CHOICE, ARTIFACT, CUE_BRIEFING)
+    val all: Set<String> = setOf(MISSION, APPROVAL, CHOICE, ARTIFACT, CUE_BRIEFING, RECONNECT)
 }
 
 object BotCardStatus {

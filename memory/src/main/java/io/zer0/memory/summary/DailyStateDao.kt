@@ -25,6 +25,14 @@ interface DailyStateDao {
     @Query("SELECT * FROM daily_state")
     suspend fun getAll(): List<DailyStateEntity>
 
+    /** 全部 target key（Space 合并时按 key 后缀定位要重置的进度行）。 */
+    @Query("SELECT `key` FROM daily_state")
+    suspend fun allKeys(): List<String>
+
+    /** 只删一行：Space 合并后要让对应 target 重编，不能把完成标记带过去。 */
+    @Query("DELETE FROM daily_state WHERE `key` = :key")
+    suspend fun delete(key: String): Int
+
     @Query("DELETE FROM daily_state")
     suspend fun deleteAll()
 }

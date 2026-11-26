@@ -2,17 +2,24 @@ package io.zer0.muse.data.memory
 
 import io.zer0.common.Logger
 import io.zer0.memory.compile.MemoryFileWriter
+import io.zer0.memory.dream.MemoryDreamDao
+import io.zer0.memory.dream.MemoryMaintenanceLock
 import io.zer0.memory.fact.FactDbProvider
 import io.zer0.memory.fact.FactStore
+import io.zer0.memory.pin.PinnedMemoryStore
 import io.zer0.memory.reflection.MemoryContradictionStore
+import io.zer0.memory.summary.CompiledSectionDao
 import io.zer0.memory.summary.ContextCheckpointDao
 import io.zer0.memory.summary.ScopedCompiledSectionDao
 import io.zer0.memory.summary.SessionSummaryDao
+import io.zer0.muse.data.agentbot.AgentDreamArchiveStore
 import io.zer0.muse.data.groupchat.GroupChatMemoryDao
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import java.time.Instant
 
 /**
  * 会话/助手被删除后的记忆清理入口。
@@ -41,6 +48,23 @@ class SessionMemoryCleanup(
     private val fileWriter: MemoryFileWriter,
     private val contradictionStore: MemoryContradictionStore,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+    /** 助手删除时一并清掉的非事实残留；为 null 时跳过（旧测试/未装配宿主）。 */
+    private val pinnedMemoryStore: PinnedMemoryStore? = null,
+    private val memoryDreamDao: MemoryDreamDao? = null,
+    private val dreamArchiveStore: AgentDreamArchiveStore? = null,
+    /** 升级前的单空间编译表；删主助手时 scoped 行被删，不清它会被兜底读回旧记忆。 */
+    private val legacySectionDao: CompiledSectionDao? = null,
+    /**
+     * 会话删除后作废它的 AutoSave 幂等指纹；为 null 时跳过（旧测试/未装配宿主）。
+     *
+     * 不清的话，同 id 的会话（导入/恢复/复用 id）会因「这段历史在上一轮已抽过」被直接跳过，
+     * 而它写入的那些事实刚刚被本次清理删掉了。
+     *
+     * @return 被移除的指纹条数（没命中时为 0）
+     */
+    private val invalidateFingerprintCache: ((String) -> Int)? = null,
+    /** 助手删除后作废该助手的 AutoSave 指纹；为 null 时跳过。 */
+    private val invalidateAssistantFingerprintCache: ((String) -> Int)? = null,
 ) {
 
     /**
@@ -56,15 +80,30 @@ class SessionMemoryCleanup(
         val ids = sessionIds.filter { it.isNotBlank() }.distinct()
         if (ids.isEmpty()) return
         withContext(ioDispatcher) {
-            var summaries = 0
-            var checkpoints = 0
-            var facts = 0
-            ids.forEach { sessionId ->
-                summaries += step("session_summaries[$sessionId]") { deleteSummary(sessionId) }
-                checkpoints += step("context_checkpoints[$sessionId]") { deleteCheckpoint(sessionId) }
-                facts += deleteFactsOfSession(sessionId)
+            // 与 Dream 发布/回滚串行：删除过程中若一次回滚把段落写回来，被删会话的记忆会复活。
+            MemoryMaintenanceLock.mutex.withLock {
+                var summaries = 0
+                var checkpoints = 0
+                var facts = 0
+                var fingerprints = 0
+                val invalidateFingerprints = invalidateFingerprintCache
+                ids.forEach { sessionId ->
+                    summaries += step("session_summaries[$sessionId]") { deleteSummary(sessionId) }
+                    checkpoints += step("context_checkpoints[$sessionId]") { deleteCheckpoint(sessionId) }
+                    facts += deleteFactsOfSession(sessionId)
+                    // 指纹不只是缓存：会话被删后它会让同 id 的会话永远跳过提取，必须跟着失效。
+                    if (invalidateFingerprints != null) {
+                        fingerprints += step("autosave_fingerprints[$sessionId]") {
+                            invalidateFingerprints(sessionId)
+                        }
+                    }
+                }
+                Logger.i(
+                    TAG,
+                    "会话记忆清理完成: sessions=${ids.size} 摘要=$summaries 检查点=$checkpoints " +
+                        "事实=$facts 指纹作废=$fingerprints",
+                )
             }
-            Logger.i(TAG, "会话记忆清理完成: sessions=${ids.size} 摘要=$summaries 检查点=$checkpoints 事实=$facts")
         }
     }
 
@@ -80,17 +119,49 @@ class SessionMemoryCleanup(
         if (id.isBlank()) return
         val scope = scopeOf(id)
         withContext(ioDispatcher) {
-            val summaries = step("session_summaries[assistant=$id]") { summaryDao.deleteByAssistant(id) }
-            val sections = step("compiled_sections_scoped[scope=$scope]") { scopedSectionDao.deleteByScope(scope) }
-            val groupChat = step("group_chat_memories[$id]") { groupChatMemoryDao.deleteByAssistant(id) }
-            val files = step("memory/$scope") { fileWriter.deleteScopeDir(scope) }
-            val contradictions = step("memory_contradictions[$scope]") { contradictionStore.clearScope(scope) }
-            val facts = deleteFactsOfScope(scope)
-            Logger.i(
-                TAG,
-                "助手记忆清理完成: assistant=$id scope=$scope 摘要=$summaries 段落=$sections " +
-                    "群聊记忆=$groupChat 矛盾=$contradictions 事实=$facts 文件=$files",
-            )
+            MemoryMaintenanceLock.mutex.withLock {
+                val summaries = step("session_summaries[assistant=$id]") { summaryDao.deleteByAssistant(id) }
+                val sections = step("compiled_sections_scoped[scope=$scope]") { scopedSectionDao.deleteByScope(scope) }
+                val groupChat = step("group_chat_memories[$id]") { groupChatMemoryDao.deleteByAssistant(id) }
+                val files = step("memory/$scope") { fileWriter.deleteScopeDir(scope) }
+                val contradictions = step("memory_contradictions[$scope]") { contradictionStore.clearScope(scope) }
+                val facts = deleteFactsOfScope(scope)
+                // 主助手的主作用域会删掉全部 scoped 行；旧 compiled_sections 此时会成为读取兜底，
+                // 不清空它，刚删的全局记忆会从兼容路径重新出现。
+                val legacy = if (id == MAIN_ASSISTANT_ID) {
+                    step("compiled_sections[legacy]") {
+                        val dao = legacySectionDao ?: return@step 0
+                        dao.clearAll(Instant.now().toString())
+                        1
+                    }
+                } else {
+                    0
+                }
+                // 事实与编译段之外，这个助手还留下三份独立数据：置顶记忆、Dream 状态/revision、
+                // 夜间归档。不清的话删除后记忆页还能看到置顶卡、Dream 回滚还能把旧段落写回来。
+                val pins = step("pinned_memory[$id]") {
+                    pinnedMemoryStore?.removeByAssistant(id, includeGlobal = id == MAIN_ASSISTANT_ID) ?: 0
+                }
+                val dreamStates = step("memory_dream_states[$id]") {
+                    memoryDreamDao?.deleteStatesByAssistant(id) ?: 0
+                }
+                val dreamRevisions = step("memory_dream_revisions[$id]") {
+                    memoryDreamDao?.deleteRevisionsByAssistant(id) ?: 0
+                }
+                val archive = step("agent_dream/archive[$id]") {
+                    dreamArchiveStore?.purgeAssistant(id) ?: 0
+                }
+                val fingerprints = invalidateAssistantFingerprintCache?.let { invalidate ->
+                    step("autosave_fingerprints[assistant=$id]") { invalidate(id) }
+                } ?: 0
+                Logger.i(
+                    TAG,
+                    "助手记忆清理完成: assistant=$id scope=$scope 摘要=$summaries 段落=$sections " +
+                        "群聊记忆=$groupChat 矛盾=$contradictions 事实=$facts 文件=$files " +
+                        "旧编译段=$legacy 置顶=$pins Dream状态=$dreamStates Dream快照=$dreamRevisions " +
+                            "归档=$archive 指纹作废=$fingerprints",
+                )
+            }
         }
     }
 

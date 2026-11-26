@@ -437,7 +437,7 @@ fun HomeScreen(
                         MuseTopBarIconButton(
                             icon = MuseIcons.computer,
                             contentDescription = stringResource(R.string.agent_hub_open_workbench),
-                            onClick = { requestedWorkbenchTab = AgentWorkbenchTab.LIVE },
+                            onClick = { requestedWorkbenchTab = AgentWorkbenchTab.FOLLOW_UP },
                             tint = if (botHasPendingApproval) {
                                 MaterialTheme.statusColors.warning
                             } else {

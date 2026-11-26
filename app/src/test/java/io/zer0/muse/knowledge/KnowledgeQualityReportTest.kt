@@ -9,6 +9,7 @@ import io.zer0.muse.knowledge.domain.RetrievalPolicy
 import io.zer0.muse.knowledge.index.GenerationPublisher
 import io.zer0.muse.knowledge.ingest.LocatedChunk
 import io.zer0.muse.knowledge.retrieval.EvidenceAssembler
+import io.zer0.muse.knowledge.retrieval.EvidenceVisibility
 import io.zer0.muse.knowledge.retrieval.KnowledgeEntryType
 import io.zer0.muse.knowledge.retrieval.KnowledgeRetriever
 import io.zer0.muse.knowledge.retrieval.KnowledgeSearchRequest
@@ -188,7 +189,8 @@ class KnowledgeQualityReportTest {
 
         for (question in answerable) {
             val outcome = retriever.search(request(question.question, KnowledgeScope.AllUserLibraries))
-            val bundle = EvidenceAssembler().assemble(outcome, budgetTokens = 500, traceId = question.id)
+            val bundle = EvidenceAssembler(visibilityOf = { EvidenceVisibility.USER_VISIBLE })
+                .assemble(outcome, budgetTokens = 500, traceId = question.id)
             if (bundle.isEmpty) continue
             if (bundle.units.any { it.locator.isBlank() }) unitsWithoutLocator++
             for (unit in bundle.units) {

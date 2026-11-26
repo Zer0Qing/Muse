@@ -10,6 +10,7 @@ import io.zer0.ai.core.ToolCall
 import io.zer0.ai.core.ToolDefinition
 import io.zer0.ai.core.UIMessage
 import io.zer0.common.Logger
+import io.zer0.muse.computenode.ComputeTargetRouter
 import io.zer0.muse.data.skill.SkillRepository
 import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.assistant.AssistantRepository
@@ -44,6 +45,132 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
+
+/**
+ * 主对话 `@队友` 的输入辅助与定向委派解析。
+ *
+ * 输入框只需要判断「当前是否正在输入一个 @ 片段」以及「有哪些队友可选」；
+ * 发送时再把文本解析成明确的队友身份与干净的任务正文，避免把昵称本身当成任务内容。
+ */
+object AgentMentionDispatch {
+
+    /** 一个可被 @ 的队友。displayName 是输入框里展示的昵称。 */
+    data class Target(
+        val botId: String,
+        val displayName: String,
+        val roleHint: String = "",
+    )
+
+    /** 输入框里一段尚未完成的 @ 片段；[startIndex] 指向 '@' 本身。 */
+    data class ActiveQuery(
+        val startIndex: Int,
+        val query: String,
+    )
+
+    /** 已解析出的定向委派：队友身份 + 去掉 @ 片段后的任务正文。 */
+    data class Resolution(
+        val target: Target,
+        val taskText: String,
+    )
+
+    private const val MAX_SUGGESTIONS = 8
+    private const val MAX_NAME_QUERY_CHARS = 24
+    private val TRAILING_PUNCTUATION = charArrayOf(
+        '，', '。', '！', '？', '、', ',', '.', '!', '?', ':', '：', ';', '；',
+    )
+
+    /**
+     * 找出文本末尾正在输入的 @ 片段。
+     *
+     * 只有 '@' 位于开头或空白之后、且其后的内容不含空白时才视为候选输入；
+     * 邮箱、网址里的 '@' 以及已经补完空格的文本都不会触发胶囊条。
+     */
+    fun activeQuery(text: String): ActiveQuery? {
+        if (text.isEmpty()) return null
+        val at = text.lastIndexOf('@')
+        if (at < 0) return null
+        if (at > 0 && !text[at - 1].isWhitespace()) return null
+        val query = text.substring(at + 1)
+        if (query.length > MAX_NAME_QUERY_CHARS) return null
+        if (query.any { it.isWhitespace() || it == '@' }) return null
+        return ActiveQuery(startIndex = at, query = query)
+    }
+
+    /** 按昵称过滤候选；空查询返回全部，最多 [MAX_SUGGESTIONS] 个。 */
+    fun filter(candidates: List<Target>, query: String): List<Target> {
+        val normalized = query.trim()
+        val matched = if (normalized.isBlank()) {
+            candidates
+        } else {
+            candidates.filter { it.displayName.contains(normalized, ignoreCase = true) }
+        }
+        return matched.take(MAX_SUGGESTIONS)
+    }
+
+    /** 把正在输入的 @ 片段替换成完整的 `@昵称 `，输入焦点自然落在空格之后。 */
+    fun applySelection(text: String, query: ActiveQuery, target: Target): String {
+        val prefix = text.substring(0, query.startIndex)
+        return prefix + "@" + target.displayName + " "
+    }
+
+    /**
+     * 从已发送文本中解析第一个有效的 `@昵称`。
+     *
+     * 昵称按最长优先匹配，避免「小」与「小助手」并存时误选前一个；
+     * 匹配位置必须在开头或空白之后，命中后整段昵称连同其后的空白一起从任务正文里移除。
+     */
+    fun resolve(text: String, candidates: List<Target>): Resolution? {
+        val ordered = candidates
+            .filter { it.botId.isNotBlank() && it.displayName.isNotBlank() }
+            .sortedByDescending { it.displayName.length }
+        var best: Resolution? = null
+        var bestIndex = Int.MAX_VALUE
+        for (target in ordered) {
+            var from = 0
+            while (true) {
+                val at = text.indexOf("@" + target.displayName, from)
+                if (at < 0) break
+                val after = at + 1 + target.displayName.length
+                val boundaryBefore = at == 0 || text[at - 1].isWhitespace()
+                val boundaryAfter = after >= text.length ||
+                    text[after].isWhitespace() ||
+                    text[after] in TRAILING_PUNCTUATION
+                if (boundaryBefore && boundaryAfter) {
+                    if (at < bestIndex) {
+                        bestIndex = at
+                        best = Resolution(
+                            target = target,
+                            taskText = removeMention(text, at, after),
+                        )
+                    }
+                    break
+                }
+                from = at + 1
+            }
+        }
+        return best?.takeIf { it.taskText.isNotBlank() }
+    }
+
+    /**
+     * 决定一次 launch_mission 的接收队友。
+     *
+     * 用户在输入框显式 @ 的队友拥有最高优先级；模型自己填写的 assignee 只在没有 @ 时生效。
+     */
+    fun resolveAssignee(declared: String, target: Target?): String =
+        target?.botId?.takeIf { it.isNotBlank() } ?: declared.trim()
+
+    private fun removeMention(text: String, at: Int, endExclusive: Int): String {
+        var end = endExclusive
+        while (end < text.length && text[end].isWhitespace()) end++
+        val head = text.substring(0, at).trimEnd()
+        val tail = text.substring(end)
+        return when {
+            head.isBlank() -> tail.trim()
+            tail.isBlank() -> head
+            else -> (head + " " + tail).trim()
+        }
+    }
+}
 
 /**
  * 原生流式快慢双轨前台大脑。
@@ -156,6 +283,37 @@ class AgentStreamCoordinator(
         val resourceScope: String = "",
     )
 
+    /** 模型拟好的跟进项草稿；落库前先经用户确认卡批准。 */
+    data class WatcherCreation(
+        val title: String,
+        val instruction: String,
+        val script: String,
+        val scriptKind: String = AgentWatcherEngine.SCRIPT_KIND_PYTHON,
+        val computeTarget: String = ComputeTargetRouter.TARGET_LOCAL,
+        val intervalMinutes: Int = AgentWatcherEngine.DEFAULT_INTERVAL_MINUTES,
+        val webhookUrl: String = "",
+    )
+
+    /** 模型拟好的长期目标草稿；缺失字段表示沿用旧值，新建时取默认值。 */
+    data class GoalUpsert(
+        val goalId: String = "",
+        val title: String = "",
+        val description: String? = null,
+        val milestones: List<AgentGoalMilestone>? = null,
+        val progress: Int? = null,
+        val status: String = "",
+        val dueAt: Long? = null,
+    )
+
+    /** 一次里程碑更新：按 id 勾选/改名、追加或删除。 */
+    data class GoalMilestoneUpdate(
+        val goalId: String,
+        val milestoneId: String = "",
+        val title: String = "",
+        val done: Boolean? = null,
+        val remove: Boolean = false,
+    )
+
     data class TurnOutcome(
         val text: String = "",
         val reasoning: String = "",
@@ -167,6 +325,9 @@ class AgentStreamCoordinator(
         val steerings: List<SteerAction> = emptyList(),
         val choiceOffer: ChoiceOffer? = null,
         val routineCreations: List<RoutineCreation> = emptyList(),
+        val watcherCreations: List<WatcherCreation> = emptyList(),
+        val goalUpserts: List<GoalUpsert> = emptyList(),
+        val goalMilestoneUpdates: List<GoalMilestoneUpdate> = emptyList(),
         val publishedMessageId: String = "",
         val requestSuperseded: Boolean = false,
         val quotaRejected: Boolean = false,
@@ -178,7 +339,10 @@ class AgentStreamCoordinator(
                 dispatches.isNotEmpty() ||
                 steerings.isNotEmpty() ||
                 choiceOffer != null ||
-                routineCreations.isNotEmpty()
+                routineCreations.isNotEmpty() ||
+                watcherCreations.isNotEmpty() ||
+                goalUpserts.isNotEmpty() ||
+                goalMilestoneUpdates.isNotEmpty()
     }
 
     private data class ToolCallAccumulator(
@@ -200,6 +364,15 @@ class AgentStreamCoordinator(
         reasoningLevel: io.zer0.ai.core.ReasoningLevel = io.zer0.ai.core.ReasoningLevel.DEFAULT,
         currentRequestRevision: suspend () -> Long,
         onDraft: (StreamingDraft) -> Unit = {},
+        mentionTarget: AgentMentionDispatch.Target? = null,
+        /**
+         * 本轮固定的记忆空间。
+         *
+         * 由发送方在回合开始前捕获后传进来：工具执行上下文、记忆写入与 prompt 必须用
+         * 同一个 Space。这里再读一次设置的话，用户在生成中途切 Space 就会让
+         * 「读的是 A 空间、写的是 B 空间」。
+         */
+        memorySpaceId: String? = null,
     ): TurnOutcome {
         val identityError = identity.validate()
         if (identityError != null) {
@@ -207,11 +380,23 @@ class AgentStreamCoordinator(
             return TurnOutcome(streamError = identityError)
         }
 
-        val conversationMessages = mutableListOf<UIMessage>().apply {
-            if (systemPrompt.isNotBlank()) {
-                add(UIMessage(role = MessageRole.SYSTEM, content = systemPrompt))
+        // @ 指定队友是用户在输入框里的显式指令，必须写进系统提示，模型才会把任务交给
+        // launch_mission 而不是自己抢着做；具体 assignee 由 parseToolCalls 再兜一层强制覆盖。
+        val effectiveSystemPrompt = buildString {
+            if (systemPrompt.isNotBlank()) appendLine(systemPrompt.trim())
+            if (mentionTarget != null) {
+                appendLine()
+                appendLine("## 定向委派")
+                appendLine("- 用户本轮用 @ 指定了队友「${mentionTarget.displayName}」（id=${mentionTarget.botId}）。")
+                appendLine("- 必须调用 `launch_mission` 并把 `assignee_bot_id` 设为该 id，由该队友在后台执行；不要自己执行，也不要改派给其他队友。")
             }
-            val ragMessage = buildAgentRagSystemMessage(assistant, userText)
+        }.trim()
+
+        val conversationMessages = mutableListOf<UIMessage>().apply {
+            if (effectiveSystemPrompt.isNotBlank()) {
+                add(UIMessage(role = MessageRole.SYSTEM, content = effectiveSystemPrompt))
+            }
+            val ragMessage = buildAgentRagSystemMessage(assistant, userText, identity.sessionId)
             if (ragMessage != null) {
                 add(ragMessage)
             }
@@ -225,6 +410,10 @@ class AgentStreamCoordinator(
             )
         }
 
+        // 没有显式传入时按当前设置兜底一次，之后整轮都使用这个值。
+        val turnSpaceId = memorySpaceId?.takeIf { it.isNotBlank() }
+            ?: runCatching { settings?.currentSpaceIdFlow?.first() }.getOrNull().orEmpty()
+                .ifBlank { "default" }
         val hostToolset = buildHostToolset(identity.sessionId, assistant)
         val totalTextBuilder = StringBuilder()
         val totalReasoningBuilder = StringBuilder()
@@ -488,7 +677,7 @@ class AgentStreamCoordinator(
                         toolCallId = tc.id,
                     )
                 } else {
-                    val toolOutput = executeForegroundHostTool(identity, tc, activeToolset)
+                    val toolOutput = executeForegroundHostTool(identity, tc, activeToolset, turnSpaceId)
                     stickyToolNames += tc.name
                     conversationMessages += UIMessage(
                         role = MessageRole.TOOL,
@@ -499,7 +688,11 @@ class AgentStreamCoordinator(
             }
         }
 
-        val parsed = parseToolCalls(collectedMetaCalls, fallbackText = totalTextBuilder.toString())
+        val parsed = parseToolCalls(
+            toolCalls = collectedMetaCalls,
+            fallbackText = totalTextBuilder.toString(),
+            mentionTarget = mentionTarget,
+        )
         val finalReactions = parsed.reactions.toMutableList()
         if (parsed.dispatches.isNotEmpty() && finalReactions.isEmpty()) {
             // 派发后台任务但模型未主动贴角标时，自动给用户原消息贴一枚轻量确认角标。
@@ -534,6 +727,8 @@ class AgentStreamCoordinator(
             finalDispatches.isNotEmpty() -> DEFAULT_ACK_TEXT
             parsed.steerings.isNotEmpty() -> DEFAULT_STEER_ACK_TEXT
             parsed.routineCreations.isNotEmpty() -> DEFAULT_ROUTINE_ACK_TEXT
+            parsed.watcherCreations.isNotEmpty() -> DEFAULT_WATCHER_ACK_TEXT
+            parsed.goalUpserts.isNotEmpty() || parsed.goalMilestoneUpdates.isNotEmpty() -> DEFAULT_GOAL_ACK_TEXT
             else -> ""
         }
 
@@ -581,6 +776,9 @@ class AgentStreamCoordinator(
             steerings = parsed.steerings,
             choiceOffer = parsed.choiceOffer,
             routineCreations = parsed.routineCreations,
+            watcherCreations = parsed.watcherCreations,
+            goalUpserts = parsed.goalUpserts,
+            goalMilestoneUpdates = parsed.goalMilestoneUpdates,
             publishedMessageId = publishedMessageId,
             quotaRejected = quotaRejected,
             streamError = if (effectiveText.isBlank() && finalDispatches.isEmpty() && finalReactions.isEmpty()) {
@@ -596,9 +794,12 @@ class AgentStreamCoordinator(
         val skillNames: Set<String>,
     )
 
+    // 这里的多个提前返回都是 fail-closed 门禁：任一条件不满足就不注入，不能退化成放开检索。
+    @Suppress("ReturnCount", "CyclomaticComplexMethod")
     private suspend fun buildAgentRagSystemMessage(
         assistant: AssistantEntity?,
         userText: String,
+        sessionId: String,
     ): UIMessage? {
         val service = ragService ?: return null
         val repo = settings ?: return null
@@ -627,14 +828,45 @@ class AgentStreamCoordinator(
         if (!shouldRetrieve) return null
 
         val injection = runCatching {
-            service.buildInjectionContextWithCitations(query, effectiveConfig, scopeDocIds)
+            service.buildInjectionContextWithCitations(
+                query = query,
+                ragConfig = effectiveConfig,
+                scopeDocIds = scopeDocIds,
+                // 会话附件是会话私有资料:只有本会话的才允许召回。
+                allowedSessionAttachmentDocIds = activeSessionAttachmentDocIds(sessionId),
+            )
         }.onFailure { Logger.w(TAG, "Agent RAG 检索失败: ${it.message}") }.getOrNull() ?: return null
-        if (injection.text.isBlank()) return null
-        val clamped = io.zer0.muse.context.ContextBudget().clampText(
+        // 预算截断与引用裁剪同源:截掉的片段其 [n] 不在正文里,引用也不应保留。
+        // 文本为空时 clampAndTrim 原样返回空串,由下面这一次判空统一拦住。
+        val budgeted = io.zer0.muse.rag.RagInjectionBudget.clampAndTrim(
+            injection,
+            io.zer0.muse.context.ContextBudget(),
             io.zer0.muse.context.ContextSection.RAG_CITATION,
-            injection.text,
         )
-        return UIMessage(role = MessageRole.SYSTEM, content = clamped)
+        if (budgeted.text.isBlank()) return null
+        if (budgeted.truncated) {
+            Logger.d(
+                TAG,
+                "Agent RAG 注入按预算截断 | sessionId=$sessionId" +
+                    " | citations ${injection.citations.size}->${budgeted.citations.size}",
+            )
+        }
+        return UIMessage(role = MessageRole.SYSTEM, content = budgeted.text)
+    }
+
+    /**
+     * 取本会话当前可召回的附件 docId。
+     *
+     * 走全局容器按需解析,避免为一项旁路能力改动构造链;取不到时返回空集,
+     * 即不召回任何附件 —— 不会因为解析失败就放开成全库。
+     */
+    private fun activeSessionAttachmentDocIds(sessionId: String): Set<String> {
+        if (sessionId.isBlank()) return emptySet()
+        val service = runCatching {
+            org.koin.core.context.GlobalContext.get().get<io.zer0.muse.rag.SessionAttachmentService>()
+        }.onFailure { Logger.w(TAG, "会话附件服务不可用,本轮不召回附件: ${it.message}") }
+            .getOrNull() ?: return emptySet()
+        return service.activeAttachmentDocIds(sessionId)
     }
 
     private suspend fun buildHostToolset(
@@ -684,6 +916,7 @@ class AgentStreamCoordinator(
         identity: AgentTurnIdentity,
         tc: ToolCall,
         hostToolset: HostToolset,
+        spaceId: String,
     ): String {
         val registry = toolRegistry ?: return "Error: 工具注册表不可用"
         val store = toolConfigStore ?: return "Error: 工具策略不可用"
@@ -700,11 +933,12 @@ class AgentStreamCoordinator(
                 }
             }
         }
-        val currentSpace = runCatching { settings?.currentSpaceIdFlow?.first() }
-            .getOrNull().orEmpty().ifBlank { "default" }
+        // scope 必须跟着身份走：主助手的作用域是 "main"，子助手是它自己的 id。
+        // 写死 "main" 时，子助手前台回合里的 save_memory/search_memory 会读写主助手的库，
+        // 看起来「记忆串了」，实际是两个作用域被拼成了一个。
         val execContext = ToolExecutionContext(
-            scope = "main",
-            spaceId = currentSpace,
+            scope = if (identity.assistantId == "default") "main" else identity.assistantId,
+            spaceId = spaceId,
             assistantId = identity.assistantId,
             sessionId = identity.sessionId,
         )
@@ -744,15 +978,25 @@ class AgentStreamCoordinator(
         val steerings: List<SteerAction>,
         val choiceOffer: ChoiceOffer?,
         val routineCreations: List<RoutineCreation>,
+        val watcherCreations: List<WatcherCreation>,
+        val goalUpserts: List<GoalUpsert>,
+        val goalMilestoneUpdates: List<GoalMilestoneUpdate>,
     )
 
-    private fun parseToolCalls(toolCalls: List<ToolCall>, fallbackText: String): ParsedActions {
+    private fun parseToolCalls(
+        toolCalls: List<ToolCall>,
+        fallbackText: String,
+        mentionTarget: AgentMentionDispatch.Target? = null,
+    ): ParsedActions {
         var explicitSay = ""
         val reactions = mutableListOf<ReactionAction>()
         val dispatches = mutableListOf<MissionDispatch>()
         val steerings = mutableListOf<SteerAction>()
         var choiceOffer: ChoiceOffer? = null
         val routines = mutableListOf<RoutineCreation>()
+        val watchers = mutableListOf<WatcherCreation>()
+        val goalUpserts = mutableListOf<GoalUpsert>()
+        val goalMilestoneUpdates = mutableListOf<GoalMilestoneUpdate>()
 
         toolCalls.forEach { call ->
             val args = runCatching {
@@ -780,7 +1024,11 @@ class AgentStreamCoordinator(
                             goal = goal,
                             acceptance = args?.str("acceptance").orEmpty().trim(),
                             resourceScope = args?.str("resource_scope").orEmpty().trim(),
-                            assigneeBotId = args?.str("assignee_bot_id").orEmpty().trim(),
+                            // 用户 @ 的队友优先于模型自填的 assignee；没有 @ 时保留模型原值。
+                            assigneeBotId = AgentMentionDispatch.resolveAssignee(
+                                declared = args?.str("assignee_bot_id").orEmpty().trim(),
+                                target = mentionTarget,
+                            ),
                         )
                     }
                 }
@@ -838,6 +1086,78 @@ class AgentStreamCoordinator(
                         )
                     }
                 }
+                TOOL_CREATE_WATCHER -> {
+                    val title = args?.str("title").orEmpty().trim()
+                    val instruction = args?.str("instruction").orEmpty().trim()
+                    val script = args?.str("script").orEmpty().trim()
+                    if (title.isNotBlank() && instruction.isNotBlank() && script.isNotBlank()) {
+                        val rawKind = args?.str("script_kind").orEmpty().trim().lowercase()
+                        val scriptKind = if (rawKind == AgentWatcherEngine.SCRIPT_KIND_NODE) {
+                            AgentWatcherEngine.SCRIPT_KIND_NODE
+                        } else {
+                            AgentWatcherEngine.SCRIPT_KIND_PYTHON
+                        }
+                        val rawTarget = args?.str("compute_target").orEmpty().trim().lowercase()
+                        val computeTarget = if (rawTarget == ComputeTargetRouter.TARGET_CLOUD) {
+                            ComputeTargetRouter.TARGET_CLOUD
+                        } else {
+                            ComputeTargetRouter.TARGET_LOCAL
+                        }
+                        val interval = (args?.str("interval_minutes")?.toIntOrNull()
+                            ?: AgentWatcherEngine.DEFAULT_INTERVAL_MINUTES)
+                            .coerceIn(AgentWatcherEngine.MIN_INTERVAL_MINUTES, AgentWatcherEngine.MAX_INTERVAL_MINUTES)
+                        watchers += WatcherCreation(
+                            title = title,
+                            instruction = instruction,
+                            script = script,
+                            scriptKind = scriptKind,
+                            computeTarget = computeTarget,
+                            intervalMinutes = interval,
+                            webhookUrl = args?.str("webhook_url").orEmpty().trim(),
+                        )
+                    } else {
+                        Logger.w(TAG, "忽略缺少标题/说明/脚本的 create_watcher 调用")
+                    }
+                }
+                TOOL_UPSERT_GOAL -> {
+                    val goalId = args?.str("goal_id").orEmpty().trim()
+                    val title = args?.str("title").orEmpty().trim()
+                    if (goalId.isNotBlank() || title.isNotBlank()) {
+                        goalUpserts += GoalUpsert(
+                            goalId = goalId,
+                            title = title,
+                            description = args?.strOrNull("description"),
+                            milestones = (args?.get("milestones") as? JsonArray)?.mapNotNull { element ->
+                                parseMilestone(element)
+                            },
+                            progress = (args?.get("progress") as? JsonPrimitive)
+                                ?.content?.toIntOrNull(),
+                            status = args?.str("status").orEmpty().trim().uppercase(),
+                            dueAt = (args?.get("due_at") as? JsonPrimitive)
+                                ?.content?.toLongOrNull(),
+                        )
+                    } else {
+                        Logger.w(TAG, "忽略既无 goal_id 也无标题的 upsert_goal 调用")
+                    }
+                }
+                TOOL_UPDATE_GOAL_MILESTONE -> {
+                    val goalId = args?.str("goal_id").orEmpty().trim()
+                    if (goalId.isNotBlank()) {
+                        val done = (args?.get("done") as? JsonPrimitive)
+                            ?.content?.toBooleanStrictOrNull()
+                        val remove = (args?.get("remove") as? JsonPrimitive)
+                            ?.content?.toBooleanStrictOrNull() == true
+                        goalMilestoneUpdates += GoalMilestoneUpdate(
+                            goalId = goalId,
+                            milestoneId = args?.str("milestone_id").orEmpty().trim(),
+                            title = args?.str("title").orEmpty().trim(),
+                            done = done,
+                            remove = remove,
+                        )
+                    } else {
+                        Logger.w(TAG, "忽略缺少 goal_id 的 update_goal_milestone 调用")
+                    }
+                }
                 ForegroundCoordinator.TOOL_SAY -> {
                     val text = args?.str("text").orEmpty().trim()
                     if (text.isNotBlank()) explicitSay = text
@@ -854,11 +1174,45 @@ class AgentStreamCoordinator(
             steerings = steerings,
             choiceOffer = choiceOffer,
             routineCreations = routines,
+            watcherCreations = watchers,
+            goalUpserts = goalUpserts,
+            goalMilestoneUpdates = goalMilestoneUpdates,
         )
     }
 
+    private fun parseMilestone(element: kotlinx.serialization.json.JsonElement): AgentGoalMilestone? =
+        when (element) {
+            is JsonObject -> {
+                val title = element.str("title").trim()
+                if (title.isBlank()) {
+                    null
+                } else {
+                    AgentGoalMilestone(
+                        id = element.str("id").trim(),
+                        title = title,
+                        done = element.str("done").toBooleanStrictOrNull() == true,
+                    )
+                }
+            }
+            is kotlinx.serialization.json.JsonNull -> null
+            is JsonPrimitive -> element.content.trim().takeIf { it.isNotBlank() }?.let { title ->
+                AgentGoalMilestone(title = title)
+            }
+            is JsonArray -> null
+        }
+
     private fun JsonObject.str(key: String): String =
         (this[key] as? JsonPrimitive)?.content.orEmpty()
+
+    /** 区分「字段缺失」与「显式空串」：缺失返回 null，空串原样保留。 */
+    private fun JsonObject.strOrNull(key: String): String? {
+        val element = this[key]
+        return if (element is JsonPrimitive && element !is kotlinx.serialization.json.JsonNull) {
+            element.content
+        } else {
+            null
+        }
+    }
 
     companion object {
         private const val TAG = "AgentStreamCoord"
@@ -870,12 +1224,17 @@ class AgentStreamCoordinator(
         private const val DEFAULT_ACK_TEXT = "好的，我先放到后台帮你处理，弄好后马上告诉你。"
         private const val DEFAULT_STEER_ACK_TEXT = "收到，我已把新要求同步给正在执行的任务。"
         private const val DEFAULT_ROUTINE_ACK_TEXT = "已经为你保存为自动化任务，随时可在任务面板管理。"
+        private const val DEFAULT_WATCHER_ACK_TEXT = "好的，我先拟一条跟进项，确认后开始帮你盯。"
+        private const val DEFAULT_GOAL_ACK_TEXT = "好的，目标已记下，我会按里程碑持续帮你推进。"
 
         const val TOOL_REACT = "react_message"
         const val TOOL_LAUNCH_MISSION = "launch_mission"
         const val TOOL_STEER_MISSION = "steer_mission"
         const val TOOL_OFFER_CHOICES = "offer_choices"
         const val TOOL_CREATE_ROUTINE = "create_routine"
+        const val TOOL_CREATE_WATCHER = "create_watcher"
+        const val TOOL_UPSERT_GOAL = "upsert_goal"
+        const val TOOL_UPDATE_GOAL_MILESTONE = "update_goal_milestone"
 
         private val AGENT_META_NAMES = setOf(
             TOOL_REACT,
@@ -883,6 +1242,9 @@ class AgentStreamCoordinator(
             TOOL_STEER_MISSION,
             TOOL_OFFER_CHOICES,
             TOOL_CREATE_ROUTINE,
+            TOOL_CREATE_WATCHER,
+            TOOL_UPSERT_GOAL,
+            TOOL_UPDATE_GOAL_MILESTONE,
             ForegroundCoordinator.TOOL_DISPATCH,
             ForegroundCoordinator.TOOL_SAY,
         )
@@ -1137,6 +1499,240 @@ class AgentStreamCoordinator(
                             add(JsonPrimitive("goal"))
                         },
                     )
+                }.toString(),
+            ),
+            ToolDefinition(
+                name = TOOL_CREATE_WATCHER,
+                description = "创建一个持续跟进项（Watcher）：按固定周期运行采集脚本，内容有变化才通知用户。",
+                parametersJsonSchema = buildJsonObject {
+                    put("type", "object")
+                    put(
+                        "properties",
+                        buildJsonObject {
+                            put(
+                                "title",
+                                buildJsonObject {
+                                    put("type", "string")
+                                    put("description", "跟进项简短标题，如「商品降价提醒」")
+                                },
+                            )
+                            put(
+                                "instruction",
+                                buildJsonObject {
+                                    put("type", "string")
+                                    put("description", "要盯住什么变化，用一句话说明")
+                                },
+                            )
+                            put(
+                                "script",
+                                buildJsonObject {
+                                    put("type", "string")
+                                    put("description", "采集脚本：运行后把要比较的文本写到标准输出或 result；必须可独立运行且不依赖交互")
+                                },
+                            )
+                            put(
+                                "script_kind",
+                                buildJsonObject {
+                                    put("type", "string")
+                                    put(
+                                        "enum",
+                                        buildJsonArray {
+                                            add(JsonPrimitive(AgentWatcherEngine.SCRIPT_KIND_PYTHON))
+                                            add(JsonPrimitive(AgentWatcherEngine.SCRIPT_KIND_NODE))
+                                        },
+                                    )
+                                    put("description", "采集脚本类型：python（默认）或 node")
+                                },
+                            )
+                            put(
+                                "interval_minutes",
+                                buildJsonObject {
+                                    put("type", "integer")
+                                    put("description", "检查周期（分钟），默认 30，最小 1")
+                                },
+                            )
+                            put(
+                                "compute_target",
+                                buildJsonObject {
+                                    put("type", "string")
+                                    put(
+                                        "enum",
+                                        buildJsonArray {
+                                            add(JsonPrimitive(ComputeTargetRouter.TARGET_LOCAL))
+                                            add(JsonPrimitive(ComputeTargetRouter.TARGET_CLOUD))
+                                        },
+                                    )
+                                    put("description", "托管位置：local（本机，默认）或 cloud（有在线云电脑时 24×7 托管）")
+                                },
+                            )
+                            put(
+                                "webhook_url",
+                                buildJsonObject {
+                                    put("type", "string")
+                                    put("description", "可选的外部回调地址；留空只写系统通知")
+                                },
+                            )
+                        },
+                    )
+                    put(
+                        "required",
+                        buildJsonArray {
+                            add(JsonPrimitive("title"))
+                            add(JsonPrimitive("instruction"))
+                            add(JsonPrimitive("script"))
+                        },
+                    )
+                }.toString(),
+            ),
+            ToolDefinition(
+                name = TOOL_UPSERT_GOAL,
+                description = "创建或更新一条长期目标（Goal）：维护标题、说明、里程碑与状态；新建省略 goal_id，更新传 goal_id 与完整字段。",
+                parametersJsonSchema = buildJsonObject {
+                    put("type", "object")
+                    put(
+                        "properties",
+                        buildJsonObject {
+                            put(
+                                "goal_id",
+                                buildJsonObject {
+                                    put("type", "string")
+                                    put("description", "已有目标 id；新建时留空")
+                                },
+                            )
+                            put(
+                                "title",
+                                buildJsonObject {
+                                    put("type", "string")
+                                    put("description", "目标标题；更新时可省略沿用旧标题")
+                                },
+                            )
+                            put(
+                                "description",
+                                buildJsonObject {
+                                    put("type", "string")
+                                    put("description", "完整说明：为什么要做、做到什么算完成")
+                                },
+                            )
+                            put(
+                                "milestones",
+                                buildJsonObject {
+                                    put("type", "array")
+                                    put(
+                                        "items",
+                                        buildJsonObject {
+                                            put("type", "object")
+                                            put(
+                                                "properties",
+                                                buildJsonObject {
+                                                    put(
+                                                        "id",
+                                                        buildJsonObject {
+                                                            put("type", "string")
+                                                            put("description", "里程碑 id；新增项留空由系统生成")
+                                                        },
+                                                    )
+                                                    put(
+                                                        "title",
+                                                        buildJsonObject {
+                                                            put("type", "string")
+                                                            put("description", "里程碑标题")
+                                                        },
+                                                    )
+                                                    put(
+                                                        "done",
+                                                        buildJsonObject {
+                                                            put("type", "boolean")
+                                                            put("description", "是否已完成，默认 false")
+                                                        },
+                                                    )
+                                                },
+                                            )
+                                            put("required", buildJsonArray { add(JsonPrimitive("title")) })
+                                        },
+                                    )
+                                    put("description", "完整里程碑清单；更新时省略则沿用旧清单，传空数组表示清空")
+                                },
+                            )
+                            put(
+                                "progress",
+                                buildJsonObject {
+                                    put("type", "integer")
+                                    put("description", "0..100 的推进度；省略时按里程碑完成度自动计算")
+                                },
+                            )
+                            put(
+                                "status",
+                                buildJsonObject {
+                                    put("type", "string")
+                                    put(
+                                        "enum",
+                                        buildJsonArray {
+                                            add(JsonPrimitive(AgentGoalStatus.ACTIVE))
+                                            add(JsonPrimitive(AgentGoalStatus.PAUSED))
+                                            add(JsonPrimitive(AgentGoalStatus.ACHIEVED))
+                                            add(JsonPrimitive(AgentGoalStatus.ABANDONED))
+                                        },
+                                    )
+                                    put("description", "目标状态；省略时保留旧状态或按里程碑自动推导")
+                                },
+                            )
+                            put(
+                                "due_at",
+                                buildJsonObject {
+                                    put("type", "integer")
+                                    put("description", "期望完成时间（epoch millis）；0 或省略表示没有期限")
+                                },
+                            )
+                        },
+                    )
+                }.toString(),
+            ),
+            ToolDefinition(
+                name = TOOL_UPDATE_GOAL_MILESTONE,
+                description = "勾选、改名、追加或删除一条目标里程碑；完成后自动重算进度并推进目标状态。",
+                parametersJsonSchema = buildJsonObject {
+                    put("type", "object")
+                    put(
+                        "properties",
+                        buildJsonObject {
+                            put(
+                                "goal_id",
+                                buildJsonObject {
+                                    put("type", "string")
+                                    put("description", "目标 id")
+                                },
+                            )
+                            put(
+                                "milestone_id",
+                                buildJsonObject {
+                                    put("type", "string")
+                                    put("description", "要更新的里程碑 id；新增时留空")
+                                },
+                            )
+                            put(
+                                "title",
+                                buildJsonObject {
+                                    put("type", "string")
+                                    put("description", "里程碑标题；新增时必填，更新时可省略")
+                                },
+                            )
+                            put(
+                                "done",
+                                buildJsonObject {
+                                    put("type", "boolean")
+                                    put("description", "是否完成")
+                                },
+                            )
+                            put(
+                                "remove",
+                                buildJsonObject {
+                                    put("type", "boolean")
+                                    put("description", "true 表示删除该里程碑")
+                                },
+                            )
+                        },
+                    )
+                    put("required", buildJsonArray { add(JsonPrimitive("goal_id")) })
                 }.toString(),
             ),
         )

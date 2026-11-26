@@ -1532,32 +1532,30 @@ fun AssistantExtensionsPage(assistantId: String, onBack: () -> Unit) {
                 }
                 val currentScopes = repo.parseKnowledgeFolderScopes(a)
                 val currentIds = currentScopes.map { "${it.first}::${it.second}" }.toSet()
+                // 只保留当前仍然存在的知识库/文件夹：库或目录被删后旧作用域还留在实体里，
+                // 直接回写会把已失效的绑定又写回去，而空作用域在读取侧等于「整库」。
+                val validIds = scopeItems.map { it.id }.toSet()
+                val visibleIds = currentIds.filter { it in validIds }.toSet()
+                fun persist(ids: Set<String>) {
+                    val scopes = scopeItems.filter { it.id in ids }.map { it.kbId to it.path }
+                    update {
+                        it.copy(
+                            knowledgeFolderScopesJson = repo.serializeStringList(repo.encodeKnowledgeFolderScopes(scopes)),
+                            // 同步 KB id 列表（兼容旧路径与旧数据读取）
+                            knowledgeBaseIdsJson = repo.serializeStringList(scopes.map { s -> s.first }.distinct()),
+                        )
+                    }
+                }
                 MultiSelectChipsDialog(
                     title = type.titleText(),
                     items = scopeItems,
-                    selectedIds = currentIds,
+                    selectedIds = visibleIds,
                     itemId = { it.id },
                     itemLabel = { it.label },
                     onToggle = { id ->
-                        val updated = if (id in currentIds) currentIds - id else currentIds + id
-                        val scopes = scopeItems.filter { it.id in updated }.map { it.kbId to it.path }
-                        update {
-                            it.copy(
-                                knowledgeFolderScopesJson = repo.serializeStringList(repo.encodeKnowledgeFolderScopes(scopes)),
-                                // 同步 KB id 列表(兼容旧路径与旧数据读取)
-                                knowledgeBaseIdsJson = repo.serializeStringList(scopes.map { s -> s.first }.distinct()),
-                            )
-                        }
+                        persist(if (id in visibleIds) visibleIds - id else visibleIds + id)
                     },
-                    onSelectionChange = { newIds ->
-                        val scopes = scopeItems.filter { it.id in newIds }.map { it.kbId to it.path }
-                        update {
-                            it.copy(
-                                knowledgeFolderScopesJson = repo.serializeStringList(repo.encodeKnowledgeFolderScopes(scopes)),
-                                knowledgeBaseIdsJson = repo.serializeStringList(scopes.map { s -> s.first }.distinct()),
-                            )
-                        }
-                    },
+                    onSelectionChange = { newIds -> persist(newIds.toSet()) },
                     onDismiss = { activeType = null },
                 )
             }

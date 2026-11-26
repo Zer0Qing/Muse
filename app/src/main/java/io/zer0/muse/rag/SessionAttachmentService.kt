@@ -1,6 +1,7 @@
 package io.zer0.muse.rag
 
 import io.zer0.common.Logger
+import io.zer0.common.resultOf
 import io.zer0.muse.data.knowledge.KnowledgeDocDao
 import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
@@ -37,9 +38,9 @@ import java.util.concurrent.ConcurrentHashMap
  *  - 清理:会话结束时调用 [dropSessionAttachments] 删除 chunk 记录
  *
  * 检索集成:
- *  - kb_search 工具检索时,RagService.retrieve 会自动包含会话附件 chunk
- *    (因 docId 前缀不影响 chunk 表查询,除非显式按 KB 过滤)
- *  - 如需隔离,可在 retrieve 时过滤 isSessionAttachmentDocId
+ *  - 会话附件是**会话私有**资料:默认不进入任何检索结果,调用方必须把
+ *    [activeAttachmentDocIds] 显式传给 `RagService.retrieve` 才能召回本会话附件
+ *  - 进程重启后内存状态丢失,旧索引由 [cleanupOrphanedAttachments] 在启动时清掉
  */
 class SessionAttachmentService(
     private val ragService: RagService,
@@ -63,6 +64,16 @@ class SessionAttachmentService(
 
     /** 获取指定会话的附件列表。 */
     fun attachmentsBySession(sessionId: String): List<SessionAttachment> = sessionAttachments[sessionId]?.toList() ?: emptyList()
+
+    /**
+     * 当前会话里允许被 RAG 召回的附件 docId。
+     *
+     * 会话附件默认不进检索上下文(别的会话上传的附件不是这个会话的资料);
+     * 调用方必须显式把这个集合传给 `RagService.retrieve` / `buildInjectionContextWithCitations`
+     * 才能召回本会话附件。
+     */
+    fun activeAttachmentDocIds(sessionId: String): Set<String> =
+        attachmentsBySession(sessionId).mapTo(linkedSetOf()) { it.docId }
 
     /**
      * 索引一个会话附件。
@@ -107,7 +118,7 @@ class SessionAttachmentService(
                     it.copy(status = SessionAttachmentStatus.EMBEDDING)
                 }
                 // RAG 检索的安全回填以 knowledge_docs 为元数据真源;
-                // 只写 chunk 会在 applyIsInternal 阶段被 fail-closed 丢弃。
+                // 只写 chunk 会在 applyDocumentPolicy 阶段被 fail-closed 丢弃。
                 docDao.upsert(attachment.toKnowledgeDoc(content))
                 currentCoroutineContext().ensureActive()
                 val chunkCount = ragService.indexDocument(
@@ -180,17 +191,61 @@ class SessionAttachmentService(
         attachments.forEach { activeJobs.remove(it.id) }
         if (!keepIndex) {
             for (attachment in attachments) {
-                runCatching {
-                    // QUEUED/CHUNKING 也要清理：任务可能已写入部分 chunk 或文档元数据。
-                    ragService.deleteDocIndex(attachment.docId)
-                    docDao.delete(attachment.docId)
-                }.onFailure { Logger.w(TAG, "删除附件索引失败 | docId=${attachment.docId}", it) }
+                deleteAttachmentIndex(attachment.docId)
             }
         }
         sessionAttachments.remove(sessionId)
         attachments.forEach { droppedAttachmentIds.remove(it.id) }
         emitState()
         Logger.i(TAG, "会话附件已清理 | sessionId=$sessionId | keepIndex=$keepIndex | count=${attachments.size}")
+    }
+
+    /**
+     * 启动时清理孤儿会话附件。
+     *
+     * 会话附件的状态只在内存里(按设计不落库),进程重启后内存列表为空,
+     * 上一次进程写下的文档行与 chunk 就成了永远无人引用的孤儿:
+     * 它们不再属于任何可见会话,却仍占着 chunk 表并会被检索命中。
+     * 这里以 `knowledge_docs` 为权威来源,删除所有不在当前内存活动列表里的附件索引。
+     *
+     * 只处理会话附件(file_type 哨兵或 docId 前缀命中),不碰用户知识库文档。
+     *
+     * @return 被清理的 docId 数量
+     */
+    suspend fun cleanupOrphanedAttachments(): Int {
+        val activeDocIds = sessionAttachments.values
+            .flatten()
+            .mapTo(linkedSetOf()) { it.docId }
+        val candidates = resultOf {
+            docDao.getAttachmentCandidateIds(
+                fileType = SessionAttachment.FILE_TYPE,
+                // docId 前缀是固定的 ASCII 字符串,不需要 LIKE 转义。
+                idPrefixPattern = "${SessionAttachment.DOC_ID_PREFIX}%",
+            )
+        }
+            .onError { msg, t ->
+                // 启动期读库失败不代表附件真的孤儿,跳过本次清理;下次启动会再试。
+                Logger.w(TAG, "孤儿附件清理:读取附件列表失败,本次跳过: $msg", t)
+            }
+            .getOrNull() ?: return 0
+        val orphanDocIds = candidates.filter { it !in activeDocIds }
+        for (docId in orphanDocIds) {
+            deleteAttachmentIndex(docId)
+        }
+        if (orphanDocIds.isNotEmpty()) {
+            Logger.i(TAG, "孤儿会话附件已清理 | count=${orphanDocIds.size}")
+        }
+        return orphanDocIds.size
+    }
+
+    /** 删除一个附件 docId 的全部派生数据(chunk / FTS / 向量索引 / 文档元数据)。 */
+    private suspend fun deleteAttachmentIndex(docId: String) {
+        // 单条附件删除失败不应中断整轮清理:其余附件仍要清掉,失败项在下次启动重试。
+        // QUEUED/CHUNKING 也要清理：任务可能已写入部分 chunk 或文档元数据。
+        resultOf {
+            ragService.deleteDocIndex(docId)
+            docDao.delete(docId)
+        }.onError { msg, t -> Logger.w(TAG, "删除附件索引失败 | docId=$docId: $msg", t) }
     }
 
     /** 更新指定附件的状态(内存)。 */

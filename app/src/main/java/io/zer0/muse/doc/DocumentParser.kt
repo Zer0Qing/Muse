@@ -60,6 +60,9 @@ class DocumentParser(
 
         /** v2.2.1: PDFBox 主内存预算(32MB),超出部分外溢到临时文件,防大 PDF 解析把堆打满。 */
         private const val PDF_MAIN_MEMORY_BUDGET_BYTES = 32L * (1 shl 20)
+
+        /** Word 97-2003 的 MIME:OLE 复合文档,不是文本也不是 OOXML。 */
+        private const val LEGACY_WORD_MIME = "application/msword"
     }
 
     /** PDFBox 需要一次性 init(加载字体资源)。 */
@@ -80,6 +83,11 @@ class DocumentParser(
     fun parseResult(uri: Uri, context: Context): Result<String> {
         val resolver = context.contentResolver
         val mimeType = resolver.getType(uri) ?: guessMimeFromName(uri.toString())
+        // 旧版 .doc 是 OLE 复合二进制,落到 readAsText 会把整段乱码写进知识库并建立向量索引。
+        // 本地解析链只认 OOXML(.docx),这里明确拒绝并给出可执行的下一步。
+        if (isLegacyWordDocument(mimeType, uri.toString())) {
+            return Result.Error(context.getString(R.string.doc_err_legacy_doc_unsupported))
+        }
         return resultOf {
             when {
                 mimeType == null -> readAsText(uri, context)
@@ -220,9 +228,13 @@ class DocumentParser(
                 baos.write(buf, 0, n)
                 n = input.read(buf)
             }
-            val bytes = baos.toByteArray()
+            val raw = baos.toByteArray()
             val truncated = total > MAX_TEXT_BYTES
-            val charset = detectCharset(bytes)
+            // 编码判定与解码都必须使用「完整字符前缀」:截断点落在多字节字符中间时,
+            // 那半个字符会让严格 UTF-8 解码失败,整篇被误判成 GBK(中文全变乱码)。
+            val charset = detectCharset(raw)
+            val usable = if (truncated) completePrefixLength(raw, charset) else raw.size
+            val bytes = if (usable == raw.size) raw else raw.copyOf(usable)
             val text = String(bytes, charset).trim()
             return if (truncated) {
                 "$text\n\n[… 文件过大,已截断。原文件超过 1MB,仅读取前 1MB 内容 …]"
@@ -231,6 +243,55 @@ class DocumentParser(
             }
         }
         return ""
+    }
+
+    /**
+     * 是否旧版 Word(.doc)。
+     *
+     * 同时看 MIME 与扩展名:SAF 提供的 MIME 常被第三方文件管理器报成 text/plain,
+     * 只信 MIME 会让 OLE 二进制直接进文本解码。
+     */
+    private fun isLegacyWordDocument(mimeType: String?, uriString: String): Boolean {
+        if (mimeType == LEGACY_WORD_MIME) return true
+        val path = uriString.substringBefore('?').lowercase()
+        return path.endsWith(".doc")
+    }
+
+    /**
+     * 按 charset 回退到字符边界,返回可以安全解码的前缀字节数。
+     *
+     * UTF-8 回看首字节声明的长度;UTF-16 按 2 字节对齐。
+     * 其它多字节编码(GBK 等)不做回退:字节尾部是否“半个字符”无法只凭最后一个字节判定
+     * (它同样可能是一个合法尾字节),猜错会默默吐掉一个真字符。
+     * 这类编码下最多在末尾留一个替换字符,代价远小于整篇误判。
+     */
+    private fun completePrefixLength(bytes: ByteArray, charset: Charset): Int = when (charset) {
+        StandardCharsets.UTF_8 -> utf8CompleteLength(bytes, bytes.size)
+        StandardCharsets.UTF_16LE, StandardCharsets.UTF_16BE -> bytes.size - (bytes.size % 2)
+        else -> bytes.size
+    }
+
+    /** [end] 之前最后一个完整 UTF-8 字符的结束位置。 */
+    private fun utf8CompleteLength(bytes: ByteArray, end: Int): Int {
+        if (end <= 0) return 0
+        var index = end - 1
+        var continuation = 0
+        // 一个 UTF-8 字符最多 3 个续字节
+        while (index >= 0 && continuation < 3 && (bytes[index].toInt() and 0xC0) == 0x80) {
+            index--
+            continuation++
+        }
+        if (index < 0) return end
+        val lead = bytes[index].toInt() and 0xFF
+        val expected = when {
+            lead and 0x80 == 0 -> 1
+            lead and 0xE0 == 0xC0 -> 2
+            lead and 0xF0 == 0xE0 -> 3
+            lead and 0xF8 == 0xF0 -> 4
+            // 非法首字节:交给解码器替换,不在这一层猜
+            else -> return end
+        }
+        return if (end - index >= expected) end else index
     }
 
     /**
@@ -253,12 +314,14 @@ class DocumentParser(
             if (b0 == 0xFF && b1 == 0xFE) return StandardCharsets.UTF_16LE
             if (b0 == 0xFE && b1 == 0xFF) return StandardCharsets.UTF_16BE
         }
-        // 无 BOM:尝试 UTF-8 严格解码
+        // 无 BOM:尝试 UTF-8 严格解码。只解码「完整字符前缀」——
+        // 整段里夹着半个字符(截断点/损坏尾字节)会让严格解码失败,把整篇误判成 GBK。
+        val sampleLength = utf8CompleteLength(bytes, bytes.size)
         val decoder = StandardCharsets.UTF_8.newDecoder()
             .onMalformedInput(CodingErrorAction.REPORT)
             .onUnmappableCharacter(CodingErrorAction.REPORT)
         return runCatching {
-            decoder.decode(java.nio.ByteBuffer.wrap(bytes))
+            decoder.decode(java.nio.ByteBuffer.wrap(bytes, 0, sampleLength))
             StandardCharsets.UTF_8
         }.getOrElse {
             // UTF-8 解码失败,按 GBK 兜底(GBK 几乎不会对任意字节报错);

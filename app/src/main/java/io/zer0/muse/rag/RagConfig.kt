@@ -47,6 +47,17 @@ data class RagConfig(
     val cloudModel: String = "",
     /** 本地 ONNX 模型文件路径(filesDir 下的相对路径)。 */
     val localModelPath: String = "",
+    /**
+     * 本地 ONNX 模型文件内容的 SHA-256(小写十六进制;空串 = 未知)。
+     *
+     * 只按路径判定「模型换没换」不够:同一路径被覆盖成另一个模型时路径不变、向量语义全变,
+     * 旧索引会看起来存在却检索不准。指纹在用户选择模型文件的入口计算并保存。
+     *
+     * 限制:目前只有设置页的「选择模型文件」入口会算指纹。模型文件被其它途径替换
+     * (手工覆盖 filesDir、旧版本升级上来的配置)时指纹仍为空,此时 key 退化为固定占位符,
+     * 无法识别内容变化。新增本地模型写入入口时必须同步计算指纹。
+     */
+    val localModelDigest: String = "",
     /** 自动注入检索的 top-k 数量。 */
     val topK: Int = 3,
     /** 自动注入的相似度阈值(0-1,低于此值不注入)。 */
@@ -150,9 +161,18 @@ data class RagConfig(
          * 既有向量索引维度/语义不匹配,检索"看起来有索引却搜不到"。本 key 供知识库页
          * 与"最近一次索引所用 key"比对,变化时提示用户重新索引。
          */
+        /** 没有模型指纹时的占位符:必须稳定,否则同一配置每次算出的 key 都不同。 */
+        private const val NO_MODEL_DIGEST = "no-digest"
+
         fun embeddingModelKey(config: RagConfig): String = when (config.embeddingSource) {
             EmbeddingSource.LOCAL_KEYWORD -> "embed:local_keyword"
-            EmbeddingSource.LOCAL -> "embed:local_onnx:${config.localModelPath}"
+            EmbeddingSource.LOCAL -> buildString {
+                append("embed:local_onnx:")
+                append(config.localModelPath.trim())
+                append(':')
+                append(config.localModelDigest.trim().ifBlank { NO_MODEL_DIGEST })
+            }
+            // 云端分支只带 Provider 与模型名:凭据不参与身份,也不能落进文档的 embedding_model 列
             EmbeddingSource.CLOUD -> "embed:cloud:${config.cloudProviderId}:${config.cloudModel}"
         }
     }

@@ -5,7 +5,8 @@
     <string name="audit_memory_space_rename_failed">Failed to rename space: %1$s</string>
     <string name="audit_memory_space_renamed">Space renamed</string>
     <string name="audit_memory_space_delete_failed">Failed to delete space: %1$s</string>
-    <string name="audit_memory_space_deleted">Space deleted; facts moved back to the default space</string>
+    <string name="audit_memory_space_delete_consequence">Its facts and summaries are merged into the default space and kept; this space\'s consolidation rollback points are cleared.</string>
+    <string name="audit_memory_space_deleted">Space deleted; its facts and summaries were merged into the default space</string>
     <string name="audit_memory_space_default_not_deletable">The default space cannot be deleted</string>
     <string name="audit_group_memory_clear_failed">Failed to clear group chat memory</string>
     <string name="audit_group_attachment_image">[Image]</string>

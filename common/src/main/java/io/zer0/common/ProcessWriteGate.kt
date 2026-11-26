@@ -17,6 +17,19 @@ object ProcessWriteGate {
     var restoring: Boolean = false
         private set
 
+    /** 已成功进入恢复窗口的次数,单调递增,进程内唯一。 */
+    private var begunWindows: Long = 0L
+
+    /**
+     * 恢复代数:每成功进入一次恢复窗口 +1,永不回退。
+     *
+     * [restoring] 只能回答「此刻是否在窗口内」,回答不了「任务跑的时候有没有开过窗口」——
+     * 一次模型调用可能在恢复窗口完整开合之后才返回,那时 [restoring] 已经复位,
+     * 基于旧库算出来的结果却会被当成最新的写回去。长任务在入口记录本值,
+     * 写前再比一次,就能识别这种跨越恢复窗口的过期结果。
+     */
+    val generation: Long get() = synchronized(this) { begunWindows }
+
     /** 进入恢复窗口。返回 true 表示成功进入(即此前未处于恢复中)。 */
     fun begin(): Boolean {
         return synchronized(this) {
@@ -24,6 +37,7 @@ object ProcessWriteGate {
                 false
             } else {
                 restoring = true
+                begunWindows++
                 true
             }
         }

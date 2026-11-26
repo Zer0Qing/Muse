@@ -18,6 +18,10 @@ class AgentSquadIdentityStore(context: Context) {
         val botId: String,
         val channelIds: Set<String> = emptySet(),
         val specialty: String = "",
+        /** 专长标签：比单句简介更适合在队友卡片上做快速识别。 */
+        val specialtyTags: Set<String> = emptySet(),
+        /** 默认算力目标；空串表示本机，非空指向 remote_compute_nodes.nodeId。 */
+        val defaultComputeNodeId: String = "",
     )
 
     private val prefs: SharedPreferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
@@ -41,6 +45,19 @@ class AgentSquadIdentityStore(context: Context) {
         saveBinding(current.copy(specialty = specialty.trim().take(48)))
     }
 
+    fun setSpecialtyTags(botId: String, tags: Collection<String>) {
+        if (botId.isBlank()) return
+        val current = _bindings.value[botId] ?: IdentityBinding(botId)
+        val normalized = tags.map { it.trim() }.filter { it.isNotBlank() }.distinct().take(MAX_SPECIALTY_TAGS).toSet()
+        saveBinding(current.copy(specialtyTags = normalized))
+    }
+
+    fun setDefaultComputeNode(botId: String, nodeId: String) {
+        if (botId.isBlank()) return
+        val current = _bindings.value[botId] ?: IdentityBinding(botId)
+        saveBinding(current.copy(defaultComputeNodeId = nodeId.trim()))
+    }
+
     fun channelsOf(botId: String): Set<String> =
         _bindings.value[botId]?.channelIds.orEmpty()
 
@@ -54,6 +71,8 @@ class AgentSquadIdentityStore(context: Context) {
         prefs.edit()
             .putStringSet("$KEY_CHANNELS_PREFIX${binding.botId}", binding.channelIds)
             .putString("$KEY_SPECIALTY_PREFIX${binding.botId}", binding.specialty)
+            .putStringSet("$KEY_SPECIALTY_TAGS_PREFIX${binding.botId}", binding.specialtyTags)
+            .putString("$KEY_COMPUTE_NODE_PREFIX${binding.botId}", binding.defaultComputeNodeId)
             .apply()
         _bindings.value = readAll()
     }
@@ -63,6 +82,8 @@ class AgentSquadIdentityStore(context: Context) {
         prefs.all.keys.forEach { key ->
             when {
                 key.startsWith(KEY_CHANNELS_PREFIX) -> botIds += key.removePrefix(KEY_CHANNELS_PREFIX)
+                key.startsWith(KEY_SPECIALTY_TAGS_PREFIX) -> botIds += key.removePrefix(KEY_SPECIALTY_TAGS_PREFIX)
+                key.startsWith(KEY_COMPUTE_NODE_PREFIX) -> botIds += key.removePrefix(KEY_COMPUTE_NODE_PREFIX)
                 key.startsWith(KEY_SPECIALTY_PREFIX) -> botIds += key.removePrefix(KEY_SPECIALTY_PREFIX)
             }
         }
@@ -71,6 +92,8 @@ class AgentSquadIdentityStore(context: Context) {
                 botId = botId,
                 channelIds = prefs.getStringSet("$KEY_CHANNELS_PREFIX$botId", emptySet()).orEmpty().toSet(),
                 specialty = prefs.getString("$KEY_SPECIALTY_PREFIX$botId", "").orEmpty(),
+                specialtyTags = prefs.getStringSet("$KEY_SPECIALTY_TAGS_PREFIX$botId", emptySet()).orEmpty().toSet(),
+                defaultComputeNodeId = prefs.getString("$KEY_COMPUTE_NODE_PREFIX$botId", "").orEmpty(),
             )
         }
     }
@@ -79,5 +102,8 @@ class AgentSquadIdentityStore(context: Context) {
         private const val PREF_NAME = "muse_agent_squad_identities"
         private const val KEY_CHANNELS_PREFIX = "channels_"
         private const val KEY_SPECIALTY_PREFIX = "specialty_"
+        private const val KEY_SPECIALTY_TAGS_PREFIX = "specialty_tags_"
+        private const val KEY_COMPUTE_NODE_PREFIX = "compute_node_"
+        private const val MAX_SPECIALTY_TAGS = 8
     }
 }

@@ -189,6 +189,182 @@ class KnowledgePortableBackupTest {
     }
 
     @Test
+    fun `session attachments are excluded by default and included on demand`() = runBlocking {
+        seedDoc(sourceDb, "doc-user", "用户库正文")
+        seedDoc(sourceDb, "doc-attach", "会话附件正文")
+        sourceDb.knowledgeV2Dao().reassignOwner("doc-attach", "SessionAttachment", "s-1", 0L)
+
+        val defaultBackup = sourceService.export()
+        assertEquals("默认不得导出会话附件", listOf("doc-user"), defaultBackup.docs.map { it.docId })
+        assertEquals(1, defaultBackup.manifest.docCount)
+        assertEquals(1, defaultBackup.manifest.revisionCount)
+
+        val withAttachments = sourceService.export(includeAttachments = true)
+        assertEquals(
+            "显式要求时才包含附件",
+            setOf("doc-user", "doc-attach"),
+            withAttachments.docs.map { it.docId }.toSet(),
+        )
+        assertEquals(2, withAttachments.manifest.revisionCount)
+    }
+
+    @Test
+    fun `bindings pointing at excluded attachments are dropped from export`() = runBlocking {
+        seedDoc(sourceDb, "doc-attach", "会话附件正文")
+        sourceDb.knowledgeV2Dao().reassignOwner("doc-attach", "SessionAttachment", "s-1", 0L)
+        sourceDb.knowledgeFolderV2Dao().insertBinding(
+            io.zer0.muse.data.knowledge.KnowledgeV2BindingEntity(
+                bindingId = "bind-attach",
+                ownerType = "Session",
+                ownerId = "s-1",
+                targetType = "DOC",
+                targetId = "doc-attach",
+            ),
+        )
+        seedDoc(sourceDb, "doc-user", "用户库正文")
+        sourceDb.knowledgeFolderV2Dao().insertBinding(
+            io.zer0.muse.data.knowledge.KnowledgeV2BindingEntity(
+                bindingId = "bind-user",
+                ownerType = "Assistant",
+                ownerId = "a-1",
+                targetType = "DOC",
+                targetId = "doc-user",
+            ),
+        )
+
+        val backup = sourceService.export()
+        assertEquals("指向被排除附件的绑定不得导出", listOf("bind-user"), backup.bindings.map { it.bindingId })
+        // 导出物自身必须能过校验(否则恢复永远失败)。
+        assertTrue(targetService.restore(backup).success)
+    }
+
+    @Test
+    fun `binding to missing knowledge base is skipped with warning`() = runBlocking {
+        seedDoc(sourceDb, "doc-1", "content")
+        sourceDb.knowledgeFolderV2Dao().insertBinding(
+            io.zer0.muse.data.knowledge.KnowledgeV2BindingEntity(
+                bindingId = "bind-kb-missing",
+                ownerType = "Assistant",
+                ownerId = "a-1",
+                targetType = "KB",
+                targetId = "kb-does-not-exist",
+            ),
+        )
+        val backup = sourceService.export()
+
+        val report = targetService.restore(backup)
+
+        assertTrue("恢复本身仍应成功: ${report.failureReason}", report.success)
+        assertTrue(
+            "KB 不存在必须记警告: ${report.warnings}",
+            report.warnings.any { it.contains("kb-does-not-exist") },
+        )
+        assertTrue("不得恢复指向不存在 KB 的绑定", targetDb.knowledgeFolderV2Dao().getAllBindings().isEmpty())
+    }
+
+    @Test
+    fun `binding to existing knowledge base is restored`() = runBlocking {
+        seedDoc(sourceDb, "doc-1", "content")
+        sourceDb.knowledgeFolderV2Dao().insertBinding(
+            io.zer0.muse.data.knowledge.KnowledgeV2BindingEntity(
+                bindingId = "bind-kb",
+                ownerType = "Assistant",
+                ownerId = "a-1",
+                targetType = "KB",
+                targetId = "kb-real",
+            ),
+        )
+        // 目标库必须真的存在该 KB 行。
+        targetDb.knowledgeBaseDao().upsert(
+            io.zer0.muse.data.knowledge.KnowledgeBaseEntity(id = "kb-real", name = "真实库"),
+        )
+        val backup = sourceService.export()
+
+        val report = targetService.restore(backup)
+
+        assertTrue("恢复应成功: ${report.failureReason}", report.success)
+        assertEquals(listOf("bind-kb"), targetDb.knowledgeFolderV2Dao().getAllBindings().map { it.bindingId })
+    }
+
+    @Test
+    fun `duplicate doc id is rejected before writing`() = runBlocking {
+        seedDoc(sourceDb, "doc-1", "content")
+        val backup = sourceService.export()
+        val duplicated = backup.copy(docs = backup.docs + backup.docs.first())
+        val report = targetService.restore(duplicated)
+        assertTrue(!report.success)
+        assertTrue("必须报重复 docId: ${report.failureReason}", report.failureReason!!.contains("重复 docId"))
+        assertNull(targetDb.knowledgeV2Dao().getDoc("doc-1"))
+    }
+
+    @Test
+    fun `duplicate doc id revision no pair is rejected`() = runBlocking {
+        seedDoc(sourceDb, "doc-1", "content")
+        val backup = sourceService.export()
+        val duplicateRevision = backup.revisions.first().copy(revisionId = "rev-duplicate")
+        val report = targetService.restore(backup.copy(revisions = backup.revisions + duplicateRevision))
+        assertTrue(!report.success)
+        assertTrue(
+            "必须报 (docId, revisionNo) 重复: ${report.failureReason}",
+            report.failureReason!!.contains("revisionNo"),
+        )
+    }
+
+    @Test
+    fun `current revision id must exist within the doc revisions`() = runBlocking {
+        seedDoc(sourceDb, "doc-1", "content")
+        val backup = sourceService.export()
+        val broken = backup.copy(
+            docs = backup.docs.map { it.copy(currentRevisionId = "rev-not-in-backup") },
+        )
+        val report = targetService.restore(broken)
+        assertTrue(!report.success)
+        assertTrue(
+            "必须报 currentRevisionId 无效: ${report.failureReason}",
+            report.failureReason!!.contains("currentRevisionId"),
+        )
+        assertNull(targetDb.knowledgeV2Dao().getDoc("doc-1"))
+    }
+
+    @Test
+    fun `doc folder id must exist in backup folders`() = runBlocking {
+        seedDoc(sourceDb, "doc-1", "content", folderId = "kbf-missing")
+        val backup = sourceService.export()
+        val report = targetService.restore(backup)
+        assertTrue(!report.success)
+        assertTrue("必须报 folderId 不存在: ${report.failureReason}", report.failureReason!!.contains("folderId"))
+        assertNull(targetDb.knowledgeV2Dao().getDoc("doc-1"))
+    }
+
+    @Test
+    fun `manifest schema version follows current db version instead of hardcoded`() = runBlocking {
+        seedDoc(sourceDb, "doc-1", "content")
+        val backup = sourceService.export()
+        assertEquals(
+            "appSchemaVersion 必须跟随 MuseDb.LATEST_SCHEMA_VERSION",
+            io.zer0.muse.data.session.MuseDb.LATEST_SCHEMA_VERSION,
+            backup.manifest.appSchemaVersion,
+        )
+    }
+
+    @Test
+    fun `interrupted restore reports leftover rows need rollback`() = runBlocking {
+        // 用已存在的主键制造写入中断:doc-1 已存在于目标库 -> insertDoc 冲突抛异常。
+        seedDoc(sourceDb, "doc-1", "content")
+        seedDoc(sourceDb, "doc-2", "content two")
+        val backup = sourceService.export()
+        seedDoc(targetDb, "doc-1", "preexisting")
+
+        val report = targetService.restore(backup)
+
+        assertTrue("冲突必须报失败", !report.success)
+        assertTrue(
+            "失败报告必须说明已有残留需回滚: ${report.failureReason}",
+            report.failureReason!!.contains("回滚"),
+        )
+    }
+
+    @Test
     fun `portable backup json roundtrip preserves content and restores`() = runBlocking {
         seedDoc(sourceDb, "doc-json", "JSON 便携备份正文 TAIL-JSON")
         val backup = sourceService.export()

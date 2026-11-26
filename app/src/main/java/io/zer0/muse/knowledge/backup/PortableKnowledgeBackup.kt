@@ -3,6 +3,7 @@ package io.zer0.muse.knowledge.backup
 import io.zer0.common.Logger
 import io.zer0.muse.data.knowledge.KnowledgeFolderV2Dao
 import io.zer0.muse.data.knowledge.KnowledgeJobDao
+import io.zer0.muse.data.knowledge.KnowledgeTransactionRunner
 import io.zer0.muse.data.knowledge.KnowledgeV2BindingEntity
 import io.zer0.muse.data.knowledge.KnowledgeV2Dao
 import io.zer0.muse.data.knowledge.KnowledgeV2DocEntity
@@ -121,15 +122,52 @@ class KnowledgePortableBackupService(
     private val jobDao: KnowledgeJobDao,
     private val clock: () -> Long = System::currentTimeMillis,
     private val newSnapshotId: () -> String = { "snap-${UUID.randomUUID()}" },
-    private val appSchemaVersion: Int = 129,
+    /**
+     * 导出清单里声明的应用 schema 版本。默认跟随 [io.zer0.muse.data.session.MuseDb.LATEST_SCHEMA_VERSION],
+     * 不在这里写死一个会随迁移过时的常量。
+     */
+    private val appSchemaVersion: Int = io.zer0.muse.data.session.MuseDb.LATEST_SCHEMA_VERSION,
+    /**
+     * 是否把会话附件(SessionAttachment)一并导出。
+     *
+     * 默认 **false**:附件属于会话生命周期,由会话导出通道自己负责;便携知识备份
+     * 只背用户库。需要时由调用方显式打开,不依赖调用方记着传 true。
+     */
+    private val includeSessionAttachments: Boolean = false,
+    /**
+     * 词法重建发布用的事务边界。默认无外层事务(旧测试直接传 DAO);
+     * 生产装配应传 `KnowledgeTransactionRunner.room(db)` 以保证发布原子。
+     */
+    private val transactionRunner: KnowledgeTransactionRunner = KnowledgeTransactionRunner.direct(),
 ) {
 
-    /** 导出便携备份(纯数据;文件打包由调用方负责)。 */
-    suspend fun export(): KnowledgePortableBackup {
-        val docs = v2Dao.getAllDocs()
-        val revisions = v2Dao.getAllRevisions()
+    /**
+     * 导出便携备份(纯数据;文件打包由调用方负责)。
+     *
+     * @param includeAttachments null = 用构造参数(生产为 false);true/false 显式覆盖。
+     */
+    suspend fun export(includeAttachments: Boolean? = null): KnowledgePortableBackup {
+        val withAttachments = includeAttachments ?: includeSessionAttachments
+        val allDocs = v2Dao.getAllDocs()
+        val docs = if (withAttachments) {
+            allDocs
+        } else {
+            allDocs.filter { it.ownerType != SESSION_ATTACHMENT_OWNER_TYPE }
+        }
+        val docIds = docs.mapTo(mutableSetOf()) { it.docId }
+        // revision/folder/binding 都按导出范围收敛:否则恢复时会出现「revision 引用不在备份中的 doc」
+        // 被自己的校验判死,或者导出附件却不导附件的目录。
+        val revisions = v2Dao.getAllRevisions().filter { it.docId in docIds }
         val folders = folderDao.getAllFolders()
-        val bindings = folderDao.getAllBindings()
+        val folderIds = folders.mapTo(mutableSetOf()) { it.folderId }
+        val bindings = folderDao.getAllBindings().filter { binding ->
+            when (binding.targetType) {
+                "DOC" -> binding.targetId in docIds
+                "FOLDER" -> binding.targetId in folderIds
+                "KB" -> true
+                else -> false
+            }
+        }
         val now = clock()
         val latestEpoch = v2Dao.getLatestEpoch()?.epochNo ?: 0L
 
@@ -236,8 +274,12 @@ class KnowledgePortableBackupService(
             restoreBindings(backup, state)
         } catch (e: Exception) {
             Logger.w("KnowledgePortableBackupService", "恢复失败: ${e.message}", e)
-            // 失败:本方法内已写入的行由调用方以恢复点回滚;报告如实失败。
-            return failed("恢复中断: ${e.message}", newEpochNo, state.warnings)
+            // 已写入的 folders/docs/revisions/generations 不会自动消失:调用方必须用恢复前快照回滚。
+            return failed(
+                "恢复中断: ${e.message};已写入的部分行(目录/文档/revision/索引代)需由调用方回滚到恢复前快照",
+                newEpochNo,
+                state.warnings,
+            )
         }
 
         return RestoreReport(
@@ -261,12 +303,47 @@ class KnowledgePortableBackupService(
         var keywordReady: Int = 0,
     )
 
-    /** 版本与清单校验;返回 null = 通过,非空 = 失败原因。 */
-    private fun validateBackup(backup: KnowledgePortableBackup): String? {
+    /**
+     * 版本与清单校验;返回 null = 通过,非空 = 失败原因。
+     *
+     * 拆成逐项检查:每项只回答一件事,失败原因直接能指到具体字段。
+     */
+    private fun validateBackup(backup: KnowledgePortableBackup): String? =
+        validateManifest(backup)
+            ?: validateUniqueKeys(backup)
+            ?: validateRevisionContent(backup)
+            ?: validateFolderClosure(backup)
+            ?: validateDocPointers(backup)
+
+    /** 格式版本不得高于本实现认识的版本。 */
+    private fun validateManifest(backup: KnowledgePortableBackup): String? =
         if (backup.manifest.formatVersion > KnowledgeBackupManifest.CURRENT_FORMAT_VERSION) {
-            return "未知的较新备份格式版本: ${backup.manifest.formatVersion}"
+            "未知的较新备份格式版本: ${backup.manifest.formatVersion}"
+        } else {
+            null
         }
-        val docIds = backup.docs.map { it.docId }.toSet()
+
+    /** 主键唯一性:docId 唯一、(docId, revisionNo) 唯一。 */
+    private fun validateUniqueKeys(backup: KnowledgePortableBackup): String? {
+        val duplicateDocIds = backup.docs.groupBy { it.docId }.filterValues { it.size > 1 }.keys
+        if (duplicateDocIds.isNotEmpty()) {
+            return "备份中存在重复 docId: ${duplicateDocIds.joinToString()}"
+        }
+        val duplicateRevisionKeys = backup.revisions
+            .groupBy { it.docId to it.revisionNo }
+            .filterValues { it.size > 1 }
+            .keys
+        return if (duplicateRevisionKeys.isEmpty()) {
+            null
+        } else {
+            "备份中存在重复 (docId, revisionNo): " +
+                duplicateRevisionKeys.joinToString { "${it.first}#${it.second}" }
+        }
+    }
+
+    /** revision 必须属于备份内的文档,且内容 hash 与正文一致。 */
+    private fun validateRevisionContent(backup: KnowledgePortableBackup): String? {
+        val docIds = backup.docs.mapTo(mutableSetOf()) { it.docId }
         for (revision in backup.revisions) {
             if (revision.docId !in docIds) {
                 return "revision ${revision.revisionId} 引用了不在备份中的 doc: ${revision.docId}"
@@ -277,6 +354,35 @@ class KnowledgePortableBackupService(
                 actual != revision.contentHash
             ) {
                 return "revision ${revision.revisionId} 内容 hash 不一致"
+            }
+        }
+        return null
+    }
+
+    /** 目录树必须在备份内闭合:parentId 非空就必须存在。 */
+    private fun validateFolderClosure(backup: KnowledgePortableBackup): String? {
+        val folderIds = backup.folders.mapTo(mutableSetOf()) { it.folderId }
+        for (folder in backup.folders) {
+            if (folder.parentId.isNotBlank() && folder.parentId !in folderIds) {
+                return "目录 ${folder.folderId} 的 parentId(${folder.parentId}) 不在备份中"
+            }
+        }
+        return null
+    }
+
+    /** 文档指针必须指向自己名下的 revision;folderId 必须存在(空串 = 库根)。 */
+    private fun validateDocPointers(backup: KnowledgePortableBackup): String? {
+        val folderIds = backup.folders.mapTo(mutableSetOf()) { it.folderId }
+        val revisionIdsByDoc = backup.revisions.groupBy({ it.docId }, { it.revisionId })
+        for (doc in backup.docs) {
+            if (doc.folderId.isNotBlank() && doc.folderId !in folderIds) {
+                return "文档 ${doc.docId} 的 folderId(${doc.folderId}) 不在备份中"
+            }
+            if (doc.currentRevisionId.isNotBlank()) {
+                val owned = revisionIdsByDoc[doc.docId].orEmpty()
+                if (doc.currentRevisionId !in owned) {
+                    return "文档 ${doc.docId} 的 currentRevisionId(${doc.currentRevisionId}) 不在备份的该文档 revision 中"
+                }
             }
         }
         return null
@@ -328,7 +434,7 @@ class KnowledgePortableBackupService(
 
     /** 逐文档重建词法 generation;失败/空正文保持 StoredOnly,不发布半代。 */
     private suspend fun rebuildLexical(backup: KnowledgePortableBackup, state: RestoreState) {
-        val publisher = GenerationPublisher(jobDao)
+        val publisher = GenerationPublisher(jobDao, transactionRunner)
         val chunker = StructuredChunker(chunkSize = 500, chunkOverlap = 50)
         for (doc in backup.docs) {
             val revisions = backup.revisions.filter { it.docId == doc.docId }
@@ -386,15 +492,21 @@ class KnowledgePortableBackupService(
         }
     }
 
-    /** 绑定恢复:目标不存在只记警告并跳过。 */
+    /** 绑定恢复:目标不存在只记警告并跳过(KB 目标需真实存在于本库)。 */
     private suspend fun restoreBindings(backup: KnowledgePortableBackup, state: RestoreState) {
         val docIds = backup.docs.map { it.docId }.toSet()
         val folderIds = backup.folders.map { it.folderId }.toSet()
+        // KB 目标不在备份载荷内(备份不带 knowledge_bases 行),必须回库校验,不能默认 true。
+        val kbIds = backup.bindings
+            .filter { it.targetType == "KB" }
+            .map { it.targetId }
+            .distinct()
+        val existingKbIds = kbIds.filter { jobDao.countKnowledgeBase(it) > 0 }.toSet()
         for (binding in backup.bindings) {
             val targetExists = when (binding.targetType) {
                 "DOC" -> binding.targetId in docIds
                 "FOLDER" -> binding.targetId in folderIds
-                "KB" -> true
+                "KB" -> binding.targetId in existingKbIds
                 else -> false
             }
             if (!targetExists) {
@@ -430,6 +542,9 @@ class KnowledgePortableBackupService(
     )
 
     companion object {
+        /** 会话附件的 ownerType 标识:默认不进入便携知识备份。 */
+        const val SESSION_ATTACHMENT_OWNER_TYPE = "SessionAttachment"
+
         private val json = kotlinx.serialization.json.Json {
             ignoreUnknownKeys = true
             encodeDefaults = true

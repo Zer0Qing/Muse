@@ -4,7 +4,6 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
-import io.zer0.muse.ui.memory.MemoryViewModel
 
 /**
  * 经验库数据源统一（Task 2）的守卫。
@@ -44,10 +43,9 @@ class ExperiencePromptSourceTest {
     @Test
     fun `legacy table is only reachable through the importer`() {
         val koin = readSource("app/src/main/java/io/zer0/muse/AppKoinModule.kt")
-        assertTrue(
-            "旧表绑定必须仍然存在，供一次性导入使用",
-            koin.contains("single { io.zer0.muse.data.experience.ExperienceRepository(get()) }"),
-        )
+        assertFalse(koin.contains("io.zer0.muse.data.experience.ExperienceRepository"))
+        assertFalse(koin.contains("io.zer0.muse.data.experience.ExperienceStore"))
+        assertTrue(koin.contains("legacy = get<MuseDb>().experienceDao()"))
         val importer = readSource("app/src/main/java/io/zer0/muse/data/experience/ExperienceLegacyImporter.kt")
         assertTrue("导入器负责把旧表搬进统一存储", importer.contains("ExperienceEntry.SOURCE_IMPORTED"))
         assertTrue("逐行失败时不写完成标志，下次继续补", importer.contains("if (failed == 0) markRun()"))

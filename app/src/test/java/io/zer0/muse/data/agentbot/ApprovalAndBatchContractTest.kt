@@ -82,18 +82,18 @@ class ApprovalAndBatchContractTest {
     @Test
     fun `approval section renders independently of the chat flow`() {
         val screen = source("io/zer0/muse/ui/agentbot/AgentBotScreen.kt");
-        val workbench = source("io/zer0/muse/ui/agentbot/AgentWorkbenchSheet.kt");
+        val workbench = source("io/zer0/muse/ui/agentbot/WorkbenchFollowUpTab.kt");
         assertTrue(
             "审批卡要在主对话流上独立呈现，不依赖主 Bot 正在说话",
             screen.contains("items(pendingApprovals, key = { \"approval:\${it.approvalId}\" })") &&
                 screen.contains("AgentInlineApprovalCard("),
         );
-        val liveTabAt = workbench.indexOf("private fun WorkbenchLiveTab(");
-        val approvalAt = workbench.indexOf("projection?.pendingApprovals", liveTabAt);
-        val activeTasksAt = workbench.indexOf("val activeTasks =", approvalAt);
+        val followUpAt = workbench.indexOf("fun WorkbenchFollowUpTab(");
+        val pendingAt = workbench.indexOf("WorkbenchPendingSection(", followUpAt);
+        val liveAt = workbench.indexOf("WorkbenchLiveSection(", pendingAt);
         assertTrue(
-            "工作台实况页中待审批区必须排在普通任务列表前",
-            liveTabAt >= 0 && approvalAt in (liveTabAt + 1) until activeTasksAt,
+            "工作台跟进页中待审批区必须排在普通实况列表前",
+            followUpAt >= 0 && pendingAt in (followUpAt + 1) until liveAt,
         );
     }
 

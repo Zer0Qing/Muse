@@ -24,6 +24,9 @@ class AgentBotDataCleanup(private val database: MuseDb) {
     suspend fun deleteSessionRowsInCurrentTransaction(sessionId: String) {
         val tasks = database.botTaskDao().listByOriginSession(sessionId)
         deleteTasks(tasks)
+        // 跟进与目标都是从这段对话里长出来的，会话删除后不能再留在工作台。
+        database.agentGoalDao().deleteBySession(sessionId)
+        database.agentWatcherDao().deleteBySession(sessionId)
         database.botEventDao().deleteBySession(sessionId)
         database.approvalRequestDao().deleteBySession(sessionId)
         database.publicationOutboxDao().deleteBySession(sessionId)
@@ -45,6 +48,9 @@ class AgentBotDataCleanup(private val database: MuseDb) {
             .distinct()
             .forEach { sessionId -> deleteSessionRowsInCurrentTransaction(sessionId) }
         database.botRoutineDao().deleteByBot(assistantId)
+        // 绑定删除前先按 assistantId 找到它的 bot，再收掉这些 bot 名下的跟进与目标。
+        database.agentGoalDao().deleteByAssistant(assistantId)
+        database.agentWatcherDao().deleteByAssistant(assistantId)
         database.botBindingDao().deleteByAssistant(assistantId)
     }
 

@@ -62,7 +62,7 @@ class ContextBudget(private val limits: Map<ContextSection, Int> = DEFAULT_LIMIT
         return when {
             limit == null || originalChars <= limit -> Clamped(text, false, originalChars)
             else -> {
-                val notice = "\n\n[内容已按上下文预算截断: 分区=$section 原始 $originalChars 字符 上限 $limit 字符]"
+                val notice = truncationNotice(section, originalChars, limit)
                 // 注记计入预算:头部预留 = 上限 - 注记长度(下限 0)
                 val headLength = (limit - notice.length).coerceAtLeast(0)
                 Clamped(text.take(headLength) + notice, true, originalChars)
@@ -74,6 +74,18 @@ class ContextBudget(private val limits: Map<ContextSection, Int> = DEFAULT_LIMIT
     fun clampText(section: ContextSection, text: String): String = clamp(section, text).text
 
     companion object {
+        /**
+         * 截断注记文本。
+         *
+         * 注记会作为结果尾段出现,下游需要它来识别「这段是被预算切的」并把边界标签
+         * 补回正确位置 —— 因此生成规则必须单点定义,不能在下游再拼一份。
+         */
+        fun truncationNotice(section: ContextSection, originalChars: Int, limit: Int): String =
+            "\n\n[内容已按上下文预算截断: 分区=$section 原始 $originalChars 字符 上限 $limit 字符]"
+
+        /** 注记的固定前缀(不含具体数值),供下游定位注记起始位置。 */
+        const val TRUNCATION_NOTICE_PREFIX = "\n\n[内容已按上下文预算截断:"
+
         /**
          * 默认分区上限(字符)。以中英混合 1 token ≈ 2-3 字符估算:
          * - 记忆摘要 24k 字符 ≈ 8-12k token,不会挤占对话正文

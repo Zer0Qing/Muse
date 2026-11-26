@@ -5,15 +5,20 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import io.zer0.muse.data.knowledge.IndexGenerationState
 import io.zer0.muse.data.knowledge.KnowledgeJobDao
+import io.zer0.muse.data.knowledge.KnowledgeTransactionRunner
 import io.zer0.muse.data.knowledge.KnowledgeV2DocEntity
 import io.zer0.muse.data.session.MuseDb
 import io.zer0.muse.knowledge.domain.PublishResult
 import io.zer0.muse.knowledge.index.GenerationPublisher
 import io.zer0.muse.knowledge.ingest.LocatedChunk
 import io.zer0.muse.knowledge.storage.KnowledgeContentStore
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -37,6 +42,7 @@ class GenerationPublishTest {
     private lateinit var db: MuseDb
     private lateinit var dao: KnowledgeJobDao
     private lateinit var publisher: GenerationPublisher
+    private lateinit var transactionalPublisher: GenerationPublisher
 
     private val context: Context get() = ApplicationProvider.getApplicationContext()
 
@@ -46,7 +52,10 @@ class GenerationPublishTest {
             .allowMainThreadQueries()
             .build()
         dao = db.knowledgeJobDao()
+        // 默认构造(无外层事务)保持旧测试兼容。
         publisher = GenerationPublisher(dao)
+        // 生产形态:真实 Room 事务。
+        transactionalPublisher = GenerationPublisher(dao, KnowledgeTransactionRunner.room(db))
     }
 
     @After
@@ -155,5 +164,112 @@ class GenerationPublishTest {
         publisher.abandon(gen2)
         assertEquals("活动代状态不被 abandon 改成 FAILED", IndexGenerationState.ACTIVE.name, dao.getGeneration(gen2)?.state)
         assertEquals("活动指针仍在", gen2, dao.getActiveGeneration("doc-a"))
+    }
+
+    @Test
+    fun `publish retires previous active generation in same transaction`() = runBlocking {
+        seedDoc("doc-a", "rev-a-1")
+        val oldCs = chunks("old")
+        val oldGen = transactionalPublisher.stageGeneration("doc-a", "rev-a-1", oldCs)
+        transactionalPublisher.validate(oldGen, "rev-a-1", hashOf(oldCs.map { it.text })) { t -> hashOf(t) }
+        assertTrue(transactionalPublisher.publish(oldGen, "rev-a-1") is PublishResult.Published)
+        assertEquals(IndexGenerationState.ACTIVE.name, dao.getGeneration(oldGen)?.state)
+
+        val newCs = chunks("new")
+        val newGen = transactionalPublisher.stageGeneration("doc-a", "rev-a-2", newCs)
+        transactionalPublisher.validate(newGen, "rev-a-2", hashOf(newCs.map { it.text })) { t -> hashOf(t) }
+        assertTrue(transactionalPublisher.publish(newGen, "rev-a-2") is PublishResult.Published)
+
+        assertEquals("指针切到新代", newGen, dao.getActiveGeneration("doc-a"))
+        assertEquals(IndexGenerationState.ACTIVE.name, dao.getGeneration(newGen)?.state)
+        assertEquals("旧活动代必须被置 RETIRED", IndexGenerationState.RETIRED.name, dao.getGeneration(oldGen)?.state)
+    }
+
+    @Test
+    fun `publish keeps old generation active when revision conflicts`() = runBlocking {
+        seedDoc("doc-a", "rev-a-1")
+        val oldCs = chunks("old")
+        val oldGen = transactionalPublisher.stageGeneration("doc-a", "rev-a-1", oldCs)
+        transactionalPublisher.validate(oldGen, "rev-a-1", hashOf(oldCs.map { it.text })) { t -> hashOf(t) }
+        transactionalPublisher.publish(oldGen, "rev-a-1")
+
+        val newCs = chunks("new")
+        val newGen = transactionalPublisher.stageGeneration("doc-a", "rev-a-2", newCs)
+        val result = transactionalPublisher.publish(newGen, "rev-a-OTHER")
+
+        assertTrue(result is PublishResult.Conflict)
+        assertEquals("旧指针不变", oldGen, dao.getActiveGeneration("doc-a"))
+        assertEquals("旧代仍 ACTIVE", IndexGenerationState.ACTIVE.name, dao.getGeneration(oldGen)?.state)
+        assertEquals("新代仍 STAGING(未被误清理)", IndexGenerationState.STAGING.name, dao.getGeneration(newGen)?.state)
+    }
+
+    @Test
+    fun `abandon cleans stale active generation that is no longer the pointer`() = runBlocking {
+        seedDoc("doc-a", "rev-a-1")
+        // 构造崩溃残留:两代都是 ACTIVE,指针只指向其中一代。
+        val staleCs = chunks("stale")
+        val staleGen = transactionalPublisher.stageGeneration("doc-a", "rev-a-1", staleCs)
+        dao.updateGenerationState(staleGen, IndexGenerationState.ACTIVE.name)
+        val liveCs = chunks("live")
+        val liveGen = transactionalPublisher.stageGeneration("doc-a", "rev-a-2", liveCs)
+        dao.updateGenerationState(liveGen, IndexGenerationState.ACTIVE.name)
+        dao.upsertActiveGeneration(
+            io.zer0.muse.data.knowledge.KnowledgeActiveGenerationEntity("doc-a", liveGen, 0L),
+        )
+
+        transactionalPublisher.abandon(staleGen)
+
+        assertEquals("非当前指针的 ACTIVE 代允许清理", IndexGenerationState.FAILED.name, dao.getGeneration(staleGen)?.state)
+        assertEquals(0, dao.countGenChunks(staleGen))
+        assertEquals("当前指针不被影响", liveGen, dao.getActiveGeneration("doc-a"))
+        assertEquals(IndexGenerationState.ACTIVE.name, dao.getGeneration(liveGen)?.state)
+    }
+
+    @Test
+    fun `generation id conflict is reported instead of thrown`() = runBlocking {
+        seedDoc("doc-a", "rev-a-1")
+        val first = transactionalPublisher.stageGeneration("doc-a", "rev-a-1", chunks("content"))
+
+        // 同一个 generationId 再插一次:必须返回 -1(而不是抛异常),
+        // 调用方据此重算下一个代号。
+        val conflict = dao.insertGenerationIfAbsent(
+            io.zer0.muse.data.knowledge.KnowledgeGenerationEntity(
+                generationId = first,
+                docId = "doc-a",
+                generationNo = 1,
+                state = IndexGenerationState.STAGING.name,
+                revisionId = "rev-dup",
+            ),
+        )
+        assertEquals("冲突必须返回 -1 而不是抛异常", -1L, conflict)
+        assertEquals("已存在的代不被覆盖", "rev-a-1", dao.getGeneration(first)?.revisionId)
+
+        // 后续 staging 仍然成功,拿到下一个号。
+        val second = transactionalPublisher.stageGeneration("doc-a", "rev-a-2", chunks("content 2"))
+        assertNotEquals(first, second)
+        assertEquals(2, dao.getGeneration(second)?.generationNo)
+    }
+
+    @Test
+    fun `concurrent staging on same doc allocates distinct generations`() = runBlocking {
+        seedDoc("doc-a", "rev-a-1")
+        val rounds = 6
+        val ids = mutableListOf<String>()
+        // 用无外层事务的 publisher:DAO 调用在 Room 执行器上真实交错,
+        // 正是「先算 max 再插入」的旧实现会撞号的场景。
+        coroutineScope {
+            (1..rounds).map { i ->
+                async { publisher.stageGeneration("doc-a", "rev-a-$i", chunks("content $i")) }
+            }.awaitAll().forEach { ids.add(it) }
+        }
+
+        assertEquals("并发 staging 必须拿到互不相同的 generationId", rounds, ids.toSet().size)
+        ids.forEach { id ->
+            assertNotNull("代行必须存在: $id", dao.getGeneration(id))
+            assertEquals(1, dao.countGenChunks(id))
+            assertEquals(1, dao.countGenLexical(id))
+        }
+        val numbers = ids.mapNotNull { dao.getGeneration(it)?.generationNo }.sorted()
+        assertEquals("generation_no 必须连续且唯一", (1..rounds).toList(), numbers)
     }
 }

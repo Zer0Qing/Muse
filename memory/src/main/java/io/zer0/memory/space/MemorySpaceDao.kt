@@ -98,4 +98,13 @@ interface MemorySpaceDao {
      */
     @Query("UPDATE facts SET space_id = :targetSpaceId WHERE space_id = :sourceSpaceId")
     suspend fun migrateFacts(sourceSpaceId: String, targetSpaceId: String): Int
+
+    /**
+     * 指定 Space 下出现过事实的全部作用域。
+     *
+     * Space 合并要在迁移**之前**读：迁移只改 space_id，读完之后再查这个空间就是空集，
+     * 受影响的 scope 也就无从得知。
+     */
+    @Query("SELECT DISTINCT scope FROM facts WHERE space_id = :spaceId")
+    suspend fun distinctFactScopes(spaceId: String): List<String>
 }

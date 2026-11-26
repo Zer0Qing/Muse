@@ -4,6 +4,9 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import io.zer0.memory.fact.FactDb
 import io.zer0.memory.fact.FactStore
+import io.zer0.memory.pin.PinnedMemoryStore
+import io.zer0.memory.runtime.DefaultMemoryUseCases
+import java.io.File
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -22,6 +25,7 @@ class DeleteMemoryToolTest {
         .allowMainThreadQueries()
         .build()
     private val store = FactStore(db.factDao(), db, assistantId = "assistant-a")
+    private val cases = DefaultMemoryUseCases({ store }, PinnedMemoryStore(File(context.cacheDir, "test-pins")))
 
     @After
     fun tearDown() {
@@ -36,14 +40,10 @@ class DeleteMemoryToolTest {
             spaceId = "work",
         )
 
-        val result = DeleteMemoryTool.execute(
+        val result = deleteMemoryViaUseCases(
+            useCases = cases,
+            context = ToolExecutionContext(scope = "assistant-a", spaceId = "work", assistantId = "assistant-a"),
             args = mapOf("id" to id.toString()),
-            factStore = store,
-            executionContext = ToolExecutionContext(
-                scope = "assistant-a",
-                spaceId = "work",
-                assistantId = "assistant-a",
-            ),
         )
 
         assertTrue(result.startsWith("Deleted from long-term memory"))
@@ -59,17 +59,13 @@ class DeleteMemoryToolTest {
             spaceId = "work",
         )
 
-        val result = DeleteMemoryTool.execute(
+        val result = deleteMemoryViaUseCases(
+            useCases = cases,
+            context = ToolExecutionContext(scope = "assistant-a", spaceId = "work", assistantId = "assistant-b"),
             args = mapOf("id" to id.toString()),
-            factStore = store,
-            executionContext = ToolExecutionContext(
-                scope = "assistant-a",
-                spaceId = "work",
-                assistantId = "assistant-b",
-            ),
         )
 
-        assertTrue(result.startsWith("Error:"))
+        assertFalse(result.startsWith("Deleted from long-term memory"))
         assertFalse(store.getById(id) == null)
         assertTrue(store.getTombstones("assistant-a", "work").isEmpty())
     }

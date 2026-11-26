@@ -8,8 +8,8 @@ package io.zer0.muse.tools
  *  2. 工具自身的 [ToolRiskLevel]
  *  3. 用户针对该工具单独设置的 [ToolApprovalPolicy]
  *
- * 优先级:单工具 ALWAYS_DENY / 参数硬拒绝 > 会话 TRUSTED > 会话 STRICT >
- * 单工具 ALWAYS_ALLOW > 会话 ASK 默认风险策略。
+ * 优先级:单工具 ALWAYS_DENY / 参数硬拒绝 > 会话 TRUSTED > 参数化策略 >
+ * 单工具 AUTO_REVIEW > 会话 STRICT > 单工具 ALWAYS_ALLOW > 会话 ASK 默认风险策略。
  *
  * v1.0.52: ShellSandboxTool 保留独立规则型硬边界([isUnsafeCommand])。
  * 会话 TRUSTED 模式只跳过逐次审批,不绕过工具自身的沙箱、参数校验或执行器权限。
@@ -169,6 +169,13 @@ object ToolPermissionResolver {
         // 优先级总序:ALWAYS_DENY > 参数化 Denied > STRICT 模式 > 参数化 Auto > 其他。
         if (paramState != null && !(mode == SessionPermissionMode.STRICT && paramState is ToolApprovalState.Auto)) {
             return paramState
+        }
+
+        // v2.x: AUTO_REVIEW 由本地规则复核器给出结论。
+        // 放在 STRICT 之前：用户显式选择自动复核时，只读与工作区内安全写入允许直接通过，
+        // 其余无法证明安全的调用回落 Pending，仍由审批卡承接。
+        if (perToolPolicy == ToolApprovalPolicy.AUTO_REVIEW) {
+            return ToolAutoReviewer.resolveState(toolName, args, effectiveRisk)
         }
 
         // 2. 严格模式:安全工具之外全部审批;安全工具中若涉及外部应用/网络也审批

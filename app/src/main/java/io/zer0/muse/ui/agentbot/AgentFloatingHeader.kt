@@ -1,6 +1,11 @@
 package io.zer0.muse.ui.agentbot
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -25,6 +30,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,11 +51,21 @@ import io.zer0.muse.ui.theme.MuseAlpha
 import io.zer0.muse.ui.theme.MuseAvatarSize
 import io.zer0.muse.ui.theme.MuseBorderWidth
 import io.zer0.muse.ui.theme.MuseElevation
+import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseIconSizes
+import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.ui.theme.statusColors
+
+/** Agent 头像的生命感状态；只有非 IDLE 才需要动画，VOICE 用主色呼吸，待处理用警告色。 */
+enum class AgentPresenceState {
+    IDLE,
+    WORKING,
+    NEEDS_ATTENTION,
+    VOICE,
+}
 
 /**
  * 流内轻量身份与模型条：跟随消息流滚动，替代粘性顶栏第二排，不遮挡首条消息。
@@ -175,6 +191,7 @@ fun AgentFloatingHeader(
     onOpenIdentitySwitch: () -> Unit,
     onOpenWorkbench: () -> Unit,
     showWorkbenchButton: Boolean = true,
+    presenceState: AgentPresenceState = AgentPresenceState.IDLE,
     modifier: Modifier = Modifier,
 ) {
     val switchCd = stringResource(R.string.agent_hub_switch_bot)
@@ -196,14 +213,44 @@ fun AgentFloatingHeader(
                 .clickable(onClick = onOpenIdentitySwitch)
                 .semantics { contentDescription = switchCd },
         ) {
+            val presenceColor = if (presenceState == AgentPresenceState.NEEDS_ATTENTION) {
+                MaterialTheme.statusColors.warning
+            } else {
+                MaterialTheme.colorScheme.primary
+            }
+            val presencePulse = if (presenceState != AgentPresenceState.IDLE && !MuseMotion.isReducedMotion()) {
+                val transition = rememberInfiniteTransition(label = "agentPresence")
+                val alpha by transition.animateFloat(
+                    initialValue = 0.25f,
+                    targetValue = 0.9f,
+                    animationSpec = infiniteRepeatable(
+                        animation = MuseMotion.tween(
+                            MuseAnimation.LOOP_SLOW_MS,
+                            easing = FastOutSlowInEasing,
+                        ),
+                        repeatMode = RepeatMode.Reverse,
+                    ),
+                    label = "agentPresenceAlpha",
+                )
+                alpha
+            } else {
+                0.25f
+            }
             Surface(
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.surface,
                 shadowElevation = MuseElevation.card,
-                border = BorderStroke(
-                    width = MuseBorderWidth.thin,
-                    color = MaterialTheme.colorScheme.surface,
-                ),
+                border = if (presenceState == AgentPresenceState.IDLE) {
+                    BorderStroke(
+                        width = MuseBorderWidth.thin,
+                        color = MaterialTheme.colorScheme.surface,
+                    )
+                } else {
+                    BorderStroke(
+                        width = MuseBorderWidth.thick,
+                        color = presenceColor.copy(alpha = presencePulse),
+                    )
+                },
             ) {
                 if (assistant != null) {
                     AssistantAvatar(

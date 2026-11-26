@@ -64,6 +64,16 @@ data class CardEntity(
     @ColumnInfo(defaultValue = "NULL") val dockedAt: Long? = null,
     @ColumnInfo(defaultValue = "0") val createdAt: Long = 0L,
     @ColumnInfo(defaultValue = "0") val updatedAt: Long = 0L,
+    /** 是否钉入 Spaces 常驻小应用区。false = 只在消息流/停靠区出现。 */
+    @ColumnInfo(defaultValue = "0") val spacePinned: Boolean = false,
+    /** Spaces 分类标签；空表示未分类。 */
+    @ColumnInfo(defaultValue = "") val spaceCategory: String = "",
+    /** 后台自动刷新周期（分钟）；0 表示不自动刷新。 */
+    @ColumnInfo(defaultValue = "0") val refreshIntervalMinutes: Int = 0,
+    /** 自动刷新时交给模型的提示词；空表示沿用卡片自身内容。 */
+    @ColumnInfo(defaultValue = "") val refreshPrompt: String = "",
+    /** 最近一次后台刷新完成时间。 */
+    @ColumnInfo(defaultValue = "0") val lastRefreshedAt: Long = 0L,
 )
 
 /**
@@ -101,6 +111,15 @@ interface CardEntityDao {
     fun observeDockedCards(): Flow<List<CardEntity>>
 
     /**
+     * 已钉入 Spaces 的卡片，按创建时间升序。
+     *
+     * 不用 updatedAt 排序：卡片每次后台刷新都会推进 updatedAt，若按它排序，
+     * 小应用面板会随着刷新不断换位。创建顺序才是用户感知里的稳定顺序。
+     */
+    @Query("SELECT * FROM card_entities WHERE spacePinned = 1 ORDER BY createdAt ASC, id ASC")
+    fun observePinnedSpaces(): Flow<List<CardEntity>>
+
+    /**
      * 全量（备份导出用）。
      *
      * 不加 ORDER BY：导出顺序由备份侧 [io.zer0.muse.backup.inDockOrder] 定，
@@ -136,4 +155,34 @@ interface CardEntityDao {
     /** 清槽位（拖回）。卡片行保留，只取消停靠。 */
     @Query("UPDATE card_entities SET dockSlot = NULL, dockedAt = NULL, updatedAt = :updatedAt WHERE id = :id")
     suspend fun clearDockSlot(id: String, updatedAt: Long): Int
+
+    /**
+     * 钉入 / 取消钉入 Spaces。
+     *
+     * 分类与钉入状态一起写，避免两次 UPDATE 之间出现「已钉入但分类还是旧值」的中间态；
+     * [category] 传空串表示未分类。返回受影响行数，0 表示卡片不存在。
+     */
+    @Query(
+        "UPDATE card_entities SET spacePinned = :pinned, spaceCategory = :category, updatedAt = :updatedAt " +
+            "WHERE id = :id",
+    )
+    suspend fun updateSpacePin(id: String, pinned: Boolean, category: String, updatedAt: Long): Int
+
+    /**
+     * 写自动刷新策略与最近刷新时间。
+     *
+     * [intervalMinutes] 为 0 表示关闭自动刷新；[lastRefreshedAt] 由引擎在刷新成功后传入，
+     * 修改频率时传回当前值，避免把「上次刷新时间」误清零。
+     */
+    @Query(
+        "UPDATE card_entities SET refreshIntervalMinutes = :intervalMinutes, refreshPrompt = :refreshPrompt, " +
+            "lastRefreshedAt = :lastRefreshedAt, updatedAt = :updatedAt WHERE id = :id",
+    )
+    suspend fun updateSpaceRefresh(
+        id: String,
+        intervalMinutes: Int,
+        refreshPrompt: String,
+        lastRefreshedAt: Long,
+        updatedAt: Long,
+    ): Int
 }

@@ -36,6 +36,19 @@ data class KnowledgeDocListRow(
 
 @Dao
 interface KnowledgeDocDao {
+    /**
+     * 列出会话附件候选文档 id(file_type 哨兵或 docId 前缀任一命中)。
+     *
+     * 启动期孤儿清理只需要 id,用全表 `getAll()` 会把全库正文一并读进内存。
+     * 两个条件都查是因为历史数据可能只写了其中一边;漏判会让孤儿附件永远留在检索库里。
+     * 前缀由调用方以 LIKE 模式传入([io.zer0.muse.rag.SessionAttachment.DOC_ID_PREFIX] + "%"),
+     * 本查询不内嵌业务常量。
+     */
+    @Query(
+        "SELECT id FROM knowledge_docs WHERE file_type = :fileType OR id LIKE :idPrefixPattern",
+    )
+    suspend fun getAttachmentCandidateIds(fileType: String, idPrefixPattern: String): List<String>
+
     @Query("SELECT * FROM knowledge_docs ORDER BY updated_at DESC")
     fun observeAll(): Flow<List<KnowledgeDocEntity>>
 

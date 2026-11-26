@@ -38,6 +38,8 @@ import io.zer0.muse.data.agentbot.AgentBotUiState
 import io.zer0.muse.data.agentbot.AgentStreamCoordinator
 import io.zer0.muse.data.agentbot.BotCardStatus
 import io.zer0.muse.data.agentbot.BotTaskStatus
+import io.zer0.muse.data.agentbot.LiveMissionProgressBus
+import io.zer0.muse.data.agentbot.ReconnectCardPayload
 import io.zer0.muse.data.agentbot.StepExecutionStatus
 import io.zer0.muse.tools.WorkspaceTool
 import io.zer0.muse.ui.common.feedback.MuseDialog
@@ -75,6 +77,10 @@ fun AgentLiveMissionCard(
     onContinue: (String) -> Unit,
     onRetry: (String) -> Unit,
     onCancel: (String) -> Unit,
+    activeVirtualDisplay: LiveMissionProgressBus.ActiveVirtualDisplay? = null,
+    onOpenVirtualDisplay: (() -> Unit)? = null,
+    remoteBrowser: RemoteBrowserLiveState? = null,
+    onOpenRemoteBrowser: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val isActive = row.status in BotTaskStatus.NON_TERMINAL
@@ -169,6 +175,67 @@ fun AgentLiveMissionCard(
                     onClick = { onOpenDetails(row.taskId) },
                     compact = true,
                 )
+            }
+
+            if (remoteBrowser != null) {
+                RemoteBrowserThumbnailStrip(
+                    state = remoteBrowser,
+                    onClick = { onOpenRemoteBrowser?.invoke() },
+                )
+            } else if (activeVirtualDisplay != null) {
+                Surface(
+                    shape = MuseShapes.pill,
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = MuseAlpha.statusTint),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(MuseShapes.pill)
+                        .clickable(enabled = onOpenVirtualDisplay != null) {
+                            onOpenVirtualDisplay?.invoke()
+                        },
+                ) {
+                    Row(
+                        modifier = Modifier.padding(
+                            horizontal = MusePaddings.contentGap,
+                            vertical = MusePaddings.tightGap,
+                        ),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+                    ) {
+                        Icon(
+                            imageVector = MuseIcons.computer,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(MuseIconSizes.iconSmall),
+                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = stringResource(
+                                    R.string.agent_hub_live_vdisplay,
+                                    activeVirtualDisplay.packageName.ifBlank { "#" + activeVirtualDisplay.displayId },
+                                ),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            if (activeVirtualDisplay.action.isNotBlank()) {
+                                Text(
+                                    text = activeVirtualDisplay.action,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        }
+                        Icon(
+                            imageVector = MuseIcons.chevronRight,
+                            contentDescription = stringResource(R.string.agent_hub_mission_vdisplay_open_cd),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconTiny),
+                        )
+                    }
+                }
             }
 
             // 实时步骤时间线
@@ -763,6 +830,179 @@ fun AgentArtifactDeliveryCard(
                 onClick = { confirmDiscard = true },
                 compact = true,
             )
+        }
+    }
+}
+
+/** 6. 可修复故障卡：给出修复入口，并允许用户确认已修好后重试原任务。 */
+@Composable
+fun AgentReconnectCard(
+    card: AgentBotUiState.MessageCardUi,
+    onFix: () -> Unit,
+    onResume: () -> Unit,
+    onDismiss: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val payload = remember(card.payloadJson) { ReconnectCardPayload.decode(card.payloadJson) }
+    val reason = payload?.reason?.takeIf { it.isNotBlank() } ?: card.subtitle
+    Surface(
+        shape = MuseShapes.semiLarge,
+        color = MaterialTheme.statusColors.warningContainer.copy(alpha = MuseAlpha.statusTint),
+        border = BorderStroke(
+            width = MuseBorderWidth.thin,
+            color = MaterialTheme.statusColors.warning.copy(alpha = MuseAlpha.handle),
+        ),
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier.padding(MusePaddings.cardInner),
+            verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+            ) {
+                Icon(
+                    imageVector = MuseIcons.wrench,
+                    contentDescription = null,
+                    tint = MaterialTheme.statusColors.warning,
+                    modifier = Modifier.size(MuseIconSizes.iconMedium),
+                )
+                Text(
+                    text = card.title.ifBlank { stringResource(R.string.agent_reconnect_title) },
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f),
+                )
+                MuseTactileButton(
+                    icon = MuseIcons.x,
+                    contentDescription = stringResource(R.string.agent_reconnect_dismiss_cd),
+                    onClick = { onDismiss(card.cardId) },
+                    compact = true,
+                )
+            }
+            if (reason.isNotBlank()) {
+                Text(
+                    text = reason,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                MuseCapsuleButton(
+                    text = stringResource(R.string.agent_reconnect_fix),
+                    onClick = onFix,
+                    leadingIcon = MuseIcons.wrench,
+                    fillWidth = false,
+                    size = MuseButtonSize.Compact,
+                )
+                MuseCapsuleButton(
+                    text = stringResource(R.string.agent_reconnect_resume),
+                    onClick = onResume,
+                    variant = IosCapsuleButtonVariant.Secondary,
+                    leadingIcon = MuseIcons.refresh,
+                    fillWidth = false,
+                    size = MuseButtonSize.Compact,
+                )
+            }
+        }
+    }
+}
+
+/** 7. 新跟进项确认卡：批准后才开始在后台巡检，避免模型自说自话建任务。 */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun AgentWatcherConfirmCard(
+    card: AgentBotUiState.MessageCardUi,
+    onSelectOption: (String, AgentStreamCoordinator.ChoiceOption) -> Unit,
+    onDismiss: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val isResolved = card.status == BotCardStatus.RESOLVED
+    Surface(
+        shape = MuseShapes.semiLarge,
+        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = MuseAlpha.statusTint),
+        border = BorderStroke(
+            width = MuseBorderWidth.hairline,
+            color = MaterialTheme.colorScheme.primary.copy(alpha = MuseAlpha.handle),
+        ),
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier.padding(MusePaddings.cardInner),
+            verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+            ) {
+                Icon(
+                    imageVector = MuseIcons.timer,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(MuseIconSizes.iconMedium),
+                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = card.title.ifBlank { stringResource(R.string.agent_watcher_confirm_card_title) },
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = stringResource(R.string.agent_watcher_confirm_badge),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+                MuseTactileButton(
+                    icon = MuseIcons.x,
+                    contentDescription = stringResource(R.string.agent_watcher_confirm_dismiss_cd),
+                    onClick = { onDismiss(card.cardId) },
+                    compact = true,
+                )
+            }
+            if (card.subtitle.isNotBlank()) {
+                Text(
+                    text = card.subtitle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 4,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Text(
+                text = stringResource(R.string.agent_watcher_confirm_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (card.options.isNotEmpty()) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(MusePaddings.labelVerticalGap),
+                    verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
+                ) {
+                    card.options.forEachIndexed { index, option ->
+                        MuseCapsuleButton(
+                            text = option.label,
+                            onClick = { onSelectOption(card.cardId, option) },
+                            enabled = !isResolved,
+                            leadingIcon = if (index == 0) MuseIcons.check else null,
+                            variant = if (index == 0) {
+                                IosCapsuleButtonVariant.Primary
+                            } else {
+                                IosCapsuleButtonVariant.Text
+                            },
+                            fillWidth = false,
+                            size = MuseButtonSize.Compact,
+                        )
+                    }
+                }
+            }
         }
     }
 }

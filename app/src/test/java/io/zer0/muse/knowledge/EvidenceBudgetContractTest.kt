@@ -2,6 +2,7 @@ package io.zer0.muse.knowledge
 
 import io.zer0.muse.knowledge.retrieval.EvidenceAssembler
 import io.zer0.muse.knowledge.retrieval.EvidenceCandidate
+import io.zer0.muse.knowledge.retrieval.EvidenceVisibility
 import io.zer0.muse.knowledge.retrieval.RetrievalOutcome
 import io.zer0.muse.knowledge.retrieval.RetrievalTrace
 import org.junit.Assert.assertEquals
@@ -16,7 +17,8 @@ import org.junit.Test
  */
 class EvidenceBudgetContractTest {
 
-    private val assembler = EvidenceAssembler()
+    // 预算合同不关心可见性:显式声明这些候选是用户资料,避免被保守过滤掉。
+    private val assembler = EvidenceAssembler(visibilityOf = { EvidenceVisibility.USER_VISIBLE })
 
     private fun candidate(id: String, text: String, locator: String = "p1s1", docId: String = "doc-1") =
         EvidenceCandidate(

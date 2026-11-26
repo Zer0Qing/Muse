@@ -139,7 +139,6 @@ val appModule = module {
     single { get<MuseDb>().groupChatDao() } // v1.30: 群聊
     single { get<MuseDb>().groupChatMessageDao() } // v1.30: 群聊消息
     single { get<MuseDb>().groupChatMemoryDao() } // v2.x: 群聊记忆隔离(独立 fact store)
-    single { get<MuseDb>().experienceDao() } // v1.98
     single { get<MuseDb>().milestoneDao() } // Phase 2 2B: milestone
     single { get<MuseDb>().agentMessageDao() } // 既有工具系统 port: agent DM
     single { get<MuseDb>().auditLogDao() } // P2-4: 审计日志
@@ -150,6 +149,40 @@ val appModule = module {
     single { get<MuseDb>().integrityLogDao() } // P3-3: 数据库完整性日志
     single { get<MuseDb>().translateHistoryDao() } // v1.0.17: 翻译历史
     single { get<MuseDb>().patrolLogDao() }
+    single { get<MuseDb>().remoteComputeNodeDao() } // v2.7.x: Linux 轻量云电脑节点
+    single { get<MuseDb>().agentWatcherDao() } // v2.7.x: 帮你跟进（Watcher）
+    // v2.7.x: SSH 自举引擎与本地端口转发（两者共享应用级 CoroutineScope）
+    single { io.zer0.muse.computenode.SshBootstrapEngine(androidContext()) }
+    single { io.zer0.muse.computenode.SshTunnelManager(get()) }
+    // v2.7.x: muse-node 控制面客户端与云电脑生命周期管理（心跳、掉线重连卡、outbox 拉取）
+    single {
+        io.zer0.muse.computenode.MuseNodeClient(
+            baseClient = get<OkHttpClient>(named("chat")),
+            tunnelManager = get<io.zer0.muse.computenode.SshTunnelManager>(),
+        )
+    }
+    single {
+        io.zer0.muse.computenode.ComputeNodeManager(
+            dao = get<io.zer0.muse.data.computenode.RemoteComputeNodeDao>(),
+            client = get<io.zer0.muse.computenode.MuseNodeClient>(),
+            scope = get<CoroutineScope>(),
+        ).also { it.start() }
+    }
+    // v2.7.x: 统一算力路由（本机 proot / 在线云端节点）
+    single {
+        io.zer0.muse.computenode.ComputeTargetRouter(
+            nodeProvider = { get<io.zer0.muse.data.computenode.RemoteComputeNodeDao>().getAll() },
+            snapshotProvider = { get<io.zer0.muse.computenode.ComputeNodeManager>().snapshots.value },
+        )
+    }
+    // v2.7.x: 云端 exec 聚合入口（流式输出同步到工作台终端）
+    single {
+        io.zer0.muse.computenode.RemoteComputeRuntime(
+            router = get<io.zer0.muse.computenode.ComputeTargetRouter>(),
+            client = get<io.zer0.muse.computenode.MuseNodeClient>(),
+            progressBus = getOrNull(),
+        )
+    }
     // v2.6.7（P0-1）: 旁路生成上下文构建器 — 让小手机私信走完整生成链路
     // （世界书 / 记忆 / 用户画像 / 提示词注入都生效），不再只做三段字符串拼接。
     single {
@@ -171,7 +204,6 @@ val appModule = module {
         )
     }
     single { io.zer0.muse.data.milestone.MilestoneChecker(get(), get(), get()) } // Phase 2 2B: milestone checker
-    single { io.zer0.muse.data.experience.ExperienceRepository(get()) } // v1.98
     // Dream 计划生成器：memory 模块只认接口，实现放在 app 层（要调 ChatService）。
     single<io.zer0.memory.dream.MemoryDreamPlanner> {
         io.zer0.muse.memory.LlmMemoryDreamPlanner(get())
@@ -181,7 +213,7 @@ val appModule = module {
     single {
         val migrationPrefs = androidContext().getSharedPreferences("muse_migration", android.content.Context.MODE_PRIVATE)
         io.zer0.muse.data.experience.ExperienceLegacyImporter(
-            legacy = get(),
+            legacy = get<MuseDb>().experienceDao(),
             target = get(),
             hasRun = { migrationPrefs.getBoolean("experience_legacy_imported", false) },
             markRun = { migrationPrefs.edit().putBoolean("experience_legacy_imported", true).apply() },
@@ -520,8 +552,6 @@ val appModule = module {
 
     // 既有工具系统实现:会话文件管理器
     single { io.zer0.muse.data.session.SessionFileManager(androidContext()) }
-    // 既有工具系统实现:基于文件的体验存储
-    single { io.zer0.muse.data.experience.ExperienceStore(androidContext()) }
     // v2.0: 卡片数据存储(show_card / update_card_data 的数据绑定)
     single { io.zer0.muse.data.card.CardDataStore(androidContext()) }
     // 既有工具系统实现:工具注册器(注册 pin/experience/search_memory/todo/card/notify/status 工具)
@@ -649,6 +679,9 @@ val appModule = module {
                     )
                 }
             },
+            cloudComputersProvider = {
+                get<io.zer0.muse.computenode.ComputeTargetRouter>().summaries()
+            },
             promptLoader = getOrNull(),
             settingsRepository = getOrNull(),
         )
@@ -680,6 +713,54 @@ val appModule = module {
         )
     }
 
+    // 帮你跟进（Watcher）：采集脚本走本机 proot，变化播报走一次轻量模型，云电脑在线时下沉托管。
+    single { io.zer0.muse.data.agentbot.LocalScriptWatcherCollector(androidContext()) }
+    single { io.zer0.muse.data.agentbot.LlmWatcherAnnouncer(get<io.zer0.ai.ChatService>()) }
+    single { io.zer0.muse.data.agentbot.MuseWatcherNotificationSink(androidContext()) }
+    single {
+        io.zer0.muse.data.agentbot.AgentWatcherEngine(
+            dao = get(),
+            collector = get(),
+            announcer = get(),
+            notifier = get(),
+            cloudHost = io.zer0.muse.data.agentbot.MuseNodeWatcherCloudHost(
+                router = get(),
+                client = get(),
+            ),
+        ).also { it.start(get<CoroutineScope>()) }
+    }
+
+    // Spaces 常驻小应用：钉入/刷新统一走 CardEntity + CardDataStore，后台按卡片自己的周期静默更新。
+    single<io.zer0.muse.data.agentbot.SpaceCardDataWriter> {
+        io.zer0.muse.data.agentbot.CardDataStoreSpaceWriter(get<io.zer0.muse.data.card.CardDataStore>())
+    }
+    single<io.zer0.muse.data.agentbot.SpaceCardRefresher> {
+        io.zer0.muse.data.agentbot.LlmSpaceCardRefresher(get<io.zer0.ai.ChatService>())
+    }
+    single {
+        io.zer0.muse.data.agentbot.AgentSpaceEngine(
+            dao = get<io.zer0.muse.data.session.MuseDb>().cardEntityDao(),
+            dataWriter = get(),
+            refresher = get(),
+        ).also { it.start(get<CoroutineScope>()) }
+    }
+
+    // Agent 侧记忆桥：作用域换算（助手 id / Space）、读闸门、前台注入与管线通知只在这一处。
+    // 先前的实现把这几条规则分别写在 ViewModel、流式协调器和工具执行上下文里，
+    // 同一个助手在三条路径上读到了不同的库。
+    single {
+        io.zer0.muse.data.agentbot.AgentMemoryBridge(
+            memoryRuntime = get<io.zer0.memory.runtime.MemoryRuntime>(),
+            memoryUseCases = get<io.zer0.memory.runtime.MemoryUseCases>(),
+            factDbProvider = get<io.zer0.memory.fact.FactDbProvider>(),
+            memoryTicker = getOrNull<io.zer0.memory.ticker.MemoryTicker>(),
+            autoSaveScheduler = getOrNull<io.zer0.memory.ai.MemoryAutoSaveScheduler>(),
+            settings = get<io.zer0.muse.data.SettingsRepository>(),
+            appScope = get<CoroutineScope>(),
+            assistantRepository = get(),
+        )
+    }
+
     // 中枢页面 ViewModel。分片状态 + 原生流式双轨 + 气泡角标 + 实时工作台。
     viewModel {
         io.zer0.muse.ui.agentbot.AgentBotViewModel(
@@ -702,6 +783,7 @@ val appModule = module {
             modelRouter = get(),
             configStore = get(),
             routineEngine = get(),
+            watcherEngine = get(),
             squadIdentities = get(),
             teachRecorder = get(),
             assistantRepository = getOrNull(),
@@ -710,6 +792,7 @@ val appModule = module {
             settingsRepository = getOrNull(),
             knowledgeDocDao = getOrNull<MuseDb>()?.knowledgeDocDao(),
             appContext = androidContext(),
+            memoryBridge = get(),
         )
     }
     // 候选产物暂存区。任务产出先落这里，审核通过且版本最新才应用到目标 ——
@@ -838,6 +921,17 @@ val appModule = module {
             settings = get(),
         )
     }
+    // 云端电脑事件桥接器：消费重连、上线消卡与离机 outbox 结果。
+    single {
+        io.zer0.muse.data.agentbot.ComputeNodeEventBridge(
+            context = androidContext(),
+            computeNodeManager = get(),
+            nodeDao = get(),
+            repository = get(),
+            publication = get(),
+            settings = get(),
+        )
+    }
     // 隐藏任务执行器。独立 scope 与独立 Job 登记：中枢的 Job 与
     // "用户正在看哪个会话"无关，不能挂到旧 SessionRuntime 上。
     single {
@@ -933,6 +1027,7 @@ val appModule = module {
         io.zer0.muse.tools.ShellSandboxToolRegistrar(
             get(),
             androidContext().filesDir,
+            get<io.zer0.muse.computenode.RemoteComputeRuntime>(),
         )
     }
 
@@ -951,6 +1046,22 @@ val appModule = module {
         io.zer0.muse.tools.PythonScriptToolRegistrar(
             get(),
             androidContext(),
+            get<io.zer0.muse.computenode.RemoteComputeRuntime>(),
+        )
+    }
+
+    // v2.7.x: 云端电脑依赖安装（pip/npm 直接安装，apt 返回 APPROVAL_REQUIRED 等待流内审批）
+    single {
+        io.zer0.muse.tools.RemoteEnvEnsureTool(
+            router = get<io.zer0.muse.computenode.ComputeTargetRouter>(),
+            client = get<io.zer0.muse.computenode.MuseNodeClient>(),
+            progressBus = getOrNull(),
+        )
+    }
+    single(createdAtStart = true) {
+        io.zer0.muse.tools.RemoteEnvEnsureToolRegistrar(
+            toolRegistry = get(),
+            tool = get<io.zer0.muse.tools.RemoteEnvEnsureTool>(),
         )
     }
 
@@ -1069,6 +1180,18 @@ val appModule = module {
         )
     }
 
+    // 知识库级联写操作的唯一实现：UI 与工具共用同一套删库/目录语义。
+    single {
+        io.zer0.muse.tools.KnowledgeCascade(
+            docDao = get(),
+            chunkDao = get(),
+            kbDao = get(),
+            folderDao = get(),
+            ragService = get(),
+            assistantRepository = get(),
+            db = get<MuseDb>(),
+        )
+    }
     // v2.6.2: 知识库管理工具集（删文档/删库/建库/列清单）
     single {
         io.zer0.muse.tools.KnowledgeManageToolsRegistrar(
@@ -1077,6 +1200,7 @@ val appModule = module {
                 docDao = get(),
                 kbDao = get(),
                 ragService = get(),
+                cascade = get(),
             ),
         )
     }

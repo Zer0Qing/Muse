@@ -1,14 +1,209 @@
 package io.zer0.muse.tools
 
 import io.zer0.common.Logger
+import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.data.knowledge.KnowledgeBaseDao
 import io.zer0.muse.data.knowledge.KnowledgeBaseEntity
+import io.zer0.muse.data.knowledge.KnowledgeChunkDao
 import io.zer0.muse.data.knowledge.KnowledgeDocDao
+import io.zer0.muse.data.knowledge.KnowledgeDocEntity
+import io.zer0.muse.data.knowledge.KnowledgeFolderDao
+import io.zer0.muse.data.knowledge.KnowledgeFolderEntity
+import io.zer0.muse.data.session.MuseDb
+import io.zer0.muse.rag.KnowledgeFolderBrowser
 import io.zer0.muse.rag.RagService
+import androidx.room.withTransaction
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+
+/**
+ * 知识库级联写操作的唯一实现 —— UI（KnowledgeScreen）与工具（knowledge_delete_kb）共用。
+ *
+ * 分开写两份的代价是真实的：UI 删库只删了文档与文件夹行，助手的 knowledgeBaseIdsJson /
+ * knowledgeFolderScopesJson 里还留着已不存在的 kbId，助手从此“配了库但永远搜不到”；
+ * 工具删库又漏了文件夹表。所以删除、目录重命名/删除这类跨表动作只能有一个落地点。
+ *
+ * 约定：
+ *  - 默认知识库不可删（与 UI、工具的保护一致）；
+ *  - 内部文档（isInternal）不删，属于被删库时改挂默认库，不能成为孤儿；
+ *  - 删除目录时文档回根，助手作用域同步重写或移除，不留空作用域（空数组在读取侧等于整库）。
+ */
+class KnowledgeCascade(
+    private val docDao: KnowledgeDocDao,
+    private val chunkDao: KnowledgeChunkDao,
+    private val kbDao: KnowledgeBaseDao,
+    private val folderDao: KnowledgeFolderDao,
+    private val ragService: RagService,
+    private val assistantRepository: AssistantRepository? = null,
+    /** 可空：未注入数据库时退化为逐表删除（无单事务保证）。 */
+    private val db: MuseDb? = null,
+) {
+    companion object {
+        private const val TAG = "KnowledgeCascade"
+
+        /** 与 [KnowledgeDocEntity.kbId] 默认值一致。 */
+        const val DEFAULT_KB_ID = "default"
+    }
+
+    /** 删库结果。 */
+    data class DeleteKbResult(
+        val deletedDocs: Int,
+        val reassignedInternalDocs: Int,
+        val detachedAssistants: Int,
+    )
+
+    /** 目录操作结果 —— 用类型化结果表达业务冲突，不用异常。 */
+    sealed interface FolderResult {
+        data class Ok(val path: String) : FolderResult
+        data object NameConflict : FolderResult
+        data object NotFound : FolderResult
+    }
+
+    /** 删除知识库及其全部文档、文件夹、绑定与助手引用。默认库拒绝删除。 */
+    suspend fun deleteKnowledgeBase(kbId: String): io.zer0.common.Result<DeleteKbResult> {
+        if (kbId.isBlank()) {
+            return io.zer0.common.Result.Error("kbId 不能为空")
+        }
+        if (kbId == DEFAULT_KB_ID) {
+            return io.zer0.common.Result.Error("默认知识库不可删除")
+        }
+        if (kbDao.getById(kbId) == null) {
+            return io.zer0.common.Result.Error("未找到知识库 $kbId")
+        }
+        // 业务拒绍与执行失败分开：前者是调用方的错，后者需要留日志与原因。
+        val outcome = runCatching {
+            inTransaction {
+                // 含 internal 文档：getByKbIds 会排掉它们，而“孤儿内部文档”正是要修的问题之一。
+                val allDocs = docDao.getAll().filter { it.kbId == kbId }
+                val userDocs = allDocs.filterNot { it.isInternal }
+                val internalDocs = allDocs.filter { it.isInternal }
+
+                userDocs.forEach { doc ->
+                    // 分块 / FTS / 向量索引 / 文档行一次清完（RagService 是这条链的唯一实现）
+                    ragService.deleteDocument(doc.id)
+                }
+                // 兜底：派生索引清理若只删了部分，分块表不能再留残余行
+                if (userDocs.isNotEmpty()) {
+                    chunkDao.deleteByDocIds(userDocs.map { it.id })
+                }
+                internalDocs.forEach { doc ->
+                    docDao.upsert(doc.copy(kbId = DEFAULT_KB_ID, updatedAt = System.currentTimeMillis()))
+                }
+                folderDao.deleteByKb(kbId)
+                kbDao.delete(kbId)
+                val detached = assistantRepository?.detachKnowledgeBase(kbId) ?: 0
+                Logger.i(
+                    TAG,
+                    "删除知识库 $kbId：文档 ${userDocs.size} 篇，内部文档改挂 ${internalDocs.size} 篇，" +
+                        "同步助手 $detached 个",
+                )
+                DeleteKbResult(
+                    deletedDocs = userDocs.size,
+                    reassignedInternalDocs = internalDocs.size,
+                    detachedAssistants = detached,
+                )
+            }
+        }
+        return outcome.fold(
+            onSuccess = { io.zer0.common.Result.Success(it) },
+            onFailure = { error ->
+                Logger.w(TAG, "删除知识库失败: $kbId", error)
+                io.zer0.common.Result.Error(error.message ?: "删除知识库失败", error)
+            },
+        )
+    }
+
+    /** 新建文件夹；同父同名已存在时返回 [FolderResult.NameConflict]，不静默覆盖。 */
+    suspend fun createFolder(kbId: String, path: String): FolderResult {
+        val normalized = KnowledgeFolderBrowser.normalize(path)
+        if (kbId.isBlank() || normalized.isEmpty()) return FolderResult.NotFound
+        if (folderExists(kbId, normalized)) return FolderResult.NameConflict
+        folderDao.upsert(
+            KnowledgeFolderEntity(
+                id = "kbfolder-$kbId-$normalized",
+                kbId = kbId,
+                path = normalized,
+                name = normalized.substringAfterLast('/'),
+            ),
+        )
+        return FolderResult.Ok(normalized)
+    }
+
+    /** 重命名文件夹（含子目录）：文件夹行、文档 folderPath、助手作用域一起改。 */
+    suspend fun renameFolder(kbId: String, oldPath: String, newName: String): FolderResult = inTransaction {
+        val old = KnowledgeFolderBrowser.normalize(oldPath)
+        val name = newName.trim()
+        if (kbId.isBlank() || old.isEmpty() || name.isEmpty()) return@inTransaction FolderResult.NotFound
+        val parent = KnowledgeFolderBrowser.parent(old)
+        val newPath = KnowledgeFolderBrowser.normalize(if (parent.isEmpty()) name else "$parent/$name")
+        if (newPath == old) return@inTransaction FolderResult.Ok(newPath)
+        if (!folderExists(kbId, old)) return@inTransaction FolderResult.NotFound
+        if (folderExists(kbId, newPath)) return@inTransaction FolderResult.NameConflict
+        val now = System.currentTimeMillis()
+        // 显式文件夹行：整棵子树换前缀
+        folderDao.getByPathRecursive(kbId, old).forEach { folder ->
+            val moved = newPath + folder.path.removePrefix(old)
+            folderDao.deleteById(folder.id)
+            folderDao.upsert(
+                folder.copy(
+                    id = "kbfolder-$kbId-$moved",
+                    path = moved,
+                    name = moved.substringAfterLast('/'),
+                    updatedAt = now,
+                ),
+            )
+        }
+        docDao.getAll()
+            .filter { it.kbId == kbId }
+            .forEach { doc ->
+                val path = KnowledgeFolderBrowser.folderPath(doc)
+                if (path == old || path.startsWith("$old/")) {
+                    docDao.upsert(
+                        KnowledgeFolderBrowser.withFolderPath(doc, newPath + path.removePrefix(old))
+                            .copy(updatedAt = now),
+                    )
+                }
+            }
+        assistantRepository?.rewriteKnowledgeFolderScopes(kbId, old, newPath)
+        FolderResult.Ok(newPath)
+    }
+
+    /** 删除文件夹（含子目录）：文档回根，助手作用域里指向它的条目一并移除。 */
+    suspend fun deleteFolder(kbId: String, path: String): FolderResult = inTransaction {
+        val target = KnowledgeFolderBrowser.normalize(path)
+        if (kbId.isBlank() || target.isEmpty()) return@inTransaction FolderResult.NotFound
+        if (!folderExists(kbId, target)) return@inTransaction FolderResult.NotFound
+        val now = System.currentTimeMillis()
+        folderDao.deleteByPathRecursive(kbId, target)
+        docDao.getAll()
+            .filter { it.kbId == kbId }
+            .forEach { doc ->
+                val docPath = KnowledgeFolderBrowser.folderPath(doc)
+                if (docPath == target || docPath.startsWith("$target/")) {
+                    docDao.upsert(
+                        KnowledgeFolderBrowser.withFolderPath(doc, "").copy(updatedAt = now),
+                    )
+                }
+            }
+        assistantRepository?.rewriteKnowledgeFolderScopes(kbId, target, newPath = null)
+        FolderResult.Ok(target)
+    }
+
+    /** 同层同名判定：显式文件夹行，或已被文档路径隐式占用的目录都算已存在。 */
+    private suspend fun folderExists(kbId: String, path: String): Boolean {
+        if (folderDao.getByPath(kbId, path) != null) return true
+        return docDao.getAll().any { doc ->
+            doc.kbId == kbId && KnowledgeFolderBrowser.folderPath(doc) == path
+        }
+    }
+
+    private suspend fun <T> inTransaction(block: suspend () -> T): T {
+        val database = db
+        return if (database == null) block() else database.withTransaction { block() }
+    }
+}
 
 /**
  * 知识库管理工具集 —— 让助手能对知识库做写操作。
@@ -31,7 +226,35 @@ class KnowledgeManageTools(
     private val docDao: KnowledgeDocDao,
     private val kbDao: KnowledgeBaseDao,
     private val ragService: RagService,
+    /**
+     * 删库级联（文档/分块/文件夹/助手引用）。未注入时从容器按需解析；
+     * 容器也不可用时才退化为只删文档+库行（并留 WARN 日志）。
+     */
+    private val cascade: KnowledgeCascade? = null,
 ) {
+    /** 级联实现：优先用注入的那个，否则按需从容器组装（不要求在装配处手写参数）。 */
+    private val effectiveCascade: KnowledgeCascade? by lazy {
+        cascade ?: resolveCascadeFromContainer()
+    }
+
+    private fun resolveCascadeFromContainer(): KnowledgeCascade? {
+        val koin = org.koin.core.context.GlobalContext.getOrNull() ?: return null
+        return runCatching {
+            // 显式写类型：类型推断在多参数构造器上容易取错定义
+            KnowledgeCascade(
+                docDao = koin.get<KnowledgeDocDao>(),
+                chunkDao = koin.get<KnowledgeChunkDao>(),
+                kbDao = koin.get<KnowledgeBaseDao>(),
+                folderDao = koin.get<KnowledgeFolderDao>(),
+                ragService = koin.get<RagService>(),
+                assistantRepository = koin.get<AssistantRepository>(),
+                db = koin.get<MuseDb>(),
+            )
+        }.onFailure { t ->
+            Logger.w(TAG, "无法从容器组装知识库级联实现: ${t.message}", t)
+        }.getOrNull()
+    }
+
     companion object {
         private const val TAG = "KnowledgeManageTools"
     }
@@ -169,11 +392,32 @@ class KnowledgeManageTools(
                         if (kb == null) {
                             errorJson("未找到知识库 $kbId")
                         } else {
-                            val docs = docDao.getByKbIds(listOf(kbId))
-                            docs.forEach { doc -> ragService.deleteDocument(doc.id) }
-                            kbDao.delete(kbId)
-                            Logger.i(TAG, "工具删除知识库: $kbId (${kb.name}), 文档 ${docs.size} 篇")
-                            okJson("已删除知识库「${kb.name}」（$kbId）及其 ${docs.size} 篇文档。")
+                            // 与 UI 删库走同一实现：文档/分块/文件夹/助手引用一次清完
+                            val removed = effectiveCascade?.deleteKnowledgeBase(kbId)
+                            if (removed == null) {
+                                docDao.getByKbIds(listOf(kbId)).forEach { doc -> ragService.deleteDocument(doc.id) }
+                                kbDao.delete(kbId)
+                                Logger.w(TAG, "未注入级联实现，删库 $kbId 只清理了文档与库行")
+                                okJson("已删除知识库「${kb.name}」（$kbId）。")
+                            } else {
+                                removed.onError { message, t ->
+                                    Logger.w(TAG, "工具删除知识库失败: $kbId: $message", t)
+                                }
+                                removed.getOrNull()?.let { result ->
+                                    Logger.i(
+                                        TAG,
+                                        "工具删除知识库: $kbId (${kb.name}), 文档 ${result.deletedDocs} 篇",
+                                    )
+                                    okJson(
+                                        "已删除知识库「${kb.name}」（$kbId）及其 ${result.deletedDocs} 篇文档。" +
+                                            if (result.detachedAssistants > 0) {
+                                                "已同步 ${result.detachedAssistants} 个助手的知识库绑定。"
+                                            } else {
+                                                ""
+                                            },
+                                    )
+                                } ?: errorJson("删除知识库 $kbId 失败：${removed.messageOrUnknown()}")
+                            }
                         }
                     }
                 }
@@ -185,6 +429,12 @@ class KnowledgeManageTools(
         put("ok", JsonPrimitive(true))
         put("message", JsonPrimitive(message))
     }.toString()
+
+    /** [io.zer0.common.Result] 的错误文案（成功分支不会走到这里）。 */
+    private fun io.zer0.common.Result<*>.messageOrUnknown(): String = when (this) {
+        is io.zer0.common.Result.Error -> message
+        is io.zer0.common.Result.Success -> "unknown"
+    }
 
     private fun errorJson(message: String): String = buildJsonObject {
         put("ok", JsonPrimitive(false))

@@ -117,6 +117,7 @@
     <string name="doc_err_open_pdf">无法打开 PDF 文件</string>
     <string name="doc_err_pdf_text_empty">PDF 文本提取为空（可能是扫描型 PDF，需 OCR 支持）。共 %1$d 页。</string>
     <string name="doc_err_docx_no_document">无法读取 DOCX: 缺少 word/document.xml</string>
+    <string name="doc_err_legacy_doc_unsupported">暂不支持旧版 Word（.doc）文件，请另存为 .docx 后再导入</string>
     <string name="doc_err_pptx_no_slides">无法读取 PPTX: 未找到幻灯片</string>
     <string name="doc_err_xlsx_no_sheets">无法读取 XLSX: 未找到工作表</string>
     <string name="doc_err_epub_no_container">无法读取 EPUB: 缺少 META-INF/container.xml</string>

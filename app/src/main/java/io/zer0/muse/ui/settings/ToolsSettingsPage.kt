@@ -49,19 +49,20 @@ import io.zer0.muse.ui.screen.ToolsScreen
  *
  * 与 [ToolsScreen] 的区别:
  *  - ToolsScreen 是只读展示(工具列表 + 详情弹窗),不可控
- *  - 本页是可写管理页:每个工具可在三档策略间切换
+ *  - 本页是可写管理页:每个工具可在四档策略间切换
  *    - ALWAYS_ALLOW:始终允许(等价于该工具的白名单)
+ *    - AUTO_REVIEW:AI 自动复核(只读与工作区内安全写入自动放行,其余升级审批)
  *    - ASK_EVERY_TIME:每次询问(默认)
  *    - ALWAYS_DENY:始终拒绝(等价于禁用该工具)
  *
- * 三档策略持久化到 [ToolConfigStore],由 [io.zer0.muse.tools.ToolPermissionResolver]
+ * 四档策略持久化到 [ToolConfigStore],由 [io.zer0.muse.tools.ToolPermissionResolver]
  * 在每次工具调用前读取并决定审批状态。
  *
  * 页面结构:
  *  1. 顶部搜索框(按工具名/描述过滤)
  *  2. 按风险等级分组:SAFE / NORMAL / HIGH
- *  3. 每个工具一行:名称 + 描述 + 三档分段控件
- *  4. 底部说明卡片:解释三档策略与会话权限模式的关系
+ *  3. 每个工具一行:名称 + 描述 + 四档分段控件
+ *  4. 底部说明卡片:解释四档策略与会话权限模式的关系
  *
  * 风格与 [ChatSettingsPage] 一致(SettingsSubPageScaffold + SettingsGroup + MuseCapsuleTab)。
  */
@@ -182,13 +183,15 @@ fun ToolsSettingsPage(onBack: () -> Unit) {
         // ── 统计信息 ─────────────────────────────────────────────────
         item(key = "stats") {
             val allowedCount = tools.count { policies[it.name] == ToolApprovalPolicy.ALWAYS_ALLOW }
+            val autoReviewCount = tools.count { policies[it.name] == ToolApprovalPolicy.AUTO_REVIEW }
             val deniedCount = tools.count { policies[it.name] == ToolApprovalPolicy.ALWAYS_DENY }
-            val askCount = tools.size - allowedCount - deniedCount
+            val askCount = tools.size - allowedCount - autoReviewCount - deniedCount
             Text(
                 text = stringResource(
                     R.string.tools_settings_stats,
                     tools.size,
                     allowedCount,
+                    autoReviewCount,
                     askCount,
                     deniedCount,
                 ),
@@ -261,6 +264,14 @@ fun ToolsSettingsPage(onBack: () -> Unit) {
                         description = stringResource(R.string.tools_settings_policy_always_allow_desc),
                     )
                 }
+                content(key = "policy_auto_review") {
+                    PolicyExplanationRow(
+                        icon = MuseIcons.sparkle,
+                        iconTint = MaterialTheme.colorScheme.primary,
+                        title = stringResource(R.string.tools_settings_policy_auto_review),
+                        description = stringResource(R.string.tools_settings_policy_auto_review_desc),
+                    )
+                }
                 content(key = "policy_ask") {
                     PolicyExplanationRow(
                         icon = MuseIcons.help,
@@ -283,7 +294,7 @@ fun ToolsSettingsPage(onBack: () -> Unit) {
 }
 
 /**
- * 单个工具的策略行 — 图标 + 名称 + 描述 + 三档分段控件。
+ * 单个工具的策略行 — 图标 + 名称 + 描述 + 四档分段控件。
  *
  * 策略切换会立即持久化到 [ToolConfigStore],下次工具调用时生效。
  */
@@ -331,16 +342,18 @@ private fun ToolPolicyRow(
                     maxLines = 2,
                 )
             }
-            // 三档分段控件
+            // 四档分段控件
             val options = listOf(
                 stringResource(R.string.tools_settings_policy_always_allow_short),
+                stringResource(R.string.tools_settings_policy_auto_review_short),
                 stringResource(R.string.tools_settings_policy_ask_short),
                 stringResource(R.string.tools_settings_policy_always_deny_short),
             )
             val selectedIndex = when (currentPolicy) {
                 ToolApprovalPolicy.ALWAYS_ALLOW -> 0
-                ToolApprovalPolicy.ASK_EVERY_TIME -> 1
-                ToolApprovalPolicy.ALWAYS_DENY -> 2
+                ToolApprovalPolicy.AUTO_REVIEW -> 1
+                ToolApprovalPolicy.ASK_EVERY_TIME -> 2
+                ToolApprovalPolicy.ALWAYS_DENY -> 3
             }
             io.zer0.muse.ui.common.form.MuseCapsuleTab(
                 tabs = options,
@@ -348,8 +361,9 @@ private fun ToolPolicyRow(
                 onSelect = { idx ->
                     val newPolicy = when (idx) {
                         0 -> ToolApprovalPolicy.ALWAYS_ALLOW
-                        2 -> ToolApprovalPolicy.ALWAYS_DENY
-                        else -> ToolApprovalPolicy.ASK_EVERY_TIME
+                        1 -> ToolApprovalPolicy.AUTO_REVIEW
+                        2 -> ToolApprovalPolicy.ASK_EVERY_TIME
+                        else -> ToolApprovalPolicy.ALWAYS_DENY
                     }
                     onPolicyChange(newPolicy)
                 },

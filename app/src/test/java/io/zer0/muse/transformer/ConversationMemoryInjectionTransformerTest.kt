@@ -143,6 +143,9 @@ private class SingleSessionSummaryDao(
 
     // 助手被删除时要清掉它名下的摘要;单会话假件里没有这条助手的数据,固定返回 0 行。
     override suspend fun deleteByAssistant(assistantId: String): Int = 0
+    override suspend fun assistantIdsForSpace(spaceId: String): List<String> =
+        listOf(summary.assistantId).takeIf { summary.spaceId == spaceId }.orEmpty()
+    override suspend fun migrateSpace(sourceSpaceId: String, targetSpaceId: String): Int = 0
 
     override suspend fun revisionOf(sessionId: String): Long? = summary.takeIf { it.sessionId == sessionId }?.summaryRevision
 

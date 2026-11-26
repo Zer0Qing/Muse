@@ -344,6 +344,8 @@ class GroupChatScheduler(
 
         /** v1.97: @mention 正则 — 匹配 @name 形式,name 为非空白非标点字符序列。 */
         private val MENTION_REGEX = Regex("@([^\\s@,，。.!！?？:：;；()（）\\[\\]【】]+)")
+        private val LIST_INDEX_PREFIX_REGEX = Regex("^\\d+[.、)\\s]+")
+        private val CHANNEL_REPLY_REGEX = Regex("\\[channel_reply\\](.*?)\\[/channel_reply\\]", setOf(RegexOption.DOT_MATCHES_ALL, RegexOption.IGNORE_CASE))
 
         /**
          * v1.0.53 Phase 5: channel_* 工具决策轮次上限。
@@ -2404,7 +2406,7 @@ class GroupChatScheduler(
         val requestedNames = hostReply.lines()
             .map { line ->
                 line.trim()
-                    .replace(Regex("^\\d+[.、)\\s]+"), "")
+                    .replace(LIST_INDEX_PREFIX_REGEX, "")
                     .removePrefix("-")
                     .removePrefix("•")
                     .removePrefix("*")
@@ -3593,17 +3595,7 @@ class GroupChatScheduler(
         val lastUserMsg = visibleMessages.lastOrNull { it.senderType == "user" }
         val ragQuery = lastUserMsg?.body?.takeIf { it.isNotBlank() }
         if (ragQuery != null) {
-            val ragConfig = resultOf { settings.getRagConfig() }.getOrNull() ?: RagConfig()
-            val scopeDocIds = resultOf { ragService.resolveMentionToDocIds(ragQuery) }
-                .getOrNull()?.takeIf { it.isNotEmpty() }
-            if (ragConfig.enabled || scopeDocIds != null) {
-                val injection = resultOf {
-                    ragService.buildInjectionContextWithCitations(ragQuery, ragConfig, scopeDocIds)
-                }.getOrNull()
-                if (injection != null && injection.text.isNotBlank()) {
-                    messages.add(UIMessage(role = MessageRole.SYSTEM, content = injection.text))
-                }
-            }
+            buildGroupRagSystemMessage(assistant, ragQuery)?.let(messages::add)
         }
 
         // 改造 2 Phone Session:User message 改为"手机推送"式 prompt
@@ -3665,6 +3657,93 @@ class GroupChatScheduler(
         )
 
         return messages
+    }
+
+    /**
+     * 群聊侧的 RAG 注入,与单聊同一套语义。
+     *
+     * 此前群聊只拿全局配置和 @mention 直接检索:助手的 RAG 覆盖(KB 绑定/文件夹作用域)
+     * 在群聊里完全不生效,而失效绑定又会被当成「无约束」扩成全库 —— 同一句话在单聊和
+     * 群聊里能检索到的范围不一致。这里把范围解析、mention 与许可合并、预算与引用裁剪
+     * 全部收口到同一组函数上。
+     *
+     * @return 待注入的 SYSTEM 消息;无内容时不注入(null)。
+     */
+    // 群聊 RAG 的提前返回都是隔离门禁，任一绑定解析失败都不能退化为全库召回。
+    @Suppress("ReturnCount", "CyclomaticComplexMethod")
+    private suspend fun buildGroupRagSystemMessage(
+        assistant: AssistantEntity,
+        ragQuery: String,
+    ): UIMessage? {
+        val baseConfig = resultOf { settings.getRagConfig() }.getOrNull() ?: RagConfig()
+        // 按 assistant 合并 RAG 覆盖:群聊里每个成员各有自己的配置,不能全用全局值。
+        val ragConfig = resultOf { assistantRepository.mergeRagConfigOverride(assistant, baseConfig) }
+            .onError { msg, t -> Logger.w(TAG, "群聊 RAG 配置合并失败,退回全局配置: $msg", t) }
+            .getOrNull() ?: baseConfig
+
+        val mentionDocIds = resultOf { ragService.resolveMentionToDocIds(ragQuery) }
+            .onError { msg, t -> Logger.w(TAG, "群聊 @mention 解析失败: $msg", t) }
+            .getOrNull()
+        val hasExplicitMention = !mentionDocIds.isNullOrEmpty()
+        if (!ragConfig.enabled && !hasExplicitMention) return null
+
+        val boundKbIds = resultOf { assistantRepository.parseKnowledgeBaseIds(assistant) }
+            .onError { msg, t -> Logger.w(TAG, "群聊 KB 绑定解析失败: $msg", t) }
+            .getOrNull().orEmpty()
+        val boundFolderScopes = resultOf { assistantRepository.parseKnowledgeFolderScopes(assistant) }
+            .onError { msg, t -> Logger.w(TAG, "群聊文件夹作用域解析失败: $msg", t) }
+            .getOrNull().orEmpty()
+        // 范围合同与单聊一致:Invalid/None/Failed 一律零结果,不得回退成全库。
+        val permittedDocIds: List<String>? = if (boundKbIds.isEmpty() && boundFolderScopes.isEmpty()) {
+            null
+        } else {
+            when (
+                val resolved = resultOf { ragService.resolveBindingScope(boundKbIds, boundFolderScopes) }
+                    .onError { msg, t -> Logger.w(TAG, "群聊范围解析失败: $msg", t) }
+                    .getOrNull()
+            ) {
+                is io.zer0.muse.knowledge.domain.KnowledgeScope.Resolved -> resolved.docIds.toList()
+                is io.zer0.muse.knowledge.domain.KnowledgeScope.AllUserLibraries -> null
+                is io.zer0.muse.knowledge.domain.KnowledgeScope.Failed -> {
+                    Logger.w(TAG, "群聊范围解析失败,按零结果处理: ${resolved.reason}")
+                    emptyList()
+                }
+                is io.zer0.muse.knowledge.domain.KnowledgeScope.Invalid,
+                is io.zer0.muse.knowledge.domain.KnowledgeScope.None,
+                -> emptyList()
+                null -> {
+                    Logger.w(TAG, "群聊范围解析链失败,按零结果处理")
+                    emptyList()
+                }
+            }
+        }
+        val scopeDocIds = io.zer0.muse.knowledge.retrieval.mergeMentionWithPermit(mentionDocIds, permittedDocIds)
+        val shouldRetrieve = ragConfig.enabled || (scopeDocIds != null && scopeDocIds.isNotEmpty())
+        if (!shouldRetrieve) return null
+
+        val injection = resultOf {
+            ragService.buildInjectionContextWithCitations(
+                query = ragQuery,
+                ragConfig = ragConfig,
+                scopeDocIds = scopeDocIds,
+            )
+        }.onError { msg, t -> Logger.w(TAG, "群聊 RAG 检索失败: $msg", t) }
+            .getOrNull() ?: return null
+        // 与单聊同一个收口:预算截断后,引用只保留正文里仍可回指的编号。
+        val budgeted = io.zer0.muse.rag.RagInjectionBudget.clampAndTrim(
+            injection,
+            io.zer0.muse.context.ContextBudget(),
+            io.zer0.muse.context.ContextSection.RAG_CITATION,
+        )
+        if (budgeted.text.isBlank()) return null
+        if (budgeted.truncated) {
+            Logger.d(
+                TAG,
+                "群聊 RAG 注入按预算截断 | assistantId=${assistant.id}" +
+                    " | citations ${injection.citations.size}->${budgeted.citations.size}",
+            )
+        }
+        return UIMessage(role = MessageRole.SYSTEM, content = budgeted.text)
     }
 
     /**
@@ -3770,10 +3849,7 @@ class GroupChatScheduler(
         if (moodIdx >= 0) {
             withoutThink = withoutThink.substring(0, moodIdx)
         }
-        val withoutChannelReply = withoutThink.replace(
-            // L6: 加 RegexOption.IGNORE_CASE 忽略大小写
-            Regex("\\[channel_reply\\](.*?)\\[/channel_reply\\]", setOf(RegexOption.DOT_MATCHES_ALL, RegexOption.IGNORE_CASE)),
-        ) { it.groupValues[1].trim() }
+        val withoutChannelReply = withoutThink.replace(CHANNEL_REPLY_REGEX) { it.groupValues[1].trim() }
         return withoutChannelReply.trim()
     }
 

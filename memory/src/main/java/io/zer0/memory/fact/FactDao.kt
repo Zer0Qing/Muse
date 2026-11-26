@@ -136,6 +136,15 @@ interface FactDao {
     @Query("UPDATE facts SET pinned_at = :pinnedAt WHERE id = :id")
     suspend fun updatePinnedAt(id: Long, pinnedAt: String?): Int
 
+    /**
+     * 条件置顶切换:行必须同时属于该 scope 与 space 才被改写。
+     *
+     * 裸 id 的 [updatePinnedAt] 在各库/各 Space 之间会撞号 —— 记忆页的「全部作用域」
+     * 与「全部空间」视图里同一 id 可能指向另一行,条件更新让不匹配时空操作而不是改错行。
+     */
+    @Query("UPDATE facts SET pinned_at = :pinnedAt WHERE id = :id AND scope = :scope AND space_id = :spaceId")
+    suspend fun updatePinnedAtScoped(id: Long, pinnedAt: String?, scope: String, spaceId: String): Int
+
     /** v12: 回填实体键(反思任务对历史 null 数据)。 */
     @Query("UPDATE facts SET entity_key = :entityKey WHERE id = :id")
     suspend fun updateEntityKey(id: Long, entityKey: String): Int
@@ -607,6 +616,29 @@ interface FactDao {
         "SELECT * FROM facts WHERE scope = :scope AND space_id = :spaceId ORDER BY (pinned_at IS NOT NULL) DESC, importance DESC, time DESC",
     )
     suspend fun getByScopeAndSpace(scope: String, spaceId: String): List<FactEntity>
+
+    /**
+     * 置顶事实列表(按置顶时间倒序)。
+     *
+     * `pinned_at` 是事实置顶的唯一事实源,读取端据此拼装固定记忆段。
+     * 不按过期过滤:置顶的语义是「用户要求永远记得」,与衰减/过期清理里
+     * `pinned_at IS NULL` 的前置条件保持同一口径,否则会出现「注入里有、记忆页
+     * 看不见也取消不掉」的悬挂条目。
+     */
+    @Query(
+        """
+        SELECT * FROM facts
+        WHERE pinned_at IS NOT NULL
+          AND scope = :scope
+          AND space_id = :spaceId
+        ORDER BY pinned_at DESC, importance DESC, created_at DESC
+        LIMIT :limit
+        """,
+    )
+    suspend fun getPinnedByScopeAndSpace(scope: String, spaceId: String, limit: Int): List<FactEntity>
+
+    @Query("SELECT DISTINCT fact FROM facts WHERE pinned_at IS NOT NULL AND (scope != :scope OR space_id != :spaceId)")
+    suspend fun getPinnedContentsOutside(scope: String, spaceId: String): List<String>
 
     /**
      * v9: 按 scope + space_id 双重过滤观察事实列表(Flow 形式)。

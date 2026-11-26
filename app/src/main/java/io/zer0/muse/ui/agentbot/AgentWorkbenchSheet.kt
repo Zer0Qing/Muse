@@ -11,13 +11,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -26,32 +22,42 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import io.zer0.ai.core.ProviderConfig
+import io.zer0.common.Logger
 import io.zer0.muse.R
-import io.zer0.muse.automation.AutomationRuntime
 import io.zer0.muse.automation.ui.VirtualDisplayHandoffPanel
-import io.zer0.muse.automation.vdisplay.VirtualDisplayHandoffRegistry
 import io.zer0.muse.channel.ChannelConfig
+import io.zer0.muse.computenode.ComputeNodeSnapshot
 import io.zer0.muse.data.agentbot.AgentBotProjection
+import io.zer0.muse.data.agentbot.AgentBotRepository
 import io.zer0.muse.data.agentbot.AgentBotUiState
+import io.zer0.muse.data.agentbot.AgentConnectorHealthSnapshot
+import io.zer0.muse.data.agentbot.AgentGoalEntity
+import io.zer0.muse.data.agentbot.AgentWatcherEntity
+import io.zer0.muse.data.agentbot.ConnectorHealthStatus
 import io.zer0.muse.data.agentbot.AgentModelRouter
+import io.zer0.muse.data.agentbot.AgentRoutineEngine
 import io.zer0.muse.data.agentbot.AgentSquadIdentityStore
 import io.zer0.muse.data.agentbot.AgentTeachRecorder
 import io.zer0.muse.data.agentbot.BotRoutineEntity
 import io.zer0.muse.data.agentbot.LiveMissionProgressBus
+import io.zer0.muse.data.agentbot.ReconnectActionKind
 import io.zer0.muse.data.agentbot.RoutineTriggerType
 import io.zer0.muse.data.artifact.ArtifactEntity
 import io.zer0.muse.data.assistant.AssistantEntity
+import io.zer0.muse.data.computenode.RemoteComputeNodeEntity
+import io.zer0.muse.data.skill.SkillEntity
+import io.zer0.muse.data.skill.SkillRepository
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseAnchoredMenu
 import io.zer0.muse.ui.common.form.MuseBottomSheet
@@ -72,11 +78,16 @@ import io.zer0.muse.ui.theme.MuseButtonSize
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.MuseSpacing
 import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.ui.theme.semiLarge
 import io.zer0.muse.ui.theme.statusColors
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.launch
+import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.koinInject
 
-enum class AgentWorkbenchTab { LIVE, ROUTINES, SQUAD, ARTIFACTS }
+enum class AgentWorkbenchTab { FOLLOW_UP, SPACES, ROUTINES, SQUAD, ABOUT_YOU }
 
 /**
  * 按需拉起的四域 Agent 工作台：
@@ -101,6 +112,23 @@ fun AgentWorkbenchSheet(
     channels: List<ChannelConfig>,
     squadIdentities: Map<String, AgentSquadIdentityStore.IdentityBinding>,
     artifacts: List<ArtifactEntity>,
+    watchers: List<AgentWatcherEntity>,
+    goals: List<AgentGoalEntity>,
+    aboutYouProfile: AboutYouProfile,
+    connectorHealth: AgentConnectorHealthSnapshot,
+    computeNodes: List<RemoteComputeNodeEntity>,
+    computeNodeSnapshots: Map<String, ComputeNodeSnapshot>,
+    onDeleteMemoryFact: (AboutYouFact) -> Unit,
+    onTogglePinMemoryFact: (AboutYouFact) -> Unit,
+    onCorrectFactInChat: (String) -> Unit,
+    onFixConnector: (String) -> Unit,
+    onOpenComputeNodeSetup: () -> Unit,
+    onRefreshComputeNode: (String) -> Unit,
+    onInstallComputeBrowserPack: (String) -> Unit,
+    onRepairComputeNode: (String) -> Unit,
+    onDeleteComputeNode: (String) -> Unit,
+    onOpenComputeTerminal: (String) -> Unit,
+    onOpenComputeFiles: (String) -> Unit,
     onDismiss: () -> Unit,
     onOpenTask: (String) -> Unit,
     onSteerTask: (String, String) -> Unit,
@@ -129,10 +157,50 @@ fun AgentWorkbenchSheet(
     onOpenCandidate: (String) -> Unit,
     onDiscardCandidate: (String) -> Unit,
     onRevokeAllowance: (String) -> Unit,
+    onCheckWatcherNow: (String) -> Unit,
+    onPauseWatcher: (String) -> Unit,
+    onResumeWatcher: (String) -> Unit,
+    onEndWatcher: (String) -> Unit,
+    onToggleGoalMilestone: (goalId: String, milestoneId: String, done: Boolean) -> Unit,
+    onRefineGoalInChat: (goalId: String, title: String) -> Unit,
+    onFixReconnect: (ReconnectActionKind?) -> Unit,
+    onResumeReconnect: (cardId: String, taskId: String) -> Unit,
+    onDismissCard: (String) -> Unit,
+    viewModel: AgentBotViewModel = koinViewModel(),
 ) {
     var selectedTab by rememberSaveable { mutableStateOf(initialTab) }
     var deleteRoutineTarget by remember { mutableStateOf<BotRoutineEntity?>(null) }
     var discardCandidateTarget by remember { mutableStateOf<String?>(null) }
+    val teachControlState by viewModel.teachControlState.collectAsStateWithLifecycle()
+    val teachOverlayGranted = viewModel.canShowTeachOverlay()
+    val routineEngine: AgentRoutineEngine? = koinInject()
+    val agentBotRepository: AgentBotRepository? = koinInject()
+    val workbenchScope = rememberCoroutineScope()
+    // 「做过即学会」：完成任务的旧入口改为先沉淀共享技能+惯例；任一步不可用时退回纯惯例路径。
+    val saveTaskAsSkillAndRoutine: (String) -> Unit = { taskId ->
+        val engine = routineEngine
+        val repository = agentBotRepository
+        if (engine == null || repository == null) {
+            onSaveTaskAsRoutine(taskId)
+        } else {
+            workbenchScope.launch {
+                val task = repository.getTask(taskId)
+                if (task == null) {
+                    onSaveTaskAsRoutine(taskId)
+                    return@launch
+                }
+                val bundle = try {
+                    engine.saveTaskAsSkillAndRoutine(task)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    Logger.w("AgentWorkbenchSheet", "任务沉淀为技能失败: ${e.message}", e)
+                    null
+                }
+                if (bundle == null) onSaveTaskAsRoutine(taskId)
+            }
+        }
+    }
 
     LaunchedEffect(selectedTab) {
         if (selectedTab == AgentWorkbenchTab.SQUAD) {
@@ -150,10 +218,11 @@ fun AgentWorkbenchSheet(
             ) {
                 // 单行四域标准 MuseCapsuleTab + 关闭按钮固定在面板顶部，长内容下滑时不会滚走
                 val tabs = listOf(
-                    stringResource(R.string.agent_hub_tab_live),
+                    stringResource(R.string.agent_hub_tab_follow_up),
+                    stringResource(R.string.agent_hub_tab_spaces),
                     stringResource(R.string.agent_hub_tab_routines),
                     stringResource(R.string.agent_hub_tab_squad),
-                    stringResource(R.string.agent_hub_tab_artifacts),
+                    stringResource(R.string.agent_hub_tab_about_you),
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -164,7 +233,7 @@ fun AgentWorkbenchSheet(
                         tabs = tabs,
                         selectedIndex = selectedTab.ordinal,
                         onSelect = { idx ->
-                            selectedTab = AgentWorkbenchTab.entries.getOrElse(idx) { AgentWorkbenchTab.LIVE }
+                            selectedTab = AgentWorkbenchTab.entries.getOrElse(idx) { AgentWorkbenchTab.FOLLOW_UP }
                         },
                         modifier = Modifier.weight(1f),
                     )
@@ -188,27 +257,61 @@ fun AgentWorkbenchSheet(
             verticalArrangement = Arrangement.spacedBy(MusePaddings.sectionGap),
         ) {
             when (selectedTab) {
-                AgentWorkbenchTab.LIVE -> WorkbenchLiveTab(
-                    projection = projection,
-                    sandboxLogs = sandboxLogs,
-                    activeVirtualDisplay = activeVirtualDisplay,
-                    modelRoutes = modelRoutes,
-                    providers = providers,
-                    onOpenTask = onOpenTask,
-                    onSteerTask = onSteerTask,
-                    onSaveTaskAsRoutine = onSaveTaskAsRoutine,
-                    onContinueTask = onContinueTask,
-                    onRetryTask = onRetryTask,
-                    onCancelTask = onCancelTask,
-                    onApprove = onApprove,
-                    onDeny = onDeny,
-                    onClearSandboxLogs = onClearSandboxLogs,
-                    onSetModelRoute = onSetModelRoute,
-                    onClearModelRoute = onClearModelRoute,
-                )
+                AgentWorkbenchTab.FOLLOW_UP -> Column(
+                    verticalArrangement = Arrangement.spacedBy(MusePaddings.sectionGap),
+                ) {
+                    WorkbenchFollowUpTab(
+                        projection = projection,
+                        watchers = watchers,
+                        goals = goals,
+                        sandboxLogs = sandboxLogs,
+                        activeVirtualDisplay = activeVirtualDisplay,
+                        onOpenTask = onOpenTask,
+                        onSteerTask = onSteerTask,
+                        onSaveTaskAsRoutine = saveTaskAsSkillAndRoutine,
+                        onContinueTask = onContinueTask,
+                        onRetryTask = onRetryTask,
+                        onCancelTask = onCancelTask,
+                        onApprove = onApprove,
+                        onDeny = onDeny,
+                        onClearSandboxLogs = onClearSandboxLogs,
+                        onCheckWatcherNow = onCheckWatcherNow,
+                        onPauseWatcher = onPauseWatcher,
+                        onResumeWatcher = onResumeWatcher,
+                        onEndWatcher = onEndWatcher,
+                        onToggleGoalMilestone = onToggleGoalMilestone,
+                        onRefineGoalInChat = onRefineGoalInChat,
+                        onFixReconnect = onFixReconnect,
+                        onResumeReconnect = onResumeReconnect,
+                        onDismissCard = onDismissCard,
+                    )
+                    WorkbenchModelRoutingSection(
+                        modelRoutes = modelRoutes,
+                        providers = providers,
+                        onSetModelRoute = onSetModelRoute,
+                        onClearModelRoute = onClearModelRoute,
+                    )
+                }
+                AgentWorkbenchTab.SPACES -> {
+                    val spaces by viewModel.spacesFlow.collectAsStateWithLifecycle(initialValue = emptyList())
+                    val refreshingSpaceIds by viewModel.refreshingSpaceIds.collectAsStateWithLifecycle()
+                    WorkbenchSpacesTab(
+                        cards = spaces,
+                        refreshingIds = refreshingSpaceIds,
+                        onRefresh = viewModel::refreshSpaceNow,
+                        onSetRefreshPolicy = { cardId, minutes, prompt ->
+                            viewModel.setSpaceRefreshPolicy(cardId, minutes, prompt)
+                        },
+                        onUnpin = viewModel::unpinSpace,
+                        onRefineInChat = viewModel::refineSpaceInChat,
+                        onCreateTemplate = viewModel::createSpaceTemplate,
+                    )
+                }
                 AgentWorkbenchTab.ROUTINES -> WorkbenchRoutinesTab(
                     routines = routines,
                     teachState = teachState,
+                    teachControl = teachControlState,
+                    teachOverlayGranted = teachOverlayGranted,
                     onCreateRoutine = onCreateRoutine,
                     onRunRoutine = onRunRoutine,
                     onToggleRoutine = onToggleRoutine,
@@ -218,12 +321,26 @@ fun AgentWorkbenchSheet(
                     onAddTeachStep = onAddTeachStep,
                     onFinishTeach = onFinishTeach,
                     onCancelTeach = onCancelTeach,
+                    onPauseOrResumeTeach = viewModel::pauseOrResumeTeachRecording,
+                    onRequestOverlayPermission = viewModel::requestTeachOverlayPermission,
                 )
                 AgentWorkbenchTab.SQUAD -> WorkbenchSquadTab(
                     currentBotId = currentBotId,
                     assistants = assistants,
                     channels = channels,
                     squadIdentities = squadIdentities,
+                    routines = routines,
+                    recentTaskCount = projection?.recent?.size ?: 0,
+                    connectorHealth = connectorHealth,
+                    computeNodes = computeNodes,
+                    computeNodeSnapshots = computeNodeSnapshots,
+                    onOpenComputeNodeSetup = onOpenComputeNodeSetup,
+                    onRefreshComputeNode = onRefreshComputeNode,
+                    onInstallComputeBrowserPack = onInstallComputeBrowserPack,
+                    onRepairComputeNode = onRepairComputeNode,
+                    onDeleteComputeNode = onDeleteComputeNode,
+                    onOpenComputeTerminal = onOpenComputeTerminal,
+                    onOpenComputeFiles = onOpenComputeFiles,
                     onSwitchAssistant = { id ->
                         onSwitchAssistant(id)
                         onDismiss()
@@ -235,15 +352,26 @@ fun AgentWorkbenchSheet(
                             open()
                         }
                     },
+                    onFixConnector = onFixConnector,
                 )
-                AgentWorkbenchTab.ARTIFACTS -> WorkbenchArtifactsTab(
-                    projection = projection,
-                    allowedTools = allowedTools,
-                    artifacts = artifacts,
-                    onOpenCandidate = onOpenCandidate,
-                    onDiscardCandidate = { discardCandidateTarget = it },
-                    onRevokeAllowance = onRevokeAllowance,
-                )
+                AgentWorkbenchTab.ABOUT_YOU -> Column(
+                    verticalArrangement = Arrangement.spacedBy(MusePaddings.sectionGap),
+                ) {
+                    WorkbenchAboutYouTab(
+                        profile = aboutYouProfile,
+                        onDelete = onDeleteMemoryFact,
+                        onTogglePin = onTogglePinMemoryFact,
+                        onCorrectFact = onCorrectFactInChat,
+                    )
+                    WorkbenchArtifactsTab(
+                        projection = projection,
+                        allowedTools = allowedTools,
+                        artifacts = artifacts,
+                        onOpenCandidate = onOpenCandidate,
+                        onDiscardCandidate = { discardCandidateTarget = it },
+                        onRevokeAllowance = onRevokeAllowance,
+                    )
+                }
             }
         }
     }
@@ -274,181 +402,12 @@ fun AgentWorkbenchSheet(
 }
 
 @Composable
-private fun WorkbenchLiveTab(
-    projection: AgentBotProjection?,
-    sandboxLogs: List<LiveMissionProgressBus.SandboxLogLine>,
-    activeVirtualDisplay: LiveMissionProgressBus.ActiveVirtualDisplay?,
+private fun WorkbenchModelRoutingSection(
     modelRoutes: AgentModelRouter.Snapshot,
     providers: List<ProviderConfig>,
-    onOpenTask: (String) -> Unit,
-    onSteerTask: (String, String) -> Unit,
-    onSaveTaskAsRoutine: (String) -> Unit,
-    onContinueTask: (String) -> Unit,
-    onRetryTask: (String) -> Unit,
-    onCancelTask: (String) -> Unit,
-    onApprove: (AgentBotUiState.ApprovalRow) -> Unit,
-    onDeny: (AgentBotUiState.ApprovalRow) -> Unit,
-    onClearSandboxLogs: () -> Unit,
     onSetModelRoute: (AgentModelRouter.Role, String, String) -> Unit,
     onClearModelRoute: (AgentModelRouter.Role) -> Unit,
 ) {
-    var handoffRefreshToken by remember { mutableIntStateOf(0) }
-    var vdPreviewOpen by rememberSaveable { mutableStateOf(false) }
-    val handoffs = remember(handoffRefreshToken, activeVirtualDisplay) {
-        VirtualDisplayHandoffRegistry.list(System.currentTimeMillis())
-    }
-    val liveVdDisplayId = activeVirtualDisplay?.displayId ?: handoffs.firstOrNull()?.displayId
-    val liveVdPackage = activeVirtualDisplay?.packageName
-        ?: handoffs.firstOrNull()?.packageName.orEmpty()
-
-    // 1. 待拍板审批
-    projection?.pendingApprovals.orEmpty().takeIf { it.isNotEmpty() }?.let { approvals ->
-        Column(verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap)) {
-            SectionLabel(text = stringResource(R.string.agent_bot_approvals_title))
-            approvals.forEach { approval ->
-                AgentInlineApprovalCard(
-                    row = approval,
-                    onApprove = onApprove,
-                    onDeny = onDeny,
-                    onOpenTask = onOpenTask,
-                )
-            }
-        }
-    }
-
-    // 2. 进行中与需处理任务
-    val activeTasks = projection?.let { it.inProgress + it.needsAction }.orEmpty()
-    if (activeTasks.isNotEmpty()) {
-        Column(verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap)) {
-            SectionLabel(text = stringResource(R.string.agent_screen_running))
-            activeTasks.forEach { task ->
-                AgentLiveMissionCard(
-                    row = task,
-                    onOpenDetails = onOpenTask,
-                    onOpenComputer = { vdPreviewOpen = true },
-                    onSteer = onSteerTask,
-                    onSaveAsRoutine = onSaveTaskAsRoutine,
-                    onContinue = onContinueTask,
-                    onRetry = onRetryTask,
-                    onCancel = onCancelTask,
-                )
-            }
-        }
-    }
-
-    // 3. 活跃虚拟屏（仅在真实存在后台虚拟屏时显示，空闲不留空框）
-    if (liveVdDisplayId != null) {
-        Surface(
-            shape = MuseShapes.semiLarge,
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = MuseAlpha.mutedSurface),
-            border = BorderStroke(MuseBorderWidth.hairline, MaterialTheme.colorScheme.outlineVariant),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Column(
-                modifier = Modifier.padding(MusePaddings.cardInner),
-                verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
-                ) {
-                    Icon(
-                        imageVector = MuseIcons.deviceMobile,
-                        contentDescription = null,
-                        tint = MaterialTheme.statusColors.info,
-                        modifier = Modifier.size(MuseIconSizes.iconSmall),
-                    )
-                    Text(
-                        text = stringResource(R.string.agent_hub_computer_vdisplay_title),
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.weight(1f),
-                    )
-                    MuseCapsuleButton(
-                        text = stringResource(R.string.agent_hub_computer_vdisplay_takeover),
-                        onClick = { vdPreviewOpen = !vdPreviewOpen },
-                        variant = IosCapsuleButtonVariant.Secondary,
-                        fillWidth = false,
-                        size = MuseButtonSize.Compact,
-                    )
-                }
-                if (vdPreviewOpen) {
-                    VirtualDisplayHandoffPanel(
-                        displayId = liveVdDisplayId,
-                        packageName = liveVdPackage,
-                        screenshot = { AutomationRuntime.screenshot(liveVdDisplayId) },
-                        tap = { x, y -> AutomationRuntime.tap(liveVdDisplayId, x, y) },
-                        bringToMain = { AutomationRuntime.launchOnMain(liveVdPackage) },
-                        onClose = {
-                            VirtualDisplayHandoffRegistry.release(liveVdDisplayId)
-                            vdPreviewOpen = false
-                            handoffRefreshToken++
-                        },
-                    )
-                }
-            }
-        }
-    }
-
-    // 4. 沙盒终端输出（有输出时才出现，空闲不占画布）
-    if (sandboxLogs.isNotEmpty()) {
-        Surface(
-            shape = MuseShapes.semiLarge,
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = MuseAlpha.mutedSurface),
-            border = BorderStroke(MuseBorderWidth.hairline, MaterialTheme.colorScheme.outlineVariant),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Column(
-                modifier = Modifier.padding(MusePaddings.cardInner),
-                verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        imageVector = MuseIcons.terminal,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(MuseIconSizes.iconSmall),
-                    )
-                    Spacer(modifier = Modifier.size(MusePaddings.contentGap))
-                    Text(
-                        text = stringResource(R.string.agent_hub_computer_sandbox_logs),
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.weight(1f),
-                    )
-                    MuseCapsuleButton(
-                        text = stringResource(R.string.agent_hub_computer_clear_logs),
-                        onClick = onClearSandboxLogs,
-                        variant = IosCapsuleButtonVariant.Text,
-                        fillWidth = false,
-                        size = MuseButtonSize.Compact,
-                    )
-                }
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = MusePaddings.dialogContentMaxHeight)
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
-                ) {
-                    sandboxLogs.takeLast(60).forEach { line ->
-                        Text(
-                            text = "[${line.source}] ${line.text}",
-                            style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
-                            color = if (line.isError) {
-                                MaterialTheme.statusColors.error
-                            } else {
-                                MaterialTheme.colorScheme.onSurface
-                            },
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-    // 5. 分角色模型路由（合并为单张细线分组卡）
     Column(verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap)) {
         SectionLabel(text = stringResource(R.string.agent_hub_model_routing_title))
         Surface(
@@ -566,11 +525,68 @@ private fun ModelRouteRow(
     }
 }
 
+@Composable
+private fun WorkbenchSharedSkillsSection(
+    skills: List<SkillEntity>,
+    onToggle: (SkillEntity, Boolean) -> Unit,
+) {
+    if (skills.isEmpty()) {
+        MuseEmptyState(
+            title = stringResource(R.string.skill_no_skill_title),
+            subtitle = stringResource(R.string.skill_no_skill_subtitle),
+        )
+        return
+    }
+    skills.forEach { skill ->
+        Surface(
+            shape = MuseShapes.semiLarge,
+            color = MaterialTheme.colorScheme.surface,
+            border = BorderStroke(MuseBorderWidth.hairline, MaterialTheme.colorScheme.outlineVariant),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Row(
+                modifier = Modifier.padding(MusePaddings.cardInner),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = skill.name,
+                        style = MaterialTheme.typography.titleSmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    if (skill.description.isNotBlank()) {
+                        Text(
+                            text = skill.description,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    Text(
+                        text = stringResource(R.string.skill_custom),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+                MuseSwitch(
+                    checked = skill.enabled,
+                    onCheckedChange = { enabled -> onToggle(skill, enabled) },
+                )
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun WorkbenchRoutinesTab(
     routines: List<BotRoutineEntity>,
     teachState: AgentTeachRecorder.State,
+    teachControl: TeachOverlayController.UiState,
+    teachOverlayGranted: Boolean,
     onCreateRoutine: (title: String, goal: String, triggerType: String, triggerExpr: String) -> Unit,
     onRunRoutine: (BotRoutineEntity) -> Unit,
     onToggleRoutine: (BotRoutineEntity, Boolean) -> Unit,
@@ -580,14 +596,53 @@ private fun WorkbenchRoutinesTab(
     onAddTeachStep: (String) -> Unit,
     onFinishTeach: () -> Unit,
     onCancelTeach: () -> Unit,
+    onPauseOrResumeTeach: () -> Unit,
+    onRequestOverlayPermission: () -> Unit,
+    skillRepository: SkillRepository = koinInject(),
 ) {
+    val allSkills by skillRepository.observeAll.collectAsStateWithLifecycle(initialValue = emptyList())
+    val sharedSkills = remember(allSkills) {
+        allSkills.filter { skill -> skill.category == "user" || skill.category == "custom" }
+    }
+    val routineScope = rememberCoroutineScope()
     var creatingOpen by rememberSaveable { mutableStateOf(false) }
     var draftTitle by rememberSaveable { mutableStateOf("") }
     var draftGoal by rememberSaveable { mutableStateOf("") }
     var draftTrigger by rememberSaveable { mutableStateOf(RoutineTriggerType.MANUAL) }
     var draftExpr by rememberSaveable { mutableStateOf("") }
     var teachStepDraft by rememberSaveable { mutableStateOf("") }
+    var manualStepOpen by rememberSaveable { mutableStateOf(false) }
 
+    // 上半段：共享技能库。技能只保存“怎么做”，跨队友共享，不绑定任何 botId。
+    SectionLabel(text = stringResource(R.string.skill_management))
+    Text(
+        text = stringResource(
+            R.string.skill_bulk_summary,
+            sharedSkills.size,
+            sharedSkills.count { skill -> skill.enabled },
+        ),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.fillMaxWidth(),
+    )
+    WorkbenchSharedSkillsSection(
+        skills = sharedSkills,
+        onToggle = { skill, enabled ->
+            routineScope.launch {
+                try {
+                    skillRepository.setEnabled(skill.id, enabled)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    Logger.w("AgentWorkbenchSheet", "切换技能开关失败: ${e.message}", e)
+                }
+            }
+        },
+    )
+    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = MuseAlpha.disabled))
+
+    // 下半段：定时 / 事件触发器。这里只管理“什么时候做”，执行剧本交给上方技能或任务沉淀。
+    SectionLabel(text = stringResource(R.string.schedule_condition_title))
     // 聊天优先引导：由对话中的助手自然语言编排自动化，这里作为已生效自动化的监督与启停台
     Text(
         text = stringResource(R.string.agent_hub_routines_chat_first_hint),
@@ -595,9 +650,65 @@ private fun WorkbenchRoutinesTab(
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.fillMaxWidth(),
     )
+    MuseCapsuleButton(
+        text = stringResource(R.string.agent_hub_routines_new),
+        onClick = { creatingOpen = true },
+        leadingIcon = MuseIcons.plus,
+        variant = IosCapsuleButtonVariant.Secondary,
+        fillWidth = false,
+        size = MuseButtonSize.Compact,
+    )
 
-    // 仅在录制示范时展开录制卡片
-    if (teachState.recording) {
+    val teachActive = teachState.recording || teachControl.paused
+    val teachStepCount = if (teachControl.paused) teachControl.stepCount else teachState.steps.size
+
+    if (!teachActive) {
+        Surface(
+            shape = MuseShapes.semiLarge,
+            color = MaterialTheme.colorScheme.surface,
+            border = BorderStroke(MuseBorderWidth.hairline, MaterialTheme.colorScheme.outlineVariant),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Column(
+                modifier = Modifier.padding(MusePaddings.cardInner),
+                verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+            ) {
+                Text(
+                    text = stringResource(R.string.agent_hub_quick_teach),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = stringResource(R.string.agent_hub_teach_step_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    MuseCapsuleButton(
+                        text = stringResource(R.string.agent_hub_teach_start),
+                        onClick = { onStartTeach("") },
+                        leadingIcon = MuseIcons.microphone,
+                        fillWidth = false,
+                        size = MuseButtonSize.Compact,
+                    )
+                    if (!teachOverlayGranted) {
+                        MuseCapsuleButton(
+                            text = stringResource(R.string.quick_capture_overlay_title),
+                            onClick = onRequestOverlayPermission,
+                            variant = IosCapsuleButtonVariant.Secondary,
+                            fillWidth = false,
+                            size = MuseButtonSize.Compact,
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    if (teachActive) {
         Surface(
             shape = MuseShapes.semiLarge,
             color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = MuseAlpha.handle),
@@ -609,53 +720,42 @@ private fun WorkbenchRoutinesTab(
                 verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
             ) {
                 Text(
-                    text = stringResource(R.string.agent_hub_teach_recording, teachState.steps.size),
+                    text = stringResource(R.string.agent_hub_teach_recording, teachStepCount),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
                 )
-                MuseTextField(
-                    value = teachState.titleDraft,
-                    onValueChange = onUpdateTeachTitle,
-                    placeholder = { Text(stringResource(R.string.agent_hub_routines_title_hint)) },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                teachState.steps.forEach { step ->
-                    Text(
-                        text = "${step.index}. ${step.action}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
-                ) {
+                if (teachState.recording) {
                     MuseTextField(
-                        value = teachStepDraft,
-                        onValueChange = { teachStepDraft = it },
-                        placeholder = { Text(stringResource(R.string.agent_hub_teach_step_hint)) },
-                        modifier = Modifier.weight(1f),
+                        value = teachState.titleDraft,
+                        onValueChange = onUpdateTeachTitle,
+                        placeholder = { Text(stringResource(R.string.agent_hub_routines_title_hint)) },
+                        modifier = Modifier.fillMaxWidth(),
                     )
+                    teachState.steps.takeLast(5).forEach { step ->
+                        Text(
+                            text = "${step.index}. ${step.action}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap)) {
                     MuseCapsuleButton(
-                        text = stringResource(R.string.agent_hub_teach_add_step),
-                        onClick = {
-                            if (teachStepDraft.isNotBlank()) {
-                                onAddTeachStep(teachStepDraft)
-                                teachStepDraft = ""
-                            }
-                        },
-                        enabled = teachStepDraft.isNotBlank(),
+                        text = stringResource(
+                            if (teachControl.paused) R.string.speech_resume_cd else R.string.speech_pause_cd,
+                        ),
+                        onClick = onPauseOrResumeTeach,
+                        leadingIcon = if (teachControl.paused) MuseIcons.play else MuseIcons.pause,
                         variant = IosCapsuleButtonVariant.Secondary,
                         fillWidth = false,
                         size = MuseButtonSize.Compact,
                     )
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap)) {
                     MuseCapsuleButton(
                         text = stringResource(R.string.agent_hub_teach_finish),
                         onClick = onFinishTeach,
-                        enabled = teachState.steps.isNotEmpty(),
+                        enabled = teachStepCount > 0,
                         fillWidth = false,
                         size = MuseButtonSize.Compact,
                     )
@@ -666,6 +766,42 @@ private fun WorkbenchRoutinesTab(
                         fillWidth = false,
                         size = MuseButtonSize.Compact,
                     )
+                }
+                if (teachState.recording) {
+                    MuseCapsuleButton(
+                        text = stringResource(R.string.agent_hub_teach_add_step),
+                        onClick = { manualStepOpen = !manualStepOpen },
+                        variant = IosCapsuleButtonVariant.Text,
+                        fillWidth = false,
+                        size = MuseButtonSize.Compact,
+                    )
+                    if (manualStepOpen) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
+                        ) {
+                            MuseTextField(
+                                value = teachStepDraft,
+                                onValueChange = { teachStepDraft = it },
+                                placeholder = { Text(stringResource(R.string.agent_hub_teach_step_hint)) },
+                                modifier = Modifier.weight(1f),
+                            )
+                            MuseCapsuleButton(
+                                text = stringResource(R.string.agent_hub_teach_add_step),
+                                onClick = {
+                                    if (teachStepDraft.isNotBlank()) {
+                                        onAddTeachStep(teachStepDraft)
+                                        teachStepDraft = ""
+                                    }
+                                },
+                                enabled = teachStepDraft.isNotBlank(),
+                                variant = IosCapsuleButtonVariant.Secondary,
+                                fillWidth = false,
+                                size = MuseButtonSize.Compact,
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -760,6 +896,7 @@ private fun WorkbenchRoutinesTab(
     }
 
     routines.forEach { routine ->
+            val linkedSkillName = sharedSkills.firstOrNull { skill -> skill.id == routine.skillId }?.name.orEmpty()
             Surface(
                 shape = MuseShapes.semiLarge,
                 color = MaterialTheme.colorScheme.surface,
@@ -797,6 +934,15 @@ private fun WorkbenchRoutinesTab(
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.primary,
                             )
+                            if (linkedSkillName.isNotBlank()) {
+                                Text(
+                                    text = linkedSkillName,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.secondary,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
                         }
                         MuseSwitch(
                             checked = routine.enabled,
@@ -843,11 +989,41 @@ private fun WorkbenchSquadTab(
     assistants: List<AssistantEntity>,
     channels: List<ChannelConfig>,
     squadIdentities: Map<String, AgentSquadIdentityStore.IdentityBinding>,
+    routines: List<BotRoutineEntity>,
+    recentTaskCount: Int,
+    connectorHealth: AgentConnectorHealthSnapshot,
+    computeNodes: List<RemoteComputeNodeEntity>,
+    computeNodeSnapshots: Map<String, ComputeNodeSnapshot>,
+    onOpenComputeNodeSetup: () -> Unit,
+    onRefreshComputeNode: (String) -> Unit,
+    onInstallComputeBrowserPack: (String) -> Unit,
+    onRepairComputeNode: (String) -> Unit,
+    onDeleteComputeNode: (String) -> Unit,
+    onOpenComputeTerminal: (String) -> Unit,
+    onOpenComputeFiles: (String) -> Unit,
     onSwitchAssistant: (String) -> Unit,
     onToggleChannelForBot: (String, String) -> Unit,
     onOpenGroupChats: (() -> Unit)?,
+    onFixConnector: (String) -> Unit,
+    skillRepository: SkillRepository = koinInject(),
 ) {
+    val allSkills by skillRepository.observeAll.collectAsStateWithLifecycle(initialValue = emptyList())
+    val sharedSkillCount = remember(allSkills) {
+        allSkills.count { it.category == "user" || it.category == "custom" }
+    }
     Column(verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap)) {
+        ComputeNodesSection(
+            nodes = computeNodes,
+            snapshots = computeNodeSnapshots,
+            onOpenSetup = onOpenComputeNodeSetup,
+            onRefresh = onRefreshComputeNode,
+            onInstallBrowserPack = onInstallComputeBrowserPack,
+            onRepair = onRepairComputeNode,
+            onDelete = onDeleteComputeNode,
+            onOpenTerminal = onOpenComputeTerminal,
+            onOpenFiles = onOpenComputeFiles,
+        )
+        ConnectorHealthCard(snapshot = connectorHealth, onFix = onFixConnector)
         assistants.forEach { assistant ->
             val active = assistant.id == currentBotId
             val boundChannels = squadIdentities[assistant.id]?.channelIds.orEmpty()
@@ -885,17 +1061,57 @@ private fun WorkbenchSquadTab(
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
-                        val channelsLabel = stringResource(R.string.agent_hub_squad_channels)
-                        val desc = assistant.summary.ifBlank {
-                            if (boundChannels.isNotEmpty()) "${boundChannels.size} · $channelsLabel" else ""
-                        }
-                        if (desc.isNotBlank()) {
+                        val identity = squadIdentities[assistant.id]
+                        val tagsLabel = identity?.specialtyTags.orEmpty()
+                            .joinToString(" · ")
+                            .takeIf { it.isNotBlank() }
+                        val specialtyText = tagsLabel ?: identity?.specialty.orEmpty()
+                        if (specialtyText.isNotBlank()) {
                             Text(
-                                text = desc,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                text = stringResource(R.string.agent_hub_squad_specialty, specialtyText),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                        val nodeId = identity?.defaultComputeNodeId.orEmpty()
+                        val computeLabel = if (nodeId.isBlank()) {
+                            stringResource(R.string.agent_hub_squad_local_compute)
+                        } else {
+                            computeNodes.firstOrNull { it.nodeId == nodeId }?.name
+                                ?.takeIf { it.isNotBlank() } ?: nodeId
+                        }
+                        Text(
+                            text = stringResource(R.string.agent_hub_squad_compute_target, computeLabel),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        val dedicatedRoutineCount = routines.count { routine ->
+                            routine.botId == assistant.id && routine.skillId.isNotBlank()
+                        }
+                        Text(
+                            text = stringResource(
+                                R.string.agent_hub_squad_skill_counts,
+                                sharedSkillCount,
+                                dedicatedRoutineCount,
+                            ),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            text = stringResource(R.string.agent_hub_squad_recent_completed, recentTaskCount),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        if (boundChannels.isNotEmpty()) {
+                            Text(
+                                text = boundChannels.size.toString() + " · " +
+                                    stringResource(R.string.agent_hub_squad_channels),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }
@@ -985,6 +1201,132 @@ private fun WorkbenchSquadTab(
             variant = IosCapsuleButtonVariant.Secondary,
             size = MuseButtonSize.Compact,
         )
+    }
+}
+
+@Composable
+private fun ComputeNodesSection(
+    nodes: List<RemoteComputeNodeEntity>,
+    snapshots: Map<String, ComputeNodeSnapshot>,
+    onOpenSetup: () -> Unit,
+    onRefresh: (String) -> Unit,
+    onInstallBrowserPack: (String) -> Unit,
+    onRepair: (String) -> Unit,
+    onDelete: (String) -> Unit,
+    onOpenTerminal: (String) -> Unit,
+    onOpenFiles: (String) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+        ) {
+            SectionLabel(
+                text = stringResource(R.string.compute_node_section_title),
+                modifier = Modifier.weight(1f),
+            )
+            MuseCapsuleButton(
+                text = stringResource(R.string.compute_node_add),
+                onClick = onOpenSetup,
+                variant = IosCapsuleButtonVariant.Secondary,
+                fillWidth = false,
+                size = MuseButtonSize.Compact,
+                leadingIcon = MuseIcons.plus,
+            )
+        }
+        if (nodes.isEmpty()) {
+            Text(
+                text = stringResource(R.string.compute_node_section_empty),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            nodes.forEach { node ->
+                ComputeNodeCard(
+                    node = node,
+                    snapshot = snapshots[node.nodeId],
+                    onRefresh = { onRefresh(node.nodeId) },
+                    onRepair = { onRepair(node.nodeId) },
+                    onInstallBrowserPack = { onInstallBrowserPack(node.nodeId) },
+                    onOpenTerminal = { onOpenTerminal(node.nodeId) },
+                    onOpenFiles = { onOpenFiles(node.nodeId) },
+                    onDelete = { onDelete(node.nodeId) },
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ConnectorHealthCard(
+    snapshot: AgentConnectorHealthSnapshot,
+    onFix: (String) -> Unit,
+) {
+    if (snapshot.items.isEmpty()) return
+    Column(verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap)) {
+        SectionLabel(text = stringResource(R.string.agent_connector_health_title))
+        Surface(
+            shape = MuseShapes.semiLarge,
+            color = MaterialTheme.colorScheme.surface,
+            border = BorderStroke(
+                width = MuseBorderWidth.hairline,
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = MuseAlpha.subtleBorder),
+            ),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            FlowRow(
+                modifier = Modifier.padding(MusePaddings.cardInner),
+                horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+                verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+            ) {
+                snapshot.items.forEach { item ->
+                    val statusColor = when (item.status) {
+                        ConnectorHealthStatus.OK -> MaterialTheme.statusColors.success
+                        ConnectorHealthStatus.WARN -> MaterialTheme.statusColors.warning
+                        ConnectorHealthStatus.ERROR -> MaterialTheme.statusColors.error
+                        ConnectorHealthStatus.UNKNOWN -> MaterialTheme.statusColors.neutral
+                    }
+                    Surface(
+                        shape = MuseShapes.pill,
+                        color = statusColor.copy(alpha = MuseAlpha.statusTint),
+                        border = BorderStroke(
+                            width = MuseBorderWidth.hairline,
+                            color = statusColor.copy(alpha = MuseAlpha.mutedSurface),
+                        ),
+                        modifier = Modifier.clickable(
+                            enabled = item.fixable && item.status != ConnectorHealthStatus.OK,
+                        ) { onFix(item.key) },
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(
+                                horizontal = MusePaddings.contentGap,
+                                vertical = MusePaddings.tightGap,
+                            ),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(MusePaddings.tinyGap),
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(MuseSpacing.sm)
+                                    .background(statusColor, androidx.compose.foundation.shape.CircleShape),
+                            )
+                            Text(
+                                text = stringResource(item.titleRes),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                            Text(
+                                text = stringResource(item.detailRes),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

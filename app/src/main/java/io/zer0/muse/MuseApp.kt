@@ -136,6 +136,9 @@ class MuseApp : Application(), ImageLoaderFactory {
     /** v1.0.12: RAG 服务 — 启动时异步加载持久化的 HNSW 索引(若已落盘)。 */
     private val ragService: io.zer0.muse.rag.RagService by inject()
 
+    /** 会话附件索引服务 — 启动时清理上个进程遗留的孤儿附件索引。 */
+    private val sessionAttachmentService: io.zer0.muse.rag.SessionAttachmentService by inject()
+
     /**
      * v1.0.47: 系统提示组装器 — 启动时异步预热 buildStaticSnapshot,
      * 让 DataStore(chatPreferences/userProfile) + buildToolManifestSection 子缓存提前加载,
@@ -459,6 +462,33 @@ class MuseApp : Application(), ImageLoaderFactory {
                             Logger.w("MuseApp", "中枢关开对账失败: ${t?.message ?: msg}", t)
                         }
                 }
+                // 冷启动消费云端电脑事件，并按用户真实配置按需注册夜间整理与持续跟进/小应用巡检。
+                appScope.launch {
+                    val koin = org.koin.java.KoinJavaComponent.getKoin()
+                    resultOf {
+                        koin.get<io.zer0.muse.data.agentbot.ComputeNodeEventBridge>().start(appScope)
+                    }.onError { msg, t ->
+                        Logger.w("MuseApp", "云电脑事件桥启动失败: ${t?.message ?: msg}", t)
+                    }
+                    resultOf {
+                        if (io.zer0.muse.data.agentbot.AgentDreamStore(this@MuseApp).isEnabled()) {
+                            io.zer0.muse.data.agentbot.AgentDreamScheduler.scheduleNightly(this@MuseApp)
+                        }
+                    }.onError { msg, t ->
+                        Logger.w("MuseApp", "夜间整理调度注册失败: ${t?.message ?: msg}", t)
+                    }
+                    resultOf {
+                        val db = koin.get<io.zer0.muse.data.session.MuseDb>()
+                        if (db.agentWatcherDao().listActive().isNotEmpty()) {
+                            koin.get<io.zer0.muse.data.agentbot.AgentWatcherEngine>()
+                        }
+                        if (db.cardEntityDao().observePinnedSpaces().first().isNotEmpty()) {
+                            koin.get<io.zer0.muse.data.agentbot.AgentSpaceEngine>()
+                        }
+                    }.onError { msg, t ->
+                        Logger.w("MuseApp", "后台跟进与小应用引擎按需预热失败: ${t?.message ?: msg}", t)
+                    }
+                }
             } // v1.92: ChatViewModel 为 single 单例,onCleared 永不调用。
             // 注册 ProcessLifecycleOwner 观察者,在 ON_STOP 时释放 TTS/ASR 资源并停止 memory ticker,
             // 在 ON_START 时重启 memory ticker。
@@ -714,6 +744,13 @@ class MuseApp : Application(), ImageLoaderFactory {
             appScope.launch {
                 resultOf { ragService.loadVectorIndexIfNeeded(settings.getRagConfig()) }
                     .onError { msg, t -> Logger.w("MuseApp", "HNSW 索引加载失败: $msg", t) }
+            }
+            // 会话附件索引的内存状态不落库,进程重启后内存列表必为空。
+            // 上一个进程留下的附件文档/分块若不清,会永远占着检索库并被当成普通文档命中。
+            // 与 HNSW 加载并行无妨:deleteDocIndex 内部会自己确保索引已加载。
+            appScope.launch {
+                resultOf { sessionAttachmentService.cleanupOrphanedAttachments() }
+                    .onError { msg, t -> Logger.w("MuseApp", "孤儿会话附件清理失败: $msg", t) }
             }
             // v1.0.14 P0-1: 订阅 ChatPreferences.hapticFeedback,同步到 MuseHaptics 总开关。
             // 用户在「设置 → 聊天行为 → 触感反馈」切换后,所有 MuseHaptics.light/medium/heavy/soft

@@ -301,6 +301,42 @@ class PinnedMemoryStore(
         }
     }
 
+    /**
+     * 删除某个助手名下的全部置顶记忆。
+     *
+     * 精确按 [PinnedEntry.assistantId] 判断：别的助手的置顶与全局置顶都不碰。
+     * [includeGlobal] 只在删除主助手（全局记忆的主人）时置 true，否则旧版无归属的置顶会残留。
+     *
+     * @return 实际删除的条数
+     */
+    suspend fun removeByAssistant(assistantId: String, includeGlobal: Boolean = false): Int = withContext(Dispatchers.IO) {
+        writeLock.withLock {
+            val normalized = assistantId.trim()
+            if (normalized.isEmpty()) return@withLock 0
+            val existing = loadEntries()
+            val filtered = existing.filterNot { entry ->
+                entry.assistantId == normalized || (includeGlobal && entry.assistantId == null)
+            }
+            val removed = existing.size - filtered.size
+            if (removed > 0) {
+                writeBoth(filtered)
+                Logger.i(TAG, "pinned memory removed by assistant: $normalized -> $removed")
+            }
+            removed
+        }
+    }
+
+    /** 重置全部记忆时清空所有置顶（含全局与各助手）。返回删除条数。 */
+    suspend fun clearAll(): Int = withContext(Dispatchers.IO) {
+        writeLock.withLock {
+            val existing = loadEntries()
+            if (existing.isEmpty()) return@withLock 0
+            writeBoth(emptyList())
+            Logger.i(TAG, "pinned memory cleared: ${existing.size}")
+            existing.size
+        }
+    }
+
     /** 内容规范化：保留普通词间空格，但忽略汉字之间仅用于排版的空白。 */
     private fun normalizeForDedup(content: String): String {
         val collapsed = content.trim().replace(WHITESPACE_RUN, " ").lowercase()
@@ -343,21 +379,50 @@ class PinnedMemoryStore(
         }
     }
 
-    /** 在助手 scope 内按内容取消置顶,避免同名记忆误删其他助手的数据。 */
+    /**
+     * 在助手 scope 内按内容取消置顶:精确优先,失败后退化为包含匹配。
+     *
+     * 两个条件必须同时成立才算命中 —— 只看"scope 内第一条"再拿它的内容比对,会把
+     * 后续真正匹配的条目漏掉(同一个助手置顶好几条时,取消置顶会静默失败)。
+     * 调用方若是"取消某条事实的置顶",请用 [removeByContentExactForAssistant]:
+     * 模糊匹配会连带删掉内容相近但无关的独立置顶。
+     */
     suspend fun removeByContentFlexibleForAssistant(content: String, assistantId: String, includeGlobal: Boolean): Boolean =
         withContext(Dispatchers.IO) {
             writeLock.withLock {
                 val trimmed = content.trim()
-                val existing = loadEntries()
-                val target = existing.firstOrNull { entry ->
-                    entry.assistantId == assistantId ||
-                        (includeGlobal && entry.assistantId == null)
-                }?.takeIf { entry ->
-                    entry.content.trim() == trimmed || entry.content.contains(trimmed, ignoreCase = true)
+                val inScope = loadEntries().filter { entry ->
+                    entry.assistantId == assistantId || (includeGlobal && entry.assistantId == null)
                 }
-                if (target == null) return@withLock false
-                writeBoth(existing.filter { it.id != target.id })
-                Logger.d(TAG, "pinned memory removed for assistant: ${target.id}")
+                val target = inScope.firstOrNull { it.content.trim() == trimmed }
+                    ?: inScope.firstOrNull { it.content.trim().contains(trimmed, ignoreCase = true) }
+                    ?: return@withLock false
+                removeByIdLocked(target.id)
+                Logger.d(TAG, "pinned memory removed for assistant (flexible): ${target.id}")
+                true
+            }
+        }
+
+    /**
+     * 在助手 scope 内按**精确内容**取消置顶(去首尾空白后完全相等)。
+     *
+     * 专给"取消某条事实的置顶"用:旧版本把事实置顶同时写进了固定记忆文件,
+     * 那些条目没有事实 id,只能靠原文内容认回。匹配必须精确 —— 用包含匹配会顺手删掉
+     * 内容包含同一段文字的独立置顶,那是用户另一条记忆。
+     *
+     * @return 是否删掉了一条;false 表示没有残留(新数据只有 facts.pinned_at,不该有)
+     */
+    suspend fun removeByContentExactForAssistant(content: String, assistantId: String, includeGlobal: Boolean): Boolean =
+        withContext(Dispatchers.IO) {
+            writeLock.withLock {
+                val trimmed = content.trim()
+                if (trimmed.isEmpty()) return@withLock false
+                val target = loadEntries().firstOrNull { entry ->
+                    entry.content.trim() == trimmed &&
+                        (entry.assistantId == assistantId || (includeGlobal && entry.assistantId == null))
+                } ?: return@withLock false
+                removeByIdLocked(target.id)
+                Logger.d(TAG, "pinned memory removed for assistant (exact): ${target.id}")
                 true
             }
         }
@@ -374,10 +439,7 @@ class PinnedMemoryStore(
 
     // ─── 内部 I/O ───
 
-    /**
-     * 审查修复 (B-20): 调用方必须已持有 [writeLock] 的按 id 删除。
-     * removeByContent 已在 withLock 内,不能再次 removeById(会重复拿锁死锁)。
-     */
+    /** 调用方必须已持有 [writeLock] 的按 id 删除。 */
     private fun removeByIdLocked(id: String): Boolean {
         val existing = loadEntries()
         val filtered = existing.filter { it.id != id }

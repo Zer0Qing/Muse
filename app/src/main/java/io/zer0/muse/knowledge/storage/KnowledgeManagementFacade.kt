@@ -6,6 +6,9 @@ package io.zer0.muse.knowledge.storage
  *
  * 各入口只做参数校验与用户意图转换,实际目录/文档生命周期全部委托 [KnowledgeLifecycleService],
  * 禁止某个入口绕过统一服务直接调用 delete DAO —— 这保证三处结果一致、状态与可见性同步。
+ *
+ * 删除结果里的 `citationAction` 是**实际执行结果**:未接入快照清除通道时它写「未清除」,
+ * 入口不得自行改成「已清除」的文案。
  */
 class KnowledgeManagementFacade(
     private val lifecycle: KnowledgeLifecycleService,

@@ -8,6 +8,11 @@ import androidx.lifecycle.viewModelScope
 import io.zer0.memory.ai.MemoryLinkDao
 import io.zer0.memory.fact.FactDbProvider
 import io.zer0.memory.fact.FactStore
+import io.zer0.memory.runtime.DeleteMemoryRequest
+import io.zer0.memory.runtime.DeleteMemoryResult
+import io.zer0.memory.runtime.FactPinResult
+import io.zer0.memory.runtime.MemoryScopeKey
+import io.zer0.memory.runtime.MemoryUseCases
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -31,6 +36,12 @@ class MemoryGraphViewModel(
     private val edgeBuilder: io.zer0.memory.ai.MemoryEdgeBuilder? = null,
     /** v2.6.2: 语义近邻向量提供者。 */
     private val semanticProvider: io.zer0.memory.ai.MemoryEdgeBuilder.SemanticProvider? = null,
+    /**
+     * 统一记忆入口。置顶/删除都走它 —— 星座页的节点操作与记忆页必须同一套规则,
+     * 否则同一条事实在两个页面上会有两种置顶状态(一个改了事实行、一个另写了一份副本)。
+     * null = 未装配的测试宿主,退化为直接写事实行。
+     */
+    private val memoryUseCases: MemoryUseCases? = null,
 ) : AndroidViewModel(application) {
 
     data class GraphState(
@@ -108,18 +119,40 @@ class MemoryGraphViewModel(
     }
 
     // ── 阶段 3: 节点操作 ──
+
+    /**
+     * 删除节点。
+     *
+     * 删除键一律取事实行自身的 scope/space:星座图在"全部作用域"视图下也会展示
+     * 子助手作用域的行,拿界面上的 scope 猜归属会删到同号的其他行。
+     * 只有确实删掉了才重载 —— 删除被拒(行已不在、跨 Space)时刷新只会让用户
+     * 看到节点闪一下又回来。
+     */
     fun deleteNode(factId: Long, scope: String?, spaceId: String) {
         viewModelScope.launch {
-            withContext(Dispatchers.IO) {
-                val store = storeForScope(scope)
-                if (scope == null) {
-                    store.delete(factId)
-                } else {
-                    store.delete(factId, store.assistantId, scope, spaceId)
-                }
-            }
-            load(scope, spaceId)
+            val deleted = withContext(Dispatchers.IO) { deleteFactScoped(factId, scope, spaceId) }
+            if (deleted) load(scope, spaceId)
         }
+    }
+
+    /** 按事实行自身的作用域键删除;false = 没删。 */
+    private suspend fun deleteFactScoped(factId: Long, scope: String?, spaceId: String): Boolean {
+        val store = storeForScope(scope)
+        val fact = store.getById(factId) ?: return false
+        if (fact.spaceId != spaceId) return false
+        if (scope != null && fact.scope != scope) return false
+        val unified = memoryUseCases
+        if (unified != null) {
+            val key = MemoryScopeKey(assistantIdForScope(fact.scope), fact.scope, fact.spaceId)
+            when (unified.delete(DeleteMemoryRequest(key, factId))) {
+                is DeleteMemoryResult.Deleted -> return true
+                // 历史数据里子助手 scope 的行可能物理上就在默认库(分库迁移之前写入),
+                // 按 scope 路由的分库找不到它。这种行本页确实读到了,就该能删。
+                is DeleteMemoryResult.Missing -> Unit
+                is DeleteMemoryResult.Rejected -> return false
+            }
+        }
+        return store.delete(factId, store.assistantId, fact.scope, fact.spaceId)
     }
 
     /**
@@ -153,19 +186,44 @@ class MemoryGraphViewModel(
 
     fun togglePin(factId: Long, scope: String? = null, spaceId: String = "default") {
         viewModelScope.launch {
-            withContext(Dispatchers.IO) {
-                val scopedStore = storeForScope(scope)
-                val fact = scopedStore.getById(factId) ?: return@withContext
-                // v2.6.2（记忆审计）: 按当前 scope/Space 路由 —— 否则星座页展示子助手/
-                // 其他 Space 的节点时，置顶会改到默认库中同 ID 的事实。
-                if (fact.scope != (scope ?: "main") || fact.spaceId != spaceId) return@withContext
-                scopedStore.setPinned(factId, fact.pinnedAt == null)
+            val result = withContext(Dispatchers.IO) { toggleFactPin(factId, scope, spaceId) }
+            // 只有确实改了事实行才动 UI —— 先翻图标再写库,失败时用户会以为已置顶。
+            if (result is FactPinResult.Changed) {
+                _state.value = _state.value.copy(
+                    nodes = _state.value.nodes.map {
+                        if (it.factId == factId) it.copy(isPinned = result.pinned) else it
+                    },
+                )
             }
-            _state.value = _state.value.copy(
-                nodes = _state.value.nodes.map { if (it.factId == factId) it.copy(isPinned = !it.isPinned) else it },
-            )
         }
     }
+
+    /**
+     * 统一置顶切换:事实表 `pinned_at` 是唯一事实源。
+     *
+     * 行不属于当前 scope/Space 时直接拒绝 —— 同一 id 在别的库/别的 Space 下
+     * 可能是另一条事实,拿裸 id 改置顶会改错行。
+     */
+    private suspend fun toggleFactPin(factId: Long, scope: String?, spaceId: String): FactPinResult {
+        val store = storeForScope(scope)
+        val fact = store.getById(factId) ?: return FactPinResult.Missing
+        if (fact.scope != (scope ?: "main") || fact.spaceId != spaceId) {
+            return FactPinResult.Rejected("memory belongs to another space")
+        }
+        val unified = memoryUseCases
+        if (unified != null) {
+            return unified.toggleFactPinned(
+                MemoryScopeKey(assistantIdForScope(fact.scope), fact.scope, fact.spaceId),
+                factId,
+            )
+        }
+        val target = fact.pinnedAt == null
+        if (!store.setPinned(factId, target, fact.scope, fact.spaceId)) return FactPinResult.Missing
+        return FactPinResult.Changed(target)
+    }
+
+    /** 主助手在 assistantId 维度的名字是 "default",子助手用自己的 scope 名。 */
+    private fun assistantIdForScope(scope: String): String = if (scope == "main") "default" else scope
 
     // ── 阶段 3: 关系操作 ──
     fun deleteEdge(edgeId: Long, scope: String?, spaceId: String) {

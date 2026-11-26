@@ -95,6 +95,9 @@ class ToolConfigStore(private val context: Context) {
                 source = DenySource.POLICY,
             )
             ToolApprovalPolicy.ASK_EVERY_TIME -> ToolApprovalState.Pending
+            // 这里没有工具参数，无法做边界复核；AUTO_REVIEW 在数据层只能保守地交给审批卡。
+            // 真正的自动放行由 ToolPermissionResolver 带全量参数调用 ToolAutoReviewer 完成。
+            ToolApprovalPolicy.AUTO_REVIEW -> ToolApprovalState.Pending
         }
     }
 

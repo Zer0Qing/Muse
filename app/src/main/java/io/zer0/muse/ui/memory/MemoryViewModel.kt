@@ -7,6 +7,7 @@ import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.memory.compile.MemoryCompiler
 import io.zer0.memory.fact.FactStore
+import io.zer0.memory.runtime.FactPinResult
 import io.zer0.memory.runtime.MemoryScopeKey
 import io.zer0.memory.runtime.MemorySearchRequest
 import io.zer0.memory.runtime.MemorySearchResult
@@ -1156,24 +1157,10 @@ class MemoryViewModel(
                 val purgeTargets = mutableSetOf<io.zer0.memory.compile.MemoryCompileTarget>()
                 targets.forEach { item ->
                     val id = item.id.toLongOrNull() ?: return@forEach
-                    val requestedScope =
-                        item.scope?.takeIf { it.isNotBlank() } ?: _selectedScope.value ?: "main"
-                    val requestedAssistantId = if (requestedScope == "main") "default" else requestedScope
-                    val requestedSpaceId = _selectedSpaceId.value.ifBlank { "default" }
-                    resultOf {
-                        storeForFact(id, item.scope)
-                            .delete(id, requestedAssistantId, requestedScope, requestedSpaceId)
-                    }.onSuccess { deleted ->
-                        if (deleted) {
-                            purgeTargets += io.zer0.memory.compile.MemoryCompileTarget(
-                                assistantId = requestedAssistantId,
-                                scope = requestedScope,
-                                spaceId = requestedSpaceId,
-                            )
-                        }
-                    }.onError { msg, _ ->
-                        Logger.w("MemoryVM", "批量删除事实失败: $msg")
-                    }
+                    // 批删也不能绕开统一入口:直接调 store.delete 会跳过置顶残留清理。
+                    resultOf { deleteFactScoped(id, item.scope) }
+                        .onSuccess { target -> target?.let { purgeTargets += it } }
+                        .onError { msg, _ -> Logger.w("MemoryVM", "批量删除事实失败: $msg") }
                 }
                 purgeTargets.forEach { target ->
                     resultOf { memoryCompiler.purgeTombstonedFacts(target) }
@@ -1184,6 +1171,35 @@ class MemoryViewModel(
         }
     }
 
+    /**
+     * 删除一条事实,返回需要剔除编译产物的目标;null = 没删(行不存在或跨 Space)。
+     *
+     * 作用域键一律取事实行自身的 scope/space:界面上的"当前空间"和"当前 scope"
+     * 在全部视图、搜索结果、删除确认弹窗缓存项这些场景下都可能与这条事实不一致,
+     * 拿错键会被统一入口判成跨 Space 而静默失败。
+     */
+    private suspend fun deleteFactScoped(id: Long, scope: String?): io.zer0.memory.compile.MemoryCompileTarget? {
+        val store = storeForFact(id, scope)
+        val fact = store.getById(id) ?: return null
+        val key = scopeKeyOf(fact)
+        val unified = memoryUseCases
+        val deleted = if (unified != null) {
+            when (unified.delete(io.zer0.memory.runtime.DeleteMemoryRequest(key, id))) {
+                is io.zer0.memory.runtime.DeleteMemoryResult.Deleted -> true
+                io.zer0.memory.runtime.DeleteMemoryResult.Missing -> false
+                is io.zer0.memory.runtime.DeleteMemoryResult.Rejected -> false
+            }
+        } else {
+            store.delete(id, key.assistantId, fact.scope, fact.spaceId)
+        }
+        if (!deleted) return null
+        return io.zer0.memory.compile.MemoryCompileTarget(
+            assistantId = key.assistantId,
+            scope = fact.scope,
+            spaceId = fact.spaceId,
+        )
+    }
+
     fun deleteFact(factId: String, scope: String? = null) {
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
@@ -1191,34 +1207,14 @@ class MemoryViewModel(
                 if (id != null) {
                     // v1.78 (H6): 包装 suspend 调用必须用 resultOf,避免吞 CancellationException
                     // P0-4: 按 factId 定位实际所在 store("全部"视图下子助手事实也能删)
-                    val requestedScope = scope?.takeIf { it.isNotBlank() } ?: _selectedScope.value ?: "main"
-                    val requestedAssistantId = if (requestedScope == "main") "default" else requestedScope
-                    val requestedSpaceId = _selectedSpaceId.value.ifBlank { "default" }
-                    val unified = memoryUseCases
-                    val unifiedScope = memoryScopeKey(requestedScope)
-                    val deleteResult = if (unified != null && unifiedScope != null) {
-                        resultOf {
-                            when (unified.delete(io.zer0.memory.runtime.DeleteMemoryRequest(unifiedScope, id))) {
-                                is io.zer0.memory.runtime.DeleteMemoryResult.Deleted -> true
-                                io.zer0.memory.runtime.DeleteMemoryResult.Missing -> false
-                                is io.zer0.memory.runtime.DeleteMemoryResult.Rejected -> false
-                            }
+                    resultOf { deleteFactScoped(id, scope) }
+                        .onError { msg, t ->
+                            MuseToast.show(getApplication<Application>().getString(R.string.memory_delete_failed, msg))
                         }
-                    } else {
-                        val store = storeForFact(id, scope)
-                        resultOf { store.delete(id, requestedAssistantId, requestedScope, requestedSpaceId) }
-                    }
-                    deleteResult
-                        .onError { msg, t -> MuseToast.show(getApplication<Application>().getString(R.string.memory_delete_failed, msg)) }
-                        .onSuccess { deleted ->
-                            if (deleted) {
-                                // S-04: 剔除编译产物中已删事实,防止"删除后仍注入/从摘要复活"
-                                val target = io.zer0.memory.compile.MemoryCompileTarget(
-                                    assistantId = requestedAssistantId,
-                                    scope = requestedScope,
-                                    spaceId = requestedSpaceId,
-                                )
-                                resultOf { memoryCompiler.purgeTombstonedFacts(target) }
+                        .onSuccess { target ->
+                            // S-04: 剔除编译产物中已删事实,防止"删除后仍注入/从摘要复活"
+                            target?.let {
+                                resultOf { memoryCompiler.purgeTombstonedFacts(it) }
                                     .onError { msg, t -> Logger.w("MemoryVM", "purgeTombstonedFacts 失败: $msg", t) }
                             }
                         }
@@ -1228,10 +1224,6 @@ class MemoryViewModel(
         }
     }
 
-    /**
-     * P2: 删除单条 Summary(根据 sessionId)。
-     */
-    /** B4-05: 切换单条 Fact 的手动置顶状态。 */
     /** 修订历史（“来龙去脉”面板展示当前查看的那条事实）。 */
     private val _factRevisions = MutableStateFlow<List<io.zer0.memory.fact.FactRevisionEntity>>(emptyList())
     val factRevisions: StateFlow<List<io.zer0.memory.fact.FactRevisionEntity>> = _factRevisions.asStateFlow()
@@ -1269,27 +1261,66 @@ class MemoryViewModel(
         }
     }
 
+    /**
+     * 切换一条事实的手动置顶。
+     *
+     * 统一走 [MemoryUseCases.toggleFactPinned]:事实行的 `pinned_at` 是唯一事实源,
+     * 不再向固定记忆文件写副本(那份副本会变成取消不掉、删不掉的幽灵条目)。
+     * 只有确实改动成功才重载列表 —— 失败时先刷 UI 会让用户以为已经置顶。
+     */
     fun toggleFactPinned(factId: String, scope: String? = null) {
         viewModelScope.launch {
             val id = factId.toLongOrNull() ?: return@launch
-            val fact = withContext(Dispatchers.IO) { storeForFact(id, scope).getById(id) } ?: return@launch
-            val pinned = fact.pinnedAt == null
-            try {
-                if (pinned) {
-                    pinFact(id, fact.fact, scope)
-                } else {
-                    unpinFact(id, fact.fact, scope)
-                }
-            } catch (e: CancellationException) {
-                // v1.78 (H3): 必须重抛协程取消信号,否则会破坏协程取消语义
-                throw e
-            } catch (t: Throwable) {
-                Logger.w("MemoryViewModel", "toggleFactPinned 异常: ${t.message}", t)
-                val msg = if (pinned) R.string.memory_pin_failed else R.string.memory_unpin_failed
-                MuseToast.show(getApplication<Application>().getString(msg))
+            // 先拿当前状态:失败提示要分「置顶失败」/「取消置顶失败」,得知道用户点的是哪个方向。
+            val wasPinned = withContext(Dispatchers.IO) {
+                resultOf { storeForFact(id, scope).getById(id)?.pinnedAt }
+                    .onError { msg, t -> Logger.w("MemoryViewModel", "toggleFactPinned 读取事实失败: $msg", t) }
+                    .getOrNull() != null
             }
-            loadAll()
+            val outcome = withContext(Dispatchers.IO) {
+                resultOf { toggleFactPin(id, scope) }
+                    .onError { msg, t -> Logger.w("MemoryViewModel", "toggleFactPinned 异常: $msg", t) }
+                    .getOrNull()
+            }
+            when (outcome) {
+                // 事实已被删掉/不归这个作用域管:和旧行为一致,不报错也不刷 UI。
+                null, FactPinResult.Missing -> Unit
+                is FactPinResult.Rejected -> MuseToast.show(
+                    getApplication<Application>().getString(
+                        if (wasPinned) R.string.memory_unpin_failed else R.string.memory_pin_failed,
+                    ),
+                )
+                is FactPinResult.Changed -> loadAll()
+            }
         }
+    }
+
+    /**
+     * 置顶切换的唯一实现:按事实行自身的 scope/space 组出作用域键。
+     *
+     * 不用 `_selectedSpaceId` —— "全部空间"视图或从搜索结果点进来时,
+     * 界面上的选中空间未必是这条事实所在的空间,拿错键会被当成跨 Space 而静默失败。
+     */
+    private suspend fun toggleFactPin(id: Long, scope: String?): FactPinResult {
+        val store = storeForFact(id, scope)
+        val fact = store.getById(id) ?: return FactPinResult.Missing
+        val unified = memoryUseCases
+        if (unified != null) {
+            return unified.toggleFactPinned(scopeKeyOf(fact), id)
+        }
+        // 无统一入口的测试宿主:仍然只写事实行,取消置顶时精确清理旧路径残留。
+        val target = fact.pinnedAt == null
+        if (!store.setPinned(id, target, fact.scope, fact.spaceId)) return FactPinResult.Missing
+        if (!target) {
+            resultOf {
+                pinnedMemoryStore.removeByContentExactForAssistant(
+                    content = fact.fact,
+                    assistantId = assistantIdForScope(fact.scope),
+                    includeGlobal = fact.scope == "main",
+                )
+            }.onError { msg, t -> Logger.w("MemoryViewModel", "旧置顶残留清理失败: $msg", t) }
+        }
+        return FactPinResult.Changed(target)
     }
 
     /**
@@ -1335,101 +1366,15 @@ class MemoryViewModel(
         }
     }
 
-    /**
-     * 审查修复 (B-18): 置顶 — 先写 PinnedMemoryStore(add 成功),再 setPinned。
-     * 顺序保证: 注入侧(固定记忆段)与 facts.pinnedAt 的一致性以 PinnedMemoryStore 为先;
-     * 若 setPinned 失败则回滚已成功的 add,避免 UI 与注入不一致。
-     */
-    private suspend fun pinFact(id: Long, content: String, scope: String? = null) {
-        val unified = memoryUseCases
-        val unifiedScope = memoryScopeKey(scope)
-        if (unified != null && unifiedScope != null) {
-            val pinnedResult = resultOf {
-                unified.pin(io.zer0.memory.runtime.PinMemoryRequest(unifiedScope, content))
-            }.onError { msg, t -> Logger.w("MemoryViewModel", "统一置顶写入失败: $msg", t) }
-                .getOrNull()
-            val pinnedId = (pinnedResult as? io.zer0.memory.runtime.PinMemoryResult.Pinned)?.id
-            if (pinnedId == null) {
-                MuseToast.show(getApplication<Application>().getString(R.string.memory_pin_failed))
-                return
-            }
-            val setResult = resultOf { storeForFact(id, scope).setPinned(id, pinned = true) }
-                .onError { msg, t -> Logger.w("MemoryViewModel", "统一置顶状态同步失败: $msg", t) }
-            if (setResult.isError) {
-                resultOf {
-                    unified.unpin(io.zer0.memory.runtime.UnpinMemoryRequest(unifiedScope, pinnedId, null))
-                }.onError { msg, t -> Logger.w("MemoryViewModel", "统一置顶回滚失败: $msg", t) }
-                MuseToast.show(getApplication<Application>().getString(R.string.memory_pin_failed))
-            }
-            return
-        }
-        val pinnedAssistantId = scope?.takeIf { it.isNotBlank() && it != "main" } ?: "default"
-        // 先写 PinnedMemoryStore(add 成功)再 setPinned
-        val addResult = resultOf { pinnedMemoryStore.add(content, assistantId = pinnedAssistantId) }
-            .onError { msg, t -> Logger.w("MemoryViewModel", "PinnedMemoryStore.add 失败: $msg", t) }
-        if (addResult.isError) {
-            // add 失败,未写入任一来源,直接提示,不清后置状态
-            MuseToast.show(getApplication<Application>().getString(R.string.memory_pin_failed))
-            return
-        }
-        val setResult = resultOf { storeForFact(id, scope).setPinned(id, pinned = true) }
-            .onError { msg, t -> Logger.w("MemoryViewModel", "toggleFactPinned.setPinned 失败: $msg", t) }
-        if (setResult.isError) {
-            // 回滚已成功的 add,保持两边一致
-            resultOf {
-                pinnedMemoryStore.removeByContentFlexibleForAssistant(
-                    content = content,
-                    assistantId = pinnedAssistantId,
-                    includeGlobal = false,
-                )
-            }
-                .onError { m2, t2 -> Logger.w("MemoryViewModel", "PinnedMemoryStore 置顶回滚失败: $m2", t2) }
-            MuseToast.show(getApplication<Application>().getString(R.string.memory_pin_failed))
-        }
-    }
+    /** 事实行自身携带的 assistant/scope/space 组出的作用域键。 */
+    private fun scopeKeyOf(fact: FactStore.Fact): MemoryScopeKey = MemoryScopeKey(
+        assistantId = assistantIdForScope(fact.scope),
+        scope = fact.scope,
+        spaceId = fact.spaceId,
+    )
 
-    /**
-     * 审查修复 (B-18): 取消置顶 — 先确保 PinnedMemoryStore 移除成功,再清 facts.pinnedAt。
-     * 匹配用保守的 removeByContentFlexible(精确优先,失败后退化为包含匹配),
-     * 覆盖置顶内容被改写的残留;若 setPinned 失败不变更注入侧,两边仍一致。
-     */
-    private suspend fun unpinFact(id: Long, content: String, scope: String? = null) {
-        val unified = memoryUseCases
-        val unifiedScope = memoryScopeKey(scope)
-        if (unified != null && unifiedScope != null) {
-            val removeResult = resultOf {
-                unified.unpin(io.zer0.memory.runtime.UnpinMemoryRequest(unifiedScope, null, content))
-            }.onError { msg, t -> Logger.w("MemoryViewModel", "统一取消置顶失败: $msg", t) }
-            if (removeResult.isError) {
-                MuseToast.show(getApplication<Application>().getString(R.string.memory_unpin_failed))
-                return
-            }
-            val setResult = resultOf { storeForFact(id, scope).setPinned(id, pinned = false) }
-                .onError { msg, t -> Logger.w("MemoryViewModel", "统一置顶状态清理失败: $msg", t) }
-            if (setResult.isError) {
-                MuseToast.show(getApplication<Application>().getString(R.string.memory_unpin_failed))
-            }
-            return
-        }
-        val pinnedAssistantId = scope?.takeIf { it.isNotBlank() && it != "main" } ?: "default"
-        val removeResult = resultOf {
-            pinnedMemoryStore.removeByContentFlexibleForAssistant(
-                content = content,
-                assistantId = pinnedAssistantId,
-                includeGlobal = pinnedAssistantId == "default",
-            )
-        }
-            .onError { msg, t -> Logger.w("MemoryViewModel", "PinnedMemoryStore.removeByContentFlexible 失败: $msg", t) }
-        if (removeResult.isError) {
-            MuseToast.show(getApplication<Application>().getString(R.string.memory_unpin_failed))
-            return
-        }
-        val setResult = resultOf { storeForFact(id, scope).setPinned(id, pinned = false) }
-            .onError { msg, t -> Logger.w("MemoryViewModel", "toggleFactPinned.setPinned 失败: $msg", t) }
-        if (setResult.isError) {
-            MuseToast.show(getApplication<Application>().getString(R.string.memory_unpin_failed))
-        }
-    }
+    /** 主助手在 assistantId 维度的名字是 "default",子助手用自己的 scope 名。 */
+    private fun assistantIdForScope(scope: String): String = if (scope == "main") "default" else scope
     fun deleteSummary(sessionId: String) {
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
@@ -1522,7 +1467,7 @@ class MemoryViewModel(
                 getApplication<Application>().getString(R.string.memory_error_storage_invalid)
             raw.contains("SQLITE_FULL", ignoreCase = true) ->
                 getApplication<Application>().getString(R.string.memory_error_storage_full)
-            raw.matches(Regex("^[A-Z][A-Z0-9_]{3,}$")) ->
+            raw.matches(RAW_ERROR_CODE_REGEX) ->
                 getApplication<Application>().getString(R.string.memory_error_storage_generic)
             else -> raw
         }
@@ -1919,5 +1864,9 @@ class MemoryViewModel(
             }
             _state.update { it.copy(groupChatMemories = emptyList()) }
         }
+    }
+
+    companion object {
+        private val RAW_ERROR_CODE_REGEX = Regex("^[A-Z][A-Z0-9_]{3,}$")
     }
 }

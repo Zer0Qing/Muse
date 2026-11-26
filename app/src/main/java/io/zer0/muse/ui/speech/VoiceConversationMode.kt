@@ -1,9 +1,11 @@
-@file:Suppress("FunctionNaming", "LongMethod")
+@file:Suppress("FunctionNaming", "LongMethod", "LongParameterList", "TooManyFunctions")
 
 package io.zer0.muse.ui.speech
 
 import android.Manifest
+import android.content.Context
 import android.content.pm.PackageManager
+import android.speech.tts.Voice
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -45,6 +47,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -54,28 +58,54 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.zer0.ai.core.MessageRole
+import io.zer0.common.Logger
 import io.zer0.muse.R
+import io.zer0.muse.asr.ASRState
+import io.zer0.muse.asr.ASRStatus
+import io.zer0.muse.asr.AsrConfig
+import io.zer0.muse.asr.StreamingAsrCoordinator
+import io.zer0.muse.data.MediaConfig
+import io.zer0.muse.data.SettingsRepository
+import io.zer0.muse.data.SpeechProviderResolver
+import io.zer0.muse.data.withResolvedEndpoint
 import io.zer0.muse.ui.chat.ChatViewModel
+import io.zer0.muse.ui.chat.adaptiveSpeakingWatchdogMs
+import io.zer0.muse.ui.chat.mergeTranscript
+import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.MuseSelectionSheet
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.safeFraction
 import io.zer0.muse.ui.common.state.MuseSpinner
+import io.zer0.muse.ui.theme.MuseAlpha
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.MuseSpacing
+import io.zer0.muse.ui.theme.bodyLargeStrong
+import io.zer0.muse.ui.theme.bodyMediumStrong
 import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.ui.theme.semiLarge
-import io.zer0.muse.ui.chat.ChatScreen
 import io.zer0.muse.util.launchSafely
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import org.koin.compose.koinInject
 
 /**
  * 语音对话模式状态机(ASR 按钮 + TTS 自动播放的循环模型)。
@@ -108,72 +138,462 @@ enum class VoiceConversationState {
 }
 
 /**
- * 完整语音对话模式(全屏覆盖式)。
+ * 语音对话的 ASR 端口。把 Android 录音服务挡在协议外，控制器的状态机可在 JVM 单测中验证。
+ */
+internal interface VoiceConversationAsr {
+    val state: StateFlow<ASRState>
+    fun shouldUseApiRecording(): Boolean
+    fun startListening(onTranscript: (String) -> Unit)
+    fun stopListening()
+    fun cancelListening()
+}
+
+/** 语音对话的 TTS 端口，允许测试注入不启动系统引擎的假实现。 */
+internal interface VoiceConversationTts {
+    val playbackState: StateFlow<PlaybackState>
+    fun speak(text: String, utteranceId: String): Boolean
+    fun stop()
+}
+
+/**
+ * 语音对话循环控制器。
  *
- * 调用方(ChatScreen)用 [AnimatedVisibility] 包裹本 Composable,在用户点击语音对话入口时显示。
- * 关闭时通过 [onClose] 回调通知调用方隐藏。
- *
- * @param onClose 用户点击关闭按钮(X)时回调,调用方应隐藏本页面并调 [ChatViewModel.stopVoiceConversation]
- * @param viewModel 聊天 ViewModel,提供状态流和控制入口
+ * 它只依赖 [VoiceConversationBridge] 暴露的生成状态与最新回复，因此普通聊天与 Agent
+ * 主舞台可以共用同一套录音、提交、朗读、续听逻辑。
+ */
+internal class VoiceConversationController(
+    private val bridge: VoiceConversationBridge,
+    private val asr: VoiceConversationAsr?,
+    private val tts: VoiceConversationTts?,
+    private val unavailableMessage: String,
+    private val retryHint: String,
+    private val scope: CoroutineScope,
+) {
+    private companion object {
+        const val TAG = "VoiceConversation"
+    }
+
+    private val _state = MutableStateFlow(VoiceConversationState.IDLE)
+    val state: StateFlow<VoiceConversationState> = _state.asStateFlow()
+
+    private val _transcript = MutableStateFlow("")
+    val transcript: StateFlow<String> = _transcript.asStateFlow()
+
+    private val _aiReply = MutableStateFlow("")
+    val aiReply: StateFlow<String> = _aiReply.asStateFlow()
+
+    private val _hint = MutableStateFlow<String?>(null)
+    val hint: StateFlow<String?> = _hint.asStateFlow()
+
+    private val fallbackAsrState = MutableStateFlow(ASRState())
+    val asrState: StateFlow<ASRState> = asr?.state ?: fallbackAsrState
+
+    private val fallbackPlaybackState = MutableStateFlow(PlaybackState())
+    val playbackState: StateFlow<PlaybackState> = tts?.playbackState ?: fallbackPlaybackState
+
+    private var observeJob: Job? = null
+    private var speakingWatchdog: Job? = null
+
+    private var pendingCommit = false
+    private var wasRecording = false
+    private var wasGenerating = false
+    private var wasSpeaking = false
+    private var replyBeforeTurn = ""
+
+    /** 进入语音对话模式:开始首轮 LISTENING 并启动状态机循环观察。 */
+    fun startConversation(): Boolean {
+        if (_state.value != VoiceConversationState.IDLE) return false
+        val asrSource = asr
+        if (asrSource == null || !asrSource.shouldUseApiRecording()) {
+            _hint.value = unavailableMessage
+            return false
+        }
+        observeJob?.cancel()
+        speakingWatchdog?.cancel()
+        pendingCommit = false
+        wasRecording = false
+        wasGenerating = false
+        wasSpeaking = false
+        _transcript.value = ""
+        _aiReply.value = ""
+        _hint.value = null
+        replyBeforeTurn = bridge.latestAssistantReply.value
+        _state.value = VoiceConversationState.LISTENING
+        startListening()
+        observeLoop()
+        return true
+    }
+
+    /** 退出语音对话模式:停止 ASR/TTS,取消循环观察协程,状态归零。 */
+    fun stopConversation() {
+        observeJob?.cancel()
+        observeJob = null
+        speakingWatchdog?.cancel()
+        speakingWatchdog = null
+        pendingCommit = false
+        asr?.cancelListening()
+        tts?.stop()
+        reset()
+    }
+
+    /** 中断当前语音对话状态(用户点击主按钮)。 */
+    fun interruptConversation() {
+        val current = _state.value
+        if (current == VoiceConversationState.IDLE) return
+        val shouldStopGeneration = current == VoiceConversationState.THINKING && bridge.isGenerating.value
+        observeJob?.cancel()
+        observeJob = null
+        speakingWatchdog?.cancel()
+        speakingWatchdog = null
+        pendingCommit = false
+        asr?.cancelListening()
+        tts?.stop()
+        if (shouldStopGeneration) bridge.stopGeneration()
+        reset()
+    }
+
+    /**
+     * 语音对话主按钮(UI 侧 toggle,非按住式):
+     *  - IDLE:开始一轮对话
+     *  - LISTENING 且正在录音:结束本段输入并提交
+     *  - LISTENING 但未在录音:重新开始录音
+     *  - THINKING / SPEAKING:中断当前回复
+     */
+    fun toggleConversation() {
+        when (_state.value) {
+            VoiceConversationState.IDLE -> startConversation()
+            VoiceConversationState.LISTENING -> {
+                if (asrState.value.isRecording) {
+                    finishListening()
+                } else {
+                    startListening()
+                }
+            }
+            VoiceConversationState.THINKING,
+            VoiceConversationState.SPEAKING,
+            -> interruptConversation()
+        }
+    }
+
+    /** 显式提交入口:用户决定「这一句说完了」。 */
+    fun finishListening() {
+        if (_state.value != VoiceConversationState.LISTENING) return
+        if (asrState.value.isRecording.not()) return
+        pendingCommit = true
+        _hint.value = null
+        asr?.stopListening()
+    }
+
+    private fun startListening() {
+        asr?.startListening { incoming ->
+            if (_state.value == VoiceConversationState.LISTENING) {
+                _transcript.value = mergeTranscript(_transcript.value, incoming)
+            }
+        }
+    }
+
+    private fun observeLoop() {
+        observeJob?.cancel()
+        observeJob = scope.launch {
+            combine(
+                asrState,
+                bridge.isGenerating,
+                bridge.latestAssistantReply,
+                playbackState,
+            ) { asrSnapshot, generating, reply, playback ->
+                VoiceConversationSnapshot(asrSnapshot, generating, reply, playback)
+            }.collect { snapshot ->
+                when (_state.value) {
+                    VoiceConversationState.IDLE -> Unit
+                    VoiceConversationState.LISTENING -> handleListening(snapshot)
+                    VoiceConversationState.THINKING -> handleThinking(snapshot)
+                    VoiceConversationState.SPEAKING -> handleSpeaking(snapshot)
+                }
+            }
+        }
+    }
+
+    private fun handleListening(snapshot: VoiceConversationSnapshot) {
+        if (snapshot.asr.isRecording) {
+            wasRecording = true
+            if (_hint.value != null) _hint.value = null
+            return
+        }
+        if (wasRecording) {
+            wasRecording = false
+            val userCommitted = pendingCommit
+            pendingCommit = false
+            val text = mergeTranscript(_transcript.value, snapshot.asr.transcript)
+            if (userCommitted && snapshot.asr.status == ASRStatus.Idle && text.isNotEmpty()) {
+                _transcript.value = ""
+                _aiReply.value = ""
+                replyBeforeTurn = bridge.latestAssistantReply.value
+                _state.value = VoiceConversationState.THINKING
+                runCatching { bridge.sendVoiceUtterance(text) }
+                    .onFailure {
+                        Logger.w(TAG, "发送语音转写失败: ${it.message}", it)
+                        resumeListeningAfterInterruptedAsr()
+                    }
+            } else {
+                resumeListeningAfterInterruptedAsr()
+            }
+            return
+        }
+        if (snapshot.asr.status == ASRStatus.Error && _transcript.value.isBlank()) {
+            _hint.value = snapshot.asr.errorMessage ?: retryHint
+        }
+    }
+
+    private fun handleThinking(snapshot: VoiceConversationSnapshot) {
+        if (snapshot.generating) {
+            wasGenerating = true
+            return
+        }
+        if (!wasGenerating) return
+        wasGenerating = false
+        val reply = snapshot.reply.trim()
+        if (reply.isBlank() || reply == replyBeforeTurn) {
+            resumeListeningAfterInterruptedAsr()
+            return
+        }
+        _aiReply.value = reply
+        _state.value = VoiceConversationState.SPEAKING
+        wasSpeaking = false
+        val ttsSource = tts
+        if (ttsSource == null || !ttsSource.speak(reply, "voice-turn-${System.currentTimeMillis()}")) {
+            resumeListeningAfterInterruptedAsr()
+            return
+        }
+        armSpeakingWatchdog(reply.length)
+    }
+
+    private fun handleSpeaking(snapshot: VoiceConversationSnapshot) {
+        if (snapshot.playback.status == PlaybackStatus.Playing) {
+            wasSpeaking = true
+            return
+        }
+        if (wasSpeaking && (snapshot.playback.status == PlaybackStatus.Ended || snapshot.playback.status == PlaybackStatus.Idle)) {
+            finishSpeaking()
+        }
+    }
+
+    private fun resumeListeningAfterInterruptedAsr() {
+        _aiReply.value = ""
+        _hint.value = if (_transcript.value.isBlank()) retryHint else null
+        _state.value = VoiceConversationState.LISTENING
+        if (asrState.value.status != ASRStatus.Error) startListening()
+    }
+
+    private fun finishSpeaking() {
+        speakingWatchdog?.cancel()
+        speakingWatchdog = null
+        wasSpeaking = false
+        _aiReply.value = ""
+        _state.value = VoiceConversationState.LISTENING
+        if (asrState.value.status != ASRStatus.Error) startListening()
+    }
+
+    private fun armSpeakingWatchdog(textLength: Int) {
+        speakingWatchdog?.cancel()
+        speakingWatchdog = scope.launch {
+            delay(adaptiveSpeakingWatchdogMs(textLength))
+            if (_state.value != VoiceConversationState.SPEAKING) return@launch
+            if (playbackState.value.status == PlaybackStatus.Playing) return@launch
+            Logger.w(TAG, "TTS 长时间未报告播放状态,回落监听")
+            tts?.stop()
+            finishSpeaking()
+        }
+    }
+
+    private fun reset() {
+        _state.value = VoiceConversationState.IDLE
+        _transcript.value = ""
+        _aiReply.value = ""
+        _hint.value = null
+        wasRecording = false
+        wasGenerating = false
+        wasSpeaking = false
+        replyBeforeTurn = ""
+    }
+
+    private data class VoiceConversationSnapshot(
+        val asr: ASRState,
+        val generating: Boolean,
+        val reply: String,
+        val playback: PlaybackState,
+    )
+}
+
+/** 普通聊天 ViewModel 到语音桥的适配器。 */
+private class ChatViewModelVoiceConversationBridge(
+    private val viewModel: ChatViewModel,
+    stateScope: CoroutineScope,
+) : VoiceConversationBridge {
+
+    override val assistantName: StateFlow<String> = viewModel.state
+        .map { it.currentAssistant?.name.orEmpty() }
+        .stateIn(stateScope, SharingStarted.Eagerly, viewModel.state.value.currentAssistant?.name.orEmpty())
+
+    override val isGenerating: StateFlow<Boolean> = viewModel.state
+        .map { it.isStreaming }
+        .stateIn(stateScope, SharingStarted.Eagerly, viewModel.state.value.isStreaming)
+
+    override val latestAssistantReply: StateFlow<String> = viewModel.messages
+        .map { messages -> messages.lastOrNull { it.role == MessageRole.ASSISTANT }?.content.orEmpty() }
+        .stateIn(stateScope, SharingStarted.Eagerly, viewModel.messages.value.lastOrNull { it.role == MessageRole.ASSISTANT }?.content.orEmpty())
+
+    override fun sendVoiceUtterance(text: String) {
+        viewModel.updateInput(text)
+        viewModel.send()
+    }
+
+    override fun stopGeneration() {
+        viewModel.stop()
+    }
+}
+
+/** 真实录音链路到语音 ASR 端口的适配器。 */
+private class AndroidVoiceConversationAsr(
+    context: Context,
+    scope: CoroutineScope,
+    configProvider: () -> AsrConfig,
+) : VoiceConversationAsr {
+    private val coordinator = StreamingAsrCoordinator(
+        context = context,
+        coroutineScope = scope,
+        configProvider = configProvider,
+        inputProvider = { "" },
+        updateInput = { _ -> },
+    )
+
+    override val state: StateFlow<ASRState> = coordinator.state
+
+    override fun shouldUseApiRecording(): Boolean = coordinator.shouldUseApiRecording()
+
+    override fun startListening(onTranscript: (String) -> Unit) {
+        coordinator.startVoiceConversationListening(onTranscript)
+    }
+
+    override fun stopListening() {
+        coordinator.stopVoiceConversationListening()
+    }
+
+    override fun cancelListening() {
+        coordinator.cancelVoiceConversationListening()
+    }
+}
+
+/** 真实 TTS 管理器到语音 TTS 端口的适配器。 */
+private class TtsVoiceConversationTts(
+    private val manager: TtsManager,
+) : VoiceConversationTts {
+    override val playbackState: StateFlow<PlaybackState> = manager.playbackState
+
+    override fun speak(text: String, utteranceId: String): Boolean = manager.speak(text, utteranceId)
+
+    override fun stop() {
+        manager.stop()
+    }
+}
+
+/**
+ * 兼容旧调用的完整语音对话模式。内部转换为通用桥接，页面逻辑只保留一份。
  */
 @Composable
 fun VoiceConversationMode(onClose: () -> Unit, viewModel: ChatViewModel) {
-    val context = LocalContext.current
-    val conversationState by viewModel.voiceConversationState.collectAsStateWithLifecycle()
-    val transcript by viewModel.voiceConversationTranscript.collectAsStateWithLifecycle()
-    val aiReply by viewModel.voiceConversationAiReply.collectAsStateWithLifecycle()
-    val hint by viewModel.voiceConversationHint.collectAsStateWithLifecycle()
-    val chatState by viewModel.state.collectAsStateWithLifecycle()
-    val asrState = chatState.asrState
-    // 模式状态 + 实际录音状态:两者一起决定主按钮是音麦(开始)还是停止(结束并发送)
-    val isRecording = conversationState == VoiceConversationState.LISTENING && asrState.isRecording
-    val playbackState by viewModel.ttsPlaybackStateFlow.collectAsStateWithLifecycle()
+    val scope = rememberCoroutineScope()
+    val bridge = remember(viewModel, scope) { ChatViewModelVoiceConversationBridge(viewModel, scope) }
+    VoiceConversationMode(onClose = onClose, bridge = bridge)
+}
 
-    // 切换语音 Bottom Sheet 状态
+/**
+ * 完整语音对话模式(全屏覆盖式)。
+ *
+ * @param onClose 用户点击关闭按钮(X)时回调
+ * @param bridge 会话桥接:负责接收识别文本、暴露生成状态与最新回复
+ */
+@Composable
+fun VoiceConversationMode(onClose: () -> Unit, bridge: VoiceConversationBridge) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val settingsRepository: SettingsRepository = koinInject()
+    val ttsManager: TtsManager = koinInject()
+
+    val asrConfig by settingsRepository.asrConfigFlow.collectAsStateWithLifecycle(initialValue = AsrConfig())
+    val providers by settingsRepository.providersFlow.collectAsStateWithLifecycle(initialValue = emptyList())
+    val mediaConfig by settingsRepository.mediaConfigFlow.collectAsStateWithLifecycle(initialValue = MediaConfig())
+    val resolvedAsrConfig = remember(asrConfig, providers) {
+        asrConfig.withResolvedEndpoint(SpeechProviderResolver.resolveAsr(asrConfig, providers))
+    }
+    val configState = rememberUpdatedState(resolvedAsrConfig)
+    val asr = remember(context, scope) {
+        AndroidVoiceConversationAsr(context, scope) { configState.value }
+    }
+    val tts = remember(ttsManager) { TtsVoiceConversationTts(ttsManager) }
+    val unavailableMessage = stringResource(R.string.err_chat_voice_no_asr)
+    val retryHint = stringResource(R.string.voice_conversation_retry_hint)
+    val controller = remember(bridge, asr, tts, unavailableMessage, retryHint) {
+        VoiceConversationController(
+            bridge = bridge,
+            asr = asr,
+            tts = tts,
+            unavailableMessage = unavailableMessage,
+            retryHint = retryHint,
+            scope = scope,
+        )
+    }
+
+    val conversationState by controller.state.collectAsStateWithLifecycle()
+    val transcript by controller.transcript.collectAsStateWithLifecycle()
+    val aiReply by controller.aiReply.collectAsStateWithLifecycle()
+    val hint by controller.hint.collectAsStateWithLifecycle()
+    val asrState by controller.asrState.collectAsStateWithLifecycle()
+    val playbackState by controller.playbackState.collectAsStateWithLifecycle()
+    val assistantName by bridge.assistantName.collectAsStateWithLifecycle()
+    val fallbackAssistantName = stringResource(R.string.agent_screen_title)
+    val voiceModeHint = stringResource(R.string.agent_hub_voice_mode_hint)
+
+    val isRecording = conversationState == VoiceConversationState.LISTENING && asrState.isRecording
+
     var showVoicePicker by remember { mutableStateOf(false) }
 
-    // RECORD_AUDIO 权限申请:进入页面时若未授权则申请,授权后自动开启首轮 LISTENING
     val micPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
     ) { granted ->
         if (granted) {
-            viewModel.startVoiceConversation()
+            controller.startConversation()
         } else {
-            viewModel.reportError(context.getString(R.string.chat_err_mic_permission))
+            MuseToast.show(context.getString(R.string.chat_err_mic_permission))
             onClose()
         }
     }
 
-    // 进入页面时检查权限:已授权直接开始,未授权申请权限
-    LaunchedEffect(Unit) {
+    LaunchedEffect(controller) {
         val granted = ContextCompat.checkSelfPermission(
-            context, Manifest.permission.RECORD_AUDIO,
+            context,
+            Manifest.permission.RECORD_AUDIO,
         ) == PackageManager.PERMISSION_GRANTED
         if (granted) {
-            viewModel.startVoiceConversation()
+            controller.startConversation()
         } else {
             micPermissionLauncher.launchSafely(Manifest.permission.RECORD_AUDIO, context)
         }
     }
 
-    // 用户点击关闭:先停 ViewModel 再回调
     val handleClose: () -> Unit = {
-        viewModel.stopVoiceConversation()
+        controller.stopConversation()
         onClose()
     }
 
     BackHandler(onBack = handleClose)
-    DisposableEffect(Unit) {
-        onDispose { viewModel.stopVoiceConversation() }
+    DisposableEffect(controller) {
+        onDispose { controller.stopConversation() }
     }
-
-    // 用户点击主按钮:toggle(非按住)— LISTENING 时录音中→结束并提交,否则开始录音;其他状态→中断
-    val handleMainButtonClick: () -> Unit = { viewModel.toggleVoiceConversation() }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.92f)),
+            .background(MaterialTheme.colorScheme.scrim.copy(alpha = MuseAlpha.titleMuted)),
     ) {
         Column(
             modifier = Modifier
@@ -183,13 +603,28 @@ fun VoiceConversationMode(onClose: () -> Unit, viewModel: ChatViewModel) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween,
         ) {
-            // ── 顶部:关闭按钮 ───────────────────────────────────────────
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = MusePaddings.screen, vertical = MusePaddings.contentGap),
-                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = assistantName.ifBlank { fallbackAssistantName },
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = voiceModeHint,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = MuseAlpha.disabledContent),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
                 MuseTactileButton(
                     icon = MuseIcons.x,
                     onClick = handleClose,
@@ -200,15 +635,13 @@ fun VoiceConversationMode(onClose: () -> Unit, viewModel: ChatViewModel) {
                 )
             }
 
-            // ── 中部:主按钮 + 状态文本 ─────────────────────────────────
             VoiceConversationMainButton(
                 state = conversationState,
                 isRecording = isRecording,
-                onClick = handleMainButtonClick,
+                onClick = controller::toggleConversation,
                 modifier = Modifier.padding(vertical = MusePaddings.sectionGap),
             )
 
-            // ── 中下:状态提示文本 + 实时转写/AI 回复 ───────────────────
             VoiceConversationStatusPanel(
                 state = conversationState,
                 transcript = transcript,
@@ -222,9 +655,8 @@ fun VoiceConversationMode(onClose: () -> Unit, viewModel: ChatViewModel) {
                     .padding(horizontal = MusePaddings.screen),
             )
 
-            // ── 底部:切换语音按钮 ─────────────────────────────────────
             Surface(
-                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = MuseAlpha.statusTint),
                 shape = MuseShapes.pill,
                 modifier = Modifier
                     .padding(bottom = MusePaddings.sectionGap)
@@ -234,7 +666,10 @@ fun VoiceConversationMode(onClose: () -> Unit, viewModel: ChatViewModel) {
                     ) { showVoicePicker = true },
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+                    modifier = Modifier.padding(
+                        horizontal = MuseSpacing.xl,
+                        vertical = MuseSpacing.md,
+                    ),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
                 ) {
@@ -246,26 +681,29 @@ fun VoiceConversationMode(onClose: () -> Unit, viewModel: ChatViewModel) {
                     )
                     Text(
                         text = stringResource(R.string.voice_conversation_change_voice),
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = MaterialTheme.typography.bodyMediumStrong,
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        fontWeight = FontWeight.Medium,
                     )
                 }
             }
         }
     }
 
-    // 切换语音 Bottom Sheet
     if (showVoicePicker) {
         MuseSelectionSheet(
             title = stringResource(R.string.voice_conversation_pick_voice_title),
             onDismissRequest = { showVoicePicker = false },
         ) {
             VoicePickerContent(
-                voices = viewModel.getAvailableTtsVoices(),
-                currentVoiceName = viewModel.currentTtsVoiceName(),
+                voices = ttsManager.getAvailableVoices(),
+                currentVoiceName = mediaConfig.ttsVoiceName,
                 onSelect = { name ->
-                    viewModel.setTtsVoice(name)
+                    val newConfig = mediaConfig.copy(ttsVoiceName = name)
+                    ttsManager.applyConfig(newConfig)
+                    scope.launch {
+                        runCatching { settingsRepository.saveMediaConfig(newConfig) }
+                            .onFailure { Logger.w("VoiceConversation", "保存语音选择失败: ${it.message}", it) }
+                    }
                     showVoicePicker = false
                 },
             )
@@ -275,12 +713,6 @@ fun VoiceConversationMode(onClose: () -> Unit, viewModel: ChatViewModel) {
 
 /**
  * 语音对话主按钮(大圆形,根据模式状态 + 实际录音状态切换图标与动画)。
- *
- * - IDLE:麦克风图标,静态
- * - LISTENING 且录音中:停止图标 + 脉冲动画(再点一下 = 结束并发送)
- * - LISTENING 但未录音:麦克风图标(点一下 = 开始录音)
- * - THINKING:圆形进度条
- * - SPEAKING:传声器图标 + 波形动画
  */
 @Composable
 private fun VoiceConversationMainButton(
@@ -292,8 +724,9 @@ private fun VoiceConversationMainButton(
     val primary = MaterialTheme.colorScheme.primary
     val onPrimary = MaterialTheme.colorScheme.onPrimary
     val error = MaterialTheme.colorScheme.error
+    val mainButtonSize = MuseSpacing.xxxl * 5f
+    val mainIconSize = MuseIconSizes.iconEmpty + MuseSpacing.sm
 
-    // 脉冲动画(LISTENING 且录音中时主按钮放大缩小,模拟呼吸感);reduced-motion 下静态展示。
     val pulseScale = if (state == VoiceConversationState.LISTENING && isRecording && !MuseMotion.isReducedMotion()) {
         val transition = rememberInfiniteTransition(label = "voiceMainPulse")
         val animatedScale by transition.animateFloat(
@@ -310,7 +743,6 @@ private fun VoiceConversationMainButton(
         1f
     }
 
-    // v1.0.92: 按压反馈 — 与弹窗按钮一致的 0.97 缩放手感
     val mainButtonInteraction = remember { MutableInteractionSource() }
     val isMainPressed by mainButtonInteraction.collectIsPressedAsState()
     val pressScale by animateFloatAsState(
@@ -319,7 +751,6 @@ private fun VoiceConversationMainButton(
         label = "voiceMainPress",
     )
 
-    // 主按钮背景色:LISTENING 且录音中用 error(红,录音中提示),其他用 primary
     val buttonColor = when {
         state == VoiceConversationState.LISTENING && isRecording -> error
         else -> primary
@@ -332,7 +763,7 @@ private fun VoiceConversationMainButton(
     ) {
         Box(
             modifier = Modifier
-                .size(160.dp)
+                .size(mainButtonSize)
                 .scale(pulseScale * pressScale)
                 .clip(CircleShape)
                 .background(buttonColor)
@@ -349,24 +780,24 @@ private fun VoiceConversationMainButton(
                     imageVector = MuseIcons.microphone,
                     contentDescription = null,
                     tint = onPrimary,
-                    modifier = Modifier.size(72.dp),
+                    modifier = Modifier.size(mainIconSize),
                 )
                 VoiceConversationState.LISTENING -> Icon(
                     imageVector = if (isRecording) MuseIcons.stop else MuseIcons.microphone,
                     contentDescription = null,
                     tint = onPrimary,
-                    modifier = Modifier.size(72.dp),
+                    modifier = Modifier.size(mainIconSize),
                 )
                 VoiceConversationState.THINKING -> MuseSpinner(
-                    size = 72.dp,
-                    strokeWidth = 4.dp,
+                    size = mainIconSize,
+                    strokeWidth = MuseSpacing.xs,
                     color = onPrimary,
                 )
                 VoiceConversationState.SPEAKING -> Icon(
                     imageVector = MuseIcons.volume,
                     contentDescription = null,
                     tint = onPrimary,
-                    modifier = Modifier.size(72.dp),
+                    modifier = Modifier.size(mainIconSize),
                 )
             }
         }
@@ -375,7 +806,6 @@ private fun VoiceConversationMainButton(
             text = stateStatusLabel(state, isRecording),
             style = MaterialTheme.typography.titleMedium,
             color = onPrimary,
-            fontWeight = FontWeight.SemiBold,
             textAlign = TextAlign.Center,
         )
     }
@@ -395,7 +825,7 @@ private fun VoiceConversationStatusPanel(
     modifier: Modifier = Modifier,
 ) {
     val onPrimary = MaterialTheme.colorScheme.onPrimary
-    val onPrimaryMedium = onPrimary.copy(alpha = 0.7f)
+    val onPrimaryMedium = onPrimary.copy(alpha = MuseAlpha.disabledContent)
 
     Box(
         modifier = modifier,
@@ -404,6 +834,15 @@ private fun VoiceConversationStatusPanel(
         when (state) {
             VoiceConversationState.IDLE -> {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    if (!hint.isNullOrBlank()) {
+                        Text(
+                            text = hint,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = onPrimaryMedium,
+                            textAlign = TextAlign.Center,
+                        )
+                        Spacer(Modifier.height(MusePaddings.contentGap))
+                    }
                     Text(
                         text = stringResource(R.string.voice_conversation_idle_hint),
                         style = MaterialTheme.typography.bodyLarge,
@@ -443,14 +882,13 @@ private fun VoiceConversationStatusPanel(
                         textAlign = TextAlign.Center,
                     )
                     Spacer(Modifier.height(MusePaddings.contentGap))
-                    // 波形动画(归一化振幅 → 竖条高度)
                     if (amplitudes.isNotEmpty()) {
                         ListeningWaveform(amplitudes = amplitudes)
                         Spacer(Modifier.height(MusePaddings.contentGap))
                     }
                     if (transcript.isNotBlank()) {
                         Surface(
-                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.15f),
+                            color = MaterialTheme.colorScheme.surface.copy(alpha = MuseAlpha.statusTint),
                             shape = MuseShapes.semiLarge,
                             modifier = Modifier.fillMaxWidth(),
                         ) {
@@ -470,8 +908,8 @@ private fun VoiceConversationStatusPanel(
             VoiceConversationState.THINKING -> {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     MuseSpinner(
-                        size = 36.dp,
-                        strokeWidth = 3.dp,
+                        size = MuseIconSizes.stopButton,
+                        strokeWidth = MuseIconSizes.progressStroke,
                         color = onPrimary,
                     )
                     Spacer(Modifier.height(MusePaddings.contentGap))
@@ -493,7 +931,7 @@ private fun VoiceConversationStatusPanel(
                     Spacer(Modifier.height(MusePaddings.contentGap))
                     if (aiReply.isNotBlank()) {
                         Surface(
-                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.15f),
+                            color = MaterialTheme.colorScheme.surface.copy(alpha = MuseAlpha.statusTint),
                             shape = MuseShapes.semiLarge,
                             modifier = Modifier.fillMaxWidth(),
                         ) {
@@ -508,7 +946,6 @@ private fun VoiceConversationStatusPanel(
                             )
                         }
                     }
-                    // 播放进度(分片进度 + 片内时间)
                     if (playback.totalChunks > 0) {
                         Spacer(Modifier.height(MusePaddings.contentGap))
                         val progress = if (playback.durationMs > 0) {
@@ -533,22 +970,16 @@ private fun VoiceConversationStatusPanel(
     }
 }
 
-/**
- * LISTENING 状态下的波形动画(把最近振幅历史渲染成竖条)。
- *
- * 振幅已是 0-1f 归一化值(由 ASR 上报),直接映射为竖条高度。
- * 用主色调半透明渲染,与录音中主按钮的红色形成视觉呼应。
- */
+/** LISTENING 状态下的波形动画(把最近振幅历史渲染成竖条)。 */
 @Composable
 private fun ListeningWaveform(amplitudes: List<Float>) {
     val onPrimary = MaterialTheme.colorScheme.onPrimary
     Row(
-        modifier = Modifier.height(28.dp),
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
+        modifier = Modifier.height(MuseSpacing.xxl + MuseSpacing.xs),
+        horizontalArrangement = Arrangement.spacedBy(MuseSpacing.xxs),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         amplitudes.forEach { amp ->
-            // 崩溃防御: coerceIn 挡不住 NaN,改用 safeFraction(见 FractionSafety.kt)
             val fraction = amp.safeFraction(min = 0.05f, fallback = 0.05f)
             val animatedHeight by animateFloatAsState(
                 targetValue = fraction,
@@ -557,20 +988,22 @@ private fun ListeningWaveform(amplitudes: List<Float>) {
             )
             Box(
                 modifier = Modifier
-                    .width(3.dp)
+                    .width(MuseIconSizes.waveformBarWidth)
                     .fillMaxHeight(animatedHeight)
                     .clip(CircleShape)
-                    .background(onPrimary.copy(alpha = 0.8f)),
+                    .background(onPrimary.copy(alpha = MuseAlpha.titleMuted)),
             )
         }
     }
 }
 
-/**
- * 切换语音 Bottom Sheet 内容:列出系统 TTS 可用声音,点击即切换。
- */
+/** 切换语音 Bottom Sheet 内容:列出系统 TTS 可用声音,点击即切换。 */
 @Composable
-private fun VoicePickerContent(voices: List<android.speech.tts.Voice>, currentVoiceName: String, onSelect: (String) -> Unit) {
+private fun VoicePickerContent(
+    voices: List<Voice>,
+    currentVoiceName: String,
+    onSelect: (String) -> Unit,
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -587,7 +1020,7 @@ private fun VoicePickerContent(voices: List<android.speech.tts.Voice>, currentVo
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(max = 420.dp),
+                    .heightIn(max = MusePaddings.maxToolSheetListHeight),
             ) {
                 items(voices, key = { it.name }) { voice ->
                     val isSelected = voice.name == currentVoiceName
@@ -601,16 +1034,19 @@ private fun VoicePickerContent(voices: List<android.speech.tts.Voice>, currentVo
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = voice.name,
-                                style = MaterialTheme.typography.bodyLarge,
+                                style = if (isSelected) {
+                                    MaterialTheme.typography.bodyLargeStrong
+                                } else {
+                                    MaterialTheme.typography.bodyLarge
+                                },
                                 color = if (isSelected) {
                                     MaterialTheme.colorScheme.primary
                                 } else {
                                     MaterialTheme.colorScheme.onSurface
                                 },
-                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
                             )
                             Text(
-                                text = voice.locale?.displayName ?: "",
+                                text = voice.locale?.displayName.orEmpty(),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -630,7 +1066,7 @@ private fun VoicePickerContent(voices: List<android.speech.tts.Voice>, currentVo
     }
 }
 
-/** 主按钮无障碍标签（随录音状态变：录音中 = 结束并发送，未录音 = 开始录音）。 */
+/** 主按钮无障碍标签(随录音状态变:录音中 = 结束并发送,未录音 = 开始录音)。 */
 @Composable
 private fun stateAccessibilityLabel(state: VoiceConversationState, isRecording: Boolean): String = when (state) {
     VoiceConversationState.IDLE -> stringResource(R.string.voice_conversation_cd_idle)

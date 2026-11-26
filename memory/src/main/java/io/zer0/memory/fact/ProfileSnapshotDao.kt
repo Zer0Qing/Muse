@@ -52,9 +52,21 @@ interface ProfileSnapshotDao {
     )
     suspend fun touchRefreshedAt(scope: String, spaceId: String, section: String, refreshedAt: String): Int
 
+    @Query(
+        """
+        SELECT * FROM profile_snapshots
+        WHERE space_id = :spaceId
+        """,
+    )
+    suspend fun getAllBySpace(spaceId: String): List<ProfileSnapshotEntity>
+
     /** 删除助手/重置时整段清理。 */
     @Query("DELETE FROM profile_snapshots WHERE scope = :scope")
     suspend fun deleteAllByScope(scope: String): Int
+
+    /** Space 合并收尾：源空间的分段已经并进目标空间，源行必须清掉。 */
+    @Query("DELETE FROM profile_snapshots WHERE space_id = :spaceId")
+    suspend fun deleteBySpace(spaceId: String): Int
 
     @Query("DELETE FROM profile_snapshots")
     suspend fun deleteAll(): Int

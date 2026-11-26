@@ -59,6 +59,7 @@ class ToolCallGate(
      * 本地权限策略预判（供中枢持久审批在建卡前先咨询会话权限模式与单工具配置）：
      *  - 用户选择了「完全放权」([SessionPermissionMode.TRUSTED])或单工具配置了 [ToolApprovalPolicy.ALWAYS_ALLOW] → [ToolApprovalState.Auto]，直接放行、不建审批卡；
      *  - 用户配置了 [ToolApprovalPolicy.ALWAYS_DENY] 或命中参数级硬拒 → [ToolApprovalState.Denied]，直接拒绝；
+     *  - 用户配置了 [ToolApprovalPolicy.AUTO_REVIEW] → 由 [ToolAutoReviewer] 复核：只读/工作区内安全写入 [ToolApprovalState.Auto]，其余 [ToolApprovalState.Pending]；
      *  - 其余需询问场景 → [ToolApprovalState.Pending]，交由持久审批链路处理。
      */
     suspend fun resolveLocalState(
@@ -120,12 +121,14 @@ class ToolCallGate(
 
     /** 无通道：本地判定，放行条件比主路径更窄（Pending 弹不出卡一律拒绝）。 */
     private suspend fun withoutBridge(toolName: String, args: Map<String, Any?>, subject: String): Outcome {
+        // 只读一次单工具策略：AUTO_REVIEW 的拒绝文案要按它区分「自动复核未放行」与普通待审批。
+        val perToolPolicy = explicitPolicyOf(toolName)
         val resolved = try {
             ToolPermissionResolver.resolve(
                 toolName = toolName,
                 risk = gateRiskLevel(toolName),
                 mode = localPermissionMode(),
-                perToolPolicy = explicitPolicyOf(toolName),
+                perToolPolicy = perToolPolicy,
                 args = args,
             )
         } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
@@ -140,11 +143,17 @@ class ToolCallGate(
             is ToolApprovalState.Auto, is ToolApprovalState.Approved -> Outcome.ALLOWED
             is ToolApprovalState.Denied ->
                 denied(toolName, "未获批准(${resolved.reason.ifBlank { "当前权限策略不允许" }}),$subject 无权调用")
-            is ToolApprovalState.Pending, is ToolApprovalState.Answered -> denied(
-                toolName,
-                "需要用户审批,但$subject 没有审批通道,$subject 已放弃调用" +
-                    "(在主会话里调用该工具会弹出审批卡)",
-            )
+            is ToolApprovalState.Pending, is ToolApprovalState.Answered -> {
+                val reason =
+                    if (perToolPolicy == ToolApprovalPolicy.AUTO_REVIEW) {
+                        "自动复核未放行,需要用户审批,但$subject 没有审批通道,$subject 已放弃调用" +
+                            "(在主会话里调用该工具会弹出审批卡)"
+                    } else {
+                        "需要用户审批,但$subject 没有审批通道,$subject 已放弃调用" +
+                            "(在主会话里调用该工具会弹出审批卡)"
+                    }
+                denied(toolName, reason)
+            }
         }
     }
 

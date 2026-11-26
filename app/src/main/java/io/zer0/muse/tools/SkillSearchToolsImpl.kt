@@ -7,6 +7,7 @@ import io.zer0.common.resultOf
 import io.zer0.muse.R
 import io.zer0.muse.data.knowledge.BuiltInKnowledgeDocSeeder
 import io.zer0.muse.data.knowledge.KnowledgeDocDao
+import io.zer0.muse.data.knowledge.KnowledgeDocEntity
 import io.zer0.muse.rag.RagConfig
 import io.zer0.muse.rag.RagService
 import io.zer0.muse.web.SearchRateLimitException
@@ -250,6 +251,66 @@ class SkillSearchToolsImpl(
     }
 
     // ── v0.24: 搜索与信息获取 ──────────────────────────────────────────────
+
+    /**
+     * `folder` 参数的解析结果。
+     *
+     * [Ambiguous] 是独立状态而不是 [Miss]:裸文件夹名在多个知识库里同名时,
+     * 如果直接合并会把两个库的同名目录当成一个检索域 —— 用户看到的是「搜这个文件夹」,
+     * 拿到的却是两个库混在一起的结果。此时要求模型改用 `kbId::folderPath` 限定。
+     */
+    private sealed interface FolderScope {
+        data class Hit(val docIds: List<String>) : FolderScope
+        data object Miss : FolderScope
+        data object Ambiguous : FolderScope
+    }
+
+    /**
+     * 把 `folder` 参数解析为 docId 集合。
+     *
+     * 支持两种形态:
+     *  - `kbId::folderPath` —— 显式限定知识库,同时按 kbId + 路径过滤;
+     *  - `folderPath` —— 裸路径。若许可覆盖多个知识库且同路径在多个库都存在,
+     *    不合并、返回 [FolderScope.Ambiguous],要求调用方限定知识库。
+     */
+    private fun resolveFolderScope(
+        folderArg: String,
+        allDocs: List<KnowledgeDocEntity>,
+        permittedDocIds: Set<String>?,
+    ): FolderScope {
+        val separator = folderArg.indexOf("::")
+        val explicitKbId = if (separator >= 0) folderArg.substring(0, separator).trim() else null
+        val rawPath = if (separator >= 0) folderArg.substring(separator + 2) else folderArg
+        val path = io.zer0.muse.rag.KnowledgeFolderBrowser.normalize(rawPath)
+
+        // 先落许可,再判歧义:许可外的知识库本来就不在范围内,不能拿它来制造歧义。
+        val allowedDocs = if (permittedDocIds == null) allDocs else allDocs.filter { it.id in permittedDocIds }
+        if (explicitKbId != null && explicitKbId.isEmpty()) return FolderScope.Miss
+        val hits = allowedDocs.filter { doc ->
+            (explicitKbId == null || doc.kbId == explicitKbId) && pathHitsFolder(doc, path)
+        }
+        if (hits.isEmpty()) return FolderScope.Miss
+        // 一个文件夹就是一个检索域:命中跨越多个知识库时同名目录不合并,
+        // 否则用户说「搜这个文件夹」拿到的却是两个库混在一起的结果。
+        if (explicitKbId == null && hits.mapTo(linkedSetOf()) { it.kbId }.size > 1) return FolderScope.Ambiguous
+        return FolderScope.Hit(hits.map { it.id })
+    }
+
+    /** 裸 folder 名跨库同名时的提示:要求限定知识库,而不是把两个库合并成一个检索域。 */
+    private fun ambiguousFolderMessage(folderArg: String): String =
+        "文件夹「$folderArg」在多个知识库下同名存在,未合并检索。请改用 kbId::folderPath 形式限定知识库后重试。"
+
+    /** 空路径 = 整库;否则路径相等或前缀含子目录。 */
+    private fun pathHitsFolder(doc: KnowledgeDocEntity, path: String): Boolean {
+        if (path.isEmpty()) return true
+        val docPath = io.zer0.muse.rag.KnowledgeFolderBrowser.folderPath(doc)
+        return docPath == path || docPath.startsWith("$path/")
+    }
+
+    /** 会话附件判定(fileType 哨兵或 docId 前缀任一命中)。 */
+    private fun isSessionAttachmentDoc(doc: KnowledgeDocEntity): Boolean =
+        doc.fileType == io.zer0.muse.rag.SessionAttachment.FILE_TYPE ||
+            io.zer0.muse.rag.SessionAttachment.isSessionAttachmentDocId(doc.id)
 
     /**
      * web_search — 用配置好的 WebSearchService(SearXNG/Tavily)搜索。
@@ -526,19 +587,12 @@ class SkillSearchToolsImpl(
         // 模型省略 folder 不能越过许可;许可与 folder 命中都存在时取交集。
         var folderScopeDocIds: List<String>? = permittedDocIds?.toList()
         if (folderArg != null) {
-            val path = io.zer0.muse.rag.KnowledgeFolderBrowser.normalize(folderArg)
             val allDocs = resultOf { dao.observeAllUser().first() }.getOrNull().orEmpty()
-            val hit = allDocs.filter { doc ->
-                val p = io.zer0.muse.rag.KnowledgeFolderBrowser.folderPath(doc)
-                p == path || p.startsWith("$path/")
-            }
-            val hitIds = hit.map { it.id }
-            folderScopeDocIds = when {
-                permittedDocIds == null -> hitIds
-                else -> hitIds.filter { it in permittedDocIds }
-            }
-            if (folderScopeDocIds.isEmpty()) {
-                return context.getString(R.string.skill_knowledge_no_match, folderArg, threshold.toString())
+            when (val resolved = resolveFolderScope(folderArg, allDocs, permittedDocIds)) {
+                is FolderScope.Hit -> folderScopeDocIds = resolved.docIds
+                is FolderScope.Ambiguous -> return ambiguousFolderMessage(folderArg)
+                is FolderScope.Miss ->
+                    return context.getString(R.string.skill_knowledge_no_match, folderArg, threshold.toString())
             }
         }
 
@@ -613,11 +667,12 @@ class SkillSearchToolsImpl(
             ).first()
         // v1.97: 过滤内部 devdoc(include_internal=false 时排除内部文档)
         // v1.133: 改用 isInternal 字段(与 MIGRATION_38_39 标记一致,替代原 fileType="devdoc" 硬编码)
+        // 会话附件是会话私有资料:本工具拿不到会话身份,无法确认归属,因此一律不返回。
         val visibleResults =
             if (includeInternal) {
-                allResults
+                allResults.filterNot { isSessionAttachmentDoc(it) }
             } else {
-                allResults.filterNot { it.isInternal }
+                allResults.filterNot { it.isInternal || isSessionAttachmentDoc(it) }
             }
                 // v2.4.6: 文件夹作用域隔离 — LIKE 降级路径也必须限域,否则会串到其它文件夹
                 .let { list ->

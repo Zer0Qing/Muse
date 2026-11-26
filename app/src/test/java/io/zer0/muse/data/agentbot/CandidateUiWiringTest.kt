@@ -40,7 +40,9 @@ class CandidateUiWiringTest {
     fun `candidates are refreshed when binding a conversation`() {
         val bindAt = viewModel.indexOf("fun bind(");
         assertTrue(bindAt > 0);
-        val body = viewModel.substring(bindAt, minOf(bindAt + 700, viewModel.length));
+        val bindEnd = Regex("\\R    \\}\\R").find(viewModel, bindAt)?.range?.first
+            ?: error("找不到 bind 函数结尾")
+        val body = viewModel.substring(bindAt, bindEnd);
         assertTrue(
             "进入页面就要能看到已有候选，不能等用户操作后才出现",
             body.contains("refreshCandidates()"),

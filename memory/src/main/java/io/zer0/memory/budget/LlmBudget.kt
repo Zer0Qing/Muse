@@ -73,6 +73,9 @@ object LlmBudget {
     /** v1.78: tokenBudget 上限,防止 Int.MAX_VALUE 导致 maxChars 溢出为负数。 */
     private const val MAX_TOKEN_BUDGET = 1_000_000
 
+    /** 截断标记:提示模型这段记忆不完整。它自身也占 token,按条记账时必须计入预算。 */
+    private const val TRUNCATION_MARKER = "\n…(memory truncated)"
+
     // ── B-20: 按段裁剪的段落模型 ─────────────────────────────────────────
 
     /** 组装后的 memory markdown 中的一个 `##` 段。 */
@@ -127,6 +130,9 @@ object LlmBudget {
 
     /**
      * 统计一段文本的 token 数(失败回退到字符数/4)。纯计数,不截断。
+     *
+     * 保留原有 1/4 回退与 +1 语义,不动按段裁剪([truncateBySegments])的既有行为;
+     * 需要与调用方逐条记账对齐的计数用 [countTokens]。
      */
     private fun tokensOf(text: String): Int {
         val enc = loadEncoding()
@@ -136,6 +142,59 @@ object LlmBudget {
         }
         return (text.length / CHARS_PER_TOKEN) + 1 // 防 0 导致空串误判为超预算
     }
+
+    /**
+     * 统计一段文本的 token 数(CL100K BPE;编码表不可用时回退到字符类别估算)。
+     *
+     * 调用方按条扣预算时必须用它,而不是用字符数/4:BPE 与真实分词一致,回退分支
+     * 也区分中日韩字符与拉丁字符 —— 同样 400 个字符,英文约 100 token,中文接近
+     * 400 token,按 4 折算会让中文记忆多占约 3 倍预算,预算形同虚设。
+     */
+    fun countTokens(text: String): Int {
+        if (text.isEmpty()) return 0
+        val enc = loadEncoding()
+        if (enc != null) {
+            val count = runCatching { enc.countTokens(text) }.getOrNull()
+            if (count != null && count >= 0) return count
+        }
+        return estimateByCharacterClass(text)
+    }
+
+    /**
+     * 编码表不可用时的估计:中日韩字符、谚文、全角形式与 emoji 按 1 token/个,
+     * 其余按 4 字符/token。对中文按 1 token/字符取值,接近 BPE 的实际结果,
+     * 不会像字符数/4 那样把中文低估三倍。
+     */
+    private fun estimateByCharacterClass(text: String): Int {
+        var tokens = 0
+        var latinChars = 0
+        var index = 0
+        while (index < text.length) {
+            val codePoint = text.codePointAt(index)
+            val width = Character.charCount(codePoint)
+            if (isWideCharacter(codePoint)) {
+                tokens += (latinChars + CHARS_PER_TOKEN - 1) / CHARS_PER_TOKEN
+                latinChars = 0
+                tokens += 1
+            } else {
+                latinChars += width
+            }
+            index += width
+        }
+        return tokens + (latinChars + CHARS_PER_TOKEN - 1) / CHARS_PER_TOKEN
+    }
+
+    /** 宽字符判定:CJK 部首~彝文、谚文、CJK 兼容表意、全角形式、emoji 与扩展区表意。 */
+    private fun isWideCharacter(codePoint: Int): Boolean =
+        codePoint in 0x1100..0x115F ||
+            codePoint in 0x2E80..0xA4CF ||
+            codePoint in 0xAC00..0xD7A3 ||
+            codePoint in 0xF900..0xFAFF ||
+            codePoint in 0xFE30..0xFE6F ||
+            codePoint in 0xFF00..0xFF60 ||
+            codePoint in 0xFFE0..0xFFE6 ||
+            codePoint in 0x1F300..0x1FAFF ||
+            codePoint in 0x20000..0x3FFFD
 
     /**
      * B-20: 按段优先级裁剪 memory markdown。
@@ -257,6 +316,81 @@ object LlmBudget {
     }
 
     /**
+     * 严格裁剪:返回值(含截断标记)本身不超过 [tokenBudget] token。
+     *
+     * 与 [truncateToTokenBudget] 的差别只在标记的记账方式:后者先按预算截正文、
+     * 再追加标记,标记自成 token 却不计入预算;调用方若接着按返回值扣预算,每裁一条
+     * 就多占几个 token,条目一多必然超支。逐条分配同一份预算时必须走本方法。
+     *
+     * 预算连"正文 + 标记"都放不下时返回空串 —— 返回半截正文会破坏预算承诺,
+     * 由调用方把该条视为未保留。[tokenBudget] <= 0 视为不限制,返回原文。
+     */
+    fun truncateToTokenBudgetStrict(text: String, tokenBudget: Int): String {
+        if (tokenBudget <= 0) return text
+        if (text.isEmpty()) return text
+        if (countTokens(text) <= tokenBudget) return text
+
+        // 正文与标记拼接后 BPE 会在边界重新合并,先留 2 个 token 余量,再按实测超出量回缩。
+        var bodyBudget = tokenBudget - countTokens(TRUNCATION_MARKER) - 2
+        var candidate: String? = null
+        var attempts = 0
+        while (bodyBudget > 0 && attempts < 2 && candidate == null) {
+            attempts++
+            val body = cutToTokenBudget(text, bodyBudget)
+            if (body.isNullOrEmpty()) break
+            val built = trimAtLineBreak(body) + TRUNCATION_MARKER
+            val used = countTokens(built)
+            if (used <= tokenBudget) {
+                candidate = built
+            } else {
+                bodyBudget -= (used - tokenBudget).coerceAtLeast(1)
+            }
+        }
+        // 连标记都放不下(或两轮回缩仍超)时不给半截正文:预算承诺优先。
+        return candidate.orEmpty()
+    }
+
+    /**
+     * 把文本硬裁到 [tokenBudget] 个 token:优先 BPE 编码后解码前 N 个 token,
+     * 编码失败或编码表不可用时按字符类别估算折半查找。
+     */
+    private fun cutToTokenBudget(text: String, tokenBudget: Int): String? {
+        val enc = loadEncoding()
+        if (enc != null) {
+            val decoded = runCatching {
+                val encoded = enc.encode(text)
+                val take = minOf(tokenBudget, encoded.size())
+                val truncated = IntArrayList(take)
+                for (i in 0 until take) {
+                    truncated.add(encoded.get(i))
+                }
+                enc.decode(truncated)
+            }.getOrNull()
+            if (decoded != null) return decoded
+        }
+        return cutByCharacterEstimate(text, tokenBudget)
+    }
+
+    /** BPE 不可用时的折半查找:找满足预算的最长字符前缀。 */
+    private fun cutByCharacterEstimate(text: String, tokenBudget: Int): String {
+        var low = 0
+        var high = text.length
+        while (low < high) {
+            val mid = (low + high + 1) / 2
+            if (estimateByCharacterClass(text.substring(0, mid)) <= tokenBudget) low = mid else high = mid - 1
+        }
+        // 折半可能停在代理对中间,退一格避免返回半个码点
+        if (low > 0 && Character.isHighSurrogate(text[low - 1])) low -= 1
+        return text.substring(0, low)
+    }
+
+    /** 在最近的换行处收尾,避免留下半行;只在丢弃量不超过一半时才收尾。 */
+    private fun trimAtLineBreak(text: String): String {
+        val lastNewline = text.lastIndexOf('\n')
+        return if (lastNewline > text.length / 2) text.substring(0, lastNewline) else text
+    }
+
+    /**
      * v1.79: 原整体截断逻辑,独立成私有方法以供"按段裁剪([truncateBySegments])"
      * 与整段回退([truncateToTokenBudget])共用。保留 v1.55 BPE 精确截断与
      * v1.78 回退启发式,行为不变。
@@ -282,7 +416,7 @@ object LlmBudget {
                 if (decoded != null) {
                     val lastNl = decoded.lastIndexOf('\n')
                     val end = if (lastNl > decoded.length / 2) lastNl else decoded.length
-                    return decoded.substring(0, end.coerceIn(0, decoded.length)).trimEnd() + "\n…(memory truncated)"
+                    return decoded.substring(0, end.coerceIn(0, decoded.length)).trimEnd() + TRUNCATION_MARKER
                 }
             }
         }
@@ -294,6 +428,6 @@ object LlmBudget {
         val cut = text.substring(0, cutEnd)
         val lastNl = cut.lastIndexOf('\n')
         val end = if (lastNl > cutEnd / 2) lastNl else cutEnd
-        return text.substring(0, end.coerceIn(0, text.length)).trimEnd() + "\n…(memory truncated)"
+        return text.substring(0, end.coerceIn(0, text.length)).trimEnd() + TRUNCATION_MARKER
     }
 }

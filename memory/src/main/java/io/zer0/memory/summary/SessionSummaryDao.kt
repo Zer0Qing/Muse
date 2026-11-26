@@ -102,4 +102,16 @@ interface SessionSummaryDao {
      */
     @Query("DELETE FROM session_summaries WHERE assistant_id = :assistantId")
     suspend fun deleteByAssistant(assistantId: String): Int
+
+    /** 指定 Space 下有哪些助手（合并前读，用来推导受影响的作用域）。 */
+    @Query("SELECT DISTINCT assistant_id FROM session_summaries WHERE space_id = :spaceId")
+    suspend fun assistantIdsForSpace(spaceId: String): List<String>
+
+    /**
+     * Space 合并：摘要本身不拆不改，只把归属空间换掉。
+     *
+     * 摘要正文是按会话写的，与空间无关；丢掉空间归属反而会让它从默认空间的取数窗口里消失。
+     */
+    @Query("UPDATE session_summaries SET space_id = :targetSpaceId WHERE space_id = :sourceSpaceId")
+    suspend fun migrateSpace(sourceSpaceId: String, targetSpaceId: String): Int
 }

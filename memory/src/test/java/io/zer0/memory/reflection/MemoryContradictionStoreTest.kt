@@ -133,6 +133,34 @@ class MemoryContradictionStoreTest {
     }
 
     @Test
+    fun `重置时清掉整份清单 不区分 scope 与空间`() = runBlocking {
+        store.save("assistant_main", "default", pairs("我住杭州", "我住上海"))
+        store.save("assistant_writer", "work", pairs("deadline 周五", "deadline 周一"))
+
+        assertTrue("写入成功要返回 true", store.clearAll())
+
+        assertTrue(store.list("assistant_main", "default").isEmpty())
+        assertTrue(store.list("assistant_writer", "work").isEmpty())
+        assertTrue(
+            "新实例读同一文件也是空的 —— 空表必须真的落盘",
+            MemoryContradictionStore(file).list("assistant_main", "default").isEmpty(),
+        )
+    }
+
+    @Test
+    fun `重置时坏文件也能清掉 不报错也不留归档`() = runBlocking {
+        file.writeText("{这段是半截的 JSO")
+
+        assertTrue("重置的预期是丢弃一切，不能因为文件坏了而失败", store.clearAll())
+
+        assertTrue(store.list("assistant_main", "default").isEmpty())
+        assertTrue(
+            "重置不走归档路径（那是写入路径的保护，重置不需要留证）",
+            dir.listFiles()?.none { it.name.contains(".corrupt-") } == true,
+        )
+    }
+
+    @Test
     fun `未知 scope 的确认动作不该报错`() = runBlocking {
         val pair = MemoryContradictionStore.ContradictionPair("x", "y")
 

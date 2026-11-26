@@ -21,7 +21,6 @@ import org.robolectric.annotation.Config
 import java.io.File
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
-import io.zer0.muse.ui.assistant.AssistantScreen
 
 /**
  * v2.7.x(E3): 导入的隔离性与「不自动切换」。
@@ -125,7 +124,8 @@ class PersonaImportIsolationTest {
         val start = source.indexOf("// v2.x: 导入预览确认对话框")
         assertTrue("找不到导入预览对话框", start > 0)
         // 取「从注释到本函数结束」这一段:第一个顶格的 `}` 就是 AssistantScreen 的右括号。
-        val end = source.indexOf("\n}\n", start)
+        // 行尾可能因工作树换行风格而变成 CRLF，不能用写死的 LF 组合切。
+        val end = Regex("\\R\\}\\R").find(source, start)?.range?.first ?: -1
         assertTrue("导入对话框后面找不到函数结尾,断言范围不成立", end > start)
         val block = source.substring(start, end)
 

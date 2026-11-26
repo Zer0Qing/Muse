@@ -123,6 +123,10 @@ import java.io.File
  *   该功能未对真实用户开放，库内无可保留业务数据；isMiniPhone 列保留（旧 SQLite 不支持 DROP COLUMN）。
  *   v2.7.x: 版本 134 → 135，新增 proactive_backlog_dispatch（主动消息派发账，一条牵挂最多一条派发）。
  *   纯新增表，不动 pending_thought / proactive_outcome 的任何行。
+ *   v2.7.x: 版本 138 → 139，新增 remote_compute_nodes（Linux 轻量云电脑节点）。
+ *   纯新增表，不动既有表与既有行。
+ *   v2.7.x: 版本 139 → 140，新增 agent_watchers / agent_goals（跟进与长期目标），并为
+ *   card_entities 增加 Spaces 常驻与自动刷新五列；只加表加列，不删不改既有行。
  */
 @Database(
     entities = [
@@ -229,6 +233,11 @@ import java.io.File
         // 对话流动态交互卡片与可复用惯例。
         io.zer0.muse.data.agentbot.BotMessageCardEntity::class,
         io.zer0.muse.data.agentbot.BotRoutineEntity::class,
+        // v2.7.x: 帮你跟进（Watcher）与长期目标（Goal）—— 纯新增表，不动既有行。
+        io.zer0.muse.data.agentbot.AgentWatcherEntity::class,
+        io.zer0.muse.data.agentbot.AgentGoalEntity::class,
+        // v2.7.x: Linux 轻量云电脑节点（纯新增表，不动既有行）。
+        io.zer0.muse.data.computenode.RemoteComputeNodeEntity::class,
     ],
     version = MuseDb.LATEST_SCHEMA_VERSION,
     exportSchema = true,
@@ -380,9 +389,18 @@ abstract class MuseDb : RoomDatabase() {
     /** 可复用惯例与触发规则。 */
     abstract fun botRoutineDao(): io.zer0.muse.data.agentbot.BotRoutineDao
 
+    /** 帮你跟进（Watcher）：有变化才说话的持续托管项。 */
+    abstract fun agentWatcherDao(): io.zer0.muse.data.agentbot.AgentWatcherDao
+
+    /** 长期目标（Goal）：跨多轮推进的里程碑账本。 */
+    abstract fun agentGoalDao(): io.zer0.muse.data.agentbot.AgentGoalDao
+
+    /** Linux 轻量云电脑节点。 */
+    abstract fun remoteComputeNodeDao(): io.zer0.muse.data.computenode.RemoteComputeNodeDao
+
     companion object {
         /** Single schema-version source; must match the latest exported JSON. */
-        const val LATEST_SCHEMA_VERSION = 138
+        const val LATEST_SCHEMA_VERSION = 140
 
         @Volatile
         private var dbInstance: MuseDb? = null
@@ -681,6 +699,8 @@ abstract class MuseDb : RoomDatabase() {
             MuseDbMigrations.MIGRATION_135_136,
             MuseDbMigrations.MIGRATION_136_137,
             MuseDbMigrations.MIGRATION_137_138,
+            MuseDbMigrations.MIGRATION_138_139,
+            MuseDbMigrations.MIGRATION_139_140,
         )
 
         // SpreadOperator:展开 126 个已包装的迁移对象。这里必须用 vararg 形式交给 Room 的

@@ -6,6 +6,7 @@ import io.zer0.muse.knowledge.integration.ContributionResult
 import io.zer0.muse.knowledge.integration.KnowledgeContextContributor
 import io.zer0.muse.knowledge.integration.TrustedGenerationContext
 import io.zer0.muse.knowledge.retrieval.EvidenceAssembler
+import io.zer0.muse.knowledge.retrieval.EvidenceVisibility
 import io.zer0.muse.knowledge.retrieval.KnowledgeEntryType
 import io.zer0.muse.knowledge.retrieval.KnowledgeRetriever
 import io.zer0.muse.knowledge.retrieval.KnowledgeSearchRequest
@@ -41,7 +42,7 @@ class KnowledgeEntryParityTest {
         )
         return KnowledgeContextContributor(
             retriever = retriever,
-            assembler = EvidenceAssembler(),
+            assembler = EvidenceAssembler(visibilityOf = { EvidenceVisibility.USER_VISIBLE }),
             policyProvider = { KnowledgePolicyResolver.resolve(RagConfig()) },
         )
     }

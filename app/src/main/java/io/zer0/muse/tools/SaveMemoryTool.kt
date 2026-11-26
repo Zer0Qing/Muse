@@ -1,17 +1,5 @@
 package io.zer0.muse.tools
 
-import io.zer0.common.Logger
-import io.zer0.memory.fact.FactStore
-import kotlinx.coroutines.CancellationException
-
-/**
- * v2.x: save_memory 工具 — 助手显式写入一条长期记忆(事实)。
- *
- * 与自动提取(对话结束后的 MemoryExtract)不同:这是模型主动"记下来"的通道,
- * 用户说"记住…"时即时落库(source=user_explicit、confidence=1.0)。
- * 作用域/空间由宿主注入的 [ToolExecutionContext] 决定,模型参数不可伪造;
- * 写入仍走 FactStore.add 的 PII 脱敏与相似合并。
- */
 object SaveMemoryTool {
 
     fun toolDef() = ToolRegistry.ToolDef(
@@ -28,46 +16,6 @@ object SaveMemoryTool {
         required = setOf("content"),
         category = "built-in",
         parameterTypes = mapOf("importance" to "integer"),
-        // 与 pin_memory 同口径:长期记忆写入属隐私敏感,归 HIGH
         riskLevel = ToolRiskLevel.HIGH,
     )
-
-    // 生产链路不再走这里：pin/unpin/save/delete/search 的统一入口是 AgentToolsRegistrar 里的 MemoryUseCases 分支。
-    // 仅保留给单测与历史调用点；新增调用请走 use cases。
-    suspend fun execute(args: Map<String, String>, factStore: FactStore, executionContext: ToolExecutionContext): String {
-        val content = args["content"]?.trim().orEmpty()
-        if (content.isEmpty()) return "Error: content parameter is required."
-        val tags = args["tags"]
-            ?.split(',')
-            ?.map { it.trim() }
-            ?.filter { it.isNotEmpty() }
-            .orEmpty()
-        val importance = (args["importance"]?.trim()?.toIntOrNull() ?: 0).coerceIn(0, 2)
-        val category = args["category"]?.trim()?.takeIf { it.isNotEmpty() } ?: "general"
-        val id =
-            try {
-                factStore.add(
-                    FactStore.Fact(
-                        fact = content,
-                        tags = tags,
-                        importance = importance,
-                        category = category,
-                        source = "user_explicit",
-                        confidence = 1.0f,
-                    ),
-                    scope = executionContext.scope,
-                    spaceId = executionContext.spaceId,
-                )
-            } catch (cancelled: CancellationException) {
-                throw cancelled
-            } catch (error: Exception) {
-                Logger.e("SaveMemoryTool", "save_memory 写入失败: ${error.message}", error)
-                return "Error: failed to save memory: ${error.message ?: "storage error"}"
-            }
-        return if (id > 0) {
-            "Saved to long-term memory (id: $id)."
-        } else {
-            "Error: failed to save memory."
-        }
-    }
 }

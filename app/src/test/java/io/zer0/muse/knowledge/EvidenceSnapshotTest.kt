@@ -3,6 +3,7 @@ package io.zer0.muse.knowledge
 import io.zer0.muse.knowledge.integration.EvidenceSnapshotCodec
 import io.zer0.muse.knowledge.retrieval.EvidenceAssembler
 import io.zer0.muse.knowledge.retrieval.EvidenceCandidate
+import io.zer0.muse.knowledge.retrieval.EvidenceVisibility
 import io.zer0.muse.knowledge.retrieval.RetrievalOutcome
 import io.zer0.muse.knowledge.retrieval.RetrievalTrace
 import org.junit.Assert.assertEquals
@@ -34,7 +35,7 @@ class EvidenceSnapshotTest {
                 elapsedMs = 1L,
             ),
         )
-        return EvidenceAssembler().assemble(
+        return EvidenceAssembler(visibilityOf = { EvidenceVisibility.USER_VISIBLE }).assemble(
             outcome = outcome,
             budgetTokens = 500,
             docTitles = mapOf("doc-1" to "文档一", "doc-2" to "文档二"),

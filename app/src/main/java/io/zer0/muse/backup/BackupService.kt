@@ -15,7 +15,9 @@ import io.zer0.memory.summary.MemoryDb
 import io.zer0.memory.summary.SessionSummaryEntity
 import io.zer0.memory.summary.ContextCheckpointEntity
 import io.zer0.muse.R
+import io.zer0.muse.data.SecureKeyStore
 import io.zer0.muse.data.SettingsRepository
+import io.zer0.muse.data.computenode.RemoteComputeNodeEntity
 import io.zer0.muse.data.session.MuseDb
 import io.zer0.muse.data.stats.AutoBackupLogDao
 import io.zer0.muse.data.stats.AutoBackupLogEntity
@@ -270,6 +272,12 @@ class BackupService(
         val botAnnotations: List<io.zer0.muse.data.agentbot.BotAnnotationEntity> = emptyList(),
         val botMessageCards: List<io.zer0.muse.data.agentbot.BotMessageCardEntity> = emptyList(),
         val botRoutines: List<io.zer0.muse.data.agentbot.BotRoutineEntity> = emptyList(),
+        /** v2.7.x: 帮你跟进（Watcher）—— 换机后仍要盯住同一件事。 */
+        val agentWatchers: List<io.zer0.muse.data.agentbot.AgentWatcherEntity> = emptyList(),
+        /** v2.7.x: 长期目标（Goal）—— 里程碑与进度是用户资产。 */
+        val agentGoals: List<io.zer0.muse.data.agentbot.AgentGoalEntity> = emptyList(),
+        /** Linux 轻量云电脑节点；includeSecrets=false 时两个凭据列为空。 */
+        val remoteComputeNodes: List<RemoteComputeNodeEntity> = emptyList(),
         /**
          * v2.7.x(E2): 术语表 —— 用户确认过的黑话与新词。
 
@@ -328,6 +336,8 @@ class BackupService(
         botTaskSteps.isNotEmpty() || botEvents.isNotEmpty() || botApprovals.isNotEmpty() ||
         botPublications.isNotEmpty() || botAnnotations.isNotEmpty() ||
         botMessageCards.isNotEmpty() || botRoutines.isNotEmpty() ||
+        agentWatchers.isNotEmpty() || agentGoals.isNotEmpty() ||
+        remoteComputeNodes.isNotEmpty() ||
         groupChatMemories.isNotEmpty() ||
         cardEntities.isNotEmpty() ||
         settingsSnapshot.isNotEmpty() || fileStores.isNotEmpty() || binaryFiles.isNotEmpty() ||
@@ -630,6 +640,9 @@ class BackupService(
                 botAnnotations = db.botAnnotationDao().getAll(),
                 botMessageCards = db.botMessageCardDao().getAll(),
                 botRoutines = db.botRoutineDao().getAll(),
+                agentWatchers = db.agentWatcherDao().getAll(),
+                agentGoals = db.agentGoalDao().getAll(),
+                remoteComputeNodes = db.remoteComputeNodeDao().getAll(),
                 sessionTerms = db.sessionTermDao().getAll(),
                 groupChatMemories = db.groupChatMemoryDao().getAll(),
                 // v2.6.8: 卡片实体（NDJSON 导出，与单 JSON 同一定序）。
@@ -701,6 +714,9 @@ class BackupService(
         val botAnnotations = muse.botAnnotations
         val botMessageCards = muse.botMessageCards
         val botRoutines = muse.botRoutines
+        val agentWatchers = muse.agentWatchers
+        val agentGoals = muse.agentGoals
+        val remoteComputeNodes = sanitizeRemoteComputeNodesForExport(muse.remoteComputeNodes, includeSecrets)
         val sessionTerms = muse.sessionTerms
         val groupChatMemories = muse.groupChatMemories
         // v2.6.8: 卡片实体。
@@ -776,6 +792,9 @@ class BackupService(
             put("botAnnotations", botAnnotations.size)
             put("botMessageCards", botMessageCards.size)
             put("botRoutines", botRoutines.size)
+            put("agentWatchers", agentWatchers.size)
+            put("agentGoals", agentGoals.size)
+            put("remoteComputeNodes", remoteComputeNodes.size)
             put("sessionTerms", sessionTerms.size)
             put("sessionProactivePreferences", sessionProactivePreferences.size)
             put("assistantRelationships", assistantRelationships.size)
@@ -1021,6 +1040,9 @@ class BackupService(
         writeTypedLines(writer, "botAnnotation", botAnnotations, io.zer0.muse.data.agentbot.BotAnnotationEntity.serializer())
         writeTypedLines(writer, "botMessageCard", botMessageCards, io.zer0.muse.data.agentbot.BotMessageCardEntity.serializer())
         writeTypedLines(writer, "botRoutine", botRoutines, io.zer0.muse.data.agentbot.BotRoutineEntity.serializer())
+        writeTypedLines(writer, "agentWatcher", agentWatchers, io.zer0.muse.data.agentbot.AgentWatcherEntity.serializer())
+        writeTypedLines(writer, "agentGoal", agentGoals, io.zer0.muse.data.agentbot.AgentGoalEntity.serializer())
+        writeTypedLines(writer, "remoteComputeNode", remoteComputeNodes, RemoteComputeNodeEntity.serializer())
         writeTypedLines(
             writer,
             "assistantRelationship",
@@ -1162,6 +1184,11 @@ class BackupService(
         val botAnnotations: List<io.zer0.muse.data.agentbot.BotAnnotationEntity>,
         val botMessageCards: List<io.zer0.muse.data.agentbot.BotMessageCardEntity>,
         val botRoutines: List<io.zer0.muse.data.agentbot.BotRoutineEntity>,
+        /** v2.7.x: 帮你跟进（Watcher）与长期目标（Goal）。 */
+        val agentWatchers: List<io.zer0.muse.data.agentbot.AgentWatcherEntity>,
+        val agentGoals: List<io.zer0.muse.data.agentbot.AgentGoalEntity>,
+        /** Linux 轻量云电脑节点。 */
+        val remoteComputeNodes: List<RemoteComputeNodeEntity>,
         /** v2.7.x(E2): 术语表。 */
         val sessionTerms: List<io.zer0.muse.data.terms.SessionTermEntity>,
         /** v2.6.8: 卡片实体（`card_entities`）—— 停靠卡离开消息流后唯一的存身处。 */
@@ -1550,6 +1577,9 @@ class BackupService(
             db.proactiveBacklogScheduleDao().deleteAll()
             db.sessionProactivePreferenceDao().deleteAll()
             db.botRoutineDao().deleteAll()
+            db.agentGoalDao().deleteAll()
+            db.agentWatcherDao().deleteAll()
+            db.remoteComputeNodeDao().deleteAll()
             db.botMessageCardDao().deleteAll()
             db.botAnnotationDao().deleteAll()
             db.publicationOutboxDao().deleteAll()
@@ -2412,6 +2442,10 @@ class BackupService(
 
     private suspend fun restoreSupplementalMuseRecord(type: String, data: JsonElement, now: Long) {
         when (type) {
+            "remoteComputeNode" -> {
+                val node = json.decodeFromJsonElement(RemoteComputeNodeEntity.serializer(), data)
+                db.remoteComputeNodeDao().upsert(encryptRemoteComputeNodesForRestore(listOf(node)).single())
+            }
             "proactiveBacklogDispatch" -> {
                 val source = json.decodeFromJsonElement(
                     io.zer0.muse.data.proactive.ProactiveBacklogDispatchEntity.serializer(),
@@ -2477,6 +2511,12 @@ class BackupService(
             )
             "botRoutine" -> db.botRoutineDao().upsert(
                 json.decodeFromJsonElement(io.zer0.muse.data.agentbot.BotRoutineEntity.serializer(), data),
+            )
+            "agentWatcher" -> db.agentWatcherDao().upsert(
+                json.decodeFromJsonElement(io.zer0.muse.data.agentbot.AgentWatcherEntity.serializer(), data),
+            )
+            "agentGoal" -> db.agentGoalDao().upsert(
+                json.decodeFromJsonElement(io.zer0.muse.data.agentbot.AgentGoalEntity.serializer(), data),
             )
             else -> Unit
         }
@@ -3181,6 +3221,11 @@ class BackupService(
         val botAnnotations: List<io.zer0.muse.data.agentbot.BotAnnotationEntity>,
         val botMessageCards: List<io.zer0.muse.data.agentbot.BotMessageCardEntity>,
         val botRoutines: List<io.zer0.muse.data.agentbot.BotRoutineEntity>,
+        /** v2.7.x: 帮你跟进（Watcher）与长期目标（Goal）。 */
+        val agentWatchers: List<io.zer0.muse.data.agentbot.AgentWatcherEntity>,
+        val agentGoals: List<io.zer0.muse.data.agentbot.AgentGoalEntity>,
+        /** Linux 轻量云电脑节点。 */
+        val remoteComputeNodes: List<RemoteComputeNodeEntity>,
         /** v2.7.x(E2): 术语表。 */
         val sessionTerms: List<io.zer0.muse.data.terms.SessionTermEntity>,
         /** v2.6.8: 卡片实体。 */
@@ -3263,6 +3308,48 @@ class BackupService(
         run
     }
 
+    /**
+     * 导出云电脑节点：默认只带元数据；显式包含密钥时，把本机 Keystore 密文解成明文放进备份载荷，
+     * 由备份自身的密码加密保护，换机导入时再按新设备密钥重新加密。
+     */
+    private suspend fun sanitizeRemoteComputeNodesForExport(
+        nodes: List<RemoteComputeNodeEntity>,
+        includeSecrets: Boolean,
+    ): List<RemoteComputeNodeEntity> {
+        if (nodes.isEmpty()) return emptyList()
+        if (!includeSecrets) {
+            return nodes.map { it.copy(encryptedCredential = "", encryptedNodeToken = "") }
+        }
+        return nodes.map { node ->
+            node.copy(
+                encryptedCredential = decryptRemoteNodeSecret(node.nodeId, "credential", node.encryptedCredential),
+                encryptedNodeToken = decryptRemoteNodeSecret(node.nodeId, "token", node.encryptedNodeToken),
+            )
+        }
+    }
+
+    /** 单条节点凭据解密；失败时只记节点与字段名，不回显任何密文或明文。 */
+    private suspend fun decryptRemoteNodeSecret(nodeId: String, field: String, stored: String): String {
+        if (stored.isEmpty()) return ""
+        return SecureKeyStore.decryptOrNull(stored) ?: run {
+            Logger.w("BackupService", "云电脑节点 $nodeId 的 $field 解密失败，本次备份不携带该凭据")
+            ""
+        }
+    }
+
+    /**
+     * 导入云电脑节点：备份里的凭据是跨设备可迁移的明文，写库前必须换成本机 Keystore 密文。
+     * encrypt 对空值与已带 enc_v1: 前缀的值幂等，重复导入不会二次加密。
+     */
+    private suspend fun encryptRemoteComputeNodesForRestore(
+        nodes: List<RemoteComputeNodeEntity>,
+    ): List<RemoteComputeNodeEntity> = nodes.map { node ->
+        node.copy(
+            encryptedCredential = SecureKeyStore.encrypt(node.encryptedCredential),
+            encryptedNodeToken = SecureKeyStore.encrypt(node.encryptedNodeToken),
+        )
+    }
+
     private suspend fun buildBackup(includeSecrets: Boolean = false): Backup {
         // B-23: MuseDb 读取包事务,避免与并发写交织产生 torn 快照(回滚 recovery point 一致性)。
         // memory/fact 各库读取量小且为单表,由上层 recoverIncompleteRestore 分层处理跨库一致性。
@@ -3323,6 +3410,9 @@ class BackupService(
                 botAnnotations = db.botAnnotationDao().getAll(),
                 botMessageCards = db.botMessageCardDao().getAll(),
                 botRoutines = db.botRoutineDao().getAll(),
+                agentWatchers = db.agentWatcherDao().getAll(),
+                agentGoals = db.agentGoalDao().getAll(),
+                remoteComputeNodes = db.remoteComputeNodeDao().getAll(),
                 sessionTerms = db.sessionTermDao().getAll(),
                 groupChatMemories = db.groupChatMemoryDao().getAll(),
                 // v2.6.8 / v2.6.9: 卡片实体。走 DAO 全量查询（Room 生成的映射，
@@ -3395,12 +3485,15 @@ class BackupService(
         val botAnnotations = snap.botAnnotations
         val botMessageCards = snap.botMessageCards
         val botRoutines = snap.botRoutines
+        val agentWatchers = snap.agentWatchers
+        val agentGoals = snap.agentGoals
         val sessionProactivePreferences = snap.sessionProactivePreferences
         val sessionTerms = snap.sessionTerms
         val groupChatMemories = snap.groupChatMemories
         // v2.6.8: 卡片实体（停靠卡 / 悬浮卡）。buildBackup 同时是恢复失败回滚的 recovery point
         // 来源，漏传就会在回滚时清空用户全部卡片。
         val cardEntities = snap.cardEntities
+        val remoteComputeNodes = sanitizeRemoteComputeNodesForExport(snap.remoteComputeNodes, includeSecrets)
         // P0-10: 子助手分库(facts_<id>.db)
         val scopedFacts = listScopedFactDbIds().associateWith { id ->
             readScopedFacts(id)
@@ -3469,6 +3562,9 @@ class BackupService(
             botAnnotations = botAnnotations,
             botMessageCards = botMessageCards,
             botRoutines = botRoutines,
+            agentWatchers = agentWatchers,
+            agentGoals = agentGoals,
+            remoteComputeNodes = remoteComputeNodes,
             sessionTerms = sessionTerms,
             sessionProactivePreferences = sessionProactivePreferences,
             groupChatMemories = groupChatMemories,
@@ -3715,6 +3811,7 @@ class BackupService(
     private suspend fun applyBackupInternal(backup: Backup): Pair<Int, Int> {
         val restoreAt = System.currentTimeMillis()
         val restoredBacklog = prepareBacklogForRestore(backup, restoreAt)
+        val restoredRemoteComputeNodes = encryptRemoteComputeNodesForRestore(backup.remoteComputeNodes)
         // 1. 导入 MuseDb 主表(sessions + messages)
         db.withTransaction {
             clearConversationStateForRestore(db)
@@ -3785,6 +3882,9 @@ class BackupService(
             db.proactiveBacklogScheduleDao().deleteAll()
             db.sessionProactivePreferenceDao().deleteAll()
             db.botRoutineDao().deleteAll()
+            db.agentGoalDao().deleteAll()
+            db.agentWatcherDao().deleteAll()
+            db.remoteComputeNodeDao().deleteAll()
             db.botMessageCardDao().deleteAll()
             db.botAnnotationDao().deleteAll()
             db.publicationOutboxDao().deleteAll()
@@ -3876,6 +3976,9 @@ class BackupService(
             if (backup.botAnnotations.isNotEmpty()) db.botAnnotationDao().upsertAll(backup.botAnnotations)
             if (backup.botMessageCards.isNotEmpty()) db.botMessageCardDao().upsertAll(backup.botMessageCards)
             if (backup.botRoutines.isNotEmpty()) db.botRoutineDao().upsertAll(backup.botRoutines)
+            if (backup.agentWatchers.isNotEmpty()) db.agentWatcherDao().upsertAll(backup.agentWatchers)
+            if (backup.agentGoals.isNotEmpty()) db.agentGoalDao().upsertAll(backup.agentGoals)
+            if (restoredRemoteComputeNodes.isNotEmpty()) db.remoteComputeNodeDao().upsertAll(restoredRemoteComputeNodes)
             // v2.7.x(E2): 只导出不恢复等于"备份了但没用"。
             backup.sessionTerms.forEach { db.sessionTermDao().upsert(it) }
             // v2.6.7: 角色关系此前只导出不恢复（既有缺口），换机后亲密度/关系标签全丢。
@@ -4000,6 +4103,8 @@ class BackupService(
                     // 新装设备的知识文档全为内建，用它会得到 0，导致自导出的备份无法导回。
                     "knowledgeDocs" -> db.knowledgeDocDao().getAll().size
                     "folders" -> db.folderDao().getAll().size
+                    "agentWatchers" -> db.agentWatcherDao().getAll().size
+                    "agentGoals" -> db.agentGoalDao().getAll().size
                     "cardEntities" -> db.cardEntityDao().count()
                     else -> return@forEach
                 }

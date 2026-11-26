@@ -58,6 +58,13 @@ class MemoryCompiler(
     private val compileContext: MemoryCompileContext = MemoryCompileContext(),
     /** Resolve assistant-local facts and tombstones for scoped compile targets. */
     private val factDbProvider: FactDbProvider? = null,
+    /**
+     * 备份/恢复写闸。null 时不做闸检查(测试/旧装配)。
+     *
+     * 编译是「读旧段 + 模型合并 → 覆盖」:模型返回时库可能已经被备份恢复整体替换过。
+     * 所以在入口取一份栅栏,真正落库前再用 [writeBlocked] 判一次。
+     */
+    private val writeGate: io.zer0.memory.runtime.MemoryWriteGate? = null,
 ) {
 
     /** 四块 section key。 */
@@ -85,6 +92,22 @@ class MemoryCompiler(
     private suspend fun currentScope(): String = compileContext.getScope().ifBlank { "main" }
 
     private suspend fun currentSpaceId(): String = compileContext.getSpaceId().ifBlank { "default" }
+
+    /**
+     * 写前闸判定:当前是否在恢复窗口内,或入口取的栅栏是否已失效。
+     *
+     * 闸本身不按 scope 细分,但接口要求三项非空;这里用实际写入槽位构造键,
+     * 将来闸真按 scope 隔离时不需要再改调用点。
+     */
+    private suspend fun writeBlocked(fence: io.zer0.memory.runtime.MemoryWriteFence?, target: MemoryCompileTarget?): Boolean {
+        val gate = writeGate ?: return false
+        val scopeKey = io.zer0.memory.runtime.MemoryScopeKey(
+            assistantId = target?.assistantId?.takeIf { it.isNotBlank() } ?: "default",
+            scope = target?.normalizedScope ?: currentScope(),
+            spaceId = target?.normalizedSpaceId ?: currentSpaceId(),
+        )
+        return gate.blocksWrite(scopeKey, fence)
+    }
 
     private suspend fun readStoredSection(
         key: String,
@@ -117,13 +140,23 @@ class MemoryCompiler(
         }
     }
 
+    /**
+     * 写入已存在的编译段。
+     *
+     * @return false 表示被写闸拦下(没落库),调用方据此不声称本次编译成功。
+     */
     private suspend fun updateStoredContent(
         key: String,
         content: String,
         fingerprint: String?,
         now: String,
         target: MemoryCompileTarget? = null,
-    ) {
+        fence: io.zer0.memory.runtime.MemoryWriteFence? = null,
+    ): Boolean {
+        if (writeBlocked(fence, target)) {
+            Logger.d("MemoryCompiler", "updateStoredContent($key): 恢复窗口内跳过写入")
+            return false
+        }
         val scoped = scopedSectionDao
         if (scoped != null) {
             scoped.updateContent(
@@ -137,13 +170,16 @@ class MemoryCompiler(
         } else {
             sectionDao.updateContent(key, content, fingerprint, now)
         }
+        return true
     }
 
     private suspend fun clearStoredAll(now: String) {
+        if (writeBlocked(null, null)) return
         scopedSectionDao?.clearAll(now) ?: sectionDao.clearAll(now)
     }
 
     private suspend fun clearStoredByKey(key: String, now: String, target: MemoryCompileTarget? = null) {
+        if (writeBlocked(null, target)) return
         scopedSectionDao?.clearByKey(
             key,
             target?.normalizedScope ?: currentScope(),
@@ -160,7 +196,12 @@ class MemoryCompiler(
         target: MemoryCompileTarget? = null,
         sourceFingerprint: String = "",
         status: String = "READY",
-    ) {
+        fence: io.zer0.memory.runtime.MemoryWriteFence? = null,
+    ): Boolean {
+        if (writeBlocked(fence, target)) {
+            Logger.d("MemoryCompiler", "upsertStored($key): 恢复窗口内跳过写入")
+            return false
+        }
         val scoped = scopedSectionDao
         if (scoped != null) {
             scoped.updateContent(
@@ -181,6 +222,7 @@ class MemoryCompiler(
                 ),
             )
         }
+        return true
     }
 
     /** 读取某块当前内容。 */
@@ -358,7 +400,12 @@ class MemoryCompiler(
             filterTombstonedLines(read(Section.LONGTERM), tombstones),
         )
         val md = assembleCompiledMarkdown(facts, today, week, longterm, locale)
-        // v6: 同时输出到文件系统,便于调试和备份
+        // v6: 同时输出到文件系统,便于调试和备份。
+        // 恢复窗口内不落盘:这时写到磁盘的 memory.md 可能来自半途替换的库。
+        if (writeBlocked(null, resolvedTarget)) {
+            Logger.d("MemoryCompiler", "readCompiledMemoryMarkdown: 恢复窗口内跳过 memory.md 落盘")
+            return@withContext md
+        }
         fileWriter?.writeMemoryMd(md, locale, resolvedTarget)
         md
     }
@@ -378,6 +425,7 @@ class MemoryCompiler(
         mainAssistantId: String? = null,
         target: MemoryCompileTarget? = null,
     ): Result = withContext(Dispatchers.IO) {
+        val fence = writeGate?.fence()
         val assistantId = target?.assistantId ?: mainAssistantId
         val zone = io.zer0.memory.time.TimeContext.resolveTimeZone(timeZone)
         val logicalDay = io.zer0.memory.time.TimeContext.logicalDayFor(Instant.now(), zone)
@@ -391,8 +439,10 @@ class MemoryCompiler(
         if (sessions.isEmpty()) {
             // 空 sessions: 清空内容,不写指纹
             val current = readSection(Section.TODAY, target ?: MemoryCompileTarget(assistantId = assistantId))
-            if (current.isNotEmpty()) {
-                updateStoredContent(Section.TODAY.key, "", null, Instant.now().toString(), target)
+            if (current.isNotEmpty() &&
+                !updateStoredContent(Section.TODAY.key, "", null, Instant.now().toString(), target, fence)
+            ) {
+                return@withContext Result.FAILED
             }
             return@withContext Result.COMPILED
         }
@@ -412,8 +462,10 @@ class MemoryCompiler(
         val sessionInput = sessions.joinToString("\n\n---\n\n") { filterTombstonedLines(it.summary, tombstones) }
         if (sessionInput.isBlank()) {
             val current = readSection(Section.TODAY, target ?: MemoryCompileTarget(assistantId = assistantId))
-            if (current.isNotEmpty()) {
-                updateStoredContent(Section.TODAY.key, "", null, Instant.now().toString(), target)
+            if (current.isNotEmpty() &&
+                !updateStoredContent(Section.TODAY.key, "", null, Instant.now().toString(), target, fence)
+            ) {
+                return@withContext Result.FAILED
             }
             return@withContext Result.COMPILED
         }
@@ -451,7 +503,10 @@ class MemoryCompiler(
         }
         // v2.6.2（记忆审计）: 读写必须使用同一 target —— 旧实现读用 target、写漏传，
         // 导致子助手/非默认 Space 的编译结果写到运行时默认槽位。
-        updateStoredContent(Section.TODAY.key, normalized, fp, Instant.now().toString(), target)
+        // 模型可能在恢复窗口开合之后才返回;写不进去就返回 FAILED,让 ticker 不记 checkpoint。
+        if (!updateStoredContent(Section.TODAY.key, normalized, fp, Instant.now().toString(), target, fence)) {
+            return@withContext Result.FAILED
+        }
         Result.COMPILED
     }
 
@@ -482,6 +537,7 @@ class MemoryCompiler(
     ): Result = withContext(Dispatchers.IO) {
         val assistantId = target?.assistantId ?: mainAssistantId
         if (fileWriter == null) return@withContext Result.SKIPPED
+        val fence = writeGate?.fence()
 
         val date = runCatching { LocalDate.parse(logicalDate) }.getOrNull()
             ?: return@withContext Result.SKIPPED
@@ -503,6 +559,7 @@ class MemoryCompiler(
                     spaceId = target?.normalizedSpaceId,
                 )
                 if (sessions.isEmpty()) {
+                    if (writeBlocked(fence, target)) return@withContext Result.FAILED
                     fileWriter.deleteDailyMd(logicalDate, target)
                     return@withContext Result.COMPILED
                 }
@@ -513,6 +570,7 @@ class MemoryCompiler(
         }
 
         if (input.isBlank()) {
+            if (writeBlocked(fence, target)) return@withContext Result.FAILED
             fileWriter.deleteDailyMd(logicalDate, target)
             return@withContext Result.COMPILED
         }
@@ -544,6 +602,10 @@ class MemoryCompiler(
             Logger.w("MemoryCompiler", "compileDaily($logicalDate): LLM 返回空响应,返回 FAILED")
             return@withContext Result.FAILED
         }
+        if (writeBlocked(fence, target)) {
+            Logger.w("MemoryCompiler", "compileDaily($logicalDate): 恢复窗口内跳过写入,返回 FAILED")
+            return@withContext Result.FAILED
+        }
         fileWriter.writeDailyMd(logicalDate, normalized, target)
         fileWriter.writeDailyFingerprint(logicalDate, fp, target)
         Result.COMPILED
@@ -558,11 +620,14 @@ class MemoryCompiler(
         maxChars: Int = MemoryFileWriter.WEEK_ASSEMBLY_MAX_CHARS,
         target: MemoryCompileTarget? = null,
     ): Result = withContext(Dispatchers.IO) {
+        val fence = writeGate?.fence()
         if (fileWriter == null) {
             // 无文件 writer 时清空 week 段,避免残留旧内容
             val current = readStoredSection(Section.WEEK.key, target)?.content ?: ""
-            if (current.isNotEmpty()) {
-                updateStoredContent(Section.WEEK.key, "", null, Instant.now().toString(), target)
+            if (current.isNotEmpty() &&
+                !updateStoredContent(Section.WEEK.key, "", null, Instant.now().toString(), target, fence)
+            ) {
+                return@withContext Result.FAILED
             }
             return@withContext Result.COMPILED
         }
@@ -570,8 +635,10 @@ class MemoryCompiler(
         val assembled = fileWriter.assembleWeekFromDaily(maxDays, maxChars, target).trim()
         if (assembled.isEmpty()) {
             val current = readStoredSection(Section.WEEK.key, target)?.content ?: ""
-            if (current.isNotEmpty()) {
-                updateStoredContent(Section.WEEK.key, "", null, Instant.now().toString(), target)
+            if (current.isNotEmpty() &&
+                !updateStoredContent(Section.WEEK.key, "", null, Instant.now().toString(), target, fence)
+            ) {
+                return@withContext Result.FAILED
             }
             return@withContext Result.COMPILED
         }
@@ -582,7 +649,9 @@ class MemoryCompiler(
             return@withContext Result.SKIPPED
         }
 
-        updateStoredContent(Section.WEEK.key, assembled, fp, Instant.now().toString(), target)
+        if (!updateStoredContent(Section.WEEK.key, assembled, fp, Instant.now().toString(), target, fence)) {
+            return@withContext Result.FAILED
+        }
         Result.COMPILED
     }
 
@@ -676,7 +745,12 @@ class MemoryCompiler(
         // v1.0.51: 仅 COMPILED 时删除源文件 — FAILED 时保留供下次重试,SKIPPED(指纹命中)时
         //   longterm 已包含相同内容,可安全删除
         if (result == Result.COMPILED || result == Result.SKIPPED) {
-            fileWriter.deleteDailyFiles(roll.folded, target)
+            if (!writeBlocked(null, target)) {
+                fileWriter.deleteDailyFiles(roll.folded, target)
+            } else {
+                // 恢复窗口内不删源文件:longterm 到底落库没有下一轮才能确认。
+                Logger.d("MemoryCompiler", "rollDailyWindow: 恢复窗口内保留 daily 源文件")
+            }
         }
         result
     }
@@ -694,6 +768,7 @@ class MemoryCompiler(
         locale: String = "zh-CN",
         target: MemoryCompileTarget? = null,
     ): Result = withContext(Dispatchers.IO) {
+        val fence = writeGate?.fence()
         val trimmed = newContent.trim()
         if (trimmed.isBlank()) return@withContext Result.SKIPPED
 
@@ -748,7 +823,9 @@ class MemoryCompiler(
             Logger.w("MemoryCompiler", "foldIntoLongTerm: LLM 返回空响应,保留旧内容,返回 FAILED")
             return@withContext Result.FAILED
         }
-        updateStoredContent(Section.LONGTERM.key, normalized, fp, Instant.now().toString(), target)
+        if (!updateStoredContent(Section.LONGTERM.key, normalized, fp, Instant.now().toString(), target, fence)) {
+            return@withContext Result.FAILED
+        }
         Result.COMPILED
     }
 
@@ -778,6 +855,7 @@ class MemoryCompiler(
         mainAssistantId: String? = null,
         target: MemoryCompileTarget? = null,
     ): Result = withContext(Dispatchers.IO) {
+        val fence = writeGate?.fence()
         val assistantId = target?.assistantId ?: mainAssistantId
         val resolvedTarget = effectiveTarget(target, assistantId)
         val store = factStoreFor(resolvedTarget)
@@ -802,7 +880,7 @@ class MemoryCompiler(
         val prevFacts = filterTombstonedLines(rawPrevFacts, tombstones)
         if (prevFacts != rawPrevFacts) {
             // 删除即刻生效: 先剔除旧编译产物,无需等待 LLM 重编
-            updateStoredContent(Section.FACTS.key, prevFacts, null, Instant.now().toString(), target)
+            updateStoredContent(Section.FACTS.key, prevFacts, null, Instant.now().toString(), target, fence)
         }
 
         val factParts = mutableListOf<String>()
@@ -866,7 +944,10 @@ class MemoryCompiler(
         }
         // S-04: LLM 输出再过滤一遍(防 LLM 复述已删事实)
         val filteredResult = filterTombstonedLines(normalized, tombstones)
-        updateStoredContent(Section.FACTS.key, filteredResult, null, Instant.now().toString(), resolvedTarget)
+        // 模型可能在恢复窗口开合之后才返回;写不进去就 FAILED,不让上层记 checkpoint。
+        if (!updateStoredContent(Section.FACTS.key, filteredResult, null, Instant.now().toString(), resolvedTarget, fence)) {
+            return@withContext Result.FAILED
+        }
         // D3-P2: 候选吸收 + 确定性投影 — LLM 产物先作为候选补录进表(防摘要孤儿丢失),
         // 随后 FACTS 段由 facts 表投影覆盖(编辑/删除即刻一致)。
         store?.let { scopedStore ->
@@ -952,6 +1033,25 @@ class MemoryCompiler(
             Logger.i("MemoryCompiler", "FACTS 段确定性投影: ${projected.lines().size} 条 / ${projected.length} 字符")
             1
         }
+
+    /**
+     * Space 合并后的 FACTS 段重建:直接拿事实表现值重投影，不调模型。
+     *
+     * 与 [reconcileFactsSectionWithStore] 的差别只有一点：这里不传快照。
+     * 合并场景下事实已经在表里，传快照只会让调用方为了凑一个参数去多读一遍表；
+     * 而一旦解析不到 FactStore，传空快照会被当成“事实表空”把段落清掉 ——
+     * 那是不可能恢复的内容丢失，所以这里先判 store，没有就整段不动。
+     *
+     * @return 1 = 段落被重写;0 = 无变化或没有可用的 FactStore
+     */
+    suspend fun rebuildFactsSection(scope: String, spaceId: String): Int = withContext(Dispatchers.IO) {
+        val target = MemoryCompileTarget(scope = scope, spaceId = spaceId)
+        if (factStoreFor(target) == null) {
+            Logger.w("MemoryCompiler", "FACTS 重建跳过: 没有可解析的 FactStore(scope=$scope, space=$spaceId)")
+            return@withContext 0
+        }
+        reconcileFactsSectionWithStore(emptyList(), target)
+    }
 
     /**
      * D3-P2: 把文本行中不在事实表的条目补录进表(防"仅在编译产物、未入表"的事实
@@ -1044,29 +1144,33 @@ class MemoryCompiler(
      * P2: 直接写入指定 section 的内容(用于记忆页 UI 编辑 Compile 层单段)。
      * 清空 fingerprint,使下次定时编译能正常重新生成。
      */
-    suspend fun writeSection(section: Section, content: String) = withContext(Dispatchers.IO) {
-        upsertStored(
-            key = section.key,
-            content = content,
-            fingerprint = null,
-            now = Instant.now().toString(),
-        )
+    suspend fun writeSection(section: Section, content: String) {
+        withContext(Dispatchers.IO) {
+            upsertStored(
+                key = section.key,
+                content = content,
+                fingerprint = null,
+                now = Instant.now().toString(),
+            )
+        }
     }
 
     /** P2-33: 按显式 scope + space 直接写入指定 section(记忆页按当前选中 scope/space 编辑用)。
      *  原 writeSection 依赖编译上下文的 currentScope/currentSpaceId(默认 main/default),
      *  子助手/其他 space 的编译段被 UI 编辑时写错槽位,与注入读路径(带 scope/space)错位。 */
-    suspend fun writeSection(section: Section, content: String, scope: String, spaceId: String) = withContext(Dispatchers.IO) {
-        upsertStored(
-            key = section.key,
-            content = content,
-            fingerprint = null,
-            now = Instant.now().toString(),
-            target = MemoryCompileTarget(
-                scope = scope,
-                spaceId = spaceId,
-            ),
-        )
+    suspend fun writeSection(section: Section, content: String, scope: String, spaceId: String) {
+        withContext(Dispatchers.IO) {
+            upsertStored(
+                key = section.key,
+                content = content,
+                fingerprint = null,
+                now = Instant.now().toString(),
+                target = MemoryCompileTarget(
+                    scope = scope,
+                    spaceId = spaceId,
+                ),
+            )
+        }
     }
 
     /** 拼装 memory.md(4 个 ## 标题段,空段写占位符)。 */

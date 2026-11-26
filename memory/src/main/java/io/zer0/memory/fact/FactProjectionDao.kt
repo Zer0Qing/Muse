@@ -25,4 +25,13 @@ interface FactProjectionDao {
 
     @Query("UPDATE fact_projections SET state = 'ORPHANED', updated_at = :updatedAt WHERE state = 'STAGED' AND created_at < :before")
     suspend fun orphanStaleStaged(before: String, updatedAt: String): Int
+
+    /**
+     * Space 合并：投影 generation 也带空间。
+     *
+     * 不迁的话，这些 generation 后续发布时会把新事实写回已经不存在的空间，
+     * 而读者（facts / 注入）只在 default 里找得到内容。
+     */
+    @Query("UPDATE fact_projections SET space_id = :targetSpaceId WHERE space_id = :sourceSpaceId")
+    suspend fun migrateSpace(sourceSpaceId: String, targetSpaceId: String): Int
 }

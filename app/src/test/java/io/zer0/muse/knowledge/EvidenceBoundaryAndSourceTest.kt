@@ -5,6 +5,7 @@ import io.zer0.muse.knowledge.integration.EvidenceSourceResolver
 import io.zer0.muse.knowledge.integration.EvidenceSourceState
 import io.zer0.muse.knowledge.retrieval.EvidenceAssembler
 import io.zer0.muse.knowledge.retrieval.EvidenceCandidate
+import io.zer0.muse.knowledge.retrieval.EvidenceVisibility
 import io.zer0.muse.knowledge.retrieval.RetrievalOutcome
 import io.zer0.muse.knowledge.retrieval.RetrievalTrace
 import org.junit.Assert.assertEquals
@@ -28,7 +29,7 @@ class EvidenceBoundaryAndSourceTest {
             ),
             RetrievalTrace("r", "CHAT", "docs=2", emptyList(), 2, 0, 2, 2, emptyList(), 1L),
         )
-        return EvidenceAssembler().assemble(
+        return EvidenceAssembler(visibilityOf = { EvidenceVisibility.USER_VISIBLE }).assemble(
             outcome = outcome,
             budgetTokens = 500,
             docTitles = mapOf("doc-1" to "合同模板", "doc-2" to "预算表"),
@@ -51,7 +52,7 @@ class EvidenceBoundaryAndSourceTest {
     @Test
     fun `no evidence yields no boundary note`() {
         assertNull(DelegationEvidenceBoundary.boundaryNote(null))
-        val empty = EvidenceAssembler().assemble(
+        val empty = EvidenceAssembler(visibilityOf = { EvidenceVisibility.USER_VISIBLE }).assemble(
             RetrievalOutcome.NoMatch(RetrievalTrace("r", "CHAT", "", emptyList(), 0, 0, 0, 0, emptyList(), 0L)),
             budgetTokens = 500,
         )

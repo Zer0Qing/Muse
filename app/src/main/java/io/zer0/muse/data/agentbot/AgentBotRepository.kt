@@ -512,6 +512,8 @@ class AgentBotRepository(
 
     // ── 流内交互卡片 ───────────────────────────────────────────────────
 
+    suspend fun getMessageCard(cardId: String): BotMessageCardEntity? = cardDao?.getById(cardId)
+
     suspend fun upsertMessageCard(card: BotMessageCardEntity) {
         val dao = cardDao ?: return
         val ts = now()

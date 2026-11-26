@@ -87,7 +87,8 @@ val memoryModule: Module = module {
     single { get<FactDb>().memoryLinkDao() }
 
     // ── 核心服务 ──
-    single { SessionSummaryManager(get(), get()) } // dao + llmClient
+    // 摘要写入是「旧摘要 + 模型输出 → 覆盖」,要接写闸:模型返回时库可能已被备份恢复替换。
+    single { SessionSummaryManager(get(), get(), get<io.zer0.memory.runtime.MemoryWriteGate>()) } // dao + llmClient + writeGate
     // v6: 记忆编译产物同时输出到文件系统(memory.md + daily/)
     // 审查修复 (2.0 C-03): 移除下方重复注册(同 key 单例,后者恒覆盖前者,属死装配)
     single { io.zer0.memory.compile.MemoryFileWriter(androidContext().filesDir) }
@@ -102,6 +103,8 @@ val memoryModule: Module = module {
             scopedSectionDao = get(),
             factDbProvider = get(),
             compileContext = io.zer0.memory.compile.MemoryCompileContext(),
+            // 编译结果在模型返回后才落库;恢复窗口内必须拦下,否则旧库产物写进新库。
+            writeGate = get<io.zer0.memory.runtime.MemoryWriteGate>(),
         )
     } // legacy sectionDao + llmClient + fileWriter + factStore + scoped DAO
     // 默认助手的 FactStore **必须复用 FactDbProvider 缓存的那一份**。
@@ -119,7 +122,8 @@ val memoryModule: Module = module {
     }
 
     // v2.6.2（用户反馈）: 通知 → 记忆 梳理器（大工具模型梳理/整合/去重后落库）。
-    single { io.zer0.memory.ai.NotificationMemoryDigest(get(), get()) } // factDbProvider + llmClient
+    // 写闸:通知梳理要调模型,返回时可能已跨过一次备份恢复。
+    single { io.zer0.memory.ai.NotificationMemoryDigest(get(), get(), get<io.zer0.memory.runtime.MemoryWriteGate>()) } // factDbProvider + llmClient + writeGate
 
     // v2.6.2（用户反馈）: 记忆星座补边构建器（实体键/同会话/同分类/语义近邻）
     single { io.zer0.memory.ai.MemoryEdgeBuilder(get(), get()) } // memoryLinkDao + llmClient（LLM 深化用）
@@ -154,14 +158,32 @@ val memoryModule: Module = module {
         )
     }
 
-    // v1.0.52 P2-2: 记忆空间仓库(Space CRUD + 事实迁移)
-    single { io.zer0.memory.space.MemorySpaceRepository(get(), get()) }
+    // v1.0.52 P2-2: 记忆空间仓库(Space CRUD + 删除时合并回 default)
+    // 写闸先于合并装配:合并会直接改 facts / 段落 / 文件，恢复窗口内必须能拦住它。
+    single<io.zer0.memory.runtime.MemoryWriteGate> { io.zer0.memory.runtime.DefaultMemoryWriteGate.shared }
+    single {
+        val factDbProvider = get<io.zer0.memory.fact.FactDbProvider>()
+        io.zer0.memory.space.MemorySpaceMergeDeps(
+            // 主库 + 磁盘上真实存在的助手分库：只合主库会让被删 Space 的事实留在分库里变成孤儿。
+            factDbs = {
+                buildList {
+                    add(factDbProvider.getFactDb("default"))
+                    factDbProvider.listAssistantDbIds().forEach { id -> add(factDbProvider.getFactDb(id)) }
+                }
+            },
+            memoryDb = get(),
+            fileWriter = get(),
+            contradictions = get(),
+            compiler = get(),
+            writeGate = get(),
+        )
+    }
+    single { io.zer0.memory.space.MemorySpaceRepository(spaceDao = get(), memoryLinkDao = get(), mergeDeps = get()) }
 
     // 置顶记忆存储
     single { io.zer0.memory.pin.PinnedMemoryStore(java.io.File(androidContext().filesDir, "pinned_memory")) }
     single { io.zer0.memory.experience.ExperienceStore(java.io.File(androidContext().filesDir, "experience")) }
     single { io.zer0.memory.experience.ExperienceRepository(get()) }
-    single<io.zer0.memory.runtime.MemoryWriteGate> { io.zer0.memory.runtime.DefaultMemoryWriteGate.shared }
 
     single<io.zer0.memory.dream.MemoryDreamService> {
         val database = get<MemoryDb>()

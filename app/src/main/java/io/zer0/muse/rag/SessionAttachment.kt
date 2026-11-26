@@ -60,6 +60,14 @@ data class SessionAttachment(
         /** 会话附件 docId 前缀,用于在 chunk 表中区分全局 KB 与会话附件。 */
         const val DOC_ID_PREFIX = "session-attach-"
 
+        /**
+         * 会话附件的 [KnowledgeDocEntity.fileType] 哨兵值。
+         *
+         * 与 [DOC_ID_PREFIX] 成对使用:检索侧两条都查,避免历史数据只写了其中一边时
+         * 附件被当成普通文档注入,或清理时漏删。
+         */
+        const val FILE_TYPE = "session_attachment"
+
         /** 生成会话附件的 docId。 */
         fun buildDocId(sessionId: String, attachmentId: String): String = "$DOC_ID_PREFIX$sessionId-$attachmentId"
 
@@ -86,7 +94,7 @@ internal fun SessionAttachment.toKnowledgeDoc(
     id = docId,
     title = name,
     content = content,
-    fileType = "session_attachment",
+    fileType = SessionAttachment.FILE_TYPE,
     chunkCount = chunkCount,
     embeddingModel = embeddingModel,
     contentHash = contentHash,

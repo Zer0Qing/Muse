@@ -1,8 +1,12 @@
 package io.zer0.memory.space
 
 import io.zer0.common.Logger
+import io.zer0.common.resultOf
+import io.zer0.memory.dream.MemoryMaintenanceLock
+import io.zer0.memory.runtime.MemoryScopeKey
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.time.Instant
 import java.util.UUID
@@ -18,7 +22,7 @@ import java.util.UUID
  * 与 [io.zer0.memory.fact.FactStore] 的关系:
  *  - FactStore 按 spaceId 隔离 facts 表
  *  - 本仓库管理 Space 元数据本身
- *  - 删除 Space 时通过 [MemorySpaceDao.migrateFacts] 把事实迁回 default
+ *  - 删除 Space 时把内容合并回 default（见 [MemorySpaceMerger]）
  *
  * 默认 Space("default") 不可删除,保证用户始终有一个可写入的空间。
  */
@@ -31,7 +35,16 @@ class MemorySpaceRepository(
      * （指向 default 中的事实，却标记在已删除的 Space 下）。
      */
     private val memoryLinkDao: io.zer0.memory.ai.MemoryLinkDao? = null,
+    /**
+     * 其余需要合并的数据面（跨助手 FactDb / 摘要库 / 文件投影 / 矛盾清单 / 编译器 / 写闸）。
+     *
+     * 默认值为空装配：只关心 Space 列表本身的调用方（与既有单测）不必造齐全部依赖，
+     * 此时 deleteSpace 只做本库的事实与图谱边迁移。
+     */
+    private val mergeDeps: MemorySpaceMergeDeps = MemorySpaceMergeDeps(),
 ) {
+
+    private val merger = MemorySpaceMerger(mergeDeps)
 
     /**
      * 观察 Space 列表(含事实数量,Flow 形式)。
@@ -138,31 +151,64 @@ class MemorySpaceRepository(
      *
      * 行为:
      *  1. 默认 Space("default") 不可删除,返回 false
-     *  2. 删除前将 Space 内所有事实迁移到默认 Space,避免数据丢失
-     *  3. 删除 Space 元数据
+     *  2. 备份恢复窗口内拒绝（返回 false）—— 库将被整体替换，此时写入的合并结果会随旧文件一起丢掉
+     *  3. 在 [MemoryMaintenanceLock] 下把内容合并回 default（事实/删除标记/画像/摘要/矛盾清单 daily 文件）
+     *     并清掉已失效的派生物（源段落、每日进度、Dream 回滚点）
+     *  4. 最后才删 Space 记录：中途任何一步失败，Space 仍在，可原样重试
      *
-     * @return 是否删除成功(默认 Space / 不存在的 Space 返回 false)
+     * 与 Dream/清理流程共享同一把锁：并发时 revision 快照会把刚合并的内容当成“发布前状态”回滚回来。
+     *
+     * @return 是否删除成功(默认 Space / 不存在的 Space / 恢复中 / 合并失败 返回 false)
      */
     suspend fun deleteSpace(id: String): Boolean = withContext(Dispatchers.IO) {
         if (id == MemorySpaceEntity.DEFAULT_SPACE_ID) {
             Logger.w("MemorySpaceRepository", "Cannot delete default space")
             return@withContext false
         }
-        val existing = spaceDao.getById(id) ?: return@withContext false
-        // 迁移事实到默认 Space
-        val migrated = spaceDao.migrateFacts(id, MemorySpaceEntity.DEFAULT_SPACE_ID)
-        if (migrated > 0) {
-            Logger.i("MemorySpaceRepository", "Migrated $migrated facts from $id → default")
+        MemoryMaintenanceLock.mutex.withLock {
+            // 锁内复查：另一个窗口可能已经把同一条删掉了。
+            val existing = spaceDao.getById(id) ?: return@withLock false
+            val gate = mergeDeps.writeGate
+            if (gate != null && gate.isBlocked(mergeScopeKey(id))) {
+                Logger.w("MemorySpaceRepository", "deleteSpace($id): 备份恢复进行中，拒绝合并删除")
+                return@withLock false
+            }
+            // 重试时上一次已经跑过的步骤会匹配 0 行，所以不需要区分“第一次/重试”。
+            val merged = resultOf<SpaceMergeReport?> {
+                val databases = mergeDeps.factDbs()
+                if (databases.isEmpty()) {
+                    // 未装配跨库合并（最小构造）：保住历史行为 —— 本库的事实与图谱边仍要迁回 default。
+                    val facts = spaceDao.migrateFacts(id, MemorySpaceEntity.DEFAULT_SPACE_ID)
+                    if (facts > 0) {
+                        Logger.i("MemorySpaceRepository", "Migrated $facts facts from $id → default")
+                    }
+                    val links = memoryLinkDao?.migrateBySpaceId(id, MemorySpaceEntity.DEFAULT_SPACE_ID) ?: 0
+                    if (links > 0) {
+                        Logger.i("MemorySpaceRepository", "Migrated $links links from $id → default")
+                    }
+                    null
+                } else {
+                    merger.mergeIntoDefault(id, databases)
+                }
+            }
+            merged.onError { msg, t ->
+                // 源记录还没删，所以这次失败可以整体重试；每一步都是幂等的。
+                Logger.w("MemorySpaceRepository", "deleteSpace($id) 合并失败，Space 保留以便重试: $msg", t)
+            }
+            if (merged.isError) return@withLock false
+
+            spaceDao.deleteById(id)
+            Logger.i("MemorySpaceRepository", "Deleted space: id=$id name=${existing.name}")
+            true
         }
-        // v2.6.2（记忆审计）: 同步迁移图谱边，否则边留在已删除 Space 成为孤儿。
-        val migratedLinks = memoryLinkDao?.migrateBySpaceId(id, MemorySpaceEntity.DEFAULT_SPACE_ID) ?: 0
-        if (migratedLinks > 0) {
-            Logger.i("MemorySpaceRepository", "Migrated $migratedLinks links from $id → default")
-        }
-        spaceDao.deleteById(id)
-        Logger.i("MemorySpaceRepository", "Deleted space: id=$id name=${existing.name}")
-        true
     }
+
+    /** 写闸按作用域判定，这里只需要一个能代表“这次合并”的键。 */
+    private fun mergeScopeKey(spaceId: String): MemoryScopeKey = MemoryScopeKey(
+        assistantId = MemorySpaceEntity.DEFAULT_SPACE_ID,
+        scope = "main",
+        spaceId = spaceId,
+    )
 
     /**
      * 调整 Space 排序。

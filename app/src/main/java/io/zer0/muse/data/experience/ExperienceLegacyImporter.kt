@@ -2,8 +2,9 @@ package io.zer0.muse.data.experience
 
 import io.zer0.common.AppJson
 import io.zer0.common.Logger
+import io.zer0.common.resultOf
 import io.zer0.memory.experience.ExperienceEntry
-import io.zer0.memory.experience.ExperienceRepository as MemoryExperienceRepository
+import io.zer0.memory.experience.ExperienceRepository
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
@@ -21,8 +22,8 @@ import java.time.Instant
  * 逐行失败时不写标志，下次启动继续补导入 —— 宁可多扫一次，也不要静默丢掉半截数据。
  */
 class ExperienceLegacyImporter(
-    private val legacy: ExperienceRepository,
-    private val target: MemoryExperienceRepository,
+    private val legacy: ExperienceDao,
+    private val target: ExperienceRepository,
     private val hasRun: () -> Boolean,
     private val markRun: () -> Unit,
     /** 旧表没有助手维度，全部归到默认助手；跨助手隔离从导入之后才开始生效。 */
@@ -45,7 +46,7 @@ class ExperienceLegacyImporter(
                 skipped += 1
                 return@forEach
             }
-            val outcome = runCatching {
+            val outcome = resultOf {
                 target.record(
                     assistantId = assistantId,
                     category = safeCategory(row.category),
@@ -58,12 +59,11 @@ class ExperienceLegacyImporter(
                     updatedAt = toIso(row.updatedAt),
                 )
             }
-            if (outcome.isSuccess) {
-                imported += 1
-            } else {
-                failed += 1
-                Logger.w(TAG, "经验导入失败 id=${row.id}: ${outcome.exceptionOrNull()?.message}")
-            }
+            outcome.onSuccess { imported += 1 }
+                .onError { _, error ->
+                    failed += 1
+                    Logger.w(TAG, "经验导入失败 id=${row.id}: ${error?.javaClass?.simpleName}")
+                }
         }
         if (failed == 0) markRun()
         Logger.i(TAG, "经验库导入结束: imported=$imported skipped=$skipped failed=$failed")

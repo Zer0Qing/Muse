@@ -420,6 +420,98 @@ TA 闹着玩的时候你接梗、吐槽、抬杠都行;TA 真的需要帮忙的�
         scopes.map { (kbId, path) -> "$kbId::${path.trim()}" }
 
     /**
+     * 知识库被删除后，从所有助手的作用域里摧掉它。
+     *
+     * 不清理的后果：助手的 knowledgeBaseIdsJson / knowledgeFolderScopesJson 里留着
+     * 已不存在的 kbId，范围解析会得到失效绑定（Invalid），助手看起来「配了知识库但永远搜不到」。
+     *
+     * @return 实际被改写的助手数
+     */
+    suspend fun detachKnowledgeBase(kbId: String): Int {
+        if (kbId.isBlank()) return 0
+        var updated = 0
+        getAll().forEach { assistant ->
+            val next = scopesAfterKnowledgeBaseRemoved(assistant, kbId) ?: return@forEach
+            dao.upsert(
+                assistant.copy(
+                    knowledgeBaseIdsJson = next.first,
+                    knowledgeFolderScopesJson = next.second,
+                ),
+            )
+            updated++
+        }
+        return updated
+    }
+
+    /**
+     * 文件夹重命名/删除后同步所有助手的文件夹作用域。
+     *
+     * @param newPath 新路径；null 表示文件夹已删除（命中该路径及其子路径的作用域一并摧掉）
+     * @return 实际被改写的助手数
+     */
+    suspend fun rewriteKnowledgeFolderScopes(kbId: String, oldPath: String, newPath: String?): Int {
+        val old = oldPath.trim().trim('/')
+        if (kbId.isBlank() || old.isEmpty()) return 0
+        val normalizedNew = newPath?.trim()?.trim('/')
+        var updated = 0
+        getAll().forEach { assistant ->
+            val next = scopesAfterFolderChange(assistant, kbId, old, normalizedNew) ?: return@forEach
+            dao.upsert(
+                assistant.copy(
+                    knowledgeBaseIdsJson = next.first,
+                    knowledgeFolderScopesJson = next.second,
+                ),
+            )
+            updated++
+        }
+        return updated
+    }
+
+    /** 去除某 KB 后的两个 JSON 字段；无需改动返回 null。 */
+    private fun scopesAfterKnowledgeBaseRemoved(assistant: AssistantEntity, kbId: String): Pair<String, String>? {
+        val kbIds = parseKnowledgeBaseIds(assistant)
+        val scopes = parseKnowledgeFolderScopes(assistant)
+        val keptKbIds = kbIds.filterNot { it == kbId }
+        val keptScopes = scopes.filterNot { it.first == kbId }
+        if (keptKbIds == kbIds && keptScopes == scopes) return null
+        return serializeStringList(keptKbIds) to serializeStringList(encodeKnowledgeFolderScopes(keptScopes))
+    }
+
+    /** 重写某文件夹子树后的两个 JSON 字段；无命中返回 null。 */
+    private fun scopesAfterFolderChange(
+        assistant: AssistantEntity,
+        kbId: String,
+        oldPath: String,
+        newPath: String?,
+    ): Pair<String, String>? {
+        val kbIds = parseKnowledgeBaseIds(assistant)
+        val scopes = parseKnowledgeFolderScopes(assistant)
+        var changed = false
+        val rewritten = scopes.mapNotNull { (scopeKbId, path) ->
+            if (scopeKbId != kbId || !hitsFolder(path, oldPath)) return@mapNotNull (scopeKbId to path)
+            changed = true
+            if (newPath == null) {
+                null
+            } else {
+                scopeKbId to (newPath + path.removePrefix(oldPath))
+            }
+        }
+        if (!changed) return null
+        // 作用域非空时，knowledgeBaseIdsJson 是它的投影(UI 两边同时写)。改写后必须重算，
+        // 否则被摧掉的文件夹所属 KB 会因 kbIds 里还在而默默扩回整库绑定。
+        val keptKbIds = if (scopes.isEmpty()) {
+            kbIds
+        } else {
+            rewritten.map { it.first }.distinct()
+        }
+        return serializeStringList(keptKbIds) to serializeStringList(encodeKnowledgeFolderScopes(rewritten))
+    }
+
+    /** 路径命中文件夹子树（空路径=整库，不参与改写）。 */
+    private fun hitsFolder(path: String, folder: String): Boolean =
+        path == folder || path.startsWith("$folder/")
+
+    /**
      * v1.133: 把 [AssistantEntity.ragConfigOverride] 合并到全局 [baseConfig] 之上。
      *
      * 合并策略:override JSON 中**显式存在**的字段覆盖 baseConfig 同名字段;

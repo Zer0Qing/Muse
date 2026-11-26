@@ -36,6 +36,8 @@ import kotlinx.serialization.json.Json
 class NotificationMemoryDigest(
     private val factDbProvider: FactDbProvider,
     private val llmClient: MemoryLlmClient,
+    /** 备份/恢复写闸。null 时不做闸检查(测试/旧装配)。 */
+    private val writeGate: io.zer0.memory.runtime.MemoryWriteGate? = null,
 ) {
 
     /** 单条通知（由 app 层从通知监听服务投影而来，避免 memory 模块依赖 app）。 */
@@ -54,6 +56,8 @@ class NotificationMemoryDigest(
         val extracted: Int = 0,
         val skipped: Boolean = false,
         val reason: String = "",
+        /** true 表示本次被备份/恢复写闸拦下 —— 调用方不得把它当成「已处理」。 */
+        val gated: Boolean = false,
     )
 
     private val json = Json {
@@ -74,7 +78,8 @@ class NotificationMemoryDigest(
      * 梳理一批通知并写入记忆。
      *
      * @param notifications 通知快照（调用方已按时间窗口过滤）
-     * @param scope 记忆作用域（助手 id；"main" 表示主助手）
+     * @param assistantId 资源拥有者(决定用哪个 facts 库)，主助手为 "default"
+     * @param scope 记忆作用域，主助手为 "main"
      * @param spaceId 记忆空间
      * @param model 大工具模型（null 时由 MemoryLlmClient 回退主链路模型）
      * @param locale 语言
@@ -83,27 +88,42 @@ class NotificationMemoryDigest(
     @Suppress("TooGenericExceptionCaught")
     suspend fun digest(
         notifications: List<NotificationInput>,
+        assistantId: String = "default",
         scope: String = "main",
         spaceId: String = "default",
         model: Model? = null,
         locale: String = "zh-CN",
     ): DigestResult = mutex.withLock {
         if (notifications.isEmpty()) return@withLock DigestResult(skipped = true, reason = "无通知")
-        val fingerprint = fingerprintOf(notifications)
+        val owner = assistantId.ifBlank { "default" }
+        val factScope = scope.ifBlank { "main" }
+        val factSpace = spaceId.ifBlank { "default" }
+        val gateScope = io.zer0.memory.runtime.MemoryScopeKey(owner, factScope, factSpace)
+        if (writeGate?.isBlocked(gateScope) == true) {
+            Logger.d(TAG, "通知梳理: 备份恢复进行中,跳过")
+            return@withLock DigestResult(skipped = true, reason = "备份恢复中", gated = true)
+        }
+        // 去重按 owner/space:同一批通知在不同助手/空间下是不同库的不同事实,
+        // 用全局指纹会让第二个库永远收不到这批通知。
+        val fingerprint = fingerprintOf(notifications, owner, factScope, factSpace)
         synchronized(processedFingerprints) {
             if (processedFingerprints.containsKey(fingerprint)) {
                 return@withLock DigestResult(skipped = true, reason = "该批通知已梳理")
             }
         }
 
-        val factStore = factDbProvider.getFactStore(scope)
+        // 事实库按拥有者取:scope 是事实隔离键,不是助手 id ——
+        // 旧实现 getFactStore(scope) 在 scope="main" 时直接去建一个 "main" 库。
+        val factStore = factDbProvider.getFactStore(owner)
         val existingPreview = runCatching {
-            factStore.getByScopeAndSpace(scope, spaceId)
+            factStore.getByScopeAndSpace(factScope, factSpace)
                 .take(MAX_EXISTING_PREVIEW)
                 .joinToString("\n") { "- ${it.fact.take(60)}" }
                 .takeIf { it.isNotBlank() }
         }.getOrNull()
 
+        // 栅栏在模型调用前取:梳理跑得慢,恢复窗口可能在等待期间开合完毕。
+        val fence = writeGate?.fence()
         val raw = try {
             withContext(Dispatchers.IO) {
                 llmClient.callText(
@@ -128,6 +148,11 @@ class NotificationMemoryDigest(
         }
 
         // 落库:source=notification,便于用户识别与清理；写入侧再做相似度去重。
+        // 模型返回后先过闸:恢复窗口内不写库,也不记“已梳理”——否则这批通知永久丢失。
+        if (writeGate?.blocksWrite(gateScope, fence) == true) {
+            Logger.d(TAG, "通知梳理: 恢复窗口内跳过落库,不推进去重指纹")
+            return@withLock DigestResult(skipped = true, reason = "备份恢复中", gated = true)
+        }
         val entries = parsed.facts
             .filter { it.isNotBlank() }
             .take(MAX_FACTS_PER_BATCH)
@@ -141,7 +166,7 @@ class NotificationMemoryDigest(
                     source = "notification",
                 )
             }
-        val inserted = runCatching { factStore.addBatch(entries, scope, spaceId) }
+        val inserted = runCatching { factStore.addBatch(entries, factScope, factSpace) }
             .onFailure { Logger.w(TAG, "通知事实落库失败: ${it.message}", it) }
             .getOrDefault(0)
 
@@ -154,8 +179,15 @@ class NotificationMemoryDigest(
         synchronized(processedFingerprints) { processedFingerprints[fingerprint] = true }
     }
 
-    private fun fingerprintOf(notifications: List<NotificationInput>): String {
-        val seed = notifications.joinToString("|") { "${it.packageName}:${it.timestamp}:${it.title.take(30)}" }
+    private fun fingerprintOf(
+        notifications: List<NotificationInput>,
+        assistantId: String,
+        scope: String,
+        spaceId: String,
+    ): String {
+        // owner/space 并入摘要种子:去重指纹只对同一目标库有意义。
+        val seed = listOf(assistantId, scope, spaceId).joinToString("\u001F") + "\u001E" +
+            notifications.joinToString("|") { "${it.packageName}:${it.timestamp}:${it.title.take(30)}" }
         return java.security.MessageDigest.getInstance("SHA-256")
             .digest(seed.toByteArray(Charsets.UTF_8))
             .joinToString("") { "%02x".format(it) }

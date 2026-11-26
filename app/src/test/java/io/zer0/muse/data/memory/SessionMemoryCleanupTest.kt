@@ -9,13 +9,19 @@ import io.zer0.ai.core.Model
 import io.zer0.memory.compile.MemoryCompileTarget
 import io.zer0.memory.compile.MemoryCompiler
 import io.zer0.memory.compile.MemoryFileWriter
+import io.zer0.memory.dream.MemoryDreamRevisionEntity
+import io.zer0.memory.dream.MemoryDreamStateEntity
 import io.zer0.memory.fact.FactDbProvider
 import io.zer0.memory.fact.FactStore
 import io.zer0.memory.llm.MemoryLlmClient
+import io.zer0.memory.pin.PinnedMemoryStore
 import io.zer0.memory.reflection.MemoryContradictionStore
+import io.zer0.memory.summary.CompiledSectionEntity
 import io.zer0.memory.summary.MemoryDb
 import io.zer0.memory.summary.ScopedCompiledSectionEntity
 import io.zer0.memory.summary.SessionSummaryEntity
+import io.zer0.muse.data.agentbot.AgentDreamArchiveRow
+import io.zer0.muse.data.agentbot.AgentDreamArchiveStore
 import io.zer0.muse.data.groupchat.GroupChatMemoryEntity
 import io.zer0.muse.data.session.MessageFtsDdl
 import io.zer0.muse.data.session.MessageFtsRuntime
@@ -24,6 +30,8 @@ import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -51,8 +59,13 @@ class SessionMemoryCleanupTest {
     private lateinit var factProvider: FactDbProvider
     private lateinit var filesRoot: File
     private lateinit var contradictions: MemoryContradictionStore
+    private lateinit var pinnedStore: PinnedMemoryStore
+    private lateinit var dreamArchive: AgentDreamArchiveStore
     private lateinit var cleanup: SessionMemoryCleanup
     private var previousFtsMode: Boolean = false
+
+    /** 被要求作废 AutoSave 指纹的会话 id（清理器只负责喊话，指纹缓存自己管数据）。 */
+    private val invalidatedSessions = mutableListOf<String>()
 
     private class NoopLlm : MemoryLlmClient {
         override suspend fun callText(
@@ -89,6 +102,8 @@ class SessionMemoryCleanupTest {
         factProvider = FactDbProvider(context)
         filesRoot = File(context.cacheDir, "memory-cleanup-${UUID.randomUUID()}")
         contradictions = MemoryContradictionStore(File(filesRoot, "memory_contradictions.json"))
+        pinnedStore = PinnedMemoryStore(File(filesRoot, "pinned_memory"))
+        dreamArchive = AgentDreamArchiveStore(File(filesRoot, AgentDreamArchiveStore.DIRECTORY))
         cleanup = SessionMemoryCleanup(
             summaryDao = memoryDb.sessionSummaryDao(),
             checkpointDao = memoryDb.contextCheckpointDao(),
@@ -97,6 +112,14 @@ class SessionMemoryCleanupTest {
             factDbProvider = factProvider,
             fileWriter = MemoryFileWriter(filesRoot),
             contradictionStore = contradictions,
+            pinnedMemoryStore = pinnedStore,
+            memoryDreamDao = memoryDb.memoryDreamDao(),
+            dreamArchiveStore = dreamArchive,
+            legacySectionDao = memoryDb.compiledSectionDao(),
+            invalidateFingerprintCache = { sessionId ->
+                invalidatedSessions += sessionId
+                1
+            },
         )
     }
 
@@ -194,6 +217,21 @@ class SessionMemoryCleanupTest {
     }
 
     @Test
+    fun `cleanSessions invalidates autosave fingerprints of every deleted session`() = runTest {
+        val deleted = "session-fingerprint"
+        memoryDb.sessionSummaryDao().upsert(summary(deleted, assistantId = "default"))
+
+        // 重复与空白 id 在入口就被滤掉，不应该把同一个会话反复作废。
+        cleanup.cleanSessions(listOf(deleted, deleted, "   "))
+
+        assertEquals(
+            "每个被删会话都要通知一边指纹失效，否则同 id 的会话回来后会被当成已处理",
+            listOf(deleted),
+            invalidatedSessions,
+        )
+    }
+
+    @Test
     fun `cleanAssistant drops only the target assistant memory`() = runTest {
         val doomed = "assistant_doomed"
         val kept = "assistant_kept"
@@ -225,6 +263,66 @@ class SessionMemoryCleanupTest {
         )
         assertTrue("目标助手的矛盾清单要清空", contradictions.list(doomed, "default").isEmpty())
         assertTrue("其他助手的矛盾清单要保留", contradictions.list(kept, "default").isNotEmpty())
+    }
+
+    @Test
+    fun `cleanAssistant clears pins dream state revisions and archive`() = runTest {
+        val doomed = "assistant_cleanup"
+        val kept = "assistant_other"
+        pinnedStore.add("删掉的置顶", assistantId = doomed)
+        pinnedStore.add("保留的置顶", assistantId = kept)
+        memoryDb.memoryDreamDao().upsertState(dreamState(doomed))
+        memoryDb.memoryDreamDao().upsertState(dreamState(kept))
+        memoryDb.memoryDreamDao().insertRevision(dreamRevision(doomed, "rev-doomed"))
+        memoryDb.memoryDreamDao().insertRevision(dreamRevision(kept, "rev-kept"))
+        assertTrue(dreamArchive.append(listOf(archiveRow(doomed, 1L), archiveRow(kept, 2L))))
+
+        cleanup.cleanAssistant(doomed)
+
+        assertEquals(
+            "只删目标助手的置顶",
+            listOf(kept),
+            pinnedStore.getAll().map { it.assistantId },
+        )
+        assertNull(
+            "目标助手的 Dream 状态要删",
+            memoryDb.memoryDreamDao().state(doomed, "main", "default"),
+        )
+        assertNotNull(
+            "其他助手的 Dream 状态要保留",
+            memoryDb.memoryDreamDao().state(kept, "main", "default"),
+        )
+        assertNull(
+            "目标助手的 revision 要删",
+            memoryDb.memoryDreamDao().findRevision("rev-doomed", doomed, "main", "default"),
+        )
+        assertNotNull(
+            "其他助手的 revision 要保留",
+            memoryDb.memoryDreamDao().findRevision("rev-kept", kept, "main", "default"),
+        )
+        val archiveText = File(filesRoot, "${AgentDreamArchiveStore.DIRECTORY}/temporary-facts.jsonl").readText()
+        assertFalse("目标助手的归档行要删", archiveText.contains("\"assistantId\":\"$doomed\""))
+        assertTrue("其他助手的归档行要保留", archiveText.contains("\"assistantId\":\"$kept\""))
+    }
+
+    @Test
+    fun `cleaning the default assistant clears the legacy compiled table`() = runTest {
+        memoryDb.compiledSectionDao().upsert(
+            CompiledSectionEntity(
+                sectionKey = MemoryCompiler.Section.FACTS.key,
+                content = "升级前的全局事实",
+                fingerprint = null,
+                updatedAt = "2026-01-01T00:00:00Z",
+            ),
+        )
+
+        cleanup.cleanAssistant("default")
+
+        assertEquals(
+            "scoped 行删掉后旧表会成为读取兜底，必须一并清空",
+            "",
+            memoryDb.compiledSectionDao().get(MemoryCompiler.Section.FACTS.key)?.content.orEmpty(),
+        )
     }
 
     @Test
@@ -274,5 +372,40 @@ class SessionMemoryCleanupTest {
         groupChatId = "group-1",
         assistantId = assistantId,
         summary = "群聊里聊过的事",
+    )
+
+    private fun dreamState(assistantId: String) = MemoryDreamStateEntity(
+        assistantId = assistantId,
+        scope = "main",
+        spaceId = "default",
+        running = false,
+        runId = null,
+        lastRevisionId = null,
+        activeRevisionId = null,
+        lastError = null,
+    )
+
+    private fun dreamRevision(assistantId: String, revisionId: String) = MemoryDreamRevisionEntity(
+        revisionId = revisionId,
+        assistantId = assistantId,
+        scope = "main",
+        spaceId = "default",
+        trigger = "MANUAL",
+        beforeFingerprint = "before",
+        beforeJson = "{}",
+        nextJson = "{}",
+        publishedAt = "2026-01-01T00:00:00Z",
+    )
+
+    private fun archiveRow(assistantId: String, factId: Long) = AgentDreamArchiveRow(
+        archivedAt = "2026-01-01T00:00:00Z",
+        assistantId = assistantId,
+        factId = factId,
+        content = "临时事实",
+        category = "event",
+        tagsJson = "[]",
+        expiresAt = "2025-12-31T00:00:00Z",
+        scope = "main",
+        spaceId = "default",
     )
 }

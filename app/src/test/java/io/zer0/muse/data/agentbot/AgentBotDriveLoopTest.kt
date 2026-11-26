@@ -90,7 +90,9 @@ class AgentBotDriveLoopTest {
     fun `binding a conversation loads its allowance list`() {
         val bindAt = viewModel.indexOf("fun bind(");
         assertTrue(bindAt > 0);
-        val body = viewModel.substring(bindAt, minOf(bindAt + 600, viewModel.length));
+        val bindEnd = Regex("\\R    \\}\\R").find(viewModel, bindAt)?.range?.first
+            ?: error("找不到 bind 函数结尾")
+        val body = viewModel.substring(bindAt, bindEnd);
         assertTrue(body.contains("refreshAllowances()"));
     }
 }

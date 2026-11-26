@@ -11,6 +11,105 @@ import java.io.File
 Room 迁移链第二段（37 个迁移）。
  */
 internal object MigrationsB {
+    /**
+     * v2.7.x: 帮你跟进（Watcher）与长期目标（Goal），以及卡片的 Spaces 刷新字段。
+     *
+     * 两张新表均为纯新增，不触碰既有行；卡片表通过 ALTER TABLE 追加五列，
+     * 全部带 NOT NULL DEFAULT，存量卡片读出来就是「未钉入、不自动刷新」。
+     * 列名、类型与默认值必须逐项对齐 AgentWatcherEntity / AgentGoalEntity / CardEntity，
+     * 索引名按 Room 的 index_<table>_<column...> 规则生成。
+     */
+    val MIGRATION_139_140 = object : Migration(139, 140) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `agent_watchers` (" +
+                    "`watcherId` TEXT NOT NULL, `botId` TEXT NOT NULL DEFAULT '', " +
+                    "`originSessionId` TEXT NOT NULL DEFAULT '', `title` TEXT NOT NULL DEFAULT '', " +
+                    "`instruction` TEXT NOT NULL DEFAULT '', `script` TEXT NOT NULL DEFAULT '', " +
+                    "`scriptKind` TEXT NOT NULL DEFAULT 'python', " +
+                    "`computeTarget` TEXT NOT NULL DEFAULT 'local', " +
+                    "`intervalMinutes` INTEGER NOT NULL DEFAULT 30, " +
+                    "`webhookUrl` TEXT NOT NULL DEFAULT '', `remoteWatcherId` TEXT NOT NULL DEFAULT '', " +
+                    "`lastFingerprint` TEXT NOT NULL DEFAULT '', `lastResult` TEXT NOT NULL DEFAULT '', " +
+                    "`lastCheckedAt` INTEGER NOT NULL DEFAULT 0, `nextCheckAt` INTEGER NOT NULL DEFAULT 0, " +
+                    "`status` TEXT NOT NULL DEFAULT 'ACTIVE', `lastError` TEXT NOT NULL DEFAULT '', " +
+                    "`createdAt` INTEGER NOT NULL DEFAULT 0, `updatedAt` INTEGER NOT NULL DEFAULT 0, " +
+                    "PRIMARY KEY(`watcherId`))",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_agent_watchers_botId_status` " +
+                    "ON `agent_watchers` (`botId`, `status`)",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_agent_watchers_originSessionId` " +
+                    "ON `agent_watchers` (`originSessionId`)",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_agent_watchers_nextCheckAt` " +
+                    "ON `agent_watchers` (`nextCheckAt`)",
+            )
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `agent_goals` (" +
+                    "`goalId` TEXT NOT NULL, `botId` TEXT NOT NULL DEFAULT '', " +
+                    "`originSessionId` TEXT NOT NULL DEFAULT '', `title` TEXT NOT NULL DEFAULT '', " +
+                    "`description` TEXT NOT NULL DEFAULT '', `milestonesJson` TEXT NOT NULL DEFAULT '[]', " +
+                    "`progress` INTEGER NOT NULL DEFAULT 0, `status` TEXT NOT NULL DEFAULT 'ACTIVE', " +
+                    "`dueAt` INTEGER NOT NULL DEFAULT 0, `createdAt` INTEGER NOT NULL DEFAULT 0, " +
+                    "`updatedAt` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`goalId`))",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_agent_goals_botId_status` " +
+                    "ON `agent_goals` (`botId`, `status`)",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_agent_goals_originSessionId` " +
+                    "ON `agent_goals` (`originSessionId`)",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_agent_goals_updatedAt` " +
+                    "ON `agent_goals` (`updatedAt`)",
+            )
+            db.execSQL("ALTER TABLE `card_entities` ADD COLUMN `spacePinned` INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE `card_entities` ADD COLUMN `spaceCategory` TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE `card_entities` ADD COLUMN `refreshIntervalMinutes` INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE `card_entities` ADD COLUMN `refreshPrompt` TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE `card_entities` ADD COLUMN `lastRefreshedAt` INTEGER NOT NULL DEFAULT 0")
+        }
+    }
+
+    /**
+     * Linux 轻量云电脑节点表。
+     *
+     * 纯新增表，不触碰任何既有行。列名、类型与默认值必须逐项对齐
+     * `RemoteComputeNodeEntity` —— 任一列不一致，Room 在升级后的 schema 校验阶段
+     * 会直接报 "Migration didn't properly handle: remote_compute_nodes"。
+     */
+    val MIGRATION_138_139 = object : Migration(138, 139) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `remote_compute_nodes` (" +
+                    "`nodeId` TEXT NOT NULL, `name` TEXT NOT NULL DEFAULT '', " +
+                    "`connectionMode` TEXT NOT NULL DEFAULT 'SSH_TUNNEL', " +
+                    "`host` TEXT NOT NULL DEFAULT '', " +
+                    "`sshPort` INTEGER NOT NULL DEFAULT 22, " +
+                    "`daemonPort` INTEGER NOT NULL DEFAULT 18765, " +
+                    "`username` TEXT NOT NULL DEFAULT '', " +
+                    "`authType` TEXT NOT NULL DEFAULT 'PASSWORD', " +
+                    "`encryptedCredential` TEXT NOT NULL DEFAULT '', " +
+                    "`encryptedNodeToken` TEXT NOT NULL DEFAULT '', " +
+                    "`tlsFingerprint` TEXT NOT NULL DEFAULT '', " +
+                    "`osInfoJson` TEXT NOT NULL DEFAULT '{}', " +
+                    "`installedPacksJson` TEXT NOT NULL DEFAULT '[]', " +
+                    "`status` TEXT NOT NULL DEFAULT 'UNINITIALIZED', " +
+                    "`isDefault` INTEGER NOT NULL DEFAULT 0, " +
+                    "`lastSeenAt` INTEGER NOT NULL DEFAULT 0, " +
+                    "`createdAt` INTEGER NOT NULL DEFAULT 0, " +
+                    "`updatedAt` INTEGER NOT NULL DEFAULT 0, " +
+                    "PRIMARY KEY(`nodeId`))",
+            )
+        }
+    }
+
     val MIGRATION_123_124 = object : Migration(123, 124) {
         override fun migrate(db: SupportSQLiteDatabase) {
             db.execSQL(

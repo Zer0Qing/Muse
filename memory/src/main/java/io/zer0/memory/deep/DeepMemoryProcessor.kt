@@ -113,6 +113,9 @@ class DeepMemoryProcessor(
         if (writeGate?.isBlocked(io.zer0.memory.runtime.MemoryScopeKey("default", "main", "default")) == true) {
             return@withContext ProcessResult(0, 0, 0)
         }
+        // 入口取栅栏:一次抽取调用可能让恢复窗口在会话处理期间完整开合,
+        // 返回时 restoring 已复位,只有栅栏能证明这份结果基于恢复前的库。
+        val fence = writeGate?.fence()
         val dirty = summaryManager.getDirtySessions()
         if (dirty.isEmpty()) return@withContext ProcessResult(0, 0, 0)
 
@@ -131,7 +134,7 @@ class DeepMemoryProcessor(
                             if (latest.summary == latest.snapshot) return@withLock // 已被其他路径处理
                             // v1.78 (M2): 包装 suspend 调用必须用 resultOf,避免吞 CancellationException
                             resultOf {
-                                processSingleSession(latest, summaryManager, model, locale, config)
+                                processSingleSession(latest, summaryManager, model, locale, config, fence)
                             }.onSuccess { added ->
                                 processed.incrementAndGet()
                                 factsAdded.addAndGet(added)
@@ -169,6 +172,8 @@ class DeepMemoryProcessor(
         if (writeGate?.isBlocked(io.zer0.memory.runtime.MemoryScopeKey("default", "main", "default")) == true) {
             return@withContext 0
         }
+        // 同 [processDirtySessions]:入口取栅栏,写前再比一次。
+        val fence = writeGate?.fence()
         val summary = summaryManager.getSummary(sessionId) ?: return@withContext 0
         // 只处理 dirty session(summary !== snapshot)
         if (summary.summary == summary.snapshot) return@withContext 0
@@ -177,7 +182,7 @@ class DeepMemoryProcessor(
             // v2.6.2（记忆审计）: 同一 session 与 processDirtySessions 串行化。
             lockFor(sessionId).withLock {
                 resultOf {
-                    processSingleSession(summary, summaryManager, model, locale, config)
+                    processSingleSession(summary, summaryManager, model, locale, config, fence)
                 }.onSuccess { added ->
                     if (added > 0) {
                         Logger.i("DeepMemoryProcessor", "processSession(${sessionId.take(8)}…): $added 条新事实")
@@ -189,13 +194,20 @@ class DeepMemoryProcessor(
         }
     }
 
-    /** 处理单个 session。返回新增 fact 数量。 */
+    /**
+     * 处理单个 session。返回新增 fact 数量。
+     *
+     * [fence] 为入口取的恢复栅栏:模型返回后、stage 前与 publish 前各判一次闸,
+     * 被挡时已 stage 的 generation 直接孤立,不写 markProcessed —— 该 session 保持 dirty,
+     * 恢复结束后从同一 snapshot 重抽。
+     */
     private suspend fun processSingleSession(
         summary: SessionSummaryManager.SummaryData,
         summaryManager: SessionSummaryManager,
         model: Model?,
         locale: String = "zh-CN",
         config: MemoryConfig = MemoryConfig(),
+        fence: io.zer0.memory.runtime.MemoryWriteFence? = null,
     ): Int {
         // 连续 daily 失败达上限,标记为已处理不再重试(避免反复浪费 LLM 调用)
         if (maybeSkipExhaustedSession(summary, summaryManager)) return 0
@@ -210,6 +222,12 @@ class DeepMemoryProcessor(
         // 重新抽回 facts 表(S-04 墓碑此前只作用于 compileFacts/compileToday,
         // deepMemory 的输入摘要与 LLM 输出均未过滤,已删内容会"复活")。
         val memoryScope = if (summary.assistantId.isBlank() || summary.assistantId == "default") "main" else summary.assistantId
+        // 闸键按摘要归属构造:闸本身是进程级的,但别用占位键掩盖真实的 owner/scope/space。
+        val gateScope = io.zer0.memory.runtime.MemoryScopeKey(
+            assistantId = summary.assistantId.ifBlank { "default" },
+            scope = memoryScope,
+            spaceId = summary.spaceId.ifBlank { "default" },
+        )
         val tombstones = resultOf { factStore.getTombstones(memoryScope, summary.spaceId) }.getOrNull() ?: emptyList()
         val effectiveSummary = filterAssistantAttributedMemoryEntries(
             FactStore.filterTombstonedLines(summaryText, tombstones),
@@ -245,6 +263,15 @@ class DeepMemoryProcessor(
                     temperature = 0.3f,
                     maxTokens = FACT_EXTRACTION_MAX_TOKENS,
                 )
+                // 模型返回后、任何写库动作前按入口栅栏复核:恢复窗口可能已在调用期间开合完毕。
+                // 此时不 markProcessed、不记成功,直接返回 0 —— session 保持 dirty,下轮重抽。
+                if (writeGate?.blocksWrite(gateScope, fence) == true) {
+                    Logger.d(
+                        "DeepMemoryProcessor",
+                        "恢复窗口内跳过事实落库(session=${summary.sessionId.take(8)}…),保留 dirty 待重试",
+                    )
+                    return 0
+                }
                 val facts = parseFactExtractionResult(rawResult, summary, locale)
                 // v1.0.51: 解析失败(null)→ 不 markProcessed,抛异常走重试,避免永久跳过丢事实
                 if (facts == null) {
@@ -312,6 +339,15 @@ class DeepMemoryProcessor(
                     factStore.orphanProjection(generationId)
                     failureCounts[summary.sessionId] = (failureCounts[summary.sessionId] ?: 0) + 1
                     throw IllegalStateException("session summary changed during fact extraction")
+                }
+                // 发布前再判一次:stage 已写入,被挡时把它孤立掉,不让半份投影留在库里可见。
+                if (writeGate?.blocksWrite(gateScope, fence) == true) {
+                    factStore.orphanProjection(generationId)
+                    Logger.d(
+                        "DeepMemoryProcessor",
+                        "恢复窗口内跳过事实发布(session=${summary.sessionId.take(8)}…),已孤立 generation",
+                    )
+                    return 0
                 }
                 val published = factStore.publishSessionFacts(generationId, summary.sessionId, summary.summaryRevision)
                 if (published !is io.zer0.memory.fact.ProjectionPublishResult.Published) {
