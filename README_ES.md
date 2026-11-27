@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/readme/banner.png" width="100%" alt="Muse: no solo conversación, una IA que te conoce de verdad">
+  <img src="assets/readme/banner.png" width="100%" alt="Muse — Agente personal de IA en tu teléfono">
 </p>
 
 <p align="center">
@@ -22,336 +22,226 @@
 
 <p align="center">
   <a href="#qué-es-muse">Qué es Muse</a> ·
-  <a href="#capturas-de-pantalla">Capturas de pantalla</a> ·
+  <a href="#capturas">Capturas</a> ·
   <a href="#descarga">Descarga</a> ·
-  <a href="#primeros-pasos">Primeros pasos</a> ·
+  <a href="#inicio-rápido">Inicio rápido</a> ·
   <a href="#funciones">Funciones</a> ·
-  <a href="用户手册.md">manual de usuario (chino)</a> ·
-  <a href="#código-abierto">Código abierto</a>
+  <a href="#compilar-desde-el-código">Compilar</a> ·
+  <a href="#contribuir">Contribuir</a>
 </p>
 
 ---
 
 ## Qué es Muse
 
-Muse es un agente personal que corre en tu propio teléfono.
+Muse es un agente personal de IA que vive en tu propio teléfono Android.
 
-La mayoría de los agentes personales de 2026 corren en la nube. Te recuerdan y te resuelven trabajo, pero la conversación, la memoria y la ejecución están en el servidor de otra persona.
+La mayoría de los asistentes de IA son pestañas en la nube: los abres, conversas y al cerrar todo queda en servidores ajenos. Muse está hecho para quedarse en tu dispositivo. No requiere cuenta ni telemetría; tus chats, recuerdos y base de conocimiento se guardan en SQLite local por defecto, y puedes conectar el proveedor que prefieras (OpenAI, Anthropic, Gemini, DeepSeek, Qwen, Zhipu o servidores locales compatibles con OpenAI) y cambiarlo cuando quieras.
 
-Muse devuelve todo eso al dispositivo. Vive en tu Android, acepta el modelo que le pongas (más de 40 proveedores predefinidos) y deja tus datos en el teléfono por defecto. Cuando hay algo que hacer, opera el teléfono directamente: lee la pantalla, toca, ejecuta comandos, lee y escribe archivos.
+Lo que lo diferencia de un cliente de API convencional:
 
-Hace cuatro cosas:
+- **Recuerda a la persona, no solo una sesión**: extrae hechos importantes, los resume y los organiza con el tiempo, protegiendo del olvido datos médicos o de identidad. Cambia de modelo o abre otro chat y seguirá sabiendo quién eres.
+- **Toma la iniciativa cuando toca**: anota asuntos pendientes para preguntarte más adelante, despierta a la hora programada y respeta tus horas de silencio (y si lo ignoras, reduce la frecuencia).
+- **Opera tu teléfono de verdad**: si le das permisos, puede leer la pantalla, tocar, ejecutar comandos, navegar en su propio WebView, trabajar con archivos en sandbox, usar un entorno Ubuntu `proot` bajo demanda (Node / Python) o conectarse por SSH a tu propio servidor Linux.
+- **Tarjetas interactivas dentro del chat**: en lugar de soltar bloques infinitos de texto, puede dibujar gráficos y tarjetas HTML/SVG interactivas (como Gomoku, rastreadores o cuestionarios) que consultan al asistente en segundo plano sin inundar el historial.
 
-| | Significado | Cómo lo hace Muse |
-|---|---|---|
-| **Continuo** | Cambia de sesión, de canal o de modelo y sigue siendo el mismo | Memoria en cuatro capas + una sola persona en los cinco canales de chat |
-| **Proactivo** | Avanza lo que hay que avanzar sin que lo llames | Libro de lo que te quiere decir, tareas programadas, escribirte cuando lleva tiempo en silencio |
-| **Capaz** | Hace más que hablar | Capas Accesibilidad / Shizuku / Root, más de 200 herramientas, terminal y pantalla virtual |
-| **Persistente** | Lo cierras y lo abres, y sigue ahí | Servicio en primer plano, base de datos local, runtimes sin conexión |
+---
 
-Sin registro, sin cuenta: lo desinstalas y se va.
-
-## Capturas de pantalla
+## Capturas
 
 <p align="center">
-  <img src="screenshots/en/chat.jpg" width="180" alt="Chat: conversación diaria con una tarjeta de Mood">
-  <img src="screenshots/en/memory.jpg" width="180" alt="Memoria: flujo de hechos y línea de tiempo">
-  <img src="screenshots/en/group-chat.jpg" width="180" alt="Chat grupal: varios asistentes conversando">
-  <img src="screenshots/en/knowledge.jpg" width="180" alt="Base de conocimiento: ajustes de búsqueda">
+  <img src="screenshots/en/chat.jpg" width="180" alt="Chat">
+  <img src="screenshots/en/memory.jpg" width="180" alt="Memoria">
+  <img src="screenshots/en/group-chat.jpg" width="180" alt="Chat grupal">
+  <img src="screenshots/en/knowledge.jpg" width="180" alt="Base de conocimiento">
 </p>
 
 <details>
-<summary><b>Más capturas</b> (toca para expandir)</summary>
+<summary>Ver más capturas</summary>
 
 <p align="center">
-  <img src="screenshots/en/automation.jpg" width="140" alt="Automatización de UI y asistente de permisos">
-  <img src="screenshots/en/plugins.jpg" width="140" alt="Mercado de plugins y gestión de confianza">
-  <img src="screenshots/en/channels.jpg" width="140" alt="Integración de canales de mensajería">
+  <img src="screenshots/en/automation.jpg" width="140" alt="Automatización y permisos">
+  <img src="screenshots/en/plugins.jpg" width="140" alt="Plugins">
+  <img src="screenshots/en/channels.jpg" width="140" alt="Canales">
 </p>
 <p align="center">
-  <img src="screenshots/en/assistants.jpg" width="140" alt="Gestión de asistentes e importación de tarjetas de personaje">
-  <img src="screenshots/en/proactive.jpg" width="140" alt="Mensajes proactivos y horas de silencio">
-  <img src="screenshots/en/web-search.jpg" width="140" alt="Ajustes de búsqueda web">
+  <img src="screenshots/en/assistants.jpg" width="140" alt="Asistentes">
+  <img src="screenshots/en/proactive.jpg" width="140" alt="Mensajes proactivos">
+  <img src="screenshots/en/web-search.jpg" width="140" alt="Búsqueda web">
 </p>
 <p align="center">
-  <img src="screenshots/en/data-backup.jpg" width="140" alt="Estadísticas, copia de seguridad y datos">
-  <img src="screenshots/en/vision.jpg" width="140" alt="Asistencia visual y prueba de diagnóstico">
-  <img src="screenshots/en/stickers.jpg" width="140" alt="Gestión de la biblioteca de stickers">
+  <img src="screenshots/en/data-backup.jpg" width="140" alt="Copia de seguridad">
+  <img src="screenshots/en/vision.jpg" width="140" alt="Visión">
+  <img src="screenshots/en/stickers.jpg" width="140" alt="Stickers">
 </p>
 
 </details>
 
+---
+
 ## Descarga
 
-| Tu dispositivo | Elige | Notas |
+| Tu dispositivo | Archivo | Notas |
 | --- | --- | --- |
-| Teléfonos recientes | `arm64-v8a` | Recomendado, el paquete más pequeño |
-| Teléfonos más antiguos | `armeabi-v7a` | Para equipos de generaciones anteriores |
-| Si no estás seguro | `universal` | Paquete universal, compatible con todo |
+| Teléfonos Android recientes | `arm64-v8a` | Recomendado, menor tamaño |
+| Dispositivos antiguos de 32 bits | `armeabi-v7a` | Compatibilidad clásica |
+| No estás seguro | `universal` | Funciona en todas las arquitecturas |
 
-Descarga el APK más reciente desde la página oficial [museai.ltd/download](https://museai.ltd/download/) (conexión directa y rápida en China, es la opción recomendada); también está disponible en [GitHub Releases](https://github.com/Zer0Qing/Muse/releases/latest). Instálalo encima de la versión anterior y tus datos se conservan.
+- **GitHub Releases**: [Última versión](https://github.com/Zer0Qing/Muse/releases/latest)
+- **Web oficial**: [museai.ltd/download](https://museai.ltd/download/)
+
+Instala encima de la versión anterior sin perder tus datos locales.
 
 > [!WARNING]
-> Descarga los paquetes solo desde la página oficial de Releases o desde el sitio web oficial. Los paquetes de canales desconocidos pueden estar modificados y poner en riesgo tus datos y tu dispositivo.
+> Descarga solo desde GitHub Releases o el sitio oficial. Las comprobaciones de actualización solo abren la página oficial y nunca descargan APKs en segundo plano.
 
-> [!NOTE]
-> Las actualizaciones dentro de la app solo abren los archivos oficiales servidos por HTTPS de GitHub; nunca descargan ni instalan APKs en silencio. El aviso de "origen desconocido" al instalar es normal.
+---
 
-## Primeros pasos
+## Inicio rápido
 
-1. **Configura un proveedor de modelos**: abre **Ajustes → Modelos y razonamiento → Proveedores**, elige un proveedor predefinido (DeepSeek, Qwen, Zhipu y otros regalan crédito al registrarte), pega tu API Key, prueba la conexión y obtén la lista de modelos.
-2. **Empieza a conversar**: vuelve al inicio y envía tu primer mensaje. La memoria empieza a acumularse desde ese momento, y te sigue reconociendo aunque cambies de modelo o de sesión.
-3. **Desbloquea capacidades del sistema (opcional)**: si quieres que actúe, abre **Ajustes → Asistente de permisos** y activa los canales que necesites entre Accesibilidad / Shizuku / Root / Termux. Cada paso incluye detección y pruebas integradas.
+1. **Añade tu clave API**: ve a **Ajustes → Modelos y proveedores**, elige un proveedor (o endpoint propio), pega tu clave, prueba la conexión y obtén los modelos.
+2. **Elige tu pantalla de inicio**: en **Ajustes → Apariencia** puedes previsualizar y cambiar entre **Clásico (3 pestañas)** y **Cajón minimalista** (abre directo en el chat).
+3. **Empieza a hablar**: desde el primer mensaje, la memoria empieza a construirse en tu dispositivo.
+4. **Activa permisos solo si los necesitas**: chatear no requiere permisos extra. Para automatizar el teléfono o ejecutar scripts, abre **Ajustes → Asistente de permisos** o descarga el runtime Ubuntu `proot` bajo demanda.
 
-> La guía completa (con todos los gestos y las operaciones menos visibles) está en el [manual de usuario (chino)](用户手册.md) o dentro de la app en **Ajustes → Tutorial**.
+---
 
-## Por qué Muse
+## Diferencias frente a un agente en la nube
 
-### 1. Corre en un dispositivo que es tuyo
-
-Un agente en la nube te da un servicio: inicias sesión, él te recuerda, los datos viven allí. Muse es un proceso permanente en un dispositivo que es tuyo.
-
-- Las conversaciones, la memoria y la base de conocimiento viven en una base de datos Room local; sin telemetría, sin analítica, sin registro
-- Cualquier modelo: más de 40 proveedores predefinidos, además de endpoints compatibles con OpenAI autoalojados o en tu red local
-- Los ajustes sensibles pasan por Android Keystore; la PII se enmascara antes de enviarse y se restaura en la respuesta
-
-### 2. La memoria se organiza por persona, no por sesión
-
-Cuatro capas de memoria, de la conversación a corto plazo al procesamiento a largo plazo:
-
-```
-conversación --> extracción de hechos --> resumen acumulativo --> compilación --> procesamiento profundo
-corto plazo      datos clave              compresión              dedup/fusión    comprensión profunda
-```
-
-- Los hechos de salud, finanzas e identidad central no decaen; la información cotidiana se olvida según su uso
-- Cada recuerdo se puede rastrear hasta su origen, y editar, reponderar o buscar; los recuerdos de distinto propósito se aíslan por espacio
-- Un mismo asistente en WeChat / QQ / Feishu / Telegram / DingTalk, con contexto y resumen acumulativo por contacto
-
-### 3. No espera a que le hables
-
-- **Libro de lo que te quiere decir**: el asistente apunta lo que quiere preguntarte y elige una entrada cuando llega el momento
-- **Libro de resultados**: abierto, respondido o descartado, todo queda registrado; de ahí aprende la intimidad para decidir cuántas veces puede hablar hoy
-- **Horas de silencio**: calla cuando deberías estar durmiendo
-- **Tareas programadas**: se ejecutan a su hora y el resultado vuelve a la conversación
-
-### 4. Puede operar el teléfono directamente
-
-| Canal | Capacidades | Requisito |
-|------|------|------|
-| Accesibilidad (proceso independiente) | Leer la pantalla, tocar / deslizar / mantener pulsado / escribir, Atrás / Inicio / panel de notificaciones | Activar un interruptor del sistema |
-| Shell (Shizuku / adb) | Capturas de pantalla, comandos `input`, consultar la app en primer plano, comandos de dispositivo | Autorizar una vez |
-| Root | Control total del sistema, acceso a los datos de otras apps | Dispositivo con root |
-| Termux | Entorno Linux completo (apt / pip / gcc / ffmpeg) | Instalar Termux y autorizar |
-
-- **Más de 200 herramientas**, expuestas por capas por defecto; las capacidades de cola larga se cargan a demanda con `find_tools`
-- Cada herramienta indica la autorización que requiere y su estado de preparación; si no está lista, falla antes de ejecutarse y da instrucciones claras
-- Terminal integrada (PTY propio + xterm), pantalla virtual en segundo plano, GUI Agent guiado por visión, automatización de navegador
-- Límites de seguridad: lista blanca de comandos, aprobación por riesgo (Confianza / Consultar / Estricto), tiempos de espera duros, sandbox del espacio de trabajo
-
-### 5. Borradores, persona y varios asistentes
-
-- **Mood en cuatro dimensiones**: Vibe / Sparks / Reflections / Will antes de cada respuesta, plegado por defecto
-- **Persona en tres capas**: capa de persona / capa de relación / capa de estilo, con las variables de plantilla `{{user_name}}` / `{{char}}`
-- **Multiagente**: delega con `@nombre-del-asistente`, las tarjetas de tarea muestran el estado de cada paso, los subagentes corren en ventanas flotantes y los asistentes pueden enviarse mensajes
-- **Reuniones de grupo**: tarjeta de resumen, votaciones, observadores, plantillas rápidas, controles de reunión
-- **Hitos**: el primer mensaje, los días 7 / 30 / 100, los mensajes 100 / 1000
-
-### En qué se diferencia de un agente en la nube
-
-| | Agente personal en la nube | Muse |
+| | Agente en la nube | Muse |
 |---|---|---|
-| Se ejecuta en | Un host en la nube / una pestaña del navegador | Tu propio teléfono |
-| Datos | Se suben antes de poder recordarte | Se quedan en el dispositivo por defecto |
-| Puede tocar | Páginas web y APIs | El dispositivo mismo: pantalla, comandos, archivos, otras apps |
-| Modelo | Atado a la plataforma | Más de 40 proveedores, cambia cuando quieras |
-| Coste | Suscripción y privacidad | Pones tú el dispositivo y la API Key |
+| Dónde corre | Servidores remotos | Tu propio teléfono Android |
+| Dónde viven los datos | Subidos al proveedor | SQLite Room local por defecto |
+| Qué puede tocar | APIs web y pestañas | Pantalla, archivos, notificaciones, shell y tu host SSH |
+| Modelos | Atado a una plataforma | Más de 40 proveedores, cámbialos cuando quieras |
+| Coste | Suscripción + tus datos | Tu dispositivo y tu propia clave API |
+
+---
 
 ## Funciones
 
 <details>
-<summary><b>Experiencia de chat</b>: streaming y continuidad / sesiones / acciones sobre mensajes / multimodelo / voz / multimodal / búsqueda</summary>
+<summary><b>Chat y lectura</b> —— dos inicios, tipografía, tarjetas interactivas, voz y visión</summary>
 
-- **Streaming y tolerancia a fallos**: salida palabra por palabra vía SSE, con parada en cualquier momento; si el flujo se corta, se reanuda cuando vuelve la red. El stream-guard integrado detecta el "fin prematuro del stream" (stream vacío o sin primer paquete) y reintenta sin streaming; un watchdog de primer evento (45 s en modelos normales, 90 s en modelos de razonamiento sin primer paquete) cambia el modo de petición automáticamente.
-- **Gestión de sesiones**: fijar, archivar, borrado con deshacer, agrupar en carpetas y reordenar las fijadas arrastrando. La búsqueda global usa el índice de texto completo de SQLite FTS5, con retroceso a FTS4 donde no está disponible. Cada sesión tiene su propia ventana de contexto y las conversaciones muy largas se comprimen con resúmenes acumulativos.
-- **Acciones sobre mensajes**: regenerar conservando varias versiones (conmutador `1/3`, sin perder el historial); ramificar abre una línea nueva desde cualquier mensaje del usuario y la original queda intacta; responder citando inyecta el texto citado en el contexto. Menú de pulsación larga con copiar (texto plano / Markdown), reenviar, compartir, guardar en favoritos, editar, traducir, leer en voz alta, eliminar, además de anotaciones en mensajes.
-- **Favoritos**: gestión centralizada, con etiquetas de grupo al mantener pulsado.
-- **Experiencia de entrada**: entrada a pantalla completa para textos largos, comandos de barra (`/new` `/compact` `/reset` `/pin` `/archive`), pegar como archivo con umbral configurable, mensajes rápidos. Una llamada de herramienta interrumpida se puede reanudar o descartar con un toque.
-- **Captura rápida**: cápsula flotante opcional para notas desde cualquier pantalla, guardadas en la biblioteca local.
-- **Razonamiento profundo**: niveles OFF / AUTO / LOW / MEDIUM / HIGH / XHIGH, de 1000 a 16000 tokens de presupuesto, con el proceso de razonamiento plegado.
-- **Multimodelo**: soporte nativo de los protocolos de OpenAI / Anthropic / Gemini y de cualquier endpoint compatible con OpenAI; más de 40 proveedores predefinidos con lista de modelos obtenida dinámicamente. Cada modelo indica sus capacidades de visión, razonamiento y herramientas. Las tareas auxiliares (títulos, compresión, resúmenes, compilación de memoria) van por niveles separados de modelo "herramienta pequeña / herramienta grande". Cabeceras, cuerpo de petición y proxy de red son configurables.
-- **Voz**: reconocimiento de voz en streaming con transcripción en vivo, visualización de la onda y deslizar hacia arriba para cancelar. TTS con voces del sistema o voces en la nube (OpenAI / MiniMax / Edge y otros) configurado por asistente, más clonación de voz en la nube (ElevenLabs / FishAudio).
-- **Entrada multimodal**: varias imágenes por mensaje; análisis automático de PDF / DOCX / EPUB / TXT; OCR offline para documentos escaneados.
-- **Asistencia visual**: al enviar imágenes a un modelo sin visión, un modelo de visión genera una descripción estructurada en ocho dimensiones (resumen general, texto OCR, objetos y disposición, datos de gráficos, reformulación de la petición, respuesta, evidencia visual, incertidumbre) con grounding por coordenadas. Las descripciones se cachean por imagen, petición y versión del prompt; el análisis de varias imágenes corre en paralelo con un límite de 60 segundos y degradación a texto si falla.
-- **Búsqueda y navegación web**: fuentes de búsqueda configurables (búsqueda nativa del modelo, Bing, Baidu, SearXNG, Tavily, DeepSeek, motores personalizados) con respaldo en cascada. Un motor personalizado puede apuntar a cualquier servicio de búsqueda que devuelva JSON (un SearXNG propio, una pasarela interna), admite GET o POST, mapeo de rutas de los campos del resultado y autenticación Bearer opcional, y se coloca al principio de la cadena Auto. La extracción del cuerpo de las páginas usa Jina Reader. Cada sesión tiene su navegador integrado, y la cápsula superior se expande en imagen en vivo mientras la IA navega.
-- **Traducción y lectura en voz alta**: traduce o lee cualquier mensaje con una pulsación larga; el modelo de traducción se configura por separado; se conserva el historial de traducciones.
-- **Renderizado y tarjetas**: renderizado completo de Markdown con resaltado de código para más de 20 lenguajes, fórmulas KaTeX, diagramas Mermaid y tablas. La IA puede emitir tarjetas interactivas y tarjetas de artefactos (código / documentos / tablas), gestionadas en un centro de artefactos con vista a pantalla completa y exportación.
+- **Dos diseños de inicio**: 3 pestañas clásicas o cajón minimalista directo al chat.
+- **Streaming resistente**: pausar/reanudar SSE, respaldo automático sin streaming ante flujos vacíos y niveles de razonamiento (`OFF` a `XHIGH`).
+- **Tipografía cuidada y lector**: espaciado limpio entre texto CJK, palabras latinas, números y código en línea (sin romper URLs ni fórmulas `$...$`), resaltado en más de 20 idiomas, KaTeX, Mermaid y lector de artefactos a pantalla completa.
+- **Tarjetas silenciosas**: las tarjetas HTML/SVG consultan al asistente en segundo plano (`window.muse.ask` / `saveState`) sin llenar el chat de mensajes por cada clic.
+- **Enrutado multimodelo y visión**: modelos separados para chat, títulos, compresión y memoria; descripción automática en 8 dimensiones al enviar imágenes a modelos sin visión.
+- **Búsqueda, voz y archivos**: búsqueda web configurable, navegador por sesión, ASR en streaming, TTS local/nube + clonación de voz, y lectura de PDF / DOCX / EPUB / OCR sin conexión.
 
 </details>
 
 <details>
-<summary><b>Memoria y crecimiento</b>: pipeline de cuatro capas / decaimiento y protección / continuidad del contexto / biblioteca de experiencias / base de conocimiento / mensajes proactivos</summary>
+<summary><b>Memoria y base de conocimiento</b> —— cuatro capas, perfil independiente, RAG local</summary>
 
-- **Pipeline de memoria en cuatro capas**: (1) el flujo original de la conversación; (2) extracción de hechos, con los hechos clave y su importancia y origen; (3) resúmenes acumulativos, que comprimen las conversaciones largas sin perder el hilo; (4) procesamiento profundo, compilando, deduplicando y fusionando en segundo plano hasta formar memoria a largo plazo. Los hechos se indexan a texto completo y son consultables.
-- **Importancia y decaimiento**: los hechos de salud, finanzas e identidad central están protegidos y no decaen; la información cotidiana se olvida según su frecuencia de uso.
-- **Panel de memoria**: navegación por espacio o categoría; añadir, editar y borrar entradas, ajustar la importancia, filtrar por fecha o por peso. La pulsación larga permite seleccionar varias y borrar en lote tanto en la lista como en la línea de tiempo, sin volver al principio al terminar. Cada recuerdo se rastrea hasta su sesión de origen y las entradas largas se expanden al tocarlas.
-- **Espacios de memoria**: los recuerdos de distintos propósitos quedan aislados y no se contaminan entre sí.
-- **Continuidad del contexto**: el historial que queda fuera de la ventana de contexto no se descarta en silencio. Se genera un extracto determinista del historial, conservando fragmentos literales de la conversación y entradas de herramientas, que se inserta delante de la ventana; al comprimir los turnos de herramientas se conservan las notas del asistente; el resumen de compresión indica qué archivos se tocaron en ese tramo.
-- **Continuidad entre sesiones**: una conversación nueva puede traer los últimos turnos de la anterior (entre 4 y 40, ajustable, desactivado por defecto).
-- **Biblioteca de experiencias**: convierte "este tipo de problema se resuelve así" en experiencia reutilizable que las tareas futuras consultan automáticamente (se puede activar o desactivar).
-- **Base de conocimiento (RAG)**: los documentos importados se analizan, se fragmentan y se indexan; la recuperación combina búsqueda semántica y coincidencia de palabras clave; con @ se limita la búsqueda a documentos concretos; los archivos muy grandes se indexan en streaming; en entornos sin conexión se degrada a búsqueda local; las citas remiten a los fragmentos originales.
-- **Resumen diario y saludos**: a la hora configurada se genera un repaso del día, visible en el inicio y con notificación opcional. El saludo de la mañana lo genera el modelo a partir de los asuntos recientes en la memoria, no es una plantilla fija.
-- **Mensajes proactivos**: no hay sondeos a intervalos fijos. Funciona con un libro de lo que te quiere decir: el asistente anota ahí lo que te quiere preguntar y elige una entrada cuando llega el momento. Que lo abras, respondas o lo descartes queda en un libro de resultados, y de ahí aprende la intimidad para decidir cuántas veces puede hablar hoy. Cinco niveles (Silencioso / Reservado / Estándar / Activo / Pegajoso), con la opción de volver al nivel por defecto y poner a cero la cuota del día; se respetan las horas de silencio; si no tiene nada que aportar, prefiere no escribir; y tras mucho tiempo sin hablar, saluda por iniciativa propia. De madrugada sigue ordenando recuerdos sin molestarte, y el contenido de las notificaciones diarias es configurable.
-- **Hitos**: el primer mensaje, los días 7 / 30 / 100 juntos, los mensajes 100 / 1000 y otros momentos se registran automáticamente y se pueden revisar en la página de hitos.
-- **Estadísticas y panel de actividad**: la página de estadísticas incluye el total de conversaciones y mensajes, la media diaria, la racha de días y un mapa de calor diario; el panel de actividad muestra el historial de ejecución de tareas programadas, heartbeats y compilación de memoria.
+- **Memoria en cuatro capas**: flujo de chat → extracción de hechos → resúmenes continuos → organización Dream (con rollback).
+- **Perfil "Sobre ti" independiente**: cinco ámbitos personales guardados en archivos locales privados fuera de la base de conocimiento, con interruptor propio.
+- **RAG local**: búsqueda híbrida vectorial + palabras clave, menciones `@documento`, indexado en streaming para archivos grandes y borrado por lotes.
+- **Mensajes proactivos programados**: recordatorios exactos por minutos o fecha/hora, respetando horas de silencio.
 
 </details>
 
 <details>
-<summary><b>Herramientas y automatización</b>: más de 200 herramientas / capas de permisos / aprobaciones y presupuestos / cuatro canales / terminal / pantalla virtual / GUI Agent</summary>
+<summary><b>Automatización y Compute Node</b> —— 180+ herramientas, proot, pantalla virtual, SSH</summary>
 
-- **Sistema de herramientas**: más de 200 herramientas, expuestas por capas (núcleo / comunes / opcionales / avanzadas). Por defecto solo se envían las comunes para mantener el contexto ligero, y las capacidades de cola larga se buscan y cargan con `find_tools` por palabra clave, quedando disponibles durante la sesión. El prompt del sistema incluye un índice vivo de capacidades con el número realmente disponible en cada ronda.
-- **Capas de permisos**: cada herramienta que necesita Shizuku / Root, Accesibilidad o Termux declara sus dependencias y su estado (READY / NOT READY); si no está lista, falla antes de ejecutarse y devuelve un error estructurado `permission_required` con instrucciones de autorización.
-- **Sistema de aprobación**: nivel de riesgo (seguro / normal / alto) combinado con tres modos (Confianza / Consultar / Estricto); se admite "permitir en esta sesión" y políticas personalizadas por herramienta; las acciones de alto riesgo se preguntan antes de ejecutarse.
-- **Motor de ejecución**: las herramientas de solo lectura se ejecutan en paralelo de forma controlada (máximo 3) para ganar velocidad; las bloqueantes usan un pool de hilos dedicado con tiempos de espera duros; las salidas demasiado grandes se guardan en disco y en el contexto solo queda una vista previa con una referencia para `read_file`. El criterio de éxito o fallo es unificado, los fallos repetidos paran pronto indicando el motivo real, y las rondas de herramientas no tienen límite por defecto (se puede fijar un máximo), con protecciones de circuito por llamadas idénticas repetidas, rondas sin progreso y número total de llamadas.
-- **Cuatro canales de ejecución**: Accesibilidad (proveedor en proceso independiente y comunicación AIDL, que sobrevive a las actualizaciones de la app), Shizuku (elevación por Binder), Root (su) y Termux (RUN_COMMAND); el nivel se elige automáticamente según lo que esté disponible.
-- **Comandos de dispositivo**: `device_shell` pasa por una lista blanca de verbos (dumpsys / settings / am / pm / input / screencap / uiautomator / cmd / svc / wm / getprop / content, etc.); las tuberías, las redirecciones y el encadenamiento están prohibidos, y todo lo que quede fuera de la lista blanca se rechaza.
-- **Terminal integrada**: motor PTY propio con página de terminal xterm, en tres entornos: la terminal del sandbox de la app, el canal de comandos del dispositivo y el Linux completo de Termux (apt / pip / gcc / ffmpeg).
-- **Pantalla virtual**: un proceso servidor independiente crea una pantalla oculta en segundo plano, de modo que todo el flujo de operaciones del agente no ocupa tu pantalla principal; los fotogramas se capturan a demanda.
-- **GUI Agent**: bucle de varios pasos guiado por visión: captura de pantalla → decisión del modelo de visión → tocar / deslizar / escribir → nueva captura para verificar, hasta completar la tarea.
-- **Automatización de navegador**: navigate / click / type / extract / scroll / get_html / snapshot; una instancia de navegador independiente por sesión.
-- **Espacio de trabajo**: espacio de archivos controlado (leer / escribir / listar / mover / borrar), con las operaciones limitadas a los límites del sandbox.
-- **Programaciones y recordatorios**: tareas programadas con expresiones cron e historial de ejecución; alarmas, temporizadores, eventos de calendario y notas que se ejecutan o avisan a su hora.
-- **Escucha de notificaciones**: lee el flujo de notificaciones del dispositivo y responde o hace sugerencias.
-- **Asistente de permisos**: detección y guía de los cuatro canales en un solo lugar, con una prueba en vivo de "leer pantalla".
+- **Más de 180 herramientas** (200+ con MCP, plugins y skills), cargadas bajo demanda con `find_tools`.
+- **Múltiples canales**: accesibilidad en proceso independiente (sobrevive a actualizaciones), Shizuku, Root, Termux y runtime `proot` Ubuntu bajo demanda para Node/Python.
+- **Pantalla virtual y GUI Agent**: ejecuta flujos multipaso en una pantalla oculta sin bloquear tu pantalla principal.
+- **Compute Node ligero por SSH**: conecta tu propia máquina Linux por SSH para tareas pesadas y control en vivo del navegador remoto.
+- **Límites de seguridad**: lista blanca en `device_shell`, permisos en cuatro niveles, aprobaciones por riesgo y diagnóstico de ahorro de batería.
 
 </details>
 
 <details>
-<summary><b>Asistentes y ecosistema</b>: reuniones de grupo / world book / Skills / mercado de plugins / MCP / cinco canales de mensajería</summary>
+<summary><b>Multiasistente, grupos, canales y plugins</b> —— WeChat / QQ / Feishu / Telegram / DingTalk</summary>
 
-- **Varios asistentes**: cada asistente configura su modelo, prompt de sistema, parámetros de muestreo, recursos vinculados, lista blanca de herramientas y skills. Delega con `@nombre` y la tarjeta de tarea muestra el estado de cada paso; los subagentes ejecutan tareas largas en ventanas flotantes sin ocupar la conversación principal, y los asistentes pueden escribirse entre ellos.
-- **Asistentes avanzados**: world book (entradas permanentes, disparadores por palabra clave, inyección por profundidad); inyecciones de prompt (fragmentos personalizados según el modo); recursos asociados (vincular una base de conocimiento para priorizar la recuperación). Se admiten tarjetas de personaje de SillyTavern, y tus propios asistentes se pueden empaquetar para compartirlos.
-- **Reuniones de grupo**: cuatro modos de discusión (por turnos / libre / debate / con moderador). Antes de cada ronda se lee el contexto del grupo, se puede saltar el turno y cada asistente tiene memoria aislada. Capacidades de reunión: tarjeta dedicada de resumen (copiar / compartir / guardar como documento compartido), renderizado de votos, miembros observadores, documentos compartidos del grupo y contexto privado de la IA, control de la cola de palabra (pausar / continuar / saltar), plantillas rápidas (revisión de propuestas / debate a favor y en contra / lluvia de ideas / retrospectiva de proyecto) y plegado de rondas. Las interrupciones durante un turno no se pierden.
-- **Sistema de Skills**: las skills integradas funcionan sin configurar nada; importación y exportación de `.skill.json` con esquema de parámetros; las skills de prompt aceptan parámetros de entrada (marcadores `{{input}}` / `{{args}}`); la instalación pasa por listas blancas de implementación y protección contra inyección.
-- **Mercado de plugins**: buscar, instalar, activar, desactivar y desinstalar con gestión de confianza; los plugins pueden aportar herramientas, paneles de UI y skins para las burbujas de mensaje; el asistente puede escribir borradores de plugins en JS, que solo surten efecto después de firmarlos y activarlos manualmente; los plugins se ejecutan dentro de los límites del sandbox.
-- **Protocolo MCP**: conecta MCP Servers externos para ampliar el conjunto de herramientas, con autenticación OAuth, transporte SSE y descubrimiento automático.
-- **Conectores OAuth**: integra servicios de terceros con credenciales cifradas en local, gestionados desde un centro de conexiones junto a modelos y canales.
-- **Cinco canales de mensajería**: WeChat (vinculación por QR), QQ (bot por WebSocket), Feishu (eventos por conexión persistente), Telegram y DingTalk (modo Stream). Cada contacto tiene su propio contexto de sesión y resumen acumulativo; las imágenes y los mensajes de voz se guardan y se transcriben; cada canal puede vincularse a un asistente y un modelo distintos; cada plataforma trae su asistente de configuración y prueba de conexión.
+- **Multiasistente y `@` delegación**: personas, modelos y memorias independientes por asistente, además de reuniones grupales con turnos, debate o moderador.
+- **Cinco plataformas**: WeChat, QQ, Feishu, Telegram y DingTalk con historial separado por contacto y la misma persona local.
+- **MCP, Skills y plugins JS**: servidores MCP (OAuth/SSE), `.skill.json`, grabación de pasos a skills y plugins JS en sandbox.
 
 </details>
 
 <details>
-<summary><b>Interfaz y apariencia</b>: temas / skins de burbujas / iconos / idiomas / copia de seguridad y datos</summary>
+<summary><b>Apariencia, copias y privacidad</b> —— temas, importación y cifrado</summary>
 
-- **Sistema de temas**: 12 temas completos, cada uno con modo claro y oscuro, más 8 paletas accesibles para daltonismo; color dinámico (Android 12+), cambio programado día / noche y temas personalizados.
-- **Burbujas y apariencia**: radio de las esquinas de las burbujas ajustable; sistema de skins de burbujas, con skins extendidas que aportan los plugins (alto contraste, brillo suave).
-- **Iconos dibujados a mano**: 179 iconos propios (rejilla de 24dp, trazo redondeado de 1.7dp, adaptación a claro y oscuro), con código abierto en [muse-icons](https://github.com/Zer0Qing/muse-icons) (MIT).
-- **Tipografía e idiomas**: fuente, tamaño y espaciado entre letras, botón atrás predictivo, adaptación de accesibilidad; la interfaz está disponible en chino / inglés / japonés / coreano / español / portugués / ruso.
-- **Copia de seguridad y restauración**: exportación local con un toque (JSON / NDJSON por bloques, con cifrado opcional); copia automática diaria empaquetando instantáneas de muse.db, memory.db y facts.db; sincronización en la nube con S3 / WebDAV; el libro de lo que te quiere decir, el libro de resultados y la intimidad de la relación se incluyen en la copia; antes de restaurar se guarda una copia de protección y, si falla, se revierte.
-- **Importación de datos**: migración con un toque desde CherryStudio / Chatbox / ChatGPT / RikkaHub / Kelivo, e importación de historiales de conversación en varios formatos.
-- **Biblioteca de stickers**: importación de archivos zip con estructura de carpetas y categorización automática; tres niveles de frecuencia de envío (ocasional / normal / frecuente); borrado por lotes y vaciado.
-- **Widget de pantalla de inicio**: crear una conversación con un toque; menú rápido al mantener pulsado el icono de la app.
-- **Centro de cuenta**: avatar y apodo se gestionan en local, sin registro ni inicio de sesión, así que no hay cuenta que perder.
-- **Registro de auditoría y proxy**: las llamadas de herramientas y las acciones clave quedan registradas; se admite proxy de red personalizado.
+- **Personalización**: 12 temas claro/oscuro, 8 paletas para daltonismo, color dinámico (Android 12+), 179 iconos propios ([muse-icons](https://github.com/Zer0Qing/muse-icons)) y 7 idiomas.
+- **Copias e importación**: exportación local cifrada, WebDAV / S3 e importación desde ChatGPT, CherryStudio, Chatbox, RikkaHub y Kelivo.
+- **Privacidad por defecto**: sin cuenta, sin analíticas, secretos en Android Keystore y enmascarado automático de datos sensibles antes de enviar.
 
 </details>
 
-<details>
-<summary><b>Seguridad y privacidad</b>: todo en local / cifrado / enmascarado de PII / límites del sandbox</summary>
+---
 
-- **Todo en local**: conversaciones, memorias y bases de conocimiento se guardan en una base de datos Room local; sin telemetría, sin analítica y sin recogida de datos; sin registro ni inicio de sesión; las funciones de red están desactivadas por defecto.
-- **Enmascarado automático de PII**: los números de teléfono, documentos de identidad y tarjetas bancarias se sustituyen por marcadores antes de enviar, y los marcadores se restauran en la respuesta del modelo, así que la información real no llega al proveedor.
-- **Canales cifrados**: la configuración sensible usa Android Keystore (AES-256-GCM); las contraseñas de las copias en la nube usan PBKDF2 y AES-256-GCM.
-- **Protección de enlaces**: confirmación antes de abrir un enlace; la salida se sanea antes de renderizarse en WebView, descartando iframe, form y pseudoprotocolos.
-- **Límites de las herramientas**: lista blanca de comandos, aprobación por riesgo, tiempos de espera duros, verificación previa de permisos, y el motivo del fallo se devuelve tal cual; los plugins se ejecutan en sandbox por defecto.
-- **Registros de fallos**: solo se guardan en local y se pueden exportar manualmente en modo seguro.
-
-</details>
-
-## Stack técnico y arquitectura
+## Stack y módulos
 
 | Área | Tecnología |
-|------|------|
-| Lenguaje / UI | Kotlin 2.4 · Jetpack Compose · Material 3 |
-| Arquitectura | MVVM + flujo de datos unidireccional · Koin (DI) |
-| Datos | Room (SQLite) + DataStore · ONNX Runtime (embeddings locales) |
-| Red | OkHttp + Ktor |
-| Análisis y renderizado | PDFBox · ML Kit OCR · PTY propio + xterm |
-| Controles de calidad | detekt + ktlint + Android Lint + scripts de verificación propios · cobertura con Kover |
+|---|---|
+| Lenguaje y UI | Kotlin 2.4 · Jetpack Compose · Material 3 |
+| Arquitectura | MVVM + flujo unidireccional · Koin |
+| Datos y búsqueda | Room (SQLite) · DataStore · ONNX Runtime · HNSW + FTS |
+| Red y remoto | OkHttp · Ktor · JSch (túnel SSH) |
+| Runtime y parsing | Runtime Ubuntu `proot` · PDFBox · ML Kit OCR · PTY/xterm propio |
+| Calidad | detekt · ktlint · Android Lint · scripts CI propios |
 
+```text
+:app                        App principal (UI, sesiones, herramientas, canales, ajustes)
+:ai                         Capa de proveedores (OpenAI / Anthropic / Gemini)
+:memory                     Motor de memoria (hechos, resúmenes, Dream)
+:conversation-core          Estado y contratos de conversación compartidos
+:material3                  Color dinámico y extensiones de tema
+:miniphone                  Módulo sandbox independiente
+:accessibility(+provider)   Servicio de accesibilidad en proceso separado
+:virtual-display-*          Protocolo y servidor de pantalla virtual
+:common                     Logs, Result y utilidades compartidas
 ```
-:app                        App principal (UI / sesiones / orquestación de herramientas / canales / ajustes)
-:ai                         Capa de abstracción de proveedores (OpenAI / Anthropic / Gemini, streaming y llamadas de herramientas)
-:memory                     Motor de memoria (almacén de hechos / compilación / resúmenes)
-:accessibility(+provider)   Servicio de accesibilidad y proveedor en proceso independiente (sobrevive a las actualizaciones de la app)
-:terminal                   Canal de Termux y terminal
-:virtual-display-*          Servidor y protocolo de pantalla virtual
-:common                     Logging, tipos de resultado y utilidades compartidas
-```
 
-## Compilar desde el código fuente
+---
 
-Requisitos: JDK 21 y Android SDK (platform 36, build-tools 36.0.0).
+## Compilar desde el código
+
+Requisitos: **JDK 21** y **Android SDK** (Platform 36, Build-Tools 36.0.0).
 
 ```bash
 git clone https://github.com/Zer0Qing/Muse.git
 cd Muse
 
-# Compilación de depuración
 ./gradlew :app:assembleDebug
-
-# Instalar en un dispositivo conectado
 ./gradlew :app:installDebug
 ```
 
-Las compilaciones de release exigen indicar la versión de forma explícita y aportar la firma (si falta cualquiera de las dos, las restricciones duras de la compilación lo bloquean):
+Para compilación Release hace falta versión explícita y `keystore.properties` en la raíz:
 
 ```powershell
-./gradlew :app:assembleRelease "-PversionName=<x.y.z>" "-PversionCode=<número>"
-# Firma: en la raíz del proyecto debe existir keystore.properties (storeFile / storePassword / keyAlias / keyPassword)
-
-# Verificación previa a la publicación (consistencia de firma en todos los APK por ABI)
+./gradlew :app:assembleRelease "-PversionName=<x.y.z>" "-PversionCode=<number>"
 python ci/script/validate_release_apks.py --apk "app/build/outputs/apk/release/*.apk"
 ```
 
-## Código abierto
+---
 
-Las contribuciones son bienvenidas:
+## Contribuir
 
-- [Guía de contribución](CONTRIBUTING.md) · [Política de seguridad](SECURITY.md) · [Normas de mantenimiento de la biblioteca de componentes de UI](UI组件库维护规范.md)
-- La documentación de desarrollo de plugins está en [`docs/plugin/`](docs/plugin/): guía para autores, declaraciones de tipos y ejemplos
-- Antes de abrir un PR, pasa los scripts de verificación locales y los tests unitarios; cada cadena nueva debe sincronizarse en todos los paquetes de idioma
-- Los scripts de verificación y del pipeline de publicación están en `ci/script/`; el tutorial integrado en la app (Ajustes → Tutorial) se mantiene en paralelo
+Se aceptan Issues, PRs, plugins y traducciones:
 
-## Apoya el proyecto
+- [Guía de contribución](CONTRIBUTING.md) · [Seguridad](SECURITY.md) · [Documentación de plugins](docs/plugin/)
 
-Muse lo mantiene un desarrollador independiente: es gratuito, de código abierto, sin compras dentro de la app y sin sistema de cuentas. Si te resulta útil, puedes apoyar voluntariamente su desarrollo continuo:
+---
 
-**Invita un café al autor** (QR de WeChat / Alipay):
+## Apoyo y contacto
 
-<p align="center">
-  <img src="art/support/wechat-pay.png" width="200" alt="Código QR de cobro de WeChat">
-  <img src="art/support/alipay.jpg" width="200" alt="Código QR de cobro de Alipay">
-</p>
-
-**Únete a los grupos de la comunidad** (con gusto te leemos):
+Muse es un proyecto independiente, gratuito y de código abierto. Si te resulta útil, se agradece cualquier apoyo voluntario:
 
 <p align="center">
-  <img src="art/support/wechat-group.jpg" width="200" alt="Código QR del grupo de WeChat">
-  <img src="art/support/qq-group.jpg" width="200" alt="Código QR del grupo de QQ">
+  <img src="art/support/wechat-pay.png" width="180" alt="WeChat Pay">
+  <img src="art/support/alipay.jpg" width="180" alt="Alipay">
+  <img src="art/support/wechat-group.jpg" width="180" alt="Grupo de WeChat">
+  <img src="art/support/qq-group.jpg" width="180" alt="Grupo de QQ">
 </p>
 
-> El apoyo es totalmente voluntario y no está vinculado a ninguna función, cuota o actualización; no apoyar no afecta al uso normal de Muse.
+Mantenido por un desarrollador independiente en Chengdu. WeChat: `QingTian07707`.
 
-## Sobre el autor
-
-El proyecto lo mantiene un desarrollador independiente en Chengdu. Si tu equipo está contratando, o simplemente quieres conversar, escríbeme directamente.
-
-- Ubicación: Chengdu
-- Buscando: prácticas de ingeniería de software
-- Contacto: los grupos de arriba, o un Issue en el repositorio
+---
 
 ## Licencia
 
-El proyecto usa la **GNU General Public License v3** (GPL v3). El texto completo de la licencia está en [LICENSE](LICENSE), y la lista de licencias de dependencias de terceros en [NOTICE](NOTICE).
+Bajo **GNU General Public License v3** (GPL v3). Consulta [LICENSE](LICENSE) y [NOTICE](NOTICE).
