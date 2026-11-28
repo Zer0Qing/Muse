@@ -64,13 +64,7 @@ internal class MpRelationStore(
      *
      * 拿不到结果就不写、不编内容 —— 不覆盖既有记录，也不凭空造一条。
      */
-    suspend fun describeEdge(
-        fromId: String,
-        toId: String,
-        fromName: String,
-        toName: String,
-        toTagline: String = "",
-    ) {
+    suspend fun describeEdge(fromId: String, toId: String, fromName: String, toName: String, toTagline: String = "") {
         val resolvedTagline = toTagline.trim().ifBlank {
             runCatching {
                 host.observeCharacters().first().firstOrNull { it.id == toId }?.tagline?.trim().orEmpty()

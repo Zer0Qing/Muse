@@ -30,10 +30,10 @@ class ApprovalIdempotencyTest {
 
     @Before
     fun setUp() {
-        val context: Context = ApplicationProvider.getApplicationContext();
+        val context: Context = ApplicationProvider.getApplicationContext()
         db = Room.inMemoryDatabaseBuilder(context, MuseDb::class.java)
             .allowMainThreadQueries()
-            .build();
+            .build()
         repo = AgentBotRepository(
             taskDao = db.botTaskDao(),
             runDao = db.taskRunDao(),
@@ -43,68 +43,68 @@ class ApprovalIdempotencyTest {
             publicationDao = db.publicationOutboxDao(),
             bindingDao = db.botBindingDao(),
             now = { clock },
-        );
+        )
     }
 
     @After
     fun tearDown() {
-        db.close();
+        db.close()
     }
 
-    private suspend fun create(stepId: String = "step-1") =
-        repo.createApproval(
-            botId = "bot-1",
-            originSessionId = "s1",
-            taskId = "t1",
-            runId = "r1",
-            stepId = stepId,
-            taskRevision = 1,
-            toolCallId = "c1",
-            toolName = "workspace_write",
-            argumentsRef = "a",
-            argumentsHash = "h",
-            resourceVersion = "v1",
-            risk = "NORMAL",
-        );
+    private suspend fun create(stepId: String = "step-1") = repo.createApproval(
+        botId = "bot-1",
+        originSessionId = "s1",
+        taskId = "t1",
+        runId = "r1",
+        stepId = stepId,
+        taskRevision = 1,
+        toolCallId = "c1",
+        toolName = "workspace_write",
+        argumentsRef = "a",
+        argumentsHash = "h",
+        resourceVersion = "v1",
+        risk = "NORMAL",
+    )
 
     @Test
     fun `same step does not create a second card`() = runTest {
-        val first = create();
-        val second = create();
+        val first = create()
+        val second = create()
 
-        assertEquals("同一步必须复用同一张卡", first.approvalId, second.approvalId);
-        assertEquals(1, db.approvalRequestDao().listPending().size);
+        assertEquals("同一步必须复用同一张卡", first.approvalId, second.approvalId)
+        assertEquals(1, db.approvalRequestDao().listPending().size)
     }
 
     @Test
     fun `different steps create separate cards`() = runTest {
-        val a = create(stepId = "step-1");
-        val b = create(stepId = "step-2");
+        val a = create(stepId = "step-1")
+        val b = create(stepId = "step-2")
 
-        assertTrue("不同步骤是两件不同的事", a.approvalId != b.approvalId);
-        assertEquals(2, db.approvalRequestDao().listPending().size);
+        assertTrue("不同步骤是两件不同的事", a.approvalId != b.approvalId)
+        assertEquals(2, db.approvalRequestDao().listPending().size)
     }
 
     @Test
     fun `a settled approval is not revived by a second call`() = runTest {
-        val first = create();
-        repo.settleApproval(first.approvalId, ApprovalStatus.DENIED, "user");
+        val first = create()
+        repo.settleApproval(first.approvalId, ApprovalStatus.DENIED, "user")
 
-        val second = create();
+        val second = create()
 
         assertTrue(
             "已拒绝的不该被复活成新的待办",
             second.approvalId != first.approvalId,
-        );
+        )
     }
 
     @Test
     fun `blank step id always creates a new card`() = runTest {
-        val a = create(stepId = "");
-        val b = create(stepId = "");
+        val a = create(stepId = "")
+        val b = create(stepId = "")
 
-        assertTrue(a.approvalId != b.approvalId);
+        assertTrue(a.approvalId != b.approvalId)
     }
+
     @Test
     fun `two runs with the same step index get separate cards`() = runTest {
         // stepCounter 是 launchRun 的局部变量，两个 run 都会从 0 开始。
@@ -114,19 +114,19 @@ class ApprovalIdempotencyTest {
             runId = "run-A", stepId = "step-0", taskRevision = 1,
             toolCallId = "c1", toolName = "workspace_write",
             argumentsRef = "a", argumentsHash = "h", resourceVersion = "v1", risk = "NORMAL",
-        );
+        )
         val runB = repo.createApproval(
             botId = "bot-1", originSessionId = "s1", taskId = "t2",
             runId = "run-B", stepId = "step-0", taskRevision = 1,
             toolCallId = "c2", toolName = "device_shell",
             argumentsRef = "b", argumentsHash = "h2", resourceVersion = "v2", risk = "HIGH",
-        );
+        )
 
         assertTrue(
             "不同 run 的同序号步骤是两件不同的事，不能串卡",
             runA.approvalId != runB.approvalId,
-        );
-        assertEquals(2, db.approvalRequestDao().listPending().size);
+        )
+        assertEquals(2, db.approvalRequestDao().listPending().size)
     }
 
     @Test
@@ -136,14 +136,14 @@ class ApprovalIdempotencyTest {
             runId = "run-X", stepId = "step-0", taskRevision = 1,
             toolCallId = "c1", toolName = "workspace_write",
             argumentsRef = "a", argumentsHash = "h", resourceVersion = "v1", risk = "NORMAL",
-        );
+        )
         val b = repo.createApproval(
             botId = "bot-1", originSessionId = "s1", taskId = "t1",
             runId = "run-X", stepId = "step-0", taskRevision = 1,
             toolCallId = "c1", toolName = "workspace_write",
             argumentsRef = "a", argumentsHash = "h", resourceVersion = "v1", risk = "NORMAL",
-        );
+        )
 
-        assertEquals("同一 run 的同一步仍然复用", a.approvalId, b.approvalId);
+        assertEquals("同一 run 的同一步仍然复用", a.approvalId, b.approvalId)
     }
 }

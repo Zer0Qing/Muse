@@ -220,6 +220,7 @@ Toque em atualizar para buscar a lista</string>
     <string name="agent_bot_error_binding_unreadable">Não foi possível ler a conversa salva deste assistente, então nada foi enviado. Tente de novo mais tarde</string>
     <string name="agent_bot_error_no_session">Ainda não há uma conversa disponível</string>
     <string name="agent_bot_error_save_failed">A mensagem não foi salva. Tente de novo</string>
+    <string name="agent_bot_error_provider_failed">O serviço do modelo retornou um erro, então este turno não tem resposta</string>
     <string name="agent_bot_error_already_decided">Você já decidiu esta etapa</string>
     <string name="agent_bot_error_approval_expired">Esta etapa expirou e precisa ser iniciada de novo</string>
     <string name="agent_bot_error_approval_stale">Os detalhes mudaram, a aprovação anterior não vale mais</string>

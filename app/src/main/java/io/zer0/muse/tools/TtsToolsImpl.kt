@@ -10,11 +10,18 @@ import kotlinx.coroutines.suspendCancellableCoroutine
  * P1-3b 拆域：TTS 工具实现。
  * 由 TtsToolsRegistrar 注册到 ToolRegistry。
  */
-class TtsToolsImpl(private val context: Context) {
+class TtsToolsImpl(
+    private val context: Context,
+    private val mediaGenTools: MediaGenToolsImpl? = null,
+) {
 
     suspend fun speak(args: Map<String, String>): String {
         val text = args["text"]?.takeIf { it.isNotBlank() }
             ?: return context.getString(R.string.tool_url_missing)
+        val gen = mediaGenTools
+        if (gen != null && gen.hasActiveHost()) {
+            return gen.execSendVoice(args)
+        }
         val language = args["language"]
         val rate = args["rate"]?.toFloatOrNull()?.coerceIn(0.25f, 4.0f) ?: 1.0f
         return resultOf {

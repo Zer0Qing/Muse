@@ -1,5 +1,6 @@
 package io.zer0.muse.tools
 
+import io.zer0.muse.ui.common.SsrfGuard
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -15,7 +16,6 @@ import java.net.InetAddress
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
-import io.zer0.muse.ui.common.SsrfGuard
 
 /**
  * P2-33: SSRF 冷域名解析不再阻塞主线程(WebView 回调路径)。

@@ -9,7 +9,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.res.stringResource
@@ -80,25 +85,33 @@ fun FormulaView(latex: String, modifier: Modifier = Modifier) {
     }
 
     Spacer(Modifier.height(6.dp))
-    // stringResource 需在 @Composable 直接调用位置提取,不能在 semantics{} 内使用。
     val formulaCd = stringResource(R.string.markdown_formula_cd, latex)
-    // v1.88 修复: 改用 LifecycleAwareWebViewContainer,自动处理 ON_PAUSE/ON_RESUME/ON_DESTROY,
-    // 解决 Activity 后台时 KaTeX 渲染相关 JS 定时器/动画继续运行耗电的问题。
-    // 原 L9 已知限制已消除;原 v0.53 的 onRelease 释放逻辑由容器统一兜底。
-    // v1.97: base URL 为 file:///android_asset/ 以加载本地 KaTeX
+    var formulaHeightPx by remember(html) { mutableIntStateOf(0) }
+    val heightSink = remember { CardHeightSink() }
+    LaunchedEffect(heightSink) {
+        heightSink.onHeightChanged = { px -> if (px > 0) formulaHeightPx = px }
+    }
+    DisposableEffect(heightSink) {
+        onDispose { heightSink.onHeightChanged = null }
+    }
     LifecycleAwareWebViewContainer(
         htmlContent = html,
         baseUrl = "file:///android_asset/",
         javaScriptEnabled = true,
-        // L11 修复: KaTeX 不需要 DOM 存储,保持默认 false
         domStorageEnabled = false,
-        // 拦截所有顶层导航,资源走本地 assets 不需远程白名单
-        webViewClient = RichContentWebViewClient(),
-        // M-MD7 修复: 接受外部 modifier;M-MD8 修复: height(80.dp) 改为 heightIn(min=80.dp)
-        // M5 修复: 加 contentDescription 供无障碍朗读
+        webViewClient = remember { RichContentWebViewClient() },
+        onWebViewCreated = { webView ->
+            webView.addJavascriptInterface(heightSink, CardHeightSink.NAME)
+        },
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = 80.dp)
+            .then(
+                if (formulaHeightPx > 0) {
+                    Modifier.height(formulaHeightPx.dp)
+                } else {
+                    Modifier.heightIn(min = 80.dp)
+                },
+            )
             .semantics { contentDescription = formulaCd },
     )
     Spacer(Modifier.height(6.dp))
@@ -177,6 +190,7 @@ private fun buildHtml(latex: String, textColorHex: String, errorColorHex: String
     }
   };
 </script>
+<script>$HEIGHT_OBSERVER_SCRIPT</script>
 </body>
 </html>
     """.trimIndent()

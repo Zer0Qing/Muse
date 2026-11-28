@@ -42,10 +42,7 @@ class RagSessionAttachmentIsolationTest {
         embeddingBlob = VectorSearchService.floatArrayToBlob(floatArrayOf(1f, 0f)),
     )
 
-    private fun service(
-        rows: List<KnowledgeChunkEntity>,
-        docs: List<KnowledgeDocEntity>,
-    ): RagService {
+    private fun service(rows: List<KnowledgeChunkEntity>, docs: List<KnowledgeDocEntity>): RagService {
         val chunkDao = mockk<KnowledgeChunkDao>(relaxed = true)
         val docDao = mockk<KnowledgeDocDao>(relaxed = true)
         val ftsDao = mockk<KnowledgeChunkFtsDao>(relaxed = true)

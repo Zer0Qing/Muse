@@ -348,28 +348,27 @@ class WorkspaceManager(private val context: Context) {
     }
 
     /** Read the prior text state for a staged workspace update without changing the target. */
-    suspend fun readSnapshotForWrite(relativePath: String, scope: Set<String>? = null): WriteSnapshot =
-        withContext(Dispatchers.IO) {
-            try {
-                val target = target(relativePath, MountCapability.WRITE, scope, allowRoot = false)
-                lockedBy(target) {
-                    if (!target.fs.exists(target.relative)) return@lockedBy WriteSnapshot.Missing
-                    if (target.fs.isDirectory(target.relative)) {
-                        return@lockedBy WriteSnapshot.Refused("目标是目录: ${target.display}")
-                    }
-                    notTextResult(target)?.let {
-                        return@lockedBy WriteSnapshot.Refused("目标不是文本文件(${it.kind}): ${target.display}")
-                    }
-                    val size = target.fs.size(target.relative)
-                    if (size > MAX_READ_BYTES) {
-                        return@lockedBy WriteSnapshot.Refused("目标过大($size 字节)，无法安全暂存")
-                    }
-                    WriteSnapshot.Existing(target.fs.readText(target.relative))
+    suspend fun readSnapshotForWrite(relativePath: String, scope: Set<String>? = null): WriteSnapshot = withContext(Dispatchers.IO) {
+        try {
+            val target = target(relativePath, MountCapability.WRITE, scope, allowRoot = false)
+            lockedBy(target) {
+                if (!target.fs.exists(target.relative)) return@lockedBy WriteSnapshot.Missing
+                if (target.fs.isDirectory(target.relative)) {
+                    return@lockedBy WriteSnapshot.Refused("目标是目录: ${target.display}")
                 }
-            } catch (e: WorkspaceIoException) {
-                WriteSnapshot.Refused(e.message ?: "无法读取写入基线")
+                notTextResult(target)?.let {
+                    return@lockedBy WriteSnapshot.Refused("目标不是文本文件(${it.kind}): ${target.display}")
+                }
+                val size = target.fs.size(target.relative)
+                if (size > MAX_READ_BYTES) {
+                    return@lockedBy WriteSnapshot.Refused("目标过大($size 字节)，无法安全暂存")
+                }
+                WriteSnapshot.Existing(target.fs.readText(target.relative))
             }
+        } catch (e: WorkspaceIoException) {
+            WriteSnapshot.Refused(e.message ?: "无法读取写入基线")
         }
+    }
 
     /** 读文本文件；大文件按字符区间分页。 */
     suspend fun readFilePage(
@@ -430,51 +429,47 @@ class WorkspaceManager(private val context: Context) {
         }
     }
 
-    suspend fun writeFileIfSnapshot(
-        relativePath: String,
-        expected: WriteSnapshot,
-        content: String,
-        scope: Set<String>? = null,
-    ): OpResult = withContext(Dispatchers.IO) {
-        if (content.toByteArray(Charsets.UTF_8).size.toLong() > MAX_WRITE_BYTES) {
-            return@withContext OpResult.Error("内容过大,写入上限为 $MAX_WRITE_BYTES 字节")
-        }
-        if (expected is WriteSnapshot.Refused) {
-            return@withContext OpResult.Error(expected.reason)
-        }
-        try {
-            val target = target(relativePath, MountCapability.WRITE, scope, allowRoot = false)
-            lockedBy(target) {
-                val current = when {
-                    !target.fs.exists(target.relative) -> WriteSnapshot.Missing
-                    target.fs.isDirectory(target.relative) ->
-                        return@lockedBy OpResult.Error("目标已变成目录: ${target.display}")
-                    else -> {
-                        notTextResult(target)?.let {
-                            return@lockedBy OpResult.Error("目标已变成非文本文件: ${target.display}")
-                        }
-                        val size = target.fs.size(target.relative)
-                        if (size > MAX_READ_BYTES) {
-                            return@lockedBy OpResult.Error("目标过大($size 字节)，无法安全核对")
-                        }
-                        WriteSnapshot.Existing(target.fs.readText(target.relative))
-                    }
-                }
-                val unchanged = when (expected) {
-                    is WriteSnapshot.Existing -> current is WriteSnapshot.Existing && current.content == expected.content
-                    WriteSnapshot.Missing -> current is WriteSnapshot.Missing
-                    is WriteSnapshot.Refused -> false
-                }
-                if (!unchanged) {
-                    return@lockedBy OpResult.Error("目标内容已变化，候选未写入")
-                }
-                target.fs.writeText(target.relative, content, append = false)
-                OpResult.Success
+    suspend fun writeFileIfSnapshot(relativePath: String, expected: WriteSnapshot, content: String, scope: Set<String>? = null): OpResult =
+        withContext(Dispatchers.IO) {
+            if (content.toByteArray(Charsets.UTF_8).size.toLong() > MAX_WRITE_BYTES) {
+                return@withContext OpResult.Error("内容过大,写入上限为 $MAX_WRITE_BYTES 字节")
             }
-        } catch (e: WorkspaceIoException) {
-            OpResult.Error(e.message ?: "写入失败")
+            if (expected is WriteSnapshot.Refused) {
+                return@withContext OpResult.Error(expected.reason)
+            }
+            try {
+                val target = target(relativePath, MountCapability.WRITE, scope, allowRoot = false)
+                lockedBy(target) {
+                    val current = when {
+                        !target.fs.exists(target.relative) -> WriteSnapshot.Missing
+                        target.fs.isDirectory(target.relative) ->
+                            return@lockedBy OpResult.Error("目标已变成目录: ${target.display}")
+                        else -> {
+                            notTextResult(target)?.let {
+                                return@lockedBy OpResult.Error("目标已变成非文本文件: ${target.display}")
+                            }
+                            val size = target.fs.size(target.relative)
+                            if (size > MAX_READ_BYTES) {
+                                return@lockedBy OpResult.Error("目标过大($size 字节)，无法安全核对")
+                            }
+                            WriteSnapshot.Existing(target.fs.readText(target.relative))
+                        }
+                    }
+                    val unchanged = when (expected) {
+                        is WriteSnapshot.Existing -> current is WriteSnapshot.Existing && current.content == expected.content
+                        WriteSnapshot.Missing -> current is WriteSnapshot.Missing
+                        is WriteSnapshot.Refused -> false
+                    }
+                    if (!unchanged) {
+                        return@lockedBy OpResult.Error("目标内容已变化，候选未写入")
+                    }
+                    target.fs.writeText(target.relative, content, append = false)
+                    OpResult.Success
+                }
+            } catch (e: WorkspaceIoException) {
+                OpResult.Error(e.message ?: "写入失败")
+            }
         }
-    }
 
     /**
      * 读—改—写：在同一把路径锁内读完整个文件、交给 [decide] 判定、按判定结果写回。

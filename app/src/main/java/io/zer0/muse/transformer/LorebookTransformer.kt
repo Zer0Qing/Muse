@@ -5,7 +5,6 @@ import io.zer0.ai.core.UIMessage
 import io.zer0.common.Logger
 import io.zer0.muse.data.lorebook.LorebookEntity
 import io.zer0.muse.data.lorebook.LorebookRepository
-import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * Lorebook 注入 Transformer — Phase 8.5。
@@ -143,8 +142,7 @@ class LorebookTransformer(
     }
 
     /** 转义正文中的闭合 </lorebook> 标签,防止内容逃逸出边界容器。 */
-    private fun sanitizeLorebookContent(content: String): String =
-        CLOSING_TAG_REGEX.replace(content, "<\\/lorebook>")
+    private fun sanitizeLorebookContent(content: String): String = CLOSING_TAG_REGEX.replace(content, "<\\/lorebook>")
 
     private companion object {
         // M-LB4: 注入总量字符预算

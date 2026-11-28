@@ -21,6 +21,10 @@ data class BackupImportSummary(
     val groupChats: Int = 0,
     /** 备份里是否带了供应商配置（决定恢复后是否需要重填 API Key）。 */
     val providersIncluded: Boolean = false,
+    /** 便携备份中声明的 MCP 连接配置数。 */
+    val mcpServersIncluded: Int = 0,
+    /** MCP 静态凭据与令牌未随备份导出，恢复后需配置或重新授权。 */
+    val mcpCredentialsOmitted: Boolean = false,
     /** 随备份一起恢复的设置项数量。 */
     val settingsKeys: Int = 0,
     /** 因超出容量/白名单被跳过的目录型文件数（附件、头像等）。 */

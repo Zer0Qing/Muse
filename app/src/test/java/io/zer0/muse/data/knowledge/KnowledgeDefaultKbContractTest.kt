@@ -1,11 +1,9 @@
 package io.zer0.muse.data.knowledge
 
-import java.io.File
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import io.zer0.muse.data.session.MuseDbMigrations
+import java.io.File
 
 /**
  * 默认知识库兜底合同。

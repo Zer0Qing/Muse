@@ -41,11 +41,7 @@ class ContextCheckpointReaderTest {
         db.close()
     }
 
-    private fun checkpoint(
-        sessionId: String = "s1",
-        boundaryId: String = "m-9",
-        summary: String = "前面聊过部署与回滚",
-    ) = ContextCheckpointEntity(
+    private fun checkpoint(sessionId: String = "s1", boundaryId: String = "m-9", summary: String = "前面聊过部署与回滚") = ContextCheckpointEntity(
         sessionId = sessionId,
         coveredSeq = 9L,
         lastCoveredMessageId = boundaryId,

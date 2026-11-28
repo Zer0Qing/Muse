@@ -26,9 +26,11 @@ import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.common.toMessage
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
@@ -104,17 +106,16 @@ class AnthropicProvider(
      * 用于 400 “思考块绑定到不同会话”自愈：编辑历史后旧思考块签名与新上下文不匹配，
      * 删除后重试可让上游重新生成思考。保留正文与 tool_use 块。
      */
-    private fun stripThinkingFromMessages(messages: List<UIMessage>): List<UIMessage> =
-        messages.map { m ->
-            val hasThinking =
-                m.role == MessageRole.ASSISTANT &&
-                    (!m.reasoning.isNullOrBlank() || !m.thinkingSignature.isNullOrBlank())
-            if (hasThinking) {
-                m.copy(reasoning = null, thinkingSignature = null, thinkingEncryptedContent = null)
-            } else {
-                m
-            }
+    private fun stripThinkingFromMessages(messages: List<UIMessage>): List<UIMessage> = messages.map { m ->
+        val hasThinking =
+            m.role == MessageRole.ASSISTANT &&
+                (!m.reasoning.isNullOrBlank() || !m.thinkingSignature.isNullOrBlank())
+        if (hasThinking) {
+            m.copy(reasoning = null, thinkingSignature = null, thinkingEncryptedContent = null)
+        } else {
+            m
         }
+    }
 
     override fun streamChat(request: ChatRequest): Flow<ChatStreamEvent> = channelFlow {
         val producerScope = this
@@ -172,16 +173,7 @@ class AnthropicProvider(
             // 重试会带上"无 thinking 块"的新列表。system 也在每次 connect 时重新抽取。
             val (system, splitMessages) = splitSystem(effectiveMessages, request.model)
             val body =
-                buildRequestBody(
-                    model = request.model.id,
-                    system = system,
-                    messages = splitMessages,
-                    temperature = request.temperature,
-                    maxTokens = request.maxTokens,
-                    stream = true,
-                    reasoningLevel = request.reasoningLevel,
-                    tools = request.tools,
-                )
+                buildRequestBody(system, splitMessages, request, stream = true)
             // v1.0.1: 用 effectiveApiKey() 支持多 key 轮换
             val httpRequest = Request.Builder()
                 .url(url)
@@ -523,7 +515,7 @@ class AnthropicProvider(
             currentEventSource.get()?.cancel()
             currentCall.get()?.cancel()
         }
-    }.flowOn(Dispatchers.IO)
+    }.buffer(Channel.UNLIMITED).flowOn(Dispatchers.IO)
 
     override suspend fun completeText(request: ChatRequest): ChatCompletion = completeTextImpl(request, 0)
 
@@ -534,16 +526,7 @@ class AnthropicProvider(
             request.model,
         )
         val (system, messages) = splitSystem(normalizedMessages, request.model)
-        val body = buildRequestBody(
-            model = request.model.id,
-            system = system,
-            messages = messages,
-            temperature = request.temperature,
-            maxTokens = request.maxTokens,
-            stream = false,
-            reasoningLevel = request.reasoningLevel,
-            tools = request.tools,
-        )
+        val body = buildRequestBody(system, messages, request, stream = false)
         val url = baseUrl() + anthropicConfig.messagesPath
         Logger.i("AnthropicProvider", "completeText: POST ${sanitizeUrl(url)} model=${request.model.id}")
         // v1.0.1: 用 effectiveApiKey() 支持多 key 轮换
@@ -675,26 +658,24 @@ class AnthropicProvider(
         }
 
         val system = systemParts.takeIf { it.isNotEmpty() }?.mapIndexed { index, text ->
+            // 始终锚定 index == 0（静态系统提示词），即便 RAG/Digest 等追加后续 SYSTEM 块也不破坏前缀缓存
+            val shouldCache = index == 0 || index == cacheBreakpoint
             AnthropicSystemBlock(
                 text = text,
-                cache_control = cacheControl?.takeIf { index == cacheBreakpoint },
+                cacheControl = cacheControl?.takeIf { shouldCache },
             )
         }
 
-        val rest = messages
+        val mapped = messages
             .filter { it.role != MessageRole.SYSTEM }
             .map { msg ->
-                // Phase 8.5 S19: Anthropic 仅接受 "user" / "assistant" 两种 role
                 val anthropicRole = when (msg.role) {
                     MessageRole.USER, MessageRole.TOOL -> "user"
                     MessageRole.ASSISTANT -> "assistant"
-                    MessageRole.SYSTEM -> "user" // 不会到达(SYSTEM 已在前面过滤),编译完整性
+                    MessageRole.SYSTEM -> "user"
                 }
-                // M-ANT7: TOOL 消息构造 tool_result;ASSISTANT toolCalls 构造 tool_use
-                // M-ANT6: 图片 media_type 从 base64 magic bytes 推断
                 val anthropicContent: kotlinx.serialization.json.JsonElement = when {
                     msg.role == MessageRole.TOOL && msg.toolCallId != null -> {
-                        // M-ANT7: 标准 tool_result content block
                         buildJsonArray {
                             add(
                                 buildJsonObject {
@@ -706,14 +687,7 @@ class AnthropicProvider(
                         }
                     }
                     msg.role == MessageRole.ASSISTANT -> {
-                        // ASSISTANT 消息:按需包含 thinking/text/tool_use content blocks
                         buildJsonArray {
-                            // M-ANT4: 多轮 thinking 回放 — 如 msg 有 reasoning(思考文本)且 thinkingSignature,
-                            // 在 content 数组首位插入 {type:"thinking", thinking, signature} block,
-                            // 让服务端可验证前序思考的完整性,避免每次重新生成 thinking。
-                            // v2.6.14: 无签名的思考块不再发送 —— Anthropic 对 thinking 块做签名校验,
-                            // 缺 signature 的块属于不合法载荷(且旧版/其他模型遗留的思考文本本身也无法验签),
-                            // 一律不回放；正文 text 与 tool_use 块照常发出。
                             if (!msg.reasoning.isNullOrBlank() && !msg.thinkingSignature.isNullOrBlank()) {
                                 add(
                                     buildJsonObject {
@@ -749,10 +723,6 @@ class AnthropicProvider(
                         }
                     }
                     msg.imageBase64List.isNotEmpty() && model.supportsVisionInput() -> {
-                        // Anthropic Vision: content = [
-                        //   {type:"text", text:"..."},
-                        //   {type:"image", source:{type:"base64", media_type:"image/jpeg", data:"..."}}
-                        // ]
                         buildJsonArray {
                             if (msg.content.isNotBlank()) {
                                 add(
@@ -762,8 +732,6 @@ class AnthropicProvider(
                                     },
                                 )
                             }
-                            // 图片数量与单张体积不再设上限：上游接受度一直在变，
-                            // 在这里截断等于替用户决定哪几张图不重要。
                             msg.imageBase64List
                                 .filter { it.isNotEmpty() }
                                 .forEach { b64 ->
@@ -784,7 +752,6 @@ class AnthropicProvider(
                         }
                     }
                     else -> {
-                        // v1.0.5: 防御性视觉过滤 — 模型不支持视觉但消息携带图片时,丢弃图片走纯文本
                         if (msg.imageBase64List.isNotEmpty() && !model.supportsVisionInput()) {
                             Logger.w(
                                 "AnthropicProvider",
@@ -797,21 +764,83 @@ class AnthropicProvider(
                 AnthropicMessage(role = anthropicRole, content = anthropicContent)
             }
 
-        // 在最后一条 user 消息上加 cache_control(让对话前缀缓存)
-        val withLastCached = if (anthropicConfig.promptCaching && rest.isNotEmpty()) {
-            val lastUserIdx = rest.indexOfLast { it.role == "user" }
+        // Anthropic Messages API 要求 user / assistant 严格交替，并发 tool_result 必须合并进同一 user 轮。
+        val merged = mergeAdjacentAnthropicMessages(mapped)
+
+        // 在最后一条 user 消息的末尾 content block 上加 cache_control（块级而非消息顶层）。
+        val withLastCached = if (cacheControl != null && merged.isNotEmpty()) {
+            val lastUserIdx = merged.indexOfLast { it.role == "user" }
             if (lastUserIdx >= 0) {
-                rest.mapIndexed { idx, msg ->
-                    if (idx == lastUserIdx) msg.copy(cache_control = cacheControl) else msg
+                merged.mapIndexed { idx, msg ->
+                    if (idx == lastUserIdx) attachBlockCacheControl(msg, cacheControl) else msg
                 }
             } else {
-                rest
+                merged
             }
         } else {
-            rest
+            merged
         }
 
         return system to withLastCached
+    }
+
+    private fun mergeAdjacentAnthropicMessages(messages: List<AnthropicMessage>): List<AnthropicMessage> {
+        if (messages.size <= 1) return messages
+        val out = ArrayList<AnthropicMessage>(messages.size)
+        for (msg in messages) {
+            val prev = out.lastOrNull()
+            if (prev != null && prev.role == msg.role) {
+                val combined = buildJsonArray {
+                    appendAsContentBlocks(prev.content)
+                    appendAsContentBlocks(msg.content)
+                }
+                out[out.lastIndex] = prev.copy(content = combined)
+            } else {
+                out.add(msg)
+            }
+        }
+        return out
+    }
+
+    private fun kotlinx.serialization.json.JsonArrayBuilder.appendAsContentBlocks(element: kotlinx.serialization.json.JsonElement) {
+        when (element) {
+            is kotlinx.serialization.json.JsonArray -> element.forEach { add(it) }
+            is JsonPrimitive -> if (element.content.isNotBlank()) {
+                add(
+                    buildJsonObject {
+                        put("type", "text")
+                        put("text", element.content)
+                    },
+                )
+            }
+            else -> add(element)
+        }
+    }
+
+    private fun attachBlockCacheControl(msg: AnthropicMessage, cacheControl: AnthropicCacheControl): AnthropicMessage {
+        val ccJson = buildJsonObject {
+            put("type", cacheControl.type)
+            cacheControl.ttl?.let { put("ttl", it) }
+        }
+        val blocks = buildJsonArray {
+            appendAsContentBlocks(msg.content)
+        }
+        if (blocks.isEmpty()) return msg
+        val updatedBlocks = buildJsonArray {
+            blocks.forEachIndexed { idx, elem ->
+                if (idx == blocks.lastIndex && elem is kotlinx.serialization.json.JsonObject) {
+                    add(
+                        buildJsonObject {
+                            elem.forEach { (k, v) -> put(k, v) }
+                            put("cache_control", ccJson)
+                        },
+                    )
+                } else {
+                    add(elem)
+                }
+            }
+        }
+        return msg.copy(content = updatedBlocks)
     }
 
     private fun baseUrl(): String = config.resolvedBaseUrl()
@@ -908,57 +937,39 @@ class AnthropicProvider(
      * v1.80 (H-ANT2): 透传 tools(ToolDefinition → AnthropicTool),启用原生 function calling。
      */
     private fun buildRequestBody(
-        model: String,
         system: List<AnthropicSystemBlock>?,
         messages: List<AnthropicMessage>,
-        temperature: Float?,
-        maxTokens: Int?,
+        request: ChatRequest,
         stream: Boolean,
-        reasoningLevel: ReasoningLevel? = null,
-        tools: List<ToolDefinition>? = null,
     ): String {
-        // 映射 ReasoningLevel → thinking 字段
-        val thinking: AnthropicThinking? = reasoningLevel?.let { level ->
-            when (level) {
-                ReasoningLevel.OFF -> null // 显式关闭,不发 thinking 字段
-                ReasoningLevel.AUTO -> null // 自动,让服务端决定
-                ReasoningLevel.LOW, ReasoningLevel.MEDIUM,
-                ReasoningLevel.HIGH, ReasoningLevel.XHIGH,
-                ->
-                    level.budgetTokens?.let { AnthropicThinking(budget_tokens = it) }
-            }
-        }
+        val thinking = buildThinking(request.reasoningLevel)
 
-        // H-ANT3: thinking 启用时确保 max_tokens > budget_tokens + 1024
         val effectiveMaxTokens = if (thinking != null) {
-            maxOf(maxTokens ?: 4096, thinking.budget_tokens + 4096)
+            maxOf(request.maxTokens ?: 4096, thinking.budget_tokens + 4096)
         } else {
-            maxTokens ?: 4096
+            request.maxTokens ?: 4096
         }
 
-        // M-ANT3: thinking 启用时不传 temperature(Anthropic 要求 thinking 模式不设 temperature)
-        val effectiveTemperature = if (thinking != null) null else temperature?.toDouble()
+        val effectiveTemperature = if (thinking != null) null else request.temperature?.toDouble()
 
-        // H-ANT2: ToolDefinition → AnthropicTool(input_schema 直接透传 JSON Schema)
-        // H-COMPAT1: compat.supportsToolCalling=false 时强制不发 tools
-        //   (Anthropic 默认 true,留此判断保持集中化派生,便于未来扩展)
-        val compat: ProviderCompat = config.resolvedCompat(model)
-        val anthropicTools = if (compat.supportsToolCalling) {
-            tools?.takeIf { it.isNotEmpty() }?.map { td ->
-                AnthropicTool(
-                    name = td.name,
-                    description = td.description,
-                    inputSchema = resultOf {
-                        AppJson.parseToJsonElement(td.parametersJsonSchema)
-                    }.getOrNull() ?: buildJsonObject {},
-                )
-            }?.takeIf { it.isNotEmpty() } // v1.0.5: stripEmptyTools — 空 tools 列表改 null,避免 `"tools": []` 被拒绝
+        val compat: ProviderCompat = config.resolvedCompat(request.model.id)
+        val rawTools = buildRawTools(request.tools, compat.supportsToolCalling)
+        val toolCacheControl = if (anthropicConfig.promptCaching) {
+            AnthropicCacheControl(ttl = anthropicConfig.promptCacheTtl.takeIf { it.isNotBlank() })
         } else {
             null
         }
+        val anthropicTools = if (rawTools != null && toolCacheControl != null) {
+            rawTools.mapIndexed { idx, tool ->
+                if (idx == rawTools.lastIndex) tool.copy(cacheControl = toolCacheControl) else tool
+            }
+        } else {
+            rawTools
+        }
+        val mappedToolChoice = mapToolChoice(request.toolChoice, anthropicTools != null, thinking == null)
 
         val payload = AnthropicRequest(
-            model = model,
+            model = request.model.id,
             messages = messages,
             system = system,
             max_tokens = effectiveMaxTokens,
@@ -966,6 +977,7 @@ class AnthropicProvider(
             stream = stream,
             thinking = thinking,
             tools = anthropicTools,
+            toolChoice = mappedToolChoice,
         )
         return AppJson.encodeToString(payload)
     }
@@ -1066,6 +1078,7 @@ class AnthropicProvider(
         /** 已废弃：图片数量不再设上限（保留常量仅避免旧引用编译失败）。 */
         @Deprecated("图片数量不再限制")
         const val MAX_VISION_IMAGES = Int.MAX_VALUE
+
         /** 已废弃：单张图片体积不再设上限。 */
         @Deprecated("单张图片体积不再限制")
         const val MAX_IMAGE_BASE64_LEN = Int.MAX_VALUE
@@ -1082,14 +1095,42 @@ class AnthropicProvider(
  * @param input `message_start` 的 `message.usage`(非流式路径为响应体 `usage`),null 表示未返回
  * @param outputTokens 输出 token 数(流式取 `message_delta.usage.output_tokens`)
  */
-internal fun anthropicUsageTokens(input: AnthropicUsage?, outputTokens: Int): UsageTokens =
-    UsageTokens(
-        promptTokens = input?.input_tokens ?: 0,
-        completionTokens = outputTokens,
-        cachedTokens = input?.cache_read_input_tokens ?: 0,
-        // 未发生缓存写入时上游不返回该字段,缺省 0
-        cacheWriteTokens = input?.cache_creation_input_tokens ?: 0,
-        // Anthropic 的 input_tokens 本身就是非缓存输入(不含 cache_read/cache_creation),
-        // 与 OpenAI/Gemini 的 prompt_tokens 口径相反,计价时必须声明,否则会重复相减
-        promptTokensIncludeCache = false,
-    )
+internal fun anthropicUsageTokens(input: AnthropicUsage?, outputTokens: Int): UsageTokens = UsageTokens(
+    promptTokens = input?.input_tokens ?: 0,
+    completionTokens = outputTokens,
+    cachedTokens = input?.cache_read_input_tokens ?: 0,
+    // 未发生缓存写入时上游不返回该字段,缺省 0
+    cacheWriteTokens = input?.cache_creation_input_tokens ?: 0,
+    // Anthropic 的 input_tokens 本身就是非缓存输入(不含 cache_read/cache_creation),
+    // 与 OpenAI/Gemini 的 prompt_tokens 口径相反,计价时必须声明,否则会重复相减
+    promptTokensIncludeCache = false,
+)
+
+private fun buildThinking(reasoningLevel: ReasoningLevel?): AnthropicThinking? = when (reasoningLevel) {
+    ReasoningLevel.LOW, ReasoningLevel.MEDIUM, ReasoningLevel.HIGH, ReasoningLevel.XHIGH ->
+        reasoningLevel.budgetTokens?.let { AnthropicThinking(budget_tokens = it) }
+    ReasoningLevel.OFF, ReasoningLevel.AUTO, null -> null
+}
+
+private fun buildRawTools(tools: List<ToolDefinition>?, supportsToolCalling: Boolean): List<AnthropicTool>? {
+    if (!supportsToolCalling) return null
+    return tools?.takeIf { it.isNotEmpty() }?.map { td ->
+        AnthropicTool(
+            name = td.name,
+            description = td.description,
+            inputSchema = resultOf {
+                AppJson.parseToJsonElement(td.parametersJsonSchema)
+            }.getOrNull() ?: buildJsonObject {},
+        )
+    }?.takeIf { it.isNotEmpty() }
+}
+
+private fun mapToolChoice(choice: String?, hasTools: Boolean, thinkingDisabled: Boolean): AnthropicToolChoice? {
+    if (!hasTools) return null
+    return when (choice?.lowercase()) {
+        "none" -> AnthropicToolChoice("none")
+        "required" -> AnthropicToolChoice(if (thinkingDisabled) "any" else "auto")
+        "auto" -> AnthropicToolChoice("auto")
+        else -> null
+    }
+}

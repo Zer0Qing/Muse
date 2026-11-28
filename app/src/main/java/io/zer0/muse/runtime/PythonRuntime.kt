@@ -42,7 +42,7 @@ object PythonRuntime {
             )
         } catch (cancelled: CancellationException) {
             throw cancelled
-        } catch (error: Exception) {
+        } catch (error: IllegalStateException) {
             Logger.w(TAG, "Ubuntu Python 自检启动失败: ${error.message}", error)
             return@withContext Result.failure(error)
         }
@@ -172,7 +172,7 @@ object PythonRuntime {
         capture: ToolOutputCapture,
         failure: AtomicReference<Throwable?>,
     ): Thread = Thread({
-        try {
+        runCatching {
             InputStreamReader(input, Charsets.UTF_8).buffered().use { reader ->
                 val buffer = CharArray(8_192)
                 while (true) {
@@ -181,9 +181,7 @@ object PythonRuntime {
                     capture.append(String(buffer, 0, count))
                 }
             }
-        } catch (error: Throwable) {
-            failure.compareAndSet(null, error)
-        }
+        }.exceptionOrNull()?.let { error -> failure.compareAndSet(null, error) }
     }, threadName).apply {
         isDaemon = true
     }

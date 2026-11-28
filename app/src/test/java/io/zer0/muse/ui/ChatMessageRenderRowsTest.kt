@@ -3,12 +3,12 @@ package io.zer0.muse.ui
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.UIMessage
 import io.zer0.muse.data.ChatPreferences
+import io.zer0.muse.ui.chat.ChatMessageRenderRowKind
+import io.zer0.muse.ui.chat.ChatMessageRenderRows
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import io.zer0.muse.ui.chat.ChatMessageRenderRowKind
-import io.zer0.muse.ui.chat.ChatMessageRenderRows
 
 class ChatMessageRenderRowsTest {
     @Test

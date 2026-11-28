@@ -163,7 +163,8 @@
     <string name="settings_group_media">Голос и зрение</string>
     <string name="settings_group_memory">Память и знания</string>
     <string name="settings_group_tools">Инструменты и расширения</string>
-    <string name="settings_group_connection">Каналы и сеть</string>
+    <string name="settings_group_channels">Каналы сообщений</string>
+    <string name="settings_group_connection">Сеть</string>
     <string name="settings_group_automation">Автоматизация и фон</string>
     <string name="settings_group_data_storage">Данные и резервные копии</string>
     <string name="settings_group_privacy_security">Приватность и права</string>
@@ -299,6 +300,7 @@
     <string name="search_suggestion_idea">Идеи</string>
     <string name="search_no_result">Совпадающих результатов не найдено</string>
     <string name="search_try_other">Попробуйте другие ключевые слова</string>
+    <string name="search_timeout_hint">Поиск не уложился во время. Попробуйте более короткое слово</string>
     <string name="search_section_sessions">Сессии</string>
     <string name="search_section_messages">Сообщения</string>
     <string name="search_time_today">Сегодня %1$s</string>
@@ -501,6 +503,7 @@
     <string name="provider_plugins_delete">Удалить плагин</string>
     <string name="provider_plugins_convert">Преобразовать в провайдера</string>
     <string name="provider_plugins_import_failed">Ошибка импорта: %1$s</string>
+    <string name="provider_plugins_import_failed_title">Файл плагина не распознан</string>
     <string name="provider_plugins_import_success">Импорт выполнен</string>
     <string name="provider_plugins_delete_confirm_named">Удалить плагин «%1$s»? После удаления он станет недоступен. Повторно импортируйте пакет для восстановления.</string>
     <string name="muse_plugins_publisher_fingerprint">Издатель: %1$s · Отпечаток ключа: %2$s</string>

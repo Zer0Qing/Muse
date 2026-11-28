@@ -110,8 +110,10 @@ class GenericOpenAiVideoProvider(
                     val apiMsg = parseApiErrorMessage(respBody)
                     error(
                         "视频生成请求失败: HTTP ${resp.code}" +
-                            (apiMsg?.let { ": $it" }
-                                ?: ProviderError.safeErrorDetail(respBody)?.let { ": $it" }.orEmpty()),
+                            (
+                                apiMsg?.let { ": $it" }
+                                    ?: ProviderError.safeErrorDetail(respBody)?.let { ": $it" }.orEmpty()
+                                ),
                     )
                 }
 
@@ -232,6 +234,8 @@ class GenericOpenAiVideoProvider(
             put("prompt", request.prompt)
             if (request.duration > 0) put("duration", request.duration)
             if (request.resolution.isNotBlank()) put("resolution", request.resolution)
+            if (request.aspectRatio.isNotBlank()) put("aspect_ratio", request.aspectRatio.trim())
+            if (request.negativePrompt.isNotBlank()) put("negative_prompt", request.negativePrompt.trim())
             val images = request.referenceImages.filter { it.isNotBlank() }
             if (images.size == 1) {
                 put("image", images[0])
@@ -252,33 +256,30 @@ class GenericOpenAiVideoProvider(
      *  - {"output_url":"..."} / {"video_url":"..."}
      */
     private fun extractVideoUrl(root: JsonObject): String? {
-        // 直接顶层字段
-        for (key in VIDEO_URL_KEYS) {
-            val v = root[key]
-            if (v is JsonPrimitive && v.isString) {
-                val s = v.content
-                if (s.startsWith("http://", true) || s.startsWith("https://", true)) return s
-            }
+        val direct = VIDEO_URL_KEYS.asSequence()
+            .mapNotNull { root[it] as? JsonPrimitive }
+            .map { it.content }
+            .firstOrNull { it.startsWith("http://", true) || it.startsWith("https://", true) }
+        if (direct != null) return direct
+
+        val dataResult = when (val data = root["data"]) {
+            is JsonObject -> extractVideoUrl(data)
+            is JsonArray -> data.asSequence()
+                .filterIsInstance<JsonObject>()
+                .mapNotNull(::extractVideoUrl)
+                .firstOrNull()
+            else -> null
         }
-        // data 数组
-        val data = root["data"]
-        if (data is JsonArray) {
-            for (item in data) {
-                if (item is JsonObject) {
-                    extractVideoUrl(item)?.let { return it }
-                }
-            }
-        }
-        // video 对象
-        val video = root["video"]
-        if (video is JsonObject) {
-            extractVideoUrl(video)?.let { return it }
-        }
-        return null
+        if (dataResult != null) return dataResult
+
+        return NESTED_RESULT_KEYS.asSequence()
+            .mapNotNull { root[it] as? JsonObject }
+            .mapNotNull(::extractVideoUrl)
+            .firstOrNull()
     }
 
     private fun mapStatus(statusStr: String): PollStatus = when (statusStr) {
-        "completed", "success", "succeeded", "done" -> PollStatus.SUCCESS
+        "completed", "success", "succeeded", "done", "finished" -> PollStatus.SUCCESS
         "failed", "error", "cancelled", "canceled" -> PollStatus.FAILED
         else -> PollStatus.PENDING
     }
@@ -337,6 +338,9 @@ class GenericOpenAiVideoProvider(
 
         /** 视频结果 URL 候选字段(按优先级排序)。 */
         private val VIDEO_URL_KEYS = listOf("url", "video_url", "output_url")
+
+        /** 可能包含视频 URL 的嵌套对象键名。 */
+        private val NESTED_RESULT_KEYS = listOf("video", "output", "result")
     }
 }
 

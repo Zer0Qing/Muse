@@ -36,6 +36,7 @@
     <string name="settings_provider_imported_from_json">已从 JSON 导入服务账号凭证</string>
     <string name="settings_provider_import_failed">导入失败：%1$s</string>
     <string name="settings_provider_fill_api_key_first">请先填写 API Key</string>
+    <string name="settings_provider_required_fields">名称和接口地址都要填，否则会建出一个连不上的空供应商</string>
     <string name="settings_provider_no_models_returned">未获取到任何模型，请检查接口地址是否正确</string>
     <string name="settings_provider_unknown_error">未知错误</string>
     <string name="settings_provider_404_error">该模型供应商不支持 /models 接口，请手动添加模型</string>
@@ -177,13 +178,15 @@
     <string name="settings_backup_export_session_count">%1$d 条消息</string>
     <string name="settings_backup_export_session_success">会话导出成功：%1$d 条消息</string>
     <string name="settings_backup_export_session_failed">会话导出失败：%1$s</string>
+    <string name="settings_backup_export_partial">有 %1$d 个文件超出大小限制或无法读取，未包含在这份备份中。</string>
     <string name="settings_backup_plaintext_export_title">导出未加密备份？</string>
-    <string name="settings_backup_plaintext_export_message">当前未设置备份密码。继续后会生成未加密的备份文件，任何拿到文件的人都能读取其中内容。建议先到云备份页面设置密码。</string>
+    <string name="settings_backup_plaintext_export_message">此本地备份文件未加密，任何拿到文件的人都能读取其中内容。继续后才会创建文件。</string>
     <string name="settings_backup_plaintext_export_action">继续导出明文</string>
     <string name="settings_backup_import">导入备份</string>
     <string name="settings_backup_export_success">导出成功：%1$d 个会话 / %2$d 条消息</string>
     <string name="settings_backup_export_failed">导出失败：%1$s</string>
     <string name="settings_backup_import_success">已导入 %1$d 个会话 / %2$d 条消息</string>
+    <string name="settings_backup_import_failed_title">导入失败</string>
     <string name="settings_backup_import_failed">导入失败：%1$s</string>
     <string name="settings_backup_export_start_failed">无法启动导出：%1$s</string>
     <string name="settings_backup_import_start_failed">无法启动导入：%1$s</string>
@@ -198,6 +201,8 @@
     <string name="settings_backup_overwrite_confirm">将用所选备份覆盖当前全部会话、消息、记忆与经验数据（恢复前会自动生成保护副本）。确定继续？</string>
     <string name="settings_backup_overwrite_confirm_action">覆盖并恢复</string>
     <string name="settings_backup_import_mode_title">选择导入方式</string>
+    <string name="settings_backup_mcp_restore_notice">若备份含 MCP 配置，连接信息会恢复；凭据不会迁移，需重新填写或授权。STDIO 启动命令不会导入，需检查后重新配置并启用。</string>
+    <string name="settings_backup_mcp_merge_notice">合并导入不会修改设置，包括 MCP 配置。覆盖恢复会恢复 MCP 服务器配置；凭据不随备份迁移，需重新填写或授权。</string>
     <string name="settings_backup_import_mode_merge">叠加合并</string>
     <string name="settings_backup_import_mode_merge_desc">把备份里的对话作为新会话加进来，保留现有全部数据</string>
     <string name="settings_backup_import_mode_overwrite">覆盖恢复</string>
@@ -213,6 +218,8 @@
     <string name="settings_backup_summary_settings_count">设置项 %1$d 项已恢复</string>
     <string name="settings_backup_summary_providers_included">备份包含模型供应商配置，已一并恢复</string>
     <string name="settings_backup_summary_providers_missing">备份未包含模型供应商，请在「设置 → 模型供应商」中重新填写 API Key</string>
+    <string name="settings_backup_summary_mcp_servers">已恢复 %1$d 个 MCP 服务器配置</string>
+    <string name="settings_backup_summary_mcp_credentials_missing">MCP 凭据与 STDIO 启动命令未放入备份。请在「设置 → MCP」检查配置、重新填写凭据或完成授权</string>
     <string name="settings_backup_summary_skipped_files">因超出大小上限跳过 %1$d 个附件/头像文件</string>
     <string name="settings_backup_summary_skipped_miniphone">跳过 %1$d 条旧小手机会话（该功能已下线）</string>
     <string name="settings_backup_upload_subtitle_configured">覆盖云端最新备份</string>
@@ -462,7 +469,8 @@
     <string name="settings_backup_restore_auto_failed">恢复失败，已回滚到原数据</string>
     <string name="settings_backup_restore_auto_restart_hint">建议重启应用以刷新所有数据</string>
     <!-- B-8/B-9: 备份密码输入与失效提示 -->
-    <string name="settings_backup_import_password_hint">备份密码（如备份已加密，可留空）</string>
+    <string name="settings_backup_import_password_hint">备份密码（需要解密时填写）</string>
+    <string name="cloud_backup_provider_secrets_require_password">要上传包含供应商密钥的备份，请先设置备份密码。</string>
     <string name="settings_backup_password_unavailable">备份密码已失效，请重新设置备份密码后再上传</string>
     <string name="audit_log_category_agent">Agent 运行</string>
     <string name="settings_provider_clear_models">清空全部</string>

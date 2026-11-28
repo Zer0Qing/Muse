@@ -1,5 +1,7 @@
 package io.zer0.muse.data.proactive
 
+import io.zer0.muse.data.ProactiveMessageConfig
+import io.zer0.muse.proactive.scheduledWakeAt
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -23,6 +25,38 @@ class ProactiveTimingEngineTest {
 
     /** 2026-10-25 14:00 本地时间（下午，不在任何默认免打扰时段内）。 */
     private val baseNow = localMillis(2026, 10, 25, 14, 0)
+
+    @Test
+    fun overdueThoughtCanStillBeScheduledAlongsideAnotherAssistantsFutureThought() {
+        val earlier = PendingThoughtEntity(id = "earlier", assistantId = "a", triggerAt = baseNow - 1_000)
+        val later = PendingThoughtEntity(id = "later", assistantId = "b", triggerAt = baseNow + 600_000)
+        val config = ProactiveMessageConfig(allDayAllowed = true)
+        assertEquals(baseNow, scheduledWakeAt(earlier, config, baseNow))
+        assertEquals(later.triggerAt, scheduledWakeAt(later, config, baseNow))
+        val expired = earlier.copy(expiresAt = baseNow)
+        assertEquals(null, scheduledWakeAt(expired, config, baseNow))
+    }
+
+    @Test
+    fun `预约选择保留更早项并在其完成后续排下一项`() {
+        val earlierAt = baseNow + 5 * 60_000L
+        val laterAt = baseNow + 30 * 60_000L
+        val thoughts = listOf(
+            PendingThoughtEntity(id = "later", assistantId = "assistant-b", triggerAt = laterAt),
+            PendingThoughtEntity(id = "earlier", assistantId = "assistant-a", triggerAt = earlierAt),
+        )
+
+        assertEquals(earlierAt, ProactiveTimingEngine.nextScheduledTriggerAt(thoughts, baseNow))
+        assertEquals(
+            laterAt,
+            ProactiveTimingEngine.nextScheduledTriggerAt(
+                thoughts.map { thought ->
+                    if (thought.id == "earlier") thought.copy(status = ThoughtStatus.DONE.name) else thought
+                },
+                earlierAt,
+            ),
+        )
+    }
 
     // ══════════════════════════════════════════════════════════════
     // 时机：能不能说

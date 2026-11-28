@@ -1,9 +1,9 @@
 package io.zer0.memory.ticker
 
-import java.io.File
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 /**
  * 会话收尾触发合同。

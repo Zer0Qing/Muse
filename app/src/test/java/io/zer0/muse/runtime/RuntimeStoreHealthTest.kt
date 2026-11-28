@@ -53,7 +53,12 @@ class RuntimeStoreHealthTest {
             "usr/local/lib/node_modules/npm/bin/npm-cli.js",
             "usr/bin/.keep",
             "tmp/.keep",
-        ).forEach { path -> File(root, path).apply { parentFile?.mkdirs(); writeText("ok") } }
+        ).forEach { path ->
+            File(root, path).apply {
+                parentFile?.mkdirs()
+                writeText("ok")
+            }
+        }
     }
 
     private fun createRequiredNative(root: File) {

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="chat_voice_transcript_show">转文字</string>
+    <string name="chat_voice_transcript_hide">收起文字</string>
+    <string name="chat_voice_synthesizing">正在生成语音…</string>
+    <string name="chat_voice_unread_cd">未听语音</string>
+    <string name="chat_voice_speed_cd">切换播放倍速</string>
+    <string name="chat_voice_earpiece_cd">切换听筒播放</string>
+    <string name="chat_voice_speaker_cd">切换扬声器播放</string>
+    <string name="chat_voice_earpiece_label">听筒</string>
+    <string name="chat_voice_speaker_label">扬声器</string>
+    <string name="chat_voice_convert_action">生成语音条</string>
+    <string name="chat_voice_converting_toast">正在生成语音条…</string>
+    <string name="chat_voice_ready_toast">语音条已就绪，点击即可播放</string>
+    <string name="chat_voice_synth_failed_toast">语音生成失败，请检查语音设置</string>
+    <string name="voice_reply_auto_bar_title">回复自动附带语音条</string>
+    <string name="voice_reply_auto_bar_desc">助手回复完成后自动合成语音条，默认点按才播放，不主动打扰。</string>
+    <string name="voice_reply_assistant_section">语音回复</string>
+    <string name="voice_reply_follow_global">跟随全局</string>
+    <string name="voice_reply_assistant_hint">可为当前助手单独设置语音条频率与自动合成开关。</string>
+</resources>

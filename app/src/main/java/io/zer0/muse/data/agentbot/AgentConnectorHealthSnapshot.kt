@@ -18,6 +18,19 @@ data class ConnectorHealthItem(
 data class AgentConnectorHealthSnapshot(
     val items: List<ConnectorHealthItem> = emptyList(),
 ) {
+    fun withMcpReadiness(ready: Boolean): AgentConnectorHealthSnapshot = copy(
+        items = items.map { item ->
+            if (item.key != "mcp") {
+                item
+            } else {
+                item.copy(
+                    status = if (ready) ConnectorHealthStatus.OK else ConnectorHealthStatus.WARN,
+                    detailRes = if (ready) R.string.agent_connector_ready else R.string.agent_connector_needs_action,
+                )
+            }
+        },
+    )
+
     val hasIssue: Boolean
         get() = items.any { it.status == ConnectorHealthStatus.WARN || it.status == ConnectorHealthStatus.ERROR }
 }
@@ -32,9 +45,16 @@ object AgentConnectorHealthSnapshotFactory {
         calendarReady: Boolean,
         mcpEnabledCount: Int,
         channelCount: Int,
+        channelOnlineCount: Int = channelCount,
+        channelIssueCount: Int = 0,
     ): AgentConnectorHealthSnapshot {
-        fun status(ready: Boolean): ConnectorHealthStatus =
-            if (ready) ConnectorHealthStatus.OK else ConnectorHealthStatus.WARN
+        fun status(ready: Boolean): ConnectorHealthStatus = if (ready) ConnectorHealthStatus.OK else ConnectorHealthStatus.WARN
+
+        val channelStatus = when {
+            channelIssueCount > 0 -> ConnectorHealthStatus.ERROR
+            channelOnlineCount > 0 -> ConnectorHealthStatus.OK
+            else -> ConnectorHealthStatus.WARN
+        }
 
         return AgentConnectorHealthSnapshot(
             items = listOf(
@@ -44,17 +64,12 @@ object AgentConnectorHealthSnapshotFactory {
                 item("notification", status(notificationReady), R.string.agent_connector_notification, notificationReady),
                 item("calendar", status(calendarReady), R.string.agent_connector_calendar, calendarReady),
                 item("mcp", status(mcpEnabledCount > 0), R.string.agent_connector_mcp, mcpEnabledCount > 0),
-                item("channel", status(channelCount > 0), R.string.agent_connector_channel, channelCount > 0),
+                item("channel", channelStatus, R.string.agent_connector_channel, channelOnlineCount > 0 && channelIssueCount == 0),
             ),
         )
     }
 
-    private fun item(
-        key: String,
-        status: ConnectorHealthStatus,
-        titleRes: Int,
-        ready: Boolean,
-    ) = ConnectorHealthItem(
+    private fun item(key: String, status: ConnectorHealthStatus, titleRes: Int, ready: Boolean) = ConnectorHealthItem(
         key = key,
         status = status,
         titleRes = titleRes,

@@ -1,5 +1,9 @@
 package io.zer0.muse.automation.vdisplay
 
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+
 /**
  * 虚拟屏"交给用户"的台账。
  *
@@ -27,12 +31,16 @@ object VirtualDisplayHandoffRegistry {
     }
 
     private val entries = LinkedHashMap<Int, Handoff>()
+    private val _handoffsFlow = MutableStateFlow<List<Handoff>>(emptyList())
+
+    /** 响应式交接台账流，供设置页与工作台实时订阅。 */
+    val handoffsFlow: StateFlow<List<Handoff>> = _handoffsFlow.asStateFlow()
 
     /** 交出（或更新）一块屏。[now] 与 [ttlMs] 显式传入，便于测试不依赖真实时钟。 */
     @Synchronized
     fun offer(displayId: Int, packageName: String, now: Long, ttlMs: Long = DEFAULT_TTL_MS): Handoff {
         require(displayId >= 0) { "displayId 无效" }
-        pruneExpired(now)
+        pruneExpiredLocked(now)
         val entry = Handoff(
             displayId = displayId,
             packageName = packageName,
@@ -40,40 +48,61 @@ object VirtualDisplayHandoffRegistry {
             expiresAt = now + ttlMs.coerceAtLeast(1),
         )
         entries[displayId] = entry
+        publishLocked()
         return entry
     }
 
     /** 当前可交接的屏（已过期的会被清掉）。 */
     @Synchronized
     fun list(now: Long): List<Handoff> {
-        pruneExpired(now)
+        val expired = pruneExpiredLocked(now)
+        if (expired.isNotEmpty()) {
+            publishLocked()
+        }
         return entries.values.toList()
     }
 
     /** 取走一块屏：**取走即移除**，避免两个入口同时驱动同一块屏。 */
     @Synchronized
     fun take(displayId: Int, now: Long): Handoff? {
-        pruneExpired(now)
-        return entries.remove(displayId)
+        pruneExpiredLocked(now)
+        val removed = entries.remove(displayId)
+        publishLocked()
+        return removed
     }
 
     /** 主动放弃交接（界面关闭预览时调用）。 */
     @Synchronized
     fun release(displayId: Int) {
-        entries.remove(displayId)
+        if (entries.remove(displayId) != null) {
+            publishLocked()
+        }
     }
 
     /** 过期清理：返回被清掉的 displayId，调用方据此销毁远端屏。 */
     @Synchronized
     fun pruneExpired(now: Long): List<Int> {
+        val expired = pruneExpiredLocked(now)
+        if (expired.isNotEmpty()) {
+            publishLocked()
+        }
+        return expired
+    }
+
+    private fun pruneExpiredLocked(now: Long): List<Int> {
         val expired = entries.values.filter { it.isExpired(now) }.map { it.displayId }
         expired.forEach { entries.remove(it) }
         return expired
+    }
+
+    private fun publishLocked() {
+        _handoffsFlow.value = entries.values.toList()
     }
 
     /** 仅测试用：清空台账，避免跨用例串状态。 */
     @Synchronized
     internal fun resetForTests() {
         entries.clear()
+        publishLocked()
     }
 }

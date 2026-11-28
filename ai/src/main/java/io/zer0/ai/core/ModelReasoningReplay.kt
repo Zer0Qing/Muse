@@ -54,16 +54,15 @@ object ModelReasoningReplayResolver {
         return if (normalized.isNullOrBlank()) null else declarationFor(normalized)
     }
 
-    private fun declarationFor(id: String): ModelReasoningDeclaration? =
-        when (matchFamily(id)) {
-            ReasoningFamily.OPENAI_RESPONSES -> preserveDeclaration(ReasoningCarrier.REASONING_ITEMS)
-            ReasoningFamily.ANTHROPIC -> toolTurnDeclaration(ReasoningCarrier.THINKING_BLOCKS)
-            ReasoningFamily.GEMINI -> toolTurnDeclaration(ReasoningCarrier.THOUGHT_SIGNATURE)
-            ReasoningFamily.OPENROUTER -> preserveDeclaration(ReasoningCarrier.REASONING_DETAILS)
-            ReasoningFamily.REASONING_CONTENT_STRICT -> reasoningContentDeclaration(requireNonEmpty = true)
-            ReasoningFamily.REASONING_CONTENT_LENIENT -> reasoningContentDeclaration(requireNonEmpty = false)
-            ReasoningFamily.NONE -> null
-        }
+    private fun declarationFor(id: String): ModelReasoningDeclaration? = when (matchFamily(id)) {
+        ReasoningFamily.OPENAI_RESPONSES -> preserveDeclaration(ReasoningCarrier.REASONING_ITEMS)
+        ReasoningFamily.ANTHROPIC -> toolTurnDeclaration(ReasoningCarrier.THINKING_BLOCKS)
+        ReasoningFamily.GEMINI -> toolTurnDeclaration(ReasoningCarrier.THOUGHT_SIGNATURE)
+        ReasoningFamily.OPENROUTER -> preserveDeclaration(ReasoningCarrier.REASONING_DETAILS)
+        ReasoningFamily.REASONING_CONTENT_STRICT -> reasoningContentDeclaration(requireNonEmpty = true)
+        ReasoningFamily.REASONING_CONTENT_LENIENT -> reasoningContentDeclaration(requireNonEmpty = false)
+        ReasoningFamily.NONE -> null
+    }
 
     /** 回放家族：把“模型名 → 声明”从一堆谓词收敛成单次匹配。 */
     private enum class ReasoningFamily {
@@ -82,27 +81,25 @@ object ModelReasoningReplayResolver {
     }
 
     /** 有专属载体的厂商（Responses/Anthropic/Gemini/OpenRouter）。 */
-    private fun carrierOnlyFamily(id: String): ReasoningFamily? =
-        when {
-            id.startsWith("o1") || id.startsWith("o3") || id.startsWith("o4") || id.startsWith("gpt-5") ->
-                ReasoningFamily.OPENAI_RESPONSES
-            id.startsWith("claude") -> ReasoningFamily.ANTHROPIC
-            id.startsWith("gemini") -> ReasoningFamily.GEMINI
-            id.startsWith("openrouter") || id.contains("reasoning") -> ReasoningFamily.OPENROUTER
-            else -> null
-        }
+    private fun carrierOnlyFamily(id: String): ReasoningFamily? = when {
+        id.startsWith("o1") || id.startsWith("o3") || id.startsWith("o4") || id.startsWith("gpt-5") ->
+            ReasoningFamily.OPENAI_RESPONSES
+        id.startsWith("claude") -> ReasoningFamily.ANTHROPIC
+        id.startsWith("gemini") -> ReasoningFamily.GEMINI
+        id.startsWith("openrouter") || id.contains("reasoning") -> ReasoningFamily.OPENROUTER
+        else -> null
+    }
 
     /** reasoning_content 载体的思考系模型，按字段是否可省分两组。 */
-    private fun contentFamily(id: String): ReasoningFamily =
-        when {
-            STRICT_CONTENT_PREFIXES.any { id.startsWith(it) } || (id.contains("deepseek") && id.contains("reason")) ->
-                ReasoningFamily.REASONING_CONTENT_STRICT
-            LENIENT_CONTENT_PREFIXES.any { id.startsWith(it) } -> ReasoningFamily.REASONING_CONTENT_LENIENT
-            id.contains("glm-4.7") || (id.startsWith("glm-4") && id.contains("thinking")) ->
-                ReasoningFamily.REASONING_CONTENT_STRICT
-            id.startsWith("doubao") && id.contains("thinking") -> ReasoningFamily.REASONING_CONTENT_LENIENT
-            else -> ReasoningFamily.NONE
-        }
+    private fun contentFamily(id: String): ReasoningFamily = when {
+        STRICT_CONTENT_PREFIXES.any { id.startsWith(it) } || (id.contains("deepseek") && id.contains("reason")) ->
+            ReasoningFamily.REASONING_CONTENT_STRICT
+        LENIENT_CONTENT_PREFIXES.any { id.startsWith(it) } -> ReasoningFamily.REASONING_CONTENT_LENIENT
+        id.contains("glm-4.7") || (id.startsWith("glm-4") && id.contains("thinking")) ->
+            ReasoningFamily.REASONING_CONTENT_STRICT
+        id.startsWith("doubao") && id.contains("thinking") -> ReasoningFamily.REASONING_CONTENT_LENIENT
+        else -> ReasoningFamily.NONE
+    }
 
     private fun preserveDeclaration(carrier: ReasoningCarrier) =
         ModelReasoningDeclaration(carrier = carrier, policy = ReasoningReplayPolicy.PRESERVE)
@@ -110,12 +107,11 @@ object ModelReasoningReplayResolver {
     private fun toolTurnDeclaration(carrier: ReasoningCarrier) =
         ModelReasoningDeclaration(carrier = carrier, policy = ReasoningReplayPolicy.REQUIRE_TOOL_CALL)
 
-    private fun reasoningContentDeclaration(requireNonEmpty: Boolean) =
-        ModelReasoningDeclaration(
-            carrier = ReasoningCarrier.REASONING_CONTENT,
-            policy = ReasoningReplayPolicy.REQUIRE_TOOL_CALL,
-            requiresNonEmptyReasoning = requireNonEmpty,
-        )
+    private fun reasoningContentDeclaration(requireNonEmpty: Boolean) = ModelReasoningDeclaration(
+        carrier = ReasoningCarrier.REASONING_CONTENT,
+        policy = ReasoningReplayPolicy.REQUIRE_TOOL_CALL,
+        requiresNonEmptyReasoning = requireNonEmpty,
+    )
 }
 
 /** 字段不能省的思考系前缀（缺字段上游直接 400）。 */
@@ -125,4 +121,3 @@ private val STRICT_CONTENT_PREFIXES =
 /** 字段可省的思考系前缀（内容为空时省略字段，节省 token）。 */
 private val LENIENT_CONTENT_PREFIXES =
     listOf("qwen3", "qwq-", "qwen-vl", "mimo", "longcat")
-

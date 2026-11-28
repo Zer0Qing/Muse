@@ -1,77 +1,9 @@
 package io.zer0.muse.backup
 
-import android.content.Context
-import android.net.Uri
-import androidx.room.withTransaction
 import io.zer0.common.AppJson
-import io.zer0.memory.fact.FactDb
-import io.zer0.memory.fact.FactEntity
-import io.zer0.memory.summary.CompiledSectionEntity
-import io.zer0.memory.summary.ScopedCompiledSectionEntity
-import io.zer0.memory.summary.DailyStateEntity
-import io.zer0.memory.summary.MemoryDb
-import io.zer0.memory.summary.SessionSummaryEntity
-import io.zer0.memory.summary.ContextCheckpointEntity
-import io.zer0.muse.R
-import io.zer0.muse.data.SettingsRepository
-import io.zer0.muse.data.session.MuseDb
-import io.zer0.muse.data.stats.AutoBackupLogDao
-import io.zer0.muse.data.stats.AutoBackupLogEntity
-import io.zer0.muse.data.session.SessionEntity
-import io.zer0.muse.data.session.MessageEntity
-import io.zer0.muse.data.session.MessageImageStore
-import io.zer0.muse.data.assistant.AssistantEntity
-import io.zer0.muse.data.lorebook.LorebookEntity
-import io.zer0.muse.data.skill.SkillEntity
-import io.zer0.muse.data.artifact.ArtifactEntity
-import io.zer0.muse.data.quickmsg.QuickMessageEntity
-import io.zer0.muse.data.promptinjection.PromptInjectionEntity
-import io.zer0.muse.data.session.FolderEntity
-import io.zer0.muse.data.groupchat.GroupChatEntity
-import io.zer0.muse.data.groupchat.GroupChatMessageEntity
-import io.zer0.muse.data.schedule.ScheduledTaskEntity
-import io.zer0.muse.data.schedule.ScheduledTaskExecutionEntity
-import io.zer0.muse.data.knowledge.KnowledgeDocEntity
-import io.zer0.muse.data.knowledge.KnowledgeChunkEntity
-import io.zer0.muse.data.experience.ExperienceEntity
-import io.zer0.muse.data.milestone.MilestoneEntity
-import io.zer0.muse.data.agentdm.AgentMessageEntity
-import io.zer0.muse.data.session.ConversationEventEntity
-import io.zer0.muse.data.session.ConversationTurnEntity
-import io.zer0.muse.data.session.MessagePartEntity
-import io.zer0.muse.data.session.MessageOutboxEntity
-import io.zer0.muse.data.knowledge.KnowledgeBaseEntity
-import io.zer0.muse.data.session.ToolRoundEntity
-import io.zer0.muse.data.session.SessionBranchHeadEntity
-import io.zer0.muse.data.groupchat.GroupChatMemoryEntity
-import io.zer0.muse.data.subagent.SubagentThreadEntity
-import io.zer0.muse.ui.translate.TranslateHistoryEntity
-import io.zer0.common.Hashing
-import io.zer0.common.Logger
-import io.zer0.common.resultOf
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.withContext
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.builtins.ListSerializer
-import kotlinx.serialization.builtins.MapSerializer
-import kotlinx.serialization.builtins.serializer
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
-import java.io.BufferedWriter
-import java.io.BufferedInputStream
-import java.io.ByteArrayOutputStream
-import java.io.File
-import java.io.OutputStream
-import java.io.OutputStreamWriter
-import java.security.MessageDigest
-import java.util.Base64
-import java.util.UUID
-import java.util.zip.ZipInputStream
 
 /**
  * 备份的 NDJSON 读回校验：类型映射表与三个校验入口。
@@ -91,6 +23,7 @@ internal val ndjsonTypeToMetaKey: Map<String, String> = mapOf(
     "fact" to "facts",
     "fileStore" to "fileStores",
     "binaryFile" to "binaryFiles",
+    BackupStreamFiles.START to "binaryFiles",
     "assistant" to "assistants",
     "lorebook" to "lorebooks",
     "skill" to "skills",
@@ -148,6 +81,8 @@ internal val ndjsonTypeToMetaKey: Map<String, String> = mapOf(
     "sessionTerm" to "sessionTerms",
     "assistantRelationship" to "assistantRelationships",
     "cardEntity" to "cardEntities",
+    "mediaGenTask" to "mediaGenTasks",
+    "mediaGenAsset" to "mediaGenAssets",
     "groupChatMemory" to "groupChatMemories",
     "settings" to "settings",
 )
@@ -180,29 +115,52 @@ internal fun validateCloudReadBackNdjson(payload: ByteArray, password: String): 
         payload
     }
     if (plaintext.isEmpty()) return "read-back payload is empty"
-    plaintext.inputStream().bufferedReader(Charsets.UTF_8).use { reader ->
-        val firstLine = generateSequence { reader.readLine() }
-            .firstOrNull { !it.isNullOrBlank() }
-            ?: return "read-back has no non-blank lines"
-        val meta = runCatching {
-            readBackJson.parseToJsonElement(firstLine) as? JsonObject
-        }.getOrNull() ?: return "read-back first line is not a JSON object"
-        val type = (meta["type"] as? JsonPrimitive)?.contentOrNull
-        if (type != "meta") return "read-back first line type is '$type', expected 'meta'"
+    return plaintext.inputStream().bufferedReader(Charsets.UTF_8).use(::validateCloudReadBackReader)
+}
 
+internal fun validateCloudReadBackReader(reader: java.io.BufferedReader): String? {
+    val firstLine = generateSequence { reader.readLine() }.firstOrNull { !it.isNullOrBlank() }
+    val metaResult = parseReadBackMeta(firstLine)
+    var error = metaResult.error
+    val meta = metaResult.meta
+    if (error == null && meta != null) {
         var declaredTotal = 0L
+        var countError: String? = null
         for (key in ndjsonTypeToMetaKey.values.distinct()) {
             val value = meta[key] ?: continue
             val count = (value as? JsonPrimitive)?.contentOrNull?.toIntOrNull()
-                ?: return "read-back meta count '$key' is not an integer"
-            if (count < 0) return "read-back meta count '$key' is negative: $count"
-            declaredTotal += count
+            if (count == null) {
+                countError = "read-back meta count '$key' is not an integer"
+            } else if (count < 0) {
+                countError = "read-back meta count '$key' is negative: $count"
+            } else if (countError == null) {
+                declaredTotal += count
+            }
         }
-        if (declaredTotal <= 0) return "read-back meta declares no data (all counts are 0)"
-
+        if (countError != null) {
+            error = countError
+        } else if (declaredTotal <= 0) {
+            error = "read-back meta declares no data (all counts are 0)"
+        }
+    }
+    if (error == null) {
         val hasDataLine = generateSequence { reader.readLine() }.any { it.isNotBlank() }
-        if (!hasDataLine) return "read-back has no record lines after meta"
-        return null
+        if (!hasDataLine) error = "read-back has no record lines after meta"
+    }
+    return error
+}
+
+private data class ReadBackMetaResult(val meta: JsonObject?, val error: String?)
+
+private fun parseReadBackMeta(firstLine: String?): ReadBackMetaResult {
+    if (firstLine == null) return ReadBackMetaResult(null, "read-back has no non-blank lines")
+    val meta = runCatching { readBackJson.parseToJsonElement(firstLine) as? JsonObject }.getOrNull()
+        ?: return ReadBackMetaResult(null, "read-back first line is not a JSON object")
+    val type = (meta["type"] as? JsonPrimitive)?.contentOrNull
+    return if (type == "meta") {
+        ReadBackMetaResult(meta, null)
+    } else {
+        ReadBackMetaResult(null, "read-back first line type is '$type', expected 'meta'")
     }
 }
 
@@ -217,4 +175,3 @@ internal fun validateCloudReadBackNdjsonWithPolicy(payload: ByteArray, password:
 internal fun shouldRejectPlaintextCloudBackup(payload: ByteArray, passwordWasSet: Boolean, password: String): Boolean {
     return !BackupCrypto.isEncrypted(payload) && (passwordWasSet || password.isNotBlank())
 }
-

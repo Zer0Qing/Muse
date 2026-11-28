@@ -56,9 +56,12 @@ class InboxPriorityConsumptionTest {
 
             assertEquals("后续窗口必须让用户输入得到处理", 1, second.consumed)
             assertTrue(laterTurnKinds.contains(BotEventKind.USER_INPUT_RECEIVED))
-            assertTrue("失败事件仍留在队列", graph.repository.pendingEvents("assistant-a", 100).any {
-                it.kind == BotEventKind.APPROVAL_RESOLVED
-            })
+            assertTrue(
+                "失败事件仍留在队列",
+                graph.repository.pendingEvents("assistant-a", 100).any {
+                    it.kind == BotEventKind.APPROVAL_RESOLVED
+                },
+            )
         } finally {
             graph.close()
         }

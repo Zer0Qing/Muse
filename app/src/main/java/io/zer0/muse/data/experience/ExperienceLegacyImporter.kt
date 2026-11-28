@@ -4,6 +4,8 @@ import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.memory.experience.ExperienceEntry
+import io.zer0.memory.experience.ExperienceRecordInput
+import io.zer0.memory.experience.ExperienceRecordMetadata
 import io.zer0.memory.experience.ExperienceRepository
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonPrimitive
@@ -47,16 +49,20 @@ class ExperienceLegacyImporter(
                 return@forEach
             }
             val outcome = resultOf {
-                target.record(
-                    assistantId = assistantId,
-                    category = safeCategory(row.category),
-                    content = content,
-                    title = row.title.trim(),
-                    tags = parseTags(row.tagsJson),
-                    source = ExperienceEntry.SOURCE_IMPORTED,
-                    sessionId = row.sessionId,
-                    createdAt = toIso(row.createdAt),
-                    updatedAt = toIso(row.updatedAt),
+                target.recordAt(
+                    ExperienceRecordInput(
+                        assistantId = assistantId,
+                        category = safeCategory(row.category),
+                        content = content,
+                        metadata = ExperienceRecordMetadata(
+                            title = row.title.trim(),
+                            tags = parseTags(row.tagsJson),
+                            source = ExperienceEntry.SOURCE_IMPORTED,
+                            sessionId = row.sessionId,
+                            createdAt = toIso(row.createdAt),
+                            updatedAt = toIso(row.updatedAt),
+                        ),
+                    ),
                 )
             }
             outcome.onSuccess { imported += 1 }
@@ -97,8 +103,7 @@ class ExperienceLegacyImporter(
         }
 
         /** 毫秒时间戳转 ISO；越界值退回当前时间，绝不用 0 冒充 1970。 */
-        internal fun toIso(millis: Long): String =
-            runCatching { Instant.ofEpochMilli(millis).toString() }
-                .getOrDefault(Instant.now().toString())
+        internal fun toIso(millis: Long): String = runCatching { Instant.ofEpochMilli(millis).toString() }
+            .getOrDefault(Instant.now().toString())
     }
 }

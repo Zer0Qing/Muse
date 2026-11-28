@@ -1,5 +1,6 @@
 package io.zer0.muse.data
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -14,25 +15,111 @@ class SettingsSnapshotPolicyTest {
         val raw = mapOf(
             "providers_json" to """[{"apiKey":"sk-fake-123"}]""",
             "web_server_config_json" to """{"password":"secret"}""",
-            "mcp_servers_json" to """[{"authToken":"token"}]""",
+            "mcp_token_cache" to "token",
             "cloud_backup_config_json" to """{"webdavPassword":"p"}""",
             "theme_id" to "mono",
         )
         val safe = SettingsSnapshotPolicy.sanitize(raw)
         assertFalse(safe.containsKey("providers_json"))
         assertFalse(safe.containsKey("web_server_config_json"))
-        assertFalse(safe.containsKey("mcp_servers_json"))
+        assertFalse(safe.containsKey("mcp_token_cache"))
         assertFalse(safe.containsKey("cloud_backup_config_json"))
         assertTrue(safe["theme_id"] == "mono")
         assertFalse(safe.values.any { it.contains("sk-fake-123") || it.contains("secret") || it.contains("token") })
     }
 
     @Test
+    fun `portable MCP config preserves identity but strips credentials`() {
+        val config = io.zer0.muse.mcp.McpServerConfig(
+            id = "server-1",
+            name = "Files",
+            url = "https://example.invalid/mcp",
+            oauthConfig = io.zer0.muse.mcp.McpOAuthConfig(
+                enabled = true,
+                clientId = "public-client",
+                authorizationEndpoint = "https://identity.invalid/authorize?client_secret=oauth-secret",
+                tokenEndpoint = "https://identity.invalid/token",
+            ),
+            headers = mapOf("Authorization" to "Bearer secret"),
+            authToken = "static-secret",
+            feishuAuth = io.zer0.muse.mcp.McpFeishuAuthConfig(
+                enabled = true,
+                appId = "app-id",
+                appSecret = "app-secret",
+            ),
+            environment = mapOf("GITHUB_TOKEN" to "env-secret"),
+        )
+
+        val portable = SettingsSnapshotPolicy.portableMcpConfig(config)
+
+        assertEquals(config.id, portable.id)
+        assertEquals(config.name, portable.name)
+        assertEquals(config.url, portable.url)
+        assertTrue(portable.headers.isEmpty())
+        assertTrue(portable.authToken.isEmpty())
+        assertFalse(portable.feishuAuth.enabled)
+        assertTrue(portable.feishuAuth.appId.isEmpty())
+        assertTrue(portable.feishuAuth.appSecret.isEmpty())
+        assertEquals(mapOf("GITHUB_TOKEN" to ""), portable.environment)
+        assertFalse(portable.toString().contains("env-secret"))
+        assertTrue(portable.oauthConfig.enabled)
+        assertTrue(portable.oauthConfig.authorizationEndpoint == "https://identity.invalid/authorize")
+        assertFalse(portable.toString().contains("oauth-secret"))
+    }
+
+    @Test
+    fun `portable MCP config removes URL credentials and disables STDIO`() {
+        val remote = io.zer0.muse.mcp.McpServerConfig(
+            id = "remote",
+            name = "Remote",
+            url = "https://user:password@example.invalid/mcp?access_token=url-secret",
+        )
+        val portableRemote = SettingsSnapshotPolicy.portableMcpConfig(remote)
+        assertEquals("https://example.invalid/mcp", portableRemote.url)
+        assertFalse(portableRemote.toString().contains("password"))
+        assertFalse(portableRemote.toString().contains("url-secret"))
+
+        val local = io.zer0.muse.mcp.McpServerConfig(
+            id = "local",
+            name = "Local",
+            transportType = io.zer0.muse.mcp.McpTransportType.STDIO,
+            command = "npx -y secret-package --token command-secret",
+            environment = mapOf("API_TOKEN" to "env-secret"),
+        )
+        val portableLocal = SettingsSnapshotPolicy.portableMcpConfig(local)
+        assertEquals("", portableLocal.command)
+        assertFalse(portableLocal.enabled)
+        assertFalse(portableLocal.toString().contains("command-secret"))
+    }
+
+    @Test
+    fun `MCP credentials stay only with unchanged connection identity`() {
+        val local = io.zer0.muse.mcp.McpServerConfig(
+            id = "server",
+            name = "Server",
+            url = "https://one.invalid/mcp",
+        )
+        val same = SettingsSnapshotPolicy.portableMcpConfig(local)
+        val changedUrl = same.copy(url = "https://two.invalid/mcp")
+        val changedTransport = same.copy(transportType = io.zer0.muse.mcp.McpTransportType.SSE)
+
+        assertTrue(SettingsSnapshotPolicy.sameMcpConnectionIdentity(local, same))
+        assertFalse(SettingsSnapshotPolicy.sameMcpConnectionIdentity(local, changedUrl))
+        assertFalse(SettingsSnapshotPolicy.sameMcpConnectionIdentity(local, changedTransport))
+    }
+
+    @Test
     fun `whitelisted keys pass through`() {
+        assertTrue(SettingsSnapshotPolicy.isSafeKey(SettingsSnapshotPolicy.MCP_SERVERS_KEY))
         assertTrue(SettingsSnapshotPolicy.isSafeKey("theme_id"))
         assertTrue(SettingsSnapshotPolicy.isSafeKey("bool:keep_awake"))
         assertTrue(SettingsSnapshotPolicy.isSafeKey("int:default_home_page"))
         assertTrue(SettingsSnapshotPolicy.isSafeKey("long:account_login_at"))
+        assertTrue(SettingsSnapshotPolicy.isSafeKey("chat_background"))
+        assertTrue(SettingsSnapshotPolicy.isSafeKey("chat_background_dark"))
+        assertTrue(SettingsSnapshotPolicy.isSafeKey("chat_background_assistant_alpha_1"))
+        assertTrue(SettingsSnapshotPolicy.isSafeKey("chat_background_session_abc-123"))
+        assertFalse(SettingsSnapshotPolicy.isSafeKey("chat_background_session_../../outside"))
     }
 
     @Test

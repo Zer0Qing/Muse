@@ -162,7 +162,9 @@ class MemoryDbMigrationTest {
                             """.trimIndent(),
                         )
                         db.execSQL(
-                            "INSERT INTO daily_state (`key`, schema_version, logical_date, reset_at, facts_mode, completed_steps, daily_completed_at, updated_at) " +
+                            "INSERT INTO daily_state " +
+                                "(`key`, schema_version, logical_date, reset_at, facts_mode, " +
+                                "completed_steps, daily_completed_at, updated_at) " +
                                 "VALUES ('main|default', 2, '2026-11-13', NULL, 'legacy', '{}', NULL, 'now')",
                         )
                     }

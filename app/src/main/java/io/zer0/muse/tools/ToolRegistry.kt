@@ -5,8 +5,8 @@ import io.zer0.ai.core.ToolDefinition
 import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
-import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.R
+import io.zer0.muse.ui.theme.MuseDateFormats
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,7 +20,6 @@ import kotlinx.serialization.json.put
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
-import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * Phase 5-H: 工具注册表(简化版 MCP 框架)。
@@ -89,6 +88,12 @@ class ToolRegistry(
         val riskLevel: ToolRiskLevel,
         /** 原始 JSON Schema。MCP 工具使用此字段保留嵌套对象、数组、枚举等完整结构。 */
         val rawParametersJsonSchema: String? = null,
+        /** 参数名 → 允许的枚举值集合，序列化时生成标准 JSON Schema `enum`。 */
+        val parameterEnums: Map<String, List<String>> = emptyMap(),
+        /** 参数名 → 自定义 JSON Schema 属性对象（如 array items / nested object / bounds）。 */
+        val parameterSchemas: Map<String, JsonObject> = emptyMap(),
+        /** 为 true 时仅保留执行兼容，不暴露给模型 tools schema 或设置清单。 */
+        val hiddenFromSchema: Boolean = false,
     )
 
     /**
@@ -249,8 +254,8 @@ class ToolRegistry(
         }
 
         // P1-C: Node 脚本执行(内置 Node 运行时,完整能力;高风险同 execute_javascript)
-        register(NodeScriptTool.toolDef()) { args ->
-            NodeScriptTool.executeFromArgs(args, context)
+        registerOutcomeWithContext(NodeScriptTool.toolDef()) { args, executionContext ->
+            ToolOutcome.ok(NodeScriptTool.execute(context, args, executionContext?.onRemoteExecStarted))
         }
 
         // P2-6: 浏览器自动化工具集(navigate/click/type/extract/scroll_bottom/get_html)
@@ -366,7 +371,7 @@ class ToolRegistry(
         }
     }
 
-    /** 列出所有可用工具(对标 MCP tools/list)。 */
+    /** 列出所有已注册工具(对标 MCP tools/list；包含仅兼容执行的隐藏别名)。 */
     fun listTools(): List<ToolDef> = toolDefs.values.toList()
 
     /**
@@ -423,45 +428,62 @@ class ToolRegistry(
         }
     }
 
-    /** 全量重建 [ToolDefinition] 列表（缓存未命中时才走）。 */
-    private fun buildToolDefinitions(): List<ToolDefinition> = listTools().map { def ->
-        val schema =
-            def.rawParametersJsonSchema
-                ?.takeIf { raw -> runCatching { AppJson.decodeFromString(JsonObject.serializer(), raw) }.isSuccess }
-                ?.let { raw -> AppJson.decodeFromString(JsonObject.serializer(), raw) }
-                ?: buildJsonObject {
-                    put("type", "object")
-                    put(
-                        "properties",
-                        buildJsonObject {
-                            def.parameters.forEach { (name, desc) ->
-                                put(
-                                    name,
-                                    buildJsonObject {
-                                        put("type", def.parameterTypes[name] ?: "string")
-                                        put("description", desc)
-                                    },
-                                )
-                            }
-                        },
-                    )
-                    if (def.required.isNotEmpty()) {
+    /** 全量重建 [ToolDefinition] 列表（缓存未命中时才走；自动过滤 hiddenFromSchema 兼容别名）。 */
+    private fun buildToolDefinitions(): List<ToolDefinition> = listTools()
+        .filter { !it.hiddenFromSchema }
+        .map { def ->
+            val schema =
+                def.rawParametersJsonSchema
+                    ?.takeIf { raw -> runCatching { AppJson.decodeFromString(JsonObject.serializer(), raw) }.isSuccess }
+                    ?.let { raw -> AppJson.decodeFromString(JsonObject.serializer(), raw) }
+                    ?: buildJsonObject {
+                        put("type", "object")
                         put(
-                            "required",
-                            kotlinx.serialization.json.JsonArray(
-                                def.required.map { JsonPrimitive(it) },
-                            ),
+                            "properties",
+                            buildJsonObject {
+                                def.parameters.forEach { (name, desc) ->
+                                    val customSchema = def.parameterSchemas[name]
+                                    val enumValues = def.parameterEnums[name]
+                                    put(
+                                        name,
+                                        buildJsonObject {
+                                            if (customSchema != null) {
+                                                customSchema.forEach { (k, v) -> put(k, v) }
+                                                if (!customSchema.containsKey("description")) {
+                                                    put("description", desc)
+                                                }
+                                            } else {
+                                                put("type", def.parameterTypes[name] ?: "string")
+                                                put("description", desc)
+                                            }
+                                            if (!enumValues.isNullOrEmpty() && customSchema?.containsKey("enum") != true) {
+                                                put(
+                                                    "enum",
+                                                    kotlinx.serialization.json.JsonArray(enumValues.map { JsonPrimitive(it) }),
+                                                )
+                                            }
+                                        },
+                                    )
+                                }
+                            },
                         )
+                        if (def.required.isNotEmpty()) {
+                            put(
+                                "required",
+                                kotlinx.serialization.json.JsonArray(
+                                    def.required.map { JsonPrimitive(it) },
+                                ),
+                            )
+                        }
                     }
-                }
-        ToolDefinition(
-            name = def.name,
-            description = def.description,
-            parametersJsonSchema = AppJson.encodeToString(JsonObject.serializer(), schema),
-        )
-        // v1.0.4 修复 HTTP 400 "Tool names must be unique":
-        // 防御性按 name 去重,即使 ToolRegistry 内部因多 Registrar 注册同名工具也能拦截。
-    }.distinctBy { it.name }
+            ToolDefinition(
+                name = def.name,
+                description = def.description,
+                parametersJsonSchema = AppJson.encodeToString(JsonObject.serializer(), schema),
+            )
+            // v1.0.4 修复 HTTP 400 "Tool names must be unique":
+            // 防御性按 name 去重,即使 ToolRegistry 内部因多 Registrar 注册同名工具也能拦截。
+        }.distinctBy { it.name }
 
     /**
      * 执行工具(对标 MCP tools/call)。
@@ -552,31 +574,49 @@ class ToolRegistry(
             val executionContext =
                 executionContext
                     ?: return ToolOutcome.error("工具 $name 需要会话执行上下文")
-            return resultOf { fn(validArgs, executionContext) }
-                .onError { msg, _ -> Logger.w("ToolRegistry", "工具 $name 执行异常: $msg") }
-                .getOrNull()?.let { ToolOutcome.ok(it) }
-                ?: ToolOutcome.error(this.context.getString(R.string.tool_exec_exception))
+            var sanitizedErr: String? = null
+            val okText = resultOf { fn(validArgs, executionContext) }
+                .onError { msg, t ->
+                    Logger.w("ToolRegistry", "工具 $name 执行异常: $msg")
+                    sanitizedErr = sanitizeToolException(t, msg)
+                }
+                .getOrNull()
+            return okText?.let { ToolOutcome.ok(it) } ?: sanitizedOutcome(sanitizedErr)
         }
         // Outcome + 上下文通道（ui_agent 这类需要进度的长任务）
         outcomeContextTools[name]?.let { fn ->
-            return resultOf { fn(validArgs, executionContext) }
-                .onError { msg, _ -> Logger.w("ToolRegistry", "工具 $name 执行异常: $msg") }
-                .getOrNull() ?: ToolOutcome.error(context.getString(R.string.tool_exec_exception))
+            var sanitizedErr: String? = null
+            val out = resultOf { fn(validArgs, executionContext) }
+                .onError { msg, t ->
+                    Logger.w("ToolRegistry", "工具 $name 执行异常: $msg")
+                    sanitizedErr = sanitizeToolException(t, msg)
+                }
+                .getOrNull()
+            return out ?: sanitizedOutcome(sanitizedErr)
         }
         // v1.0.53: 优先结构化通道
         outcomeTools[name]?.let { fn ->
-            return resultOf { fn(validArgs) }
-                .onError { msg, _ -> Logger.w("ToolRegistry", "工具 $name 执行异常: $msg") }
-                .getOrNull() ?: ToolOutcome.error(context.getString(R.string.tool_exec_exception))
+            var sanitizedErr: String? = null
+            val out = resultOf { fn(validArgs) }
+                .onError { msg, t ->
+                    Logger.w("ToolRegistry", "工具 $name 执行异常: $msg")
+                    sanitizedErr = sanitizeToolException(t, msg)
+                }
+                .getOrNull()
+            return out ?: sanitizedOutcome(sanitizedErr)
         }
         val fn =
             tools[name]
                 ?: return ToolOutcome.error(context.getString(R.string.tool_not_found, name, tools.keys.joinToString(", ")))
         // M-TR1: 改用 resultOf{}(正确重抛 CancellationException)
-        return resultOf { fn(validArgs) }
-            .onError { msg, _ -> Logger.w("ToolRegistry", "工具 $name 执行异常: $msg") }
-            .getOrNull()?.let { ToolOutcome.ok(it) }
-            ?: ToolOutcome.error(context.getString(R.string.tool_exec_exception))
+        var sanitizedErr: String? = null
+        val okText = resultOf { fn(validArgs) }
+            .onError { msg, t ->
+                Logger.w("ToolRegistry", "工具 $name 执行异常: $msg")
+                sanitizedErr = sanitizeToolException(t, msg)
+            }
+            .getOrNull()
+        return okText?.let { ToolOutcome.ok(it) } ?: sanitizedOutcome(sanitizedErr)
     }
 
     /**
@@ -697,7 +737,27 @@ class ToolRegistry(
             throw ce
         } catch (e: Exception) {
             Logger.w("ToolRegistry", "JSON 工具 $name 执行异常: ${e.message}")
-            ToolOutcome.error(context.getString(R.string.tool_exec_exception))
+            sanitizedOutcome(sanitizeToolException(e, e.message))
+        }
+    }
+
+    private fun sanitizedOutcome(detail: String?): ToolOutcome {
+        val prefix = context.getString(R.string.tool_exec_exception)
+        val message = if (detail.isNullOrBlank()) prefix else "$prefix ($detail)"
+        return ToolOutcome.error(message)
+    }
+
+    private fun sanitizeToolException(throwable: Throwable?, rawMessage: String?): String {
+        val type = throwable?.javaClass?.simpleName?.takeIf { it.isNotBlank() } ?: "Error"
+        val cleaned = (throwable?.message ?: rawMessage).orEmpty()
+            .replace(Regex("""/(?:data/user/\d+|storage/emulated/\d+)/[^\s,;)]+"""), "<path>")
+            .replace(Regex("""\s+"""), " ")
+            .trim()
+        val redacted = ToolDataPrivacy.redactText(cleaned)
+        return if (redacted.isBlank()) {
+            type
+        } else {
+            "$type: ${redacted.take(200)}"
         }
     }
 

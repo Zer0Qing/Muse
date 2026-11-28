@@ -5,7 +5,6 @@ import io.zer0.common.Logger
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
-import kotlinx.serialization.json.Json
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -39,6 +38,15 @@ class LorebookRepository(
     }
 
     suspend fun getById(id: String): LorebookEntity? = dao.getById(id)
+
+    /**
+     * 一次性全量直查。
+     *
+     * 管理页刷新不能用 observeAll().first()：first() 只取 Flow 的首次发射就取消订阅，
+     * 刚写完库时那次发射可能仍是写前快照，旧列表会被写进状态并永久锁死。
+     * 直查保证读到的是提交后的真实数据。
+     */
+    suspend fun getAll(): List<LorebookEntity> = dao.getAll()
 
     suspend fun upsert(entity: LorebookEntity) = dao.upsert(entity)
 

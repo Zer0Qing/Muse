@@ -3,7 +3,6 @@ package io.zer0.muse.transformer
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.UIMessage
 import io.zer0.muse.data.assistant.AssistantRegex
-import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * v1.97: 正则替换 Transformer — 在消息管道中对 user/assistant 文本应用助手级正则规则。

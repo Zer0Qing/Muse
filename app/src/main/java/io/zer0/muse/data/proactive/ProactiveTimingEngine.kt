@@ -179,9 +179,15 @@ object ProactiveTimingEngine {
         // 压过去就变成每隔几分钟尝试一次。
         val intervalMs = intervalMinutes * MINUTE_MS
         val attemptedRecently = tooSoon(input.now, input.lastProactiveAttemptAt, intervalMs)
-        val usedGuarantee = input.dailyGuaranteeMs > 0L && !quiet && !attemptedRecently &&
+        val blockingTimingOnly = timingBlock == null || timingBlock == Verdict.TOO_SOON
+        val usedGuarantee = input.dailyGuaranteeMs > 0L &&
+            !quiet &&
+            !attemptedRecently &&
             remaining >= 1f &&
-            timingBlock == Verdict.TOO_SOON &&
+            blockingTimingOnly &&
+            input.relation.cooldownUntil <= input.now &&
+            !input.isGenerating &&
+            (input.lastUserMessageAt <= 0L || input.now - input.lastUserMessageAt >= USER_ACTIVE_WINDOW_MS) &&
             (
                 input.lastProactiveSentAt <= 0L ||
                     input.now - input.lastProactiveSentAt >= input.dailyGuaranteeMs
@@ -331,6 +337,43 @@ object ProactiveTimingEngine {
      */
     fun isInQuietHours(hour: Int, start: Int, end: Int, allDayAllowed: Boolean = false): Boolean =
         !QuietHoursPolicy.isWithinAllowedWindow(hour, start, end, allDayAllowed)
+
+    /** 返回全部 OPEN 牵挂中最早一个未到点的定时唤醒时间戳（> now），无则返回 null。 */
+    fun nextScheduledTriggerAt(thoughts: List<PendingThoughtEntity>, now: Long): Long? = thoughts.asSequence()
+        .filter { it.status == ThoughtStatus.OPEN.name }
+        .filter { it.expiresAt == null || it.expiresAt > now }
+        .mapNotNull { it.triggerAt }
+        .filter { it > now }
+        .minOrNull()
+
+    /** 若预设提醒时间落入免打扰时段，向后顺延到下一个允许时段起点（最多检查 24 小时）。 */
+    fun adjustTriggerForQuietHours(targetAt: Long, allowedHourStart: Int, allowedHourEnd: Int, allDayAllowed: Boolean): Long {
+        if (allDayAllowed) return targetAt
+        val startHour = hourOfDay(targetAt)
+        if (QuietHoursPolicy.isWithinAllowedWindow(startHour, allowedHourStart, allowedHourEnd, false)) {
+            return targetAt
+        }
+        val cal = java.util.Calendar.getInstance().apply {
+            timeInMillis = targetAt
+            set(java.util.Calendar.MINUTE, 0)
+            set(java.util.Calendar.SECOND, 0)
+            set(java.util.Calendar.MILLISECOND, 0)
+        }
+        repeat(24) {
+            cal.add(java.util.Calendar.HOUR_OF_DAY, 1)
+            if (
+                QuietHoursPolicy.isWithinAllowedWindow(
+                    cal.get(java.util.Calendar.HOUR_OF_DAY),
+                    allowedHourStart,
+                    allowedHourEnd,
+                    false,
+                )
+            ) {
+                return cal.timeInMillis
+            }
+        }
+        return targetAt
+    }
 
     /** 把判定结论翻译成能贴进设置页的一句话。 */
     fun describe(decision: Decision): String = when (decision.verdict) {

@@ -208,7 +208,7 @@ class OpenAIImageProvider(
                 size = request.size.ifBlank { "1024x1024" },
                 quality = request.quality,
                 style = request.style,
-                n = 1,
+                n = request.n.coerceIn(1, 4),
                 referenceImages = request.referenceImages,
                 responseFormat = request.responseFormat,
             )
@@ -225,13 +225,14 @@ class OpenAIImageProvider(
             !model.supportsB64Json && request.responseFormat == "b64_json" -> "url"
             else -> request.responseFormat
         }
+        val maxN = if (ImageModelCatalog.contains(modelId)) model.maxN else 4
         return ValidatedParams(
             prompt = request.prompt,
             model = modelId,
             size = size,
             quality = quality,
             style = style,
-            n = request.n.coerceIn(1, model.maxN),
+            n = request.n.coerceIn(1, maxN),
             referenceImages = request.referenceImages,
             responseFormat = responseFormat,
         )
@@ -257,17 +258,21 @@ class OpenAIImageProvider(
     }
 
     private suspend fun buildEditsRequest(url: String, apiKey: String, params: ValidatedParams, model: ImageModel?): Request {
-        val refUri = params.referenceImages.first()
-        val imageBytes = resolveImageBytes(refUri)
-            ?: error(ErrorCode.IMAGE_REFERENCE_DOWNLOAD_FAILED.toMessage("no_bytes"))
-        val mime = inferImageMime(imageBytes)
-        val ext = mime.substringAfter('/')
-        val imageBody = imageBytes.toRequestBody(mime.toMediaType())
+        val builder = MultipartBody.Builder().setType(MultipartBody.FORM)
+        val useArrayField = params.referenceImages.size > 1 &&
+            params.model.startsWith("gpt-image", ignoreCase = true)
+        val fieldName = if (useArrayField) "image[]" else "image"
+        val imagesToAttach = if (useArrayField) params.referenceImages else listOf(params.referenceImages.first())
+        imagesToAttach.forEachIndexed { index, refUri ->
+            val imageBytes = resolveImageBytes(refUri)
+                ?: error(ErrorCode.IMAGE_REFERENCE_DOWNLOAD_FAILED.toMessage("no_bytes"))
+            val mime = inferImageMime(imageBytes)
+            val ext = mime.substringAfter('/')
+            val suffix = if (useArrayField) "_$index" else ""
+            builder.addFormDataPart(fieldName, "reference$suffix.$ext", imageBytes.toRequestBody(mime.toMediaType()))
+        }
         val promptBody = params.prompt.toRequestBody("text/plain".toMediaType())
-
-        val builder = MultipartBody.Builder()
-            .setType(MultipartBody.FORM)
-            .addFormDataPart("image", "reference.$ext", imageBody)
+        builder
             .addFormDataPart("prompt", null, promptBody)
             .addFormDataPart("n", params.n.toString())
             .addFormDataPart("size", params.size)

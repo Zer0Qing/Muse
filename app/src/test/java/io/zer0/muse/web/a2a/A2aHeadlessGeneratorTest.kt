@@ -17,7 +17,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * AUD-20261011-A2A-HEADLESS（REPORT_MASTER batch 3）：A2A 不得驱动 UI ChatViewModel。

@@ -87,10 +87,9 @@ data class SourceInput(
     val displayName: String,
 ) {
     // ByteArray 相等性按内容(数据类默认按引用,合同要求按值比较的场景显式实现)
-    override fun equals(other: Any?): Boolean =
-        other is SourceInput && other.scheme == scheme && other.location == location &&
-            other.sourceHash == sourceHash && other.displayName == displayName &&
-            (bytes?.contentEquals(other.bytes) ?: (other.bytes == null))
+    override fun equals(other: Any?): Boolean = other is SourceInput && other.scheme == scheme && other.location == location &&
+        other.sourceHash == sourceHash && other.displayName == displayName &&
+        (bytes?.contentEquals(other.bytes) ?: (other.bytes == null))
 
     override fun hashCode(): Int {
         var result = scheme.hashCode()

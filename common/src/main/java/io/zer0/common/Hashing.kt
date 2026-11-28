@@ -22,10 +22,9 @@ object Hashing {
     private const val BUFFER_SIZE = 8 * 1024
 
     /** 字节数组的 SHA-256，小写十六进制。 */
-    fun sha256Hex(bytes: ByteArray): String =
-        MessageDigest.getInstance(ALGORITHM)
-            .digest(bytes)
-            .toHex()
+    fun sha256Hex(bytes: ByteArray): String = MessageDigest.getInstance(ALGORITHM)
+        .digest(bytes)
+        .toHex()
 
     /** 字符串按 UTF-8 编码后的 SHA-256，小写十六进制。 */
     fun sha256Hex(text: String): String = sha256Hex(text.toByteArray(Charsets.UTF_8))
@@ -35,8 +34,7 @@ object Hashing {
      *
      * 流式读取：安装包动辄几十 MB，整个读进内存只为算摘要不值得。
      */
-    fun sha256Hex(file: File): String =
-        file.inputStream().use { sha256Hex(it) }
+    fun sha256Hex(file: File): String = file.inputStream().use { sha256Hex(it) }
 
     /** 输入流的 SHA-256，小写十六进制。读完不关闭（由调用方负责）。 */
     fun sha256Hex(input: InputStream): String {
@@ -50,6 +48,5 @@ object Hashing {
         return digest.digest().toHex()
     }
 
-    private fun ByteArray.toHex(): String =
-        joinToString("") { byte -> "%02x".format(byte) }
+    private fun ByteArray.toHex(): String = joinToString("") { byte -> "%02x".format(byte) }
 }

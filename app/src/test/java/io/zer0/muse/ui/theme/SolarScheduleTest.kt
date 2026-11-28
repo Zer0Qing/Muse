@@ -1,12 +1,12 @@
 package io.zer0.muse.ui.theme
 
 import io.zer0.muse.data.ThemeSolarCondition
-import java.time.LocalDate
-import java.time.ZoneId
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.time.LocalDate
+import java.time.ZoneId
 
 class SolarScheduleTest {
     @Test

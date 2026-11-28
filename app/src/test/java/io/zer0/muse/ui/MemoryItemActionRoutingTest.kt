@@ -1,14 +1,12 @@
 package io.zer0.muse.ui
 
+import io.zer0.muse.ui.memory.MemoryItem
+import io.zer0.muse.ui.memory.ScopeOption
+import io.zer0.muse.ui.memory.memoryScopesForMaintenance
+import io.zer0.muse.ui.memory.routeMemoryItemAction
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Test
-import io.zer0.muse.ui.memory.ExperienceLibraryCard
-import io.zer0.muse.ui.memory.ExperienceEditDialog
-import io.zer0.muse.ui.memory.memoryScopesForMaintenance
-import io.zer0.muse.ui.memory.MemoryItem
-import io.zer0.muse.ui.memory.ScopeOption
-import io.zer0.muse.ui.memory.routeMemoryItemAction
 
 class MemoryItemActionRoutingTest {
 

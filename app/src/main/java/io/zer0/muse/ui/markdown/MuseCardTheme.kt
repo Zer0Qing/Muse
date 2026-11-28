@@ -50,11 +50,22 @@ internal object MuseCardTheme {
         body {
             color: var(--muse-fg);
             font-family: -apple-system, "Segoe UI", Roboto, "Noto Sans SC", sans-serif;
-            font-size: 14px; line-height: 1.5;
+            font-size: 14px; line-height: 1.65;
+            letter-spacing: 0.015em;
+            text-autospace: normal;
+            font-kerning: normal;
+            text-rendering: optimizeLegibility;
             padding: 8px;
             word-break: break-word; overflow-wrap: anywhere;
         }
-        h1,h2,h3,h4 { margin: 0 0 8px; font-weight: 600; line-height: 1.3; }
+        code {
+            padding: 1px 5px;
+            margin: 0 2px;
+            border-radius: 5px;
+            background: var(--muse-surface-2);
+            font-size: 0.9em;
+        }
+        h1,h2,h3,h4 { margin: 0 0 8px; font-weight: 600; line-height: 1.35; }
         h1 { font-size: 18px; } h2 { font-size: 16px; } h3,h4 { font-size: 14px; }
         p { margin: 0 0 8px; }
         small, .muse-muted { color: var(--muse-muted); font-size: 12px; }

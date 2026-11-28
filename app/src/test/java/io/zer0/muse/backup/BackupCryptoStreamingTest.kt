@@ -5,6 +5,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.ByteArrayOutputStream
+import javax.crypto.AEADBadTagException
 
 /**
  * 流式加密的输出必须与一次性加密完全兼容。
@@ -54,8 +55,9 @@ class BackupCryptoStreamingTest {
         var threw = false
         try {
             BackupCrypto.decrypt(sink.toByteArray(), "wrong password")
-        } catch (e: Exception) {
+        } catch (e: AEADBadTagException) {
             threw = true
+            assertTrue(e.message.orEmpty().isNotBlank() || e.cause == null)
         }
         assertTrue("密码错必须失败，不能返回乱码", threw)
     }
@@ -67,6 +69,7 @@ class BackupCryptoStreamingTest {
             BackupCrypto.encryptingStream(ByteArrayOutputStream(), "")
         } catch (e: IllegalArgumentException) {
             threw = true
+            assertEquals("backupPassword must not be empty", e.message)
         }
         assertTrue("空密码不该产出一个看起来加密、实则没有密钥的文件", threw)
     }

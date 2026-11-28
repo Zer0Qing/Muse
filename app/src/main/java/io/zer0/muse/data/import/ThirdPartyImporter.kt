@@ -220,8 +220,7 @@ object ThirdPartyImporter {
         //  - Kelivo: chats.json + settings.json
         //  - RikkaHub: settings.json(且无 chats.json)
         // key 现在是完整路径，这里按文件名取，兼容旧的根目录布局。
-        fun byBaseName(base: String): java.io.File? =
-            extracted.entries.firstOrNull { it.key == base || it.key.endsWith("/" + base) }?.value
+        fun byBaseName(base: String): java.io.File? = extracted.entries.firstOrNull { it.key == base || it.key.endsWith("/" + base) }?.value
         val settingsFile = byBaseName("settings.json")
         val chatsFile = byBaseName("chats.json")
         val hasChats = chatsFile != null

@@ -11,42 +11,40 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
-import io.zer0.muse.ui.markdown.card.CardHost
-import io.zer0.muse.ui.markdown.card.CardLanguage
-import io.zer0.muse.ui.markdown.card.CardPushToken
-import io.zer0.muse.ui.markdown.card.CardRuntime
-import io.zer0.muse.ui.markdown.card.CardSpec
-import io.zer0.muse.ui.markdown.card.parseCardSize
-import org.koin.compose.koinInject
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.zer0.common.Logger
 import io.zer0.muse.R
+import io.zer0.muse.data.agentbot.AgentSpaceEngine
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.MuseActionSheetRow
@@ -54,19 +52,26 @@ import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.media.LifecycleAwareWebViewContainer
 import io.zer0.muse.ui.common.surface.MuseDialogWindowEffect
+import io.zer0.muse.ui.markdown.card.CardHost
+import io.zer0.muse.ui.markdown.card.CardLanguage
+import io.zer0.muse.ui.markdown.card.CardPushToken
+import io.zer0.muse.ui.markdown.card.CardRuntime
+import io.zer0.muse.ui.markdown.card.CardSpec
+import io.zer0.muse.ui.markdown.card.CardStyles
+import io.zer0.muse.ui.markdown.card.CardTheme
+import io.zer0.muse.ui.markdown.card.parseCardSize
+import io.zer0.muse.ui.screen.HtmlPreviewScreen
 import io.zer0.muse.ui.theme.MuseIconSizes
-import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
-import io.zer0.common.Logger
-import io.zer0.muse.data.agentbot.AgentSpaceEngine
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.encodeToString
+import org.koin.compose.koinInject
 import java.io.ByteArrayInputStream
-import io.zer0.muse.ui.screen.HtmlPreviewScreen
-import io.zer0.muse.ui.chat.CommandPalette
 
 /**
  * v0.48: 富媒体内容卡片 — 渲染 SVG / HTML / 图表。
@@ -92,6 +97,10 @@ import io.zer0.muse.ui.chat.CommandPalette
  * @param showPreviewButton 是否显示右上角"全屏预览"按钮。调用方无导航能力时(如 ArtifactViewer
  *         弹窗内)可置为 false,避免出现无效按钮。
  */
+internal val LocalRichPreviewHandler = compositionLocalOf<((language: String, content: String, title: String?) -> Unit)?> { null }
+
+internal val NO_OP_HTML_PREVIEW: (String) -> Unit = {}
+
 // v2.6.0: 新增 inlineCardData 参数后,签名漂移使既有 baseline 条目失配。
 // 这些为屏幕级 @Composable 函数的固有结构(长函数/多参数/复杂条件/命名),按点豁免。
 @Suppress("LongParameterList", "LongMethod", "CyclomaticComplexMethod", "FunctionNaming")
@@ -100,7 +109,7 @@ internal fun RichContentCard(
     language: String,
     content: String,
     modifier: Modifier = Modifier,
-    onHtmlPreview: (String) -> Unit = {},
+    onHtmlPreview: (String) -> Unit = NO_OP_HTML_PREVIEW,
     showPreviewButton: Boolean = true,
     /**
      * v1.0.92: 卡桥回传回调(聊天场景提供)。
@@ -152,13 +161,13 @@ internal fun RichContentCard(
     // 档位不变时返回的是等值前缀，下游 remember 与 WebView 的「内容未变不重载」都能命中。
     // 流式结束后（progressive=false）直接用最新完整内容。
     val effectiveContent = if (!progressive) content else ProgressiveCard.snapshot(content)
-    // Phase 2: chart/mermaid 的全屏预览在卡片内完成(本地 assets 脚本可正常加载)
+    // 统一全屏预览状态：无论 chart/mermaid 还是无外部导航回调的 html/svg，都能在卡片内打开全屏预览
     var showFullscreenPreview by remember { mutableStateOf(false) }
+    val localPreviewHandler = LocalRichPreviewHandler.current
     // v2.x 统一化: 行内动作收敛为「更多」菜单(防止窄屏文本行被多个按钮挤压)
     val moreCd = stringResource(R.string.settings_mcp_more)
     var menuExpanded by remember { mutableStateOf(false) }
     val supportsPreview = richContentSupportsPreview(language)
-    val isLocalPreview = language.lowercase().trim() in RICH_LOCAL_PREVIEW_LANGUAGES
     val typeLabel = when (language.lowercase().trim()) {
         "svg" -> stringResource(R.string.markdown_svg_label)
         "html" -> stringResource(R.string.markdown_html_label)
@@ -173,12 +182,16 @@ internal fun RichContentCard(
     val stableCardId = cardId?.takeIf { it.isNotBlank() }
     val normalizedLanguage = language.lowercase().trim()
     val cardEntityDao = remember(appKoin, stableCardId) {
-        if (stableCardId == null) null else {
+        if (stableCardId == null) {
+            null
+        } else {
             appKoin?.getOrNull<io.zer0.muse.data.session.MuseDb>()?.cardEntityDao()
         }
     }
     val spaceEngine = remember(appKoin, stableCardId, normalizedLanguage) {
-        if (stableCardId == null || normalizedLanguage !in PINNABLE_LANGUAGES) null else {
+        if (stableCardId == null || normalizedLanguage !in PINNABLE_LANGUAGES) {
+            null
+        } else {
             appKoin?.getOrNull<AgentSpaceEngine>()
         }
     }
@@ -327,17 +340,20 @@ internal fun RichContentCard(
                             text = stringResource(R.string.html_preview_button_cd),
                             onClick = {
                                 menuExpanded = false
-                                if (isLocalPreview) {
-                                    // chart/mermaid:卡片内全屏 WebView,加载本地 assets 脚本
-                                    showFullscreenPreview = true
-                                } else {
-                                    // SVG 包装为完整 HTML 后再回调,保证 HtmlPreviewScreen 直接渲染
-                                    val fullHtml = if (language.lowercase().trim() == "svg") {
-                                        "<html><body style=\"margin:0;padding:8px;\">$content</body></html>"
-                                    } else {
-                                        content
+                                when {
+                                    localPreviewHandler != null -> {
+                                        localPreviewHandler(normalizedLanguage, content, typeLabel)
                                     }
-                                    onHtmlPreview(fullHtml)
+                                    normalizedLanguage in RICH_LOCAL_PREVIEW_LANGUAGES -> {
+                                        showFullscreenPreview = true
+                                    }
+                                    onHtmlPreview !== NO_OP_HTML_PREVIEW -> {
+                                        val fullHtml = wrapRichContentForExternalPreview(normalizedLanguage, content)
+                                        onHtmlPreview(fullHtml)
+                                    }
+                                    else -> {
+                                        showFullscreenPreview = true
+                                    }
                                 }
                             },
                         )
@@ -352,16 +368,23 @@ internal fun RichContentCard(
         )
     }
 
-    // Phase 2: chart/mermaid 全屏预览对话框(与卡片渲染同一份 HTML)
-    if (showFullscreenPreview && isLocalPreview) {
-        // P3-2: 错误前缀从资源注入(JS 内不再硬编码中文)
-        val renderFailedPrefix = stringResource(R.string.markdown_chart_render_failed_prefix)
-        val previewHtml = remember(content, language) { buildLocalPreviewHtml(language, content, renderFailedPrefix) }
-        RichContentFullscreenPreview(
-            title = typeLabel,
-            html = previewHtml,
-            onDismiss = { showFullscreenPreview = false },
-        )
+    // 统一走全屏预览宿主（html/svg/chart/mermaid 共用同一套带主题/源码/分享的预览页）
+    if (showFullscreenPreview && supportsPreview) {
+        Dialog(
+            onDismissRequest = { showFullscreenPreview = false },
+            properties = DialogProperties(
+                usePlatformDefaultWidth = false,
+                decorFitsSystemWindows = false,
+            ),
+        ) {
+            MuseDialogWindowEffect(forceFullScreen = true)
+            HtmlPreviewScreen(
+                html = content,
+                language = normalizedLanguage,
+                title = typeLabel,
+                onBack = { showFullscreenPreview = false },
+            )
+        }
     }
 }
 
@@ -386,11 +409,51 @@ private val NoopCardAction: (CardAction) -> Unit = {}
  */
 internal val RICH_LOCAL_PREVIEW_LANGUAGES = setOf("chart", "mermaid")
 
-/** 生成卡片内全屏预览用 HTML(与卡片渲染使用同一构建函数)。 */
-private fun buildLocalPreviewHtml(language: String, content: String, errorPrefix: String): String = when (language.lowercase().trim()) {
-    "chart" -> buildChartHtml(content, errorPrefix)
-    "mermaid" -> buildMermaidHtml(content, errorPrefix)
-    else -> content
+/** 包装 SVG 为基础 HTML（供老签名回调兼容用）。 */
+internal fun wrapRichContentForExternalPreview(language: String, content: String): String =
+    if (language.lowercase().trim() == "svg" && !content.trimStart().startsWith("<html", ignoreCase = true)) {
+        "<html><body style=\"margin:0;padding:8px;\">$content</body></html>"
+    } else {
+        content
+    }
+
+/**
+ * 统一全屏富内容预览预处理（[HtmlPreviewScreen] 与内联全屏共用）：
+ * 注入当前主题 CSS 变量与安全清洗策略，避免深色模式黑底黑字或脚本外逸。
+ * 返回 `(assembledHtml, baseUrl)`。
+ */
+internal fun prepareRichPreview(
+    language: String,
+    rawContent: String,
+    colorScheme: ColorScheme,
+    errorPrefix: String,
+    rawDataPrefix: String,
+): Pair<String, String> {
+    val lang = language.lowercase().trim()
+    return when (lang) {
+        "chart" -> buildChartHtml(rawContent, errorPrefix, rawDataPrefix, colorScheme) to "file:///android_asset/"
+        "mermaid" -> buildMermaidHtml(rawContent, errorPrefix, colorScheme) to "file:///android_asset/"
+        else -> {
+            val wrapped = wrapRichContentForExternalPreview(lang, rawContent)
+            val themeCss = CardTheme.cssOf(colorScheme)
+            val componentCss = CardStyles.ALL
+            val cleaned = sanitizeHtml(wrapped)
+            val injectedStyle = "<style>$themeCss\n$componentCss\n" +
+                "html,body{margin:0;color:var(--muse-fg);background:var(--muse-surface);}</style>"
+            val htmlOpenMatch = Regex("(?i)<html[^>]*>").find(cleaned)
+            val assembled = when {
+                cleaned.contains("</head>", ignoreCase = true) ->
+                    cleaned.replaceFirst(Regex("(?i)</head>"), "$injectedStyle</head>")
+                htmlOpenMatch != null ->
+                    cleaned.replaceRange(htmlOpenMatch.range, "${htmlOpenMatch.value}<head>$injectedStyle</head>")
+                else ->
+                    "<!DOCTYPE html><html><head><meta charset=\"UTF-8\">" +
+                        "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">" +
+                        "$injectedStyle</head><body>$cleaned</body></html>"
+            }
+            assembled to "about:blank"
+        }
+    }
 }
 
 /** 复制富内容源码到剪贴板,并 Toast 反馈。 */
@@ -398,71 +461,6 @@ private fun copyRichContentSource(context: Context, source: String) {
     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     clipboard.setPrimaryClip(ClipData.newPlainText("muse_rich_content", source))
     MuseToast.show(context.getString(R.string.markdown_source_copied))
-}
-
-/**
- * Phase 2: 卡片内全屏预览对话框 — 顶部标题 + 关闭按钮,主体为占满屏幕的 WebView。
- *
- * 使用与卡片相同的 [LifecycleAwareWebViewContainer] + `file:///android_asset/` baseUrl,
- * 因此 chart(Chart.js)/mermaid(mermaid.js)的本地 vendor 脚本可正常加载。
- */
-@Composable
-private fun RichContentFullscreenPreview(title: String, html: String, onDismiss: () -> Unit) {
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(
-            usePlatformDefaultWidth = false,
-            // 铺满整屏(含状态栏)：否则全屏预览的底色/遮罩从状态栏下方开始，
-            // 上方会留一条没被覆盖的亮带。
-            decorFitsSystemWindows = false,
-        ),
-    ) {
-        // v1.0.92: window 铺满整屏(含状态栏),与 BrowserCapsule / CommandPalette /
-        // FullScreenMediaViewer 的既有处理对齐;否则预览底色从状态栏下沿开始。
-        MuseDialogWindowEffect(forceFullScreen = true)
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.background,
-        ) {
-            Column(modifier = Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = MusePaddings.screen, top = MusePaddings.tightGap, bottom = MusePaddings.tightGap),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.weight(1f),
-                        // LAYOUT-01: 全屏预览对话框标题（非正文）限 1 行 —— 右侧关闭按钮会挤压标题列
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    MuseTactileButton(
-                        icon = MuseIcons.x,
-                        onClick = onDismiss,
-                        contentDescription = stringResource(R.string.common_close),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        size = MuseIconSizes.touchTarget,
-                        iconSize = MuseIconSizes.iconSmall,
-                    )
-                }
-                LifecycleAwareWebViewContainer(
-                    htmlContent = html,
-                    baseUrl = "file:///android_asset/",
-                    javaScriptEnabled = true,
-                    webViewClient = RichContentWebViewClient(),
-                    // v2.6.7: 全屏预览允许内部滚动 —— 卡片可能远超一屏。
-                    scrollable = true,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                )
-            }
-        }
-    }
 }
 
 /**
@@ -536,8 +534,7 @@ internal object SanitizedHtmlCache {
     private const val MAX_CONTENT_LENGTH = 64_000
 
     private val entries = object : LinkedHashMap<String, String>(16, 0.75f, true) {
-        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, String>): Boolean =
-            size > MAX_ENTRIES
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, String>): Boolean = size > MAX_ENTRIES
     }
 
     /** 取清洗结果；同一份内容第二次进来直接命中原对象。 */
@@ -615,7 +612,14 @@ private val TAG_REGEX = Regex("""<[a-zA-Z][^>]*>""")
  * 跳转到任何外部页面或伪协议。本地资源(file:///android_asset/)作为子资源加载,
  * 不受 shouldOverrideUrlLoading 影响。
  */
-internal class RichContentWebViewClient : WebViewClient() {
+internal class RichContentWebViewClient(
+    private val onPageFinishedCallback: (() -> Unit)? = null,
+) : WebViewClient() {
+    override fun onPageFinished(view: WebView?, url: String?) {
+        super.onPageFinished(view, url)
+        onPageFinishedCallback?.invoke()
+    }
+
     override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
         return true
     }
@@ -653,10 +657,7 @@ internal class RichContentWebViewClient : WebViewClient() {
  * 返回 null，卡片侧据此退回 800ms 轮询。
  */
 @Composable
-private fun rememberCardPushToken(
-    store: io.zer0.muse.data.card.CardDataStore?,
-    cardId: String?,
-): CardPushToken? {
+private fun rememberCardPushToken(store: io.zer0.muse.data.card.CardDataStore?, cardId: String?): CardPushToken? {
     if (store == null || cardId.isNullOrBlank()) return null
     val value by remember(store, cardId) {
         store.data.map { it[cardId] }.distinctUntilChanged()
@@ -674,10 +675,31 @@ private fun SvgCard(
     heightSpec: String? = null,
 ) {
     val cardDataStore: io.zer0.muse.data.card.CardDataStore? = koinInject()
+    val silentAi: io.zer0.muse.data.card.CardSilentAiCoordinator? = koinInject()
+    val appScope: CoroutineScope = koinInject()
     val store = cardDataStore
     // 读数据回调只依赖存储与内联数据，按这两个缓存：每帧新建会让卡片桥
     // （以它为 key 的 remember）重建，进而重拼整段卡片 HTML。
-    val readData = remember(store, inlineCardData) { { id: String -> store?.get(id) ?: inlineCardData } }
+    // 内联数据会随 saveState / 数据推送更新，但读数据回调必须保持引用稳定：
+    // 它一变，卡片桥跟着重建，整段 HTML 重拼、WebView 重载，卡片内存状态全部丢失。
+    val inlineDataState = rememberUpdatedState(inlineCardData)
+    val readData = remember(store) { { id: String -> store?.get(id) ?: inlineDataState.value } }
+    val onSilentAsk = remember(silentAi, cardId) {
+        silentAi?.let { coord ->
+            val handler: suspend (String?, String) -> String = { id, payload ->
+                coord.handleAsk(id ?: cardId, payload)
+            }
+            handler
+        }
+    }
+    val onSaveState = remember(silentAi, appScope) {
+        silentAi?.let { coord ->
+            val handler: (String, String) -> Unit = { id, stateJson ->
+                appScope.launch(start = CoroutineStart.UNDISPATCHED) { coord.saveCardState(id, stateJson) }
+            }
+            handler
+        }
+    }
     CardRuntime(
         spec = CardSpec(
             language = CardLanguage.SVG,
@@ -690,6 +712,8 @@ private fun SvgCard(
             readData = readData,
             cardId = cardId,
             pushToken = rememberCardPushToken(store, cardId),
+            onSilentAsk = onSilentAsk,
+            onSaveState = onSaveState,
         ),
     )
 }
@@ -704,9 +728,30 @@ private fun HtmlCard(
     heightSpec: String? = null,
 ) {
     val cardDataStore: io.zer0.muse.data.card.CardDataStore? = koinInject()
+    val silentAi: io.zer0.muse.data.card.CardSilentAiCoordinator? = koinInject()
+    val appScope: CoroutineScope = koinInject()
     val store = cardDataStore
     // 同 SvgCard：读数据回调必须跨重组稳定，否则卡片桥跟着重建。
-    val readData = remember(store, inlineCardData) { { id: String -> store?.get(id) ?: inlineCardData } }
+    // 内联数据会随 saveState / 数据推送更新，但读数据回调必须保持引用稳定：
+    // 它一变，卡片桥跟着重建，整段 HTML 重拼、WebView 重载，卡片内存状态全部丢失。
+    val inlineDataState = rememberUpdatedState(inlineCardData)
+    val readData = remember(store) { { id: String -> store?.get(id) ?: inlineDataState.value } }
+    val onSilentAsk = remember(silentAi, cardId) {
+        silentAi?.let { coord ->
+            val handler: suspend (String?, String) -> String = { id, payload ->
+                coord.handleAsk(id ?: cardId, payload)
+            }
+            handler
+        }
+    }
+    val onSaveState = remember(silentAi, appScope) {
+        silentAi?.let { coord ->
+            val handler: (String, String) -> Unit = { id, stateJson ->
+                appScope.launch(start = CoroutineStart.UNDISPATCHED) { coord.saveCardState(id, stateJson) }
+            }
+            handler
+        }
+    }
     CardRuntime(
         spec = CardSpec(
             language = CardLanguage.HTML,
@@ -719,6 +764,8 @@ private fun HtmlCard(
             readData = readData,
             cardId = cardId,
             pushToken = rememberCardPushToken(store, cardId),
+            onSilentAsk = onSilentAsk,
+            onSaveState = onSaveState,
         ),
     )
 }
@@ -727,15 +774,14 @@ private fun HtmlCard(
 private fun ChartCard(json: String) {
     val chartCd = stringResource(R.string.markdown_chart_cd, json)
     val errorPrefix = stringResource(R.string.markdown_chart_render_failed_prefix)
-    val html = remember(json) { buildChartHtml(json, errorPrefix) }
-    // v2.6.13: 图表高度也走“内容一次定格”。
-    //
-    // 旧实现只有一个 `heightIn(min = 260.dp)`：没有上限也没有自适应，
-    // 图表实际需要多高它都只给 260dp 起、多出来的内容在 WebView 里被裁。
-    // 现在与其他卡片一致：卡片侧定格脚本上报真实高度，这里只管接。
+    val rawDataPrefix = stringResource(R.string.artifact_raw_data_prefix)
+    val colorScheme = MaterialTheme.colorScheme
+    val html = remember(json, errorPrefix, rawDataPrefix, colorScheme) {
+        buildChartHtml(json, errorPrefix, rawDataPrefix, colorScheme)
+    }
     var chartHeightPx by remember(html) { mutableStateOf(0) }
     val heightSink = remember { CardHeightSink() }
-    androidx.compose.runtime.LaunchedEffect(heightSink) {
+    LaunchedEffect(heightSink) {
         heightSink.onHeightChanged = { px -> if (px > 0) chartHeightPx = px }
     }
     androidx.compose.runtime.DisposableEffect(heightSink) {
@@ -745,11 +791,10 @@ private fun ChartCard(json: String) {
         htmlContent = html,
         baseUrl = "file:///android_asset/",
         javaScriptEnabled = true,
-        webViewClient = RichContentWebViewClient(),
+        webViewClient = remember { RichContentWebViewClient() },
         onWebViewCreated = { webView ->
             webView.addJavascriptInterface(heightSink, CardHeightSink.NAME)
         },
-        // 高度跟随内容，图表也一眼看全，不做卡内滚动。
         scrollable = false,
         modifier = Modifier
             .fillMaxWidth()
@@ -764,24 +809,26 @@ private fun ChartCard(json: String) {
     )
 }
 
+private fun Color.toHtmlHex(): String = String.format("#%06X", 0xFFFFFF and toArgb())
+
 /**
- * 构建 Chart.js 渲染页面(卡片与全屏预览共用)。
- *
- * v1.97: Chart.js 从本地 assets/vendor 加载,解决 CDN 在中国不可用的问题。
- * LLM 输出的 JSON 直接作为 Chart.js 配置传入(new Chart(ctx, config))。
+ * 构建 Chart.js 渲染页面(卡片与全屏预览共用)，按当前 Compose 主题注入文字与网格色。
  */
-private fun buildChartHtml(json: String, errorPrefix: String): String {
+private fun buildChartHtml(json: String, errorPrefix: String, rawDataPrefix: String, colorScheme: ColorScheme): String {
     val encoded = io.zer0.common.AppJson.encodeToString(String.serializer(), json)
-    // P3-2: JS 错误前缀从资源注入(JSON 编码为 JS 字面量),消除硬编码中文
     val encodedPrefix = io.zer0.common.AppJson.encodeToString(String.serializer(), errorPrefix)
+    val encodedRawPrefix = io.zer0.common.AppJson.encodeToString(String.serializer(), rawDataPrefix)
+    val textColor = colorScheme.onSurface.toHtmlHex()
+    val gridColor = colorScheme.outlineVariant.toHtmlHex()
+    val errorColor = colorScheme.error.toHtmlHex()
     return """
         <html><head><meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
             html, body { margin: 0; padding: 0; background: transparent; }
-            body { color: #1a1a1c; font-family: -apple-system, "Segoe UI", Roboto, "Noto Sans SC", sans-serif; font-size: 14px; }
+            body { color: $textColor; font-family: -apple-system, "Segoe UI", Roboto, "Noto Sans SC", sans-serif; font-size: 14px; }
             #wrap { position: relative; width: 100%; height: 240px; }
-            #err { color: #d32f2f; font-family: monospace; font-size: 12px; white-space: pre-wrap; padding: 8px; }
+            #err { color: $errorColor; font-family: monospace; font-size: 12px; white-space: pre-wrap; padding: 8px; }
         </style>
         <script src="vendor/chart.umd.min.js"></script>
         </head><body>
@@ -791,6 +838,8 @@ private fun buildChartHtml(json: String, errorPrefix: String): String {
         </div>
         <script>
             try {
+                Chart.defaults.color = '$textColor';
+                Chart.defaults.borderColor = '$gridColor';
                 var raw = $encoded;
                 var config = JSON.parse(raw);
                 if (!config.type) { config.type = 'bar'; }
@@ -798,7 +847,7 @@ private fun buildChartHtml(json: String, errorPrefix: String): String {
                 new Chart(ctx, config);
             } catch(e) {
                 document.getElementById('wrap').style.display = 'none';
-                document.getElementById('err').textContent = $encodedPrefix + e.message + '\n\n原始数据:\n' + raw;
+                document.getElementById('err').textContent = $encodedPrefix + e.message + '\n\n' + $encodedRawPrefix + raw;
             }
         </script>
         <script>$HEIGHT_OBSERVER_SCRIPT</script>
@@ -807,22 +856,19 @@ private fun buildChartHtml(json: String, errorPrefix: String): String {
 }
 
 /**
- * 构建 Mermaid 渲染页面(全屏预览用)。
- * P3-2: 卡片渲染已收敛到 [io.zer0.muse.ui.markdown.ChartRenderer.MermaidBlock]
- * (自带轮询取高与资源化错误前缀),此处仅保留全屏预览的静态 WebView 页面。
- *
- * v1.97: mermaid.js 从本地 assets/vendor 加载;mermaid 源码通过 JSON 编码注入 JS,避免 XSS。
+ * 构建 Mermaid 渲染页面（全屏预览用，跟随深浅色主题）。
  */
-private fun buildMermaidHtml(mermaid: String, errorPrefix: String): String {
-    // JSON 编码 mermaid 源码,安全注入 JS 字符串
+private fun buildMermaidHtml(mermaid: String, errorPrefix: String, colorScheme: ColorScheme): String {
     val encoded = io.zer0.common.AppJson.encodeToString(String.serializer(), mermaid)
-    // P3-2: 错误前缀从资源注入,消除硬编码中文('渲染失败: ')
     val encodedPrefix = io.zer0.common.AppJson.encodeToString(String.serializer(), errorPrefix)
+    val isDark = colorScheme.background.luminance() < 0.5f
+    val mermaidTheme = if (isDark) "dark" else "neutral"
+    val errorColor = colorScheme.error.toHtmlHex()
     return """
         <html><head><meta charset="UTF-8">
         <style>
             body { margin: 0; padding: 8px; background: transparent; display: flex; justify-content: center; }
-            #err { color: #d32f2f; font-family: monospace; font-size: 12px; white-space: pre-wrap; }
+            #err { color: $errorColor; font-family: monospace; font-size: 12px; white-space: pre-wrap; }
         </style>
         <script src="vendor/mermaid.min.js"></script>
         </head><body>
@@ -830,8 +876,7 @@ private fun buildMermaidHtml(mermaid: String, errorPrefix: String): String {
         <div id="err"></div>
         <script>
             try {
-                // M1 修复: securityLevel 改为 strict,禁用 click 回调与 HTML 嵌入,降低 LLM 内容风险
-                mermaid.initialize({ startOnLoad: false, theme: 'neutral', securityLevel: 'strict' });
+                mermaid.initialize({ startOnLoad: false, theme: '$mermaidTheme', securityLevel: 'strict' });
                 var src = $encoded;
                 mermaid.render('mmd', src).then(function(res) {
                     document.getElementById('out').innerHTML = res.svg;

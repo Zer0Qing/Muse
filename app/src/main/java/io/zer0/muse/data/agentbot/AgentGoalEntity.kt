@@ -99,6 +99,42 @@ interface AgentGoalDao {
     )
     suspend fun updateMilestones(goalId: String, milestonesJson: String, progress: Int, updatedAt: Long): Int
 
+    @Query(
+        "UPDATE agent_goals SET title = :title, description = :description, milestonesJson = :milestonesJson, " +
+            "progress = :progress, status = :status, dueAt = :dueAt, updatedAt = :updatedAt " +
+            "WHERE goalId = :goalId AND botId = :botId AND originSessionId = :sessionId " +
+            "AND updatedAt = :expectedUpdatedAt",
+    )
+    suspend fun updateScoped(
+        goalId: String,
+        botId: String,
+        sessionId: String,
+        expectedUpdatedAt: Long,
+        title: String,
+        description: String,
+        milestonesJson: String,
+        progress: Int,
+        status: String,
+        dueAt: Long,
+        updatedAt: Long,
+    ): Int
+
+    @Query(
+        "UPDATE agent_goals SET milestonesJson = :milestonesJson, progress = :progress, status = :status, " +
+            "updatedAt = :updatedAt WHERE goalId = :goalId AND updatedAt = :expectedUpdatedAt " +
+            "AND (:botId = '' OR botId = :botId) AND (:sessionId = '' OR originSessionId = :sessionId)",
+    )
+    suspend fun updateMilestonesAndStatus(
+        goalId: String,
+        expectedUpdatedAt: Long,
+        botId: String,
+        sessionId: String,
+        milestonesJson: String,
+        progress: Int,
+        status: String,
+        updatedAt: Long,
+    ): Int
+
     @Query("UPDATE agent_goals SET status = :status, updatedAt = :updatedAt WHERE goalId = :goalId")
     suspend fun setStatus(goalId: String, status: String, updatedAt: Long): Int
 

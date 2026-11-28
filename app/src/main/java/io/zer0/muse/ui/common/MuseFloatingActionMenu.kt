@@ -3,6 +3,7 @@
 package io.zer0.muse.ui.common
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.background
@@ -23,6 +24,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -32,8 +34,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupPositionProvider
 import io.zer0.muse.ui.theme.MuseActionColors
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseElevation
@@ -65,31 +71,62 @@ internal data class MuseFloatingActionItem(
  *  - 整体收窄、行高压到 44dp，面板不再占掉半屏。
  *
  * 侧滑/淡入动画与「点完自动收起」的约定保持不变。
+ *
+ * v2.7.2：定位改为**锚点相对定位**（[PopupPositionProvider] 读 anchorBounds），
+ * 与全应用其余弹层菜单同一套机制。此前用 `Popup(alignment = TopEnd, offset = 固定像素)`
+ * 把菜单钉在**窗口**右上角，只按窗口算坐标、完全不看触发按钮在哪：
+ *  - 真机上表现为点了「更多」没有任何可见菜单（窗口层级、无障碍树里都找不到这些标签）；
+ *  - 菜单内容一变高或状态栏高度不同，就会跑到屏幕外或压在标题栏上。
+ * 现在默认贴着触发按钮下方右对齐，下方空间不足时向上翻转，水平越界时收敛到窗口内。
  */
 @Composable
 internal fun MuseFloatingActionMenu(
     items: List<MuseFloatingActionItem>,
     onDismiss: () -> Unit,
     offset: IntOffset? = null,
-    belowAnchorDp: Dp = 56.dp,
+    belowAnchorDp: Dp = 8.dp,
     glassActive: Boolean = false,
 ) {
     val density = LocalDensity.current
     val reducedMotion = MuseMotion.isReducedMotion()
     val duration = if (reducedMotion) 0 else MuseAnimation.FAST_NORMAL_MS
-    val resolvedOffset = offset ?: with(density) {
-        IntOffset(0, belowAnchorDp.roundToPx())
+    val gapPx = with(density) { belowAnchorDp.roundToPx() }
+    // offset 是调用方额外给的微调（历史上用来把菜单往下推），保留以兼容既有调用点。
+    val extraOffset = offset ?: IntOffset.Zero
+    val positionProvider = remember(gapPx, extraOffset) {
+        object : PopupPositionProvider {
+            override fun calculatePosition(
+                anchorBounds: IntRect,
+                windowSize: IntSize,
+                layoutDirection: LayoutDirection,
+                popupContentSize: IntSize,
+            ): IntOffset {
+                val maxX = (windowSize.width - popupContentSize.width).coerceAtLeast(0)
+                // 右对齐锚点：三点按钮在右上角，菜单左边缘向左展开才不会被窗口切掉。
+                val x = (anchorBounds.right - popupContentSize.width + extraOffset.x).coerceIn(0, maxX)
+                val below = anchorBounds.bottom + gapPx + extraOffset.y
+                val y = if (below + popupContentSize.height <= windowSize.height) {
+                    below
+                } else {
+                    // 下方放不下就翻到锚点上方；仍越界时贴窗口顶部。
+                    (anchorBounds.top - gapPx - popupContentSize.height + extraOffset.y).coerceAtLeast(0)
+                }
+                return IntOffset(x, y)
+            }
+        }
     }
+    // 用显式状态机驱动进场动画：Popup 首次组合时就要处于「已可见」，
+    // 否则进场动画不会播完，菜单停在透明帧上（点了像没反应）。
+    val visibleState = remember { MutableTransitionState(true) }
     Popup(
+        popupPositionProvider = positionProvider,
         onDismissRequest = onDismiss,
-        alignment = Alignment.TopEnd,
-        offset = resolvedOffset,
     ) {
         // v2.6.1: Popup 是独立窗口,跨窗口采样主窗口的 LayerBackdrop/LiquidState 不可行
         // (表现为黑遮罩 + GraphicsLayer 方形边界透明洞)。这里不再用 glassSurfaceModifier,
         // 而是直接走 fakeGlassSurface(渐变底 + 高光边 + 描边),无需 backdrop。
         AnimatedVisibility(
-            visible = true,
+            visibleState = visibleState,
             enter = fadeIn(MuseMotion.tween(duration)) +
                 scaleIn(
                     animationSpec = MuseMotion.tween(duration),
@@ -149,7 +186,7 @@ private fun MenuRow(item: MuseFloatingActionItem) {
 
     val iconTint = when {
         !item.enabled -> colors.onSurfaceVariant.copy(alpha = labelAlpha)
-        item.tint != null -> item.tint ?: colors.onSurfaceVariant
+        item.tint != null -> item.tint
         isOn -> colors.primary
         else -> colors.onSurfaceVariant
     }

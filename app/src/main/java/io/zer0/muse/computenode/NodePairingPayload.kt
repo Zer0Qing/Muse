@@ -1,12 +1,14 @@
 package io.zer0.muse.computenode
 
 import io.zer0.common.AppJson
+import io.zer0.common.Logger
 import io.zer0.muse.data.SecureKeyCipher
 import io.zer0.muse.data.SecureKeyStore
 import io.zer0.muse.data.computenode.ComputeNodeMode
 import io.zer0.muse.data.computenode.ComputeNodeStatus
 import io.zer0.muse.data.computenode.RemoteComputeNodeEntity
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
@@ -40,8 +42,9 @@ data class NodePairingPayload(
     }
 
     /** 叶子证书 SHA-256 指纹的规范化 64 位小写十六进制形式；[fp] 在构造时已校验。 */
-    fun fingerprintHex(): String = normalizeFingerprintHex(fp)
-        ?: throw IllegalStateException("fingerprint was not validated at construction")
+    fun fingerprintHex(): String = checkNotNull(normalizeFingerprintHex(fp)) {
+        "fingerprint was not validated at construction"
+    }
 
     /**
      * 转成可直接落库的节点实体。
@@ -68,9 +71,8 @@ data class NodePairingPayload(
     )
 
     /** 不允许把 Token 带进日志、崩溃报告或异常消息。 */
-    override fun toString(): String =
-        "NodePairingPayload(v=" + v + ", host=" + host + ", port=" + port +
-            ", token=***, fp=" + fp + ", name=" + name + ")"
+    override fun toString(): String = "NodePairingPayload(v=" + v + ", host=" + host + ", port=" + port +
+        ", token=***, fp=" + fp + ", name=" + name + ")"
 
     companion object {
         const val SUPPORTED_VERSION = 1
@@ -89,45 +91,71 @@ data class NodePairingPayload(
          */
         fun parse(raw: String): NodePairingResult {
             val trimmed = raw.trim()
-            if (trimmed.isEmpty()) return NodePairingResult.Failure("pairing payload is empty")
-            val jsonText = decodeJsonText(trimmed)
+            return if (trimmed.isEmpty()) {
+                NodePairingResult.Failure("pairing payload is empty")
+            } else {
+                parseDecoded(trimmed)
+            }
+        }
+
+        private fun parseDecoded(raw: String): NodePairingResult {
+            val jsonText = decodeJsonText(raw)
                 ?: return NodePairingResult.Failure("pairing payload is not valid Base64URL JSON")
             val obj = try {
                 AppJson.parseToJsonElement(jsonText) as? JsonObject
-            } catch (e: Exception) {
+            } catch (e: SerializationException) {
                 // 用户可能粘贴了损坏的二维码文本；解析失败按无效输入处理，不把原文写进日志。
+                Logger.w("NodePairingPayload", "pairing payload JSON parsing failed: ${e.message}")
                 return NodePairingResult.Failure("pairing payload is not valid JSON")
             } ?: return NodePairingResult.Failure("pairing payload must be a JSON object")
 
+            return validateObject(obj)
+        }
+
+        private fun validateObject(obj: JsonObject): NodePairingResult {
             val version = obj.intField("v")
-                ?: return NodePairingResult.Failure("pairing version is missing")
-            if (version != SUPPORTED_VERSION) {
-                return NodePairingResult.Failure("unsupported pairing version: " + version)
-            }
             val host = obj.stringField("host")?.trim().orEmpty()
-            if (!isValidHost(host)) return NodePairingResult.Failure("pairing host is invalid")
             val port = obj.intField("port")
-                ?: return NodePairingResult.Failure("pairing port is missing")
-            if (port !in 1..65535) return NodePairingResult.Failure("pairing port out of range")
+            val basicFailure = validateBasicFields(version, host, port)
+            if (basicFailure != null) return NodePairingResult.Failure(basicFailure)
+            val validVersion = checkNotNull(version)
+            val validPort = checkNotNull(port)
             val token = obj.stringField("token")?.trim().orEmpty()
-            if (!TOKEN_REGEX.matches(token)) {
-                return NodePairingResult.Failure("pairing token must be 64 hex characters")
-            }
             val fingerprint = normalizeFingerprintHex(obj.stringField("fp")?.trim().orEmpty())
-                ?: return NodePairingResult.Failure("pairing fingerprint must be SHA256:<64 hex>")
+            val credentialsFailure = validateCredentials(token, fingerprint)
+            if (credentialsFailure != null) return NodePairingResult.Failure(credentialsFailure)
+            val validFingerprint = checkNotNull(fingerprint)
             val name = obj.stringField("name")?.trim().orEmpty()
             if (name.length > MAX_NAME_LENGTH) return NodePairingResult.Failure("pairing name is too long")
-
             return NodePairingResult.Success(
                 NodePairingPayload(
-                    v = version,
+                    v = validVersion,
                     host = host,
-                    port = port,
+                    port = validPort,
                     token = token.lowercase(Locale.US),
-                    fp = FORMATTED_FINGERPRINT_PREFIX + fingerprint,
+                    fp = FORMATTED_FINGERPRINT_PREFIX + validFingerprint,
                     name = name,
                 ),
             )
+        }
+
+        private fun validateBasicFields(version: Int?, host: String, port: Int?): String? {
+            return when {
+                version == null -> "pairing version is missing"
+                version != SUPPORTED_VERSION -> "unsupported pairing version: $version"
+                !isValidHost(host) -> "pairing host is invalid"
+                port == null -> "pairing port is missing"
+                port !in 1..65535 -> "pairing port out of range"
+                else -> null
+            }
+        }
+
+        private fun validateCredentials(token: String, fingerprint: String?): String? {
+            return when {
+                !TOKEN_REGEX.matches(token) -> "pairing token must be 64 hex characters"
+                fingerprint == null -> "pairing fingerprint must be SHA256:<64 hex>"
+                else -> null
+            }
         }
 
         /**
@@ -153,19 +181,14 @@ data class NodePairingPayload(
             if (compact.isEmpty()) return null
             val padding = (4 - compact.length % 4) % 4
             val padded = compact + "=".repeat(padding)
-            return try {
+            return runCatching {
                 String(Base64.getUrlDecoder().decode(padded), Charsets.UTF_8)
-            } catch (e: IllegalArgumentException) {
-                // Base64URL 解码失败是用户输入错误，调用方会转换成可展示的失败原因。
-                null
-            }
+            }.getOrNull()
         }
 
-        private fun JsonObject.stringField(key: String): String? =
-            (this[key] as? JsonPrimitive)?.contentOrNull
+        private fun JsonObject.stringField(key: String): String? = (this[key] as? JsonPrimitive)?.contentOrNull
 
-        private fun JsonObject.intField(key: String): Int? =
-            (this[key] as? JsonPrimitive)?.intOrNull
+        private fun JsonObject.intField(key: String): Int? = (this[key] as? JsonPrimitive)?.intOrNull
 
         private fun isValidHost(host: String): Boolean {
             if (host.isBlank() || host.length > 253) return false

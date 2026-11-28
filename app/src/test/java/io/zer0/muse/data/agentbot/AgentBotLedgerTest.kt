@@ -152,20 +152,35 @@ class AgentBotLedgerTest {
         val dao = db.botEventDao()
         dao.insertIgnore(
             BotEventEntity(
-                eventId = "old", botId = "bot-1", kind = BotEventKind.TASK_PROGRESSED,
-                sequence = 1, dedupeKey = "p1", consumedAt = 10L, createdAt = 1L,
+                eventId = "old",
+                botId = "bot-1",
+                kind = BotEventKind.TASK_PROGRESSED,
+                sequence = 1,
+                dedupeKey = "p1",
+                consumedAt = 10L,
+                createdAt = 1L,
             ),
         )
         dao.insertIgnore(
             BotEventEntity(
-                eventId = "fresh", botId = "bot-1", kind = BotEventKind.TASK_PROGRESSED,
-                sequence = 2, dedupeKey = "p2", consumedAt = 900L, createdAt = 2L,
+                eventId = "fresh",
+                botId = "bot-1",
+                kind = BotEventKind.TASK_PROGRESSED,
+                sequence = 2,
+                dedupeKey = "p2",
+                consumedAt = 900L,
+                createdAt = 2L,
             ),
         )
         dao.insertIgnore(
             BotEventEntity(
-                eventId = "unconsumed", botId = "bot-1", kind = BotEventKind.TASK_PROGRESSED,
-                sequence = 3, dedupeKey = "p3", consumedAt = 0L, createdAt = 3L,
+                eventId = "unconsumed",
+                botId = "bot-1",
+                kind = BotEventKind.TASK_PROGRESSED,
+                sequence = 3,
+                dedupeKey = "p3",
+                consumedAt = 0L,
+                createdAt = 3L,
             ),
         )
 
@@ -260,14 +275,23 @@ class AgentBotLedgerTest {
         val dao = db.publicationOutboxDao()
         dao.upsert(
             PublicationOutboxEntity(
-                id = "p-0", publicationId = "pub-2", botId = "bot-1",
-                itemIndex = 0, status = PublicationStatus.COMMITTED, messageId = "m-0", createdAt = 0L,
+                id = "p-0",
+                publicationId = "pub-2",
+                botId = "bot-1",
+                itemIndex = 0,
+                status = PublicationStatus.COMMITTED,
+                messageId = "m-0",
+                createdAt = 0L,
             ),
         )
         dao.upsert(
             PublicationOutboxEntity(
-                id = "p-1", publicationId = "pub-2", botId = "bot-1",
-                itemIndex = 1, status = PublicationStatus.PENDING, createdAt = 1L,
+                id = "p-1",
+                publicationId = "pub-2",
+                botId = "bot-1",
+                itemIndex = 1,
+                status = PublicationStatus.PENDING,
+                createdAt = 1L,
             ),
         )
 
@@ -291,8 +315,12 @@ class AgentBotLedgerTest {
         val dao = db.taskRunDao()
         dao.upsert(TaskRunEntity(runId = "r-live", taskId = "t1", attempt = 1, status = TaskRunStatus.RUNNING, leaseUntil = 9_000L))
         dao.upsert(TaskRunEntity(runId = "r-stale", taskId = "t2", attempt = 1, status = TaskRunStatus.RUNNING, leaseUntil = 100L))
-        dao.upsert(TaskRunEntity(runId = "r-approval", taskId = "t3", attempt = 1, status = TaskRunStatus.WAITING_APPROVAL, leaseUntil = 100L))
-        dao.upsert(TaskRunEntity(runId = "r-resource", taskId = "t4", attempt = 1, status = TaskRunStatus.WAITING_RESOURCE, leaseUntil = 100L))
+        dao.upsert(
+            TaskRunEntity(runId = "r-approval", taskId = "t3", attempt = 1, status = TaskRunStatus.WAITING_APPROVAL, leaseUntil = 100L),
+        )
+        dao.upsert(
+            TaskRunEntity(runId = "r-resource", taskId = "t4", attempt = 1, status = TaskRunStatus.WAITING_RESOURCE, leaseUntil = 100L),
+        )
         dao.upsert(TaskRunEntity(runId = "r-done", taskId = "t5", attempt = 1, status = TaskRunStatus.COMPLETED, leaseUntil = 100L))
 
         // 等待态由外部条件恢复，租约到期不能把它们误判为进程死亡。

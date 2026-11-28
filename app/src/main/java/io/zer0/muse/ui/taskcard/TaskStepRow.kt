@@ -34,15 +34,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
+import io.zer0.muse.ui.chat.DirectOutput
+import io.zer0.muse.ui.chat.DirectToolOutputInline
+import io.zer0.muse.ui.chat.isInlineDeliverableTool
+import io.zer0.muse.ui.chat.resolveDirectOutput
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.formatToolDuration
 import io.zer0.muse.ui.common.icons.MuseIcons
-import io.zer0.muse.ui.chat.DirectOutput
-import io.zer0.muse.ui.chat.isInlineDeliverableTool
-import io.zer0.muse.ui.chat.resolveDirectOutput
-import io.zer0.muse.ui.chat.DirectToolOutputInline
-import io.zer0.muse.ui.chat.MessageBubble
-import io.zer0.muse.ui.chat.ChatScreen
 
 /**
  * 任务卡的单个步骤行。
@@ -325,11 +323,7 @@ private fun GeneratedCardReference() {
 
 /** v2.6.8: 步骤产物卡（图片/文件/非交付物卡片）。 */
 @Composable
-private fun StepOutputCard(
-    output: DirectOutput,
-    cardId: String?,
-    onCardAction: ((String, io.zer0.muse.ui.markdown.CardAction) -> Unit)?,
-) {
+private fun StepOutputCard(output: DirectOutput, cardId: String?, onCardAction: ((String, io.zer0.muse.ui.markdown.CardAction) -> Unit)?) {
     // 产物是给用户看的主体,不该被步骤行的状态图标列缩进挤窄。
     // 用 layout 向左扩展出图标列宽度,让卡片横向对齐到外层任务卡的左边缘;
     // 不能用负 padding —— Compose 会直接抛异常。

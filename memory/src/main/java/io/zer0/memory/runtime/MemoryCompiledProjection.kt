@@ -32,10 +32,7 @@ object MemoryCompiledProjection {
      * [includeNonReady] 仅供 UI 诊断使用；prompt / 工具读取必须保持 false，
      * 否则失败或过期的投影会以「当前事实」的身份进入模型上下文。
      */
-    fun visibleSections(
-        rows: List<ScopedCompiledSectionEntity>,
-        includeNonReady: Boolean,
-    ): Map<String, String> = rows
+    fun visibleSections(rows: List<ScopedCompiledSectionEntity>, includeNonReady: Boolean): Map<String, String> = rows
         .filter { row -> includeNonReady || statusOf(row) == MemoryProjectionStatus.READY }
         .filter { row -> row.content.isNotBlank() }
         .associate { row -> row.sectionKey to row.content }
@@ -56,11 +53,7 @@ object MemoryCompiledProjection {
      * 失败时清空内容等于让用户今天的记忆凭空消失；正确做法是标记「这段不可信」并留着旧值，
      * 由可见性规则把它挡在 prompt 之外，同时 UI 仍能显示「上次成功的内容 + 失败提示」。
      */
-    fun onProjectionFailure(
-        previous: ScopedCompiledSectionEntity?,
-        reason: String,
-        now: String,
-    ): ScopedCompiledSectionEntity? = previous?.copy(
+    fun onProjectionFailure(previous: ScopedCompiledSectionEntity?, now: String): ScopedCompiledSectionEntity? = previous?.copy(
         status = MemoryProjectionStatus.FAILED.name,
         updatedAt = now,
     )

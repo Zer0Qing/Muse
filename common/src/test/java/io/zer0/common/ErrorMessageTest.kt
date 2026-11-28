@@ -16,20 +16,20 @@ class ErrorMessageTest {
 
     private val all: List<ErrorMessage> = listOf(
         ErrorMessage.NetworkError.TIMEOUT,
-        ErrorMessage.NetworkError.NO_CONNECTION,
-        ErrorMessage.NetworkError.DNS_FAILED,
-        ErrorMessage.AuthError.INVALID_KEY,
+        ErrorMessage.NetworkError.NoConnection,
+        ErrorMessage.NetworkError.DnsFailed,
+        ErrorMessage.AuthError.InvalidKey,
         ErrorMessage.AuthError.EXPIRED,
         ErrorMessage.AuthError.UNAUTHORIZED,
-        ErrorMessage.ApiError.RATE_LIMIT(),
-        ErrorMessage.ApiError.SERVER_ERROR,
-        ErrorMessage.ApiError.MODEL_NOT_FOUND,
-        ErrorMessage.ApiError.CONTEXT_LENGTH,
-        ErrorMessage.StorageError.DB_FULL,
-        ErrorMessage.StorageError.IO_ERROR,
-        ErrorMessage.StorageError.MIGRATION_FAILED,
-        ErrorMessage.ValidationError.EMPTY_INPUT,
-        ErrorMessage.ValidationError.INVALID_FORMAT,
+        ErrorMessage.ApiError.RateLimit(),
+        ErrorMessage.ApiError.ServerError,
+        ErrorMessage.ApiError.ModelNotFound,
+        ErrorMessage.ApiError.ContextLength,
+        ErrorMessage.StorageError.DbFull,
+        ErrorMessage.StorageError.IoError,
+        ErrorMessage.StorageError.MigrationFailed,
+        ErrorMessage.ValidationError.EmptyInput,
+        ErrorMessage.ValidationError.InvalidFormat,
         ErrorMessage.GenericError.UNKNOWN,
     )
 
@@ -76,10 +76,10 @@ class ErrorMessageTest {
 
     @Test
     fun `限流错误的重试等待只在真有值时进元数据`() {
-        val withDelay = ErrorMessage.ApiError.RATE_LIMIT(retryAfter = 30)
+        val withDelay = ErrorMessage.ApiError.RateLimit(retryAfter = 30)
         assertEquals(mapOf("retryAfter" to "30"), withDelay.metadata)
 
-        val without = ErrorMessage.ApiError.RATE_LIMIT()
+        val without = ErrorMessage.ApiError.RateLimit()
         assertTrue("上游没给就不该编一个", without.metadata.isEmpty())
 
         val log = withDelay.toLogString()
@@ -90,7 +90,7 @@ class ErrorMessageTest {
 
     @Test
     fun `日志串包含码与兜底文案便于无上下文时定位`() {
-        val log = ErrorMessage.StorageError.DB_FULL.toLogString()
+        val log = ErrorMessage.StorageError.DbFull.toLogString()
 
         assertEquals("[ERR:storage_db_full] Database is full", log)
     }

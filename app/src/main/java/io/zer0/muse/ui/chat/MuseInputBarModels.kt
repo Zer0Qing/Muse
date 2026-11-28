@@ -88,4 +88,5 @@ data class InputBarCallbacks(
     val onCancelRecording: () -> Unit = {},
     val onShowToolCalls: () -> Unit = {},
     val onAddPastedTextAsDocument: (String) -> Unit = {},
+    val onOpenMediaStudio: (() -> Unit)? = null,
 )

@@ -7,7 +7,7 @@ import { AlipayPaymentProvider, MockPaymentProvider, reduceChatEvents } from "@m
 import { DefaultProviderResolver } from "@muse/provider";
 import { createApiRuntime } from "./runtime.js";
 import type { ChatMessage, ChatRequest, ChatStreamEvent, ProviderConfig, PushSubscriptionRecord } from "@muse/contracts";
-import { addDocumentChunked, addMcpServer, createApiDomains, createToolContext, searchDocumentChunks, validateFileUpload } from "./domains.js";
+import { addDocumentChunked, createApiDomains, createToolContext, searchDocumentChunks, validateFileUpload } from "./domains.js";
 
 const port = Number(process.env.PORT ?? 8080);
 const allowedOrigin = process.env.WEB_ORIGIN ?? "http://localhost:5173";
@@ -53,10 +53,16 @@ function bearerToken(request: IncomingMessage): string | undefined {
   return header.slice("Bearer ".length).trim() || undefined;
 }
 
+function publicMcpServer(server: Awaited<ReturnType<typeof mcp.create>>): Omit<typeof server, "accountId"> {
+  const { accountId: _accountId, ...publicServer } = server;
+  return publicServer;
+}
+
 const runtime = await createApiRuntime();
-const { auth, billing, sessions, paymentOrders, assistants, providers, memory, rag, push, jobs, storage, files } = runtime;
+const { auth, billing, sessions, paymentOrders, assistants, providers, memory, rag, push, jobs, storage, files, mcp: mcpStore } = runtime;
 const providerResolver = new DefaultProviderResolver();
-const domains = createApiDomains();
+const domains = createApiDomains(mcpStore);
+const mcp = domains.mcp;
 process.once("SIGTERM", () => { void runtime.close(); });
 process.once("SIGINT", () => { void runtime.close(); });
 const adminAudit: Array<{ actorId: string; action: string; target: string; at: string }> = [];
@@ -67,6 +73,13 @@ const alipayProvider = process.env.ALIPAY_APP_ID && process.env.ALIPAY_PRIVATE_K
 const requestWindows = new Map<string, { startedAt: number; count: number }>();
 const REQUEST_WINDOW_MS = 60_000;
 const REQUEST_LIMIT = 30;
+interface PendingMcpApproval {
+  readonly accountId: string;
+  readonly toolCallId: string;
+  readonly resolve: (decision: "approved" | "denied" | "timeout" | "cancelled") => void;
+}
+const pendingMcpApprovals = new Map<string, PendingMcpApproval>();
+const MCP_APPROVAL_TIMEOUT_MS = 60_000;
 const bootstrapAdminEmail = process.env.BOOTSTRAP_ADMIN_EMAIL;
 const bootstrapAdminPassword = process.env.BOOTSTRAP_ADMIN_PASSWORD;
 if (bootstrapAdminEmail && bootstrapAdminPassword) await auth.seedAdmin(bootstrapAdminEmail, bootstrapAdminPassword);
@@ -199,6 +212,44 @@ function writeSseHeaders(response: ServerResponse): void {
 
 function writeSseEvent(response: ServerResponse, event: ChatStreamEvent): void {
   response.write(`data: ${JSON.stringify(event)}\n\n`);
+}
+
+async function askForMcpApproval(input: {
+  accountId: string;
+  toolCallId: string;
+  toolName: string;
+  serverName: string;
+  purpose: string;
+  argumentsJson: string;
+  response: ServerResponse;
+  signal: AbortSignal;
+}): Promise<"approved" | "denied" | "timeout" | "cancelled"> {
+  const approvalId = randomUUID();
+  return new Promise((resolve) => {
+    if (input.signal.aborted || input.response.destroyed) { resolve("cancelled"); return; }
+    let settled = false;
+    const finish = (decision: "approved" | "denied" | "timeout" | "cancelled") => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      input.signal.removeEventListener("abort", onAbort);
+      pendingMcpApprovals.delete(approvalId);
+      resolve(decision);
+    };
+    const onAbort = () => finish("cancelled");
+    const timeout = setTimeout(() => finish("timeout"), MCP_APPROVAL_TIMEOUT_MS);
+    input.signal.addEventListener("abort", onAbort, { once: true });
+    pendingMcpApprovals.set(approvalId, { accountId: input.accountId, toolCallId: input.toolCallId, resolve: finish });
+    writeSseEvent(input.response, {
+      type: "tool_approval_required",
+      approvalId,
+      toolCallId: input.toolCallId,
+      toolName: input.toolName,
+      serverName: input.serverName,
+      purpose: input.purpose,
+      argumentsJson: input.argumentsJson,
+    });
+  });
 }
 
 const server = createServer(async (request, response) => {
@@ -433,7 +484,12 @@ const server = createServer(async (request, response) => {
         ? requestedChat.messages.filter((message) => message.role !== "system")
         : [systemMessage, ...requestedChat.messages.filter((message) => message.role !== "system")];
       const safeTools = domains.tools.list().filter((tool) => tool.riskLevel === "safe");
-      const contextualChat = { ...requestedChat, messages: contextualMessages, ...(safeTools.length === 0 ? {} : { tools: safeTools }) };
+      const mcpTools = await mcp.listTools(user.id);
+      const exposedTools = [
+        ...safeTools,
+        ...mcpTools.map((tool) => ({ name: tool.name, description: tool.description, parametersJsonSchema: tool.parametersJsonSchema, riskLevel: "normal" as const })),
+      ];
+      const contextualChat = { ...requestedChat, messages: contextualMessages, ...(exposedTools.length === 0 ? {} : { tools: exposedTools }) };
       const mode = contextualChat.mode ?? "byok";
       const plan = await billing.authorize(user.id, mode);
       const storedProvider = mode === "byok" && contextualChat.providerId
@@ -458,7 +514,7 @@ const server = createServer(async (request, response) => {
       const latestUser = [...contextualChat.messages].reverse().find((message) => message.role === "user");
       if (latestUser) await sessions.appendMessage(user.id, session.id, { ...latestUser, id: latestUser.id || randomUUID() });
       const abortController = new AbortController();
-      request.on("close", () => abortController.abort());
+      response.on("close", () => { if (!response.writableEnded) abortController.abort(); });
       writeSseHeaders(response);
       let loopRequest: ChatRequest = chatRequest;
       let finalResult = reduceChatEvents([]);
@@ -486,13 +542,43 @@ const server = createServer(async (request, response) => {
         loopRequest = { ...loopRequest, messages: [...loopRequest.messages, assistantMessage] };
         for (const call of roundResult.toolCalls) {
           const definition = safeTools.find((tool) => tool.name === call.name);
-          if (!definition) throw new Error(`tool approval required or tool unavailable: ${call.name}`);
+          const mcpDefinition = mcpTools.find((tool) => tool.name === call.name);
+          if (!definition && !mcpDefinition) throw new Error(`tool is unavailable or not authorized for this account: ${call.name}`);
           let args: unknown;
           try { args = JSON.parse(call.arguments || "{}"); } catch { throw new Error(`tool arguments are invalid: ${call.name}`); }
           if (args === null || typeof args !== "object" || Array.isArray(args)) throw new Error(`tool arguments must be an object: ${call.name}`);
-          const output = await domains.tools.execute(call.name, args as Record<string, unknown>, createToolContext(user.id, session.id, session.assistantId, abortController.signal));
+          let output: string;
+          let mcpApproved = false;
+          if (mcpDefinition) {
+            const decision = await askForMcpApproval({
+              accountId: user.id,
+              toolCallId: call.id,
+              toolName: mcpDefinition.originalName,
+              serverName: mcpDefinition.serverName,
+              purpose: mcpDefinition.description,
+              argumentsJson: call.arguments || "{}",
+              response,
+              signal: abortController.signal,
+            });
+            mcpApproved = decision === "approved";
+            if (decision !== "approved") {
+              const reason = decision === "denied" ? "User denied this call." : decision === "timeout" ? "Approval timed out; the tool was not called." : "Request cancelled; the tool was not called.";
+              output = `Error: ${reason}`;
+            } else {
+              try {
+                output = await mcp.callTool(user.id, mcpDefinition.name, args as Record<string, unknown>, abortController.signal);
+              } catch (error) {
+                if (abortController.signal.aborted) throw error;
+                const reason = error instanceof Error ? error.message.slice(0, 500) : "MCP call failed";
+                output = `Error: MCP tool call failed: ${reason}`;
+              }
+            }
+          } else {
+            output = await domains.tools.execute(call.name, args as Record<string, unknown>, createToolContext(user.id, session.id, session.assistantId, abortController.signal));
+          }
           loopRequest = { ...loopRequest, messages: [...loopRequest.messages, { id: randomUUID(), role: "tool", content: output.slice(0, 32_000), toolCallId: call.id, toolName: call.name, createdAt: new Date().toISOString() }] };
-          writeSseEvent(response, { type: "fallback_notice", message: `已执行工具：${definition.name}` });
+          if (definition) writeSseEvent(response, { type: "fallback_notice", message: `已执行工具：${definition.name}` });
+          else if (mcpApproved) writeSseEvent(response, { type: "fallback_notice", message: `已执行工具：${mcpDefinition?.serverName ?? call.name}` });
         }
       }
       if (!response.destroyed && (finalResult.text.length > 0 || finalResult.reasoning !== null)) {
@@ -650,14 +736,54 @@ const server = createServer(async (request, response) => {
   if (request.method === "POST" && path === "/api/v1/mcp/servers") {
     const user = await currentUser(request);
     if (user === undefined) { json(response, 401, { code: "UNAUTHENTICATED", message: "authentication required", requestId: id }); return; }
-    try { const body = await readJsonBody(request); const config = { id: stringField(body, "id"), accountId: user.id, name: stringField(body, "name"), url: stringField(body, "url"), transport: body.transport === "sse" ? "sse" as const : "streamable_http" as const, enabled: body.enabled !== false, status: "disabled" as const }; addMcpServer(domains, config); json(response, 201, { server: config }); }
+    try {
+      const body = await readJsonBody(request);
+      if (body.transport !== undefined && body.transport !== "streamable_http") throw new Error("only Streamable HTTP connections are supported");
+      const server = await mcp.create({ id: stringField(body, "id"), accountId: user.id, name: stringField(body, "name"), url: stringField(body, "url"), transport: "streamable_http" });
+      json(response, 201, { server: publicMcpServer(server) });
+    }
     catch (error) { json(response, 400, { code: "INVALID_MCP_SERVER", message: error instanceof Error ? error.message : "invalid MCP server", requestId: id }); }
     return;
   }
   if (request.method === "GET" && path === "/api/v1/mcp/servers") {
     const user = await currentUser(request);
     if (user === undefined) { json(response, 401, { code: "UNAUTHENTICATED", message: "authentication required", requestId: id }); return; }
-    json(response, 200, { servers: domains.mcp.listServers(user.id), tools: domains.mcp.listTools(user.id) });
+    json(response, 200, { servers: (await mcp.listServers(user.id)).map(publicMcpServer), tools: await mcp.listTools(user.id) });
+    return;
+  }
+  if (request.method === "POST" && path.startsWith("/api/v1/mcp/servers/") && path.endsWith("/connect")) {
+    const user = await currentUser(request);
+    if (user === undefined) { json(response, 401, { code: "UNAUTHENTICATED", message: "authentication required", requestId: id }); return; }
+    const serverId = decodeURIComponent(path.slice("/api/v1/mcp/servers/".length, -"/connect".length));
+    const controller = new AbortController();
+    response.on("close", () => { if (!response.writableEnded) controller.abort(); });
+    try {
+      const result = await mcp.connect(user.id, serverId, controller.signal);
+      json(response, 200, { server: publicMcpServer(result.server), tools: result.tools });
+    }
+    catch (error) { json(response, 400, { code: "MCP_CONNECT_FAILED", message: error instanceof Error ? error.message : "MCP connection failed", requestId: id }); }
+    return;
+  }
+  if (request.method === "DELETE" && path.startsWith("/api/v1/mcp/servers/")) {
+    const user = await currentUser(request);
+    if (user === undefined) { json(response, 401, { code: "UNAUTHENTICATED", message: "authentication required", requestId: id }); return; }
+    const serverId = decodeURIComponent(path.slice("/api/v1/mcp/servers/".length));
+    try { await mcp.remove(user.id, serverId); json(response, 200, { removed: true }); }
+    catch (error) { json(response, 404, { code: "MCP_SERVER_NOT_FOUND", message: error instanceof Error ? error.message : "MCP server not found", requestId: id }); }
+    return;
+  }
+  if (request.method === "POST" && path.startsWith("/api/v1/mcp/approvals/") && path.endsWith("/resolve")) {
+    const user = await currentUser(request);
+    if (user === undefined) { json(response, 401, { code: "UNAUTHENTICATED", message: "authentication required", requestId: id }); return; }
+    const approvalId = decodeURIComponent(path.slice("/api/v1/mcp/approvals/".length, -"/resolve".length));
+    const pending = pendingMcpApprovals.get(approvalId);
+    if (!pending || pending.accountId !== user.id) { json(response, 404, { code: "MCP_APPROVAL_NOT_FOUND", message: "approval request is no longer active", requestId: id }); return; }
+    try {
+      const body = await readJsonBody(request);
+      if (body.decision !== "approved" && body.decision !== "denied") throw new Error("decision must be approved or denied");
+      pending.resolve(body.decision);
+      json(response, 200, { resolved: true });
+    } catch (error) { json(response, 400, { code: "INVALID_MCP_APPROVAL", message: error instanceof Error ? error.message : "invalid approval decision", requestId: id }); }
     return;
   }
   if (request.method === "POST" && path === "/api/v1/agents/tasks") {

@@ -7,9 +7,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
@@ -46,10 +46,7 @@ import io.zer0.muse.ui.theme.MusePaddings
  * 且带拖拽关闭手势，长按拖动选区时容易误触关闭。整屏 Dialog 更稳。
  */
 @Composable
-fun TextSelectionPanel(
-    text: String,
-    onDismiss: () -> Unit,
-) {
+fun TextSelectionPanel(text: String, onDismiss: () -> Unit) {
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(

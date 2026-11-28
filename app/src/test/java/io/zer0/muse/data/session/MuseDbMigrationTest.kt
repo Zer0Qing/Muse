@@ -1303,6 +1303,11 @@ class MuseDbMigrationTest {
                 "dockedAt",
                 "createdAt",
                 "updatedAt",
+                "spacePinned",
+                "spaceCategory",
+                "refreshIntervalMinutes",
+                "refreshPrompt",
+                "lastRefreshedAt",
             ),
             defaults.keys,
         )
@@ -1320,6 +1325,11 @@ class MuseDbMigrationTest {
                 "dockedAt" to "NULL",
                 "createdAt" to "0",
                 "updatedAt" to "0",
+                "spacePinned" to "0",
+                "spaceCategory" to "''",
+                "refreshIntervalMinutes" to "0",
+                "refreshPrompt" to "''",
+                "lastRefreshedAt" to "0",
             ),
             tag,
         )

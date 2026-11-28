@@ -192,7 +192,7 @@ class RemoteComputeNodeMigrationTest {
         }
     }
 
-    /** Room 实际打开最新版（当前 140），核对 identity_hash 与最新实体快照一致。 */
+    /** Room 实际打开最新版（当前 142），核对 identity_hash 与最新实体快照一致。 */
     @Test
     fun roomValidatesMigratedRemoteComputeNodeSchema() {
         val dbName = "migration_138_139_room_validate.db"
@@ -201,7 +201,12 @@ class RemoteComputeNodeMigrationTest {
         createSchemaAtVersion(138, dbFile.absolutePath)
 
         val room = Room.databaseBuilder(context.applicationContext, MuseDb::class.java, dbName)
-            .addMigrations(MuseDbMigrations.MIGRATION_138_139, MuseDbMigrations.MIGRATION_139_140)
+            .addMigrations(
+                MuseDbMigrations.MIGRATION_138_139,
+                MuseDbMigrations.MIGRATION_139_140,
+                MuseDbMigrations.MIGRATION_140_141,
+                MuseDbMigrations.MIGRATION_141_142,
+            )
             .allowMainThreadQueries()
             .build()
         try {
@@ -270,11 +275,7 @@ class RemoteComputeNodeMigrationTest {
         else -> "TEXT|notnull=1"
     }
 
-    private fun openHelper(
-        dbName: String,
-        version: Int,
-        onCreate: (SupportSQLiteDatabase) -> Unit,
-    ): SupportSQLiteOpenHelper {
+    private fun openHelper(dbName: String, version: Int, onCreate: (SupportSQLiteDatabase) -> Unit): SupportSQLiteOpenHelper {
         val dbFile = context.getDatabasePath(dbName).apply { parentFile?.mkdirs() }
         return FrameworkSQLiteOpenHelperFactory().create(
             SupportSQLiteOpenHelper.Configuration.builder(context)

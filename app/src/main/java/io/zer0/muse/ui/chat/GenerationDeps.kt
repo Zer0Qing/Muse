@@ -15,9 +15,9 @@ import io.zer0.muse.schedule.UserActivityProfile
 import io.zer0.muse.tools.ToolRegistry
 import io.zer0.muse.transformer.SystemPromptAssembler
 import io.zer0.muse.transformer.TransformerPipeline
+import io.zer0.muse.ui.memory.SessionMemoryCache
 import kotlinx.serialization.json.Json
 import kotlin.uuid.Uuid
-import io.zer0.muse.ui.memory.SessionMemoryCache
 
 /**
  * v1.x: 生成/发送管线的依赖 bundle。
@@ -39,6 +39,7 @@ internal class GenerationDeps(
     val idListJson: Json,
     val messageController: ChatMessageController,
     val addError: (ChatErrorType, String, Boolean) -> Unit,
+    val updateMcpNotice: (List<io.zer0.muse.mcp.McpServerConfig>) -> Unit,
     val generateImage: (prompt: String, sessionId: String) -> Unit,
     val sessionMemoryCache: SessionMemoryCache,
     val systemPromptCache: SystemPromptCache,
@@ -75,4 +76,9 @@ internal class GenerationDeps(
      * 实现方自己决定在哪里起协程。
      */
     val onUserSpoke: (sessionId: String) -> Unit = {},
+    /** 流式完成后通知语音管线：若开启了自动语音条，则在后台静默合成并挂为点按才播语音条。 */
+    val onAutoVoiceBar: (assistantId: String, sessionId: String, messageId: Uuid) -> Unit = { _, _, _ -> },
+    /** 流式完成后提取模型末尾附带的 `<proactive_thought>` 并写入牵挂账本。 */
+    val onProactiveThoughtsExtracted: (assistantId: String, sessionId: String, messageId: Uuid, rawContent: String) -> Unit =
+        { _, _, _, _ -> },
 )

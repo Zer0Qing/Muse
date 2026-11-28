@@ -18,8 +18,6 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.test.core.app.ApplicationProvider
 import io.zer0.muse.R
-import io.zer0.muse.ui.settings.SETTINGS_GROUP_ROW_TAG
-import io.zer0.muse.ui.settings.SettingsGroupCards
 import io.zer0.muse.ui.navigation.AssistantsRoute
 import io.zer0.muse.ui.navigation.SettingsProxyRoute
 import io.zer0.muse.ui.navigation.UserProfileEditRoute

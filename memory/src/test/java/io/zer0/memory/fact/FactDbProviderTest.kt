@@ -95,8 +95,10 @@ class FactDbProviderTest {
     fun `主库不进分库清单`() {
         provider.getFactDb("default").openHelper.writableDatabase.close()
 
-        assertTrue("default 走 facts.db，不是 facts_default.db",
-            "default" !in provider.listAssistantDbIds())
+        assertTrue(
+            "default 走 facts.db，不是 facts_default.db",
+            "default" !in provider.listAssistantDbIds(),
+        )
     }
 
     @Test

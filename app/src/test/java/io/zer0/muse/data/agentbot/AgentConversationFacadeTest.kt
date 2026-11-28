@@ -3,7 +3,9 @@ package io.zer0.muse.data.agentbot
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import io.zer0.muse.data.session.MessageImageStore
 import io.zer0.muse.data.session.MuseDb
+import io.zer0.muse.data.session.SessionRepository
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -16,6 +18,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.io.File
 
 /**
  * 中枢输入接纳与短回合的行为契约。
@@ -29,14 +32,29 @@ class AgentConversationFacadeTest {
 
     private lateinit var db: MuseDb
     private lateinit var repo: AgentBotRepository
+    private lateinit var sessions: SessionRepository
     private var clock = 1_000L
 
     @Before
     fun setUp() {
         val context: Context = ApplicationProvider.getApplicationContext()
         db = Room.inMemoryDatabaseBuilder(context, MuseDb::class.java)
+            .addCallback(
+                object : androidx.room.RoomDatabase.Callback() {
+                    override fun onCreate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                        db.execSQL(io.zer0.muse.data.session.MessageFtsDdl.createSql(useFts5 = false))
+                    }
+                },
+            )
             .allowMainThreadQueries()
             .build()
+        sessions = SessionRepository(
+            sessionDao = db.sessionDao(),
+            messageDao = db.messageDao(),
+            database = db,
+            context = context,
+            messageImageStore = MessageImageStore(File(context.cacheDir, "facade-images-${System.nanoTime()}")),
+        )
         repo = AgentBotRepository(
             taskDao = db.botTaskDao(),
             runDao = db.taskRunDao(),
@@ -51,7 +69,7 @@ class AgentConversationFacadeTest {
 
     @After
     fun tearDown() {
-        db.close();
+        db.close()
     }
 
     @Test
@@ -96,6 +114,27 @@ class AgentConversationFacadeTest {
         val facade = AgentConversationFacade(repo, mergeWindowMs = 0, now = { clock })
         assertNull(facade.acceptUserInput("bot-1", "agent-session-1", "   "))
         assertTrue(repo.pendingEvents("bot-1").isEmpty())
+    }
+
+    @Test
+    fun `image only input is accepted`() = runTest {
+        val facade = AgentConversationFacade(repo, mergeWindowMs = 0, now = { clock })
+        val sessionId = sessions.createAgentSession("bot-1")
+
+        val batch = facade.acceptUserInput(
+            botId = "bot-1",
+            originSessionId = sessionId,
+            text = "  ",
+            sessions = sessions,
+            imageBase64List = listOf("aGVsbG8="),
+        )
+
+        assertNotNull(batch)
+        assertEquals(listOf(""), batch?.texts)
+        val stored = sessions.getRecentMessages(sessionId, 5).single()
+        assertEquals("", stored.content)
+        assertEquals(listOf("aGVsbG8="), stored.imageBase64List)
+        assertEquals(BotEventKind.USER_INPUT_RECEIVED, repo.pendingEvents("bot-1").single().kind)
     }
 
     @Test

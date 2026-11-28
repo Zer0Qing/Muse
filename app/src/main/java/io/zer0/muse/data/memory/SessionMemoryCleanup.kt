@@ -159,7 +159,7 @@ class SessionMemoryCleanup(
                     "助手记忆清理完成: assistant=$id scope=$scope 摘要=$summaries 段落=$sections " +
                         "群聊记忆=$groupChat 矛盾=$contradictions 事实=$facts 文件=$files " +
                         "旧编译段=$legacy 置顶=$pins Dream状态=$dreamStates Dream快照=$dreamRevisions " +
-                            "归档=$archive 指纹作废=$fingerprints",
+                        "归档=$archive 指纹作废=$fingerprints",
                 )
             }
         }

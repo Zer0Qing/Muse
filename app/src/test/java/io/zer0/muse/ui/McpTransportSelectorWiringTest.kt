@@ -13,14 +13,14 @@ class McpTransportSelectorWiringTest {
         val source = locateMcpSectionSource()
         val selector = source
             .substringAfter("Text(stringResource(R.string.settings_mcp_transport_type)")
-            .substringBefore("// Phase 11.1.1")
+            .substringBefore("if (transportType == McpTransportType.STDIO)")
 
         assertTrue("Transport selector should use a wrapping layout", selector.contains("FlowRow("))
         assertFalse(
             "A fixed Row squeezes StreamableHTTP and STDIO on narrow dialogs",
             selector.contains("Row(horizontalArrangement = Arrangement.spacedBy(8.dp))"),
         )
-        assertTrue("STDIO must remain an explicit option", selector.contains("text = \"STDIO\""))
+        assertTrue("STDIO must remain an explicit option", selector.contains("text = stringResource(R.string.mcp_transport_stdio)"))
     }
 
     private fun locateMcpSectionSource(): String {

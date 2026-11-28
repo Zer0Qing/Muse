@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ===== Channels Hub Main Stage ===== -->
+    <string name="channel_hub_hero_online">%1$d channels online</string>
+    <string name="channel_hub_hero_idle">Channels paused</string>
+    <string name="channel_hub_hero_empty">No messaging channels connected</string>
+    <string name="channel_hub_hero_issue">%1$d channel needs attention</string>
+    <string name="channel_hub_hero_sub_active">Last inbound: %1$s</string>
+    <string name="channel_hub_hero_sub_ready">%1$d configured · Credentials encrypted locally</string>
+    <string name="channel_hub_hero_sub_empty">Connect WeChat, Feishu, Telegram, and more to chat anywhere</string>
+    <string name="channel_hub_add_action">Add Channel</string>
+    <string name="channel_hub_keep_alive_banner">Enable background protection to avoid disconnects while idle · Setup</string>
+    <string name="channel_hub_tab_channels">Channels</string>
+    <string name="channel_hub_tab_messages">Messages</string>
+
+    <!-- Platform descriptions & capability badges -->
+    <string name="channel_platform_desc_weclaw">Scan WeChat QR to connect, no developer portal needed</string>
+    <string name="channel_platform_desc_telegram">Just 1 Bot Token, supports proactive messages &amp; large files</string>
+    <string name="channel_platform_desc_feishu">WebSocket long connection without public domain</string>
+    <string name="channel_platform_desc_dingtalk">Enterprise Stream WebSocket, no public callback needed</string>
+    <string name="channel_platform_desc_qq">Official QQ Bot for direct chats and group @mentions</string>
+    <string name="channel_badge_recommended">Recommended · Scan</string>
+    <string name="channel_badge_quick">1-min setup</string>
+    <string name="channel_badge_no_public_ip">No public IP</string>
+    <string name="channel_badge_proactive">Proactive push</string>
+    <string name="channel_badge_media">Images &amp; files</string>
+
+    <!-- Live connection states -->
+    <string name="channel_status_connected">Online</string>
+    <string name="channel_status_connecting">Connecting</string>
+    <string name="channel_status_reconnecting">Reconnecting</string>
+    <string name="channel_status_auth_error">Auth error</string>
+    <string name="channel_status_error">Error</string>
+    <string name="channel_status_stopped">Disabled</string>
+    <string name="channel_home_badge_online">%1$d online</string>
+    <string name="channel_home_badge_issue">Issue</string>
+
+    <!-- Channel cards & unified inbox -->
+    <string name="channel_empty_title">Bring Muse to your favorite chat apps</string>
+    <string name="channel_empty_subtitle">Pick any platform to start a 3-step setup. Credentials stay encrypted on device.</string>
+    <string name="channel_card_chats_count">%1$d chats</string>
+    <string name="channel_card_open_chats">Open Chats</string>
+    <string name="channel_card_edit_config">Configure</string>
+    <string name="channel_card_send_test">Send Test Message</string>
+    <string name="channel_card_reconnect">Reconnect Now</string>
+    <string name="channel_card_reconnecting_toast">Reconnecting %1$s…</string>
+    <string name="channel_card_test_sent">Test message sent</string>
+    <string name="channel_card_test_failed">Send failed: %1$s</string>
+    <string name="channel_card_more_cd">More channel actions</string>
+    <string name="channel_card_blocked_alert">%1$d reply failed and waiting for retry</string>
+    <string name="channel_card_retry_now">Retry</string>
+    <string name="channel_card_fix_config">Fix Creds</string>
+    <string name="channel_card_ignore">Dismiss</string>
+    <string name="channel_retry_enqueued">Re-queued for delivery</string>
+    <string name="channel_dismiss_done">Error notice dismissed</string>
+
+    <!-- Unified inbox filters & badges -->
+    <string name="channel_inbox_filter_all">All</string>
+    <string name="channel_inbox_filter_issues">Attention</string>
+    <string name="channel_inbox_unified_empty">No messages yet</string>
+    <string name="channel_inbox_unified_empty_desc">Once a channel connects, incoming messages appear here for monitoring or manual takeover.</string>
+    <string name="channel_badge_ai_auto">AI Auto</string>
+    <string name="channel_badge_manual_paused">Takeover</string>
+    <string name="channel_badge_blocked">Failed</string>
+    <string name="channel_badge_pending">Sending</string>
+    <string name="channel_badge_ignored">Skipped</string>
+    <string name="channel_time_just_now">Just now</string>
+    <string name="channel_time_minutes_ago">%1$dm ago</string>
+    <string name="channel_time_hours_ago">%1$dh ago</string>
+    <string name="channel_time_days_ago">%1$dd ago</string>
+
+    <!-- 3-step setup wizard -->
+    <string name="channel_wizard_title">Connect Channel</string>
+    <string name="channel_wizard_step_label">Step %1$d of 3</string>
+    <string name="channel_wizard_step1_title">Choose platform</string>
+    <string name="channel_wizard_step2_title">Enter core credentials</string>
+    <string name="channel_wizard_step3_title">Verify &amp; claim account</string>
+    <string name="channel_wizard_guide_toggle">Step-by-step setup guide</string>
+    <string name="channel_wizard_open_portal">Open Console</string>
+    <string name="channel_wizard_copy_chip">Copy %1$s</string>
+    <string name="channel_wizard_copied">Copied: %1$s</string>
+    <string name="channel_wizard_advanced_toggle">Advanced (Webhook / Region / Gateway)</string>
+    <string name="channel_wizard_next">Continue</string>
+    <string name="channel_wizard_prev">Back</string>
+    <string name="channel_wizard_finish">Done</string>
+    <string name="channel_wizard_skip_claim">Skip for now</string>
+    <string name="channel_wizard_qr_cd">WeChat bind QR code</string>
+    <string name="channel_wizard_qr_save">Save QR</string>
+    <string name="channel_wizard_qr_share">Share QR</string>
+    <string name="channel_wizard_qr_saved">QR saved to Photos</string>
+    <string name="channel_wizard_qr_save_failed">Save failed: %1$s</string>
+    <string name="channel_wizard_qr_share_title">Share WeChat bind QR</string>
+    <string name="channel_wizard_qr_auto_saved">Saves and connects automatically once confirmed</string>
+    <string name="channel_wizard_check_auth">Verify bot credentials</string>
+    <string name="channel_wizard_check_auth_running">Checking credentials with platform…</string>
+    <string name="channel_wizard_check_connect">Establish receive connection</string>
+    <string name="channel_wizard_check_connect_waiting">Waiting for live connection…</string>
+    <string name="channel_wizard_check_connect_ok">Receive connection active</string>
+    <string name="channel_wizard_check_claim">Send a message to claim your account</string>
+    <string name="channel_wizard_claim_waiting">Send "hi" to your bot from the chat app; it will be detected here automatically.</string>
+    <string name="channel_wizard_claim_detected">Message received from "%1$s"</string>
+    <string name="channel_wizard_claim_confirm">Set as default target &amp; allow only me</string>
+    <string name="channel_wizard_claim_done">Account claimed and welcome reply sent</string>
+    <string name="channel_wizard_welcome_reply">Connected! Message me anytime here, or send /help for commands.</string>
+
+    <!-- 3-tab config sheet & group triggers -->
+    <string name="channel_config_tab_reply">Replies</string>
+    <string name="channel_config_tab_policy">Access</string>
+    <string name="channel_config_tab_creds">Credentials</string>
+    <string name="channel_group_trigger_label">Group trigger</string>
+    <string name="channel_group_trigger_all">All messages in group</string>
+    <string name="channel_group_trigger_mention">Only when @mentioned</string>
+    <string name="channel_group_trigger_keyword">When keyword matches</string>
+    <string name="channel_group_trigger_hint">Direct chats always respond; group filters prevent noisy replies.</string>
+    <string name="channel_group_keywords_label">Trigger keywords (comma separated)</string>
+    <string name="channel_group_keywords_hint">Example: assistant, summary, @Muse</string>
+    <string name="channel_policy_pick_recent">Pick from recent contacts</string>
+    <string name="channel_policy_no_recent">No recent contacts yet. Once messages arrive, tap chips here.</string>
+
+    <!-- Takeover chat screen -->
+    <string name="channel_chat_takeover_auto">AI Auto</string>
+    <string name="channel_chat_takeover_paused">Takeover</string>
+    <string name="channel_chat_takeover_banner">AI auto-reply paused for this contact</string>
+    <string name="channel_chat_takeover_resume">Resume AI</string>
+    <string name="channel_chat_weclaw_inbound_hint">WeChat requires an inbound message first before replying</string>
+    <string name="channel_chat_input_placeholder">Reply manually…</string>
+    <string name="channel_chat_pick_image_cd">Send image</string>
+    <string name="channel_chat_send_cd">Send message</string>
+    <string name="channel_chat_contact_settings_cd">Contact &amp; chat settings</string>
+    <string name="channel_chat_source_auto">AI Auto-reply</string>
+    <string name="channel_chat_source_manual">Sent by you</string>
+    <string name="channel_chat_source_command">Command reply</string>
+    <string name="channel_chat_preview_image_cd">View image preview</string>
+    <string name="channel_chat_contact_sheet_title">Contact Settings</string>
+    <string name="channel_chat_alias_label">Display alias</string>
+    <string name="channel_chat_alias_hint">Leave blank to show platform name or ID</string>
+    <string name="channel_chat_save_alias">Save Alias</string>
+    <string name="channel_chat_alias_saved">Alias updated</string>
+    <string name="channel_chat_allow_contact">Allow / Add to Allowlist</string>
+    <string name="channel_chat_mute_contact">Mute This Contact</string>
+    <string name="channel_chat_policy_updated">Access policy updated</string>
+    <string name="channel_chat_assistant_override">Contact-specific assistant</string>
+    <string name="channel_chat_assistant_follow_channel">Follow channel default</string>
+    <string name="channel_chat_summary_section">Conversation summary</string>
+    <string name="channel_chat_copy_msg">Message copied</string>
+</resources>

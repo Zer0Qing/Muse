@@ -1,15 +1,21 @@
 package io.zer0.muse.automation.ui
 
 import androidx.annotation.StringRes
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -20,11 +26,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import io.zer0.muse.R
+import io.zer0.muse.automation.appcontrol.InstalledAppInfo
 import io.zer0.muse.automation.core.AutomationAction
 import io.zer0.muse.automation.core.AutonomousAccessibilityGrant
 import io.zer0.muse.ui.chat.ChatViewModel
@@ -36,8 +45,10 @@ import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.common.surface.CardGroupScope
 import io.zer0.muse.ui.common.surface.switchItem
+import io.zer0.muse.ui.theme.MuseButtonSize
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.MuseSpacing
 
 @Composable
@@ -51,6 +62,7 @@ internal fun AutonomousAccessibilitySettingsCard(
     onSave: () -> Unit,
     onConfirmTask: () -> Unit,
     onClearTask: () -> Unit,
+    installedApps: List<InstalledAppInfo> = emptyList(),
 ) {
     var editingStart by remember { mutableStateOf(false) }
     var editingEnd by remember { mutableStateOf(false) }
@@ -118,6 +130,7 @@ internal fun AutonomousAccessibilitySettingsCard(
         content(key = "autonomous_packages") {
             AutonomousPackagesSection(
                 packageEditor = packageEditor,
+                installedApps = installedApps,
                 onPackageEditorChange = onPackageEditorChange,
             )
         }
@@ -319,18 +332,38 @@ private fun AutonomousTaskSection(
     }
 }
 
-/** 允许自动化的包名编辑区（一行一个）。 */
+/** 允许自动化的包名编辑区（支持从已安装应用搜索勾选，也保留手输兜底）。 */
 @Composable
-private fun AutonomousPackagesSection(packageEditor: String, onPackageEditorChange: (String) -> Unit) {
+private fun AutonomousPackagesSection(
+    packageEditor: String,
+    installedApps: List<InstalledAppInfo>,
+    onPackageEditorChange: (String) -> Unit,
+) {
+    var showPicker by remember { mutableStateOf(false) }
     Column(
         Modifier
             .fillMaxWidth()
             .padding(MusePaddings.cardInner),
     ) {
-        Text(
-            text = stringResource(R.string.automation_autonomous_packages),
-            style = MaterialTheme.typography.titleSmall,
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
+        ) {
+            Text(
+                text = stringResource(R.string.automation_autonomous_packages),
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.weight(1f),
+            )
+            MuseCapsuleButton(
+                text = stringResource(R.string.automation_autonomous_pick_app),
+                onClick = { showPicker = true },
+                leadingIcon = MuseIcons.plus,
+                variant = IosCapsuleButtonVariant.Secondary,
+                size = MuseButtonSize.Compact,
+                fillWidth = false,
+            )
+        }
         Text(
             text = stringResource(R.string.automation_autonomous_packages_desc),
             style = MaterialTheme.typography.bodySmall,
@@ -345,7 +378,118 @@ private fun AutonomousPackagesSection(packageEditor: String, onPackageEditorChan
             modifier = Modifier.fillMaxWidth(),
         )
     }
+
+    if (showPicker) {
+        InstalledAppPickerDialog(
+            installedApps = installedApps,
+            selectedPackages = parseAutonomousPackages(packageEditor).toSet(),
+            onTogglePackage = { pkg ->
+                val updated = parseAutonomousPackages(packageEditor).toMutableList()
+                if (pkg in updated) updated.remove(pkg) else updated.add(pkg)
+                onPackageEditorChange(updated.joinToString("\n"))
+            },
+            onDismiss = { showPicker = false },
+        )
+    }
 }
+
+@Composable
+private fun InstalledAppPickerDialog(
+    installedApps: List<InstalledAppInfo>,
+    selectedPackages: Set<String>,
+    onTogglePackage: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var query by remember { mutableStateOf("") }
+    val filtered = remember(installedApps, query) {
+        val trimmed = query.trim()
+        val list = if (trimmed.isEmpty()) {
+            installedApps.filter { !it.self }
+        } else {
+            installedApps.filter {
+                !it.self && (
+                    it.label.contains(trimmed, ignoreCase = true) ||
+                        it.packageName.contains(trimmed, ignoreCase = true)
+                    )
+            }
+        }
+        list.sortedWith(
+            compareByDescending<InstalledAppInfo> { it.packageName in selectedPackages }
+                .thenBy { it.system }
+                .thenBy { it.label.lowercase() },
+        )
+    }
+
+    MuseDialog(
+        onDismissRequest = onDismiss,
+        title = stringResource(R.string.automation_autonomous_picker_title),
+        confirmText = stringResource(R.string.automation_autonomous_picker_done),
+        onConfirm = onDismiss,
+        dismissText = null,
+        content = {
+            Column(verticalArrangement = Arrangement.spacedBy(MuseSpacing.sm)) {
+                MuseTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    placeholder = { Text(stringResource(R.string.automation_autonomous_picker_search)) },
+                    leadingIcon = { Icon(MuseIcons.search, contentDescription = null) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                if (filtered.isEmpty()) {
+                    Text(
+                        text = stringResource(R.string.automation_autonomous_picker_empty),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(vertical = MuseSpacing.md),
+                    )
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = PICKER_LIST_MAX_HEIGHT_DP.dp),
+                        verticalArrangement = Arrangement.spacedBy(MuseSpacing.xxs),
+                    ) {
+                        items(filtered, key = { it.packageName }) { app ->
+                            val checked = app.packageName in selectedPackages
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(MuseShapes.small)
+                                    .clickable { onTogglePackage(app.packageName) }
+                                    .padding(horizontal = MuseSpacing.xs, vertical = MuseSpacing.xs),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(MuseSpacing.smTight),
+                            ) {
+                                Checkbox(
+                                    checked = checked,
+                                    onCheckedChange = { onTogglePackage(app.packageName) },
+                                )
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = app.label,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                    Text(
+                                        text = app.packageName,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+    )
+}
+
+private const val PICKER_LIST_MAX_HEIGHT_DP = 320
 
 /**
  * 时间点选择对话框（起始与结束共用）。

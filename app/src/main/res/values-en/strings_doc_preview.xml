@@ -3,4 +3,5 @@
     <string name="doc_preview_title">"PDF preview"</string>
     <string name="doc_preview_waiting">"Waiting for document data…"</string>
     <string name="doc_preview_failed">"Document rendering failed: "</string>
+    <string name="doc_preview_too_large">"Document exceeds the 20 MB inline preview limit. Use external open in the top-right corner."</string>
 </resources>

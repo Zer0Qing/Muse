@@ -47,7 +47,8 @@ interface ScopedCompiledSectionDao {
     suspend fun delete(key: String, scope: String, spaceId: String): Int
 
     @Query(
-        "INSERT INTO compiled_sections_scoped (section_key, scope, space_id, content, fingerprint, updated_at, source_fingerprint, status) " +
+        "INSERT INTO compiled_sections_scoped " +
+            "(section_key, scope, space_id, content, fingerprint, updated_at, source_fingerprint, status) " +
             "VALUES (:key, :scope, :spaceId, :content, :fingerprint, :now, :sourceFingerprint, :status) " +
             "ON CONFLICT(section_key, scope, space_id) DO UPDATE SET " +
             "content = :content, fingerprint = :fingerprint, updated_at = :now, source_fingerprint = :sourceFingerprint, status = :status",
@@ -67,7 +68,8 @@ interface ScopedCompiledSectionDao {
     suspend fun clearAll(now: String)
 
     @Query(
-        "UPDATE compiled_sections_scoped SET content = '', fingerprint = NULL, updated_at = :now WHERE section_key = :key AND scope = :scope AND space_id = :spaceId",
+        "UPDATE compiled_sections_scoped SET content = '', fingerprint = NULL, updated_at = :now " +
+            "WHERE section_key = :key AND scope = :scope AND space_id = :spaceId",
     )
     suspend fun clearByKey(key: String, scope: String, spaceId: String, now: String)
 

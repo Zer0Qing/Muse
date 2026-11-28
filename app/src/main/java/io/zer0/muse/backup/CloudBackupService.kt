@@ -3,15 +3,12 @@ package io.zer0.muse.backup
 import io.zer0.common.Logger
 import io.zer0.muse.backup.s3.S3Client
 import io.zer0.muse.backup.webdav.WebDavClient
+import io.zer0.muse.ui.theme.MuseDateFormats
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.OkHttpClient
 import java.io.File
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import io.zer0.muse.ui.theme.MuseDateFormats
 
 /**
  * Phase 8.9: 云备份服务(统一 S3 / WebDAV 接口)。
@@ -93,6 +90,7 @@ class CloudBackupService(private val client: OkHttpClient) {
      */
     private sealed interface AsyncCloudClient {
         suspend fun list(prefix: String): List<RemoteFile>
+        suspend fun upload(localFile: File, path: String): Boolean
         suspend fun download(path: String, localFile: File): Boolean
         suspend fun downloadBytes(path: String): ByteArray?
         suspend fun delete(path: String): Boolean
@@ -104,6 +102,8 @@ class CloudBackupService(private val client: OkHttpClient) {
         private val bucket: String,
     ) : AsyncCloudClient {
         override suspend fun list(prefix: String): List<RemoteFile> = s3.list(bucket, prefix)
+
+        override suspend fun upload(localFile: File, path: String): Boolean = s3.upload(localFile, bucket, path)
 
         override suspend fun download(path: String, localFile: File): Boolean = s3.download(bucket, path, localFile)
 
@@ -118,6 +118,8 @@ class CloudBackupService(private val client: OkHttpClient) {
         private val dav: WebDavClient,
     ) : AsyncCloudClient {
         override suspend fun list(prefix: String): List<RemoteFile> = dav.list(prefix)
+
+        override suspend fun upload(localFile: File, path: String): Boolean = dav.upload(localFile, path)
 
         override suspend fun download(path: String, localFile: File): Boolean = dav.download(path, localFile)
 
@@ -204,6 +206,19 @@ class CloudBackupService(private val client: OkHttpClient) {
         // M-004: 云端网络操作加 30s 超时
         val ok2 = withTimeoutOrNull(NETWORK_TIMEOUT_MS) { cc.upload(path, data) } ?: false
         archived || ok2
+    }
+
+    internal suspend fun uploadBackupWithLatest(config: CloudBackupConfig, data: File): Boolean {
+        if (!config.isConfigured) return false
+        val client = createAsyncClient(config) ?: return false
+        if (!client.upload(data, resolveRemotePath(config, backupFileName()))) return false
+        return client.upload(data, resolveRemotePath(config, LATEST_FILE_NAME))
+    }
+
+    internal suspend fun downloadBackupTo(config: CloudBackupConfig, fileName: String?, target: File): Boolean {
+        if (!config.isConfigured) return false
+        val client = createAsyncClient(config) ?: return false
+        return client.download(resolveRemotePath(config, fileName ?: LATEST_FILE_NAME), target)
     }
 
     // ── v1.132: 列表 / 按版本恢复 / 删除 / 测试连接 ───────────────────────

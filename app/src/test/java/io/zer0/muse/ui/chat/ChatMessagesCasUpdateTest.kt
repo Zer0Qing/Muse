@@ -233,8 +233,7 @@ class ChatMessagesCasUpdateTest {
 
     private fun viewModel(): String = source("src/main/java/io/zer0/muse/ui/chat/ChatViewModel.kt")
 
-    private fun translationCoordinator(): String =
-        source("src/main/java/io/zer0/muse/ui/chat/ChatTranslationCoordinator.kt")
+    private fun translationCoordinator(): String = source("src/main/java/io/zer0/muse/ui/chat/ChatTranslationCoordinator.kt")
 
     private fun generationController(): String = source("src/main/java/io/zer0/muse/ui/chat/ChatGenerationController.kt")
 

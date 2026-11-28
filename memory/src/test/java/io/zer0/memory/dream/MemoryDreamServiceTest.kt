@@ -122,8 +122,7 @@ class MemoryDreamServiceTest {
     @Test
     fun `planner failure keeps previous sections and records reason`() = runTest {
         val planner = object : MemoryDreamPlanner {
-            override suspend fun plan(current: Map<String, String>): MemoryDreamPlan =
-                throw IllegalStateException("upstream 502")
+            override suspend fun plan(current: Map<String, String>): MemoryDreamPlan = error("upstream 502")
         }
         val service = DefaultMemoryDreamService(planner = planner)
 

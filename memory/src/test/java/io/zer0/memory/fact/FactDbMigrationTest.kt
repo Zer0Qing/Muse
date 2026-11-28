@@ -64,7 +64,7 @@ class FactDbMigrationTest {
      * v7 schema 的 CREATE TABLE — 严格对齐 7.json 中的 createSql。
      * 注意:id 是 AUTOINCREMENT,tags/importance/category/confidence/source/last_hit_at 都有 DEFAULT。
      */
-    private val V7_CREATE_FACTS = """
+    private val v7CreateFacts = """
         CREATE TABLE IF NOT EXISTS `facts` (
             `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
             `fact` TEXT NOT NULL,
@@ -86,7 +86,7 @@ class FactDbMigrationTest {
      * v7 schema 的 FTS4 表 — 对齐 7.json:
      *   CREATE VIRTUAL TABLE ... USING FTS4(`fact_id` INTEGER NOT NULL, `content_ngram` TEXT NOT NULL)
      */
-    private val V7_CREATE_FTS = """
+    private val v7CreateFts = """
         CREATE VIRTUAL TABLE IF NOT EXISTS `facts_fts` USING FTS4(
             `fact_id` INTEGER NOT NULL,
             `content_ngram` TEXT NOT NULL
@@ -96,7 +96,7 @@ class FactDbMigrationTest {
     /**
      * v7 schema 的 4 个索引 — 对齐 7.json 中的 indices 字段。
      */
-    private val V7_INDICES = listOf(
+    private val v7Indices = listOf(
         "CREATE INDEX IF NOT EXISTS `idx_facts_time` ON `facts` (`time`)",
         "CREATE INDEX IF NOT EXISTS `idx_facts_session` ON `facts` (`session_id`)",
         "CREATE INDEX IF NOT EXISTS `idx_facts_importance` ON `facts` (`importance`)",
@@ -112,9 +112,9 @@ class FactDbMigrationTest {
                 .name(dbFile.absolutePath)
                 .callback(object : androidx.sqlite.db.SupportSQLiteOpenHelper.Callback(7) {
                     override fun onCreate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
-                        db.execSQL(V7_CREATE_FACTS)
-                        db.execSQL(V7_CREATE_FTS)
-                        V7_INDICES.forEach { db.execSQL(it) }
+                        db.execSQL(v7CreateFacts)
+                        db.execSQL(v7CreateFts)
+                        v7Indices.forEach { db.execSQL(it) }
                     }
 
                     override fun onUpgrade(db: androidx.sqlite.db.SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) {
@@ -190,9 +190,9 @@ class FactDbMigrationTest {
                 .name(dbFile.absolutePath)
                 .callback(object : androidx.sqlite.db.SupportSQLiteOpenHelper.Callback(7) {
                     override fun onCreate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
-                        db.execSQL(V7_CREATE_FACTS)
-                        db.execSQL(V7_CREATE_FTS)
-                        V7_INDICES.forEach { db.execSQL(it) }
+                        db.execSQL(v7CreateFacts)
+                        db.execSQL(v7CreateFts)
+                        v7Indices.forEach { db.execSQL(it) }
                     }
 
                     override fun onUpgrade(db: androidx.sqlite.db.SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) {
@@ -273,7 +273,7 @@ class FactDbMigrationTest {
         val dbFile = newDbFile()
         val factory = FrameworkSQLiteOpenHelperFactory()
         // v11 schema: facts + fts + 全部旧列(pinned_at 最后)
-        val V11_CREATE_FACTS = """
+        val v11CreateFacts = """
             CREATE TABLE IF NOT EXISTS `facts` (
                 `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                 `fact` TEXT NOT NULL,
@@ -293,13 +293,13 @@ class FactDbMigrationTest {
                 `pinned_at` TEXT DEFAULT NULL
             )
         """.trimIndent()
-        val V11_CREATE_FTS = """
+        val v11CreateFts = """
             CREATE VIRTUAL TABLE IF NOT EXISTS `facts_fts` USING FTS4(
                 `fact_id` INTEGER NOT NULL,
                 `content_ngram` TEXT NOT NULL
             )
         """.trimIndent()
-        val V11_CREATE_SPACES = """
+        val v11CreateSpaces = """
             CREATE TABLE IF NOT EXISTS `memory_spaces` (
                 `id` TEXT NOT NULL PRIMARY KEY,
                 `name` TEXT NOT NULL,
@@ -309,7 +309,7 @@ class FactDbMigrationTest {
                 `sort_index` INTEGER NOT NULL DEFAULT 0
             )
         """.trimIndent()
-        val V11_CREATE_LINKS = """
+        val v11CreateLinks = """
             CREATE TABLE IF NOT EXISTS `memory_links` (
                 `id` INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
                 `source_fact_id` INTEGER NOT NULL,
@@ -328,10 +328,10 @@ class FactDbMigrationTest {
                 .name(dbFile.absolutePath)
                 .callback(object : androidx.sqlite.db.SupportSQLiteOpenHelper.Callback(11) {
                     override fun onCreate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
-                        db.execSQL(V11_CREATE_FACTS)
-                        db.execSQL(V11_CREATE_FTS)
-                        db.execSQL(V11_CREATE_SPACES)
-                        db.execSQL(V11_CREATE_LINKS)
+                        db.execSQL(v11CreateFacts)
+                        db.execSQL(v11CreateFts)
+                        db.execSQL(v11CreateSpaces)
+                        db.execSQL(v11CreateLinks)
                         // v9 索引
                         db.execSQL("CREATE INDEX IF NOT EXISTS `index_facts_scope` ON `facts` (`scope`)")
                         db.execSQL("CREATE INDEX IF NOT EXISTS `index_facts_space_id` ON `facts` (`space_id`)")
@@ -464,7 +464,7 @@ class FactDbMigrationTest {
         val dbFile = newDbFile()
         val factory = FrameworkSQLiteOpenHelperFactory()
         // v12 schema: facts(含 entity_key) + fts + spaces + links
-        val V12_CREATE_FACTS = """
+        val v12CreateFacts = """
             CREATE TABLE IF NOT EXISTS `facts` (
                 `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                 `fact` TEXT NOT NULL,
@@ -485,13 +485,13 @@ class FactDbMigrationTest {
                 `entity_key` TEXT
             )
         """.trimIndent()
-        val V12_CREATE_FTS = """
+        val v12CreateFts = """
             CREATE VIRTUAL TABLE IF NOT EXISTS `facts_fts` USING FTS4(
                 `fact_id` INTEGER NOT NULL,
                 `content_ngram` TEXT NOT NULL
             )
         """.trimIndent()
-        val V12_CREATE_SPACES = """
+        val v12CreateSpaces = """
             CREATE TABLE IF NOT EXISTS `memory_spaces` (
                 `id` TEXT NOT NULL PRIMARY KEY,
                 `name` TEXT NOT NULL,
@@ -501,7 +501,7 @@ class FactDbMigrationTest {
                 `sort_index` INTEGER NOT NULL DEFAULT 0
             )
         """.trimIndent()
-        val V12_CREATE_LINKS = """
+        val v12CreateLinks = """
             CREATE TABLE IF NOT EXISTS `memory_links` (
                 `id` INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
                 `source_fact_id` INTEGER NOT NULL,
@@ -520,10 +520,10 @@ class FactDbMigrationTest {
                 .name(dbFile.absolutePath)
                 .callback(object : androidx.sqlite.db.SupportSQLiteOpenHelper.Callback(12) {
                     override fun onCreate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
-                        db.execSQL(V12_CREATE_FACTS)
-                        db.execSQL(V12_CREATE_FTS)
-                        db.execSQL(V12_CREATE_SPACES)
-                        db.execSQL(V12_CREATE_LINKS)
+                        db.execSQL(v12CreateFacts)
+                        db.execSQL(v12CreateFts)
+                        db.execSQL(v12CreateSpaces)
+                        db.execSQL(v12CreateLinks)
                         // v12 schema 完整索引 — 全部 7 个 facts 索引 + 关联表索引,否则迁移后 Room 校验失败
                         db.execSQL("CREATE INDEX IF NOT EXISTS `idx_facts_time` ON `facts` (`time`)")
                         db.execSQL("CREATE INDEX IF NOT EXISTS `idx_facts_session` ON `facts` (`session_id`)")
@@ -714,7 +714,7 @@ class FactDbMigrationTest {
                 .name(dbFile.absolutePath)
                 .callback(object : androidx.sqlite.db.SupportSQLiteOpenHelper.Callback(16) {
                     override fun onCreate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
-                        db.execSQL(V16_FACTS)
+                        db.execSQL(v16Facts)
                     }
 
                     override fun onUpgrade(db: androidx.sqlite.db.SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) {
@@ -757,7 +757,7 @@ class FactDbMigrationTest {
                 .name(dbFile.absolutePath)
                 .callback(object : androidx.sqlite.db.SupportSQLiteOpenHelper.Callback(17) {
                     override fun onCreate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
-                        db.execSQL(V17_FACTS)
+                        db.execSQL(v17Facts)
                     }
 
                     override fun onUpgrade(db: androidx.sqlite.db.SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) {
@@ -800,7 +800,7 @@ class FactDbMigrationTest {
                 .name(dbFile.absolutePath)
                 .callback(object : androidx.sqlite.db.SupportSQLiteOpenHelper.Callback(18) {
                     override fun onCreate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
-                        db.execSQL(V18_FACTS)
+                        db.execSQL(v18Facts)
                     }
 
                     override fun onUpgrade(db: androidx.sqlite.db.SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) {
@@ -836,7 +836,7 @@ class FactDbMigrationTest {
         const val DB_NAME = "facts_test.db"
 
         /** v16 的 facts 表结构(与 schemas/16.json 一致,不含 v17 新增列)。 */
-        val V16_FACTS = """
+        val v16Facts = """
             CREATE TABLE IF NOT EXISTS `facts` (
                 `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                 `fact` TEXT NOT NULL,
@@ -860,7 +860,7 @@ class FactDbMigrationTest {
         """.trimIndent()
 
         /** v17 的 facts 表结构(与 schemas/17.json 一致,含衰减三列,不含 supersedes_id)。 */
-        val V17_FACTS = """
+        val v17Facts = """
             CREATE TABLE IF NOT EXISTS `facts` (
                 `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                 `fact` TEXT NOT NULL,
@@ -887,7 +887,7 @@ class FactDbMigrationTest {
         """.trimIndent()
 
         /** v18 的 facts 表结构(与 schemas/18.json 一致,含 supersedes_id,不含 merged_into_id)。 */
-        val V18_FACTS = """
+        val v18Facts = """
             CREATE TABLE IF NOT EXISTS `facts` (
                 `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                 `fact` TEXT NOT NULL,

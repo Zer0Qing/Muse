@@ -47,10 +47,16 @@ val appInfraModule = module {
                     val backlog = container.get<io.zer0.muse.data.proactive.ProactiveBacklogRepository>()
                     backlog.releaseExpiredClaims(now)
                     container.get<io.zer0.muse.proactive.ProactiveNotificationRecovery>().recover(now)
-                    container.get<io.zer0.muse.data.assistant.AssistantRepository>().getAll().forEach { assistant ->
-                        backlog.reconcile(now, assistant.id, "")
+                    val cfg = container.get<io.zer0.muse.data.SettingsRepository>().proactiveMessageConfigFlow.first()
+                    if (cfg.enabled) {
+                        val activeAssistantId = cfg.agentId.takeIf { it.isNotBlank() }
+                            ?: container.get<io.zer0.muse.data.assistant.AssistantRepository>().getAll().firstOrNull()?.id.orEmpty()
+                        if (activeAssistantId.isNotBlank()) {
+                            backlog.reconcile(now, activeAssistantId, "")
+                        }
+                        container.get<io.zer0.muse.proactive.ProactiveBacklogWorkScheduler>().enqueueIfNeeded()
+                        container.get<io.zer0.muse.proactive.ProactiveScheduler>().refreshWakeUpForOpenThoughts()
                     }
-                    container.get<io.zer0.muse.proactive.ProactiveBacklogWorkScheduler>().enqueueIfNeeded()
                     if (io.zer0.muse.feature.FeatureFlags.AGENT_BOT) {
                         container.get<io.zer0.muse.data.agentbot.BotTaskScheduler>().reconcileAfterRestart()
                     }
@@ -261,6 +267,19 @@ val appInfraModule = module {
             fingerprintFile = java.io.File(androidContext().filesDir, "memory/autosave_fingerprints.json"),
             // 模型返回后的落库要过闸:恢复窗口内写的是旧库产物。
             writeGate = get<io.zer0.memory.runtime.MemoryWriteGate>(),
+            // 退出总结/记忆编译时同步把模型判断的主动牵挂记入账本
+            onProactiveThoughtsExtracted = { assistantId, sessionId, thoughts ->
+                val thoughtRepo = getOrNull<io.zer0.muse.data.proactive.ProactiveThoughtRepository>()
+                    ?: return@MemoryAutoSaveScheduler
+                val scheduler = getOrNull<io.zer0.muse.proactive.ProactiveScheduler>()
+                io.zer0.muse.proactive.ProactiveThoughtRecorder.persistFromMemorySummary(
+                    repo = thoughtRepo,
+                    scheduler = scheduler,
+                    assistantId = assistantId,
+                    sessionId = sessionId,
+                    thoughts = thoughts,
+                )
+            },
         )
     }
 }

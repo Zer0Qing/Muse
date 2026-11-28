@@ -214,24 +214,20 @@ class SessionSummaryManager(
         }
         val messageEnd = range?.end?.let { TimeContext.parseInstant(it) }
         val messageStart = range?.start?.let { TimeContext.parseInstant(it) }
-        if (messageEnd != null) {
+        val messageRangeResult = messageEnd?.let { endTime ->
             // 真实对话时间与窗口有交集即算命中（跨天会话的任一端落在窗口内）。
-            val overlaps = (messageStart ?: messageEnd) <= end && messageEnd >= start
-            if (!overlaps) return false
-            if (since != null) {
-                val cursor = TimeContext.parseInstant(since) ?: return true
-                if (messageEnd <= cursor) return false
-            }
-            return true
+            val overlaps = (messageStart ?: endTime) <= end && endTime >= start
+            overlaps && isAfterCursor(endTime, since)
         }
-        // 旧数据：没有真实时间范围，只能按写入时间判定。
-        val updated = TimeContext.parseInstant(entity.updatedAt) ?: return false
-        if (updated < start || updated > end) return false
-        if (since != null) {
-            val cursor = TimeContext.parseInstant(since) ?: return true
-            if (updated <= cursor) return false
-        }
-        return true
+        return messageRangeResult ?: TimeContext.parseInstant(entity.updatedAt)?.let { updated ->
+            // 旧数据：没有真实时间范围，只能按写入时间判定。
+            updated in start..end && isAfterCursor(updated, since)
+        } ?: false
+    }
+
+    private fun isAfterCursor(time: Instant, since: String?): Boolean {
+        val cursor = since?.let(TimeContext::parseInstant) ?: return true
+        return time > cursor
     }
 
     /** 清空所有摘要。 */

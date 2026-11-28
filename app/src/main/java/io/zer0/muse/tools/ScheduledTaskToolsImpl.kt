@@ -1,12 +1,11 @@
 package io.zer0.muse.tools
 
 import android.content.Context
-import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.data.schedule.ScheduledTaskEntity
 import io.zer0.muse.data.session.MuseDb
 import io.zer0.muse.schedule.ScheduledTaskRunner
+import io.zer0.muse.ui.theme.MuseDateFormats
 import java.util.Date
-import java.util.Locale
 import java.util.UUID
 
 /**
@@ -14,13 +13,13 @@ import java.util.UUID
  * 由 ScheduledTaskToolsRegistrar 注册到 ToolRegistry。
  */
 class ScheduledTaskToolsImpl(private val context: Context) {
-    private val FMT_DATETIME_MIN = ThreadLocal.withInitial { MuseDateFormats.dateTimeShort() }
+    private val fmtDateTimeMin = ThreadLocal.withInitial { MuseDateFormats.dateTimeShort() }
 
     // ── v1.0.17: 定时任务工具 ──────────────────────────────────────────
 
     /** 格式化时间戳为可读字符串(<=0 视为已禁用)。 */
     fun formatTimestamp(ts: Long): String {
-        return if (ts > 0) FMT_DATETIME_MIN.get()?.format(Date(ts)) ?: "未知" else "已禁用"
+        return if (ts > 0) fmtDateTimeMin.get()?.format(Date(ts)) ?: "未知" else "已禁用"
     }
 
     /** 格式化定时任务为单条摘要。 */
@@ -185,7 +184,7 @@ class ScheduledTaskToolsImpl(private val context: Context) {
         if (records.isEmpty()) return "任务 ${existing.name}[id=$id] 暂无执行历史"
         val sb = StringBuilder("执行历史 (任务=${existing.name}):\n")
         records.take(limit).forEach { e ->
-            val time = FMT_DATETIME_MIN.get()?.format(Date(e.executedAt)) ?: "未知"
+            val time = fmtDateTimeMin.get()?.format(Date(e.executedAt)) ?: "未知"
             val detail = when (e.status) {
                 "success" -> "成功: ${e.replySummary.take(80)}"
                 "failed" -> "失败: ${e.errorMessage}"

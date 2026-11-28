@@ -19,8 +19,8 @@ import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.UIMessage
 import io.zer0.muse.data.ChatPreferences
 import io.zer0.muse.ui.chat.MessageBubble
-import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.chat.ThinkingBubble
+import io.zer0.muse.ui.theme.MusePaddings
 
 /**
  * 开发期预览页：用真实 [MessageBubble] 渲染一份带 MOOD / 思考 / 工具调用的消息。

@@ -7,8 +7,8 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import io.zer0.common.AppJson
-import io.zer0.muse.ui.theme.CustomTheme
 import io.zer0.muse.ui.theme.BaseThemeMode
+import io.zer0.muse.ui.theme.CustomTheme
 import io.zer0.muse.ui.theme.ThemeAutoPolicy
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -43,6 +43,8 @@ class AppearanceSettingsStore(private val context: Context) {
     val dynamicColorFlow: Flow<Boolean> = store.data.mapDistinct { prefs -> prefs[KEY_DYNAMIC_COLOR] ?: false }
     val fontSizeScaleFlow: Flow<String> = store.data.mapDistinct { prefs -> prefs[KEY_FONT_SIZE_SCALE] ?: "medium" }
     val defaultHomePageFlow: Flow<Int> = store.data.mapDistinct { prefs -> prefs[KEY_DEFAULT_HOME_PAGE] ?: 0 }
+    val homeLayoutModeFlow: Flow<HomeLayoutMode> =
+        store.data.mapDistinct { prefs -> HomeLayoutMode.fromWire(prefs[KEY_HOME_LAYOUT_MODE]) }
     val onboardingShownFlow: Flow<Boolean> = store.data.mapDistinct { prefs -> prefs[KEY_ONBOARDING_SHOWN] == true }
     val asrTipShownFlow: Flow<Boolean> = store.data.mapDistinct { prefs -> prefs[KEY_ASR_TIP_SHOWN] ?: false }
     val customThemesFlow: Flow<List<CustomTheme>> = store.data.mapDistinct { prefs ->
@@ -108,6 +110,9 @@ class AppearanceSettingsStore(private val context: Context) {
     suspend fun saveDefaultHomePage(page: Int) {
         store.edit { it[KEY_DEFAULT_HOME_PAGE] = page.coerceIn(0, 2) }
     }
+    suspend fun saveHomeLayoutMode(mode: HomeLayoutMode) {
+        store.edit { it[KEY_HOME_LAYOUT_MODE] = mode.wireValue }
+    }
     suspend fun markOnboardingShown() {
         store.edit { it[KEY_ONBOARDING_SHOWN] = true }
     }
@@ -168,6 +173,7 @@ class AppearanceSettingsStore(private val context: Context) {
         return runCatching {
             val decoded = AppJson.decodeFromString(ThemeScheduleConfig.serializer(), raw)
             val hasExplicitPolicy = AppJson.parseToJsonElement(raw).jsonObject.containsKey("autoPolicy")
+
             @Suppress("DEPRECATION")
             val migratedPolicy = if (hasExplicitPolicy) {
                 decoded.autoPolicy
@@ -209,6 +215,7 @@ class AppearanceSettingsStore(private val context: Context) {
         private val KEY_DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
         private val KEY_FONT_SIZE_SCALE = stringPreferencesKey("font_size_scale")
         private val KEY_DEFAULT_HOME_PAGE = intPreferencesKey("default_home_page")
+        private val KEY_HOME_LAYOUT_MODE = stringPreferencesKey("home_layout_mode")
         private val KEY_ONBOARDING_SHOWN = booleanPreferencesKey("onboarding_shown")
         private val KEY_ASR_TIP_SHOWN = booleanPreferencesKey("asr_tip_shown")
         private val KEY_CUSTOM_THEMES = stringPreferencesKey("custom_themes_json")

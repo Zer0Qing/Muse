@@ -119,7 +119,9 @@ object VisionImagePreprocessor {
             bitmap
         }
 
-        // 5. JPEG 压缩,按预算递减质量
+        // 5. JPEG 压缩,按预算递减质量（在 recycle 前记录实际缩放后像素宽高，防止坐标 2x 错位）
+        val actualWidth = resized.width
+        val actualHeight = resized.height
         val perImageMaxBytes = computePerImageBudget(imageCount)
         val compressed = compressToBudget(resized, POLICY.jpegQuality, perImageMaxBytes)
         resized.recycle()
@@ -130,8 +132,8 @@ object VisionImagePreprocessor {
             mimeType = "image/jpeg", // 统一转 JPEG
             originalWidth = origW,
             originalHeight = origH,
-            resizedWidth = if (origW > 0) minOf(origW, targetMaxDim) else 0,
-            resizedHeight = if (origH > 0) minOf(origH, targetMaxDim) else 0,
+            resizedWidth = actualWidth,
+            resizedHeight = actualHeight,
         )
     }
 

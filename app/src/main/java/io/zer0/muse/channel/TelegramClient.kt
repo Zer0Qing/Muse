@@ -44,6 +44,8 @@ internal object TelegramClient {
         val updateId: Long? = null,
         /** 图片消息的 file_id；非图片为 null。 */
         val photoFileId: String? = null,
+        val senderDisplayName: String = "",
+        val isMentioned: Boolean = false,
     )
 
     /** getUpdates 结果。nextOffset 为下次请求应携带的 offset(最后 update_id + 1)。 */
@@ -77,21 +79,39 @@ internal object TelegramClient {
                     maxUpdateId = updateId
                 }
                 val message = update["message"] as? JsonObject ?: continue
-                val text = message["text"]?.jsonPrimitive?.contentOrNull.orEmpty()
+                val text = message["text"]?.jsonPrimitive?.contentOrNull
+                    ?: message["caption"]?.jsonPrimitive?.contentOrNull.orEmpty()
                 // photo 是尺寸数组，最后一项最大。
                 val photoFileId = (message["photo"] as? JsonArray)
                     ?.lastOrNull()
                     ?.let { it as? JsonObject }
                     ?.get("file_id")?.jsonPrimitive?.contentOrNull
                 if (text.isBlank() && photoFileId.isNullOrBlank()) continue
-                if (text.isBlank()) continue
                 val chat = message["chat"] as? JsonObject ?: continue
                 val chatId = chat["id"]?.jsonPrimitive?.contentOrNull?.toLongOrNull() ?: continue
+                val chatType = chat["type"]?.jsonPrimitive?.contentOrNull.orEmpty()
+                val chatTitle = chat["title"]?.jsonPrimitive?.contentOrNull.orEmpty()
+                val senderObj = message["from"] as? JsonObject
+                val senderName = listOfNotNull(
+                    senderObj?.get("first_name")?.jsonPrimitive?.contentOrNull?.takeIf { it.isNotBlank() },
+                    senderObj?.get("last_name")?.jsonPrimitive?.contentOrNull?.takeIf { it.isNotBlank() },
+                ).joinToString(" ").ifBlank {
+                    senderObj?.get("username")?.jsonPrimitive?.contentOrNull?.let { "@$it" }.orEmpty()
+                }
+                val displayName = if (chatType != "private" && chatTitle.isNotBlank()) chatTitle else senderName
+                val entities = message["entities"] as? JsonArray
+                val hasMentionEntity = entities?.any { el ->
+                    val type = (el as? JsonObject)?.get("type")?.jsonPrimitive?.contentOrNull
+                    type == "mention" || type == "text_mention"
+                } == true
                 messages += InboundMsg(
                     chatId = chatId,
                     text = text,
-                    chatType = chat["type"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+                    chatType = chatType,
                     updateId = updateId,
+                    photoFileId = photoFileId,
+                    senderDisplayName = displayName,
+                    isMentioned = hasMentionEntity || text.contains("@"),
                 )
             }
             Updates(

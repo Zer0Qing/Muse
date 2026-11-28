@@ -5,6 +5,7 @@ import io.zer0.muse.computenode.ComputeTarget
 import io.zer0.muse.computenode.ComputeTargetRouter
 import io.zer0.muse.computenode.ExecKind
 import io.zer0.muse.computenode.ExecRequest
+import io.zer0.muse.computenode.MuseNodeException
 import io.zer0.muse.computenode.RemoteComputeRuntime
 import io.zer0.muse.computenode.TaskCategory
 import io.zer0.muse.tools.system.sanitizeShellCommandForLog
@@ -90,6 +91,7 @@ object ShellSandboxTool {
         workDir: File,
         target: String = ComputeTargetRouter.TARGET_AUTO,
         remoteRuntime: RemoteComputeRuntime? = null,
+        onRemoteExecStarted: (suspend (nodeId: String, remoteRunId: String) -> Unit)? = null,
     ): String = withContext(Dispatchers.IO) {
         // 安全检查 0:规则型硬边界防线
         // v1.0.52: 调用 ToolPermissionResolver.isUnsafeCommand 做第一道拦截,
@@ -148,13 +150,16 @@ object ShellSandboxTool {
             remoteRuntime?.resolve(target, TaskCategory.SHELL) ?: ComputeTarget.LocalProot
         } catch (e: CancellationException) {
             throw e
-        } catch (e: Exception) {
+        } catch (e: MuseNodeException) {
+            Logger.w("ShellSandbox", "解析算力目标失败: ${e.message}", e)
+            return@withContext "[错误] 云端电脑不可用: ${e.message}"
+        } catch (e: RuntimeException) {
             Logger.w("ShellSandbox", "解析算力目标失败: ${e.message}", e)
             return@withContext "[错误] 云端电脑不可用: ${e.message}"
         }
         if (computeTarget is ComputeTarget.RemoteNode) {
             val runtime = remoteRuntime ?: return@withContext "[错误] 云端电脑未配置"
-            return@withContext executeRemote(command, computeTarget, runtime)
+            return@withContext executeRemote(command, computeTarget, runtime, onRemoteExecStarted)
         }
 
         runCatching {
@@ -213,6 +218,7 @@ object ShellSandboxTool {
         command: String,
         target: ComputeTarget.RemoteNode,
         runtime: RemoteComputeRuntime,
+        onRemoteExecStarted: (suspend (nodeId: String, remoteRunId: String) -> Unit)?,
     ): String {
         val outcome = try {
             runtime.execute(
@@ -223,10 +229,14 @@ object ShellSandboxTool {
                     cwd = REMOTE_WORK_DIR,
                     timeoutSec = REMOTE_TIMEOUT_SEC,
                 ),
+                onRemoteExecStarted = onRemoteExecStarted,
             )
         } catch (e: CancellationException) {
             throw e
-        } catch (e: Exception) {
+        } catch (e: MuseNodeException) {
+            Logger.w("ShellSandbox", "云端执行失败: ${e.message}", e)
+            return "[错误] 云端执行失败: ${e.message}"
+        } catch (e: RuntimeException) {
             Logger.w("ShellSandbox", "云端执行失败: ${e.message}", e)
             return "[错误] 云端执行失败: ${e.message}"
         }
@@ -256,9 +266,17 @@ class ShellSandboxToolRegistrar(
     }
 
     fun registerAll() {
-        toolRegistry.register(ShellSandboxTool.toolDef()) { args ->
-            val command = args["command"] ?: return@register "[错误] 缺少必填参数 command"
-            ShellSandboxTool.execute(command, workDir, args["target"].orEmpty(), remoteRuntime)
+        toolRegistry.registerOutcomeWithContext(ShellSandboxTool.toolDef()) { args, executionContext ->
+            val command = args["command"] ?: return@registerOutcomeWithContext ToolOutcome.error("[错误] 缺少必填参数 command")
+            ToolOutcome.ok(
+                ShellSandboxTool.execute(
+                    command,
+                    workDir,
+                    args["target"].orEmpty(),
+                    remoteRuntime,
+                    executionContext?.onRemoteExecStarted,
+                ),
+            )
         }
     }
 }

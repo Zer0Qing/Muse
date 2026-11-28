@@ -227,6 +227,7 @@
     <string name="agent_bot_error_binding_unreadable">读取这个助手上次的会话记录失败，这条消息没有发出。稍后再试</string>
     <string name="agent_bot_error_no_session">还没有可用的会话</string>
     <string name="agent_bot_error_save_failed">消息没能保存，请重试</string>
+    <string name="agent_bot_error_provider_failed">模型服务返回错误，这一轮没有回复</string>
     <string name="agent_bot_error_already_decided">这一步已经决定过了</string>
     <string name="agent_bot_error_approval_expired">这一步已超时，需要重新发起</string>
     <string name="agent_bot_error_approval_stale">这一步的细节变了，旧的批准已失效</string>

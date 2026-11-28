@@ -1,12 +1,14 @@
 package io.zer0.muse.proactive
 
 import android.content.Context
+import androidx.work.Constraints
 import androidx.work.ExistingWorkPolicy
+import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
 
 class ProactiveBacklogWorkScheduler(
@@ -38,6 +40,11 @@ class ProactiveBacklogWorkScheduler(
         ).minOrNull() ?: now
         val delayMs = initialDelayMs(now, runAt)
         val request = OneTimeWorkRequestBuilder<ProactiveBacklogWorker>()
+            .setConstraints(
+                Constraints.Builder()
+                    .setRequiredNetworkType(NetworkType.CONNECTED)
+                    .build(),
+            )
             .setInitialDelay(delayMs, TimeUnit.MILLISECONDS)
             .build()
         WorkManager.getInstance(context).enqueueUniqueWork(UNIQUE_WORK_NAME, ExistingWorkPolicy.KEEP, request)

@@ -65,6 +65,7 @@ class KnowledgeLifecycleService(
         data class NameConflict(val name: String) : FolderResult
         data object NotFound : FolderResult
         data object CrossKbDenied : FolderResult
+
         /** 移动到自己的子树下会形成环。 */
         data object Cycle : FolderResult
         data class Invalid(val reason: String) : FolderResult
@@ -154,10 +155,7 @@ class KnowledgeLifecycleService(
     }
 
     /** 移动目标合法性(存在性 / 跨库 / 成环 / 同级重名)。 */
-    private suspend fun validateMoveTarget(
-        folder: KnowledgeV2FolderEntity,
-        newParentId: String,
-    ): FolderResult? {
+    private suspend fun validateMoveTarget(folder: KnowledgeV2FolderEntity, newParentId: String): FolderResult? {
         val parent = folderDao.getFolder(newParentId) ?: return FolderResult.NotFound
         if (parent.kbId != folder.kbId) return FolderResult.CrossKbDenied
         if (isDescendantOf(candidateAncestorId = folder.folderId, nodeId = newParentId)) {

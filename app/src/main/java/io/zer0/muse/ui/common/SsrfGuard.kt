@@ -6,7 +6,6 @@ import kotlinx.coroutines.withContext
 import java.net.Inet6Address
 import java.net.InetAddress
 import java.net.URI
-import io.zer0.muse.ui.chat.LinkPreviewCard
 
 /**
  * SSRF 防护 — 判定链接目标是否为内网/回环/链路本地等非公网地址。
@@ -169,7 +168,7 @@ internal object SsrfGuard {
     }
 
     @Suppress("ReturnCount") // 多层 early-return fail-fast,可读性优于强行收敛到单出口
-    private fun isPrivateAddress(addr: InetAddress): Boolean {
+    internal fun isPrivateAddress(addr: InetAddress): Boolean {
         val v6 = addr as? Inet6Address
         if (v6 != null) {
             val bytes = v6.address

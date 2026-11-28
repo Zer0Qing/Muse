@@ -116,11 +116,7 @@ class DefaultMemoryRuntime(
         )
     }
 
-    private suspend fun readPinned(
-        store: FactStore,
-        scope: MemoryScopeKey,
-        includeGlobal: Boolean,
-    ): List<PinnedMemoryStore.PinnedEntry> {
+    private suspend fun readPinned(store: FactStore, scope: MemoryScopeKey, includeGlobal: Boolean): List<PinnedMemoryStore.PinnedEntry> {
         val factPins = store.getPinned(scope.scope, scope.spaceId).mapNotNull { fact ->
             val pinnedAt = fact.pinnedAt ?: return@mapNotNull null
             PinnedMemoryStore.PinnedEntry(
@@ -195,10 +191,7 @@ class DefaultMemoryRuntime(
      * 被预算整条裁掉的条目不能留下溯源：否则备份与 UI 会把一条从未进入 prompt 的内容
      * 当成当前依据。类目与预算层次一一对应，新增来源类型必须显式决定它的归属。
      */
-    private fun retainedSources(
-        sources: List<MemorySourceRevision>,
-        budgeted: BudgetedMemory,
-    ): List<MemorySourceRevision> {
+    private fun retainedSources(sources: List<MemorySourceRevision>, budgeted: BudgetedMemory): List<MemorySourceRevision> {
         val factKeys = budgeted.facts.mapTo(mutableSetOf()) { fact -> fact.id.toString() }
         val pinnedKeys = budgeted.pinned.mapTo(mutableSetOf()) { entry -> entry.id }
         val sectionKeys = budgeted.compiled?.sections?.keys.orEmpty()

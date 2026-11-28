@@ -179,12 +179,7 @@ class NotificationMemoryDigest(
         synchronized(processedFingerprints) { processedFingerprints[fingerprint] = true }
     }
 
-    private fun fingerprintOf(
-        notifications: List<NotificationInput>,
-        assistantId: String,
-        scope: String,
-        spaceId: String,
-    ): String {
+    private fun fingerprintOf(notifications: List<NotificationInput>, assistantId: String, scope: String, spaceId: String): String {
         // owner/space 并入摘要种子:去重指纹只对同一目标库有意义。
         val seed = listOf(assistantId, scope, spaceId).joinToString("\u001F") + "\u001E" +
             notifications.joinToString("|") { "${it.packageName}:${it.timestamp}:${it.title.take(30)}" }

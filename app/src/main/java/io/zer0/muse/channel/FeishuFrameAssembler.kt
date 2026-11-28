@@ -1,8 +1,8 @@
 package io.zer0.muse.channel
 
+import io.zer0.muse.ui.chat.PendingMessage
 import java.io.ByteArrayOutputStream
 import java.util.LinkedHashMap
-import io.zer0.muse.ui.chat.PendingMessage
 
 /**
  * 飞书长连接分片帧的有界拼装器。

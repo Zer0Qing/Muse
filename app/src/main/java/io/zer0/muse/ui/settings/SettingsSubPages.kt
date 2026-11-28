@@ -17,17 +17,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.material3.Icon
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -57,6 +56,7 @@ import io.zer0.muse.BuildConfig
 import io.zer0.muse.R
 import io.zer0.muse.auth.OAuthManager
 import io.zer0.muse.data.ChatPreferences
+import io.zer0.muse.data.HomeLayoutMode
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.perf.MemoryBudget
@@ -169,9 +169,8 @@ fun SettingsSubPageScaffold(
                         // 双平面翻新：设置族水平外边距用 pageMargin(20dp),比通用 screen 宽一档。
                         .padding(horizontal = MusePaddings.pageMargin),
                     contentPadding = PaddingValues(
-                        // 吸顶返回键浮在左上角，滚动后内容会滑到它下面（首字被遮）。
-                        // 按吸顶进度补一份按钮高度，让内容始终停在按钮下方。
-                        top = MusePaddings.touchTarget * backStuckProgress,
+                        // 保持 top 恒定，避免惯性滑动中途扩张顶部 padding 把末项顶回屏外。
+                        top = 0.dp,
                         bottom = innerPadding.calculateBottomPadding() + MusePaddings.screen,
                     ),
                     verticalArrangement = Arrangement.spacedBy(MusePaddings.cardGap),
@@ -576,8 +575,6 @@ fun SettingsModelPage(
         return
     }
 
-    var mediaServicesExpanded by remember { mutableStateOf(false) }
-
     SettingsSubPageScaffold(
         title = stringResource(R.string.common_provider),
         onBack = onBack,
@@ -632,67 +629,20 @@ fun SettingsModelPage(
                 onTestAll = onTestAllProviders,
             )
         }
+    }
+}
 
-        // 媒体生成与语音识别折叠收口在列表底部，保持主屏聚焦对话模型供应商
-        item(key = "provider_media_services_toggle") {
-            io.zer0.muse.ui.common.surface.CardGroup {
-                item(
-                    key = "media_gen_expand_row",
-                    onClick = { mediaServicesExpanded = !mediaServicesExpanded },
-                    leadingContent = {
-                        Icon(
-                            imageVector = MuseIcons.video,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(MuseIconSizes.iconMedium),
-                        )
-                    },
-                    headlineContent = {
-                        Text(
-                            text = stringResource(R.string.settings_provider_media_gen_section),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                    },
-                    trailingContent = {
-                        Icon(
-                            imageVector = if (mediaServicesExpanded) MuseIcons.chevronUp else MuseIcons.chevronDown,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.outline,
-                            modifier = Modifier.size(MuseIconSizes.iconSmall),
-                        )
-                    },
-                )
-            }
-        }
-        if (mediaServicesExpanded) {
-            item(key = "provider_image_gen") { ImageGenSection(settings = settings, scope = scope) }
-            item(key = "provider_video_gen") { VideoGenSection(settings = settings, scope = scope) }
-            item(key = "provider_asr_entry") {
-                io.zer0.muse.ui.common.surface.CardGroup {
-                    item(
-                        key = "asr_entry",
-                        onClick = onOpenAsr,
-                        leadingContent = {
-                            Icon(
-                                imageVector = MuseIcons.microphone,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(MuseIconSizes.iconMedium),
-                            )
-                        },
-                        headlineContent = {
-                            Text(
-                                text = stringResource(R.string.settings_asr_entry_title),
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurface,
-                            )
-                        },
-                        trailingContent = { ChevronRight() },
-                    )
-                }
-            }
-        }
+/** 二级页：生图与生视频模型供应商配置（与创作台分离）。 */
+@Composable
+fun SettingsMediaGenPage(onBack: () -> Unit) {
+    val settings: SettingsRepository = koinInject()
+    val scope = rememberCoroutineScope()
+    SettingsSubPageScaffold(
+        title = stringResource(R.string.settings_media_gen_models_title),
+        onBack = onBack,
+    ) {
+        item(key = "media_gen_image") { ImageGenSection(settings = settings, scope = scope) }
+        item(key = "media_gen_video") { VideoGenSection(settings = settings, scope = scope) }
     }
 }
 
@@ -775,7 +725,12 @@ fun SettingsAsrPage(onBack: () -> Unit, onOpenProviderSettings: () -> Unit = {},
  * v1.133: 二级页 — MCP 服务器(从 SettingsModelPage 拆出)。
  */
 @Composable
-fun SettingsMcpPage(onBack: () -> Unit) {
+fun SettingsMcpPage(
+    onBack: () -> Unit,
+    onOpenRuntime: () -> Unit,
+    onOpenChatDraft: (String, String) -> Unit,
+    focusServerId: String? = null,
+) {
     var openAddTrigger by remember { mutableIntStateOf(0) }
     SettingsSubPageScaffold(
         title = stringResource(R.string.section_mcp),
@@ -789,7 +744,9 @@ fun SettingsMcpPage(onBack: () -> Unit) {
             )
         },
     ) {
-        item(key = "mcp_section") { McpSection(openAddTrigger = openAddTrigger) }
+        item(key = "mcp_section") {
+            McpSection(openAddTrigger, focusServerId, onOpenRuntime, onOpenChatDraft)
+        }
     }
 }
 
@@ -801,8 +758,8 @@ fun SettingsMcpPage(onBack: () -> Unit) {
 @Composable
 fun SettingsDataPage(
     onBack: () -> Unit,
-    onOpenCloudBackup: () -> Unit = {},
-    onOpenWebAccess: () -> Unit = {},
+    onOpenCloudBackup: (Boolean) -> Unit = {},
+    @Suppress("UNUSED_PARAMETER") onOpenWebAccess: () -> Unit = {},
 ) {
     val settings: SettingsRepository = koinInject()
     val sessionRepository: io.zer0.muse.data.session.SessionRepository = koinInject()
@@ -822,15 +779,6 @@ fun SettingsDataPage(
                 onOpenCloudBackup = onOpenCloudBackup,
             )
         }
-        item(key = "data_web_server") {
-            // 完整配置（端口 / 密码 / PIN / HTTPS）在独立的 Web 访问页；这里只留摘要与导航，
-            // 避免同一组字段在两处各维护一份。
-            WebServerSection(
-                settings = settings,
-                webServer = koinInject(),
-                onOpenWebAccess = onOpenWebAccess,
-            )
-        }
     }
 }
 
@@ -843,7 +791,24 @@ fun SettingsAppearancePage(onBack: () -> Unit) {
     val themeMode by settings.themeModeFlow.collectAsStateWithLifecycle(initialValue = "system")
     val fontSizeScale by settings.fontSizeScaleFlow.collectAsStateWithLifecycle(initialValue = "medium")
     val language by settings.languageFlow.collectAsStateWithLifecycle(initialValue = "system")
+    val homeLayoutMode by settings.homeLayoutModeFlow.collectAsStateWithLifecycle(initialValue = HomeLayoutMode.CLASSIC)
+    val chatPrefs by settings.chatPreferencesFlow.collectAsStateWithLifecycle(initialValue = ChatPreferences())
+    val scope = rememberCoroutineScope()
+    val systemDark = androidx.compose.foundation.isSystemInDarkTheme()
+    val previewDefaultDark = when (themeMode) {
+        "dark" -> true
+        "light" -> false
+        else -> systemDark
+    }
     SettingsSubPageScaffold(title = stringResource(R.string.settings_theme_appearance), onBack = onBack) {
+        item(key = "appearance_home_layout") {
+            HomeLayoutSection(settings = settings, defaultDark = previewDefaultDark)
+        }
+        if (homeLayoutMode == HomeLayoutMode.CLASSIC) {
+            item(key = "appearance_default_home_page") {
+                DefaultHomePageSection(settings = settings)
+            }
+        }
         item {
             ThemeSection(
                 themeMode = themeMode,
@@ -857,16 +822,18 @@ fun SettingsAppearancePage(onBack: () -> Unit) {
                 settings = settings,
             )
         }
-        // v1.95: 启动默认页(任务 / Agent / 群聊)
-        item {
-            DefaultHomePageSection(
-                settings = settings,
-            )
-        }
         // ── 消息气泡 ──
         item(key = "appearance_bubble") { BubbleStyleSection() }
-        // ── 卡片与生成式界面（从聊天页归位）──
-        item(key = "appearance_generative_ui") { GenerativeUiSection() }
+        // ── 正文排版与聊天背景（从聊天页归位外观页）──
+        item(key = "appearance_typography") {
+            ChatTypographySection(
+                prefs = chatPrefs,
+                update = { block -> scope.launch { settings.updateChatPreferences(block) } },
+            )
+        }
+        item(key = "appearance_chat_background") {
+            ChatBackgroundSection(settings = settings, scope = scope)
+        }
     }
 }
 
@@ -939,53 +906,6 @@ private fun BubbleStyleSection() {
 }
 
 /**
- * 卡片与生成式界面：是否允许模型用可交互卡片承载内容，以及是否主动优先卡片而不是长文字。
- */
-@Composable
-private fun GenerativeUiSection() {
-    val settings: SettingsRepository = koinInject()
-    val prefs by settings.chatPreferencesFlow.collectAsStateWithLifecycle(initialValue = ChatPreferences())
-    val scope = rememberCoroutineScope()
-
-    fun update(block: (ChatPreferences) -> ChatPreferences) {
-        scope.launch { settings.updateChatPreferences(block) }
-    }
-
-    CardGroup(title = { Text(stringResource(R.string.settings_screen_group_cards)) }) {
-        switchItem(
-            key = "gen_ui_enabled",
-            title = stringResource(R.string.settings_chat_generative_ui),
-            checked = prefs.generativeUiEnabled,
-            onCheckedChange = { v -> update { it.copy(generativeUiEnabled = v) } },
-            leadingContent = {
-                Icon(
-                    imageVector = MuseIcons.sparkle,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(MuseIconSizes.iconMedium),
-                )
-            },
-        )
-        if (prefs.generativeUiEnabled) {
-            switchItem(
-                key = "gen_ui_prefer_card",
-                title = stringResource(R.string.settings_chat_prefer_card_output),
-                checked = prefs.preferCardOutput,
-                onCheckedChange = { v -> update { it.copy(preferCardOutput = v) } },
-                leadingContent = {
-                    Icon(
-                        imageVector = MuseIcons.sparkle,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(MuseIconSizes.iconMedium),
-                    )
-                },
-            )
-        }
-    }
-}
-
-/**
  * 二级页:关于
  * AboutSection 原为 private,此处内联重写(版本号 + 开源许可入口)。
  *
@@ -999,8 +919,7 @@ private fun GenerativeUiSection() {
 fun SettingsAboutPage(
     onBack: () -> Unit,
     onOpenLicenses: () -> Unit = {},
-    // v2.x: 崩溃上报设置页入口(可选·默认关闭的隐私友好上报配置)
-    onOpenCrashReport: () -> Unit = {},
+    @Suppress("UNUSED_PARAMETER") onOpenCrashReport: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val settings: SettingsRepository = koinInject()
@@ -1107,11 +1026,6 @@ fun SettingsAboutPage(
                     key = "feedback_qq",
                     title = stringResource(R.string.settings_about_join_qq_group),
                     onClick = { openQQGroup(context) },
-                )
-                navigationItem(
-                    key = "feedback_crash",
-                    title = stringResource(R.string.settings_crash_page_title),
-                    onClick = onOpenCrashReport,
                 )
             }
         }

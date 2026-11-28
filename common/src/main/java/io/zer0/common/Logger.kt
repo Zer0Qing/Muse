@@ -24,10 +24,13 @@ import java.util.Locale
 object Logger {
     private const val DEFAULT_TAG = "Muse"
     private const val LOG_FILE_NAME = "muse.log"
+
     /** 约 1MB rolling。`internal` 是为了让轮转测试引用同一个数，而不是抄一份字面量。 */
     internal const val MAX_LOG_FILE_BYTES = 1_000 * 1024L
+
     /** 轮转失败后的重试冷却：避免每条日志都去"关句柄 + 删备份 + 改名"。 */
     private const val ROLL_RETRY_COOLDOWN_MS = 60_000L
+
     /** 因果链最多展开几层：再多就快到栈顶了，消息也长。 */
     internal const val MAX_CAUSE_DEPTH = 8
 

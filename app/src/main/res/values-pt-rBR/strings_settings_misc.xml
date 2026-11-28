@@ -93,6 +93,7 @@
     <string name="settings_model_ability_streaming">Transmissão</string>
     <string name="settings_model_ability_image">Imagem</string>
     <string name="settings_model_ability_multimodal">Multimodal</string>
+    <string name="settings_model_ability_no_image_input">Sem entrada de imagem</string>
     <string name="settings_model_ability_video">Vídeo</string>
     <string name="settings_model_ability_chat">Bater papo</string>
     <!-- v1.0.8 (7.7): Context window label (e.g. "128K context") -->

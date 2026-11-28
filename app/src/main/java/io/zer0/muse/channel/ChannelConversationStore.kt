@@ -52,6 +52,8 @@ object ChannelConversationStore {
         val mediaDescription: String = "",
         /** 自动回复派发 ID;重试时用于避免重复追加同一用户/助手轮次。 */
         val dispatchId: String = "",
+        /** 轮次来源:auto(AI自动回复)/manual(人工接管发送)/command(远程指令回报)。 */
+        val source: String = "auto",
     )
 
     /** 单个对话:滚动摘要 + 最近轮次。 */

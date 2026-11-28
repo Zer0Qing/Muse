@@ -50,9 +50,8 @@ class CoverGenerator(
         private const val MAX_DOWNLOAD_BYTES = 20L * 1024 * 1024
 
         /** R-UI-06/R-TEST-18: 剥离 `<think>` 后，空 LLM 输出降级为固定绘图指令，便于单元测试。 */
-        internal fun resolveCoverPrompt(raw: String, title: String): String =
-            io.zer0.muse.transformer.stripThinkTags(raw).trim()
-                .ifBlank { "Minimal modern banner cover for: $title, no text, 16:9 aspect ratio" }
+        internal fun resolveCoverPrompt(raw: String, title: String): String = io.zer0.muse.transformer.stripThinkTags(raw).trim()
+            .ifBlank { "Minimal modern banner cover for: $title, no text, 16:9 aspect ratio" }
     }
 
     /**

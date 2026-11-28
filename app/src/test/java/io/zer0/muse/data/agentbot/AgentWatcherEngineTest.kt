@@ -2,6 +2,9 @@ package io.zer0.muse.data.agentbot
 
 import io.zer0.muse.computenode.WatcherSpec
 import io.zer0.muse.data.computenode.RemoteComputeNodeEntity
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
@@ -119,7 +122,7 @@ class AgentWatcherEngineTest {
         assertEquals(0, announcer.calls)
         assertEquals(1, cloud.upsertCalls)
         assertEquals(WATCHER_ID, cloud.lastSpec?.watcherId)
-        assertEquals(WATCHER_ID, dao.getById(WATCHER_ID)?.remoteWatcherId)
+        assertEquals(RemoteWatcherBinding("node-1", WATCHER_ID).encode(), dao.getById(WATCHER_ID)?.remoteWatcherId)
     }
 
     @Test
@@ -193,6 +196,168 @@ class AgentWatcherEngineTest {
         assertEquals(1, collector.calls)
     }
 
+    @Test
+    fun `manual check and scheduled check share a claim and only collect once`() = runTest {
+        val dao = FakeWatcherDao()
+        val collector = object : WatcherOutputCollector {
+            var calls = 0
+            override suspend fun collect(watcher: AgentWatcherEntity): String {
+                calls += 1
+                delay(100)
+                return "same"
+            }
+        }
+        val engine = AgentWatcherEngine(
+            dao = dao,
+            collector = collector,
+            announcer = RecordingAnnouncer(),
+            notifier = RecordingNotifier(),
+            clock = { 1_000L },
+        )
+        dao.upsert(watcher(lastFingerprint = AgentWatcherEngine.fingerprintOf("same"), nextCheckAt = 0L))
+
+        val scheduled = async { engine.checkDue(at = 1_000L).single() }
+        val manual = async { engine.checkNow(WATCHER_ID) }
+        val outcomes = listOf(scheduled.await(), manual.await())
+
+        assertEquals(1, collector.calls)
+        assertTrue(outcomes.any { it is WatcherCheckOutcome.Unchanged })
+        assertTrue(outcomes.any { it is WatcherCheckOutcome.Skipped })
+    }
+
+    @Test
+    fun `pause revokes on original cloud node and retains pending revocation on failure`() = runTest {
+        val dao = FakeWatcherDao()
+        val cloud = FakeCloudHost(RemoteComputeNodeEntity(nodeId = "node-original", status = "ONLINE"))
+        val engine = AgentWatcherEngine(
+            dao = dao,
+            collector = FakeCollector(),
+            announcer = RecordingAnnouncer(),
+            notifier = RecordingNotifier(),
+            cloudHost = cloud,
+            clock = { 2_000L },
+        )
+        dao.upsert(watcher(remoteWatcherId = RemoteWatcherBinding("node-original", "remote-1").encode()))
+
+        cloud.removeResult = false
+        assertTrue(!engine.pause(WATCHER_ID))
+        assertEquals(AgentWatcherStatus.PAUSED, dao.getById(WATCHER_ID)?.status)
+        assertEquals(RemoteWatcherBinding("node-original", "remote-1").encode(), dao.getById(WATCHER_ID)?.remoteWatcherId)
+
+        cloud.removeResult = true
+        engine.reconcilePendingRemoteRevocations()
+        assertEquals("", dao.getById(WATCHER_ID)?.remoteWatcherId)
+        assertEquals("node-original", cloud.lastRemovedNodeId)
+    }
+
+    @Test
+    fun `legacy cloud binding refuses local execution when original node is unknown`() = runTest {
+        val dao = FakeWatcherDao()
+        val collector = FakeCollector(output = "must not execute")
+        val engine = AgentWatcherEngine(
+            dao = dao,
+            collector = collector,
+            announcer = RecordingAnnouncer(),
+            notifier = RecordingNotifier(),
+            cloudHost = FakeCloudHost(RemoteComputeNodeEntity(nodeId = "different-node", status = "ONLINE")),
+            clock = { 1_000L },
+        )
+        dao.upsert(watcher(computeTarget = "cloud", remoteWatcherId = "legacy-remote-id", nextCheckAt = 0L))
+
+        val outcome = engine.checkNow(WATCHER_ID)
+
+        assertTrue(outcome is WatcherCheckOutcome.Failed)
+        assertEquals(0, collector.calls)
+    }
+
+    @Test
+    fun `remote watcher binding codec preserves node and remote id and rejects legacy value`() {
+        val encoded = RemoteWatcherBinding("node.with.separator", "remote-watcher-1").encode()
+
+        assertEquals(RemoteWatcherBinding("node.with.separator", "remote-watcher-1"), RemoteWatcherBinding.decode(encoded))
+        assertNull(RemoteWatcherBinding.decode("legacy-watcher-id"))
+    }
+
+    @Test
+    fun `pause waits for active check and is not overwritten by its stale watcher snapshot`() = runTest {
+        val dao = FakeWatcherDao()
+        val started = CompletableDeferred<Unit>()
+        val finish = CompletableDeferred<Unit>()
+        val collector = object : WatcherOutputCollector {
+            override suspend fun collect(watcher: AgentWatcherEntity): String {
+                started.complete(Unit)
+                finish.await()
+                return "baseline"
+            }
+        }
+        val engine = AgentWatcherEngine(
+            dao = dao,
+            collector = collector,
+            announcer = RecordingAnnouncer(),
+            notifier = RecordingNotifier(),
+            clock = { 1_000L },
+        )
+        dao.upsert(watcher(nextCheckAt = 0L))
+        val check = async { engine.checkNow(WATCHER_ID) }
+        started.await()
+        val pause = async { engine.pause(WATCHER_ID) }
+        finish.complete(Unit)
+
+        check.await()
+        assertTrue(pause.await())
+        assertEquals(AgentWatcherStatus.PAUSED, dao.getById(WATCHER_ID)?.status)
+    }
+
+    @Test
+    fun `failed notification retries stored announcement without recollecting or calling model`() = runTest {
+        val dao = FakeWatcherDao()
+        val collector = FakeCollector(output = "v2")
+        val announcer = RecordingAnnouncer(reply = "价格下降")
+        var notificationCalls = 0
+        val notifier = object : WatcherNotificationSink {
+            override fun notify(watcher: AgentWatcherEntity, message: String) {
+                notificationCalls += 1
+                if (notificationCalls == 1) error("notification service unavailable")
+                assertEquals("价格下降", message)
+            }
+        }
+        val engine = AgentWatcherEngine(
+            dao = dao,
+            collector = collector,
+            announcer = announcer,
+            notifier = notifier,
+            clock = { 10_000L },
+        )
+        dao.upsert(
+            watcher(
+                lastFingerprint = AgentWatcherEngine.fingerprintOf("v1"),
+                lastResult = "v1",
+                nextCheckAt = 0L,
+            ),
+        )
+
+        val changed = engine.checkWatcher(dao.getById(WATCHER_ID)!!, at = 10_000L)
+        val storedAfterFailure = dao.getById(WATCHER_ID)
+        assertTrue(changed is WatcherCheckOutcome.Changed)
+        assertTrue(storedAfterFailure?.lastError?.startsWith(AgentWatcherStatus.WATCHER_NOTIFY_PENDING_PREFIX) == true)
+        assertEquals(1, collector.calls)
+        assertEquals(1, announcer.calls)
+
+        val restartedEngine = AgentWatcherEngine(
+            dao = dao,
+            collector = FakeCollector(output = "must not recollect"),
+            announcer = RecordingAnnouncer(reply = "must not resummarize"),
+            notifier = notifier,
+            clock = { 10_001L },
+        )
+        restartedEngine.checkDue(at = 10_001L)
+
+        assertEquals(2, notificationCalls)
+        assertEquals(1, collector.calls)
+        assertEquals(1, announcer.calls)
+        assertEquals("", dao.getById(WATCHER_ID)?.lastError)
+    }
+
     private fun engine(
         dao: FakeWatcherDao,
         collector: WatcherOutputCollector,
@@ -215,6 +380,7 @@ class AgentWatcherEngineTest {
         nextCheckAt: Long = 0L,
         intervalMinutes: Int = 30,
         computeTarget: String = "local",
+        remoteWatcherId: String = "",
         status: String = AgentWatcherStatus.ACTIVE,
     ): AgentWatcherEntity = AgentWatcherEntity(
         watcherId = watcherId,
@@ -225,6 +391,7 @@ class AgentWatcherEngineTest {
         script = "print('price')",
         scriptKind = "python",
         computeTarget = computeTarget,
+        remoteWatcherId = remoteWatcherId,
         intervalMinutes = intervalMinutes,
         lastFingerprint = lastFingerprint,
         lastResult = lastResult,
@@ -256,19 +423,23 @@ private class FakeWatcherDao : AgentWatcherDao {
 
     override fun observeAll(): Flow<List<AgentWatcherEntity>> = flowOf(rows.values.toList())
 
-    override fun observeByBot(botId: String): Flow<List<AgentWatcherEntity>> =
-        flowOf(rows.values.filter { it.botId == botId })
+    override fun observeByBot(botId: String): Flow<List<AgentWatcherEntity>> = flowOf(rows.values.filter { it.botId == botId })
 
     override fun observeBySession(sessionId: String): Flow<List<AgentWatcherEntity>> =
         flowOf(rows.values.filter { it.originSessionId == sessionId })
 
-    override suspend fun listActive(): List<AgentWatcherEntity> =
-        rows.values.filter { it.status == AgentWatcherStatus.ACTIVE }
+    override suspend fun listActive(): List<AgentWatcherEntity> = rows.values.filter { it.status == AgentWatcherStatus.ACTIVE }
 
-    override suspend fun listDue(now: Long): List<AgentWatcherEntity> =
-        rows.values
-            .filter { it.status == AgentWatcherStatus.ACTIVE && it.nextCheckAt <= now }
-            .sortedBy { it.nextCheckAt }
+    override suspend fun listPendingRemoteRevocation(): List<AgentWatcherEntity> = rows.values.filter {
+        it.status in setOf(AgentWatcherStatus.PAUSED, AgentWatcherStatus.ENDED) && it.remoteWatcherId.isNotBlank()
+    }
+
+    override suspend fun listPendingNotifications(): List<AgentWatcherEntity> =
+        rows.values.filter { it.lastError.startsWith(AgentWatcherStatus.WATCHER_NOTIFY_PENDING_PREFIX) }
+
+    override suspend fun listDue(now: Long): List<AgentWatcherEntity> = rows.values
+        .filter { it.status == AgentWatcherStatus.ACTIVE && it.nextCheckAt <= now }
+        .sortedBy { it.nextCheckAt }
 
     override suspend fun recordCheck(
         watcherId: String,
@@ -293,6 +464,13 @@ private class FakeWatcherDao : AgentWatcherDao {
     override suspend fun setStatus(watcherId: String, status: String, updatedAt: Long): Int {
         val current = rows[watcherId] ?: return 0
         rows[watcherId] = current.copy(status = status, updatedAt = updatedAt)
+        return 1
+    }
+
+    override suspend fun clearPendingNotification(watcherId: String, expectedMarker: String): Int {
+        val current = rows[watcherId] ?: return 0
+        if (current.lastError != expectedMarker) return 0
+        rows[watcherId] = current.copy(lastError = "")
         return 1
     }
 
@@ -337,11 +515,7 @@ private class RecordingAnnouncer(
     var calls: Int = 0
         private set
 
-    override suspend fun announce(
-        watcher: AgentWatcherEntity,
-        previousResult: String,
-        currentResult: String,
-    ): String {
+    override suspend fun announce(watcher: AgentWatcherEntity, previousResult: String, currentResult: String): String {
         calls += 1
         return reply
     }
@@ -364,6 +538,10 @@ private class FakeCloudHost(
         private set
     var lastSpec: WatcherSpec? = null
         private set
+    var removeResult: Boolean = true
+    var lastRemovedNodeId: String = ""
+
+    override suspend fun findNode(nodeId: String): RemoteComputeNodeEntity? = node?.takeIf { it.nodeId == nodeId }
 
     override suspend fun findOnlineNode(): RemoteComputeNodeEntity? = node
 
@@ -371,5 +549,10 @@ private class FakeCloudHost(
         upsertCalls += 1
         lastSpec = spec
         return spec.watcherId
+    }
+
+    override suspend fun remove(node: RemoteComputeNodeEntity, remoteWatcherId: String): Boolean {
+        lastRemovedNodeId = node.nodeId
+        return removeResult
     }
 }

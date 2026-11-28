@@ -30,6 +30,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.koin.core.context.GlobalContext
@@ -166,17 +167,15 @@ object AgentDreamPreferenceRules {
                 if (!betweenHan) append(char)
             }
         }
-        return withoutHanSpaces.trimEnd(*TRAILING_PUNCTUATION).trim()
+        return withoutHanSpaces.trimEnd { it in TRAILING_PUNCTUATION }.trim()
     }
 
-    private fun isHan(char: Char): Boolean =
-        char in '\u3400'..'\u4DBF' || char in '\u4E00'..'\u9FFF' || char in '\uF900'..'\uFAFF'
+    private fun isHan(char: Char): Boolean = char in '\u3400'..'\u4DBF' || char in '\u4E00'..'\u9FFF' || char in '\uF900'..'\uFAFF'
 
     /** 同一簇里按文本等价分组；只有完全等价的子组才允许合并。 */
-    fun equivalentClusters(facts: List<FactStore.Fact>): List<List<FactStore.Fact>> =
-        facts.groupBy { normalizedText(it.fact) }
-            .values
-            .filter { cluster -> cluster.size >= 2 }
+    fun equivalentClusters(facts: List<FactStore.Fact>): List<List<FactStore.Fact>> = facts.groupBy { normalizedText(it.fact) }
+        .values
+        .filter { cluster -> cluster.size >= 2 }
 }
 
 /** 昼夜边界：以中午为界，凌晨执行仍归入前一晚，保证同一晚最多一次。 */
@@ -250,51 +249,12 @@ class AgentDreamEngine(
         val now = Instant.ofEpochMilli(startedAt)
         val zone = zoneId()
         val warnings = mutableListOf<String>()
-        var archived = 0
-        var merged = 0
-
-        try {
-            archived = memoryStore.archiveExpiredTemporaryFacts(now)
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            Logger.w(TAG, "归档过期临时记忆失败: " + e.message, e)
-            warnings += WARNING_ARCHIVE
-        }
-
-        try {
-            merged = memoryStore.dedupeLongTermPreferences()
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            Logger.w(TAG, "合并长期偏好失败: " + e.message, e)
-            warnings += WARNING_PREFERENCE
-        }
-
-        val agenda = try {
-            agendaSource.loadTomorrow(now, zone)
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            Logger.w(TAG, "扫描次日议程失败: " + e.message, e)
-            warnings += WARNING_AGENDA
-            AgentDreamAgenda()
-        }
+        val archived = archiveFacts(now, warnings)
+        val merged = mergePreferences(warnings)
+        val agenda = loadAgenda(now, zone, warnings)
 
         val signals = AgentDreamSuggestionPlanner.plan(agenda)
-        val summary = if (agenda.isEmpty) {
-            ""
-        } else {
-            try {
-                summaryFormatter.format(agenda)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Logger.w(TAG, "生成晨间摘要失败: " + e.message, e)
-                warnings += WARNING_SUMMARY
-                ""
-            }
-        }
+        val summary = formatSummary(agenda, warnings)
         val finishedAt = clock()
         return AgentDreamReport(
             generatedAt = finishedAt,
@@ -306,6 +266,53 @@ class AgentDreamEngine(
             warnings = warnings,
             notificationsSent = 0,
         )
+    }
+
+    private suspend fun archiveFacts(now: Instant, warnings: MutableList<String>): Int = try {
+        memoryStore.archiveExpiredTemporaryFacts(now)
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: java.io.IOException) {
+        Logger.w(TAG, "归档过期临时记忆失败: " + e.message, e)
+        warnings += WARNING_ARCHIVE
+        0
+    }
+
+    private suspend fun mergePreferences(warnings: MutableList<String>): Int = try {
+        memoryStore.dedupeLongTermPreferences()
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: java.io.IOException) {
+        Logger.w(TAG, "合并长期偏好失败: " + e.message, e)
+        warnings += WARNING_PREFERENCE
+        0
+    }
+
+    private suspend fun loadAgenda(
+        now: Instant,
+        zone: ZoneId,
+        warnings: MutableList<String>,
+    ): AgentDreamAgenda = try {
+        agendaSource.loadTomorrow(now, zone)
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: java.io.IOException) {
+        Logger.w(TAG, "扫描次日议程失败: " + e.message, e)
+        warnings += WARNING_AGENDA
+        AgentDreamAgenda()
+    }
+
+    private suspend fun formatSummary(agenda: AgentDreamAgenda, warnings: MutableList<String>): String {
+        if (agenda.isEmpty) return ""
+        return try {
+            summaryFormatter.format(agenda)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: java.io.IOException) {
+            Logger.w(TAG, "生成晨间摘要失败: " + e.message, e)
+            warnings += WARNING_SUMMARY
+            ""
+        }
     }
 
     private companion object {
@@ -337,56 +344,70 @@ class DefaultAgentDreamMemoryStore(
         var archived = 0
         val touched = linkedSetOf<TargetKey>()
         for (assistantId in assistantIds()) {
-            val db = try {
-                factDbProvider.getFactDb(assistantId)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Logger.w(TAG, "打开事实库失败 assistant=" + assistantId + ": " + e.message, e)
-                continue
-            }
-            val store = try {
-                factDbProvider.getFactStore(assistantId)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Logger.w(TAG, "创建事实存储失败 assistant=" + assistantId + ": " + e.message, e)
-                continue
-            }
-            val expired = try {
-                db.factDao().getAll(null)
-                    .filter { entity -> entity.pinnedAt == null && isExpired(entity, now) }
-                    .take(MAX_ARCHIVE_PER_RUN)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Logger.w(TAG, "枚举过期临时记忆失败 assistant=" + assistantId + ": " + e.message, e)
-                continue
-            }
-            if (expired.isEmpty()) continue
-            val writable = expired.filterNot { entity -> isPaused(assistantId, entity.scope, entity.spaceId) }
-            if (writable.isEmpty()) continue
-            val rows = writable.map { entity -> archiveRow(assistantId, entity, now) }
-            // 归档失败就一条都不删：归档是删除的前置凭证，写不进去就继续删等于永久丢数据。
-            if (!archiveStore.append(rows)) {
-                Logger.w(TAG, "归档文件写入失败，跳过本库删除 assistant=" + assistantId)
-                continue
-            }
-            for (entity in writable) {
-                try {
-                    if (store.delete(entity.id)) {
-                        archived++
-                        touched += TargetKey(assistantId, entity.scope, entity.spaceId)
-                    }
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    Logger.w(TAG, "删除已归档临时记忆失败 id=" + entity.id + ": " + e.message, e)
-                }
-            }
+            val result = archiveAssistantFacts(assistantId, now)
+            archived += result.count
+            touched += result.touched
         }
         touched.forEach { refreshCompiledFacts(it) }
         archived
+    }
+
+    private suspend fun archiveAssistantFacts(assistantId: String, now: Instant): ArchiveResult {
+        val sources = loadArchiveSources(assistantId, now)
+        val writable = sources?.expired.orEmpty().filterNot { entity ->
+            isPaused(assistantId, entity.scope, entity.spaceId)
+        }
+        val rows = writable.map { entity -> archiveRow(assistantId, entity, now) }
+        // 归档失败就一条都不删：归档是删除的前置凭证，写不进去就继续删等于永久丢数据。
+        if (sources == null || writable.isEmpty() || !archiveStore.append(rows)) {
+            Logger.w(TAG, "归档文件写入失败，跳过本库删除 assistant=" + assistantId)
+            return ArchiveResult.EMPTY
+        }
+        var archived = 0
+        val touched = linkedSetOf<TargetKey>()
+        for (entity in writable) {
+            try {
+                if (sources.store.delete(entity.id)) {
+                    archived++
+                    touched += TargetKey(assistantId, entity.scope, entity.spaceId)
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: java.io.IOException) {
+                Logger.w(TAG, "删除已归档临时记忆失败 id=" + entity.id + ": " + e.message, e)
+            }
+        }
+        return ArchiveResult(archived, touched)
+    }
+
+    private suspend fun loadArchiveSources(assistantId: String, now: Instant): ArchiveSources? {
+        val db = try {
+            factDbProvider.getFactDb(assistantId)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: java.io.IOException) {
+            Logger.w(TAG, "打开事实库失败 assistant=" + assistantId + ": " + e.message, e)
+            return null
+        }
+        val store = try {
+            factDbProvider.getFactStore(assistantId)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: java.io.IOException) {
+            Logger.w(TAG, "创建事实存储失败 assistant=" + assistantId + ": " + e.message, e)
+            return null
+        }
+        val expired = try {
+            db.factDao().getAll(null)
+                .filter { entity -> entity.pinnedAt == null && isExpired(entity, now) }
+                .take(MAX_ARCHIVE_PER_RUN)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: java.io.IOException) {
+            Logger.w(TAG, "枚举过期临时记忆失败 assistant=" + assistantId + ": " + e.message, e)
+            return null
+        }
+        return ArchiveSources(store, expired)
     }
 
     override suspend fun dedupeLongTermPreferences(): Int = withContext(Dispatchers.IO) {
@@ -395,67 +416,116 @@ class DefaultAgentDreamMemoryStore(
         val touched = linkedSetOf<TargetKey>()
         for (assistantId in assistantIds()) {
             if (limitReached) break
-            val store = try {
-                factDbProvider.getFactStore(assistantId)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Logger.w(TAG, "创建事实存储失败 assistant=" + assistantId + ": " + e.message, e)
-                continue
-            }
-            val pairs = try {
-                store.listScopeSpacePairs()
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Logger.w(TAG, "读取记忆作用域失败 assistant=" + assistantId + ": " + e.message, e)
-                continue
-            }
-            for ((scope, spaceId) in pairs) {
-                if (limitReached) break
-                if (isPaused(assistantId, scope, spaceId)) continue
-                val groups = try {
-                    store.findSimilarGroups(scope, spaceId, maxGroups = MAX_PREFERENCE_GROUPS)
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    Logger.w(TAG, "查找偏好相似簇失败 " + scope + "/" + spaceId + ": " + e.message, e)
-                    continue
-                }
-                for (group in groups) {
-                    if (group.size < 2) continue
-                    if (group.any { it.pinnedAt != null }) continue
-                    if (!group.all { fact -> AgentDreamPreferenceRules.isLongTermPreference(fact.category, fact.tags) }) {
-                        continue
-                    }
-                    // 相似簇只是候选；真正允许合并的是其中文本完全等价的子组。
-                    // 用「最长文本」合并相似但不等价的条目会丢掉「字号调大」这类独有条件。
-                    for (cluster in AgentDreamPreferenceRules.equivalentClusters(group)) {
-                        val mergedText = cluster.first().fact.trim()
-                        if (mergedText.isBlank()) continue
-                        val newId = try {
-                            store.mergeFacts(cluster.map { it.id }, mergedText, scope, spaceId)
-                        } catch (e: CancellationException) {
-                            throw e
-                        } catch (e: Exception) {
-                            Logger.w(TAG, "合并长期偏好失败 " + scope + "/" + spaceId + ": " + e.message, e)
-                            null
-                        }
-                        if (newId != null) {
-                            merged += (cluster.size - 1).coerceAtLeast(1)
-                            touched += TargetKey(assistantId, scope, spaceId)
-                            if (merged >= MAX_MERGES_PER_RUN) {
-                                limitReached = true
-                                break
-                            }
-                        }
-                    }
-                    if (limitReached) break
-                }
-            }
+            val result = dedupeAssistantPreferences(assistantId, merged)
+            merged += result.merged
+            touched += result.touched
+            limitReached = result.limitReached
         }
         touched.forEach { refreshCompiledFacts(it) }
         merged
+    }
+
+    private suspend fun dedupeAssistantPreferences(assistantId: String, alreadyMerged: Int): DedupeResult {
+        val store = try {
+            factDbProvider.getFactStore(assistantId)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: java.io.IOException) {
+            Logger.w(TAG, "创建事实存储失败 assistant=" + assistantId + ": " + e.message, e)
+            return DedupeResult.EMPTY
+        }
+        val pairs = try {
+            store.listScopeSpacePairs()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: java.io.IOException) {
+            Logger.w(TAG, "读取记忆作用域失败 assistant=" + assistantId + ": " + e.message, e)
+            return DedupeResult.EMPTY
+        }
+        var merged = 0
+        var limitReached = false
+        val touched = linkedSetOf<TargetKey>()
+        for ((scope, spaceId) in pairs) {
+            if (!limitReached && !isPaused(assistantId, scope, spaceId)) {
+                val result = dedupePreferenceScope(
+                    store = store,
+                    assistantId = assistantId,
+                    scope = scope,
+                    spaceId = spaceId,
+                    alreadyMerged = alreadyMerged + merged,
+                )
+                merged += result.merged
+                touched += result.touched
+                limitReached = result.limitReached
+            }
+            if (limitReached) break
+        }
+        return DedupeResult(merged, touched, limitReached)
+    }
+
+    private suspend fun dedupePreferenceScope(
+        store: FactStore,
+        assistantId: String,
+        scope: String,
+        spaceId: String,
+        alreadyMerged: Int,
+    ): DedupeResult {
+        val groups = try {
+            store.findSimilarGroups(scope, spaceId, maxGroups = MAX_PREFERENCE_GROUPS)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: java.io.IOException) {
+            Logger.w(TAG, "查找偏好相似簇失败 " + scope + "/" + spaceId + ": " + e.message, e)
+            return DedupeResult.EMPTY
+        }
+        var merged = 0
+        var limitReached = false
+        val touched = linkedSetOf<TargetKey>()
+        for (group in groups) {
+            val eligible = group.size >= 2 &&
+                group.none { it.pinnedAt != null } &&
+                group.all { fact -> AgentDreamPreferenceRules.isLongTermPreference(fact.category, fact.tags) }
+            if (eligible && !limitReached) {
+                val result = mergeEquivalentClusters(store, group, scope, spaceId, alreadyMerged + merged)
+                merged += result.merged
+                if (result.merged > 0) {
+                    touched += TargetKey(assistantId, scope, spaceId)
+                }
+                limitReached = result.limitReached
+            }
+            if (limitReached) break
+        }
+        return DedupeResult(merged, touched, limitReached)
+    }
+
+    private suspend fun mergeEquivalentClusters(
+        store: FactStore,
+        group: List<FactEntity>,
+        scope: String,
+        spaceId: String,
+        alreadyMerged: Int,
+    ): DedupeResult {
+        var merged = 0
+        var limitReached = false
+        for (cluster in AgentDreamPreferenceRules.equivalentClusters(group)) {
+            val mergedText = cluster.first().fact.trim()
+            if (mergedText.isNotBlank()) {
+                val newId = try {
+                    store.mergeFacts(cluster.map { it.id }, mergedText, scope, spaceId)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: java.io.IOException) {
+                    Logger.w(TAG, "合并长期偏好失败 " + scope + "/" + spaceId + ": " + e.message, e)
+                    null
+                }
+                if (newId != null) {
+                    merged += (cluster.size - 1).coerceAtLeast(1)
+                    limitReached = alreadyMerged + merged >= MAX_MERGES_PER_RUN
+                }
+            }
+            if (limitReached) break
+        }
+        return DedupeResult(merged, emptySet(), limitReached)
     }
 
     private fun assistantIds(): List<String> = buildList {
@@ -486,7 +556,7 @@ class DefaultAgentDreamMemoryStore(
             )
         } catch (e: CancellationException) {
             throw e
-        } catch (e: Exception) {
+        } catch (e: java.io.IOException) {
             Logger.w(TAG, "刷新 FACTS 编译段失败 " + target.scope + "/" + target.spaceId + ": " + e.message, e)
         }
     }
@@ -501,7 +571,7 @@ class DefaultAgentDreamMemoryStore(
 
     private fun parseInstant(raw: String): Instant? = try {
         Instant.parse(raw)
-    } catch (e: Exception) {
+    } catch (e: java.time.format.DateTimeParseException) {
         Logger.w(TAG, "解析记忆过期时间失败: " + raw + ": " + e.message)
         null
     }
@@ -519,6 +589,22 @@ class DefaultAgentDreamMemoryStore(
     )
 
     private data class TargetKey(val assistantId: String, val scope: String, val spaceId: String)
+
+    private data class ArchiveResult(val count: Int, val touched: Set<TargetKey>) {
+        companion object {
+            val EMPTY = ArchiveResult(0, emptySet())
+        }
+    }
+
+    private data class DedupeResult(
+        val merged: Int,
+        val touched: Set<TargetKey>,
+        val limitReached: Boolean,
+    ) {
+        companion object {
+            val EMPTY = DedupeResult(0, emptySet(), false)
+        }
+    }
 
     private companion object {
         const val TAG = "AgentDreamMemory"
@@ -562,7 +648,7 @@ class AgentDreamArchiveStore(private val directory: File) {
             }
             FileOutputStream(current, true).use { output -> output.write(payload) }
             true
-        } catch (e: Exception) {
+        } catch (e: java.io.IOException) {
             Logger.w(TAG, "写入归档文件失败: " + e.message, e)
             false
         }
@@ -576,6 +662,7 @@ class AgentDreamArchiveStore(private val directory: File) {
         for (file in archiveFiles()) {
             val kept = mutableListOf<String>()
             var fileRemoved = 0
+            var readable = true
             try {
                 file.forEachLine { line ->
                     if (line.isBlank()) return@forEachLine
@@ -585,18 +672,19 @@ class AgentDreamArchiveStore(private val directory: File) {
                     // 解析不了的行保留：宁可留下读不懂的旧行，也不要因为格式问题删掉别的助手的数据。
                     if (row?.assistantId == id) fileRemoved++ else kept += line
                 }
-            } catch (e: Exception) {
+            } catch (e: java.io.IOException) {
                 Logger.w(TAG, "读取归档文件失败，跳过: " + file.name + ": " + e.message, e)
-                continue
+                readable = false
             }
-            if (fileRemoved == 0) continue
-            try {
-                val tmp = File(directory, file.name + ".tmp")
-                tmp.writeText(if (kept.isEmpty()) "" else kept.joinToString("\n", postfix = "\n"))
-                Files.move(tmp.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING)
-                removed += fileRemoved
-            } catch (e: Exception) {
-                Logger.w(TAG, "重写归档文件失败: " + file.name + ": " + e.message, e)
+            if (readable && fileRemoved > 0) {
+                try {
+                    val tmp = File(directory, file.name + ".tmp")
+                    tmp.writeText(if (kept.isEmpty()) "" else kept.joinToString("\n", postfix = "\n"))
+                    Files.move(tmp.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING)
+                    removed += fileRemoved
+                } catch (e: java.io.IOException) {
+                    Logger.w(TAG, "重写归档文件失败: " + file.name + ": " + e.message, e)
+                }
             }
         }
         removed
@@ -630,7 +718,7 @@ class AgentDreamArchiveStore(private val directory: File) {
                 if (!source.renameTo(File(directory, "$FILE_NAME.${index + 1}"))) return false
             }
             return !current.exists() || current.renameTo(File(directory, "$FILE_NAME.1"))
-        } catch (e: Exception) {
+        } catch (e: java.io.IOException) {
             Logger.w(TAG, "归档轮转失败: " + e.message, e)
             return false
         }
@@ -704,7 +792,7 @@ class DeviceAgentDreamAgendaSource(
         } catch (e: SecurityException) {
             Logger.w(TAG, "没有日历读取权限，跳过明日日程: " + e.message)
             emptyList()
-        } catch (e: Exception) {
+        } catch (e: java.io.IOException) {
             Logger.w(TAG, "读取明日日程失败: " + e.message, e)
             emptyList()
         }
@@ -773,7 +861,7 @@ class AgentDreamStore(context: Context) {
         if (raw == null || raw.isBlank()) return null
         return try {
             agentDreamJson.decodeFromString(AgentDreamReport.serializer(), raw)
-        } catch (e: Exception) {
+        } catch (e: SerializationException) {
             Logger.w(TAG, "读取夜间整理报告失败: " + e.message, e)
             null
         }
@@ -810,11 +898,7 @@ object AgentDreamScheduler {
         .setRequiresDeviceIdle(true)
         .build()
 
-    fun scheduleNightly(
-        context: Context,
-        now: Long = System.currentTimeMillis(),
-        zoneId: ZoneId = ZoneId.systemDefault(),
-    ) {
+    fun scheduleNightly(context: Context, now: Long = System.currentTimeMillis(), zoneId: ZoneId = ZoneId.systemDefault()) {
         val request = PeriodicWorkRequestBuilder<AgentDreamWorker>(PERIOD_HOURS, TimeUnit.HOURS)
             .setConstraints(nightlyConstraints())
             .setInitialDelay(millisUntilNextNight(now, zoneId), TimeUnit.MILLISECONDS)
@@ -914,7 +998,40 @@ object AgentDreamRunner {
             )
             val report = engine.run()
             AgentDreamStore(appContext).saveReport(report)
+            syncProfileShardsBestEffort(koin, factDbProvider)
             report
+        }
+    }
+
+    private suspend fun syncProfileShardsBestEffort(koin: org.koin.core.Koin, factDbProvider: FactDbProvider) {
+        val shardRepo = runCatching {
+            koin.getOrNull<io.zer0.muse.data.profile.ProfileShardRepository>()
+        }.getOrNull() ?: return
+        val assistantIds = buildList {
+            add(DEFAULT_ASSISTANT_ID)
+            addAll(factDbProvider.listAssistantDbIds())
+        }.distinct()
+        assistantIds.forEach { assistantId ->
+            runCatching {
+                val rows = factDbProvider.getFactDb(assistantId).factDao().getAll(null)
+                    .filter { entity -> entity.suppressedAt == null && entity.mergedIntoId == null }
+                val inputs = rows.map { entity ->
+                    val decodedTags = runCatching {
+                        agentDreamJson.decodeFromString<List<String>>(entity.tags)
+                    }.getOrDefault(emptyList())
+                    io.zer0.muse.data.profile.ProfileShardEngine.ProfileFactInput(
+                        id = entity.id,
+                        content = entity.fact,
+                        category = entity.category,
+                        tags = decodedTags,
+                        importance = entity.importance.toFloat(),
+                        pinned = entity.pinnedAt != null,
+                    )
+                }
+                shardRepo.syncShards(assistantId, inputs)
+            }.onFailure { error ->
+                Logger.w(TAG, "夜间同步画像分域索引失败 assistant=$assistantId: ${error.message}")
+            }
         }
     }
 
@@ -939,51 +1056,68 @@ class AgentDreamWorker(
         val context = applicationContext
         val store = AgentDreamStore(context)
         val manual = inputData.getBoolean(AgentDreamScheduler.KEY_MANUAL, false)
+        val work = prepareNightWork(context, store, manual)
+        if (work != null) executeNightWork(work)
+        return Result.success()
+    }
+
+    private suspend fun prepareNightWork(
+        context: Context,
+        store: AgentDreamStore,
+        manual: Boolean,
+    ): NightWork? {
         if (!manual && !store.isEnabled()) {
             Logger.i(TAG, "夜间整理开关已关闭，跳过本次执行")
-            return Result.success()
+            return null
         }
         val koin = GlobalContext.getOrNull()
         if (koin == null) {
             Logger.w(TAG, "Koin 未初始化，跳过本次夜间整理")
-            return Result.success()
+            return null
         }
         val settings = runCatching { koin.get<SettingsRepository>() }
             .onFailure { error -> Logger.w(TAG, "解析 SettingsRepository 失败: " + error.message, error) }
             .getOrNull()
         if (settings != null && !settings.isMemoryEnabled()) {
             Logger.i(TAG, "记忆总开关已关闭，跳过本次夜间整理")
-            return Result.success()
+            return null
         }
-        val now = System.currentTimeMillis()
-        val nightKey = AgentDreamNightGate.nightKey(now, ZoneId.systemDefault())
+        val nightKey = AgentDreamNightGate.nightKey(System.currentTimeMillis(), ZoneId.systemDefault())
         if (!manual && store.lastNightKey() == nightKey) {
             Logger.i(TAG, "今晚已完成过整理，跳过重复执行")
-            return Result.success()
+            return null
         }
+        return NightWork(context, store, manual, nightKey)
+    }
+
+    private suspend fun executeNightWork(work: NightWork) {
         val report = try {
-            AgentDreamRunner.runNow(context)
+            AgentDreamRunner.runNow(work.context)
         } catch (e: CancellationException) {
             throw e
-        } catch (e: Exception) {
+        } catch (e: java.io.IOException) {
             Logger.w(TAG, "夜间整理执行失败: " + e.message, e)
             null
         }
         if (report == null) {
             Logger.w(TAG, "夜间整理没有产出报告，等待下一晚重试")
-            return Result.success()
+        } else {
+            if (!work.manual) work.store.markNightCompleted(work.nightKey)
+            Logger.i(
+                TAG,
+                "夜间整理完成: 归档=" + report.archivedTemporaryCount +
+                    ", 合并=" + report.mergedPreferenceCount +
+                    ", 次日建议=" + report.nextDaySignals.size,
+            )
         }
-        if (!manual) {
-            store.markNightCompleted(nightKey)
-        }
-        Logger.i(
-            TAG,
-            "夜间整理完成: 归档=" + report.archivedTemporaryCount +
-                ", 合并=" + report.mergedPreferenceCount +
-                ", 次日建议=" + report.nextDaySignals.size,
-        )
-        return Result.success()
     }
+
+    private data class NightWork(
+        val context: Context,
+        val store: AgentDreamStore,
+        val manual: Boolean,
+        val nightKey: String,
+    )
 
     companion object {
         /** 与 [AgentDreamScheduler] 共用同一唯一任务名，便于应用启动时按既有模式注册。 */

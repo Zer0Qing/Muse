@@ -10,8 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -111,7 +109,7 @@ private fun LeafView(node: PluginUiTree.Node, assetsRoot: File?) {
         is PluginUiTree.Node.Badge -> BadgeChip(node.text, node.tone)
         is PluginUiTree.Node.Stat -> StatBlock(node.label, node.value, node.hint)
         is PluginUiTree.Node.KeyValue -> KeyValueRow(node.key, node.value)
-        is PluginUiTree.Node.List_ -> BulletList(node.items, node.ordered == true)
+        is PluginUiTree.Node.ListItems -> BulletList(node.items, node.ordered == true)
         is PluginUiTree.Node.Progress -> ProgressBar(node.value, node.max, node.label)
         is PluginUiTree.Node.AssetImage -> AssetImage(node.path, node.alt, assetsRoot)
         is PluginUiTree.Node.Code -> CodeBlock(node.text)

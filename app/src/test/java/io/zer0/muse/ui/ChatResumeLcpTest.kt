@@ -3,15 +3,15 @@ package io.zer0.muse.ui
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.Model
 import io.zer0.ai.core.UIMessage
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import io.zer0.muse.ui.chat.canUseToolModelForRound
 import io.zer0.muse.ui.chat.longestCommonPrefix
 import io.zer0.muse.ui.chat.resumeOverlapToDrop
 import io.zer0.muse.ui.chat.shouldReplaceOnResumeRewrite
 import io.zer0.muse.ui.chat.shouldReplaceOnResumeSupersede
-import io.zer0.muse.ui.chat.canUseToolModelForRound
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Test
 
 /**
  * C-11 / C-12: 断点续传去重与工具模型路由的纯函数单元测试。

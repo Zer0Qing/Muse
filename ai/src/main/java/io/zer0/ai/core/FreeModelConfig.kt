@@ -168,12 +168,7 @@ object FreeModelConfig {
      * 供 [OpenAIProvider.listModels] 在入口处判断：为 true 时直接返回预设免费模型列表，
      * 不调远程 /models（避免无 key 时 401）。
      */
-    fun isFreeProvider(
-        providerId: String,
-        baseUrl: String,
-        userApiKey: String,
-        hiddenFromSettings: Boolean = false,
-    ): Boolean =
+    fun isFreeProvider(providerId: String, baseUrl: String, userApiKey: String, hiddenFromSettings: Boolean = false): Boolean =
         (providerId == FREE_PROVIDER_ID || hiddenFromSettings) &&
             userApiKey.isBlank() &&
             isHostOf(current().baseUrl, baseUrl)

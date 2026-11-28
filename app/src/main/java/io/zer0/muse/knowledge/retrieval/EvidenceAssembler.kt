@@ -43,8 +43,7 @@ enum class EvidenceVisibility {
 class DocumentVisibilityIndex {
     private val entries = java.util.concurrent.ConcurrentHashMap<String, EvidenceVisibility>()
 
-    fun visibilityOf(docId: String): EvidenceVisibility =
-        entries[docId] ?: EvidenceVisibility.UNKNOWN
+    fun visibilityOf(docId: String): EvidenceVisibility = entries[docId] ?: EvidenceVisibility.UNKNOWN
 
     /** 整体替换索引(刷新语义:已删文档不残留旧判定)。 */
     fun replaceAll(values: Map<String, EvidenceVisibility>) {
@@ -102,8 +101,7 @@ class EvidenceAssembler(
 ) {
 
     /** 可见性判定:显式 lambda 优先,否则读索引,都没命中就是 UNKNOWN。 */
-    private fun resolveVisibility(docId: String): EvidenceVisibility =
-        visibilityOf?.invoke(docId) ?: visibilityIndex.visibilityOf(docId)
+    private fun resolveVisibility(docId: String): EvidenceVisibility = visibilityOf?.invoke(docId) ?: visibilityIndex.visibilityOf(docId)
 
     /**
      * 按预算装配证据。
@@ -217,12 +215,7 @@ class EvidenceAssembler(
      * @param index 本候选的编号(1-based,只数已接纳的单元)
      * @param budgetRemaining 剩余预算(含本条的标题/分隔符开销)
      */
-    private fun renderUnit(
-        candidate: EvidenceCandidate,
-        index: Int,
-        budgetRemaining: Int,
-        docTitles: Map<String, String>,
-    ): RenderedUnit? {
+    private fun renderUnit(candidate: EvidenceCandidate, index: Int, budgetRemaining: Int, docTitles: Map<String, String>): RenderedUnit? {
         val title = docTitles[candidate.docId]?.takeIf { it.isNotBlank() } ?: candidate.docId
         val locatorLabel = candidate.locator.ifBlank { "?" }
         val header = "【资料 $index】$title（$locatorLabel）\n"

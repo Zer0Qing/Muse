@@ -37,36 +37,36 @@ class LabelCoverageTest {
             BotTaskStatus.WAITING_APPROVAL, BotTaskStatus.REVIEWING, BotTaskStatus.CANCEL_REQUESTED,
             BotTaskStatus.SUCCEEDED, BotTaskStatus.PARTIAL, BotTaskStatus.FAILED,
             BotTaskStatus.CANCELLED, BotTaskStatus.NEEDS_USER, BotTaskStatus.UNKNOWN,
-        );
-        val block = blockOf(cards, "internal", "agentStatusLabel");
-        val missing = statuses.filter { !block.contains(it) };
+        )
+        val block = blockOf(cards, "internal", "agentStatusLabel")
+        val missing = statuses.filter { !block.contains(it) }
         assertTrue(
             "这些状态没有用户可读的文案，内部词会漏到界面上：" + missing,
             missing.isEmpty(),
-        );
+        )
     }
 
     @Test
     fun `every error has a user facing label`() {
-        val block = blockOf(screen, "private", "agentErrorLabel");
-        val missing = AgentBotError.entries.filter { !block.contains(it.name) };
-        assertTrue("这些错误没有文案：" + missing, missing.isEmpty());
+        val block = blockOf(screen, "private", "agentErrorLabel")
+        val missing = AgentBotError.entries.filter { !block.contains(it.name) }
+        assertTrue("这些错误没有文案：" + missing, missing.isEmpty())
     }
 
     @Test
     fun `every prompt has a user facing label`() {
-        val block = blockOf(cards, "internal", "agentPromptLabel");
-        val missing = AgentBotPrompt.entries.filter { !block.contains(it.name) };
-        assertTrue("这些提示没有文案：" + missing, missing.isEmpty());
+        val block = blockOf(cards, "internal", "agentPromptLabel")
+        val missing = AgentBotPrompt.entries.filter { !block.contains(it.name) }
+        assertTrue("这些提示没有文案：" + missing, missing.isEmpty())
     }
 
     @Test
     fun `no status leaks an internal constant into the ui`() {
         // 兜底：agentStatusLabel 必须有一个 else 分支，避免未知状态漏到界面或崩溃。
-        val block = blockOf(cards, "internal", "agentStatusLabel");
+        val block = blockOf(cards, "internal", "agentStatusLabel")
         assertTrue(
             "必须有 else 兜底，否则未知状态会崩溃",
             block.contains("else ->"),
-        );
+        )
     }
 }

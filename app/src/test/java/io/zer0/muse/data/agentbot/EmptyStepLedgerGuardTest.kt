@@ -1,8 +1,8 @@
-package io.zer0.muse.data.agentbot;
+package io.zer0.muse.data.agentbot
 
-import org.junit.Assert.assertTrue;
-import org.junit.Test;
-import java.io.File;
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import java.io.File
 
 /**
  * P0-3 的防线在**记录侧**，不在审核侧。
@@ -22,21 +22,21 @@ import java.io.File;
 class EmptyStepLedgerGuardTest {
 
     private val scheduler: String by lazy {
-        File("src/main/java/io/zer0/muse/data/agentbot/BotTaskScheduler.kt").readText();
+        File("src/main/java/io/zer0/muse/data/agentbot/BotTaskScheduler.kt").readText()
     }
 
     private val applier: String by lazy {
-        File("src/main/java/io/zer0/muse/data/agentbot/BotResultApplier.kt").readText();
+        File("src/main/java/io/zer0/muse/data/agentbot/BotResultApplier.kt").readText()
     }
 
     @Test
     fun `recordStep failure is logged at error level with tool name`() {
-        val at = scheduler.indexOf("记录步骤失败");
-        assertTrue("必须有这条日志", at > 0);
-        val around = scheduler.substring(maxOf(0, at - 400), minOf(at + 200, scheduler.length));
-        assertTrue("要用 error 级 —— 这是排查重跑原因的唯一线索", around.contains("Logger.e("));
-        assertTrue("要带工具名，否则不知道哪一步没记上", around.contains("toolName"));
-        assertTrue("要说明后果", around.contains("返工"));
+        val at = scheduler.indexOf("记录步骤失败")
+        assertTrue("必须有这条日志", at > 0)
+        val around = scheduler.substring(maxOf(0, at - 400), minOf(at + 200, scheduler.length))
+        assertTrue("要用 error 级 —— 这是排查重跑原因的唯一线索", around.contains("Logger.e("))
+        assertTrue("要带工具名，否则不知道哪一步没记上", around.contains("toolName"))
+        assertTrue("要说明后果", around.contains("返工"))
     }
 
     @Test
@@ -45,19 +45,19 @@ class EmptyStepLedgerGuardTest {
         assertTrue(
             "读失败要按有副作用处理",
             applier.contains("步骤账本读取失败"),
-        );
+        )
     }
 
     @Test
     fun `empty ledger is not special cased at the applier layer`() {
         // 这里不能有"空账本"特判 —— 那一层区分不了两种成因。
-        val at = applier.indexOf("val sideEffects: List<String> =");
-        assertTrue(at > 0);
-        val end = applier.indexOf("var decision = reviewer.review(", at);
-        val block = applier.substring(at, end);
+        val at = applier.indexOf("val sideEffects: List<String> =")
+        assertTrue(at > 0)
+        val end = applier.indexOf("var decision = reviewer.review(", at)
+        val block = applier.substring(at, end)
         assertTrue(
             "不该在审核侧猜空账本的成因",
             !block.contains("recordedSteps.isEmpty()"),
-        );
+        )
     }
 }

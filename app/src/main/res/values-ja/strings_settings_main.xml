@@ -21,6 +21,7 @@
     <string name="settings_provider_imported_from_json">JSON からインポートされたサービス アカウントの資格情報</string>
     <string name="settings_provider_import_failed">インポートに失敗しました: %1$s</string>
     <string name="settings_provider_fill_api_key_first">最初に API キーを入力してください</string>
+    <string name="settings_provider_required_fields">名前とエンドポイントはどちらも必須です。空のままだと接続できないプロバイダーができます</string>
     <string name="settings_provider_no_models_returned">アップストリームはモデルを返しませんでした。エンドポイントを確認してください。</string>
     <string name="settings_provider_unknown_error">不明なエラー</string>
     <string name="settings_provider_404_error">このプロバイダーは /models エンドポイントをサポートしていません。モデルを手動で追加してください</string>
@@ -144,13 +145,15 @@
     <string name="settings_backup_message_count">合計メッセージ数</string>
     <string name="settings_backup_local_title">ローカル バックアップ &amp; リストア</string>
     <string name="settings_backup_export">バックアップのエクスポート</string>
+    <string name="settings_backup_export_partial">サイズ制限を超えたか、読み込めなかった %1$d 件のファイルは、このバックアップに含まれていません。</string>
     <string name="settings_backup_plaintext_export_title">暗号化されていないバックアップをエクスポートしますか？</string>
-    <string name="settings_backup_plaintext_export_message">バックアップパスワードが設定されていません。続行すると、ファイルを入手した人が内容を読める暗号化されていないバックアップが作成されます。可能であれば、先にクラウドバックアップでパスワードを設定してください。</string>
+    <string name="settings_backup_plaintext_export_message">このローカルバックアップファイルは暗号化されていないため、入手した人は内容を読めます。続行した場合にのみファイルが作成されます。</string>
     <string name="settings_backup_plaintext_export_action">暗号化せずにエクスポート</string>
     <string name="settings_backup_import">インポートバックアップ</string>
     <string name="settings_backup_export_success">エクスポートが成功しました: %1$d セッション / %2$d メッセージ</string>
     <string name="settings_backup_export_failed">エクスポートに失敗しました: %1$s</string>
     <string name="settings_backup_import_success">インポートされた %1$d セッション / %2$d メッセージ</string>
+    <string name="settings_backup_import_failed_title">インポートに失敗しました</string>
     <string name="settings_backup_import_failed">インポートに失敗しました: %1$s</string>
     <string name="settings_backup_export_start_failed">エクスポートを開始できません: %1$s</string>
     <string name="settings_backup_import_start_failed">インポートを開始できません: %1$s</string>
@@ -395,7 +398,8 @@
     <string name="settings_backup_log_success">成功</string>
     <string name="settings_backup_log_failed">失敗</string>
     <string name="audit_log_category_agent">エージェント実行</string>
-    <string name="settings_backup_import_password_hint">バックアップパスワード（バックアップが暗号化されている場合は空欄可）</string>
+    <string name="settings_backup_import_password_hint">バックアップパスワード（復号に必要な場合）</string>
+    <string name="cloud_backup_provider_secrets_require_password">プロバイダーのキーをアップロードする前に、バックアップパスワードを設定してください。</string>
     <string name="settings_backup_log_restore_hint">クリックで復元（会話・メッセージ・記憶をすべて）・ %1$s</string>
     <string name="settings_backup_overwrite_confirm">選択したバックアップが現在のすべての会話、メッセージ、記憶、経験データを上書きします（復元前に保護コピーが自動生成されます）。続行しますか？</string>
     <string name="settings_backup_overwrite_confirm_action">続行</string>

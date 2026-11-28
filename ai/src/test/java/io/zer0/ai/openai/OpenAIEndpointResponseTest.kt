@@ -43,6 +43,7 @@ class OpenAIEndpointResponseTest {
             ),
         )
     }
+
     @Test
     fun `json response is not classified as html`() {
         assertNull(openAiHtmlEndpointHint("application/json; charset=utf-8", "{\"data\":[]}"))

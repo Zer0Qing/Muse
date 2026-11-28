@@ -11,6 +11,7 @@ import io.zer0.muse.BuildConfig
 import io.zer0.muse.R
 import io.zer0.muse.debug.DebugLogStore
 import io.zer0.muse.schedule.BackgroundWakeDiagnostics
+import io.zer0.muse.ui.theme.MuseDateFormats
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.BufferedOutputStream
@@ -20,7 +21,6 @@ import java.util.Date
 import java.util.Locale
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
-import io.zer0.muse.ui.theme.MuseDateFormats
 
 /**
  * v2.x（诊断导出项目 A）：把诊断信息打包成 zip 并调起系统分享。

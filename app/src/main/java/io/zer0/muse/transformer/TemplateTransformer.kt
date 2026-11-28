@@ -10,7 +10,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.Locale
 import java.util.TimeZone
-import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * Prompt 模板 Transformer(Phase 8.1 H1 + Phase 9.2 M22 增强 + v1.97 变量扩展)。

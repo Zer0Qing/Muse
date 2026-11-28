@@ -1,10 +1,10 @@
 package io.zer0.muse.ui
 
 import io.zer0.muse.data.skill.SkillEntity
+import io.zer0.muse.ui.screen.bulkToggleTargets
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import io.zer0.muse.ui.screen.bulkToggleTargets
 
 /**
  * 「一键启停」作用范围的判据。

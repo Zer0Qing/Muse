@@ -83,11 +83,11 @@ fun QuickMessageScreen(onBack: () -> Unit, viewModel: ChatViewModel = koinViewMo
     val onCreate: () -> Unit = {
         val now = System.currentTimeMillis()
         editing = QuickMessageEntity(
-                        id = "qmsg-$now",
-                        name = newDefaultName,
-                        createdAt = now,
-                        updatedAt = now,
-                    )
+            id = "qmsg-$now",
+            name = newDefaultName,
+            createdAt = now,
+            updatedAt = now,
+        )
         isNew = true
     }
     // i18n: 预提取字符串资源,避免在 onClick 等非 Composable lambda 内调用 stringResource

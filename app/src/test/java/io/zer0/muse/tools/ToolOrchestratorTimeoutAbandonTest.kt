@@ -12,9 +12,9 @@ import io.zer0.muse.data.session.SessionRepository
 import io.zer0.muse.data.skill.SkillRepository
 import io.zer0.muse.ui.chat.ChatErrorType
 import io.zer0.muse.ui.chat.ChatSessionState
-import io.zer0.muse.ui.chat.ChatUiState
 import io.zer0.muse.ui.chat.ChatStateAccessor
 import io.zer0.muse.ui.chat.ChatTaskCardCoordinator
+import io.zer0.muse.ui.chat.ChatUiState
 import io.zer0.muse.ui.taskcard.TaskStepStatus
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

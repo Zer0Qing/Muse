@@ -41,18 +41,16 @@ class KnowledgeRetrieverContractTest {
         tokenBudget = 0,
     )
 
-    private fun request(
-        scope: KnowledgeScope = KnowledgeScope.Resolved(setOf("doc-1")),
-        policy: RetrievalPolicy = policy(),
-    ) = KnowledgeSearchRequest(
-        requestId = "req-1",
-        query = "alpha",
-        entry = KnowledgeEntryType.CHAT,
-        scope = scope,
-        policy = policy,
-        datasetEpoch = 1L,
-        deadlineMs = 5000L,
-    )
+    private fun request(scope: KnowledgeScope = KnowledgeScope.Resolved(setOf("doc-1")), policy: RetrievalPolicy = policy()) =
+        KnowledgeSearchRequest(
+            requestId = "req-1",
+            query = "alpha",
+            entry = KnowledgeEntryType.CHAT,
+            scope = scope,
+            policy = policy,
+            datasetEpoch = 1L,
+            deadlineMs = 5000L,
+        )
 
     private class FakeLexical(
         private val hits: List<LexicalHit> = emptyList(),
@@ -60,11 +58,7 @@ class KnowledgeRetrieverContractTest {
         private val throwError: Boolean = false,
     ) : LexicalRetriever {
         var lastGenerations: List<String> = emptyList()
-        override suspend fun search(
-            request: KnowledgeSearchRequest,
-            activeGenerationIds: List<String>,
-            limit: Int,
-        ): LexicalRecall {
+        override suspend fun search(request: KnowledgeSearchRequest, activeGenerationIds: List<String>, limit: Int): LexicalRecall {
             lastGenerations = activeGenerationIds
             if (throwError) error("lexical backend down")
             return LexicalRecall(hits = hits, degradedReason = degraded)
@@ -76,11 +70,7 @@ class KnowledgeRetrieverContractTest {
         private val throwError: Boolean = false,
         private val degraded: String? = null,
     ) : DenseRetriever {
-        override suspend fun search(
-            request: KnowledgeSearchRequest,
-            activeGenerationIds: List<String>,
-            limit: Int,
-        ): DenseRecall {
+        override suspend fun search(request: KnowledgeSearchRequest, activeGenerationIds: List<String>, limit: Int): DenseRecall {
             if (throwError) error("dense backend down")
             return DenseRecall(hits = hits, degradedReason = degraded)
         }
@@ -100,11 +90,7 @@ class KnowledgeRetrieverContractTest {
     fun `empty scope never expands to all`() = runBlocking {
         var called = false
         val lexical = object : LexicalRetriever {
-            override suspend fun search(
-                request: KnowledgeSearchRequest,
-                activeGenerationIds: List<String>,
-                limit: Int,
-            ): LexicalRecall {
+            override suspend fun search(request: KnowledgeSearchRequest, activeGenerationIds: List<String>, limit: Int): LexicalRecall {
                 called = true
                 return LexicalRecall(hits = listOf(hit("a", 0)))
             }
@@ -191,11 +177,8 @@ class KnowledgeRetrieverContractTest {
     fun `rerank failure keeps original order and finalK`() = runBlocking {
         val hits = listOf(hit("a", 0), hit("b", 1), hit("c", 2), hit("d", 3))
         val failingRerank = object : RerankProvider {
-            override suspend fun rerank(
-                query: String,
-                candidates: List<EvidenceCandidate>,
-                topK: Int,
-            ): List<EvidenceCandidate>? = error("rerank timeout")
+            override suspend fun rerank(query: String, candidates: List<EvidenceCandidate>, topK: Int): List<EvidenceCandidate>? =
+                error("rerank timeout")
         }
         val retriever = KnowledgeRetriever(
             lexicalRetriever = FakeLexical(hits = hits),
@@ -213,11 +196,8 @@ class KnowledgeRetrieverContractTest {
     fun `rerank reorders within given candidates`() = runBlocking {
         val hits = listOf(hit("a", 0), hit("b", 1), hit("c", 2))
         val reversing = object : RerankProvider {
-            override suspend fun rerank(
-                query: String,
-                candidates: List<EvidenceCandidate>,
-                topK: Int,
-            ): List<EvidenceCandidate> = candidates.reversed().take(topK)
+            override suspend fun rerank(query: String, candidates: List<EvidenceCandidate>, topK: Int): List<EvidenceCandidate> =
+                candidates.reversed().take(topK)
         }
         val retriever = KnowledgeRetriever(
             lexicalRetriever = FakeLexical(hits = hits),

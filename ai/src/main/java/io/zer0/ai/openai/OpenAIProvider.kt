@@ -42,11 +42,11 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.buffer
-import kotlinx.coroutines.flow.emitAll
-import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
@@ -318,12 +318,11 @@ class OpenAIProvider(
     }
 
     /** 端点缺失判定：只认确定性信号，账号/限流问题不换协议。 */
-    private fun looksLikeEndpointMissing(event: ChatStreamEvent.Error): Boolean =
-        OpenAiEndpointCandidates.looksLikeMissingEndpoint(
-            status = (event.throwable as? OpenAIHttpException)?.code,
-            contentType = null,
-            message = event.message,
-        )
+    private fun looksLikeEndpointMissing(event: ChatStreamEvent.Error): Boolean = OpenAiEndpointCandidates.looksLikeMissingEndpoint(
+        status = (event.throwable as? OpenAIHttpException)?.code,
+        contentType = null,
+        message = event.message,
+    )
 
     /**
      * B-28: 日志 URL 脱敏 — 移除 query 参数(部分网关用 ?key= 传密钥,
@@ -526,7 +525,8 @@ class OpenAIProvider(
             Logger.d(
                 "OpenAIProvider",
                 "stream-guard diagnose: emitDone called | finishReason=$finishReason | " +
-                    "contentChars=${contentCharsSent.get()} | reasoningChars=${reasoningCharsSent.get()} | anyDeltaSent=${anyDeltaSent.get()} | " +
+                    "contentChars=${contentCharsSent.get()} | reasoningChars=${reasoningCharsSent.get()} | " +
+                    "anyDeltaSent=${anyDeltaSent.get()} | " +
                     "aborted=${request.abortSignal.aborted} | useResponsesApi=$useResponsesApi | " +
                     "firstDeltaTs=${firstDeltaTimestamp.get()}",
             )
@@ -534,7 +534,9 @@ class OpenAIProvider(
             //   如果 finishReason=tool_calls 且存在空 name tool_call,说明模型流式模式下
             //   没有正确输出工具名,需触发非流式回退(非流式模式下 tool_calls 通常完整返回)。
             //   此时不能把 args 恢复为 ContentDelta(那是工具参数,不是正文),否则用户看到 JSON 幻觉。
-            val hasEmptyNameToolCall = toolCallAccMap.values.any { !it.recoveredAsContent && it.name.isNullOrBlank() && it.args.isNotEmpty() }
+            val hasEmptyNameToolCall = toolCallAccMap.values.any {
+                !it.recoveredAsContent && it.name.isNullOrBlank() && it.args.isNotEmpty()
+            }
 
             // v1.0.23: 商汤 deepseek-v4-flash 等流式过早结束 bug 检测
             //   商汤 API 流式实现有 bug:first delta 后立即 finish(只输出 0-4 个字符,
@@ -593,9 +595,9 @@ class OpenAIProvider(
                 pendingFallback.set(true)
                 Logger.w(
                     "OpenAIProvider",
-                    "stream-guard: 检测到流式过早结束 (chars=$totalChars, reasoning=$reasoningChars, duration=${deltaDuration}ms), 自动回退到非流式请求 | url=${sanitizeUrl(
-                        url,
-                    )}",
+                    "stream-guard: 检测到流式过早结束 (chars=$totalChars, reasoning=$reasoningChars, " +
+                        "duration=${deltaDuration}ms), 自动回退到非流式请求 | " +
+                        "url=${sanitizeUrl(url)}",
                 )
                 var fallbackFailure: Throwable? = null
                 scope.launch {
@@ -742,7 +744,9 @@ class OpenAIProvider(
                             }
                             Logger.i(
                                 "OpenAIProvider",
-                                "stream-guard: 非流式回退成功 (text=${text.length} chars, reasoning=${reasoning.length} chars, toolCalls=${toolCalls.size})",
+                                "stream-guard: 非流式回退成功 " +
+                                    "(text=${text.length} chars, reasoning=${reasoning.length} chars, " +
+                                    "toolCalls=${toolCalls.size})",
                             )
                         } else {
                             Logger.w("OpenAIProvider", "stream-guard: 非流式回退最终失败: ${lastError?.message}")
@@ -913,9 +917,15 @@ class OpenAIProvider(
                                 contentCharsSent.addAndGet(text.length)
                                 trySend(ChatStreamEvent.ContentDelta(text))
                             }
-                            val standardChunk = resultOf { AppJson.decodeFromString<OpenAIStreamChunk>(data) }
-                                .getOrNull()
-                            val finish = standardChunk?.choices?.firstOrNull()?.finishReason
+                            val finish =
+                                (
+                                    ((element as? JsonObject)?.get("choices") as? JsonArray)
+                                        ?.firstOrNull() as? JsonObject
+                                    )
+                                    ?.get("finish_reason")
+                                    ?.let { it as? JsonPrimitive }
+                                    ?.takeIf { it.isString }
+                                    ?.content
                             if (!finish.isNullOrBlank() && !pendingFallback.get()) {
                                 emitDoneWithStreamGuard(finish)
                             }
@@ -1078,7 +1088,9 @@ class OpenAIProvider(
                                         }
                                         Logger.w(
                                             "OpenAIProvider",
-                                            "stream-guard: 空 name tool call 超过 $MAX_EMPTY_NAME_TOOL_CALLS 条,按正文增量恢复 (localIndex=$localIndex)",
+                                            "stream-guard: 空 name tool call 超过 " +
+                                                "$MAX_EMPTY_NAME_TOOL_CALLS 条,按正文增量恢复 " +
+                                                "(localIndex=$localIndex)",
                                         )
                                         return@forEach
                                     }
@@ -1311,8 +1323,7 @@ class OpenAIProvider(
         if (useResponsesApi && !responsesEndpointUnsupported) {
             try {
                 return@withContext completeTextResponses(request, keySwitchDepth)
-            } catch (error: Throwable) {
-                if (error is kotlinx.coroutines.CancellationException) throw error
+            } catch (error: OpenAIHttpException) {
                 val missing = OpenAiEndpointCandidates.looksLikeMissingEndpoint(
                     status = (error as? OpenAIHttpException)?.code,
                     contentType = null,
@@ -1359,11 +1370,7 @@ class OpenAIProvider(
                     Logger.w("OpenAIProvider", "completeText HTTP $code: $msg")
                     // v1.0.28: HTTP 400 时记录请求体和完整响应体,帮助诊断中转站参数错误
                     if (code == 400) {
-                        Logger.w("OpenAIProvider", "completeText 400 请求摘要: ${describeRequestBody(body)}")
-                        Logger.w(
-                            "OpenAIProvider",
-                            "completeText 400 响应摘要: ${ProviderError.safeErrorDetail(errText) ?: "<empty>"}",
-                        )
+                        logBadRequest(body, errText)
                     }
                     // L-OAI11: 用自定义异常替代字符串前缀判断
                     throw OpenAIHttpException(code, msg, ProviderError.parseRetryAfter(response.header("Retry-After")))
@@ -1373,11 +1380,7 @@ class OpenAIProvider(
                     ?: throw ErrorCode.INVALID_RESPONSE.toProviderException("empty_body", resp.code)
                 val customResponsePath = customConfig?.responsePath?.takeIf { it.isNotBlank() }
                 if (customResponsePath != null) {
-                    val parsedJson = AppJson.parseToJsonElement(raw)
-                    val text = extractTextFromElement(
-                        ProviderTemplateEngine.extractByPath(parsedJson, customResponsePath),
-                    ) ?: throw ErrorCode.INVALID_RESPONSE.toProviderException("empty_custom_response")
-                    return@withContext ChatCompletion(text = text)
+                    return@withContext parseCustomResponse(raw, customResponsePath)
                 }
                 val parsed = AppJson.decodeFromString<OpenAICompletionResponse>(raw)
                 val choice = parsed.choices.firstOrNull()
@@ -1396,14 +1399,7 @@ class OpenAIProvider(
                 //   raw="{}"    → 上游给的就是空对象
                 //   其它          → 上游有内容，问题在后续环节
                 if (!toolCalls.isNullOrEmpty()) {
-                    // 不记 name 原文：模型有时把整句台词塞进函数名，那里面可能夹着用户内容。
-                    // 只记形态（长度 + 是否合法标识符 + 参数长度），足够定位问题。
-                    val shape = toolCalls.joinToString(", ") { tc ->
-                        val nameValid = ToolCallSanitizer.isValidName(tc.name)
-                        "nameLen=${tc.name.length},valid=$nameValid,argsLen=${tc.arguments.length}" +
-                            if (tc.arguments.trim() == "{}") ",emptyObj" else ""
-                    }
-                    Logger.i("OpenAIProvider", "completeText toolCalls 参数形态: $shape | finish=${choice.finishReason}")
+                    logToolCallShape(toolCalls, choice.finishReason)
                 }
                 // Phase 7: 如果有 tool_calls,允许 text 为空(工具调用场景)
                 // M-OAI8: 如果有推理内容(reasoning_content),也允许 text 为空
@@ -1466,6 +1462,32 @@ class OpenAIProvider(
             abortListener.close()
             if (request.abortSignal.aborted) call.cancel()
         }
+    }
+
+    private fun parseCustomResponse(raw: String, responsePath: String): ChatCompletion {
+        val parsedJson = AppJson.parseToJsonElement(raw)
+        val text = extractTextFromElement(
+            ProviderTemplateEngine.extractByPath(parsedJson, responsePath),
+        ) ?: throw ErrorCode.INVALID_RESPONSE.toProviderException("empty_custom_response")
+        return ChatCompletion(text = text)
+    }
+
+    private fun logToolCallShape(toolCalls: List<ToolCall>, finishReason: String?) {
+        // 不记 name 原文：模型有时把整句台词塞进函数名，那里面可能夹着用户内容。
+        val shape = toolCalls.joinToString(", ") { tc ->
+            val nameValid = ToolCallSanitizer.isValidName(tc.name)
+            "nameLen=${tc.name.length},valid=$nameValid,argsLen=${tc.arguments.length}" +
+                if (tc.arguments.trim() == "{}") ",emptyObj" else ""
+        }
+        Logger.i("OpenAIProvider", "completeText toolCalls 参数形态: $shape | finish=$finishReason")
+    }
+
+    private fun logBadRequest(body: String, errorBody: String) {
+        Logger.w("OpenAIProvider", "completeText 400 请求摘要: ${describeRequestBody(body)}")
+        Logger.w(
+            "OpenAIProvider",
+            "completeText 400 响应摘要: ${ProviderError.safeErrorDetail(errorBody) ?: "<empty>"}",
+        )
     }
 
     private fun baseUrl(): String = config.resolvedBaseUrl()
@@ -3436,11 +3458,7 @@ class OpenAIProvider(
  * 用户既不知道这是网关拦截页，也不知道该改 Base URL 还是关掉 Responses 开关。
  * 只有确认是 HTML 才返回提示，其它 2xx 失败仍保留原始异常信息。
  */
-internal fun explainSseHtmlFailure(
-    contentType: String,
-    body: String,
-    throwableMessage: String?,
-): String? {
+internal fun explainSseHtmlFailure(contentType: String, body: String, throwableMessage: String?): String? {
     val looksHtml = contentType.contains("text/html", ignoreCase = true) ||
         throwableMessage.orEmpty().contains("Invalid content-type", ignoreCase = true)
     if (!looksHtml) return null

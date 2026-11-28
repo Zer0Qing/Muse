@@ -4,7 +4,6 @@ import io.zer0.common.Logger
 import java.io.File
 import java.util.Base64
 import java.util.LinkedHashMap
-import io.zer0.muse.ui.chat.MessageBubble
 
 /**
  * v1.134 P1-2: 消息图片存储服务 — base64 ↔ 文件路径双向转换。

@@ -53,7 +53,7 @@ class WorkspaceArtifactIO(
 
         // 临时文件必须与目标同目录 —— 跨文件系统 rename 不是原子操作。
         val temp = File(parent, file.name + TEMP_MARKER + System.nanoTime())
-        try {
+        runCatching {
             temp.writeText(content)
             // renameTo 在多数平台上覆盖已存在文件；失败时先删再试。
             if (!temp.renameTo(file)) {
@@ -64,12 +64,11 @@ class WorkspaceArtifactIO(
                     error("无法重命名临时文件: $targetRef")
                 }
             }
-        } catch (t: Throwable) {
+        }.onFailure { t ->
             // 失败时清掉临时文件，不在工作区留垃圾。
             runCatching { temp.delete() }
             Logger.w("WorkspaceArtifactIO", "写入失败: $targetRef", t)
-            throw t
-        }
+        }.getOrThrow()
     }
 
     /**
@@ -117,7 +116,7 @@ class WorkspaceArtifactIO(
                 .getOrDefault(false)
             if (ok) removed++
         }
-        if (removed > 0) Logger.i("WorkspaceArtifactIO", "清理孤儿临时文件 ${removed} 个")
+        if (removed > 0) Logger.i("WorkspaceArtifactIO", "清理孤儿临时文件 $removed 个")
         return removed
     }
 
@@ -138,6 +137,7 @@ class WorkspaceArtifactIO(
          */
         private const val SWEEP_INTERVAL_MS = 10 * 60_000L
     }
+
     /**
      * 把 ref 解析成工作区内的 File；越界返回 null。
      *

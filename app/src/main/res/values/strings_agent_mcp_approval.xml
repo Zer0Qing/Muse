@@ -1,0 +1,8 @@
+<resources>
+    <string name="agent_mcp_approval_title">MCP 工具请求</string>
+    <string name="agent_mcp_approval_target">服务器：%1$s · 工具：%2$s</string>
+    <string name="agent_mcp_approval_arguments">本次参数：%1$s</string>
+    <string name="agent_mcp_approval_view_arguments">查看本次参数</string>
+    <string name="agent_mcp_approval_allow_once">仅允许本次</string>
+    <string name="agent_mcp_approval_reject">拒绝</string>
+</resources>

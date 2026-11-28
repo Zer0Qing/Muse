@@ -94,6 +94,9 @@ class HybridSearchService(
         vectorCandidateK: Int = topK * 3,
         bm25CandidateK: Int = topK * 3,
     ): List<HybridResult> {
+        val cleanQuery = sanitizeQueryForRag(query)
+        if (cleanQuery.isBlank()) return emptyList()
+
         // 1. 并行检索（真正的协程并发）
         //
         // P1-4 修复（审计报告）: 旧注释写着“并行检索(协程并发)”，但 resultOf 只是
@@ -108,7 +111,7 @@ class HybridSearchService(
             // R1: BM25 召回支失败必须显式记录,不得静默吞成零结果(此前 bm25() SQL 在 FTS4
             // 表上必然抛错,被这里的 resultOf 静默清零,混合检索无声退化为纯向量)。
             val bm25Deferred = async {
-                resultOf { ftsDao.searchBm25(buildFtsQuery(query), bm25CandidateK) }
+                resultOf { ftsDao.searchBm25(buildFtsQuery(cleanQuery), bm25CandidateK) }
                     .onError { msg, e ->
                         Logger.w("HybridSearchService", "BM25 召回支失败,本路按零结果继续: $msg", e)
                     }
@@ -118,7 +121,7 @@ class HybridSearchService(
 
         Logger.d(
             "HybridSearchService",
-            "混合检索:vector=${vectorResults.size}, bm25=${bm25Hits.size}, query=$query",
+            "混合检索:vector=${vectorResults.size}, bm25=${bm25Hits.size}, query=$cleanQuery",
         )
 
         if (vectorResults.isEmpty() && bm25Hits.isEmpty()) return emptyList()
@@ -201,15 +204,32 @@ class HybridSearchService(
         } else {
             (bm25Ranked.last().score - bm25Ranked.first().score).takeIf { it > 0.0 } ?: 0.0
         }
+        val lexicalScoreByChunk = mutableMapOf<String, Float>()
         bm25Ranked.forEachIndexed { rank, hit ->
-            // 相对强度：排名第 0 的命中为 1.0，最弱的为 0.0（无分差时全部为 1.0）
-            val strength = if (bm25RawRange <= 0.0) {
-                1f
+            val hasRealBm25Score = hit.score < 0.0
+            val meta = bm25MetaById[hit.chunkId]
+            val strength = if (hasRealBm25Score) {
+                // SQLite 带打分时，排名第 0 的命中为 1.0，最弱的为 0.0（无分差时全部为 1.0）
+                if (bm25RawRange <= 0.0) {
+                    1f
+                } else {
+                    (1.0 - (hit.score - bm25Ranked.first().score) / bm25RawRange).toFloat().coerceIn(0f, 1f)
+                }
+            } else if (meta != null) {
+                // 真机 FTS4 未返回负分（score == 0.0）时，用实词命中度过滤偶发单字误召回，
+                // 防止仅凭 "时间" / "测试" 等单字命中的词库文本被归一成 1.00 误注入。
+                val lexical = computeLexicalRelevance(cleanQuery, meta.content, meta.docTitle)
+                lexicalScoreByChunk[hit.chunkId] = lexical
+                lexical
             } else {
-                (1.0 - (hit.score - bm25Ranked.first().score) / bm25RawRange).toFloat().coerceIn(0f, 1f)
+                if (bm25RawRange <= 0.0) 1f else 0f
             }
-            // threshold <= 0 表示不启用过滤（与向量路语义一致）
-            if (threshold > 0f && strength < threshold) {
+            val effectiveThreshold = if (!hasRealBm25Score && meta != null && hit.chunkId !in vectorChunkIds) {
+                maxOf(threshold, MIN_UNSCORED_LEXICAL_RELEVANCE)
+            } else {
+                threshold
+            }
+            if (effectiveThreshold > 0f && strength < effectiveThreshold) {
                 return@forEachIndexed
             }
             val contribution = bm25Weight * (1.0f / (rank + 1 + RRF_K))
@@ -234,10 +254,20 @@ class HybridSearchService(
             )
         }
         val maxScore = rrfScores.values.maxOrNull() ?: 0f
+        val allUnscoredLexicalOnly = vectorRanked.isEmpty() &&
+            rrfScores.isNotEmpty() &&
+            rrfScores.keys.all { it in lexicalScoreByChunk }
         return rrfScores.entries
             .filter { metaMap[it.key] != null } // 只保留有内容的结果(无法解析的 BM25-only 跳过)
             .map { (chunkId, score) ->
                 val r = metaMap[chunkId]!!
+                val displayScore = if (allUnscoredLexicalOnly) {
+                    lexicalScoreByChunk[chunkId] ?: 0f
+                } else if (maxScore > 0) {
+                    score / maxScore
+                } else {
+                    0f
+                }
                 HybridResult(
                     docId = r.docId,
                     docTitle = r.docTitle,
@@ -247,7 +277,7 @@ class HybridSearchService(
                     // P1-6 修复（审计报告）: rrfScore 是「相对最高分」的比值（最高一律 1.0），
                     // 不是余弦相似度。UI 上却写成「相似度 0.83」—— 那个数字是假的。
                     // 同时保留 rawScore（向量余弦 / BM25 无），供 UI 展示真实可信的数值。
-                    rrfScore = if (maxScore > 0) score / maxScore else 0f,
+                    rrfScore = displayScore,
                     rawScore = r.score.toFloat(),
                     bothHit = chunkId in bm25ChunkIds,
                 )
@@ -260,19 +290,92 @@ class HybridSearchService(
         /** RRF 经验常数(标准值 60)。 */
         private const val RRF_K = 60
 
+        /** 无真实 BM25 打分（Android FTS4 score=0）时，纯词法召回的最低实词相关度门限。 */
+        const val MIN_UNSCORED_LEXICAL_RELEVANCE: Float = 0.50f
+
+        private val CARD_STATE_BLOCK_REGEX = Regex(
+            """\[card_state\b.*?\[/card_state\]""",
+            setOf(RegexOption.DOT_MATCHES_ALL, RegexOption.IGNORE_CASE),
+        )
+        private val CARD_ACTION_BLOCK_REGEX = Regex(
+            """\[card_action\b.*?\[/card_action\]""",
+            setOf(RegexOption.DOT_MATCHES_ALL, RegexOption.IGNORE_CASE),
+        )
+        private val COLLAPSE_WHITESPACE_REGEX = Regex("""\s+""")
+        private val LATIN_OR_DIGIT_TOKEN_REGEX = Regex("""[a-z0-9_]{2,}""")
+        private val RAG_STOPWORDS = setOf(
+            "帮我", "一下", "一个", "我想", "想要", "测试", "请问", "可以", "这个", "那个",
+            "什么", "怎么", "怎样", "如何", "好的", "谢谢", "看看", "试试", "生成", "卡片",
+            "时间", "当前", "状态", "自检", "一遍", "回报", "回来", "知道", "没有", "已经",
+            "the", "and", "for", "this", "that", "with", "from", "have", "test", "card",
+            "what", "when", "where", "which", "please", "help",
+        )
+
+        /** 剥离卡片内部回传块（card_state / card_action），避免状态 JSON 污染知识库检索词。 */
+        fun sanitizeQueryForRag(raw: String): String {
+            val withoutCards = raw
+                .replace(CARD_STATE_BLOCK_REGEX, " ")
+                .replace(CARD_ACTION_BLOCK_REGEX, " ")
+            return COLLAPSE_WHITESPACE_REGEX.replace(withoutCards, " ").trim()
+        }
+
+        /**
+         * 计算未打分 FTS4 命中的实词相关度（0f..1f）。
+         *
+         * 剔除常见寒暄/操作停用词后统计实词命中率；当查询含 >=3 个实词但正文仅擦边命中 1 个时，
+         * 封顶为 0.25f，拦截词典/词库型文档靠单字多义误混入。
+         */
+        fun computeLexicalRelevance(query: String, content: String, title: String = ""): Float {
+            val clean = sanitizeQueryForRag(query)
+            if (clean.isBlank()) return 0f
+            val ngramTokens = MessageFtsManager.toNgram(clean)
+                .lowercase()
+                .split(' ')
+                .asSequence()
+                .map { it.trim() }
+                .filter { it.length >= 2 }
+                .toList()
+            val latinTokens = LATIN_OR_DIGIT_TOKEN_REGEX.findAll(clean.lowercase()).map { it.value }.toList()
+            val substantive = (ngramTokens + latinTokens)
+                .distinct()
+                .filterNot { it in RAG_STOPWORDS }
+            if (substantive.isEmpty()) return 0f
+
+            val loweredContent = content.lowercase()
+            val loweredTitle = title.lowercase()
+            var weightedHits = 0f
+            var distinctHits = 0
+            for (token in substantive) {
+                val inTitle = loweredTitle.contains(token)
+                val inContent = loweredContent.contains(token)
+                if (inTitle || inContent) {
+                    distinctHits++
+                    weightedHits += if (inTitle) 1.25f else 1.0f
+                }
+            }
+            if (distinctHits == 0) return 0f
+            val baseRatio = (weightedHits / substantive.size.toFloat()).coerceIn(0f, 1f)
+            return if (substantive.size >= 3 && distinctHits < 2) {
+                minOf(baseRatio, 0.25f)
+            } else {
+                baseRatio
+            }
+        }
+
         /**
          * 把用户原始查询转为 FTS4 MATCH 语法。
          * 简单策略:按空格/中文字符切分单词,用空格连接(FTS4 默认 AND)。
          * 长查询(>10 词)用 OR 避免空命中。
          */
         fun buildFtsQuery(query: String): String {
-            val filtered = MessageFtsManager.toNgram(query)
+            val clean = sanitizeQueryForRag(query)
+            val filtered = MessageFtsManager.toNgram(clean)
                 .split(' ')
                 .filter { it.length >= 2 }
                 .distinct()
                 .take(10)
             if (filtered.isEmpty()) {
-                return "\"${query.take(50).replace("\"", " ")}\"" // fallback 短语
+                return "\"${clean.take(50).replace("\"", " ")}\"" // fallback 短语
             }
             // 中文 ngram 需要按 token 边界引用;英文/数字保留裸词以兼容既有 FTS4 语法。
             val rendered = filtered.map { token ->

@@ -1367,4 +1367,3 @@ internal fun PluginInstallPreviewContent(preview: PluginSecurityGate.InstallPrev
         )
     }
 }
-

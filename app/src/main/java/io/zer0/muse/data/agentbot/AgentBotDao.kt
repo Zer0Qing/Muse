@@ -41,6 +41,9 @@ interface BotTaskDao {
     @Query("SELECT * FROM bot_tasks WHERE status = 'REVIEWING' ORDER BY updatedAt ASC")
     suspend fun listReviewing(): List<BotTaskEntity>
 
+    @Query("SELECT * FROM bot_tasks WHERE status = 'RUNNING'")
+    suspend fun listRunningTasks(): List<BotTaskEntity>
+
     /**
      * 页面投影用：只观察当前 assistant 与 canonical 会话的任务。
      *
@@ -82,7 +85,10 @@ interface BotTaskDao {
     @Query("DELETE FROM bot_tasks")
     suspend fun deleteAll()
 
-    @Query("SELECT COUNT(*) FROM bot_tasks WHERE status IN ('QUEUED','RUNNING','WAITING_RESOURCE','WAITING_APPROVAL','REVIEWING','CANCEL_REQUESTED')")
+    @Query(
+        "SELECT COUNT(*) FROM bot_tasks WHERE status IN (" +
+            "'QUEUED','RUNNING','WAITING_RESOURCE','WAITING_APPROVAL','REVIEWING','CANCEL_REQUESTED')",
+    )
     suspend fun countActive(): Int
 }
 
@@ -182,6 +188,12 @@ interface BotEventDao {
     @Query("SELECT * FROM bot_events WHERE dedupeKey = :dedupeKey LIMIT 1")
     suspend fun findByDedupeKey(dedupeKey: String): BotEventEntity?
 
+    @Query("DELETE FROM bot_events WHERE eventId = :eventId")
+    suspend fun deleteById(eventId: String)
+
+    @Query("DELETE FROM bot_events WHERE kind = :kind AND consumedAt > 0 AND createdAt < :cutoff")
+    suspend fun deleteConsumedBefore(kind: String, cutoff: Long): Int
+
     /**
      * 某个任务某一轮里最后一次某类事件。
      *
@@ -245,7 +257,7 @@ interface BotEventDao {
      */
     @Query(
         "DELETE FROM bot_events WHERE consumedAt > 0 AND consumedAt < :cutoff " +
-            "AND payloadRef NOT LIKE '%[staged=%'",
+            "AND payloadRef NOT LIKE '%[staged=%' AND kind != 'ComputeExecOwner'",
     )
     suspend fun deleteConsumedBefore(cutoff: Long): Int
 

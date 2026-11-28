@@ -1,13 +1,13 @@
 package io.zer0.memory.ai
 
 import io.zer0.common.ProcessWriteGate
-import java.io.File
-import java.nio.file.Files
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
+import java.nio.file.Files
 
 /**
  * AutoSave 幂等指纹缓存：有界、原子持久化、只存摘要哈希、按结构化键隔离。
@@ -29,10 +29,9 @@ class AutoSaveFingerprintCacheTest {
         spaceId: String = "default",
     ) = AutoSaveFingerprintCache.Key(assistantId, scope, spaceId, sessionId)
 
-    private fun hash(seed: String): String =
-        java.security.MessageDigest.getInstance("MD5")
-            .digest(seed.toByteArray())
-            .joinToString("") { "%02x".format(it) }
+    private fun hash(seed: String): String = java.security.MessageDigest.getInstance("MD5")
+        .digest(seed.toByteArray())
+        .joinToString("") { "%02x".format(it) }
 
     @Test
     fun `records survive a restart`() {

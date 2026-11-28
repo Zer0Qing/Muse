@@ -68,7 +68,11 @@ class KnowledgeLegacyClassificationTest {
     @Test
     fun `internal rows classify as internal first`() {
         val cls = KnowledgeLegacyRowClassifier.classify(
-            isInternal = true, content = "任何", contentHash = "", hasChunks = false, contentHashMatches = false,
+            isInternal = true,
+            content = "任何",
+            contentHash = "",
+            hasChunks = false,
+            contentHashMatches = false,
         )
         assertEquals(KnowledgeLegacyRowClass.INTERNAL, cls)
     }
@@ -78,7 +82,11 @@ class KnowledgeLegacyClassificationTest {
         // 长完整正文 + hash 一致 = COMPLETE(hash 证明非预览截断)。
         val longContent = "x".repeat(KnowledgeLegacyRowClassifier.LEGACY_PREVIEW_CHARS + 1)
         val cls = KnowledgeLegacyRowClassifier.classify(
-            isInternal = false, content = longContent, contentHash = "h", hasChunks = true, contentHashMatches = true,
+            isInternal = false,
+            content = longContent,
+            contentHash = "h",
+            hasChunks = true,
+            contentHashMatches = true,
         )
         assertEquals(KnowledgeLegacyRowClass.COMPLETE, cls)
     }
@@ -88,7 +96,11 @@ class KnowledgeLegacyClassificationTest {
         // 超上限 + hash 不一致 = 旧写入路径截断的预览行。
         val truncated = "x".repeat(KnowledgeLegacyRowClassifier.LEGACY_PREVIEW_CHARS)
         val cls = KnowledgeLegacyRowClassifier.classify(
-            isInternal = false, content = truncated, contentHash = "h-of-fulltext", hasChunks = true, contentHashMatches = false,
+            isInternal = false,
+            content = truncated,
+            contentHash = "h-of-fulltext",
+            hasChunks = true,
+            contentHashMatches = false,
         )
         assertEquals(KnowledgeLegacyRowClass.PREVIEW_ONLY, cls)
     }
@@ -96,7 +108,11 @@ class KnowledgeLegacyClassificationTest {
     @Test
     fun `blank content with chunks classifies as chunk only and never pretends complete`() {
         val cls = KnowledgeLegacyRowClassifier.classify(
-            isInternal = false, content = "", contentHash = "", hasChunks = true, contentHashMatches = false,
+            isInternal = false,
+            content = "",
+            contentHash = "",
+            hasChunks = true,
+            contentHashMatches = false,
         )
         assertEquals(KnowledgeLegacyRowClass.CHUNK_ONLY, cls)
         // ChunkOnly 合同:不得拼接冒充完整原件 —— 分类本身就是调用方的依据,
@@ -110,8 +126,12 @@ class KnowledgeLegacyClassificationTest {
     @Test
     fun `unreachable source classifies as source missing`() {
         val cls = KnowledgeLegacyRowClassifier.classify(
-            isInternal = false, content = "正文", contentHash = "h", hasChunks = false,
-            contentHashMatches = true, sourceMissing = true,
+            isInternal = false,
+            content = "正文",
+            contentHash = "h",
+            hasChunks = false,
+            contentHashMatches = true,
+            sourceMissing = true,
         )
         assertEquals(KnowledgeLegacyRowClass.SOURCE_MISSING, cls)
     }
@@ -119,7 +139,11 @@ class KnowledgeLegacyClassificationTest {
     @Test
     fun `short complete rows classify as complete`() {
         val cls = KnowledgeLegacyRowClassifier.classify(
-            isInternal = false, content = "短正文", contentHash = "h", hasChunks = false, contentHashMatches = false,
+            isInternal = false,
+            content = "短正文",
+            contentHash = "h",
+            hasChunks = false,
+            contentHashMatches = false,
         )
         assertEquals(KnowledgeLegacyRowClass.COMPLETE, cls)
     }
@@ -131,7 +155,11 @@ class KnowledgeLegacyClassificationTest {
         // 孤儿 chunk:chunk 行存在、doc 行缺失 —— 分类输入表达为 content 空 + hasChunks。
         // 恢复协调日志与 R9 恢复区按此类别进入「无法归属」而非静默丢弃或拼接。
         val cls = KnowledgeLegacyRowClassifier.classify(
-            isInternal = false, content = "", contentHash = "", hasChunks = true, contentHashMatches = false,
+            isInternal = false,
+            content = "",
+            contentHash = "",
+            hasChunks = true,
+            contentHashMatches = false,
         )
         assertEquals(KnowledgeLegacyRowClass.CHUNK_ONLY, cls)
     }

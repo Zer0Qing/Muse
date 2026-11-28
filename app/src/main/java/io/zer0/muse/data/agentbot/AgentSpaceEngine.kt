@@ -17,7 +17,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -35,18 +37,48 @@ import java.util.UUID
 interface SpaceCardDataWriter {
     fun read(cardId: String): String?
 
+    fun snapshot(cardId: String): SpaceCardDataSnapshot = SpaceCardDataSnapshot(read(cardId), 0L)
+
     suspend fun write(cardId: String, jsonText: String)
+
+    suspend fun compareAndWrite(cardId: String, expected: SpaceCardDataSnapshot, jsonText: String): Long? {
+        if (read(cardId) != expected.data) return null
+        write(cardId, jsonText)
+        return snapshot(cardId).revision
+    }
+
+    suspend fun compareAndRestore(cardId: String, expectedRevision: Long, previous: SpaceCardDataSnapshot): Boolean = false
 }
+
+data class SpaceCardDataSnapshot(val data: String?, val revision: Long)
 
 /** 把 [CardDataStore] 包装成 Spaces 引擎的数据出口。 */
 class CardDataStoreSpaceWriter(private val store: CardDataStore) : SpaceCardDataWriter {
     override fun read(cardId: String): String? = store.get(cardId)
+
+    override fun snapshot(cardId: String): SpaceCardDataSnapshot = store.snapshot(cardId).let {
+        SpaceCardDataSnapshot(it.data, it.revision)
+    }
 
     override suspend fun write(cardId: String, jsonText: String) {
         withContext(Dispatchers.IO) {
             store.put(cardId, jsonText)
         }
     }
+
+    override suspend fun compareAndWrite(cardId: String, expected: SpaceCardDataSnapshot, jsonText: String): Long? =
+        withContext(Dispatchers.IO) {
+            store.compareAndPut(cardId, expected.revision, jsonText)
+        }
+
+    override suspend fun compareAndRestore(cardId: String, expectedRevision: Long, previous: SpaceCardDataSnapshot): Boolean =
+        withContext(Dispatchers.IO) {
+            if (previous.data != null) {
+                store.compareAndPut(cardId, expectedRevision, previous.data) != null
+            } else {
+                store.compareAndRemove(cardId, expectedRevision)
+            }
+        }
 }
 
 /**
@@ -83,7 +115,12 @@ class AgentSpaceEngine(
 ) {
 
     private var loopJob: Job? = null
-    private val refreshMutex = Mutex()
+    private val commitMutex = Mutex()
+    private val inFlightCards = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+    private val retryAttempts = java.util.concurrent.ConcurrentHashMap<String, Int>()
+    private val retryNotBefore = java.util.concurrent.ConcurrentHashMap<String, Long>()
+    private val _refreshFailures = MutableStateFlow<Map<String, SpaceRefreshFailure>>(emptyMap())
+    val refreshFailures: Flow<Map<String, SpaceRefreshFailure>> = _refreshFailures
 
     fun observePinnedSpaces(): Flow<List<CardEntity>> = dao.observePinnedSpaces()
 
@@ -181,26 +218,29 @@ class AgentSpaceEngine(
     suspend fun unpinCard(cardId: String): Boolean {
         val safeId = cardId.trim()
         if (safeId.isBlank()) return false
-        val card = dao.getById(safeId) ?: return false
-        // 分类跟着卡片保留：用户重新钉入时不必再选一次。
-        return dao.updateSpacePin(safeId, false, card.spaceCategory, clock()) > 0
+        return commitMutex.withLock {
+            val card = dao.getById(safeId) ?: return@withLock false
+            // 分类跟着卡片保留：用户重新钉入时不必再选一次。
+            dao.updateSpacePin(safeId, false, card.spaceCategory, maxOf(clock(), card.updatedAt + 1L)) > 0
+        }
     }
 
     /** 修改自动刷新策略；[intervalMinutes] 为 0 表示关闭自动刷新。 */
-    suspend fun setRefreshPolicy(
-        cardId: String,
-        intervalMinutes: Int,
-        refreshPrompt: String = "",
-    ): Boolean {
-        val card = dao.getById(cardId.trim()) ?: return false
-        val ts = clock()
-        return dao.updateSpaceRefresh(
-            id = card.id,
-            intervalMinutes = normalizeInterval(intervalMinutes),
-            refreshPrompt = normalizePrompt(refreshPrompt),
-            lastRefreshedAt = card.lastRefreshedAt,
-            updatedAt = ts,
-        ) > 0
+    suspend fun setRefreshPolicy(cardId: String, intervalMinutes: Int, refreshPrompt: String = ""): Boolean {
+        val normalizedInterval = normalizeInterval(intervalMinutes)
+        val updated = commitMutex.withLock {
+            val card = dao.getById(cardId.trim()) ?: return@withLock false
+            val ts = maxOf(clock(), card.updatedAt + 1L)
+            dao.updateSpaceRefresh(
+                id = card.id,
+                intervalMinutes = normalizedInterval,
+                refreshPrompt = normalizePrompt(refreshPrompt),
+                lastRefreshedAt = card.lastRefreshedAt,
+                updatedAt = ts,
+            ) > 0
+        }
+        if (updated && normalizedInterval == 0) clearRetry(cardId.trim())
+        return updated
     }
 
     /** 立即刷新一张已钉入卡片；卡片不存在返回 null，未钉入返回 Skipped。 */
@@ -209,7 +249,7 @@ class AgentSpaceEngine(
         if (!card.spacePinned) {
             return SpaceRefreshOutcome.Skipped(card.id, REASON_NOT_PINNED)
         }
-        return performRefresh(card, clock())
+        return performRefresh(card, clock(), force = true)
     }
 
     /**
@@ -220,13 +260,14 @@ class AgentSpaceEngine(
      */
     suspend fun refreshDue(at: Long = clock()): List<SpaceRefreshOutcome> {
         val pinned = dao.observePinnedSpaces().first()
-        return pinned.filter { isDue(it, at) }.map { card ->
+        return pinned.filter { isDue(it, at) && at >= (retryNotBefore[it.id] ?: 0L) }.map { card ->
             try {
-                performRefresh(card, at)
+                performRefresh(card, at, force = false)
             } catch (e: CancellationException) {
                 throw e
-            } catch (e: Exception) {
+            } catch (e: java.io.IOException) {
                 Logger.w(TAG, "space refresh due failed: " + card.id + ": " + e.message, e)
+                scheduleRetry(card.id, at, e.message ?: e.javaClass.simpleName)
                 SpaceRefreshOutcome.Failed(card.id, e.message ?: e.javaClass.simpleName)
             }
         }
@@ -241,7 +282,7 @@ class AgentSpaceEngine(
                     refreshDue()
                 } catch (e: CancellationException) {
                     throw e
-                } catch (e: Exception) {
+                } catch (e: java.io.IOException) {
                     Logger.w(TAG, "space refresh loop failed: " + e.message, e)
                 }
                 delay(pollIntervalMs)
@@ -261,8 +302,8 @@ class AgentSpaceEngine(
         refreshPrompt: String,
         sourceCardId: String?,
         explicitData: String?,
-    ): CardEntity? {
-        val ts = clock()
+    ): CardEntity? = commitMutex.withLock {
+        val ts = maxOf(clock(), card.updatedAt + 1L)
         val safeCategory = normalizeCategory(category.ifBlank { card.spaceCategory })
         val safeInterval = normalizeInterval(refreshIntervalMinutes)
         val safePrompt = normalizePrompt(refreshPrompt)
@@ -286,51 +327,129 @@ class AgentSpaceEngine(
         if (!seed.isNullOrBlank()) {
             dataWriter.write(stored.id, seed)
         }
-        return stored
+        stored
     }
 
     @Suppress("ReturnCount") // 每种失败路径都在同一处记录明确原因；压成单一出口会把原因降级成状态字符串
-    private suspend fun performRefresh(card: CardEntity, at: Long): SpaceRefreshOutcome = refreshMutex.withLock {
-        val current = dao.getById(card.id)
-        if (current == null) {
-            return@withLock SpaceRefreshOutcome.Skipped(card.id, REASON_MISSING)
+    private suspend fun performRefresh(
+        card: CardEntity,
+        at: Long,
+        force: Boolean,
+    ): SpaceRefreshOutcome {
+        if (!inFlightCards.add(card.id)) {
+            return SpaceRefreshOutcome.Skipped(card.id, REASON_ALREADY_REFRESHING)
         }
-        if (!current.spacePinned) {
-            return@withLock SpaceRefreshOutcome.Skipped(current.id, REASON_NOT_PINNED)
+        try {
+            val snapshot = commitMutex.withLock {
+                val current = dao.getById(card.id) ?: return@withLock null
+                if (!current.spacePinned || (!force && !isDue(current, at))) return@withLock null
+                RefreshSnapshot(current, dataWriter.snapshot(current.id))
+            }
+            if (snapshot == null) {
+                val current = dao.getById(card.id)
+                return when {
+                    current == null -> SpaceRefreshOutcome.Skipped(card.id, REASON_MISSING)
+                    !current.spacePinned -> SpaceRefreshOutcome.Skipped(card.id, REASON_NOT_PINNED)
+                    else -> SpaceRefreshOutcome.Skipped(card.id, REASON_NOT_DUE)
+                }
+            }
+            val current = snapshot.card
+            val previous = snapshot.data.data ?: current.dataJson
+            val raw = try {
+                refresher.refresh(current, previous)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: java.io.IOException) {
+                val reason = e.message ?: e.javaClass.simpleName
+                Logger.w(TAG, "space refresh failed: " + current.id + ": " + reason, e)
+                scheduleRetry(current.id, at, reason)
+                return SpaceRefreshOutcome.Failed(current.id, reason)
+            }
+            if (raw == null) {
+                val committed = commitMutex.withLock {
+                    if (!snapshotStillCurrent(snapshot)) return@withLock false
+                    commitRefreshTimestamp(current, at) > 0
+                }
+                if (!committed) return SpaceRefreshOutcome.Skipped(current.id, REASON_CHANGED_DURING_REFRESH)
+                clearRetry(current.id)
+                return SpaceRefreshOutcome.Unchanged(current.id, at)
+            }
+            val json = normalizeRefreshJson(raw)
+            if (json == null) {
+                Logger.w(TAG, "space refresh rejected invalid json: " + current.id)
+                scheduleRetry(current.id, at, REASON_INVALID_JSON)
+                return SpaceRefreshOutcome.Failed(current.id, REASON_INVALID_JSON)
+            }
+            val committed = commitMutex.withLock {
+                if (!snapshotStillCurrent(snapshot)) return@withLock SpaceCommitResult.Changed
+                val writtenRevision = try {
+                    dataWriter.compareAndWrite(current.id, snapshot.data, json)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: java.io.IOException) {
+                    val reason = e.message ?: e.javaClass.simpleName
+                    Logger.w(TAG, "space refresh write failed: " + current.id + ": " + reason, e)
+                    scheduleRetry(current.id, at, reason)
+                    return@withLock SpaceCommitResult.Failed(reason)
+                }
+                if (writtenRevision == null) return@withLock SpaceCommitResult.Changed
+                if (commitRefreshTimestamp(current, at) > 0) {
+                    SpaceCommitResult.Committed
+                } else {
+                    dataWriter.compareAndRestore(current.id, writtenRevision, snapshot.data)
+                    SpaceCommitResult.Changed
+                }
+            }
+            when (committed) {
+                SpaceCommitResult.Committed -> Unit
+                SpaceCommitResult.Changed -> return SpaceRefreshOutcome.Skipped(current.id, REASON_CHANGED_DURING_REFRESH)
+                is SpaceCommitResult.Failed -> return SpaceRefreshOutcome.Failed(current.id, committed.reason)
+            }
+            clearRetry(current.id)
+            return SpaceRefreshOutcome.Refreshed(current.id, at, json.length)
+        } finally {
+            inFlightCards.remove(card.id)
         }
-        val previous = dataWriter.read(current.id) ?: current.dataJson
-        val raw = try {
-            refresher.refresh(current, previous)
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            Logger.w(TAG, "space refresh failed: " + current.id + ": " + e.message, e)
-            return@withLock SpaceRefreshOutcome.Failed(current.id, e.message ?: e.javaClass.simpleName)
-        }
-        if (raw == null) {
-            dao.updateSpaceRefresh(
-                id = current.id,
-                intervalMinutes = current.refreshIntervalMinutes,
-                refreshPrompt = current.refreshPrompt,
-                lastRefreshedAt = at,
-                updatedAt = at,
-            )
-            return@withLock SpaceRefreshOutcome.Unchanged(current.id, at)
-        }
-        val json = normalizeRefreshJson(raw)
-        if (json == null) {
-            Logger.w(TAG, "space refresh rejected invalid json: " + current.id)
-            return@withLock SpaceRefreshOutcome.Failed(current.id, REASON_INVALID_JSON)
-        }
-        dataWriter.write(current.id, json)
-        dao.updateSpaceRefresh(
-            id = current.id,
-            intervalMinutes = current.refreshIntervalMinutes,
-            refreshPrompt = current.refreshPrompt,
-            lastRefreshedAt = at,
-            updatedAt = at,
-        )
-        SpaceRefreshOutcome.Refreshed(current.id, at, json.length)
+    }
+
+    private suspend fun snapshotStillCurrent(snapshot: RefreshSnapshot): Boolean {
+        val latest = dao.getById(snapshot.card.id) ?: return false
+        return latest.spacePinned &&
+            latest.updatedAt == snapshot.card.updatedAt &&
+            latest.refreshIntervalMinutes == snapshot.card.refreshIntervalMinutes &&
+            latest.refreshPrompt == snapshot.card.refreshPrompt &&
+            dataWriter.snapshot(snapshot.card.id) == snapshot.data
+    }
+
+    private data class RefreshSnapshot(val card: CardEntity, val data: SpaceCardDataSnapshot)
+
+    private sealed interface SpaceCommitResult {
+        data object Committed : SpaceCommitResult
+        data object Changed : SpaceCommitResult
+        data class Failed(val reason: String) : SpaceCommitResult
+    }
+
+    private suspend fun commitRefreshTimestamp(card: CardEntity, at: Long): Int = dao.commitSpaceRefreshIfUnchanged(
+        id = card.id,
+        expectedUpdatedAt = card.updatedAt,
+        expectedInterval = card.refreshIntervalMinutes,
+        expectedPrompt = card.refreshPrompt,
+        lastRefreshedAt = at,
+        updatedAt = maxOf(at, card.updatedAt + 1L),
+    )
+
+    private fun scheduleRetry(cardId: String, at: Long, reason: String) {
+        val attempt = ((retryAttempts[cardId] ?: 0) + 1).coerceAtMost(MAX_RETRY_ATTEMPTS)
+        retryAttempts[cardId] = attempt
+        val delay = minOf(RETRY_BASE_DELAY_MS * (1L shl (attempt - 1)), RETRY_MAX_DELAY_MS)
+        retryNotBefore[cardId] = at + delay
+        _refreshFailures.update { it + (cardId to SpaceRefreshFailure(reason, at + delay)) }
+    }
+
+    private fun clearRetry(cardId: String) {
+        retryAttempts.remove(cardId)
+        retryNotBefore.remove(cardId)
+        _refreshFailures.update { it - cardId }
     }
 
     /** 是否到了自动刷新时间；未钉入或关闭自动刷新的卡永远不自动刷新。 */
@@ -359,6 +478,12 @@ class AgentSpaceEngine(
         private const val REASON_MISSING = "card missing"
         private const val REASON_NOT_PINNED = "not pinned"
         private const val REASON_INVALID_JSON = "invalid json"
+        private const val REASON_NOT_DUE = "refresh is not due"
+        private const val REASON_ALREADY_REFRESHING = "refresh already running"
+        private const val REASON_CHANGED_DURING_REFRESH = "card changed during refresh"
+        private const val MAX_RETRY_ATTEMPTS = 8
+        private const val RETRY_BASE_DELAY_MS = 60_000L
+        private const val RETRY_MAX_DELAY_MS = 60 * 60_000L
 
         private val TITLE_TAG_REGEX = Regex("(?is)<title[^>]*>(.*?)</title>")
         private val HEADING_TAG_REGEX = Regex("(?is)<h[12][^>]*>(.*?)</h[12]>")
@@ -440,6 +565,8 @@ sealed interface SpaceRefreshOutcome {
         val reason: String,
     ) : SpaceRefreshOutcome
 }
+
+data class SpaceRefreshFailure(val reason: String, val retryAt: Long)
 
 /**
  * 后台刷新实现：用一次轻量模型调用，把卡片当前数据按 refreshPrompt 更新为新的 JSON。
@@ -523,7 +650,7 @@ class LlmSpaceCardRefresher(
             4. Never invent precise numbers without a source.
         """.trimIndent()
 
-        val FINAL_INSTRUCTION_ZH = "请输出更新后的 JSON 数据。"
-        val FINAL_INSTRUCTION_EN = "Output the updated JSON data."
+        const val FINAL_INSTRUCTION_ZH = "请输出更新后的 JSON 数据。"
+        const val FINAL_INSTRUCTION_EN = "Output the updated JSON data."
     }
 }

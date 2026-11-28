@@ -13,7 +13,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import io.zer0.muse.ui.screen.NotificationListenerScreen
 
 /**
  * UI 自动化管理器 —— 三层执行器的统一入口。
@@ -47,6 +46,7 @@ class AutomationManager(
     private val coordinator: PermissionCoordinator? = null,
 ) {
     val accessibility = AccessibilityExecutor(context)
+    internal val appContext: Context get() = context
 
     // UI 自动化 Shell 与状态检查共用同一个 Shizuku 授权器，避免“显示已授权、执行却走普通 sh”。
     val shell = shellExecutor
@@ -292,8 +292,25 @@ class AutomationManager(
      * 所以比 `readScreen()` 便宜得多，适合每次动作前都查一遍坐标。
      * 拿不到时是 0x0 —— 那种情况调用方必须放行（见 `boundsIssue`）。
      */
-    fun screenSize(): Pair<Int, Int> = context.resources.displayMetrics.let {
-        it.widthPixels to it.heightPixels
+    fun screenSize(): Pair<Int, Int> {
+        val wm = runCatching {
+            context.getSystemService(Context.WINDOW_SERVICE) as? android.view.WindowManager
+        }.getOrNull()
+        if (wm != null) {
+            val real = runCatching {
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                    val b = wm.currentWindowMetrics.bounds
+                    b.width() to b.height()
+                } else {
+                    val dm = android.util.DisplayMetrics()
+                    @Suppress("DEPRECATION")
+                    wm.defaultDisplay?.getRealMetrics(dm)
+                    dm.widthPixels to dm.heightPixels
+                }
+            }.getOrNull()
+            if (real != null && real.first > 0 && real.second > 0) return real
+        }
+        return context.resources.displayMetrics.let { it.widthPixels to it.heightPixels }
     }
 
     /** 单点越界的确定原因；`null` = 在界内或尺寸未知。 */
@@ -325,13 +342,12 @@ class AutomationManager(
 
     /** 滑动。 */
     suspend fun swipe(x1: Int, y1: Int, x2: Int, y2: Int, durationMs: Long = 400): Boolean = mutex.withLock {
-        if (accessibility.isAvailable()) {
-            accessibility.swipe(x1, y1, x2, y2, durationMs)
-        } else if (shell.isAvailable()) {
-            shell.swipe(x1, y1, x2, y2, durationMs)
-        } else {
-            root.swipe(x1, y1, x2, y2, durationMs)
-        }
+        runOnTier(
+            "swipe",
+            { accessibility.swipe(x1, y1, x2, y2, durationMs) },
+            { shell.swipe(x1, y1, x2, y2, durationMs) },
+            { root.swipe(x1, y1, x2, y2, durationMs) },
+        )
     }
 
     /**
@@ -340,6 +356,7 @@ class AutomationManager(
      */
     suspend fun pinch(centerX: Int, centerY: Int, startDistance: Int, endDistance: Int, durationMs: Long = 300): Boolean = mutex.withLock {
         if (accessibility.isAvailable()) {
+            lastActionTier = PermissionLevel.ACCESSIBILITY
             accessibility.pinch(centerX, centerY, startDistance, endDistance, durationMs)
         } else {
             false
@@ -348,19 +365,21 @@ class AutomationManager(
 
     /**
      * 多段滑动：**只有无障碍**能逐点注入。
-     *
-     * Shell/Root 的 input 命令只能直线滑动 —— 旧实现会把多段路径悄悄降级成「首点→末点」，
-     * 那是**另一个手势**（图案解锁会变成一条直线），比直接失败危险。现在 >2 点时明确拒绝。
      */
     suspend fun swipePath(points: List<Pair<Int, Int>>, durationMs: Long = 400): Boolean = mutex.withLock {
         if (points.size < 2) return@withLock false
-        if (accessibility.isAvailable()) return@withLock accessibility.swipePath(points, durationMs)
+        if (accessibility.isAvailable()) {
+            lastActionTier = PermissionLevel.ACCESSIBILITY
+            return@withLock accessibility.swipePath(points, durationMs)
+        }
         if (points.size > 2) return@withLock false
         val first = points.first()
         val last = points.last()
         if (shell.isAvailable()) {
+            lastActionTier = PermissionLevel.SHELL
             shell.swipe(first.first, first.second, last.first, last.second, durationMs)
         } else {
+            lastActionTier = PermissionLevel.ROOT
             root.swipe(first.first, first.second, last.first, last.second, durationMs)
         }
     }
@@ -368,14 +387,21 @@ class AutomationManager(
     /** 多段路径手势是否可用（只有无障碍能注入多段；Shell/Root 只能直线）。 */
     suspend fun supportsMultiPointGesture(): Boolean = accessibility.isAvailable()
 
-    /** 输入文本。 */
+    /** 输入文本：无障碍失败后允许按链路降级到 Shell / Root（剪贴板 + KEYCODE_PASTE）。 */
     suspend fun inputText(text: String): Boolean = mutex.withLock {
-        runOnTier(
-            "inputText",
-            { accessibility.inputText(text) },
-            { shell.inputText(text) },
-            { root.inputText(text) },
-        )
+        if (accessibility.isAvailable()) {
+            lastActionTier = PermissionLevel.ACCESSIBILITY
+            if (runCatching { accessibility.inputText(text) }.getOrDefault(false)) return@withLock true
+        }
+        if (shell.isAvailable()) {
+            lastActionTier = PermissionLevel.SHELL
+            if (runCatching { shell.inputText(text) }.getOrDefault(false)) return@withLock true
+        }
+        if (root.isAvailable()) {
+            lastActionTier = PermissionLevel.ROOT
+            return@withLock runCatching { root.inputText(text) }.getOrDefault(false)
+        }
+        false
     }
 
     /** 按键。 */
@@ -558,13 +584,18 @@ class AutomationManager(
      */
     suspend fun doubleTap(x: Int, y: Int): Boolean = mutex.withLock {
         if (accessibility.isAvailable()) {
+            lastActionTier = PermissionLevel.ACCESSIBILITY
             // dispatchGesture 无法在一个手势里叠两次点击,用两次快速点击近似双击。
             if (accessibility.tap(x, y)) {
                 kotlinx.coroutines.delay(100)
                 return@withLock accessibility.tap(x, y)
             }
         }
-        if (shell.isAvailable()) return@withLock shell.tap(x, y) && shell.tap(x, y)
+        if (shell.isAvailable()) {
+            lastActionTier = PermissionLevel.SHELL
+            return@withLock shell.tap(x, y) && shell.tap(x, y)
+        }
+        lastActionTier = PermissionLevel.ROOT
         root.tap(x, y) && root.tap(x, y)
     }
 
@@ -661,7 +692,7 @@ class AutomationManager(
     }
 
     suspend fun highestLevel(): PermissionLevel {
-        val s = _permissionState.value
+        val s = liveSnapshot()
         return when {
             s.rootEnabled -> PermissionLevel.ROOT
             s.shellEnabled -> PermissionLevel.SHELL

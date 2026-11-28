@@ -1,10 +1,10 @@
 package io.zer0.muse.data.agentbot
 
-import java.io.File
-import javax.xml.parsers.DocumentBuilderFactory
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.w3c.dom.Element
+import java.io.File
+import javax.xml.parsers.DocumentBuilderFactory
 
 class AgentBotLocaleCoverageTest {
 

@@ -14,7 +14,11 @@ import io.zer0.muse.vision.VisionAnalysisException
 import io.zer0.muse.vision.VisionBridge
 import io.zer0.muse.vision.VisionImagePreprocessor
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
@@ -90,6 +94,34 @@ class UiAgentRunner(
         val resolvedDisplayMode = surface.displayMode
         var virtualDisplayId = surface.virtualDisplayId
         var virtualDisplayRefreshes = 0
+        val runJob = currentCoroutineContext()[kotlinx.coroutines.Job]
+        val realContext = runCatching { manager.appContext.applicationContext }.getOrNull()
+        val statusOverlay = if (virtualDisplayId == null && realContext != null) {
+            io.zer0.muse.automation.ui.AutomationStatusOverlay(realContext).also { ov ->
+                ov.show("AI 自动操作进行中") { runJob?.cancel() }
+            }
+        } else {
+            null
+        }
+        val progressBus = runCatching {
+            org.koin.java.KoinJavaComponent.getOrNull<io.zer0.muse.data.agentbot.LiveMissionProgressBus>(
+                io.zer0.muse.data.agentbot.LiveMissionProgressBus::class.java,
+            )
+        }.getOrNull()
+        if (virtualDisplayId == null) {
+            io.zer0.muse.accessibility.MuseAccessibilityService.setVolumeDownAbortHandler {
+                runJob?.cancel()
+            }
+        } else {
+            progressBus?.reportVirtualDisplay(
+                displayId = virtualDisplayId,
+                packageName = targetPackage.orEmpty(),
+                action = "准备执行",
+            )
+        }
+        var lastScreenHash = 0
+        var lastActionSig: String? = null
+        var stagnantSteps = 0
         try {
             repeat(steps) { index ->
                 val elapsedMs = System.currentTimeMillis() - startedAt
@@ -102,8 +134,7 @@ class UiAgentRunner(
                     )
                 }
                 val stepNo = index + 1
-                // 截屏（含虚拟屏失效后的重建）抽到 captureFrame：这块原来占 40 行，
-                // 混在循环体里让 run() 一直超 LongMethod 阈值。
+                statusOverlay?.update("第 $stepNo/$steps 步")
                 val capture = captureFrame(virtualDisplayId, targetPackage, virtualDisplayRefreshes, history)
                 virtualDisplayId = capture.displayId
                 virtualDisplayRefreshes = capture.refreshes
@@ -117,9 +148,6 @@ class UiAgentRunner(
                                 "可先用 screen_permission_status 检查)。\n$history"
                         },
                     )
-                // 视觉决策（预处理 → 截图尺寸 → 控件树摘要 → 视觉模型 → 协议解析）整块抽出。
-                // 它原来占 run() 近 50 行，且把「基础设施失败」和「模型输出不可解析」两种
-                // 情况混在一个 try 里；现在由 VisionDecision 三分支区分。
                 val (width, height) = screenSize(shot)
                 val decision = decideNextAction(
                     StepContext(
@@ -146,8 +174,6 @@ class UiAgentRunner(
                     if (consecutiveProtocolErrors >= MAX_CONSECUTIVE_PROTOCOL_ERRORS) {
                         return RunResult(false, "模型连续输出不可执行的动作协议,已安全停止。\n动作记录:\n$history")
                     }
-                    // Give the model one bounded chance to correct its format; the previous
-                    // diagnostic is included in history, while no device side effect occurred.
                     return@repeat
                 }
                 consecutiveProtocolErrors = 0
@@ -155,6 +181,30 @@ class UiAgentRunner(
                     return finishOutcome(action, history, stepNo, onProgress)
                 }
 
+                val shotHash = shot.contentHashCode()
+                val actionSig = UiAgentProtocol.describe(action)
+                if (shotHash == lastScreenHash && actionSig == lastActionSig) {
+                    stagnantSteps++
+                } else {
+                    lastScreenHash = shotHash
+                    lastActionSig = actionSig
+                    stagnantSteps = 0
+                }
+                if (stagnantSteps >= MAX_STAGNANT_STEPS) {
+                    return RunResult(
+                        false,
+                        "检测到连续 $MAX_STAGNANT_STEPS 步画面无变化且重复动作($actionSig)，" +
+                            "已安全中止以避免空耗步数。\n动作记录:\n$history",
+                    )
+                }
+
+                virtualDisplayId?.let { vdId ->
+                    progressBus?.reportVirtualDisplay(
+                        displayId = vdId,
+                        packageName = targetPackage.orEmpty(),
+                        action = actionSig,
+                    )
+                }
                 runAction(action, virtualDisplayId, width, height, stepNo, history, onProgress)
             }
             return RunResult(
@@ -163,7 +213,14 @@ class UiAgentRunner(
                     "② 把任务拆成更小的子任务；③ 先用 screen_read 看当前停在哪一步。\n动作记录:\n$history",
             )
         } finally {
+            statusOverlay?.dismiss()
+            if (virtualDisplayId == null) {
+                io.zer0.muse.accessibility.MuseAccessibilityService.setVolumeDownAbortHandler(null)
+            }
             val displayId = virtualDisplayId
+            if (displayId != null) {
+                progressBus?.clearVirtualDisplay(displayId)
+            }
             if (displayId != null && shouldDestroyOnFinish(displayId, handoffOnFinish)) {
                 withContext(NonCancellable) {
                     runCatching { virtualDisplayClient?.destroy(displayId) }
@@ -268,6 +325,9 @@ class UiAgentRunner(
             Base64.encodeToString(ctx.shot, Base64.NO_WRAP),
         ) ?: return VisionDecision.Failed("截图预处理失败(图片为空或格式不支持)；可先用 screen_read 确认当前界面。")
 
+        val imgWidth = prepared.resizedWidth.takeIf { it > 0 } ?: ctx.width
+        val imgHeight = prepared.resizedHeight.takeIf { it > 0 } ?: ctx.height
+
         val screenInfo = runCatching {
             if (ctx.virtualDisplayId != null) {
                 manager.readScreenOnDisplay(ctx.virtualDisplayId)
@@ -277,21 +337,37 @@ class UiAgentRunner(
         }.getOrNull()
 
         val answer = try {
-            vision.askWithImage(
-                prompt = buildPrompt(
-                    ctx.task,
-                    ctx.stepNo,
-                    ctx.steps,
-                    ctx.history,
-                    ctx.width,
-                    ctx.height,
-                    ctx.displayMode,
-                    screenInfo?.takeIf { it.nodes.isNotEmpty() }?.toSummary(maxNodes = 30)
-                        ?.take(MAX_SCREEN_CONTEXT_CHARS),
-                ),
-                imageBase64 = prepared.base64,
-                systemPrompt = AGENT_SYSTEM_PROMPT,
-            )
+            coroutineScope {
+                val keepalive = if (ctx.virtualDisplayId != null) {
+                    launch {
+                        while (isActive) {
+                            delay(VIRTUAL_KEEPALIVE_INTERVAL_MS)
+                            runCatching { virtualDisplayManager?.existingLiveProxy() }
+                        }
+                    }
+                } else {
+                    null
+                }
+                try {
+                    vision.askWithImage(
+                        prompt = buildPrompt(
+                            ctx.task,
+                            ctx.stepNo,
+                            ctx.steps,
+                            ctx.history,
+                            imgWidth,
+                            imgHeight,
+                            ctx.displayMode,
+                            screenInfo?.takeIf { it.nodes.isNotEmpty() }?.toSummary(maxNodes = 30)
+                                ?.take(MAX_SCREEN_CONTEXT_CHARS),
+                        ),
+                        imageBase64 = prepared.base64,
+                        systemPrompt = AGENT_SYSTEM_PROMPT,
+                    )
+                } finally {
+                    keepalive?.cancel()
+                }
+            }
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
         } catch (e: VisionAnalysisException) {
@@ -302,9 +378,37 @@ class UiAgentRunner(
             return VisionDecision.Failed("视觉决策异常:${e.message}")
         }
 
-        val action = UiAgentProtocol.parse(answer)
+        val parsed = UiAgentProtocol.parse(answer)
             ?: return VisionDecision.Unparsable
-        return VisionDecision.Act(action)
+        val scaled = scaleActionForScreen(parsed, imgWidth, imgHeight, ctx.width, ctx.height)
+        return VisionDecision.Act(scaled)
+    }
+
+    internal fun scaleActionForScreen(
+        action: UiAgentProtocol.Action,
+        imgW: Int,
+        imgH: Int,
+        screenW: Int,
+        screenH: Int,
+    ): UiAgentProtocol.Action {
+        if (imgW <= 1 || imgH <= 1 || screenW <= 0 || screenH <= 0 || (imgW == screenW && imgH == screenH)) {
+            return action
+        }
+        return when (action) {
+            is UiAgentProtocol.Action.Tap -> action.copy(
+                x = ((action.x.toLong() * screenW) / imgW).toInt(),
+                y = ((action.y.toLong() * screenH) / imgH).toInt(),
+            )
+            is UiAgentProtocol.Action.Swipe -> action.copy(
+                x1 = ((action.x1.toLong() * screenW) / imgW).toInt(),
+                y1 = ((action.y1.toLong() * screenH) / imgH).toInt(),
+                x2 = ((action.x2.toLong() * screenW) / imgW).toInt(),
+                y2 = ((action.y2.toLong() * screenW) / imgW).let {
+                    ((action.y2.toLong() * screenH) / imgH).toInt()
+                },
+            )
+            else -> action
+        }
     }
 
     /** 一次截屏的结果：帧字节、可能被重建过的 displayId、以及已用掉的刷新次数。 */
@@ -821,8 +925,8 @@ class UiAgentRunner(
     private suspend fun keyEvent(key: String): String = when (key) {
         "back" -> if (manager.back()) "ok" else notReadyHint()
         "home" -> if (manager.home()) "ok" else notReadyHint()
-        "enter" -> execKeyevent(66)
-        "recents", "app_switch" -> execKeyevent(187)
+        "enter" -> if (manager.pressKey(66)) "ok" else execKeyevent(66)
+        "recents", "app_switch" -> if (manager.pressKey(187)) "ok" else execKeyevent(187)
         else -> "未知按键:$key"
     }
 
@@ -883,6 +987,8 @@ class UiAgentRunner(
         const val MAX_BUDGET_MS = 15 * 60 * 1000L
         const val HARD_MAX_STEPS = 30
         private const val STEP_SETTLE_MS = 500L
+        private const val MAX_STAGNANT_STEPS = 3
+        private const val VIRTUAL_KEEPALIVE_INTERVAL_MS = 10_000L
         private const val MAX_INPUT_CHARS = 500
         private const val MAX_SCREEN_CONTEXT_CHARS = 6_000
         private const val MAX_CONSECUTIVE_PROTOCOL_ERRORS = 2

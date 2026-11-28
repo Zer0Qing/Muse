@@ -17,12 +17,10 @@ import kotlinx.coroutines.flow.asStateFlow
  */
 
 /** 内联卡片高度 = min(内容测量高, 上限高)。测量未到（<=0）时按 0 占位，避免先撑大盒再缩。 */
-fun effectiveInlineHeightPx(measuredPx: Int, capPx: Int): Int =
-    if (measuredPx <= 0) 0 else minOf(measuredPx, capPx)
+fun effectiveInlineHeightPx(measuredPx: Int, capPx: Int): Int = if (measuredPx <= 0) 0 else minOf(measuredPx, capPx)
 
 /** 内容测量高是否超过可视上限（超过才有卡内可滚的东西）。测量未到一律 false。 */
-fun hasInlineOverflow(measuredPx: Int, capPx: Int): Boolean =
-    measuredPx > 0 && measuredPx > capPx
+fun hasInlineOverflow(measuredPx: Int, capPx: Int): Boolean = measuredPx > 0 && measuredPx > capPx
 
 enum class CardScrollMode {
     /** 竖滑交回外层聊天列表（默认；未聚焦或没有可滚内容时）。 */
@@ -43,12 +41,8 @@ fun resolveCardScrollMode(focused: Boolean, hasOverflow: Boolean): CardScrollMod
  * 其余情况一律不盖 —— 盖层会吃掉 WebView 里的所有点击（按钮、链接、JS 交互全失效）。
  * 聚焦后 [resolveCardScrollMode] 已切到 InternalScroll，由 WebView 自己滚，也不需要这层。
  */
-fun shouldCaptureTapForFocus(
-    isAutoSize: Boolean,
-    focused: Boolean,
-    hasOverflow: Boolean,
-    hasCardId: Boolean,
-): Boolean = isAutoSize && hasCardId && !focused && hasOverflow
+fun shouldCaptureTapForFocus(isAutoSize: Boolean, focused: Boolean, hasOverflow: Boolean, hasCardId: Boolean): Boolean =
+    isAutoSize && hasCardId && !focused && hasOverflow
 
 /**
  * 全局卡片焦点协调：同一时刻最多一张卡处于「可卡内滚动」的聚焦态。

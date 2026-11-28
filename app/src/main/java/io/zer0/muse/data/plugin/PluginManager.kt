@@ -151,6 +151,9 @@ class PluginManager(
     /** P2-26: 按插件 id 的提交互斥 — 同插件并发安装/卸载串行化,消除 staging 交错覆盖。 */
     private val installLocks = java.util.concurrent.ConcurrentHashMap<String, Mutex>()
 
+    /** In-memory cache of tool card HTML keyed by trimmed toolNameOrSkillId (sentinel marks misses). */
+    private val toolCardHtmlCache = java.util.concurrent.ConcurrentHashMap<String, String>()
+
     /**
      * 读取并审查外部插件包，返回不含源码的安全决策和安装预览。
      */
@@ -865,6 +868,7 @@ class PluginManager(
     }.isSuccess
 
     private fun markRegistryChanged() {
+        toolCardHtmlCache.clear()
         revision.update { it + 1 }
     }
 
@@ -1166,6 +1170,7 @@ class PluginManager(
 
     companion object {
         private const val TAG = "PluginManager"
+        private const val NO_TOOL_CARD_SENTINEL = "\u0000__NO_TOOL_CARD__"
 
         /** 压缩包原始大小上限；与 loader 的解压后上限配合，防止 readBytes/copyTo 无界增长。 */
         internal const val MAX_PLUGIN_PACKAGE_BYTES = 20L * 1024 * 1024
@@ -1313,9 +1318,26 @@ class PluginManager(
      * 见 [skillId])或裸工具名(遍历全部已启用插件匹配)。
      * 路径经 canonical 越界校验;未确认安装/未启用/无声明/文件缺失均返回 null。
      */
+    /** Returns cached HTML for [toolNameOrSkillId] if known, or null on miss/uncached. */
+    fun getCachedToolCardHtml(toolNameOrSkillId: String): String? {
+        val key = toolNameOrSkillId.trim()
+        if (key.isBlank()) return null
+        val cachedValue = toolCardHtmlCache[key] ?: return null
+        return if (cachedValue == NO_TOOL_CARD_SENTINEL) null else cachedValue
+    }
+
+    /** Returns true if [toolNameOrSkillId] already has a resolved hit or negative miss in cache. */
+    fun isToolCardHtmlCached(toolNameOrSkillId: String): Boolean {
+        val key = toolNameOrSkillId.trim()
+        return key.isBlank() || toolCardHtmlCache.containsKey(key)
+    }
+
     fun loadToolCardHtml(toolNameOrSkillId: String): String? {
         val key = toolNameOrSkillId.trim()
         if (key.isBlank()) return null
+        toolCardHtmlCache[key]?.let { hit ->
+            return if (hit == NO_TOOL_CARD_SENTINEL) null else hit
+        }
         val parsed = parsePluginToolId(key)
         val toolName = parsed?.second ?: key
         val candidates = if (parsed != null) {
@@ -1338,8 +1360,12 @@ class PluginManager(
             }.onFailure { error ->
                 Logger.w(TAG, "读取插件工具卡失败: ${plugin.id}/$toolName — ${error.message}")
             }.getOrNull()
-            if (html != null) return html
+            if (html != null) {
+                toolCardHtmlCache[key] = html
+                return html
+            }
         }
+        toolCardHtmlCache[key] = NO_TOOL_CARD_SENTINEL
         return null
     }
 

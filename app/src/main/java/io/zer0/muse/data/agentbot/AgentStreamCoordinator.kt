@@ -11,29 +11,29 @@ import io.zer0.ai.core.ToolDefinition
 import io.zer0.ai.core.UIMessage
 import io.zer0.common.Logger
 import io.zer0.muse.computenode.ComputeTargetRouter
-import io.zer0.muse.data.skill.SkillRepository
 import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.assistant.AssistantRepository
+import io.zer0.muse.data.skill.SkillRepository
 import io.zer0.muse.rag.RagService
-import io.zer0.muse.tools.FindToolsTool
 import io.zer0.muse.tools.RouteTable
 import io.zer0.muse.tools.SessionToolLoadRegistry
 import io.zer0.muse.tools.SkillExecutor
+import io.zer0.muse.tools.ToolApprovalPolicy
 import io.zer0.muse.tools.ToolApprovalRouter
+import io.zer0.muse.tools.ToolApprovalState
 import io.zer0.muse.tools.ToolCallGate
 import io.zer0.muse.tools.ToolConfigStore
 import io.zer0.muse.tools.ToolExecutionContext
 import io.zer0.muse.tools.ToolExposurePolicy
 import io.zer0.muse.tools.ToolRegistry
+import io.zer0.muse.tools.ToolRiskLevel
 import io.zer0.muse.tools.ToolRouteExecutionGuard
 import io.zer0.muse.tools.ToolRouteSnapshot
 import io.zer0.muse.tools.ToolSchemaRules
-import io.zer0.muse.tools.ToolRiskLevel
-import io.zer0.muse.tools.ToolApprovalPolicy
-import io.zer0.muse.tools.ToolApprovalState
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -41,9 +41,6 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 
 /**
@@ -86,14 +83,17 @@ object AgentMentionDispatch {
      * 邮箱、网址里的 '@' 以及已经补完空格的文本都不会触发胶囊条。
      */
     fun activeQuery(text: String): ActiveQuery? {
-        if (text.isEmpty()) return null
-        val at = text.lastIndexOf('@')
-        if (at < 0) return null
-        if (at > 0 && !text[at - 1].isWhitespace()) return null
-        val query = text.substring(at + 1)
-        if (query.length > MAX_NAME_QUERY_CHARS) return null
-        if (query.any { it.isWhitespace() || it == '@' }) return null
-        return ActiveQuery(startIndex = at, query = query)
+        return if (text.isEmpty()) {
+            null
+        } else {
+            val at = text.lastIndexOf('@')
+            val query = if (at >= 0) text.substring(at + 1) else ""
+            val valid = at >= 0 &&
+                (at == 0 || text[at - 1].isWhitespace()) &&
+                query.length <= MAX_NAME_QUERY_CHARS &&
+                query.none { it.isWhitespace() || it == '@' }
+            if (valid) ActiveQuery(startIndex = at, query = query) else null
+        }
     }
 
     /** 按昵称过滤候选；空查询返回全部，最多 [MAX_SUGGESTIONS] 个。 */
@@ -156,8 +156,7 @@ object AgentMentionDispatch {
      *
      * 用户在输入框显式 @ 的队友拥有最高优先级；模型自己填写的 assignee 只在没有 @ 时生效。
      */
-    fun resolveAssignee(declared: String, target: Target?): String =
-        target?.botId?.takeIf { it.isNotBlank() } ?: declared.trim()
+    fun resolveAssignee(declared: String, target: Target?): String = target?.botId?.takeIf { it.isNotBlank() } ?: declared.trim()
 
     private fun removeMention(text: String, at: Int, endExclusive: Int): String {
         var end = endExclusive
@@ -182,19 +181,34 @@ object AgentMentionDispatch {
  * - 即使在流式生成过程中，收到完整或结束后的工具调用也会统一结构化结算，并与
  *   [PublicationService] 保持同样的幂等与 revision 防串话护栏。
  */
+data class AgentStreamCoordinatorDependencies(
+    val toolRegistry: ToolRegistry? = null,
+    val skillRepository: SkillRepository? = null,
+    val skillExecutorProvider: (() -> SkillExecutor)? = null,
+    val toolConfigStore: ToolConfigStore? = null,
+    val settings: io.zer0.muse.data.SettingsRepository? = null,
+    val ragService: RagService? = null,
+    val assistantRepository: AssistantRepository? = null,
+    val agentBotRepository: AgentBotRepository? = null,
+    val foregroundMcpApprovalTimeoutMs: Long = FOREGROUND_MCP_APPROVAL_TIMEOUT_MS,
+)
+
 class AgentStreamCoordinator(
     private val streamingClient: StreamingClient,
     private val publication: PublicationService,
     private val governor: BotResourceGovernor,
-    private val toolRegistry: ToolRegistry? = null,
-    private val skillRepository: SkillRepository? = null,
-    private val skillExecutorProvider: (() -> SkillExecutor)? = null,
-    private val toolConfigStore: ToolConfigStore? = null,
-    private val settings: io.zer0.muse.data.SettingsRepository? = null,
-    private val allowances: ConversationToolAllowanceStore? = null,
-    private val ragService: RagService? = null,
-    private val assistantRepository: AssistantRepository? = null,
+    private val dependencies: AgentStreamCoordinatorDependencies = AgentStreamCoordinatorDependencies(),
 ) {
+
+    private val toolRegistry = dependencies.toolRegistry
+    private val skillRepository = dependencies.skillRepository
+    private val skillExecutorProvider = dependencies.skillExecutorProvider
+    private val toolConfigStore = dependencies.toolConfigStore
+    private val settings = dependencies.settings
+    private val ragService = dependencies.ragService
+    private val assistantRepository = dependencies.assistantRepository
+    private val agentBotRepository = dependencies.agentBotRepository
+    private val foregroundMcpApprovalTimeoutMs = dependencies.foregroundMcpApprovalTimeoutMs
 
     fun interface StreamingClient {
         suspend fun stream(
@@ -316,6 +330,7 @@ class AgentStreamCoordinator(
 
     data class TurnOutcome(
         val text: String = "",
+        val rawText: String = text,
         val reasoning: String = "",
         val reasoningDurationMs: Long? = null,
         val mood: String = "",
@@ -351,6 +366,14 @@ class AgentStreamCoordinator(
         val arguments: StringBuilder = StringBuilder(),
     )
 
+    data class ForegroundMcpApproval(
+        val requestId: String,
+        val serverId: String,
+        val toolName: String,
+        val purpose: String,
+        val argumentsJson: String,
+    )
+
     suspend fun runStreamingTurn(
         identity: AgentTurnIdentity,
         systemPrompt: String,
@@ -373,6 +396,8 @@ class AgentStreamCoordinator(
          * 「读的是 A 空间、写的是 B 空间」。
          */
         memorySpaceId: String? = null,
+        dynamicSystemPrompt: String = "",
+        onMcpApproval: (suspend (ForegroundMcpApproval) -> Boolean)? = null,
     ): TurnOutcome {
         val identityError = identity.validate()
         if (identityError != null) {
@@ -380,35 +405,16 @@ class AgentStreamCoordinator(
             return TurnOutcome(streamError = identityError)
         }
 
-        // @ 指定队友是用户在输入框里的显式指令，必须写进系统提示，模型才会把任务交给
-        // launch_mission 而不是自己抢着做；具体 assignee 由 parseToolCalls 再兜一层强制覆盖。
-        val effectiveSystemPrompt = buildString {
-            if (systemPrompt.isNotBlank()) appendLine(systemPrompt.trim())
+        // 静态系统提示保持稳定以命中前缀缓存；动态信息与 @指定队友放入独立动态 SYSTEM 块。
+        val dynamicBlock = buildString {
+            if (dynamicSystemPrompt.isNotBlank()) appendLine(dynamicSystemPrompt.trim())
             if (mentionTarget != null) {
-                appendLine()
+                if (isNotEmpty()) appendLine()
                 appendLine("## 定向委派")
                 appendLine("- 用户本轮用 @ 指定了队友「${mentionTarget.displayName}」（id=${mentionTarget.botId}）。")
                 appendLine("- 必须调用 `launch_mission` 并把 `assignee_bot_id` 设为该 id，由该队友在后台执行；不要自己执行，也不要改派给其他队友。")
             }
         }.trim()
-
-        val conversationMessages = mutableListOf<UIMessage>().apply {
-            if (effectiveSystemPrompt.isNotBlank()) {
-                add(UIMessage(role = MessageRole.SYSTEM, content = effectiveSystemPrompt))
-            }
-            val ragMessage = buildAgentRagSystemMessage(assistant, userText, identity.sessionId)
-            if (ragMessage != null) {
-                add(ragMessage)
-            }
-            addAll(history)
-            add(
-                UIMessage(
-                    role = MessageRole.USER,
-                    content = userText,
-                    imageBase64List = inputImageBase64List,
-                ),
-            )
-        }
 
         // 没有显式传入时按当前设置兜底一次，之后整轮都使用这个值。
         val turnSpaceId = memorySpaceId?.takeIf { it.isNotBlank() }
@@ -426,12 +432,39 @@ class AgentStreamCoordinator(
         var isThinkingActive = false
         var lastDraftEmitAtMs = 0L
         var pendingDraftChars = 0
+        var lastToolCallSignature: String? = null
 
-        fun buildSanitizedDraft(
-            rawText: String,
-            rawReasoning: String,
-            thinkingNow: Boolean,
-        ): StreamingDraft {
+        val currentUserMessage = UIMessage(
+            role = MessageRole.USER,
+            content = userText,
+            imageBase64List = inputImageBase64List,
+        )
+        val systemMessages = buildList {
+            if (systemPrompt.isNotBlank()) {
+                add(UIMessage(role = MessageRole.SYSTEM, content = systemPrompt.trim()))
+            }
+            if (dynamicBlock.isNotBlank()) {
+                add(UIMessage(role = MessageRole.SYSTEM, content = dynamicBlock))
+            }
+            val ragMessage = buildAgentRagSystemMessage(assistant, userText, identity.sessionId)
+            if (ragMessage != null) {
+                add(ragMessage)
+            }
+        }
+        val trimmedHistory = trimHistoryToContextBudget(
+            systemMessages = systemMessages,
+            history = history,
+            currentUser = currentUserMessage,
+            model = model,
+            toolCount = AGENT_TOOLS.size,
+        )
+        val conversationMessages = mutableListOf<UIMessage>().apply {
+            addAll(systemMessages)
+            addAll(trimmedHistory)
+            add(currentUserMessage)
+        }
+
+        fun buildSanitizedDraft(rawText: String, rawReasoning: String, thinkingNow: Boolean): StreamingDraft {
             val extractedFromBody = io.zer0.muse.transformer.InternalMarkupSanitizer.extractMood(rawText)
             val extractedFromReasoning = if (extractedFromBody == null && rawReasoning.isNotEmpty()) {
                 io.zer0.muse.transformer.InternalMarkupSanitizer.extractMood(rawReasoning)
@@ -457,12 +490,7 @@ class AgentStreamCoordinator(
             )
         }
 
-        fun emitDraftThrottled(
-            rawText: String,
-            rawReasoning: String,
-            deltaLen: Int,
-            force: Boolean = false,
-        ) {
+        fun emitDraftThrottled(rawText: String, rawReasoning: String, deltaLen: Int, force: Boolean = false) {
             pendingDraftChars += deltaLen
             val now = System.currentTimeMillis()
             if (force || pendingDraftChars >= DRAFT_CHAR_THRESHOLD || now - lastDraftEmitAtMs >= DRAFT_INTERVAL_MS) {
@@ -488,6 +516,8 @@ class AgentStreamCoordinator(
 
             val roundTextBuilder = StringBuilder()
             val roundReasoningBuilder = StringBuilder()
+            var roundThinkingSignature: String? = null
+            var roundThinkingEncryptedContent: String? = null
             val toolAccumulators = linkedMapOf<Int, ToolCallAccumulator>()
             val baseTextPrefix = if (totalTextBuilder.isNotEmpty()) {
                 totalTextBuilder.toString() + "\n\n"
@@ -542,6 +572,12 @@ class AgentStreamCoordinator(
                             }
                         }
                         is ChatStreamEvent.ReasoningDelta -> {
+                            if (!event.signature.isNullOrBlank()) {
+                                roundThinkingSignature = event.signature
+                            }
+                            if (!event.encryptedContent.isNullOrBlank()) {
+                                roundThinkingEncryptedContent = event.encryptedContent
+                            }
                             if (event.delta.isNotEmpty()) {
                                 val firstThinking = !isThinkingActive
                                 if (reasoningStartedAtMs == null) {
@@ -619,7 +655,7 @@ class AgentStreamCoordinator(
                 }
             } catch (e: CancellationException) {
                 throw e
-            } catch (e: Exception) {
+            } catch (e: java.io.IOException) {
                 Logger.w(TAG, "流式前台回合异常: ${e.message}", e)
                 streamError = e.message ?: "stream_failed"
             }
@@ -663,10 +699,20 @@ class AgentStreamCoordinator(
             if (execCalls.isEmpty() || streamError != null || activeToolset == null) {
                 break@loop
             }
+            val roundSignature = execCalls.joinToString("|") { "${it.name}:${it.arguments}" }
+            if (roundSignature == lastToolCallSignature) {
+                Logger.w(TAG, "第 ${round + 1} 轮检测到连续重复工具调用，提前结束前台循环: $roundSignature")
+                break@loop
+            }
+            lastToolCallSignature = roundSignature
 
             conversationMessages += UIMessage(
                 role = MessageRole.ASSISTANT,
                 content = roundTextBuilder.toString(),
+                reasoning = roundReasoningBuilder.toString().takeIf { it.isNotEmpty() },
+                thinkingSignature = roundThinkingSignature,
+                thinkingEncryptedContent = roundThinkingEncryptedContent,
+                modelId = model?.id,
                 toolCalls = roundToolCalls,
             )
             for (tc in roundToolCalls) {
@@ -677,7 +723,13 @@ class AgentStreamCoordinator(
                         toolCallId = tc.id,
                     )
                 } else {
-                    val toolOutput = executeForegroundHostTool(identity, tc, activeToolset, turnSpaceId)
+                    val toolOutput = executeForegroundHostTool(
+                        identity = identity,
+                        tc = tc,
+                        hostToolset = activeToolset,
+                        spaceId = turnSpaceId,
+                        onMcpApproval = onMcpApproval,
+                    )
                     stickyToolNames += tc.name
                     conversationMessages += UIMessage(
                         role = MessageRole.TOOL,
@@ -767,6 +819,7 @@ class AgentStreamCoordinator(
 
         return TurnOutcome(
             text = effectiveText,
+            rawText = rawReplyText,
             reasoning = finalReasoning,
             reasoningDurationMs = finalReasoningDurationMs,
             mood = finalMood,
@@ -796,14 +849,11 @@ class AgentStreamCoordinator(
 
     // 这里的多个提前返回都是 fail-closed 门禁：任一条件不满足就不注入，不能退化成放开检索。
     @Suppress("ReturnCount", "CyclomaticComplexMethod")
-    private suspend fun buildAgentRagSystemMessage(
-        assistant: AssistantEntity?,
-        userText: String,
-        sessionId: String,
-    ): UIMessage? {
+    private suspend fun buildAgentRagSystemMessage(assistant: AssistantEntity?, userText: String, sessionId: String): UIMessage? {
         val service = ragService ?: return null
         val repo = settings ?: return null
-        val query = userText.trim().takeIf { it.isNotBlank() } ?: return null
+        val query = io.zer0.muse.rag.HybridSearchService.sanitizeQueryForRag(userText)
+            .takeIf { it.isNotBlank() } ?: return null
         val baseConfig = runCatching { repo.getRagConfig() }.getOrNull() ?: return null
         val effectiveConfig = assistant?.let { a ->
             runCatching { assistantRepository?.mergeRagConfigOverride(a, baseConfig) }.getOrNull()
@@ -869,10 +919,7 @@ class AgentStreamCoordinator(
         return service.activeAttachmentDocIds(sessionId)
     }
 
-    private suspend fun buildHostToolset(
-        sessionId: String,
-        assistant: AssistantEntity?,
-    ): HostToolset? {
+    private suspend fun buildHostToolset(sessionId: String, assistant: AssistantEntity?): HostToolset? {
         val registry = toolRegistry ?: return null
         val deniedToolNames = runCatching {
             toolConfigStore?.policiesFlow?.first()
@@ -917,58 +964,127 @@ class AgentStreamCoordinator(
         tc: ToolCall,
         hostToolset: HostToolset,
         spaceId: String,
+        onMcpApproval: (suspend (ForegroundMcpApproval) -> Boolean)?,
     ): String {
-        val registry = toolRegistry ?: return "Error: 工具注册表不可用"
-        val store = toolConfigStore ?: return "Error: 工具策略不可用"
-        val gate = ToolCallGate(ToolApprovalRouter(), registry, store, settings)
-        when (val localState = gate.resolveLocalState(tc.name, tc.arguments)) {
+        return when (val preparation = prepareForegroundTool(identity, tc, hostToolset, spaceId, onMcpApproval)) {
+            is ForegroundToolPreparation.Rejected -> preparation.message
+            is ForegroundToolPreparation.Ready -> executePreparedForegroundTool(tc, hostToolset, preparation)
+        }
+    }
+
+    private suspend fun prepareForegroundTool(
+        identity: AgentTurnIdentity,
+        tc: ToolCall,
+        hostToolset: HostToolset,
+        spaceId: String,
+        onMcpApproval: (suspend (ForegroundMcpApproval) -> Boolean)?,
+    ): ForegroundToolPreparation {
+        val registry = toolRegistry ?: return ForegroundToolPreparation.Rejected("Error: 工具注册表不可用")
+        val route = hostToolset.snapshot.routeFor(tc.name)
+            ?: return ForegroundToolPreparation.Rejected("Error: 当前助手无法使用工具 ${tc.name}。")
+        val store = toolConfigStore ?: return ForegroundToolPreparation.Rejected("Error: 工具策略不可用")
+        when (val localState = ToolCallGate(ToolApprovalRouter(), registry, store, settings)
+            .resolveLocalState(tc.name, tc.arguments)) {
             is ToolApprovalState.Auto, is ToolApprovalState.Approved -> Unit
-            is ToolApprovalState.Denied -> {
-                return "Error: 工具 '${tc.name}' 未获批准(${localState.reason.ifBlank { "策略不允许" }})"
-            }
-            is ToolApprovalState.Pending, is ToolApprovalState.Answered -> {
-                val allowedInSession = allowances?.isAllowed(identity.sessionId, tc.name) == true
-                if (!allowedInSession) {
-                    return "ApprovalRequired: 工具 '${tc.name}' 需由用户在审批卡片中拍板；请调用 launch_mission 派发后台任务以弹出审批卡片，或在提示用户开启完全放权后重试。"
-                }
+            is ToolApprovalState.Denied -> return ForegroundToolPreparation.Rejected(
+                "Error: 工具 '${tc.name}' 未获批准(${localState.reason.ifBlank { "策略不允许" }})",
+            )
+            is ToolApprovalState.Answered -> return ForegroundToolPreparation.Rejected(
+                "Error: 工具 '${tc.name}' 未获批准，调用未执行。",
+            )
+            is ToolApprovalState.Pending -> {
+                val rejection = requestForegroundApproval(identity, tc, registry, onMcpApproval)
+                if (rejection != null) return ForegroundToolPreparation.Rejected(rejection)
             }
         }
-        // scope 必须跟着身份走：主助手的作用域是 "main"，子助手是它自己的 id。
-        // 写死 "main" 时，子助手前台回合里的 save_memory/search_memory 会读写主助手的库，
-        // 看起来「记忆串了」，实际是两个作用域被拼成了一个。
-        val execContext = ToolExecutionContext(
+        val executionContext = ToolExecutionContext(
             scope = if (identity.assistantId == "default") "main" else identity.assistantId,
             spaceId = spaceId,
             assistantId = identity.assistantId,
             sessionId = identity.sessionId,
-        )
-        return runCatching {
-            val route = hostToolset.snapshot.routeFor(tc.name)
-            val executor = skillExecutorProvider?.invoke()
-            when (route) {
-                is ToolRouteSnapshot.Route.Skill -> {
-                    executor?.execute(
-                        skill = route.skill,
-                        argumentsJson = tc.arguments,
-                        sessionId = identity.sessionId,
-                    ) ?: "Error: SkillExecutor 未就绪"
-                }
-                ToolRouteSnapshot.Route.Local -> {
-                    ToolRouteExecutionGuard(registry).executeFromJson(
-                        name = tc.name,
-                        argumentsJson = tc.arguments,
-                        snapshot = hostToolset.snapshot,
-                        executionContext = execContext,
+            onRemoteExecStarted = agentBotRepository?.let { repository ->
+                { nodeId, remoteRunId ->
+                    val recorded = repository.recordRemoteExecOwner(
+                        nodeId = nodeId,
+                        remoteRunId = remoteRunId,
+                        botId = identity.assistantId,
+                        originSessionId = identity.sessionId,
                     )
+                    check(recorded) { "remote execution owner could not be recorded" }
                 }
-                null -> "Error: 工具 '${tc.name}' 不在当前会话允许的工具面中"
-            }
-        }.onFailure { e ->
-            if (e is CancellationException) throw e
-            Logger.w(TAG, "前台执行工具 ${tc.name} 失败: ${e.message}", e)
-        }.getOrElse { e ->
-            "Error: ${e.message ?: e.javaClass.simpleName}"
+            },
+        )
+        return ForegroundToolPreparation.Ready(registry, route, executionContext)
+    }
+
+    private suspend fun requestForegroundApproval(
+        identity: AgentTurnIdentity,
+        tc: ToolCall,
+        registry: ToolRegistry,
+        onMcpApproval: (suspend (ForegroundMcpApproval) -> Boolean)?,
+    ): String? {
+        val definition = registry.listTools().firstOrNull { it.name == tc.name }
+        if (definition?.category != "mcp" || onMcpApproval == null) {
+            return "Error: 工具 '${tc.name}' 需要用户批准，但当前回合没有可用的审批入口；调用未执行。"
         }
+        val requestId = "${identity.requestId}:${tc.id}:${tc.name}"
+        val approved = try {
+            withTimeoutOrNull(foregroundMcpApprovalTimeoutMs.coerceAtLeast(1L)) {
+                onMcpApproval(
+                    ForegroundMcpApproval(
+                        requestId = requestId,
+                        serverId = tc.name.removePrefix("mcp_").substringBefore("__"),
+                        toolName = tc.name.substringAfter("__", tc.name),
+                        purpose = definition.description.substringAfter("] ", definition.description),
+                        argumentsJson = tc.arguments,
+                    ),
+                )
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: java.io.IOException) {
+            Logger.w(TAG, "前台 MCP 审批入口异常，拒绝本次调用: ${e.message}", e)
+            return "Error: MCP 工具审批未能完成；本次调用未执行。"
+        }
+        return when (approved) {
+            null -> "Error: MCP 工具审批超时；本次调用未执行。"
+            false -> "Error: 用户拒绝了 MCP 工具 '${tc.name}' 的本次调用；调用未执行。"
+            true -> null
+        }
+    }
+
+    private suspend fun executePreparedForegroundTool(
+        tc: ToolCall,
+        hostToolset: HostToolset,
+        preparation: ForegroundToolPreparation.Ready,
+    ): String = runCatching {
+        val executor = skillExecutorProvider?.invoke()
+        when (val route = preparation.route) {
+            is ToolRouteSnapshot.Route.Skill -> executor?.execute(
+                skill = route.skill,
+                argumentsJson = tc.arguments,
+                sessionId = preparation.executionContext.sessionId,
+            ) ?: "Error: SkillExecutor 未就绪"
+            ToolRouteSnapshot.Route.Local -> ToolRouteExecutionGuard(preparation.registry).executeFromJson(
+                name = tc.name,
+                argumentsJson = tc.arguments,
+                snapshot = hostToolset.snapshot,
+                executionContext = preparation.executionContext,
+            )
+        }
+    }.onFailure { e ->
+        if (e is CancellationException) throw e
+        Logger.w(TAG, "前台执行工具 ${tc.name} 失败: ${e.message}", e)
+    }.getOrElse { e -> "Error: ${e.message ?: e.javaClass.simpleName}" }
+
+    private sealed interface ForegroundToolPreparation {
+        data class Ready(
+            val registry: ToolRegistry,
+            val route: ToolRouteSnapshot.Route,
+            val executionContext: ToolExecutionContext,
+        ) : ForegroundToolPreparation
+
+        data class Rejected(val message: String) : ForegroundToolPreparation
     }
 
     private data class ParsedActions(
@@ -988,7 +1104,181 @@ class AgentStreamCoordinator(
         fallbackText: String,
         mentionTarget: AgentMentionDispatch.Target? = null,
     ): ParsedActions {
-        var explicitSay = ""
+        val actions = ParsedActionsAccumulator()
+        toolCalls.forEach { call ->
+            val args = runCatching {
+                json.parseToJsonElement(call.arguments) as? JsonObject
+            }.onFailure {
+                Logger.w(TAG, "流式工具参数解析失败(${call.name}): ${it.message}")
+            }.getOrNull()
+            appendParsedToolCall(call.name, args, mentionTarget, actions)
+        }
+        return actions.build(fallbackText)
+    }
+
+    private fun appendParsedToolCall(
+        name: String,
+        args: JsonObject?,
+        mentionTarget: AgentMentionDispatch.Target?,
+        actions: ParsedActionsAccumulator,
+    ) {
+        when (name) {
+            TOOL_REACT -> appendReaction(args, actions)
+            TOOL_LAUNCH_MISSION, ForegroundCoordinator.TOOL_DISPATCH -> appendDispatch(args, mentionTarget, actions)
+            TOOL_STEER_MISSION -> appendSteering(args, actions)
+            TOOL_OFFER_CHOICES -> appendChoiceOffer(args, actions)
+            TOOL_CREATE_ROUTINE -> appendRoutine(args, actions)
+            TOOL_CREATE_WATCHER -> appendWatcher(args, actions)
+            TOOL_UPSERT_GOAL -> appendGoal(args, actions)
+            TOOL_UPDATE_GOAL_MILESTONE -> appendGoalMilestone(args, actions)
+            ForegroundCoordinator.TOOL_SAY -> args?.str("text").orEmpty().trim()
+                .takeIf { it.isNotBlank() }?.let { actions.explicitSay = it }
+            else -> Logger.w(TAG, "忽略未注册的前台工具: $name")
+        }
+    }
+
+    private fun appendReaction(args: JsonObject?, actions: ParsedActionsAccumulator) {
+        val emoji = args?.str("emoji").orEmpty().trim()
+        if (emoji.isNotBlank()) {
+            actions.reactions += ReactionAction(
+                emoji = emoji.take(MAX_EMOJI_CHARS),
+                targetMessageId = args?.str("target_message_id").orEmpty().trim(),
+            )
+        }
+    }
+
+    private fun appendDispatch(
+        args: JsonObject?,
+        mentionTarget: AgentMentionDispatch.Target?,
+        actions: ParsedActionsAccumulator,
+    ) {
+        val goal = args?.str("goal").orEmpty().trim()
+        if (goal.isNotBlank()) {
+            actions.dispatches += MissionDispatch(
+                goal = goal,
+                acceptance = args?.str("acceptance").orEmpty().trim(),
+                resourceScope = args?.str("resource_scope").orEmpty().trim(),
+                assigneeBotId = AgentMentionDispatch.resolveAssignee(
+                    declared = args?.str("assignee_bot_id").orEmpty().trim(),
+                    target = mentionTarget,
+                ),
+            )
+        }
+    }
+
+    private fun appendSteering(args: JsonObject?, actions: ParsedActionsAccumulator) {
+        val taskId = args?.str("task_id").orEmpty().trim()
+        val instruction = args?.str("instruction").orEmpty().trim()
+        if (taskId.isNotBlank() && instruction.isNotBlank()) {
+            actions.steerings += SteerAction(taskId = taskId, instruction = instruction)
+        }
+    }
+
+    private fun appendChoiceOffer(args: JsonObject?, actions: ParsedActionsAccumulator) {
+        val prompt = args?.str("prompt").orEmpty().trim()
+        val options = (args?.get("options") as? JsonArray).orEmpty()
+            .mapIndexedNotNull(::parseChoiceOption)
+            .take(MAX_CHOICE_OPTIONS)
+        if (options.isNotEmpty()) actions.choiceOffer = ChoiceOffer(prompt = prompt, options = options)
+    }
+
+    private fun parseChoiceOption(index: Int, element: kotlinx.serialization.json.JsonElement): ChoiceOption? = when (element) {
+        is JsonPrimitive -> element.content.trim().takeIf { it.isNotBlank() }
+            ?.let { text -> ChoiceOption("opt_${index + 1}", text, text) }
+        is JsonObject -> {
+            val label = element.str("label").ifBlank { element.str("title") }.trim()
+            label.takeIf { it.isNotBlank() }?.let {
+                ChoiceOption(
+                    id = element.str("id").ifBlank { "opt_${index + 1}" },
+                    label = it,
+                    prompt = element.str("prompt").ifBlank { it }.trim(),
+                )
+            }
+        }
+        else -> null
+    }
+
+    private fun appendRoutine(args: JsonObject?, actions: ParsedActionsAccumulator) {
+        val title = args?.str("title").orEmpty().trim()
+        val goal = args?.str("goal").orEmpty().trim()
+        if (title.isNotBlank() && goal.isNotBlank()) {
+            val triggerRaw = args?.str("trigger_type").orEmpty().trim().uppercase()
+            actions.routines += RoutineCreation(
+                title = title,
+                goalPrompt = goal,
+                triggerType = triggerRaw.takeIf { it in RoutineTriggerType.all } ?: RoutineTriggerType.MANUAL,
+                triggerExpr = args?.str("trigger_expr").orEmpty().trim(),
+                resourceScope = args?.str("resource_scope").orEmpty().trim(),
+            )
+        }
+    }
+
+    private fun appendWatcher(args: JsonObject?, actions: ParsedActionsAccumulator) {
+        val title = args?.str("title").orEmpty().trim()
+        val instruction = args?.str("instruction").orEmpty().trim()
+        val script = args?.str("script").orEmpty().trim()
+        if (title.isBlank() || instruction.isBlank() || script.isBlank()) {
+            Logger.w(TAG, "忽略缺少标题/说明/脚本的 create_watcher 调用")
+            return
+        }
+        val rawKind = args?.str("script_kind").orEmpty().trim().lowercase()
+        val rawTarget = args?.str("compute_target").orEmpty().trim().lowercase()
+        val interval = (args?.str("interval_minutes")?.toIntOrNull() ?: AgentWatcherEngine.DEFAULT_INTERVAL_MINUTES)
+            .coerceIn(AgentWatcherEngine.MIN_INTERVAL_MINUTES, AgentWatcherEngine.MAX_INTERVAL_MINUTES)
+        actions.watchers += WatcherCreation(
+            title = title,
+            instruction = instruction,
+            script = script,
+            scriptKind = if (rawKind == AgentWatcherEngine.SCRIPT_KIND_NODE) {
+                AgentWatcherEngine.SCRIPT_KIND_NODE
+            } else {
+                AgentWatcherEngine.SCRIPT_KIND_PYTHON
+            },
+            computeTarget = if (rawTarget == ComputeTargetRouter.TARGET_CLOUD) {
+                ComputeTargetRouter.TARGET_CLOUD
+            } else {
+                ComputeTargetRouter.TARGET_LOCAL
+            },
+            intervalMinutes = interval,
+            webhookUrl = args?.str("webhook_url").orEmpty().trim(),
+        )
+    }
+
+    private fun appendGoal(args: JsonObject?, actions: ParsedActionsAccumulator) {
+        val goalId = args?.str("goal_id").orEmpty().trim()
+        val title = args?.str("title").orEmpty().trim()
+        if (goalId.isBlank() && title.isBlank()) {
+            Logger.w(TAG, "忽略既无 goal_id 也无标题的 upsert_goal 调用")
+            return
+        }
+        actions.goalUpserts += GoalUpsert(
+            goalId = goalId,
+            title = title,
+            description = args?.strOrNull("description"),
+            milestones = (args?.get("milestones") as? JsonArray)?.mapNotNull(::parseMilestone),
+            progress = (args?.get("progress") as? JsonPrimitive)?.content?.toIntOrNull(),
+            status = args?.str("status").orEmpty().trim().uppercase(),
+            dueAt = (args?.get("due_at") as? JsonPrimitive)?.content?.toLongOrNull(),
+        )
+    }
+
+    private fun appendGoalMilestone(args: JsonObject?, actions: ParsedActionsAccumulator) {
+        val goalId = args?.str("goal_id").orEmpty().trim()
+        if (goalId.isBlank()) {
+            Logger.w(TAG, "忽略缺少 goal_id 的 update_goal_milestone 调用")
+            return
+        }
+        actions.goalMilestoneUpdates += GoalMilestoneUpdate(
+            goalId = goalId,
+            milestoneId = args?.str("milestone_id").orEmpty().trim(),
+            title = args?.str("title").orEmpty().trim(),
+            done = (args?.get("done") as? JsonPrimitive)?.content?.toBooleanStrictOrNull(),
+            remove = (args?.get("remove") as? JsonPrimitive)?.content?.toBooleanStrictOrNull() == true,
+        )
+    }
+
+    private class ParsedActionsAccumulator {
+        var explicitSay: String = ""
         val reactions = mutableListOf<ReactionAction>()
         val dispatches = mutableListOf<MissionDispatch>()
         val steerings = mutableListOf<SteerAction>()
@@ -998,177 +1288,8 @@ class AgentStreamCoordinator(
         val goalUpserts = mutableListOf<GoalUpsert>()
         val goalMilestoneUpdates = mutableListOf<GoalMilestoneUpdate>()
 
-        toolCalls.forEach { call ->
-            val args = runCatching {
-                json.parseToJsonElement(call.arguments) as? JsonObject
-            }.onFailure {
-                Logger.w(TAG, "流式工具参数解析失败(${call.name}): ${it.message}")
-            }.getOrNull()
-
-            when (call.name) {
-                TOOL_REACT -> {
-                    val emoji = args?.str("emoji").orEmpty().trim()
-                    if (emoji.isNotBlank()) {
-                        reactions += ReactionAction(
-                            emoji = emoji.take(MAX_EMOJI_CHARS),
-                            targetMessageId = args?.str("target_message_id").orEmpty().trim(),
-                        )
-                    }
-                }
-                TOOL_LAUNCH_MISSION,
-                ForegroundCoordinator.TOOL_DISPATCH,
-                -> {
-                    val goal = args?.str("goal").orEmpty().trim()
-                    if (goal.isNotBlank()) {
-                        dispatches += MissionDispatch(
-                            goal = goal,
-                            acceptance = args?.str("acceptance").orEmpty().trim(),
-                            resourceScope = args?.str("resource_scope").orEmpty().trim(),
-                            // 用户 @ 的队友优先于模型自填的 assignee；没有 @ 时保留模型原值。
-                            assigneeBotId = AgentMentionDispatch.resolveAssignee(
-                                declared = args?.str("assignee_bot_id").orEmpty().trim(),
-                                target = mentionTarget,
-                            ),
-                        )
-                    }
-                }
-                TOOL_STEER_MISSION -> {
-                    val taskId = args?.str("task_id").orEmpty().trim()
-                    val instruction = args?.str("instruction").orEmpty().trim()
-                    if (taskId.isNotBlank() && instruction.isNotBlank()) {
-                        steerings += SteerAction(taskId = taskId, instruction = instruction)
-                    }
-                }
-                TOOL_OFFER_CHOICES -> {
-                    val prompt = args?.str("prompt").orEmpty().trim()
-                    val rawOptions = (args?.get("options") as? JsonArray).orEmpty()
-                    val parsedOptions = rawOptions.mapIndexedNotNull { idx, elem ->
-                        when (elem) {
-                            is JsonPrimitive -> {
-                                val text = elem.content.trim()
-                                if (text.isBlank()) null else ChoiceOption("opt_${idx + 1}", text, text)
-                            }
-                            is JsonObject -> {
-                                val label = elem.str("label").ifBlank { elem.str("title") }.trim()
-                                if (label.isBlank()) {
-                                    null
-                                } else {
-                                    ChoiceOption(
-                                        id = elem.str("id").ifBlank { "opt_${idx + 1}" },
-                                        label = label,
-                                        prompt = elem.str("prompt").ifBlank { label }.trim(),
-                                    )
-                                }
-                            }
-                            else -> null
-                        }
-                    }.take(MAX_CHOICE_OPTIONS)
-                    if (parsedOptions.isNotEmpty()) {
-                        choiceOffer = ChoiceOffer(prompt = prompt, options = parsedOptions)
-                    }
-                }
-                TOOL_CREATE_ROUTINE -> {
-                    val title = args?.str("title").orEmpty().trim()
-                    val goal = args?.str("goal").orEmpty().trim()
-                    if (title.isNotBlank() && goal.isNotBlank()) {
-                        val triggerRaw = args?.str("trigger_type").orEmpty().trim().uppercase()
-                        val triggerType = if (triggerRaw in RoutineTriggerType.all) {
-                            triggerRaw
-                        } else {
-                            RoutineTriggerType.MANUAL
-                        }
-                        routines += RoutineCreation(
-                            title = title,
-                            goalPrompt = goal,
-                            triggerType = triggerType,
-                            triggerExpr = args?.str("trigger_expr").orEmpty().trim(),
-                            resourceScope = args?.str("resource_scope").orEmpty().trim(),
-                        )
-                    }
-                }
-                TOOL_CREATE_WATCHER -> {
-                    val title = args?.str("title").orEmpty().trim()
-                    val instruction = args?.str("instruction").orEmpty().trim()
-                    val script = args?.str("script").orEmpty().trim()
-                    if (title.isNotBlank() && instruction.isNotBlank() && script.isNotBlank()) {
-                        val rawKind = args?.str("script_kind").orEmpty().trim().lowercase()
-                        val scriptKind = if (rawKind == AgentWatcherEngine.SCRIPT_KIND_NODE) {
-                            AgentWatcherEngine.SCRIPT_KIND_NODE
-                        } else {
-                            AgentWatcherEngine.SCRIPT_KIND_PYTHON
-                        }
-                        val rawTarget = args?.str("compute_target").orEmpty().trim().lowercase()
-                        val computeTarget = if (rawTarget == ComputeTargetRouter.TARGET_CLOUD) {
-                            ComputeTargetRouter.TARGET_CLOUD
-                        } else {
-                            ComputeTargetRouter.TARGET_LOCAL
-                        }
-                        val interval = (args?.str("interval_minutes")?.toIntOrNull()
-                            ?: AgentWatcherEngine.DEFAULT_INTERVAL_MINUTES)
-                            .coerceIn(AgentWatcherEngine.MIN_INTERVAL_MINUTES, AgentWatcherEngine.MAX_INTERVAL_MINUTES)
-                        watchers += WatcherCreation(
-                            title = title,
-                            instruction = instruction,
-                            script = script,
-                            scriptKind = scriptKind,
-                            computeTarget = computeTarget,
-                            intervalMinutes = interval,
-                            webhookUrl = args?.str("webhook_url").orEmpty().trim(),
-                        )
-                    } else {
-                        Logger.w(TAG, "忽略缺少标题/说明/脚本的 create_watcher 调用")
-                    }
-                }
-                TOOL_UPSERT_GOAL -> {
-                    val goalId = args?.str("goal_id").orEmpty().trim()
-                    val title = args?.str("title").orEmpty().trim()
-                    if (goalId.isNotBlank() || title.isNotBlank()) {
-                        goalUpserts += GoalUpsert(
-                            goalId = goalId,
-                            title = title,
-                            description = args?.strOrNull("description"),
-                            milestones = (args?.get("milestones") as? JsonArray)?.mapNotNull { element ->
-                                parseMilestone(element)
-                            },
-                            progress = (args?.get("progress") as? JsonPrimitive)
-                                ?.content?.toIntOrNull(),
-                            status = args?.str("status").orEmpty().trim().uppercase(),
-                            dueAt = (args?.get("due_at") as? JsonPrimitive)
-                                ?.content?.toLongOrNull(),
-                        )
-                    } else {
-                        Logger.w(TAG, "忽略既无 goal_id 也无标题的 upsert_goal 调用")
-                    }
-                }
-                TOOL_UPDATE_GOAL_MILESTONE -> {
-                    val goalId = args?.str("goal_id").orEmpty().trim()
-                    if (goalId.isNotBlank()) {
-                        val done = (args?.get("done") as? JsonPrimitive)
-                            ?.content?.toBooleanStrictOrNull()
-                        val remove = (args?.get("remove") as? JsonPrimitive)
-                            ?.content?.toBooleanStrictOrNull() == true
-                        goalMilestoneUpdates += GoalMilestoneUpdate(
-                            goalId = goalId,
-                            milestoneId = args?.str("milestone_id").orEmpty().trim(),
-                            title = args?.str("title").orEmpty().trim(),
-                            done = done,
-                            remove = remove,
-                        )
-                    } else {
-                        Logger.w(TAG, "忽略缺少 goal_id 的 update_goal_milestone 调用")
-                    }
-                }
-                ForegroundCoordinator.TOOL_SAY -> {
-                    val text = args?.str("text").orEmpty().trim()
-                    if (text.isNotBlank()) explicitSay = text
-                }
-                else -> Logger.w(TAG, "忽略未注册的前台工具: ${call.name}")
-            }
-        }
-
-        val combinedSay = fallbackText.trim().ifBlank { explicitSay }
-        return ParsedActions(
-            sayText = combinedSay,
+        fun build(fallbackText: String): ParsedActions = ParsedActions(
+            sayText = fallbackText.trim().ifBlank { explicitSay },
             reactions = reactions,
             dispatches = dispatches,
             steerings = steerings,
@@ -1180,29 +1301,27 @@ class AgentStreamCoordinator(
         )
     }
 
-    private fun parseMilestone(element: kotlinx.serialization.json.JsonElement): AgentGoalMilestone? =
-        when (element) {
-            is JsonObject -> {
-                val title = element.str("title").trim()
-                if (title.isBlank()) {
-                    null
-                } else {
-                    AgentGoalMilestone(
-                        id = element.str("id").trim(),
-                        title = title,
-                        done = element.str("done").toBooleanStrictOrNull() == true,
-                    )
-                }
+    private fun parseMilestone(element: kotlinx.serialization.json.JsonElement): AgentGoalMilestone? = when (element) {
+        is JsonObject -> {
+            val title = element.str("title").trim()
+            if (title.isBlank()) {
+                null
+            } else {
+                AgentGoalMilestone(
+                    id = element.str("id").trim(),
+                    title = title,
+                    done = element.str("done").toBooleanStrictOrNull() == true,
+                )
             }
-            is kotlinx.serialization.json.JsonNull -> null
-            is JsonPrimitive -> element.content.trim().takeIf { it.isNotBlank() }?.let { title ->
-                AgentGoalMilestone(title = title)
-            }
-            is JsonArray -> null
         }
+        is kotlinx.serialization.json.JsonNull -> null
+        is JsonPrimitive -> element.content.trim().takeIf { it.isNotBlank() }?.let { title ->
+            AgentGoalMilestone(title = title)
+        }
+        is JsonArray -> null
+    }
 
-    private fun JsonObject.str(key: String): String =
-        (this[key] as? JsonPrimitive)?.content.orEmpty()
+    private fun JsonObject.str(key: String): String = (this[key] as? JsonPrimitive)?.content.orEmpty()
 
     /** 区分「字段缺失」与「显式空串」：缺失返回 null，空串原样保留。 */
     private fun JsonObject.strOrNull(key: String): String? {
@@ -1215,7 +1334,43 @@ class AgentStreamCoordinator(
     }
 
     companion object {
+        private fun trimHistoryToContextBudget(
+            systemMessages: List<UIMessage>,
+            history: List<UIMessage>,
+            currentUser: UIMessage,
+            model: Model?,
+            toolCount: Int,
+        ): List<UIMessage> {
+            val window = model?.contextWindow ?: 0
+            if (window <= 0 || history.size <= 4) return history
+            val systemTokens = io.zer0.muse.util.TokenEstimator.estimate(systemMessages)
+            val userTokens = io.zer0.muse.util.TokenEstimator.estimate(listOf(currentUser))
+            val budget = io.zer0.muse.transformer.ContextBudget.compute(
+                contextWindow = window,
+                systemTokens = systemTokens,
+                toolTokens = toolCount * 120,
+                maxOutputTokens = model?.maxOutputTokens ?: 0,
+            ).historyBudget - userTokens
+            if (budget <= 0) return history.takeLast(4)
+            var usedTokens = 0
+            var startIndex = history.size
+            for (i in history.indices.reversed()) {
+                val msgTokens = io.zer0.muse.util.TokenEstimator.estimate(listOf(history[i]))
+                if (usedTokens + msgTokens > budget && history.size - startIndex >= 4) {
+                    break
+                }
+                usedTokens += msgTokens
+                startIndex = i
+            }
+            // 不从 TOOL 消息中间切断，保证 ASSISTANT(toolCalls) 与其 TOOL 结果成对保留
+            while (startIndex > 0 && history[startIndex].role == MessageRole.TOOL) {
+                startIndex--
+            }
+            return history.subList(startIndex, history.size)
+        }
+
         private const val TAG = "AgentStreamCoord"
+        private const val FOREGROUND_MCP_APPROVAL_TIMEOUT_MS = 30_000L
         private const val MAX_FOREGROUND_TOOL_ROUNDS = 12
         private const val MAX_FOREGROUND_TOOL_RESULT_CHARS = 12_000
         private const val MAX_EMOJI_CHARS = 8
@@ -1261,28 +1416,27 @@ class AgentStreamCoordinator(
 
         private val json = Json { ignoreUnknownKeys = true }
 
-        fun fromChatService(chatService: ChatService): StreamingClient =
-            object : OptionsStreamingClient {
-                override suspend fun streamWithOptions(
-                    messages: List<UIMessage>,
-                    tools: List<ToolDefinition>,
-                    providerConfig: ProviderConfig?,
-                    model: Model?,
-                    sessionId: String,
-                    nativeWebSearch: Boolean,
-                    reasoningLevel: io.zer0.ai.core.ReasoningLevel,
-                ): Flow<ChatStreamEvent> = chatService.streamChat(
-                    messages = messages,
-                    model = model,
-                    tools = tools,
-                    toolChoice = "auto",
-                    providerConfig = providerConfig,
-                    nativeWebSearch = nativeWebSearch,
-                    reasoningLevel = reasoningLevel,
-                    mode = ChatRequestMode.CHAT,
-                    sessionId = sessionId,
-                )
-            }
+        fun fromChatService(chatService: ChatService): StreamingClient = object : OptionsStreamingClient {
+            override suspend fun streamWithOptions(
+                messages: List<UIMessage>,
+                tools: List<ToolDefinition>,
+                providerConfig: ProviderConfig?,
+                model: Model?,
+                sessionId: String,
+                nativeWebSearch: Boolean,
+                reasoningLevel: io.zer0.ai.core.ReasoningLevel,
+            ): Flow<ChatStreamEvent> = chatService.streamChat(
+                messages = messages,
+                model = model,
+                tools = tools,
+                toolChoice = "auto",
+                providerConfig = providerConfig,
+                nativeWebSearch = nativeWebSearch,
+                reasoningLevel = reasoningLevel,
+                mode = ChatRequestMode.CHAT,
+                sessionId = sessionId,
+            )
+        }
 
         val AGENT_TOOLS: List<ToolDefinition> = listOf(
             ToolDefinition(

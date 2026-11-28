@@ -138,7 +138,7 @@ class RemoteBrowserLiveController(
                 }
             } catch (e: CancellationException) {
                 throw e
-            } catch (e: Exception) {
+            } catch (e: java.io.IOException) {
                 Logger.w(TAG, "remote browser open failed: " + e.javaClass.simpleName)
                 _state.update { current ->
                     current?.copy(
@@ -217,7 +217,7 @@ class RemoteBrowserLiveController(
         try {
             val bytes = Base64.decode(base64, Base64.DEFAULT)
             BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-        } catch (e: Exception) {
+        } catch (e: java.io.IOException) {
             Logger.w(TAG, "remote browser frame decode failed: " + e.javaClass.simpleName)
             null
         }
@@ -255,40 +255,7 @@ fun RemoteBrowserLivePanel(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
-        ) {
-            Icon(
-                imageVector = MuseIcons.browser,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(MuseIconSizes.iconMedium),
-            )
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = state.title.ifBlank { stringResource(R.string.settings_screen_browser) },
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = state.url.ifBlank { "about:blank" },
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            MuseTactileButton(
-                icon = MuseIcons.x,
-                contentDescription = stringResource(R.string.common_close),
-                onClick = onClose,
-                compact = true,
-            )
-        }
+        RemoteBrowserPanelHeader(state = state, onClose = onClose)
 
         Surface(
             shape = MuseShapes.semiLarge,
@@ -313,71 +280,123 @@ fun RemoteBrowserLivePanel(
             )
         }
 
+        RemoteBrowserPanelControls(
+            state = state,
+            textOpen = textOpen,
+            textDraft = textDraft,
+            onToggleTakeover = { onTakeoverChange(!state.takeover) },
+            onToggleText = { textOpen = !textOpen },
+            onTextDraftChange = { textDraft = it },
+            onType = {
+                onType(it)
+                textDraft = ""
+            },
+        )
+    }
+}
+
+@Composable
+private fun RemoteBrowserPanelHeader(state: RemoteBrowserLiveState, onClose: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+    ) {
+        Icon(
+            imageVector = MuseIcons.browser,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(MuseIconSizes.iconMedium),
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = state.title.ifBlank { stringResource(R.string.settings_screen_browser) },
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = state.url.ifBlank { "about:blank" },
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        MuseTactileButton(
+            icon = MuseIcons.x,
+            contentDescription = stringResource(R.string.common_close),
+            onClick = onClose,
+            compact = true,
+        )
+    }
+}
+
+@Composable
+private fun RemoteBrowserPanelControls(
+    state: RemoteBrowserLiveState,
+    textOpen: Boolean,
+    textDraft: String,
+    onToggleTakeover: () -> Unit,
+    onToggleText: () -> Unit,
+    onTextDraftChange: (String) -> Unit,
+    onType: (String) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+    ) {
+        MuseCapsuleButton(
+            text = if (state.takeover) {
+                stringResource(R.string.agent_bot_continue)
+            } else {
+                stringResource(R.string.agent_hub_computer_vdisplay_takeover)
+            },
+            onClick = onToggleTakeover,
+            leadingIcon = MuseIcons.handFinger,
+            variant = if (state.takeover) IosCapsuleButtonVariant.Secondary else IosCapsuleButtonVariant.Primary,
+            fillWidth = false,
+            size = MuseButtonSize.Compact,
+            enabled = state.connected,
+        )
+        MuseCapsuleButton(
+            text = stringResource(R.string.agent_hub_mission_steer),
+            onClick = onToggleText,
+            leadingIcon = MuseIcons.edit,
+            variant = IosCapsuleButtonVariant.Secondary,
+            fillWidth = false,
+            size = MuseButtonSize.Compact,
+            enabled = state.connected && state.takeover,
+        )
+    }
+    if (textOpen && state.takeover) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+            horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
         ) {
-            MuseCapsuleButton(
-                text = if (state.takeover) {
-                    stringResource(R.string.agent_bot_continue)
-                } else {
-                    stringResource(R.string.agent_hub_computer_vdisplay_takeover)
-                },
-                onClick = { onTakeoverChange(!state.takeover) },
-                leadingIcon = MuseIcons.handFinger,
-                variant = if (state.takeover) IosCapsuleButtonVariant.Secondary else IosCapsuleButtonVariant.Primary,
-                fillWidth = false,
-                size = MuseButtonSize.Compact,
-                enabled = state.connected,
+            MuseTextField(
+                value = textDraft,
+                onValueChange = onTextDraftChange,
+                placeholder = { Text(stringResource(R.string.agent_hub_mission_steer_hint)) },
+                modifier = Modifier.weight(1f),
+                singleLine = true,
             )
             MuseCapsuleButton(
-                text = stringResource(R.string.agent_hub_mission_steer),
-                onClick = { textOpen = !textOpen },
-                leadingIcon = MuseIcons.edit,
-                variant = IosCapsuleButtonVariant.Secondary,
+                text = stringResource(R.string.agent_hub_mission_steer_send),
+                onClick = { textDraft.trim().takeIf(String::isNotBlank)?.let(onType) },
+                enabled = textDraft.isNotBlank(),
                 fillWidth = false,
                 size = MuseButtonSize.Compact,
-                enabled = state.connected && state.takeover,
             )
-        }
-
-        if (textOpen && state.takeover) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
-            ) {
-                MuseTextField(
-                    value = textDraft,
-                    onValueChange = { textDraft = it },
-                    placeholder = { Text(stringResource(R.string.agent_hub_mission_steer_hint)) },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true,
-                )
-                MuseCapsuleButton(
-                    text = stringResource(R.string.agent_hub_mission_steer_send),
-                    onClick = {
-                        val value = textDraft.trim()
-                        if (value.isNotBlank()) {
-                            onType(value)
-                            textDraft = ""
-                        }
-                    },
-                    enabled = textDraft.isNotBlank(),
-                    fillWidth = false,
-                    size = MuseButtonSize.Compact,
-                )
-            }
         }
     }
 }
 
 @Composable
-private fun BrowserViewport(
-    state: RemoteBrowserLiveState,
-    onTap: (Float, Float) -> Unit,
-) {
+private fun BrowserViewport(state: RemoteBrowserLiveState, onTap: (Float, Float) -> Unit) {
     val bitmap = state.frame
     Box(
         modifier = Modifier
@@ -434,11 +453,7 @@ private fun BrowserViewport(
 
 /** 远程浏览器任务卡里的紧凑缩略窗；点一下进入完整观战面板。 */
 @Composable
-fun RemoteBrowserThumbnailStrip(
-    state: RemoteBrowserLiveState,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
+fun RemoteBrowserThumbnailStrip(state: RemoteBrowserLiveState, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Surface(
         shape = MuseShapes.pill,
         color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = MuseAlpha.statusTint),

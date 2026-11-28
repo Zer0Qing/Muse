@@ -11,7 +11,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * 会话级权限模式持久化。

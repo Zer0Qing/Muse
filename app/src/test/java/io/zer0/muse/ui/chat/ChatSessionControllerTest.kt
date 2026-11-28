@@ -3,14 +3,22 @@ package io.zer0.muse.ui.chat
 import androidx.test.core.app.ApplicationProvider
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import io.zer0.ai.core.UIMessage
+import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.session.SessionRepository
+import io.zer0.muse.session.ConversationSessionManager
+import io.zer0.muse.tools.SessionPermissionMode
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -60,18 +68,21 @@ class ChatSessionControllerTest {
         state: ChatUiState = ChatUiState(),
         bridge: SessionFlowBridge = FakeBridge(),
         treeSnapshotStore: io.zer0.muse.data.chat.ConversationTreeSnapshotStore? = null,
+        accessor: ChatStateAccessor = ScopedAccessor(state, scope),
+        sessionManager: ConversationSessionManager = mockk(relaxed = true),
+        settings: SettingsRepository = mockk(relaxed = true),
     ) = ChatSessionController(
-        accessor = ScopedAccessor(state, scope),
+        accessor = accessor,
         sessionRepository = repo,
         sessionMemoryCache = mockk(relaxed = true),
         browserManagerRegistry = null,
         bridge = bridge,
         sessionDeps = SessionDeps(
             stateStore = ChatStateStore(),
-            settings = mockk(relaxed = true),
+            settings = settings,
             assistantRepository = mockk(relaxed = true),
             sessionPermissionStore = mockk(relaxed = true),
-            sessionManager = mockk(relaxed = true),
+            sessionManager = sessionManager,
             appContext = ApplicationProvider.getApplicationContext(),
             onStopTts = {},
             onDisposeAsr = {},
@@ -92,6 +103,52 @@ class ChatSessionControllerTest {
             requeueOutboxForSession = {},
         ),
     )
+
+    @Test
+    fun `older new session cannot take focus back from a newer one`() = runTest {
+        val repo = mockk<SessionRepository>(relaxed = true)
+        val firstId = CompletableDeferred<String>()
+        coEvery { repo.findReusableEmptySession(any()) } returns null
+        coEvery { repo.createSession(assistantId = "first") } coAnswers { firstId.await() }
+        coEvery { repo.createSession(assistantId = "second") } returns "session-2"
+        val sessionManager = mockk<ConversationSessionManager>(relaxed = true)
+        val settings = mockk<SettingsRepository>(relaxed = true)
+        every { settings.defaultSessionPermissionModeFlow } returns flowOf(SessionPermissionMode.ASK)
+        val accessor = ScopedAccessor(ChatUiState(sessionState = ChatSessionState(currentSessionId = "original")), this)
+        val controller = controller(this, repo, accessor = accessor, sessionManager = sessionManager, settings = settings)
+        val ready = mutableListOf<String>()
+
+        controller.createNewSession(onReady = { ready += "first" }, assistantIdOverride = "first")
+        runCurrent()
+        verify(exactly = 0) { sessionManager.release("original") }
+
+        controller.createNewSession(onReady = { ready += "second" }, assistantIdOverride = "second")
+        runCurrent()
+        firstId.complete("session-1")
+        advanceUntilIdle()
+
+        assertEquals("session-2", accessor.snapshot.currentSessionId)
+        assertEquals(listOf("second"), ready)
+        verify(exactly = 1) { sessionManager.release("original") }
+        verify(exactly = 0) { sessionManager.acquire("session-1") }
+        verify(exactly = 1) { sessionManager.acquire("session-2") }
+    }
+
+    @Test
+    fun `returning to task mode withdraws a pending agent entry`() = runTest {
+        val repo = mockk<SessionRepository>(relaxed = true)
+        val accessor = ScopedAccessor(ChatUiState(), this)
+        val controller = controller(this, repo, accessor = accessor)
+        controller.setAgentMode(true)
+        assertTrue(accessor.snapshot.isSwitchingSession)
+
+        controller.setAgentMode(false)
+        advanceUntilIdle()
+
+        assertFalse(accessor.snapshot.isSwitchingSession)
+        assertFalse(accessor.snapshot.isAgentMode)
+        coVerify(exactly = 0) { repo.getRecentAgentByAssistant(any(), any()) }
+    }
 
     @Test
     fun `renameSession delegates to repository`() = runTest {

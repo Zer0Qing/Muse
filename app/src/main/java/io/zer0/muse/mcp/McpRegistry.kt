@@ -5,32 +5,34 @@ import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.muse.R
+import io.zer0.muse.runtime.MuseRuntime
 import io.zer0.muse.tools.ToolPermissionResolver
 import io.zer0.muse.tools.ToolRegistry
 import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.dropWhile
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.atomic.AtomicBoolean
-import io.zer0.muse.ui.settings.SettingsScreen
-import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * Phase 9.5 (M3): MCP server 注册表 + 持久化 + ToolRegistry 桥接。
@@ -62,12 +64,6 @@ class McpRegistry(
     private val toolRegistry: ToolRegistry,
     private val settings: io.zer0.muse.data.SettingsRepository,
     private val context: Context,
-    /**
-     * v1.0.79 (C-3): 助手仓库 — 连接成功后自动把 MCP server 绑定到主助手扩展。
-     * 此前新加的 MCP 不会自动配置到助手扩展,主聊天 tools schema 按助手 mcpServerIds
-     * 过滤后看不到 MCP 工具(只能看到本地工具),必须手动去助手页勾选。
-     * 为 null 时跳过自动绑定(测试/兼容)。
-     */
     private val assistantRepository: io.zer0.muse.data.assistant.AssistantRepository? = null,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO + GlobalCoroutineExceptionHandler)
@@ -80,10 +76,33 @@ class McpRegistry(
     private val _serversState = MutableStateFlow<Map<String, McpConnectionState>>(emptyMap())
     val serversState: StateFlow<Map<String, McpConnectionState>> = _serversState.asStateFlow()
 
-    /** 活跃的 MCP client 实例(server id → client)。H-REG1: 用 ConcurrentHashMap 保证线程安全。 */
-    private val clients = ConcurrentHashMap<String, McpClient>()
+    enum class ConnectionIssue {
+        INVALID_ADDRESS,
+        DnsFailed,
+        ADDRESS_BLOCKED,
+        RUNTIME_REQUIRED,
+        START_FAILED,
+        HANDSHAKE_FAILED,
+        TIMED_OUT,
+        TOOLS_FAILED,
+    }
 
-    /** 对外暴露三段式就绪状态，避免 UI/聊天把 connected 当成 tools 已可用。 */
+    data class ServerStatus(
+        val connection: McpConnectionState = McpConnectionState.DISCONNECTED,
+        val tools: List<McpTool>? = null,
+        val issue: ConnectionIssue? = null,
+        val lastConnectedAt: Long = 0,
+    )
+
+    private val _serverStatuses = MutableStateFlow<Map<String, ServerStatus>>(emptyMap())
+    val serverStatuses: StateFlow<Map<String, ServerStatus>> = _serverStatuses.asStateFlow()
+    private val clients = ConcurrentHashMap<String, McpClient>()
+    private val clientConfigs = mutableMapOf<String, McpServerConfig>()
+    private val clientJobs = mutableMapOf<String, Job>()
+    private val connectionLock = Any()
+    private val configLock = Mutex()
+    private val refreshingTools = ConcurrentHashMap<String, McpClient>()
+
     data class ServerReadiness(
         val connected: Boolean,
         val toolsReady: Boolean,
@@ -91,93 +110,65 @@ class McpRegistry(
     )
 
     suspend fun readiness(serverId: String, assistantId: String = "default"): ServerReadiness {
-        val connected = clients[serverId]?.state?.value == McpConnectionState.CONNECTED
-        val toolsReady = serverId in toolsReadyServers
+        val status = serverStatuses.value[serverId]
         val repo = assistantRepository
         val assistantBound = repo?.getById(assistantId)?.let { assistant ->
             repo.parseMcpServerIds(assistant).contains(serverId)
         } ?: false
-        return ServerReadiness(connected, toolsReady, assistantBound)
+        return ServerReadiness(status?.connection == McpConnectionState.CONNECTED, status?.tools != null, assistantBound)
     }
-
-    /**
-     * 已完成 tools/list 的 server。
-     *
-     * 不能用“ToolRegistry 中是否存在某个前缀工具”判断就绪:合法的 MCP server
-     * 可以返回空工具列表,否则每条首消息都会白等完整超时。
-     */
-    private val toolsReadyServers = ConcurrentHashMap.newKeySet<String>()
-
-    /** tools/list 明确失败的 server,用于首条消息快速失败而不是等待完整超时。 */
-    private val toolLoadFailedServers = ConcurrentHashMap.newKeySet<String>()
-
-    /** M-REG3: 标记 startAll 是否已调用,避免与 init 块重复连接。 */
-    private val startAllCalled = AtomicBoolean(false)
-
-    /**
-     * Phase 9.5 (P3-2): per-server 工具刷新重入保护。
-     *
-     * 当 tools/list_changed 通知高频到达时,避免并发 refreshTools 导致:
-     *  - 工具列表短暂为空(unregister 后 register 前的窗口)
-     *  - 重复拉取 tools/list 浪费网络
-     * compareAndSet 保证同一 server 同时只有一个刷新在跑。
-     */
-    private val refreshingTools = ConcurrentHashMap<String, Boolean>()
 
     init {
         registerManagementTools()
-        // 启动时从 DataStore 加载已保存的 server 配置
         scope.launch {
-            settings.mcpServersFlow.collect { saved ->
-                _servers.value = saved
-                // 启动时清理助手中已不存在的 MCP 绑定，避免 orphan id 持续影响工具就绪判断。
-                runCatching {
-                    assistantRepository?.removeOrphanMcpServerBindings(saved.map { it.id }.toSet())
-                }.onFailure { Logger.w(TAG, "清理孤儿 MCP 绑定失败: ${it.message}", it) }
-                // 自动连接所有启用的 server(尚未连接的)
-                saved.filter { it.isConnectable() }.forEach { cfg ->
-                    if (!clients.containsKey(cfg.id)) {
-                        connectServer(cfg)
-                    }
-                }
+            settings.mcpServersFlow.collect {
+                configLock.withLock { reconcile(settings.mcpServersFlow.first()) }
             }
         }
     }
 
-    /**
-     * 添加 MCP server 并持久化 + 自动连接。
-     * SSRF 校验由 [upsertServer] / [connectServer] 的 [McpServerConfig.isSsrfBlocked] 入口兜底,
-     * 此处不再重复判定。
-     * @return 是否成功(id 不重复才添加)
-     */
-    suspend fun addServer(config: McpServerConfig): Boolean {
-        // v1.0.92 (B-6): 防御性校验 id 形态(字母/数字/下划线/连字符,最长 64),
-        // 防止特殊字符破坏 "mcp_{id}__{tool}" 前缀匹配与工具注册。
-        if (!SERVER_ID_REGEX.matches(config.id)) {
-            Logger.w(TAG, "addServer 拒绝非法 server id: ${config.id}")
-            return false
+    suspend fun addServer(config: McpServerConfig): Boolean = addServers(listOf(config))
+
+    suspend fun addServers(configs: List<McpServerConfig>): Boolean = configLock.withLock {
+        val current = settings.mcpServersFlow.first()
+        val ids = configs.map { it.id }
+        if (ids.isEmpty() || ids.any { !SERVER_ID_REGEX.matches(it) } ||
+            ids.distinct().size != ids.size || current.any { it.id in ids }
+        ) {
+            return@withLock false
         }
-        val current = _servers.value
-        if (current.any { it.id == config.id }) return false
-        val newList = current + config
-        persist(newList)
-        _servers.value = newList
-        if (config.isConnectable()) {
-            connectServer(config)
-        }
-        return true
+        val updated = current + configs
+        persist(updated)
+        reconcile(updated)
+        true
     }
 
-    /** 更新已有 server 配置(id 匹配)。重连已连接的 server。 */
-    suspend fun updateServer(config: McpServerConfig) {
-        val newList = _servers.value.map { if (it.id == config.id) config else it }
-        persist(newList)
-        _servers.value = newList
-        // 断开旧连接,用新配置重连
-        disconnectServer(config.id)
-        if (config.isConnectable()) {
-            connectServer(config)
+    suspend fun updateServer(config: McpServerConfig) = configLock.withLock {
+        val current = settings.mcpServersFlow.first()
+        val updated = current.map { if (it.id == config.id) config else it }
+        val prior = current.firstOrNull { it.id == config.id }
+        if (updated != current) {
+            if (prior != null && (prior.url != config.url || prior.transportType != config.transportType)) {
+                settings.clearMcpToken(config.id)
+            }
+            persist(updated)
         }
+        reconcile(updated)
+    }
+
+    suspend fun setEnabled(id: String, enabled: Boolean) = configLock.withLock {
+        val current = settings.mcpServersFlow.first()
+        val updated = current.map { if (it.id == id) it.copy(enabled = enabled) else it }
+        if (updated != current) persist(updated)
+        reconcile(updated)
+    }
+
+    private fun reconcile(configs: List<McpServerConfig>) = synchronized(connectionLock) {
+        _servers.value = configs
+        val enabled = configs.filter { it.isConnectable() }.associateBy { it.id }
+        val changed = clientConfigs.filter { (id, old) -> enabled[id]?.copy(lastConnectedAt = 0) != old }.keys.toList()
+        changed.forEach(::disconnectServer)
+        enabled.values.forEach(::connectServer)
     }
 
     /** 配置工具使用的幂等写入：同 id 时更新，否则新增。 */
@@ -186,7 +177,7 @@ class McpRegistry(
         // (loopback 除外,Ollama/本地 MCP host 开发场景)。已存在的 server 允许重连原配置
         // (loopback 放行由 isSsrfBlocked 内置,非 loopback 的存量内网配置保持可用,
         //  仅在重新 upsert 时被拦)。
-        if (config.isSsrfBlocked()) {
+        if (withContext(Dispatchers.IO) { config.isSsrfBlocked() }) {
             return "MCP 服务器 ${config.name}(${config.id}) URL 指向内网/保留地址,已被 SSRF 防护拒绝(仅允许 http/https 公网地址或 localhost)。"
         }
         return if (_servers.value.any { it.id == config.id }) {
@@ -214,36 +205,35 @@ class McpRegistry(
         return if (added) "已将 MCP $serverId 绑定到助手 ${assistant.name}。" else "MCP $serverId 已经绑定到助手 ${assistant.name}。"
     }
 
-    /** 删除 server 并断开连接。 */
-    suspend fun removeServer(id: String) {
-        val newList = _servers.value.filterNot { it.id == id }
-        persist(newList)
-        _servers.value = newList
-        runCatching {
-            assistantRepository?.removeMcpServerBinding(id)
-        }.onFailure { Logger.w(TAG, "清理 MCP server 绑定失败(id=$id): ${it.message}", it) }
-        disconnectServer(id)
+    suspend fun setAssistantBindings(serverId: String, assistantIds: Set<String>) = configLock.withLock {
+        val repo = assistantRepository ?: return@withLock
+        if (_servers.value.none { it.id == serverId }) return@withLock
+        repo.getAll().forEach { assistant ->
+            val before = repo.parseMcpServerIds(assistant).toSet()
+            val after = if (assistant.id in assistantIds) before + serverId else before - serverId
+            if (after != before) repo.updateMcpServerIds(assistant.id, repo.serializeStringList(after.toList()))
+        }
     }
 
-    /** 启动所有启用的 server(应用启动时调用)。 */
+    suspend fun removeServer(id: String) = configLock.withLock {
+        val current = settings.mcpServersFlow.first()
+        val updated = current.filterNot { it.id == id }
+        if (updated != current) persist(updated)
+        reconcile(updated)
+        settings.clearMcpToken(id)
+        assistantRepository?.removeMcpServerBinding(id)
+    }
+
+    /** The settings collector owns start-up. An explicit refresh also serves consumers starting on the first turn. */
     fun startAll() {
-        // M-REG3: 用 AtomicBoolean 保证只调用一次,避免与 init 块重复连接
-        if (!startAllCalled.compareAndSet(false, true)) return
-        scope.launch {
-            // 不依赖 init collector 的调度顺序,显式读取一次持久化配置后再连接。
-            val saved = settings.mcpServersFlow.first()
-            _servers.value = saved
-            saved.filter { it.isConnectable() }.forEach { connectServer(it) }
-        }
+        if (_servers.value.isNotEmpty()) return
+        scope.launch { configLock.withLock { reconcile(settings.mcpServersFlow.first()) } }
     }
 
-    /** 手动重连指定 server。 */
-    fun reconnect(id: String) {
-        scope.launch {
-            val cfg = _servers.value.firstOrNull { it.id == id } ?: return@launch
-            disconnectServer(id)
-            connectServer(cfg)
-        }
+    fun reconnect(id: String) = synchronized(connectionLock) {
+        val config = _servers.value.firstOrNull { it.id == id && it.isConnectable() } ?: return@synchronized
+        disconnectServer(id)
+        connectServer(config)
     }
 
     // ── Phase 10.4: OAuth 2.1 PKCE 代理(供 UI 调用) ──────────────────────────
@@ -257,6 +247,40 @@ class McpRegistry(
         return runCatching { client.startOAuthFlow() }.getOrNull()
     }
 
+    /** Discover/register on demand and return a browser URL for this server. */
+    suspend fun authorize(serverId: String): String? {
+        var client = clients[serverId]
+        var cfg = _servers.value.firstOrNull { it.id == serverId } ?: return null
+        if (!cfg.oauthConfig.enabled) {
+            val discovered = McpDynamicRegistration.discoverAndRegister(
+                serverUrl = cfg.url,
+                redirectUri = cfg.oauthConfig.redirectUri,
+                protectedResourceMetadataUrl = client?.protectedResourceMetadataUrl,
+                scopes = client?.authorizationScopeHint.orEmpty(),
+                resource = cfg.url,
+            ) ?: return null
+            cfg = cfg.copy(oauthConfig = discovered)
+            updateServer(cfg)
+            client = clients[serverId]
+        }
+        return client?.startOAuthFlow()
+    }
+
+    /** Route a deep link to the pending MCP client whose PKCE state matches it. */
+    suspend fun completeOAuthCallback(redirectUri: String): Boolean {
+        val state = McpOAuthFlow.callbackState(redirectUri, "io.zer0.muse://oauth/callback") ?: return false
+        val match = clients.entries.firstOrNull { (_, client) -> client.hasPendingOAuthState(state) } ?: return false
+        val denied = runCatching {
+            android.net.Uri.parse(redirectUri).getQueryParameter("error")
+        }.getOrNull()
+        if (!denied.isNullOrBlank()) {
+            match.value.failOAuthCallback(state, "Authorization was denied or cancelled")
+            return true
+        }
+        completeOAuthFlow(match.key, redirectUri)
+        return true
+    }
+
     /**
      * Phase 10.4: 完成 OAuth 授权流程(浏览器回调后调用)。
      * 成功后自动重连 server。
@@ -266,12 +290,15 @@ class McpRegistry(
         val client = clients[serverId] ?: return false
         val ok = client.completeOAuthFlow(redirectUri)
         if (ok) {
-            // 授权成功,重连(这次能拿到 token,正常握手)
-            val cfg = _servers.value.firstOrNull { it.id == serverId } ?: return ok
-            disconnectServer(serverId)
-            connectServer(cfg)
+            reconnect(serverId)
         }
         return ok
+    }
+
+    /** Mark a cancelled browser flow so the server remains available for retry. */
+    fun cancelOAuthFlow(serverId: String) {
+        val client = clients[serverId] ?: return
+        client.cancelOAuthFlow()
     }
 
     /** Phase 10.4: 撤销指定 server 的 OAuth 授权。 */
@@ -286,72 +313,34 @@ class McpRegistry(
         return client.needsOAuth()
     }
 
-    // ── Phase 11.1.2: resources / prompts 聚合 API ──────────────────────────
+    /** Authorization lifecycle for settings and recovery prompts. */
+    fun oauthStatus(serverId: String): kotlinx.coroutines.flow.StateFlow<McpOAuthStatus>? = clients[serverId]?.oauthStatus
 
-    /**
-     * Phase 11.1.2: 聚合所有已连接 server 的 resources。
-     * 每个 resource 标注来源 server,UI 展示给用户选择注入 context。
-     *
-     * @return 所有已连接 server 的资源列表(serverId → resource 列表)
-     */
-    suspend fun listAllResources(): Map<String, List<McpResource>> {
-        val result = mutableMapOf<String, List<McpResource>>()
-        clients.forEach { (serverId, client) ->
-            if (client.state.value == McpConnectionState.CONNECTED) {
-                resultOf {
-                    val resources = client.listResources()
-                    if (resources.isNotEmpty()) result[serverId] = resources
-                }.onError { msg, _ ->
-                    Logger.w(TAG, "[$serverId] listResources 失败: $msg")
-                }
-            }
-        }
-        return result
+    /** Sanitized explanation for the latest authorization state. */
+    fun oauthFailure(serverId: String): String? = clients[serverId]?.authFailure
+
+    sealed interface QueryResult<out T> {
+        data class Success<T>(val value: T) : QueryResult<T>
+        enum class Failure : QueryResult<Nothing> { DISCONNECTED, UNSUPPORTED, REQUEST_FAILED }
     }
 
-    /**
-     * Phase 11.1.2: 读取指定 server 的指定 resource 内容。
-     * @return 资源内容列表(可能多个);失败返回空列表
-     */
-    suspend fun readResource(serverId: String, uri: String): List<McpResourceContent> {
-        val client = clients[serverId] ?: return emptyList()
-        if (client.state.value != McpConnectionState.CONNECTED) return emptyList()
-        return resultOf { client.readResource(uri) }
-            .onError { msg, _ -> Logger.w(TAG, "[$serverId] readResource($uri) 失败: $msg") }
-            .getOrNull() ?: emptyList()
-    }
+    suspend fun listResources(serverId: String): QueryResult<List<McpResource>> = query(serverId, "resources") { listResourcesOrNull() }
 
-    /**
-     * Phase 11.1.2: 聚合所有已连接 server 的 prompts。
-     * 每个 prompt 标注来源 server,UI 展示为快捷指令按钮。
-     *
-     * @return 所有已连接 server 的 prompt 列表(serverId → prompt 列表)
-     */
-    suspend fun listAllPrompts(): Map<String, List<McpPrompt>> {
-        val result = mutableMapOf<String, List<McpPrompt>>()
-        clients.forEach { (serverId, client) ->
-            if (client.state.value == McpConnectionState.CONNECTED) {
-                resultOf {
-                    val prompts = client.listPrompts()
-                    if (prompts.isNotEmpty()) result[serverId] = prompts
-                }.onError { msg, _ ->
-                    Logger.w(TAG, "[$serverId] listPrompts 失败: $msg")
-                }
-            }
-        }
-        return result
-    }
+    suspend fun readResource(serverId: String, uri: String): QueryResult<List<McpResourceContent>> =
+        query(serverId, "resources") { readResourceOrNull(uri) }
 
-    /**
-     * Phase 11.1.2: 获取指定 server 的指定 prompt 内容。
-     * @return prompt 消息列表;失败返回空 messages
-     */
-    suspend fun getPrompt(serverId: String, name: String, arguments: Map<String, String> = emptyMap()): McpPromptResult {
-        val client = clients[serverId] ?: return McpPromptResult()
-        if (client.state.value != McpConnectionState.CONNECTED) return McpPromptResult()
-        return resultOf { client.getPrompt(name, arguments) }
-            .onError { msg, _ -> Logger.w(TAG, "[$serverId] getPrompt($name) 失败: $msg") }
-            .getOrNull() ?: McpPromptResult()
+    suspend fun listPrompts(serverId: String): QueryResult<List<McpPrompt>> = query(serverId, "prompts") { listPromptsOrNull() }
+
+    suspend fun getPrompt(serverId: String, name: String, arguments: Map<String, String>): QueryResult<McpPromptResult> =
+        query(serverId, "prompts") { getPromptOrNull(name, arguments) }
+
+    private suspend fun <T> query(serverId: String, capability: String, read: suspend McpClient.() -> T?): QueryResult<T> {
+        val client = clients[serverId] ?: return QueryResult.Failure.DISCONNECTED
+        if (client.state.value != McpConnectionState.CONNECTED) return QueryResult.Failure.DISCONNECTED
+        if (client.serverCapabilities.value?.containsKey(capability) == false) return QueryResult.Failure.UNSUPPORTED
+        return resultOf { client.read() }
+            .onError { _, _ -> Logger.w(TAG, "[$serverId] MCP $capability request failed") }
+            .getOrNull()?.let { QueryResult.Success(it) } ?: QueryResult.Failure.REQUEST_FAILED
     }
 
     // ── Phase 11.1.3: Dynamic Client Registration 代理 ──────────────────────
@@ -371,120 +360,100 @@ class McpRegistry(
             serverUrl = cfg.url,
             // L-REG1: 从 config 读取 redirectUri,而非硬编码
             redirectUri = cfg.oauthConfig.redirectUri,
+            protectedResourceMetadataUrl = clients[serverId]?.protectedResourceMetadataUrl,
+            scopes = clients[serverId]?.authorizationScopeHint.orEmpty(),
+            resource = cfg.url,
         ) ?: return null
         // 持久化到 server 配置
         val updated = cfg.copy(oauthConfig = oauthConfig)
         updateServer(updated)
-        Logger.i(TAG, "[$serverId] 动态注册成功,clientId=${oauthConfig.clientId}")
+        Logger.i(TAG, "[$serverId] 动态注册成功")
         return oauthConfig
     }
 
     /**
      * 连接到指定 server,握手成功后注册 tools 到 [ToolRegistry]。
      */
-    private suspend fun connectServer(config: McpServerConfig) {
-        if (clients.containsKey(config.id)) return // 已连接
-        // G2: 连接入口 SSRF 兜底 — 即使绕过 upsertServer 入口(startAll 读取存量配置/
-        // init collector/reconnect/OAuth 后重连),也不发起指向内网的连接。
-        if (config.isSsrfBlocked()) {
-            Logger.w(TAG, "[${config.id}] URL 命中 SSRF 防护(内网/保留地址),拒绝连接")
-            updateState(config.id, McpConnectionState.FAILED)
-            return
-        }
-        // Phase 10.4: 传入 settings,使 McpClient 支持 OAuth token 持久化
+    private fun connectServer(config: McpServerConfig) {
+        if (config.id in clientConfigs) return
+        val id = config.id
         val client = McpClient(config, settings = settings, appContext = context)
-        // init collector 与 startAll 可能同时发现同一个 server,用 putIfAbsent 防止双 client
-        // 并行握手、重复注册同名 MCP 工具和重复重连。
-        if (clients.putIfAbsent(config.id, client) != null) {
-            client.close()
-            return
-        }
-        updateState(config.id, McpConnectionState.CONNECTING)
-
-        // Phase 9.5 (P3-2): 注入 tools/list_changed 回调,server 工具列表变更时自动重新拉取。
-        // 回调内 launch 独立协程,避免阻塞 McpClient 的 notification 处理协程。
-        client.onToolsListChanged = {
-            scope.launch {
-                refreshTools(config.id, client)
+        clients[id] = client
+        clientConfigs[id] = config.copy(lastConnectedAt = 0)
+        setStatus(id, ServerStatus(connection = McpConnectionState.CONNECTING))
+        client.onToolsListChanged = { scope.launch { refreshTools(id, client) } }
+        clientJobs[id] = scope.launch {
+            val issue = connectionIssue(config)
+            if (issue != null) {
+                synchronized(connectionLock) {
+                    if (clients[id] === client) setStatus(id, ServerStatus(McpConnectionState.FAILED, issue = issue))
+                }
+                return@launch
             }
-        }
-        // B3-09: prompts/resources 变更时触发刷新信号(列表为按需查询,下轮打开自动取最新)
-        client.onPromptsListChanged = {
-            Logger.i(TAG, "[${config.id}] prompts/list_changed 通知,下次查询自动刷新")
-        }
-        client.onResourcesListChanged = {
-            Logger.i(TAG, "[${config.id}] resources/list_changed 通知,下次查询自动刷新")
-        }
-        // P2-24: 自动重连成功后同步 registry 状态 + 重新拉取工具(断开期间工具集可能变化)
-        client.onReconnected = {
-            scope.launch { handleServerReconnected(config.id, client) }
-        }
-
-        client.start()
-        // M-REG1: 用 first{} 替代 200ms 轮询,等待终态(CONNECTED/FAILED/NEEDS_AUTH)
-        val finalState = withTimeoutOrNull(10_000L) {
-            client.state.first {
-                it == McpConnectionState.CONNECTED ||
-                    it == McpConnectionState.FAILED ||
-                    it == McpConnectionState.NEEDS_AUTH
+            client.start()
+            client.state.dropWhile { it == McpConnectionState.DISCONNECTED }.collectLatest { state ->
+                val active = synchronized(connectionLock) {
+                    if (clients[id] !== client) return@synchronized false
+                    if (state != McpConnectionState.CONNECTED) unregisterTools(id)
+                    val issueForState = if (state == McpConnectionState.FAILED) {
+                        when {
+                            client.lastConnectTimedOut -> ConnectionIssue.TIMED_OUT
+                            config.transportType == McpTransportType.STDIO -> ConnectionIssue.START_FAILED
+                            else -> ConnectionIssue.HANDSHAKE_FAILED
+                        }
+                    } else {
+                        null
+                    }
+                    setStatus(id, ServerStatus(state, issue = issueForState))
+                    true
+                }
+                if (active && state == McpConnectionState.CONNECTED) refreshTools(id, client)
             }
-        }
-        if (finalState == null) {
-            // 超时:底层 client.start() 启动的连接协程仍在后台运行,
-            // 直接断开 client(其 close() 会 scope.cancel() 取消所有协程),避免 registry 状态不准
-            Logger.w(TAG, "[${config.id}] connectServer 10s 超时,取消底层连接")
-            disconnectServer(config.id)
-            return
-        }
-        updateState(config.id, finalState)
-
-        // 连接成功,拉取 tools 并注册到 ToolRegistry
-        if (finalState == McpConnectionState.CONNECTED) {
-            registerTools(config.id, client)
-            markConnected(config.id)
         }
     }
 
-    /** 断开 server 连接,注销 tools。 */
-    private fun disconnectServer(id: String) {
-        clients.remove(id)?.let { client ->
-            // Phase 9.5 (P3-2): 清除回调引用,避免断开后通知仍触发 refreshTools
-            client.onToolsListChanged = null
-            client.onPromptsListChanged = null
-            client.onResourcesListChanged = null
-            client.onReconnected = null
-            client.close()
-            // 注销该 server 的所有工具(前缀匹配)
-            unregisterTools(id)
+    private fun connectionIssue(config: McpServerConfig): ConnectionIssue? {
+        if (config.transportType == McpTransportType.STDIO) {
+            return if (MuseRuntime.isReady(context)) null else ConnectionIssue.RUNTIME_REQUIRED
         }
-        toolsReadyServers.remove(id)
-        toolLoadFailedServers.remove(id)
-        // 清理刷新标记,避免下次重连时 compareAndSet 误判
+        val address = parseRemoteAddress(config.url) ?: return ConnectionIssue.INVALID_ADDRESS
+        val resolved = resolveRemoteAddress(config.id, address.host) ?: return ConnectionIssue.DnsFailed
+        return addressIssue(config, resolved)
+    }
+
+    private fun parseRemoteAddress(url: String): java.net.URI? {
+        val address = runCatching { java.net.URI(url) }.getOrNull() ?: return null
+        val hasAllowedScheme = address.scheme?.lowercase() in setOf("http", "https")
+        return address.takeIf { hasAllowedScheme && it.host != null && it.userInfo == null }
+    }
+
+    private fun resolveRemoteAddress(serverId: String, host: String): Array<java.net.InetAddress>? =
+        try {
+            java.net.InetAddress.getAllByName(host)
+        } catch (error: java.net.UnknownHostException) {
+            Logger.w(TAG, "[$serverId] MCP address lookup failed", error)
+            null
+        }
+
+    private fun addressIssue(config: McpServerConfig, addresses: Array<java.net.InetAddress>): ConnectionIssue? =
+        if (config.isSsrfBlocked(addresses)) ConnectionIssue.ADDRESS_BLOCKED else null
+
+    private fun disconnectServer(id: String) {
+        clientJobs.remove(id)?.cancel()
+        clientConfigs.remove(id)
+        clients.remove(id)?.close()
+        unregisterTools(id)
         refreshingTools.remove(id)
         _serversState.update { it - id }
+        _serverStatuses.update { it - id }
     }
 
-    /**
-     * P2-24: McpClient 自动重连成功后调用 — 同步 registry 状态并重新拉取工具。
-     * 断开期间 server 的工具集可能变化,必须 unregister 旧的再 register 新的;
-     * 同时把 [McpConnectionState] 同步回 CONNECTED,避免 UI 显示陈旧状态。
-     */
-    private suspend fun handleServerReconnected(serverId: String, client: McpClient) {
-        if (clients[serverId] !== client) return // 已断开/被替换的 client,忽略旧回调
-        updateState(serverId, McpConnectionState.CONNECTED)
-        if (client.state.value != McpConnectionState.CONNECTED) return
-        Logger.i(TAG, "[$serverId] 自动重连成功,重新拉取工具列表")
-        refreshTools(serverId, client)
-        markConnected(serverId)
+    private fun setStatus(id: String, status: ServerStatus) {
+        _serverStatuses.update { it + (id to status) }
+        _serversState.update { it + (id to status.connection) }
     }
 
-    /**
-     * 从 MCP server 拉取 tools/list,注册到 [ToolRegistry]。
-     * 工具名: `mcp_{serverId}__{originalToolName}`
-     */
     private suspend fun registerTools(serverId: String, client: McpClient) {
-        toolsReadyServers.remove(serverId)
-        toolLoadFailedServers.remove(serverId)
         var tools: List<McpTool>? = null
         for (attempt in 0 until 3) {
             val toolsResult = resultOf { client.listToolsOrNull() }
@@ -494,111 +463,89 @@ class McpRegistry(
             if (tools != null) break
             if (attempt < 2) delay(if (attempt == 0) 250L else 1_000L)
         }
-        val resolvedTools = tools ?: run {
-            toolLoadFailedServers.add(serverId)
-            return
-        }
-        Logger.i(TAG, "[$serverId] 注册 ${resolvedTools.size} 个 MCP 工具")
-        // v1.0.79 (C-3): 连接+注册成功后,自动把 server 绑定到主助手扩展,
-        // 否则主聊天 tools schema 按助手 mcpServerIds 过滤,看不到新 MCP 的工具。
-        autoBindToDefaultAssistant(serverId)
-        resolvedTools.forEach { tool ->
-            val registeredName = "mcp_${serverId}__${tool.name}"
-            val description = tool.description ?: context.getString(R.string.mcp_tool_no_description)
-            // 从 inputSchema 解析参数名(JSON Schema properties 的 key)
-            val params = parseInputSchema(tool.inputSchema)
-            val required = parseRequired(tool.inputSchema)
-            val parameterTypes = parseInputSchemaTypes(tool.inputSchema)
-            toolRegistry.registerJson(
-                ToolRegistry.ToolDef(
-                    name = registeredName,
-                    description = "[MCP server=$serverId tool=${tool.name}] $description",
-                    parameters = params,
-                    required = required,
-                    category = "mcp",
-                    parameterTypes = parameterTypes,
-                    rawParametersJsonSchema = tool.inputSchema?.toString(),
-                    // 对端工具名是第三方自取的 — `get_diagnostics` 也可以是外发调用。
-                    // 不拿名字推风险，统一走动态工具判据（保守 NORMAL，ASK 模式下弹审批）。
-                    riskLevel = ToolPermissionResolver.riskLevelFor(registeredName),
-                ),
-            ) { args ->
-                // 保留 inputSchema 声明的 JSON 类型,避免 boolean/number/array/object 被压成字符串。
-                val arguments = coerceMcpArguments(args, tool.inputSchema)
-                val timeoutMs = _servers.value.firstOrNull { it.id == serverId }
-                    ?.requestTimeoutMs
-                    ?.coerceIn(1_000L, 120_000L)
-                    ?: 30_000L
-                try {
-                    val result = withTimeoutOrNull(timeoutMs) {
-                        client.callTool(tool.name, arguments)
+        synchronized(connectionLock) {
+            if (clients[serverId] !== client || client.state.value != McpConnectionState.CONNECTED) return
+            val previous = serverStatuses.value[serverId] ?: ServerStatus(McpConnectionState.CONNECTED)
+            val resolvedTools = tools
+            if (resolvedTools == null) {
+                setStatus(serverId, previous.copy(issue = ConnectionIssue.TOOLS_FAILED))
+                return
+            }
+            unregisterTools(serverId)
+            resolvedTools.forEach { tool ->
+                val registeredName = "mcp_${serverId}__${tool.name}"
+                val description = tool.description ?: context.getString(R.string.mcp_tool_no_description)
+                // 从 inputSchema 解析参数名(JSON Schema properties 的 key)
+                val params = parseInputSchema(tool.inputSchema)
+                val required = parseRequired(tool.inputSchema)
+                val parameterTypes = parseInputSchemaTypes(tool.inputSchema)
+                toolRegistry.registerJson(
+                    ToolRegistry.ToolDef(
+                        name = registeredName,
+                        description = "[MCP server=$serverId tool=${tool.name}] $description",
+                        parameters = params,
+                        required = required,
+                        category = "mcp",
+                        parameterTypes = parameterTypes,
+                        rawParametersJsonSchema = tool.inputSchema?.toString(),
+                        // 对端工具名是第三方自取的 — `get_diagnostics` 也可以是外发调用。
+                        // 不拿名字推风险，统一走动态工具判据（保守 NORMAL，ASK 模式下弹审批）。
+                        riskLevel = ToolPermissionResolver.riskLevelFor(registeredName),
+                    ),
+                ) { args ->
+                    val timeoutMs = _servers.value.firstOrNull { it.id == serverId }
+                        ?.requestTimeoutMs
+                        ?.coerceIn(1_000L, 120_000L)
+                        ?: 30_000L
+                    try {
+                        val result = withTimeoutOrNull(timeoutMs) {
+                            client.callTool(tool.name, args)
+                        }
+                        if (result == null) {
+                            // 超时不再静默：使用 server 配置的 requestTimeoutMs 回传失败原因
+                            // (v2.2.1: 附带 server 名与超时秒数,模型可直接定位是哪个 server 慢)。
+                            Logger.w(TAG, "[$serverId] 工具 ${tool.name} 调用超时(${timeoutMs}ms)")
+                            "Error: " + context.getString(
+                                R.string.mcp_tool_call_timeout,
+                                "$serverId / ${tool.name} (${timeoutMs / 1000}s)",
+                            )
+                        } else if (result.isError) {
+                            // v1.0.79 (A-1): 错误详情完整回传 — server 返回的 content/structuredContent
+                            // 都带回,模型拿得到失败原因才能自我纠正。
+                            val detail = McpToolResultPresentation.formatToolResult(result)
+                            Logger.w(TAG, "[$serverId] MCP tool ${tool.name} returned an error")
+                            "Error: " + context.getString(
+                                R.string.mcp_tool_call_failed,
+                                "$serverId / ${tool.name}",
+                            ) + ": " + detail
+                        } else {
+                            McpToolResultPresentation.formatToolResult(result)
+                        }
+                    } catch (ce: kotlinx.coroutines.CancellationException) {
+                        throw ce
+                    } catch (e: Exception) {
+                        // v2.2.1: 调用抛异常(连接断开/协议错误等)不再落到通用兜底,带 server/工具名回传。
+                        Logger.w(TAG, "[$serverId] MCP tool ${tool.name} failed (${e.javaClass.simpleName})")
+                        "Error: [MCP $serverId] 工具 '${tool.name}' 调用异常(${e.javaClass.simpleName})"
                     }
-                    if (result == null) {
-                        // 超时不再静默：使用 server 配置的 requestTimeoutMs 回传失败原因
-                        // (v2.2.1: 附带 server 名与超时秒数,模型可直接定位是哪个 server 慢)。
-                        Logger.w(TAG, "[$serverId] 工具 ${tool.name} 调用超时(${timeoutMs}ms)")
-                        "Error: " + context.getString(
-                            R.string.mcp_tool_call_timeout,
-                            "$serverId / ${tool.name} (${timeoutMs / 1000}s)",
-                        )
-                    } else if (result.isError) {
-                        // v1.0.79 (A-1): 错误详情完整回传 — server 返回的 content/structuredContent
-                        // 都带回,模型拿得到失败原因才能自我纠正。
-                        val detail = formatToolResult(result)
-                        Logger.w(TAG, "[$serverId] 工具 ${tool.name} 调用失败: $detail")
-                        "Error: " + context.getString(
-                            R.string.mcp_tool_call_failed,
-                            "$serverId / ${tool.name}",
-                        ) + ": " + detail
-                    } else {
-                        formatToolResult(result)
-                    }
-                } catch (ce: kotlinx.coroutines.CancellationException) {
-                    throw ce
-                } catch (e: Exception) {
-                    // v2.2.1: 调用抛异常(连接断开/协议错误等)不再落到通用兜底,带 server/工具名回传。
-                    Logger.w(TAG, "[$serverId] 工具 ${tool.name} 调用异常: ${e.message}", e)
-                    "Error: [MCP $serverId] 工具 '${tool.name}' 调用异常(${e.javaClass.simpleName}): ${e.message ?: "未知错误"}"
                 }
             }
-        }
-        toolsReadyServers.add(serverId)
-    }
-
-    /**
-     * v1.0.79 (C-3): 把已连接的 MCP server 自动绑定到主助手扩展。
-     *
-     * 背景: 新加的 MCP server 连接成功后不会自动进入助手配置(mcpServerIdsJson),
-     * 而聊天 tools schema 按助手 mcpServerIds 过滤 → 主聊天看不到 MCP 工具。
-     * 此方法在 registerTools 成功后调用,把 serverId 写入主助手扩展列表(幂等)。
-     *
-     * 注意: 只在主助手(默认助手)上自动绑定;子助手/团队助手仍由用户在助手页
-     * 显式勾选,避免自动扩散到不相关的助手。
-     */
-    private suspend fun autoBindToDefaultAssistant(serverId: String) {
-        val repo = assistantRepository ?: return
-        if (serverId.isBlank()) return
-        try {
-            // 主助手 id 固定为 "default"(与 MemoryTicker.MAIN_ASSISTANT_ID 一致)
-            val defaultAssistant = repo.getById("default") ?: run {
-                repo.ensureDefaultExists()
-                repo.getById("default")
-            } ?: return
-            val bound = repo.parseMcpServerIds(defaultAssistant).toMutableSet()
-            if (serverId in bound) return // 已绑定,幂等
-            bound.add(serverId)
-            repo.upsert(
-                defaultAssistant.copy(mcpServerIdsJson = repo.serializeStringList(bound.toList())),
-            )
-            Logger.i(TAG, "[$serverId] 已自动绑定到主助手扩展(mcpServerIds=${bound.size})")
-        } catch (e: kotlinx.coroutines.CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            Logger.w(TAG, "[$serverId] 自动绑定主助手失败(不影响工具注册): ${e.message}")
+            val connectedAt = System.currentTimeMillis()
+            setStatus(serverId, ServerStatus(McpConnectionState.CONNECTED, resolvedTools, lastConnectedAt = connectedAt))
+            if (previous.lastConnectedAt == 0L) rememberLastConnection(serverId, client, connectedAt)
         }
     }
 
-    /** 注销指定 server 的所有工具。 */
+    private fun rememberLastConnection(serverId: String, client: McpClient, connectedAt: Long) {
+        scope.launch {
+            configLock.withLock {
+                if (clients[serverId] !== client) return@withLock
+                val current = settings.mcpServersFlow.first()
+                persist(current.map { if (it.id == serverId) it.copy(lastConnectedAt = connectedAt) else it })
+            }
+        }
+    }
+
     private fun unregisterTools(serverId: String) {
         val prefix = "mcp_${serverId}__"
         toolRegistry.listTools()
@@ -606,45 +553,15 @@ class McpRegistry(
             .forEach { toolRegistry.unregister(it.name) }
     }
 
-    /**
-     * Phase 9.5 (P3-2): 刷新指定 server 的工具列表。
-     *
-     * 触发场景:server 发出 `notifications/tools/list_changed`(MCP 2025-03-26 §Tools),
-     * 表示工具集可能增删改,client 缓存的 tools/list 已过期。
-     *
-     * 流程:
-     *  1. 重入保护:compareAndSet 防并发刷新
-     *  2. 校验 client 仍连接(断开期间的通知忽略)
-     *  3. unregisterTools(清旧) → registerTools(拉新)
-     *
-     * 幂等性:registerTools 内 toolRegistry.register 是覆盖式,重复注册同名工具安全;
-     * 但先 unregister 再 register 保证删除的工具被正确移除(仅覆盖无法删除)。
-     *
-     * @param serverId server 标识
-     * @param client 对应的 McpClient(从 clients map 取出后可能已断开,需校验 state)
-     */
     private suspend fun refreshTools(serverId: String, client: McpClient) {
-        // 重入保护:同一 server 同时只允许一次刷新。
-        // ConcurrentHashMap 无 compareAndSet,用 putIfAbsent 模拟:返回 null 表示成功获取锁。
-        if (refreshingTools.putIfAbsent(serverId, true) != null) {
-            Logger.d(TAG, "[$serverId] tools/list_changed 触发刷新,但已有刷新在跑,跳过")
-            return
-        }
+        if (clients[serverId] !== client || refreshingTools.putIfAbsent(serverId, client) != null) return
         try {
-            // 校验 client 仍连接(断开期间的通知可能还在事件队列里)
-            if (client.state.value != McpConnectionState.CONNECTED) {
-                Logger.d(TAG, "[$serverId] tools/list_changed 到达但 client 未连接,跳过刷新")
-                return
-            }
-            Logger.i(TAG, "[$serverId] 收到 tools/list_changed,重新拉取工具列表")
-            unregisterTools(serverId)
-            registerTools(serverId, client)
+            if (client.state.value == McpConnectionState.CONNECTED) registerTools(serverId, client)
         } finally {
-            refreshingTools.remove(serverId)
+            refreshingTools.remove(serverId, client)
         }
     }
 
-    /** 从 inputSchema(JSON Schema)解析参数名 → 描述。 */
     private fun parseInputSchema(schema: kotlinx.serialization.json.JsonElement?): Map<String, String> {
         if (schema == null) return emptyMap()
         val obj = schema as? JsonObject ?: return emptyMap()
@@ -676,45 +593,30 @@ class McpRegistry(
      * 应用刚启动时 MCP 连接和用户发送消息可能并发发生;如果只读取一次 ToolRegistry,
      * 首条消息会在 tools/list 返回前看不到 MCP 工具。超时后仍允许聊天继续,但会记录未就绪状态。
      */
-    suspend fun awaitToolsForServers(serverIds: Set<String>, timeoutMs: Long? = null): Boolean {
-        if (serverIds.isEmpty()) return true
-        startAll()
-        // 未配置、已禁用或空 URL 的 server 不会被 startAll 连接,直接返回失败状态,
-        // 不让每条消息无意义地等待完整 timeout。
-        // 这里不能只读 _servers.value:startAll() 是异步启动,首条消息可能恰好抢在
-        // settings flow collector 之前。直接读取一次持久化快照,消除这个启动竞态。
-        val savedServers = settings.mcpServersFlow.first()
-        _servers.value = savedServers
-        val configuredServerIds = savedServers
-            .asSequence()
-            .filter { it.isConnectable() }
-            .map { it.id }
-            .toSet()
-        if (!serverIds.all { it in configuredServerIds }) return false
-        // v1.0.92 (B-2): 工具就绪等待超时按 server 配置取最大值;显式传入时优先,缺省回退 5s。
-        val effectiveTimeoutMs = timeoutMs ?: serverIds
-            .mapNotNull { id -> savedServers.firstOrNull { it.id == id }?.toolsReadyTimeoutMs }
-            .maxOrNull()
-            ?: 5_000L
-        return withTimeoutOrNull<Boolean>(effectiveTimeoutMs) {
-            var ready = false
-            var failed = false
-            while (!ready && !failed) {
-                ready = serverIds.all { it in toolsReadyServers }
-                failed = !ready && serverIds.any { id ->
-                    id in toolLoadFailedServers ||
-                        serversState.value[id] in setOf(
-                            McpConnectionState.FAILED,
-                            McpConnectionState.NEEDS_AUTH,
-                        )
+    suspend fun awaitToolsForServers(serverIds: Set<String>, timeoutMs: Long? = null): Boolean =
+        unavailableForTurn(serverIds, timeoutMs).isEmpty()
+
+    suspend fun unavailableForTurn(serverIds: Set<String>, timeoutMs: Long? = null): List<McpServerConfig> {
+        if (serverIds.isEmpty()) return emptyList()
+        val targets = configLock.withLock {
+            val saved = settings.mcpServersFlow.first()
+            reconcile(saved)
+            saved.filter { it.id in serverIds && it.isConnectable() }
+        }
+        if (targets.isEmpty()) return emptyList()
+        val limit = timeoutMs ?: targets.maxOf { it.toolsReadyTimeoutMs }
+        withTimeoutOrNull(limit) {
+            serverStatuses.first { states ->
+                targets.all {
+                    val status = states[it.id]
+                    status?.tools != null || status?.issue != null ||
+                        status?.connection == McpConnectionState.NEEDS_AUTH
                 }
-                if (!ready && !failed) delay(50L)
             }
-            ready && !failed
-        } ?: false
+        }
+        return targets.filter { serverStatuses.value[it.id]?.tools == null }
     }
 
-    /** 从 inputSchema 解析参数类型,供 ToolRegistry 的 JSON 工具校验和 Provider schema 使用。 */
     private fun parseInputSchemaTypes(schema: JsonElement?): Map<String, String> {
         val obj = schema as? JsonObject ?: return emptyMap()
         val props = obj["properties"] as? JsonObject ?: return emptyMap()
@@ -724,62 +626,6 @@ class McpRegistry(
     }
 
     /** 把 ToolRegistry 的字符串参数恢复为 MCP inputSchema 声明的 JSON 值。 */
-    private fun coerceMcpArguments(args: JsonObject, schema: JsonElement?): JsonObject {
-        val types = parseInputSchemaTypes(schema)
-        return buildJsonObject {
-            args.forEach { (name, value) ->
-                val raw = (value as? JsonPrimitive)?.content ?: value.toString()
-                val type = types[name]
-                put(
-                    name,
-                    when (type) {
-                        "integer" -> raw.toLongOrNull()?.let(::JsonPrimitive) ?: JsonPrimitive(raw)
-                        "number" -> raw.toDoubleOrNull()?.let(::JsonPrimitive) ?: JsonPrimitive(raw)
-                        "boolean" -> raw.toBooleanStrictOrNull()?.let(::JsonPrimitive) ?: JsonPrimitive(raw)
-                        "array", "object" -> runCatching { AppJson.parseToJsonElement(raw) }
-                            .getOrElse { JsonPrimitive(raw) }
-                        else -> JsonPrimitive(raw)
-                    },
-                )
-            }
-        }
-    }
-
-    /** 将 MCP 内容统一转换为可回填给模型的文本,错误结果也保留 server 原因。 */
-    private fun formatToolContent(content: List<JsonElement>): String = content.joinToString("\n") { element ->
-        val obj = element as? JsonObject
-        val type = (obj?.get("type") as? JsonPrimitive)?.content
-        val text = (obj?.get("text") as? JsonPrimitive)?.content
-        if (type == "text" && text != null) text else element.toString()
-    }
-
-    /** MCP server 可能只返回 structuredContent,不能把这种成功结果误报为空。 */
-    private fun formatToolResult(result: McpToolCallResult): String {
-        val parts = buildList {
-            formatToolContent(result.content).takeIf { it.isNotBlank() }?.let(::add)
-            result.structuredContent?.let { add(it.toString()) }
-        }
-        return parts.joinToString("\n").ifBlank { "(MCP server returned no content)" }
-    }
-
-    /**
-     * v1.0.92 (B-4): 记录 server 最近一次连接成功时间(不触发重连)。
-     * 用于设置页"最后连接"展示;持久化失败仅记日志,不影响连接主流程。
-     */
-    private suspend fun markConnected(id: String) {
-        val now = System.currentTimeMillis()
-        val newList = _servers.value.map { if (it.id == id) it.copy(lastConnectedAt = now) else it }
-        if (newList == _servers.value) return
-        runCatching { persist(newList) }.onFailure { Logger.w(TAG, "[$id] 记录最后连接时间失败: ${it.message}") }
-        _servers.value = newList
-    }
-
-    /** 更新单个 server 的连接状态。 */
-    private fun updateState(id: String, state: McpConnectionState) {
-        _serversState.update { it + (id to state) }
-    }
-
-    /** 注册给助手使用的 MCP 配置工具。工具定义与执行在同一 registry，避免“能调用 MCP 但不能创建 MCP”。 */
     private fun registerManagementTools() {
         fun def(
             name: String,
@@ -796,10 +642,9 @@ class McpRegistry(
                 "当前没有配置 MCP 服务器。"
             } else {
                 current.joinToString("\\n") { cfg ->
-                    val endpoint = if (cfg.transportType == McpTransportType.STDIO) cfg.command else cfg.url
                     val state = _serversState.value[cfg.id] ?: McpConnectionState.DISCONNECTED
                     val enabledText = if (cfg.enabled) "enabled" else "disabled"
-                    "${cfg.id} | ${cfg.name} | ${cfg.transportType.name} | $enabledText | $state | $endpoint"
+                    "${cfg.id} | ${cfg.name} | ${cfg.transportType.name} | $enabledText | $state"
                 }
             }
         }
@@ -807,8 +652,8 @@ class McpRegistry(
             def(
                 "mcp_mgmt_configure",
                 "创建或更新 MCP 服务器配置（远程 SSE / Streamable HTTP，或本地 STDIO），并自动连接、握手、发现工具。" +
-                    "STDIO 模式在内置 Node 运行时中执行 command（支持 node / npm / npx 命令），例如 " +
-                    "npx -y @modelcontextprotocol/server-filesystem /sdcard/Documents。",
+                    "STDIO 模式在已安装的 Node 运行时中执行 command（支持 node / npm / npx 命令），例如 " +
+                    "npx -y @modelcontextprotocol/server-filesystem .。",
                 mapOf(
                     "id" to "稳定唯一 ID，可省略",
                     "name" to "服务器显示名",
@@ -932,7 +777,7 @@ class McpRegistry(
      */
     fun shutdown() {
         scope.cancel()
-        Logger.i(TAG, "McpRegistry shutdown: scope cancelled")
+        synchronized(connectionLock) { clients.keys.toList().forEach(::disconnectServer) }
     }
 
     private companion object {

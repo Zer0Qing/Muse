@@ -1,11 +1,11 @@
 package io.zer0.muse.runtime
 
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.put
 
@@ -106,7 +106,6 @@ object RuntimeMissing {
     }
 
     /** 给模型的引导语：一句话说清缺什么、装完能干什么、去哪装。 */
-    fun guidance(id: RuntimeId = RuntimeId.UBUNTU_NODE): String =
-        "这台手机上还没有装「${id.displayName}」，所以脚本类工具暂时用不了。" +
-            "装上之后就能跑 Node 脚本、Python 和终端命令。你可以在下面点安装，或者到「设置 → 运行时」里装。"
+    fun guidance(id: RuntimeId = RuntimeId.UBUNTU_NODE): String = "这台手机上还没有装「${id.displayName}」，所以脚本类工具暂时用不了。" +
+        "装上之后就能跑 Node 脚本、Python 和终端命令。你可以在下面点安装，或者到「设置 → 运行时」里装。"
 }

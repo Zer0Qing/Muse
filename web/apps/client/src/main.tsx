@@ -6,18 +6,23 @@ import {
   addMemoryFact,
   appendMessage,
   completeFile,
+  connectMcpServer,
   createAssistant,
+  createMcpServer,
   createMemorySpace,
   createSession,
+  deleteMcpServer,
   indexRagDocument,
   listAssistants,
   listMessages,
+  listMcpServers,
   listProviders,
   listSessions,
   login,
   presignFile,
   register,
   registerPushSubscription,
+  resolveMcpApproval,
   saveProvider,
   searchMemory,
   searchRag,
@@ -27,6 +32,9 @@ import {
   type AssistantRecord,
   type ClientSession,
   type MemoryFact,
+  type McpApprovalRequest,
+  type McpServerRecord,
+  type McpToolRecord,
   type RagChunk,
   type SessionRecord,
   type StoredProviderConfig,
@@ -132,6 +140,72 @@ function PushPanel({ session }: { session: ClientSession }) {
   return <div className="workspace-section compact-section"><div><p className="eyebrow">PWA</p><h3>{t("通知与离线能力")}</h3></div><p className="muted">{message}</p><button type="button" disabled={!capabilities.push} onClick={() => void enable()}>{t("启用通知")}</button></div>;
 }
 
+function McpPanel({ session }: { session: ClientSession }) {
+  const [servers, setServers] = useState<McpServerRecord[]>([]);
+  const [tools, setTools] = useState<McpToolRecord[]>([]);
+  const [name, setName] = useState("");
+  const [url, setUrl] = useState("");
+  const [busyId, setBusyId] = useState("");
+  const [error, setError] = useState("");
+  async function refresh() {
+    const result = await listMcpServers(session);
+    setServers(result.servers);
+    setTools(result.tools);
+  }
+  useEffect(() => { void refresh().catch((cause) => setError(cause instanceof Error ? cause.message : t("读取 MCP 连接失败"))); }, [session]);
+  async function add() {
+    try {
+      setError("");
+      const server = await createMcpServer(session, { id: crypto.randomUUID(), name: name.trim(), url: url.trim() });
+      setServers((current) => [server, ...current]);
+      setName("");
+      setUrl("");
+    } catch (cause) { setError(cause instanceof Error ? cause.message : t("保存 MCP 连接失败")); }
+  }
+  async function connect(serverId: string) {
+    try {
+      setError(""); setBusyId(serverId);
+      const result = await connectMcpServer(session, serverId);
+      setServers((current) => current.map((item) => item.id === result.server.id ? result.server : item));
+      setTools((current) => [...current.filter((tool) => tool.serverId !== serverId), ...result.tools]);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : t("连接 MCP 服务失败"));
+      await refresh().catch(() => undefined);
+    } finally { setBusyId(""); }
+  }
+  return <div className="workspace-section">
+    <div className="section-title"><div><p className="eyebrow">MCP</p><h3>{t("云端连接")}</h3></div><span className="muted">{t("仅支持公网 HTTPS Streamable HTTP 服务。")}</span></div>
+    <div className="form-grid">
+      <input aria-label={t("连接名称")} placeholder={t("连接名称")} value={name} onChange={(event) => setName(event.target.value)} />
+      <input aria-label={t("MCP 服务 HTTPS 地址")} placeholder={t("MCP 服务 HTTPS 地址")} value={url} onChange={(event) => setUrl(event.target.value)} />
+    </div>
+    <button type="button" disabled={!name.trim() || !url.trim()} onClick={() => void add()}>{t("保存连接")}</button>
+    <p className="muted">{t("使用 Hosted 或服务端代理聊天调用 MCP 工具；每次调用前都会询问。")}</p>
+    <div className="mcp-server-list">{servers.map((server) => {
+      const serverTools = tools.filter((tool) => tool.serverId === server.id);
+      return <section className="mcp-server" key={server.id}>
+        <div><b>{server.name}</b><small>{new URL(server.url).host} · {mcpStatusLabel(server.status)}</small></div>
+        <div className="mcp-server-actions">
+          <button type="button" disabled={busyId === server.id} onClick={() => void connect(server.id)}>{busyId === server.id ? t("连接中…") : t("连接")}</button>
+          <button type="button" className="quiet" disabled={busyId === server.id} onClick={async () => { try { await deleteMcpServer(session, server.id); setServers((current) => current.filter((item) => item.id !== server.id)); setTools((current) => current.filter((tool) => tool.serverId !== server.id)); } catch (cause) { setError(cause instanceof Error ? cause.message : t("移除 MCP 连接失败")); } }}>{t("移除")}</button>
+        </div>
+        {serverTools.length > 0 && <small>{t("可用工具")}: {serverTools.map((tool) => tool.originalName).join(", ")}</small>}
+      </section>;
+    })}</div>
+    {error && <p className="error">{error}</p>}
+  </div>;
+}
+
+function mcpStatusLabel(status: McpServerRecord["status"]): string {
+  switch (status) {
+    case "connected": return t("已连接");
+    case "disabled": return t("未连接");
+    case "connecting": return t("连接中");
+    case "failed": return t("连接失败");
+    case "needs_auth": return t("需要授权");
+  }
+}
+
 function Workspace({ session, onLogout }: { session: ClientSession; onLogout: () => void }) {
   const [providers, setProviders] = useState<StoredProviderConfig[]>([]);
   const [assistants, setAssistants] = useState<AssistantRecord[]>([]);
@@ -140,7 +214,7 @@ function Workspace({ session, onLogout }: { session: ClientSession; onLogout: ()
   useEffect(() => { const openWorkspace = () => setOpen(true); window.addEventListener("muse:workspace", openWorkspace); return () => window.removeEventListener("muse:workspace", openWorkspace); }, []);
   useEffect(() => { void Promise.all([listProviders(session), listAssistants(session)]).then(([nextProviders, nextAssistants]) => { setProviders(nextProviders); setAssistants(nextAssistants); }).catch((cause) => setError(cause instanceof Error ? cause.message : t("工作区加载失败"))); }, [session]);
   const assistantId = assistants[0]?.id ?? "default";
-  return <>{open && <button className="workspace-scrim" type="button" aria-label={t("关闭设置")} onClick={() => setOpen(false)} />}<aside className={open ? "workspace open" : "workspace"}><div className="workspace-head"><div><p className="eyebrow">{t("MUSE WORKSPACE")}</p><h3>{t("能力设置")}</h3></div><button className="quiet" type="button" onClick={() => setOpen(false)}>{t("收起")}</button></div><ProviderEditor session={session} providers={providers} onSaved={(provider) => setProviders((items) => [provider, ...items.filter((item) => item.id !== provider.id)])} /><AssistantEditor session={session} assistants={assistants} onSaved={(assistant) => setAssistants((items) => [assistant, ...items.filter((item) => item.id !== assistant.id)])} /><KnowledgePanel session={session} assistantId={assistantId} /><FilePanel session={session} /><PushPanel session={session} />{error && <p className="error">{error}</p>}<button className="quiet logout-workspace" type="button" onClick={onLogout}>{t("退出登录")}</button></aside></>;
+  return <>{open && <button className="workspace-scrim" type="button" aria-label={t("关闭设置")} onClick={() => setOpen(false)} />}<aside className={open ? "workspace open" : "workspace"}><div className="workspace-head"><div><p className="eyebrow">{t("MUSE WORKSPACE")}</p><h3>{t("能力设置")}</h3></div><button className="quiet" type="button" onClick={() => setOpen(false)}>{t("收起")}</button></div><ProviderEditor session={session} providers={providers} onSaved={(provider) => setProviders((items) => [provider, ...items.filter((item) => item.id !== provider.id)])} /><AssistantEditor session={session} assistants={assistants} onSaved={(assistant) => setAssistants((items) => [assistant, ...items.filter((item) => item.id !== assistant.id)])} /><McpPanel session={session} /><KnowledgePanel session={session} assistantId={assistantId} /><FilePanel session={session} /><PushPanel session={session} />{error && <p className="error">{error}</p>}<button className="quiet logout-workspace" type="button" onClick={onLogout}>{t("退出登录")}</button></aside></>;
 }
 
 function Chat({ session, onLogout }: { session: ClientSession; onLogout: () => void }) {
@@ -157,6 +231,8 @@ function Chat({ session, onLogout }: { session: ClientSession; onLogout: () => v
   const [providerId, setProviderId] = useState("");
   const [model, setModel] = useState("gpt-4o-mini");
   const [busy, setBusy] = useState(false);
+  const [pendingApproval, setPendingApproval] = useState<McpApprovalRequest | null>(null);
+  const [approvalBusy, setApprovalBusy] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [error, setError] = useState("");
   const abortRef = useRef<AbortController | null>(null);
@@ -179,7 +255,17 @@ function Chat({ session, onLogout }: { session: ClientSession; onLogout: () => v
   }
   useEffect(() => { void Promise.all([refresh(), listProviders(session), listAssistants(session)]).then(([, nextProviders, nextAssistants]) => { setProviders(nextProviders); setAssistants(nextAssistants); if (nextProviders[0]) { setProviderId(nextProviders[0].id); if (nextProviders[0].modelIds[0]) setModel(nextProviders[0].modelIds[0]); } }).catch((cause) => setError(cause instanceof Error ? cause.message : t("加载失败"))); }, []);
   async function newChat() { const created = await createSession(session, assistantId === "default" ? undefined : assistantId); setSessions((items) => [created, ...items]); setCurrent(created); setAssistantId(created.assistantId); setMessages([]); setMobileSidebarOpen(false); }
-  function stop() { abortRef.current?.abort(); }
+  function stop() { abortRef.current?.abort(); setPendingApproval(null); }
+  async function decideMcpApproval(decision: "approved" | "denied") {
+    const pending = pendingApproval;
+    if (!pending || approvalBusy) return;
+    try {
+      setApprovalBusy(true);
+      await resolveMcpApproval(session, pending.approvalId, decision);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : t("未能提交审批决定"));
+    } finally { setApprovalBusy(false); }
+  }
   async function send() {
     const needsKey = mode === "byok" && transport === "direct";
     if (!current || !input.trim() || busy || (needsKey && !apiKey.trim())) return;
@@ -199,6 +285,7 @@ function Chat({ session, onLogout }: { session: ClientSession; onLogout: () => v
       for await (const event of events) {
         if (event.type === "content_delta") assistant += event.delta;
         if (event.type === "reasoning_delta") reasoning += event.delta;
+        if (event.type === "tool_approval_required") setPendingApproval(event);
         if (event.type === "error") throw new Error(event.message);
         setMessages([...history, { id: "streaming", role: "assistant", content: assistant, ...(reasoning ? { reasoning } : {}), createdAt: new Date().toISOString() }]);
       }
@@ -210,9 +297,9 @@ function Chat({ session, onLogout }: { session: ClientSession; onLogout: () => v
       }
     } catch (cause) {
       if (!controller.signal.aborted) { setError(cause instanceof Error ? cause.message : t("发送失败")); setMessages(history); }
-    } finally { if (abortRef.current === controller) abortRef.current = null; setBusy(false); }
+    } finally { if (abortRef.current === controller) abortRef.current = null; setPendingApproval(null); setApprovalBusy(false); setBusy(false); }
   }
-  return <><main className="app-layout">{mobileSidebarOpen && <button className="mobile-sidebar-scrim" type="button" aria-label={t("关闭会话列表")} onClick={() => setMobileSidebarOpen(false)} />}<aside className={mobileSidebarOpen ? "sidebar mobile-open" : "sidebar"}><div className="brand"><b>Muse</b><span>Web</span></div><button type="button" onClick={() => void newChat()}>{t("＋ 新对话")}</button><button className="workspace-toggle" type="button" onClick={() => window.dispatchEvent(new Event("muse:workspace"))}>{t("设置 Provider / Assistant")}</button><div className="session-list">{sessions.map((item) => <button className={current?.id === item.id ? "session active" : "session"} key={item.id} type="button" onClick={async () => { setCurrent(item); setAssistantId(item.assistantId); setMessages(await listMessages(session, item.id)); setMobileSidebarOpen(false); }}>{item.title}</button>)}</div><button className="quiet" type="button" onClick={onLogout}>{t("退出登录")}</button></aside><section className="chat"><header><button className="mobile-menu-button" type="button" aria-label={t("打开会话列表")} onClick={() => setMobileSidebarOpen(true)}>☰</button><div><p className="eyebrow">{t("PRIVATE CONVERSATION")}</p><h2>{current?.title ?? t("新对话")}</h2></div><span className="status">{busy ? t("生成中…") : t("在线")}</span></header><div className="messages" role="log" aria-live="polite" aria-label={t("消息记录")}>{messages.length === 0 && <div className="empty"><h3>{t("从一句话开始")}</h3><p>{t("在设置面板配置 Provider、Assistant、记忆和文件能力。")}</p></div>}{messages.map((message) => <article className={`message ${message.role}`} key={message.id}><small>{message.role === "user" ? t("你") : "Muse"}</small><MessageContent content={message.content || "…"} />{message.reasoning && <details><summary>{t("思考过程")}</summary><p>{message.reasoning}</p></details>}</article>)}</div><div className="composer"><div className="provider-row"><select aria-label={t("费用模式")} value={mode} onChange={(event) => setMode(event.target.value as "byok" | "hosted")}><option value="byok">{t("BYOK · 我的 Key")}</option><option value="hosted">{t("Hosted · 平台额度")}</option></select>{mode === "byok" && <select aria-label={t("传输方式")} value={transport} onChange={(event) => setTransport(event.target.value as "direct" | "proxy")}><option value="direct">{t("直连 Provider")}</option><option value="proxy">{t("服务端代理（已保存 Provider）")}</option></select>}<select aria-label={t("Assistant")} value={assistantId} onChange={(event) => setAssistantId(event.target.value)}><option value="default">{t("默认 Assistant")}</option>{assistants.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select><select aria-label={t("Provider")} value={providerId} onChange={(event) => { setProviderId(event.target.value); const selected = providers.find((item) => item.id === event.target.value); if (selected?.modelIds[0]) setModel(selected.modelIds[0]); }}>{providers.length === 0 && <option value="">{t("临时 Provider")}</option>}{providers.map((item) => <option value={item.id} key={item.id}>{item.displayName}</option>)}</select><input aria-label={t("模型")} value={model} onChange={(event) => setModel(event.target.value)} />{mode === "byok" && transport === "direct" && <input aria-label={t("API Key")} type="password" placeholder={t("本次会话 API Key")} value={apiKey} onChange={(event) => setApiKey(event.target.value)} />}</div><div className="send-row"><textarea aria-label={t("消息")} placeholder={t("写点什么…")} value={input} onChange={(event) => setInput(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void send(); } }} /><button type="button" className={busy ? "stop-button" : "send-button"} disabled={busy ? false : (needsKey(mode, transport) && !apiKey.trim())} onClick={() => busy ? stop() : void send()}>{busy ? t("停止") : t("发送")}</button></div>{error && <p className="error">{error}</p>}</div></section></main><Workspace session={session} onLogout={onLogout} /></>;
+  return <><main className="app-layout">{mobileSidebarOpen && <button className="mobile-sidebar-scrim" type="button" aria-label={t("关闭会话列表")} onClick={() => setMobileSidebarOpen(false)} />}<aside className={mobileSidebarOpen ? "sidebar mobile-open" : "sidebar"}><div className="brand"><b>Muse</b><span>Web</span></div><button type="button" onClick={() => void newChat()}>{t("＋ 新对话")}</button><button className="workspace-toggle" type="button" onClick={() => window.dispatchEvent(new Event("muse:workspace"))}>{t("设置 Provider / Assistant")}</button><div className="session-list">{sessions.map((item) => <button className={current?.id === item.id ? "session active" : "session"} key={item.id} type="button" onClick={async () => { setCurrent(item); setAssistantId(item.assistantId); setMessages(await listMessages(session, item.id)); setMobileSidebarOpen(false); }}>{item.title}</button>)}</div><button className="quiet" type="button" onClick={onLogout}>{t("退出登录")}</button></aside><section className="chat"><header><button className="mobile-menu-button" type="button" aria-label={t("打开会话列表")} onClick={() => setMobileSidebarOpen(true)}>☰</button><div><p className="eyebrow">{t("PRIVATE CONVERSATION")}</p><h2>{current?.title ?? t("新对话")}</h2></div><span className="status">{busy ? t("生成中…") : t("在线")}</span></header><div className="messages" role="log" aria-live="polite" aria-label={t("消息记录")}>{messages.length === 0 && <div className="empty"><h3>{t("从一句话开始")}</h3><p>{t("在设置面板配置 Provider、Assistant、记忆和文件能力。")}</p></div>}{messages.map((message) => <article className={`message ${message.role}`} key={message.id}><small>{message.role === "user" ? t("你") : "Muse"}</small><MessageContent content={message.content || "…"} />{message.reasoning && <details><summary>{t("思考过程")}</summary><p>{message.reasoning}</p></details>}</article>)}</div>{mode === "byok" && transport === "direct" && <p className="mcp-mode-hint">{t("云端 MCP 工具仅在 Hosted 或服务端代理模式下可用。")}</p>}{pendingApproval && <section className="mcp-approval-card" aria-live="polite"><b>{t("需要批准 MCP 工具调用")}</b><p>{t("服务器")}: {pendingApproval.serverName} · {t("工具")}: {pendingApproval.toolName}</p><p>{pendingApproval.purpose}</p><pre>{pendingApproval.argumentsJson}</pre><div className="mcp-approval-actions"><button className="quiet" type="button" disabled={approvalBusy} onClick={() => void decideMcpApproval("denied")}>{t("拒绝")}</button><button type="button" disabled={approvalBusy} onClick={() => void decideMcpApproval("approved")}>{t("仅批准本次")}</button></div></section>}<div className="composer"><div className="provider-row"><select aria-label={t("费用模式")} value={mode} onChange={(event) => setMode(event.target.value as "byok" | "hosted")}><option value="byok">{t("BYOK · 我的 Key")}</option><option value="hosted">{t("Hosted · 平台额度")}</option></select>{mode === "byok" && <select aria-label={t("传输方式")} value={transport} onChange={(event) => setTransport(event.target.value as "direct" | "proxy")}><option value="direct">{t("直连 Provider")}</option><option value="proxy">{t("服务端代理（已保存 Provider）")}</option></select>}<select aria-label={t("Assistant")} value={assistantId} onChange={(event) => setAssistantId(event.target.value as "default" | string)}><option value="default">{t("默认 Assistant")}</option>{assistants.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select><select aria-label={t("Provider")} value={providerId} onChange={(event) => { setProviderId(event.target.value); const selected = providers.find((item) => item.id === event.target.value); if (selected?.modelIds[0]) setModel(selected.modelIds[0]); }}>{providers.length === 0 && <option value="">{t("临时 Provider")}</option>}{providers.map((item) => <option value={item.id} key={item.id}>{item.displayName}</option>)}</select><input aria-label={t("模型")} value={model} onChange={(event) => setModel(event.target.value)} />{mode === "byok" && transport === "direct" && <input aria-label={t("API Key")} type="password" placeholder={t("本次会话 API Key")} value={apiKey} onChange={(event) => setApiKey(event.target.value)} />}</div><div className="send-row"><textarea aria-label={t("消息")} placeholder={t("写点什么…")} value={input} onChange={(event) => setInput(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void send(); } }} /><button type="button" className={busy ? "stop-button" : "send-button"} disabled={busy ? false : (needsKey(mode, transport) && !apiKey.trim())} onClick={() => busy ? stop() : void send()}>{busy ? t("停止") : t("发送")}</button></div>{error && <p className="error">{error}</p>}</div></section></main><Workspace session={session} onLogout={onLogout} /></>;
 }
 
 function assistantPrompt(assistant: AssistantRecord | undefined): ChatMessage | undefined {

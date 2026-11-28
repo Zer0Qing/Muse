@@ -33,7 +33,7 @@ const SCRIPT_KT = path.join(
 
 function extractObserverJs() {
   const source = fs.readFileSync(SCRIPT_KT, 'utf8');
-  const match = source.match(/private fun observerJs\(\): String \{\s*return """([\s\S]*?)"""\.trimIndent\(\)/);
+  const match = source.match(/private val OBSERVER_JS: String = """([\s\S]*?)"""/);
   if (!match) throw new Error('CardScript.kt 里找不到 observerJs');
   return match[1];
 }

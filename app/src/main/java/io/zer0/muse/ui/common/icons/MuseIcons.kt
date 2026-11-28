@@ -5194,4 +5194,37 @@ object MuseIcons {
             )
         }.build()
     }
+
+    /** menu */
+    val menu: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "menu",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f,
+        ).apply {
+            addPath(
+                pathData = addPathNodes("M4 7h16"),
+                stroke = SolidColor(Color(0xFF000000)),
+                strokeLineWidth = 1.7f,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+            )
+            addPath(
+                pathData = addPathNodes("M4 12h12"),
+                stroke = SolidColor(Color(0xFF000000)),
+                strokeLineWidth = 1.7f,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+            )
+            addPath(
+                pathData = addPathNodes("M4 17h16"),
+                stroke = SolidColor(Color(0xFF000000)),
+                strokeLineWidth = 1.7f,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+            )
+        }.build()
+    }
 }

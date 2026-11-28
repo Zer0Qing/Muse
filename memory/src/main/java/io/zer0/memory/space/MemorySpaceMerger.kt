@@ -220,12 +220,7 @@ class MemorySpaceMerger(
         deleteDreamRollbackPoints(db, source, counter)
     }
 
-    private suspend fun mergeCompiledSections(
-        db: MemoryDb,
-        source: String,
-        scopes: Set<String>,
-        counter: Counter,
-    ) {
+    private suspend fun mergeCompiledSections(db: MemoryDb, source: String, scopes: Set<String>, counter: Counter) {
         val dao = db.scopedCompiledSectionDao()
         val now = Instant.now().toString()
         // 源空间的段落是它自己的派生物：Space 都没了就不该再留，

@@ -42,6 +42,9 @@ fun MemorySettingsPage(onBack: () -> Unit, onOpenMemorySpace: () -> Unit = {}) {
     val experienceEnabled by settings.experienceEnabledFlow.collectAsStateWithLifecycle(initialValue = false)
     val floorLimiterEnabled by settings.floorLimiterEnabledFlow.collectAsStateWithLifecycle(initialValue = false)
     val floorLimit by settings.floorLimitFlow.collectAsStateWithLifecycle(initialValue = 16)
+    val chatPreferences by settings.chatPreferencesFlow.collectAsStateWithLifecycle(
+        initialValue = io.zer0.muse.data.ChatPreferences(),
+    )
 
     var localConfig by remember { mutableStateOf(memoryConfig) }
     var localConfigDirty by remember { mutableStateOf(false) }
@@ -83,7 +86,33 @@ fun MemorySettingsPage(onBack: () -> Unit, onOpenMemorySpace: () -> Unit = {}) {
                     checked = memoryEnabled,
                     onCheckedChange = { v -> scope.launch { settings.saveMemoryEnabled(v) } },
                     leadingContent = {
-                        Icon(MuseIcons.atom, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium))
+                        Icon(
+                            MuseIcons.atom,
+                            null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
+                    },
+                )
+                switchItem(
+                    key = "memory_about_you_profile",
+                    title = stringResource(R.string.settings_memory_about_you_title),
+                    subtitle = stringResource(R.string.settings_memory_about_you_desc),
+                    checked = chatPreferences.aboutYouProfileEnabled,
+                    onCheckedChange = { enabled ->
+                        scope.launch {
+                            settings.updateChatPreferences { prefs ->
+                                prefs.copy(aboutYouProfileEnabled = enabled)
+                            }
+                        }
+                    },
+                    leadingContent = {
+                        Icon(
+                            MuseIcons.user,
+                            null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
                     },
                 )
                 switchItem(
@@ -95,7 +124,12 @@ fun MemorySettingsPage(onBack: () -> Unit, onOpenMemorySpace: () -> Unit = {}) {
                         localConfig = localConfig.copy(conversationRecallEnabled = enabled)
                     },
                     leadingContent = {
-                        Icon(MuseIcons.history, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium))
+                        Icon(
+                            MuseIcons.history,
+                            null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
                     },
                 )
                 switchItem(
@@ -104,7 +138,12 @@ fun MemorySettingsPage(onBack: () -> Unit, onOpenMemorySpace: () -> Unit = {}) {
                     checked = experienceEnabled,
                     onCheckedChange = { v -> scope.launch { settings.saveExperienceEnabled(v) } },
                     leadingContent = {
-                        Icon(MuseIcons.server, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium))
+                        Icon(
+                            MuseIcons.server,
+                            null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
                     },
                 )
                 content(key = "memory_token_budget") {
@@ -202,7 +241,12 @@ fun MemorySettingsPage(onBack: () -> Unit, onOpenMemorySpace: () -> Unit = {}) {
                     checked = floorLimiterEnabled,
                     onCheckedChange = { v -> scope.launch { settings.saveFloorLimiterEnabled(v) } },
                     leadingContent = {
-                        Icon(MuseIcons.arrowsVertical, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium))
+                        Icon(
+                            MuseIcons.arrowsVertical,
+                            null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
                     },
                 )
                 if (floorLimiterEnabled) {

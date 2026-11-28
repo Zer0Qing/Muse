@@ -22,21 +22,21 @@ class AssemblyGapLoggingTest {
     @Test
     fun `missing applier is logged at error level`() {
         // 没有 applier 就没人审核，任务会永久停在 REVIEWING。
-        val at = scheduler.indexOf("val reviewer = applier");
-        assertTrue(at > 0);
-        val body = scheduler.substring(at, minOf(at + 600, scheduler.length));
-        assertTrue("必须记 error 级", body.contains("Logger.e("));
-        assertTrue("日志要说明后果", body.contains("REVIEWING"));
-        assertTrue("日志要带任务 id，否则不知道是哪个任务卡住了", body.contains("task.taskId"));
+        val at = scheduler.indexOf("val reviewer = applier")
+        assertTrue(at > 0)
+        val body = scheduler.substring(at, minOf(at + 600, scheduler.length))
+        assertTrue("必须记 error 级", body.contains("Logger.e("))
+        assertTrue("日志要说明后果", body.contains("REVIEWING"))
+        assertTrue("日志要带任务 id，否则不知道是哪个任务卡住了", body.contains("task.taskId"))
     }
 
     @Test
     fun `the log explains why the task will stall`() {
-        val at = scheduler.indexOf("val reviewer = applier");
-        val body = scheduler.substring(at, minOf(at + 600, scheduler.length));
+        val at = scheduler.indexOf("val reviewer = applier")
+        val body = scheduler.substring(at, minOf(at + 600, scheduler.length))
         assertFalse(
             "不能只写 skipped 之类，要写清楚任务会停在哪",
             body.contains("skip") && !body.contains("REVIEWING"),
-        );
+        )
     }
 }

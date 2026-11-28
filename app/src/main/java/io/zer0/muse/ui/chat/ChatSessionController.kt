@@ -9,11 +9,11 @@ import io.zer0.muse.data.session.SessionRepository
 import io.zer0.muse.tools.BrowserManagerRegistry
 import io.zer0.muse.tools.WeakToolUseDetector
 import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.memory.SessionMemoryCache
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.koin.core.context.GlobalContext
 import kotlin.uuid.Uuid
-import io.zer0.muse.ui.memory.SessionMemoryCache
 
 /**
  * v1.x: 从 ChatViewModel 抽离的会话 CRUD Controller。
@@ -37,6 +37,14 @@ internal class ChatSessionController(
     /** 切换序号守卫。与调用方共用同一个实例，才能把“同一界面上的连续切换”排成一个序。 */
     private val switchGuard: SessionSwitchGuard = SessionSwitchGuard(),
 ) {
+    private var pendingAgentEntryToken: Int? = null
+
+    private fun transferSessionReference(previous: String?, next: String?) {
+        if (previous == next) return
+        previous?.let(sessionDeps.sessionManager::release)
+        next?.let(sessionDeps.sessionManager::acquire)
+    }
+
     fun renameSession(sessionId: String, title: String) {
         accessor.coroutineScope.launch {
             sessionRepository.renameSession(sessionId, title)
@@ -159,8 +167,6 @@ internal class ChatSessionController(
         // v1.x: 清理旧会话的"本会话允许"临时缓存
         sessionDeps.currentSessionIdForApproval()?.let { sessionDeps.sessionPermissionStore.clearSession(it) }
         val currentSession = accessor.snapshot.currentSessionId
-        // 引用计数:释放旧会话(新会话 id 在异步块内创建后再 acquire)
-        currentSession?.let { sessionDeps.sessionManager.release(it) }
         accessor.coroutineScope.launch {
             // v1.0.63: 新任务使用设置里的默认助手
             // v2.x: assistantIdOverride 非空时以指定助手创建(伙伴横排快捷入口)
@@ -181,15 +187,14 @@ internal class ChatSessionController(
                     id,
                     sessionDeps.settings.defaultSessionPermissionModeFlow.first(),
                 )
-            sessionDeps.sessionManager.acquire(id)
-            if (switchGuard.isStale(switchToken)) {
-                sessionDeps.sessionManager.release(id)
-                Logger.i("ChatVM", "createNewSession 过期,丢弃: $id")
-                return@launch
-            }
             val assistant =
                 sessionDeps.assistantRepository.getById(currentAssistantId)
                     ?: sessionDeps.assistantRepository.getById("default")
+            if (switchGuard.isStale(switchToken)) {
+                Logger.i("ChatVM", "createNewSession 结果过期,丢弃: $id")
+                return@launch
+            }
+            transferSessionReference(currentSession, id)
             sessionDeps.stateStore.messages.value = emptyList()
             accessor.update {
                 it.copy(
@@ -215,6 +220,7 @@ internal class ChatSessionController(
             onReady?.invoke()
             // v0.45: 刷新上下文 token 占用(新会话 messages 为空,只加载 contextWindow)
             bridge.refreshContext()
+            if (switchGuard.isStale(switchToken)) return@launch
             // R-UI-02: 新建会话后同步持久化查看焦点。
             resultOf { sessionDeps.settings.saveViewedSessionId(id) }
                 .onError { msg, _ -> Logger.w("ChatVM", "saveViewedSessionId 失败: $msg") }
@@ -229,8 +235,7 @@ internal class ChatSessionController(
         sessionDeps.onNotifySessionEnd()
         // v1.x: 清理旧会话的"本会话允许"临时缓存
         sessionDeps.currentSessionIdForApproval()?.let { sessionDeps.sessionPermissionStore.clearSession(it) }
-        // 引用计数:释放旧会话
-        sessionDeps.currentSessionIdForApproval()?.let { sessionDeps.sessionManager.release(it) }
+        val currentSession = sessionDeps.currentSessionIdForApproval()
         accessor.coroutineScope.launch {
             val currentAssistantId = accessor.snapshot.currentAssistant?.id ?: "default"
             // v1.28: Agent 模式下创建 Agent 会话,不污染任务列表
@@ -240,15 +245,14 @@ internal class ChatSessionController(
                 } else {
                     sessionRepository.createSession(assistantId = currentAssistantId)
                 }
-            sessionDeps.sessionManager.acquire(id)
-            if (switchGuard.isStale(switchToken)) {
-                sessionDeps.sessionManager.release(id)
-                Logger.i("ChatVM", "restartContext 过期,丢弃: $id")
-                return@launch
-            }
             val assistant =
                 sessionDeps.assistantRepository.getById(currentAssistantId)
                     ?: sessionDeps.assistantRepository.getById("default")
+            if (switchGuard.isStale(switchToken)) {
+                Logger.i("ChatVM", "restartContext 结果过期,丢弃: $id")
+                return@launch
+            }
+            transferSessionReference(currentSession, id)
             accessor.update {
                 if (it.isAgentMode) {
                     sessionDeps.stateStore.messages.value = emptyList()
@@ -281,6 +285,7 @@ internal class ChatSessionController(
                 }
             }
             bridge.refreshContext()
+            if (switchGuard.isStale(switchToken)) return@launch
             accessor.update {
                 it.copy(toast = sessionDeps.appContext.getString(R.string.err_chat_context_restarted_toast))
             }
@@ -303,8 +308,6 @@ internal class ChatSessionController(
         sessionDeps.currentSessionIdForApproval()?.let { sessionDeps.sessionPermissionStore.clearSession(it) }
         val currentSession = accessor.snapshot.currentSessionId
         val currentInput = accessor.snapshot.input
-        // 引用计数:释放旧会话
-        currentSession?.let { sessionDeps.sessionManager.release(it) }
         accessor.coroutineScope.launch {
             if (currentSession != null && currentInput.isNotBlank()) {
                 // 草稿按会话落库（旧实现写 DataStore 且从不读取，等于只存不恢复）
@@ -322,15 +325,14 @@ internal class ChatSessionController(
                     id,
                     sessionDeps.settings.defaultSessionPermissionModeFlow.first(),
                 )
-            sessionDeps.sessionManager.acquire(id)
-            if (switchGuard.isStale(switchToken)) {
-                sessionDeps.sessionManager.release(id)
-                Logger.i("ChatVM", "sendToNewChat 过期,丢弃: $id")
-                return@launch
-            }
             val assistant =
                 sessionDeps.assistantRepository.getById(currentAssistantId)
                     ?: sessionDeps.assistantRepository.getById("default")
+            if (switchGuard.isStale(switchToken)) {
+                Logger.i("ChatVM", "sendToNewChat 结果过期,丢弃: $id")
+                return@launch
+            }
+            transferSessionReference(currentSession, id)
             sessionDeps.stateStore.messages.value = emptyList()
             accessor.update {
                 it.copy(
@@ -352,7 +354,9 @@ internal class ChatSessionController(
                 )
             }
             bridge.refreshContext()
+            if (switchGuard.isStale(switchToken)) return@launch
             onReady?.invoke()
+            if (switchGuard.isStale(switchToken)) return@launch
             sessionDeps.onSend()
             // R-UI-02: 新建会话并发送时同步持久化查看焦点。
             resultOf { sessionDeps.settings.saveViewedSessionId(id) }
@@ -363,17 +367,29 @@ internal class ChatSessionController(
     /** v1.28: 设置 Agent Tab 模式(恢复/创建独立 Agent 会话;退出时恢复任务会话)。 */
     @Suppress("LongMethod", "CyclomaticComplexMethod")
     fun setAgentMode(enabled: Boolean, requestedSessionId: String? = null) {
+        // 首页会重复发出当前模式。切换尚未完成时，比较正在加载的目标模式。
+        val enteringAgent = pendingAgentEntryToken?.let { !switchGuard.isStale(it) } == true
+        if (requestedSessionId.isNullOrBlank() && enabled == (enteringAgent || accessor.snapshot.isAgentMode)) {
+            return
+        }
         // v2.x: 切换序号 — 过期(被更新的切换取代)的异步加载结果在提交前丢弃,防止串会话
         val switchToken = switchGuard.begin()
+        if (!enabled && !accessor.snapshot.isAgentMode) {
+            pendingAgentEntryToken = null
+            accessor.update { it.copy(isSwitchingSession = false) }
+            return
+        }
         if (accessor.snapshot.isStreaming) bridge.detachStreaming()
         sessionDeps.onStopTts()
         sessionDeps.onDisposeAsr()
         sessionDeps.onNotifySessionEnd()
         val prevSessionId = sessionDeps.currentSessionIdForApproval()
         if (enabled) {
+            pendingAgentEntryToken = switchToken
             accessor.update { it.copy(isSwitchingSession = true) }
             accessor.coroutineScope.launch {
                 try {
+                    if (switchGuard.isStale(switchToken)) return@launch
                     val preferredAgentId =
                         sessionDeps.settings.proactiveMessageConfigFlow.first()
                             .agentId.ifBlank { "default" }
@@ -399,20 +415,12 @@ internal class ChatSessionController(
                     val sessionId =
                         agentSession?.id
                             ?: sessionRepository.createAgentSession(preferredAgentId)
-                    prevSessionId?.let { sessionDeps.sessionManager.release(it) }
-                    sessionDeps.sessionManager.acquire(sessionId)
                     val permissionMode =
                         sessionDeps.sessionPermissionStore.getMode(
                             sessionId,
                             sessionDeps.settings.defaultSessionPermissionModeFlow.first(),
                         )
                     val (messages, hasMore) = sessionDeps.messageController.loadMessagesPaged(sessionId)
-                    if (switchGuard.isStale(switchToken)) {
-                        // 已被更新的切换取代:释放本次 acquire,丢弃加载结果
-                        sessionDeps.sessionManager.release(sessionId)
-                        Logger.i("ChatVM", "setAgentMode(true) 结果过期,丢弃: $sessionId")
-                        return@launch
-                    }
                     val assistantId = sessionRepository.getAssistantId(sessionId)
                     val assistant =
                         sessionDeps.assistantRepository.getById(assistantId)
@@ -425,6 +433,8 @@ internal class ChatSessionController(
                             messages,
                             settleUnfinished = !agentBackgroundStreaming,
                         )
+                    if (switchGuard.isStale(switchToken)) return@launch
+                    transferSessionReference(prevSessionId, sessionId)
                     sessionDeps.stateStore.messages.value = messages
                     accessor.update {
                         it.copy(
@@ -484,6 +494,7 @@ internal class ChatSessionController(
                         }.onFailure { Logger.w("ChatVM", "预热 Agent 待办失败: ${it.message}") }
                     }
                     val weakHint = WeakToolUseDetector.getWeakToolHint(model)
+                    if (switchGuard.isStale(switchToken)) return@launch
                     accessor.update {
                         it.copy(isWeakToolModel = weakHint != null, weakToolHint = weakHint)
                     }
@@ -503,6 +514,8 @@ internal class ChatSessionController(
                         runCatching {
                             sessionDeps.assistantRepository.getById("default")
                         }.getOrNull()
+                    if (switchGuard.isStale(switchToken)) return@launch
+                    transferSessionReference(sessionDeps.currentSessionIdForApproval(), fallbackId)
                     accessor.update {
                         it.copy(
                             isAgentMode = true,
@@ -513,17 +526,21 @@ internal class ChatSessionController(
                         )
                     }
                 } finally {
-                    // 任何路径都不残留"切换中"加载态;过期任务不得清除新切换的加载态
-                    if (!switchGuard.isStale(switchToken)) {
+                    if (pendingAgentEntryToken == switchToken) {
+                        pendingAgentEntryToken = null
                         accessor.update { it.copy(isSwitchingSession = false) }
                     }
                 }
             }
         } else {
+            pendingAgentEntryToken = null
+            val taskSessionId = accessor.snapshot.currentSessionId
+            transferSessionReference(prevSessionId, taskSessionId)
             accessor.update {
                 it.copy(
                     isAgentMode = false,
                     agentSessionId = null,
+                    isSwitchingSession = false,
                     taskCards = emptyMap(),
                     toolCallHistory = emptyList(),
                     agentPlans = emptyMap(),
@@ -535,17 +552,9 @@ internal class ChatSessionController(
                     agentModeHint = null,
                 )
             }
-            prevSessionId?.let { sessionDeps.sessionManager.release(it) }
-            accessor.snapshot.currentSessionId?.let { sid ->
-                sessionDeps.sessionManager.acquire(sid)
+            taskSessionId?.let { sid ->
                 accessor.coroutineScope.launch {
                     val (messages, hasMore) = sessionDeps.messageController.loadMessagesPaged(sid)
-                    if (switchGuard.isStale(switchToken)) {
-                        // 已被更新的切换取代:释放本次 acquire,丢弃加载结果
-                        sessionDeps.sessionManager.release(sid)
-                        Logger.i("ChatVM", "setAgentMode(false) 结果过期,丢弃: $sid")
-                        return@launch
-                    }
                     val permissionMode =
                         sessionDeps.sessionPermissionStore.getMode(
                             sid,
@@ -562,7 +571,6 @@ internal class ChatSessionController(
                             messages,
                             settleUnfinished = !taskBackgroundStreaming,
                         )
-                    sessionDeps.stateStore.messages.value = messages
                     // v2.6.7 修复（用户反馈：杀后台 / 划掉后台后回到列表顶部）:
                     // 优先恢复该会话上次停住的位置；只有从未记录过时才落到最新一条。
                     // 旧实现无条件写 lastIndex，于是:
@@ -573,6 +581,8 @@ internal class ChatSessionController(
                         resultOf { sessionDeps.settings.getChatScrollPosition(sid) }.getOrNull()
                     val restoredIndex = restoredScroll?.first
                     val restoredOffset = restoredScroll?.second ?: 0
+                    if (switchGuard.isStale(switchToken)) return@launch
+                    sessionDeps.stateStore.messages.value = messages
                     accessor.update {
                         it.copy(
                             currentAssistant = assistant,
@@ -598,6 +608,7 @@ internal class ChatSessionController(
                         )
                     }
                     bridge.refreshContext()
+                    if (switchGuard.isStale(switchToken)) return@launch
                     resultOf { sessionDeps.settings.saveViewedSessionId(sid) }
                         .onError { msg, _ -> Logger.w("ChatVM", "saveViewedSessionId 失败: $msg") }
                 }
@@ -605,7 +616,7 @@ internal class ChatSessionController(
         }
     }
 
-    /** 切换到指定会话:清理 → 释放/获取引用 → 加载消息/计划/权限 → 恢复审批/outbox。 */
+    /** 切换到指定会话：加载最新请求的消息、权限和待执行操作后提交。 */
     @Suppress("LongMethod", "CyclomaticComplexMethod", "NestedBlockDepth", "ComplexCondition")
     fun switchSession(sessionId: String) {
         // v2.x: 切换序号 — 过期(被更新的切换取代)的异步加载结果在提交前丢弃,防止串会话
@@ -625,11 +636,6 @@ internal class ChatSessionController(
             sessionDeps.onCancelPendingApprovals(currentSession)
         }
         val currentInput = accessor.snapshot.input
-        // 引用计数:释放旧会话 + 获取新会话
-        if (currentSession != null && currentSession != sessionId) {
-            sessionDeps.sessionManager.release(currentSession)
-        }
-        sessionDeps.sessionManager.acquire(sessionId)
         // C3: 记录最近浏览历史
         accessor.coroutineScope.launch { sessionDeps.settings.recordSessionViewed(sessionId) }
         // v2.6.7: 从库里预热该会话的待办快照 —— 此前待办只在内存，切走再回来就空了。
@@ -671,13 +677,12 @@ internal class ChatSessionController(
             val exists = resultOf { sessionRepository.getSessionById(sessionId) }.getOrNull() != null ||
                 accessor.snapshot.sessions.any { it.id == sessionId }
             if (switchGuard.isStale(switchToken)) {
-                // 已被更新的切换取代:释放本次 acquire,丢弃加载结果
-                sessionDeps.sessionManager.release(sessionId)
                 Logger.i("ChatVM", "switchSession 结果过期,丢弃: $sessionId")
                 return@launch
             }
             if (!exists) {
                 Logger.w("ChatVM", "switchSession 目标会话不存在,回退会话列表: $sessionId")
+                transferSessionReference(currentSession, null)
                 accessor.update {
                     it.copy(
                         currentSessionId = null,
@@ -748,10 +753,10 @@ internal class ChatSessionController(
                 dropAlreadySentDraft(draft, pendingTexts, lastSentUserText)
             }
             if (switchGuard.isStale(switchToken)) {
-                sessionDeps.sessionManager.release(sessionId)
                 Logger.i("ChatVM", "switchSession 在加载期间被更新的切换取代,丢弃: $sessionId")
                 return@launch
             }
+            transferSessionReference(currentSession, sessionId)
             accessor.update {
                 sessionDeps.stateStore.messages.value = messages
                 it.copy(

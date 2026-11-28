@@ -37,6 +37,7 @@ class KnowledgeRepository(
 
     sealed interface EditResult {
         data class Ok(val doc: KnowledgeRevision) : EditResult
+
         /** expectedRevisionId 与当前版本不符:并发更新冲突,调用方应刷新后重试。 */
         data object Conflict : EditResult
     }
@@ -76,8 +77,7 @@ class KnowledgeRepository(
     }
 
     /** 读取 revision 工件(全文真源;preview 只是它的派生)。 */
-    fun loadRevision(revisionId: String): KnowledgeRevision =
-        requireNotNull(revisions[revisionId]) { "revision 不存在: $revisionId" }
+    fun loadRevision(revisionId: String): KnowledgeRevision = requireNotNull(revisions[revisionId]) { "revision 不存在: $revisionId" }
 
     /**
      * R2 步骤 6:旧行导入 — 只做已知信息分类,不猜测、不拼接冒充。
@@ -176,8 +176,7 @@ class KnowledgeRepository(
         fun derivePreview(fullContent: String): String =
             if (fullContent.length <= PREVIEW_MAX_CHARS) fullContent else fullContent.take(PREVIEW_MAX_CHARS)
 
-        private fun shortHash(s: String): String =
-            MessageDigest.getInstance("SHA-256").digest(s.toByteArray())
-                .joinToString("") { "%02x".format(it) }.take(8)
+        private fun shortHash(s: String): String = MessageDigest.getInstance("SHA-256").digest(s.toByteArray())
+            .joinToString("") { "%02x".format(it) }.take(8)
     }
 }

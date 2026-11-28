@@ -81,13 +81,16 @@ class ProactiveRestartRecoveryTest {
         assertEquals(ProactiveNotificationState.PENDING, db.proactiveOutcomeDao().getById(outcomeId)?.notificationState)
 
         val repository = ProactiveBacklogRepository(
-            db.pendingThoughtDao(), db.proactiveBacklogDao(), db.proactiveBacklogScheduleDao(),
+            db.pendingThoughtDao(),
+            db.proactiveBacklogDao(),
+            db.proactiveBacklogScheduleDao(),
         )
         assertEquals(1, repository.releaseExpiredClaims(claimUntil))
         assertEquals(claimUntil + ProactiveBacklogRepository.DISPATCH_GAP_MS, repository.nextWorkAt(claimUntil))
 
         val outcomes = ProactiveOutcomeRepository(
-            db.proactiveOutcomeDao(), ProactiveRelationRepository(db.proactiveRelationDao()),
+            db.proactiveOutcomeDao(),
+            ProactiveRelationRepository(db.proactiveRelationDao()),
         )
         val notifier = mockk<MuseNotificationManager>()
         every { notifier.proactiveNotificationBlocker() } returns null
@@ -111,7 +114,10 @@ class ProactiveRestartRecoveryTest {
         val recovery = ProactiveNotificationRecovery(outcomes, runtime)
         assertEquals(1, recovery.recover(now + 1L))
         assertEquals(ProactiveNotificationState.POSTED, db.proactiveOutcomeDao().getById(outcomeId)?.notificationState)
-        assertTrue("recovery retains the same system notification key", db.proactiveOutcomeDao().getById(outcomeId)?.notificationId == notificationId)
+        assertTrue(
+            "recovery retains the same system notification key",
+            db.proactiveOutcomeDao().getById(outcomeId)?.notificationId == notificationId,
+        )
     }
 
     private fun openDb(): MuseDb = Room.databaseBuilder(context, MuseDb::class.java, DB_NAME)

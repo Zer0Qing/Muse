@@ -3,10 +3,10 @@ package io.zer0.muse.ui
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.UIMessage
 import io.zer0.muse.data.session.MessageMarkers
+import io.zer0.muse.ui.chat.isRenderableChatMessage
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import io.zer0.muse.ui.chat.isRenderableChatMessage
 
 /**
  * 「只有状态记号的助手消息仍然要渲染」这条不变量（走查 §十六）。

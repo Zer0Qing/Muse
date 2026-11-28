@@ -174,7 +174,14 @@ class VirtualDisplayTool(
         val action = args["action"]?.trim()?.lowercase().orEmpty()
         val command = VirtualDisplayInputCommand.build(displayId, action, args)
         return when {
-            command == null -> "错误:输入参数无效(action=$action)"
+            command == null -> {
+                if (action == "text") {
+                    val reason = VirtualDisplayInputCommand.textRejectionReason(args["text"].orEmpty())
+                    "错误:${reason ?: "输入参数无效"}"
+                } else {
+                    "错误:输入参数无效(action=$action)"
+                }
+            }
             command.waitMs != null -> {
                 delay(command.waitMs)
                 "虚拟屏 $displayId 已等待 ${command.waitMs}ms"
@@ -261,8 +268,8 @@ internal data class VirtualDisplayInputCommand(
 
         private fun buildText(displayId: Int, args: Map<String, String>): VirtualDisplayInputCommand? {
             val text = args["text"]?.takeIf { it.isNotBlank() }?.takeIf { it.length <= 500 } ?: return null
-            val unsafe = text.any { it in SHELL_META || it == '\n' || it == '\r' || it == '\\' || it == '"' || it == '\'' }
-            return if (unsafe) null else command(displayId, "text ${text.replace(" ", "%s")}", "输入文本")
+            if (textRejectionReason(text) != null) return null
+            return command(displayId, "text ${text.replace(" ", "%s")}", "输入文本")
         }
 
         private fun buildKey(displayId: Int, args: Map<String, String>): VirtualDisplayInputCommand? {

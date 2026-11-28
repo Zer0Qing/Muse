@@ -37,6 +37,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -56,7 +57,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
 import io.zer0.ai.core.AttachmentRef
 import io.zer0.ai.core.RagCitation
 import io.zer0.common.FileSizeFormatter
@@ -117,8 +117,16 @@ internal fun ToolCallCard(
     // v2.0: 插件工具卡 — 插件为该工具声明自定义 HTML 卡片时提供查看入口
     var showPluginCard by rememberSaveable { mutableStateOf(false) }
     val pluginManager: io.zer0.muse.data.plugin.PluginManager = org.koin.compose.koinInject()
-    val pluginCardHtml = remember(toolName) {
-        runCatching { pluginManager.loadToolCardHtml(toolName) }.getOrNull()
+    val pluginCardHtml by produceState<String?>(
+        initialValue = pluginManager.getCachedToolCardHtml(toolName),
+        key1 = toolName,
+        key2 = pluginManager,
+    ) {
+        if (!pluginManager.isToolCardHtmlCached(toolName)) {
+            value = withContext(Dispatchers.IO) {
+                runCatching { pluginManager.loadToolCardHtml(toolName) }.getOrNull()
+            }
+        }
     }
 
     // isSuccess=false 且 result 空 → 视为执行中（工具刚下发、尚无结果）
@@ -308,7 +316,7 @@ internal fun ToolCallCard(
                             inlineCardData = showCardSpec.data,
                             cardId = cardId,
                             heightSpec = showCardSpec.height,
-                            showPreviewButton = false,
+                            showPreviewButton = true,
                             modifier = Modifier.fillMaxWidth(),
                         )
                     } else {
@@ -334,23 +342,37 @@ internal fun ToolCallCard(
                             }
                         }
                     }
-                    // F-19: 生成图片/视频/二维码的内嵌预览产物卡（AsyncImage 缩略图，点击放大从简未做）
+                    // F-19: 生成图片/二维码的内嵌预览产物卡（SmartImage + 点击全屏）
                     if (imageSources.isNotEmpty()) {
+                        var previewIndex by remember { mutableStateOf<Int?>(null) }
+                        val stringSources = remember(imageSources) {
+                            imageSources.take(6).map { src ->
+                                if (src is java.io.File) "file://${src.absolutePath}" else src.toString()
+                            }
+                        }
                         LazyRow(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
                             contentPadding = PaddingValues(horizontal = 2.dp),
                         ) {
-                            items(imageSources.take(6)) { src ->
-                                AsyncImage(
-                                    model = src,
-                                    contentDescription = null,
+                            items(stringSources.size) { index ->
+                                SmartImage(
+                                    model = imageSources[index],
+                                    contentDescription = stringResource(R.string.artifact_type_image),
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier
-                                        .size(120.dp)
-                                        .clip(MuseShapes.small),
+                                        .size(MusePaddings.maxInlineWidth)
+                                        .clip(MuseShapes.small)
+                                        .clickable { previewIndex = index },
                                 )
                             }
+                        }
+                        previewIndex?.let { start ->
+                            io.zer0.muse.ui.common.media.FullScreenMediaViewer(
+                                images = stringSources,
+                                initialIndex = start,
+                                onDismiss = { previewIndex = null },
+                            )
                         }
                     }
                     // v2.0: 插件自定义工具卡入口(声明 toolCards 的插件工具)
@@ -375,15 +397,16 @@ internal fun ToolCallCard(
     }
 
     // v2.0: 插件工具卡弹窗 — 只读渲染插件 HTML,数据经 window.__TOOL_CARD__ 注入
-    if (showPluginCard && pluginCardHtml != null) {
+    val currentPluginHtml = pluginCardHtml
+    if (showPluginCard && currentPluginHtml != null) {
         MuseDialog(
             onDismissRequest = { showPluginCard = false },
             title = label,
             content = {
                 RichContentCard(
                     language = "html",
-                    content = buildToolCardHtml(pluginCardHtml, toolName, arguments, result, isSuccess),
-                    showPreviewButton = false,
+                    content = buildToolCardHtml(currentPluginHtml, toolName, arguments, result, isSuccess),
+                    showPreviewButton = true,
                 )
             },
             confirmText = stringResource(R.string.common_close),
@@ -402,7 +425,7 @@ private fun buildToolCardHtml(html: String, toolName: String, arguments: String,
         put("arguments", argsElement)
         put("result", kotlinx.serialization.json.JsonPrimitive(result.take(8000)))
         put("success", kotlinx.serialization.json.JsonPrimitive(isSuccess))
-    }.toString()
+    }.toString().replace("</", "<\\/")
     return "<script>window.__TOOL_CARD__ = $json;</script>\n$html"
 }
 
@@ -759,8 +782,10 @@ private fun extractFilePaths(text: String): List<Pair<String, Long?>> {
 
 // ── F-19: 生成图片/视频/二维码预览 ──────────────────────────────────────
 
-/** F-19: 需要渲染图片预览产物的工具名。 */
-private val IMAGE_PREVIEW_TOOL_NAMES: Set<String> = setOf("generate_image", "generate_video", "generate_qrcode")
+/** 生成图片/二维码需提取图片预览的工具名（generate_video 由 AssistantVideoCard 专职渲染，不再误塞图片流）。 */
+private val QR_CODE_TOOL_NAMES: Set<String> = setOf("generate_qr_code", "generate_qrcode")
+
+private val IMAGE_PREVIEW_TOOL_NAMES: Set<String> = setOf("generate_image") + QR_CODE_TOOL_NAMES
 
 /** F-19: 匹配工具结果中的 http(s) 图片 URL。 */
 private val IMAGE_URL_PATTERN = Regex("""https?://[^\s)\]},，。；;]+""")
@@ -1155,7 +1180,7 @@ internal fun inlineDeliverableMessageIds(messages: List<io.zer0.ai.core.UIMessag
     .map { it.id.toString() }
     .toHashSet()
 
-private val MEDIA_OUTPUT_TOOLS: Set<String> = setOf("generate_image", "generate_video", "generate_qr_code")
+private val MEDIA_OUTPUT_TOOLS: Set<String> = setOf("generate_image") + QR_CODE_TOOL_NAMES
 
 private val FILE_OUTPUT_TOOLS: Set<String> = setOf("create_download")
 
@@ -1275,26 +1300,40 @@ private fun DirectToolOutput(
                     inlineCardData = output.data,
                     cardId = cardId,
                     heightSpec = output.height,
-                    showPreviewButton = false,
+                    showPreviewButton = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
             is DirectOutput.Media -> {
-                // 直接展示生成的媒体（不再套工具卡），用户首屏即可看到成品。
+                // 直接展示生成的媒体（不再套工具卡），支持 SmartImage 与点击全屏放大。
+                var previewIndex by remember { mutableStateOf<Int?>(null) }
+                val stringSources = remember(output.sources) {
+                    output.sources.take(6).map { src ->
+                        if (src is java.io.File) "file://${src.absolutePath}" else src.toString()
+                    }
+                }
                 LazyRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
                 ) {
-                    items(output.sources.take(6)) { src ->
-                        AsyncImage(
-                            model = src,
-                            contentDescription = null,
+                    items(stringSources.size) { index ->
+                        SmartImage(
+                            model = output.sources[index],
+                            contentDescription = stringResource(R.string.artifact_type_image),
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
                                 .size(140.dp)
-                                .clip(MuseShapes.medium),
+                                .clip(MuseShapes.medium)
+                                .clickable { previewIndex = index },
                         )
                     }
+                }
+                previewIndex?.let { start ->
+                    io.zer0.muse.ui.common.media.FullScreenMediaViewer(
+                        images = stringSources,
+                        initialIndex = start,
+                        onDismiss = { previewIndex = null },
+                    )
                 }
             }
             is DirectOutput.File -> {
@@ -1375,34 +1414,86 @@ internal fun AttachmentPreviewDialog(attachment: AttachmentRef, loadBytes: suspe
         return
     }
 
+    val context = LocalContext.current
     var text by remember(attachment.id) { mutableStateOf<String?>(null) }
+    var tooLarge by remember(attachment.id) { mutableStateOf(false) }
     var loaded by remember(attachment.id) { mutableStateOf(false) }
     LaunchedEffect(attachment.id) {
         if (isTextAttachment(attachment)) {
-            val bytes = runCatching { loadBytes() }.getOrNull()
-            if (bytes != null && bytes.size <= MAX_INLINE_PREVIEW_BYTES) {
-                text = String(bytes, Charsets.UTF_8)
+            val bytes = runCatching { withContext(Dispatchers.IO) { loadBytes() } }.getOrNull()
+            when {
+                bytes != null && bytes.size > MAX_INLINE_PREVIEW_BYTES -> tooLarge = true
+                bytes != null -> text = String(bytes, Charsets.UTF_8)
             }
         }
         loaded = true
     }
 
-    val unavailableText = stringResource(
-        R.string.chat_attachment_preview_unavailable,
-        attachment.workspacePath.orEmpty(),
-    )
+    val body = text
+    if (body != null) {
+        val (mode, lang) = remember(attachment.name) {
+            io.zer0.muse.ui.artifact.inferRenderModeFromFileName(attachment.name)
+        }
+        if (mode == io.zer0.muse.ui.artifact.ArtifactRenderMode.RichWeb) {
+            androidx.compose.ui.window.Dialog(
+                onDismissRequest = onDismiss,
+                properties = androidx.compose.ui.window.DialogProperties(
+                    usePlatformDefaultWidth = false,
+                    decorFitsSystemWindows = false,
+                ),
+            ) {
+                io.zer0.muse.ui.common.surface.MuseDialogWindowEffect(forceFullScreen = true)
+                io.zer0.muse.ui.screen.HtmlPreviewScreen(
+                    html = body,
+                    language = lang ?: "html",
+                    title = attachment.name,
+                    onBack = onDismiss,
+                )
+            }
+        } else {
+            io.zer0.muse.ui.artifact.FullScreenDocumentReader(
+                title = attachment.name,
+                subtitle = attachment.size.takeIf { it > 0 }?.let { FileSizeFormatter.format(it) },
+                content = body,
+                mode = mode,
+                language = lang,
+                onDismiss = onDismiss,
+                onCopy = { copied ->
+                    val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE)
+                        as android.content.ClipboardManager
+                    clipboard.setPrimaryClip(android.content.ClipData.newPlainText(attachment.name, copied))
+                    MuseToast.show(context.getString(R.string.chat_copied_toast))
+                },
+                onShare = {
+                    val shareIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(android.content.Intent.EXTRA_SUBJECT, attachment.name)
+                        putExtra(android.content.Intent.EXTRA_TEXT, body)
+                    }
+                    io.zer0.muse.util.ShareIntentHelper.startChooserSafely(
+                        context = context,
+                        shareIntent = shareIntent,
+                        chooserTitle = context.getString(R.string.artifact_share_chooser),
+                    )
+                },
+            )
+        }
+        return
+    }
+
+    val unavailableText = if (tooLarge) {
+        stringResource(R.string.artifact_preview_too_large_text)
+    } else {
+        stringResource(
+            R.string.chat_attachment_preview_unavailable,
+            attachment.workspacePath.orEmpty(),
+        )
+    }
     MuseDialog(
         onDismissRequest = onDismiss,
         title = attachment.name,
         content = {
-            val body = text
             when {
-                body != null -> Text(
-                    text = body,
-                    style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.fillMaxWidth(),
-                )
                 !loaded -> MuseSpinner(size = MuseIconSizes.iconMedium)
                 else -> Text(
                     text = unavailableText,

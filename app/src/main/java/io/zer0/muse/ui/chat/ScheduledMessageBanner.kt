@@ -23,8 +23,6 @@ import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MuseShapes
-import java.util.Date
-import java.util.Locale
 
 /**
  * Phase 3 3E: 定时消息横幅 — 在聊天页顶部显示 scheduled message 状态。

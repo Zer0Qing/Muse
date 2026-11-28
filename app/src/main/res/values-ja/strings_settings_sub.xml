@@ -657,6 +657,7 @@
     <string name="settings_session_terms_scope_assistant">アシスタント級</string>
     <string name="settings_session_terms_scope_confirmed">確定済み</string>
     <string name="settings_session_terms_scope_candidate">確認待ち</string>
+    <string name="settings_session_terms_scope_pending">記録済み</string>
     <string name="kb_doc_version">バージョン %1$d</string>
     <string name="kb_doc_edit">本文を編集</string>
     <string name="kb_doc_source">ソース</string>
@@ -679,4 +680,14 @@
     <string name="settings_about_memory_low_heap">低メモリ端末</string>
     <string name="settings_about_memory_normal_heap">largeHeap 有効</string>
     <string name="settings_theme_custom_import_failed_with_reason">インポートに失敗しました：%1$s</string>
+    <string name="onboarding_home_layout_intro">ホーム画面のレイアウトを選んでください。外観設定から後で変更できます。</string>
+    <string name="onboarding_home_layout_save_failed">ホーム画面のレイアウトを保存できませんでした。もう一度お試しください。</string>
+    <string name="settings_home_layout_title">ホーム画面のレイアウト</string>
+    <string name="settings_home_layout_classic">クラシックな3タブ</string>
+    <string name="settings_home_layout_classic_desc">上部のバーからタスク、Agent、グループチャットを切り替えます</string>
+    <string name="settings_home_layout_drawer">ミニマルなドロワー</string>
+    <string name="settings_home_layout_drawer_desc">すぐにチャットを始められ、左側のドロワーから検索やツールを開けます</string>
+    <string name="settings_home_layout_preview_classic_bar">タスク · Agent · グループ</string>
+    <string name="settings_home_layout_preview_drawer_chat">チャットを始める…</string>
+    <string name="settings_home_layout_preview_drawer_search">チャットとツールを検索</string>
 </resources>

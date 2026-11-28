@@ -6,7 +6,6 @@ import io.zer0.memory.fact.FactDb
 import io.zer0.memory.fact.FactStore
 import io.zer0.memory.pin.PinnedMemoryStore
 import io.zer0.memory.runtime.DefaultMemoryUseCases
-import java.io.File
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -16,6 +15,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.io.File
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [33])

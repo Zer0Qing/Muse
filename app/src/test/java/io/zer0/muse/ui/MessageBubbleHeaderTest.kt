@@ -11,14 +11,14 @@ import androidx.compose.ui.unit.dp
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.UIMessage
 import io.zer0.muse.data.ChatPreferences
+import io.zer0.muse.ui.chat.DateSeparator
+import io.zer0.muse.ui.chat.MessageBubbleHeader
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import io.zer0.muse.ui.chat.MessageBubbleHeader
-import io.zer0.muse.ui.chat.DateSeparator
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [33])

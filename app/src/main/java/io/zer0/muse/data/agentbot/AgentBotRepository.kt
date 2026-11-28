@@ -37,6 +37,26 @@ data class AgentBotScope(
         get() = approvals.filter { it.status == ApprovalStatus.PENDING }
 }
 
+/** Room gateways used by the task ledger. Keeping them together makes the write boundary explicit. */
+data class AgentBotRepositoryDaos(
+    val task: BotTaskDao,
+    val run: TaskRunDao,
+    val step: TaskStepDao,
+    val event: BotEventDao,
+    val approval: ApprovalRequestDao,
+    val publication: PublicationOutboxDao,
+    val binding: BotBindingDao,
+    val annotation: BotAnnotationDao? = null,
+    val card: BotMessageCardDao? = null,
+    val routine: BotRoutineDao? = null,
+)
+
+/** Runtime services that are not Room gateways. */
+data class AgentBotRepositoryRuntime(
+    val database: io.zer0.muse.data.session.MuseDb? = null,
+    val now: () -> Long = { System.currentTimeMillis() },
+)
+
 /**
  * 任务账本的唯一写入口。
  *
@@ -53,20 +73,65 @@ data class AgentBotScope(
  * 顺序固定为"先改状态 → 再落事件"。
  */
 class AgentBotRepository(
-    private val taskDao: BotTaskDao,
-    private val runDao: TaskRunDao,
-    private val stepDao: TaskStepDao,
-    private val eventDao: BotEventDao,
-    private val approvalDao: ApprovalRequestDao,
-    private val publicationDao: PublicationOutboxDao,
-    private val bindingDao: BotBindingDao,
-    private val database: io.zer0.muse.data.session.MuseDb? = null,
-    /** 注入时钟，便于测试断言而不必真等。 */
-    private val now: () -> Long = { System.currentTimeMillis() },
-    private val annotationDao: BotAnnotationDao? = database?.botAnnotationDao(),
-    private val cardDao: BotMessageCardDao? = database?.botMessageCardDao(),
-    private val routineDao: BotRoutineDao? = database?.botRoutineDao(),
+    daos: AgentBotRepositoryDaos,
+    runtime: AgentBotRepositoryRuntime = AgentBotRepositoryRuntime(),
 ) {
+
+    private val taskDao = daos.task
+    private val runDao = daos.run
+    private val stepDao = daos.step
+    private val eventDao = daos.event
+    private val approvalDao = daos.approval
+    private val publicationDao = daos.publication
+    private val bindingDao = daos.binding
+    private val database = runtime.database
+    private val now = runtime.now
+    private val annotationDao = daos.annotation ?: database?.botAnnotationDao()
+    private val cardDao = daos.card ?: database?.botMessageCardDao()
+    private val routineDao = daos.routine ?: database?.botRoutineDao()
+    private val remoteExecOwnerStore = AgentRemoteExecOwnerStore(eventDao, now)
+
+    /** Compatibility adapter for existing isolated data-layer tests during dependency migration. */
+    constructor(
+        taskDao: BotTaskDao,
+        runDao: TaskRunDao,
+        stepDao: TaskStepDao,
+        eventDao: BotEventDao,
+        approvalDao: ApprovalRequestDao,
+        publicationDao: PublicationOutboxDao,
+        bindingDao: BotBindingDao,
+        database: io.zer0.muse.data.session.MuseDb? = null,
+        now: () -> Long = { System.currentTimeMillis() },
+        annotationDao: BotAnnotationDao? = database?.botAnnotationDao(),
+        cardDao: BotMessageCardDao? = database?.botMessageCardDao(),
+        routineDao: BotRoutineDao? = database?.botRoutineDao(),
+    ) : this(
+        daos = AgentBotRepositoryDaos(
+            task = taskDao,
+            run = runDao,
+            step = stepDao,
+            event = eventDao,
+            approval = approvalDao,
+            publication = publicationDao,
+            binding = bindingDao,
+            annotation = annotationDao,
+            card = cardDao,
+            routine = routineDao,
+        ),
+        runtime = AgentBotRepositoryRuntime(database = database, now = now),
+    )
+
+    suspend fun recordRemoteExecOwner(nodeId: String, remoteRunId: String, botId: String, originSessionId: String): Boolean {
+        return remoteExecOwnerStore.record(nodeId, remoteRunId, botId, originSessionId)
+    }
+
+    suspend fun findRemoteExecOwner(nodeId: String, remoteRunId: String): BotEventEntity? {
+        return remoteExecOwnerStore.find(nodeId, remoteRunId)
+    }
+
+    suspend fun clearRemoteExecOwner(nodeId: String, remoteRunId: String) {
+        remoteExecOwnerStore.clear(nodeId, remoteRunId)
+    }
 
     enum class ReviewCommitResult {
         COMMITTED,
@@ -209,29 +274,64 @@ class AgentBotRepository(
      *
      * @return 转移后的任务；非法转移（迟到事件 / 重复事件）返回 null，**不改库**。
      */
-    suspend fun transition(taskId: String, event: BotTaskStatusMachine.Event): BotTaskEntity? =
-        writeLock.withLock {
-            val current = taskDao.getById(taskId) ?: return@withLock null
-            val next = BotTaskStatusMachine.next(current.status, event) ?: run {
-                // 迟到事件不是错误，是正常并发的结果；记一条便于诊断即可。
-                Logger.d("AgentBotRepo", "忽略非法转移: ${current.status} + $event (task=$taskId)")
-                return@withLock null
+    suspend fun transition(taskId: String, event: BotTaskStatusMachine.Event): BotTaskEntity? = writeLock.withLock {
+        var updatedResult: BotTaskEntity? = null
+        val operation: suspend () -> Unit = {
+            val current = taskDao.getById(taskId)
+            if (current != null) {
+                val next = BotTaskStatusMachine.next(current.status, event)
+                if (next == null) {
+                    Logger.d("AgentBotRepo", "忽略非法转移: ${current.status} + $event (task=$taskId)")
+                } else {
+                    val updated = current.copy(status = next, updatedAt = now())
+                    taskDao.upsert(updated)
+                    settleRoutineTask(current, next, updated.updatedAt)
+                    updatedResult = updated
+                    refreshActiveCount()
+                }
             }
-            val updated = current.copy(status = next, updatedAt = now())
-            taskDao.upsert(updated)
-            refreshActiveCount()
-            updated
         }
+        val db = database
+        if (db == null) operation() else db.withTransaction { operation() }
+        updatedResult
+    }
+
+    suspend fun claimAndOpenRun(taskId: String): Pair<BotTaskEntity, TaskRunEntity>? = writeLock.withLock {
+        var claimed: Pair<BotTaskEntity, TaskRunEntity>? = null
+        val operation: suspend () -> Unit = {
+            val current = taskDao.getById(taskId)
+            val next = current?.let { BotTaskStatusMachine.next(it.status, BotTaskStatusMachine.Event.START) }
+            if (current != null && next != null) {
+                val ts = now()
+                val updated = current.copy(status = next, updatedAt = ts)
+                val runs = runDao.listByTask(taskId)
+                val run = TaskRunEntity(
+                    runId = UUID.randomUUID().toString(),
+                    taskId = taskId,
+                    attempt = (runs.maxOfOrNull { it.attempt } ?: 0) + 1,
+                    threadId = runs.firstOrNull { it.threadId.isNotBlank() }?.threadId.orEmpty(),
+                    taskRevision = current.revision,
+                    status = TaskRunStatus.RUNNING,
+                    leaseOwner = current.botId,
+                    leaseUntil = ts + LEASE_MS,
+                    fenceToken = 1L,
+                    startedAt = ts,
+                )
+                taskDao.upsert(updated)
+                runDao.upsert(run)
+                refreshActiveCount()
+                claimed = updated to run
+            }
+        }
+        val db = database
+        if (db == null) operation() else db.withTransaction { operation() }
+        claimed
+    }
 
     /**
      * Atomically settle execution and retain its result event for review recovery.
      */
-    suspend fun finishExecution(
-        taskId: String,
-        runId: String,
-        taskRevision: Int,
-        resultPayload: String,
-    ): Boolean = writeLock.withLock {
+    suspend fun finishExecution(taskId: String, runId: String, taskRevision: Int, resultPayload: String): Boolean = writeLock.withLock {
         var finished = false
         val operation: suspend () -> Unit = {
             val task = taskDao.getById(taskId)
@@ -291,90 +391,159 @@ class AgentBotRepository(
             BotReviewWorker.Decision(disposition = fact.disposition),
         )
         val expectedPublicationKey = PublicationService.publicationKeyFor(taskId, runId, taskRevision)
-        if (fact.taskRevision != taskRevision ||
-            fact.finalState != BotReviewWorker().finalStateFor(fact.disposition) ||
-            fact.publicationAllowed != publicationAllowed ||
-            fact.publicationKey != expectedPublicationKey ||
-            expectedReviewTransition != transition
+        if (!isReviewPayloadConsistent(
+                fact = fact,
+                taskRevision = taskRevision,
+                publicationAllowed = publicationAllowed,
+                expectedPublicationKey = expectedPublicationKey,
+                expectedReviewTransition = expectedReviewTransition,
+                transition = transition,
+            )
         ) {
             return@withLock ReviewCommitResult.STALE
         }
-
-        var result = ReviewCommitResult.STALE
-        val operation: suspend () -> Unit = operation@{
-            val task = taskDao.getById(taskId)
-            val run = runDao.getById(runId)
-            val staleRevisionReview = task != null && task.revision > taskRevision &&
-                transition == BotTaskStatusMachine.Event.MARK_UNKNOWN &&
-                fact.disposition == ReviewDisposition.UNKNOWN && !fact.publicationAllowed
-            if (task == null || run == null || (task.revision != taskRevision && !staleRevisionReview) ||
-                run.taskId != taskId || run.taskRevision != taskRevision || run.status != TaskRunStatus.COMPLETED
-            ) {
-                return@operation
-            }
-
-            val reviewKey = "review-ready:$taskId:$runId"
-            val publicationKey = "publication-ready:$taskId:$runId"
-            val existingReview = eventDao.findByDedupeKey(reviewKey)
-            val existingPublication = eventDao.findByDedupeKey(publicationKey)
-            if ((existingReview != null && (existingReview.payloadRef != reviewPayload ||
-                    existingReview.taskId != taskId || existingReview.runId != runId ||
-                    existingReview.kind != BotEventKind.REVIEW_READY)) ||
-                (existingPublication != null && (!publicationAllowed ||
-                    existingPublication.payloadRef != reviewPayload || existingPublication.taskId != taskId ||
-                    existingPublication.runId != runId || existingPublication.kind != BotEventKind.TASK_PUBLICATION_READY))
-            ) {
-                return@operation
-            }
-
-            val next = BotTaskStatusMachine.next(task.status, transition)
-            val alreadySettled = task.status == fact.finalState && next == null
-            if (!alreadySettled && next == null) return@operation
-            if (existingReview != null && task.status != fact.finalState) return@operation
-
-            if (!applyEffect()) {
-                result = ReviewCommitResult.EFFECT_REJECTED
-                return@operation
-            }
-
-            if (!alreadySettled) {
-                taskDao.upsert(task.copy(status = next.orEmpty(), updatedAt = now()))
-            }
-            if (existingReview == null) {
-                appendEventLocked(
-                    botId = task.botId,
-                    originSessionId = task.originSessionId,
-                    taskId = taskId,
-                    runId = runId,
-                    kind = BotEventKind.REVIEW_READY,
-                    dedupeKey = reviewKey,
-                    payloadRef = reviewPayload,
-                )
-            }
-            if (publicationAllowed && existingPublication == null) {
-                appendEventLocked(
-                    botId = task.botId,
-                    originSessionId = task.originSessionId,
-                    taskId = taskId,
-                    runId = runId,
-                    kind = BotEventKind.TASK_PUBLICATION_READY,
-                    dedupeKey = publicationKey,
-                    payloadRef = reviewPayload,
-                )
-            }
-            refreshActiveCount()
-            result = if (alreadySettled && existingReview != null &&
-                (!publicationAllowed || existingPublication != null)
-            ) {
-                ReviewCommitResult.ALREADY_COMMITTED
-            } else {
-                ReviewCommitResult.COMMITTED
-            }
-        }
+        val input = ReviewCommitInput(
+            taskId = taskId,
+            runId = runId,
+            taskRevision = taskRevision,
+            transition = transition,
+            reviewPayload = reviewPayload,
+            fact = fact,
+            publicationAllowed = publicationAllowed,
+            applyEffect = applyEffect,
+        )
+        val operation: suspend () -> ReviewCommitResult = { commitReviewLocked(input) }
         val db = database
         if (db == null) operation() else db.withTransaction { operation() }
-        result
     }
+
+    private suspend fun commitReviewLocked(input: ReviewCommitInput): ReviewCommitResult {
+        val entities = loadReviewCommitEntities(input) ?: return ReviewCommitResult.STALE
+        if (!reviewEventsAreValid(input, entities)) return ReviewCommitResult.STALE
+        val next = BotTaskStatusMachine.next(entities.task.status, input.transition)
+        val alreadySettled = entities.task.status == input.fact.finalState && next == null
+        if ((!alreadySettled && next == null) ||
+            (entities.existingReview != null && entities.task.status != input.fact.finalState)
+        ) {
+            return ReviewCommitResult.STALE
+        }
+        if (!input.applyEffect()) return ReviewCommitResult.EFFECT_REJECTED
+        settleReview(input, entities, next, alreadySettled)
+        refreshActiveCount()
+        return if (alreadySettled && entities.existingReview != null &&
+            (!input.publicationAllowed || entities.existingPublication != null)
+        ) {
+            ReviewCommitResult.ALREADY_COMMITTED
+        } else {
+            ReviewCommitResult.COMMITTED
+        }
+    }
+
+    private suspend fun loadReviewCommitEntities(input: ReviewCommitInput): ReviewCommitEntities? {
+        val task = taskDao.getById(input.taskId) ?: return null
+        val run = runDao.getById(input.runId) ?: return null
+        val staleRevisionReview = task.revision > input.taskRevision &&
+            input.transition == BotTaskStatusMachine.Event.MARK_UNKNOWN &&
+            input.fact.disposition == ReviewDisposition.UNKNOWN && !input.fact.publicationAllowed
+        if (task.revision != input.taskRevision && !staleRevisionReview) return null
+        if (run.taskId != input.taskId || run.taskRevision != input.taskRevision || run.status != TaskRunStatus.COMPLETED) {
+            return null
+        }
+        val reviewKey = "review-ready:${input.taskId}:${input.runId}"
+        val publicationKey = "publication-ready:${input.taskId}:${input.runId}"
+        return ReviewCommitEntities(
+            task = task,
+            reviewKey = reviewKey,
+            publicationKey = publicationKey,
+            existingReview = eventDao.findByDedupeKey(reviewKey),
+            existingPublication = eventDao.findByDedupeKey(publicationKey),
+        )
+    }
+
+    private fun reviewEventsAreValid(input: ReviewCommitInput, entities: ReviewCommitEntities): Boolean {
+        val review = entities.existingReview
+        val publication = entities.existingPublication
+        val reviewInvalid = review?.let {
+            it.payloadRef != input.reviewPayload || it.taskId != input.taskId || it.runId != input.runId ||
+                it.kind != BotEventKind.REVIEW_READY
+        } == true
+        val publicationInvalid = publication?.let {
+            !input.publicationAllowed || it.payloadRef != input.reviewPayload ||
+                it.taskId != input.taskId || it.runId != input.runId ||
+                it.kind != BotEventKind.TASK_PUBLICATION_READY
+        } == true
+        return !reviewInvalid && !publicationInvalid
+    }
+
+    private suspend fun settleReview(
+        input: ReviewCommitInput,
+        entities: ReviewCommitEntities,
+        next: String?,
+        alreadySettled: Boolean,
+    ) {
+        val task = entities.task
+        if (!alreadySettled) {
+            val ts = now()
+            taskDao.upsert(task.copy(status = next.orEmpty(), updatedAt = ts))
+            settleRoutineTask(task, next.orEmpty(), ts)
+        } else {
+            settleRoutineTask(task, task.status, now())
+        }
+        if (entities.existingReview == null) {
+            appendEventLocked(
+                botId = task.botId,
+                originSessionId = task.originSessionId,
+                taskId = input.taskId,
+                runId = input.runId,
+                kind = BotEventKind.REVIEW_READY,
+                dedupeKey = entities.reviewKey,
+                payloadRef = input.reviewPayload,
+            )
+        }
+        if (input.publicationAllowed && entities.existingPublication == null) {
+            appendEventLocked(
+                botId = task.botId,
+                originSessionId = task.originSessionId,
+                taskId = input.taskId,
+                runId = input.runId,
+                kind = BotEventKind.TASK_PUBLICATION_READY,
+                dedupeKey = entities.publicationKey,
+                payloadRef = input.reviewPayload,
+            )
+        }
+    }
+
+    private data class ReviewCommitInput(
+        val taskId: String,
+        val runId: String,
+        val taskRevision: Int,
+        val transition: BotTaskStatusMachine.Event,
+        val reviewPayload: String,
+        val fact: ReviewDecision,
+        val publicationAllowed: Boolean,
+        val applyEffect: suspend () -> Boolean,
+    )
+
+    private data class ReviewCommitEntities(
+        val task: BotTaskEntity,
+        val reviewKey: String,
+        val publicationKey: String,
+        val existingReview: BotEventEntity?,
+        val existingPublication: BotEventEntity?,
+    )
+
+    private fun isReviewPayloadConsistent(
+        fact: ReviewDecision,
+        taskRevision: Int,
+        publicationAllowed: Boolean,
+        expectedPublicationKey: String,
+        expectedReviewTransition: BotTaskStatusMachine.Event,
+        transition: BotTaskStatusMachine.Event,
+    ): Boolean = fact.taskRevision == taskRevision &&
+        fact.finalState == BotReviewWorker().finalStateFor(fact.disposition) &&
+        fact.publicationAllowed == publicationAllowed &&
+        fact.publicationKey == expectedPublicationKey &&
+        expectedReviewTransition == transition
 
     /**
      * 追加约束：revision +1。
@@ -395,8 +564,9 @@ class AgentBotRepository(
 
     suspend fun reviewingTasks(): List<BotTaskEntity> = taskDao.listReviewing()
 
-    suspend fun latestTaskEvent(taskId: String, runId: String, kind: String): BotEventEntity? =
-        eventDao.latestOfKind(taskId, runId, kind)
+    suspend fun runningTasks(): List<BotTaskEntity> = taskDao.listRunningTasks()
+
+    suspend fun latestTaskEvent(taskId: String, runId: String, kind: String): BotEventEntity? = eventDao.latestOfKind(taskId, runId, kind)
 
     suspend fun claimCandidates(limit: Int): List<BotTaskEntity> = taskDao.claimCandidates(limit)
 
@@ -446,13 +616,12 @@ class AgentBotRepository(
         true
     }
 
-    suspend fun closeRun(runId: String, status: String, errorCode: String = ""): TaskRunEntity? =
-        writeLock.withLock {
-            val run = runDao.getById(runId) ?: return@withLock null
-            val updated = run.copy(status = status, finishedAt = now(), errorCode = errorCode)
-            runDao.upsert(updated)
-            updated
-        }
+    suspend fun closeRun(runId: String, status: String, errorCode: String = ""): TaskRunEntity? = writeLock.withLock {
+        val run = runDao.getById(runId) ?: return@withLock null
+        val updated = run.copy(status = status, finishedAt = now(), errorCode = errorCode)
+        runDao.upsert(updated)
+        updated
+    }
 
     suspend fun listRuns(taskId: String): List<TaskRunEntity> = runDao.listByTask(taskId)
 
@@ -494,19 +663,16 @@ class AgentBotRepository(
         step
     }
 
-    suspend fun finishStep(
-        step: TaskStepEntity,
-        status: String = StepExecutionStatus.SUCCEEDED,
-        summary: String = "",
-    ): TaskStepEntity = writeLock.withLock {
-        val updated = step.copy(
-            finishedAt = now(),
-            status = status,
-            summary = summary.ifBlank { step.summary },
-        )
-        stepDao.upsert(updated)
-        updated
-    }
+    suspend fun finishStep(step: TaskStepEntity, status: String = StepExecutionStatus.SUCCEEDED, summary: String = ""): TaskStepEntity =
+        writeLock.withLock {
+            val updated = step.copy(
+                finishedAt = now(),
+                status = status,
+                summary = summary.ifBlank { step.summary },
+            )
+            stepDao.upsert(updated)
+            updated
+        }
 
     suspend fun listTaskSteps(taskId: String): List<TaskStepEntity> = stepDao.listByTask(taskId)
 
@@ -525,9 +691,30 @@ class AgentBotRepository(
         )
     }
 
+    suspend fun insertMessageCardIfAbsent(card: BotMessageCardEntity): Boolean {
+        val dao = cardDao ?: return false
+        val ts = now()
+        return dao.insertIfAbsent(
+            card.copy(
+                createdAt = if (card.createdAt > 0L) card.createdAt else ts,
+                updatedAt = ts,
+            ),
+        ) != -1L
+    }
+
     suspend fun resolveMessageCard(cardId: String, selectedOptionId: String = ""): Boolean {
         val dao = cardDao ?: return false
         return dao.updateInteraction(cardId, BotCardStatus.RESOLVED, selectedOptionId, now()) > 0
+    }
+
+    suspend fun resolveActiveMessageCard(cardId: String, botId: String, sessionId: String, selectedOptionId: String): Boolean {
+        val dao = cardDao ?: return false
+        return dao.resolveActiveForScope(cardId, botId, sessionId, selectedOptionId, now()) > 0
+    }
+
+    suspend fun dismissActiveMessageCard(cardId: String, botId: String, sessionId: String): Boolean {
+        val dao = cardDao ?: return false
+        return dao.dismissActiveForScope(cardId, botId, sessionId, now()) > 0
     }
 
     suspend fun dismissMessageCard(cardId: String): Boolean {
@@ -540,8 +727,7 @@ class AgentBotRepository(
     fun observeRoutines(botId: String): Flow<List<BotRoutineEntity>> =
         routineDao?.observeByBot(botId) ?: kotlinx.coroutines.flow.flowOf(emptyList())
 
-    fun observeAllRoutines(): Flow<List<BotRoutineEntity>> =
-        routineDao?.observeAll() ?: kotlinx.coroutines.flow.flowOf(emptyList())
+    fun observeAllRoutines(): Flow<List<BotRoutineEntity>> = routineDao?.observeAll() ?: kotlinx.coroutines.flow.flowOf(emptyList())
 
     suspend fun upsertRoutine(routine: BotRoutineEntity) {
         val dao = routineDao ?: return
@@ -566,6 +752,12 @@ class AgentBotRepository(
     suspend fun recordRoutineExecution(routineId: String, status: String) {
         routineDao?.recordExecution(routineId, now(), status)
     }
+
+    suspend fun recordRoutineExecutionIfNewer(routineId: String, runAt: Long, status: String) {
+        routineDao?.recordExecutionIfNewer(routineId, runAt, status)
+    }
+
+    suspend fun getRoutine(routineId: String): BotRoutineEntity? = routineDao?.getById(routineId)
 
     suspend fun listEnabledRoutinesByTrigger(triggerType: String): List<BotRoutineEntity> =
         routineDao?.listEnabledByTrigger(triggerType).orEmpty()
@@ -593,52 +785,52 @@ class AgentBotRepository(
             val task = taskDao.getById(taskId)
             val run = runDao.getById(runId)
             val existingStep = stepDao.listByRun(runId).firstOrNull { it.stepId == stepId }
-            if (task != null && run != null && task.revision == taskRevision &&
-                run.taskId == taskId && run.taskRevision == taskRevision && run.status == TaskRunStatus.RUNNING &&
-                existingStep != null && existingStep.toolName == toolName && existingStep.argumentsHash == argumentsHash
-            ) {
-                val nextStatus = BotTaskStatusMachine.next(task.status, BotTaskStatusMachine.Event.WAIT_APPROVAL)
-                if (nextStatus != null) {
-                    val ts = now()
-                    val approvalId = UUID.randomUUID().toString()
-                    val step = existingStep.copy(
-                        baseHash = baseHash,
-                        approvalId = approvalId,
-                        sideEffect = sideEffect,
-                    )
-                    val approval = ApprovalRequestEntity(
-                        approvalId = approvalId,
-                        botId = task.botId,
-                        originSessionId = task.originSessionId,
-                        taskId = taskId,
-                        runId = runId,
-                        stepId = step.stepId,
-                        taskRevision = taskRevision,
-                        toolCallId = toolCallId,
-                        toolName = toolName,
-                        argumentsRef = arguments.take(500),
-                        argumentsHash = argumentsHash,
-                        resourceVersion = baseHash,
-                        risk = risk,
-                        createdAt = ts,
-                        readyAt = ts,
-                        expiresAt = ts + APPROVAL_TTL_MS,
-                    )
-                    stepDao.upsert(step)
-                    approvalDao.upsert(approval)
-                    taskDao.upsert(task.copy(status = nextStatus, updatedAt = ts))
-                    appendEventLocked(
-                        botId = task.botId,
-                        originSessionId = task.originSessionId,
-                        taskId = taskId,
-                        runId = runId,
-                        kind = BotEventKind.APPROVAL_REQUIRED,
-                        dedupeKey = "approval-required:$approvalId",
-                        payloadRef = toolName,
-                    )
-                    refreshActiveCount()
-                    created = approval
-                }
+            if (task == null || run == null || existingStep == null) return@operation
+            if (task.revision != taskRevision || run.taskId != taskId || run.taskRevision != taskRevision ||
+                run.status != TaskRunStatus.RUNNING
+            ) return@operation
+            if (existingStep.toolName != toolName || existingStep.argumentsHash != argumentsHash) return@operation
+            val nextStatus = BotTaskStatusMachine.next(task.status, BotTaskStatusMachine.Event.WAIT_APPROVAL)
+            if (nextStatus != null) {
+                val ts = now()
+                val approvalId = UUID.randomUUID().toString()
+                val step = existingStep.copy(
+                    baseHash = baseHash,
+                    approvalId = approvalId,
+                    sideEffect = sideEffect,
+                )
+                val approval = ApprovalRequestEntity(
+                    approvalId = approvalId,
+                    botId = task.botId,
+                    originSessionId = task.originSessionId,
+                    taskId = taskId,
+                    runId = runId,
+                    stepId = step.stepId,
+                    taskRevision = taskRevision,
+                    toolCallId = toolCallId,
+                    toolName = toolName,
+                    argumentsRef = arguments.take(500),
+                    argumentsHash = argumentsHash,
+                    resourceVersion = baseHash,
+                    risk = risk,
+                    createdAt = ts,
+                    readyAt = ts,
+                    expiresAt = ts + APPROVAL_TTL_MS,
+                )
+                stepDao.upsert(step)
+                approvalDao.upsert(approval)
+                taskDao.upsert(task.copy(status = nextStatus, updatedAt = ts))
+                appendEventLocked(
+                    botId = task.botId,
+                    originSessionId = task.originSessionId,
+                    taskId = taskId,
+                    runId = runId,
+                    kind = BotEventKind.APPROVAL_REQUIRED,
+                    dedupeKey = "approval-required:$approvalId",
+                    payloadRef = toolName,
+                )
+                refreshActiveCount()
+                created = approval
             }
         }
         val db = database
@@ -667,27 +859,27 @@ class AgentBotRepository(
             val task = taskDao.getById(taskId)
             val run = runDao.getById(runId)
             val step = stepDao.listByRun(runId).firstOrNull { it.stepId == stepId }
-            if (task != null && run != null && step != null && task.status == BotTaskStatus.RUNNING &&
-                task.revision == taskRevision && run.taskId == taskId && run.taskRevision == taskRevision &&
-                run.status == TaskRunStatus.RUNNING && step.toolName == toolName && step.argumentsHash == argumentsHash
+            if (task == null || run == null || step == null) return@operation
+            if (task.status != BotTaskStatus.RUNNING || task.revision != taskRevision || run.taskId != taskId ||
+                run.taskRevision != taskRevision || run.status != TaskRunStatus.RUNNING
+            ) return@operation
+            if (step.toolName != toolName || step.argumentsHash != argumentsHash) return@operation
+            val approval = approvalDao.listByTask(taskId).firstOrNull {
+                it.status == ApprovalStatus.APPROVED && it.decisionReason.isBlank() &&
+                    it.taskRevision == taskRevision && it.toolName == toolName &&
+                    it.argumentsHash == argumentsHash && it.resourceVersion == resourceVersion
+            }
+            if (approval != null && approvalDao.consumeApproved(
+                    approvalId = approval.approvalId,
+                    taskId = taskId,
+                    taskRevision = taskRevision,
+                    toolName = toolName,
+                    argumentsHash = argumentsHash,
+                    resourceVersion = resourceVersion,
+                ) == 1
             ) {
-                val approval = approvalDao.listByTask(taskId).firstOrNull {
-                    it.status == ApprovalStatus.APPROVED && it.decisionReason.isBlank() &&
-                        it.taskRevision == taskRevision && it.toolName == toolName &&
-                        it.argumentsHash == argumentsHash && it.resourceVersion == resourceVersion
-                }
-                if (approval != null && approvalDao.consumeApproved(
-                        approvalId = approval.approvalId,
-                        taskId = taskId,
-                        taskRevision = taskRevision,
-                        toolName = toolName,
-                        argumentsHash = argumentsHash,
-                        resourceVersion = resourceVersion,
-                    ) == 1
-                ) {
-                    stepDao.upsert(step.copy(approvalId = approval.approvalId, sideEffect = sideEffect))
-                    consumed = approval.copy(decisionReason = APPROVED_CONSUMED_REASON)
-                }
+                stepDao.upsert(step.copy(approvalId = approval.approvalId, sideEffect = sideEffect))
+                consumed = approval.copy(decisionReason = APPROVED_CONSUMED_REASON)
             }
         }
         val db = database
@@ -722,6 +914,32 @@ class AgentBotRepository(
         appendEventLocked(botId, originSessionId, taskId, runId, kind, dedupeKey, payloadRef)
     }
 
+    internal suspend fun commitUserInput(
+        sessions: io.zer0.muse.data.session.SessionRepository,
+        botId: String,
+        sessionId: String,
+        message: io.zer0.ai.core.UIMessage,
+        replacedMessageId: String?,
+        payloadRef: String,
+    ): BotEventEntity? = writeLock.withLock {
+        var event: BotEventEntity? = null
+        val committed = sessions.commitAgentInput(sessionId, message, replacedMessageId) {
+            val dedupeKey = "input:${message.id}"
+            appendEventLocked(
+                botId,
+                sessionId,
+                "",
+                "",
+                BotEventKind.USER_INPUT_RECEIVED,
+                dedupeKey,
+                payloadRef,
+            )
+            event = checkNotNull(eventDao.findByDedupeKey(dedupeKey)) { "Agent input event was not persisted" }
+                .also { check(it.botId == botId && it.originSessionId == sessionId && it.kind == BotEventKind.USER_INPUT_RECEIVED) }
+        }
+        if (committed) checkNotNull(event) else null
+    }
+
     private suspend fun appendEventLocked(
         botId: String,
         originSessionId: String,
@@ -753,14 +971,12 @@ class AgentBotRepository(
         return event
     }
 
-    suspend fun pendingEvents(botId: String, limit: Int = 50): List<BotEventEntity> =
-        eventDao.pending(botId, limit)
+    suspend fun pendingEvents(botId: String, limit: Int = 50): List<BotEventEntity> = eventDao.pending(botId, limit)
 
     suspend fun pendingEventsAfter(botId: String, sequence: Long, limit: Int): List<BotEventEntity> =
         eventDao.pendingAfter(botId, sequence, limit)
 
-    suspend fun latestUserInputSequence(botId: String, sessionId: String): Long =
-        eventDao.latestUserInputSequence(botId, sessionId) ?: 0L
+    suspend fun latestUserInputSequence(botId: String, sessionId: String): Long = eventDao.latestUserInputSequence(botId, sessionId) ?: 0L
 
     /** 消费确认。返回 false 表示已被别人消费过。 */
     suspend fun markConsumed(eventId: String): Boolean = eventDao.markConsumed(eventId, now()) > 0
@@ -772,8 +988,7 @@ class AgentBotRepository(
      * 会从页面消失、文件却留在磁盘上。它们的清理走 [pruneStagedReferences] ——
      * 只有确认暂存文件已经不在了才允许删。
      */
-    suspend fun pruneEvents(retentionMs: Long = EVENT_RETENTION_MS): Int =
-        eventDao.deleteConsumedBefore(now() - retentionMs)
+    suspend fun pruneEvents(retentionMs: Long = EVENT_RETENTION_MS): Int = eventDao.deleteConsumedBefore(now() - retentionMs)
 
     /**
      * 清理"候选已经不在暂存区"的事件引用。
@@ -782,10 +997,7 @@ class AgentBotRepository(
      *   仓储看不到文件系统，猜"文件还在"只能靠瞎蒙。
      * @return 实际删除的行数
      */
-    suspend fun pruneStagedReferences(
-        liveStagedIds: Set<String>,
-        retentionMs: Long = EVENT_RETENTION_MS,
-    ): Int {
+    suspend fun pruneStagedReferences(liveStagedIds: Set<String>, retentionMs: Long = EVENT_RETENTION_MS): Int {
         val settled = eventDao.consumedStagedBefore(now() - retentionMs).filter { event ->
             val stagedIds = stagedIdsFromPayload(event.payloadRef)
             stagedIds.isEmpty() || stagedIds.none { it in liveStagedIds }
@@ -862,12 +1074,7 @@ class AgentBotRepository(
      *
      * @return true = 本次结算成功；false = 已被结算过（返回既有状态由调用方查）。
      */
-    suspend fun settleApproval(
-        approvalId: String,
-        status: String,
-        actor: String,
-        reason: String = "",
-    ): Boolean {
+    suspend fun settleApproval(approvalId: String, status: String, actor: String, reason: String = ""): Boolean {
         require(status in ApprovalStatus.SETTLED) { "非法结算状态: $status" }
         return approvalDao.settle(approvalId, status, now(), actor, reason) > 0
     }
@@ -884,8 +1091,7 @@ class AgentBotRepository(
      * 用于区分 NEEDS_USER 的两种来源：有已结算批准 → "审批通过待重跑"；
      * 没有 → "执行需要决策"。
      */
-    suspend fun listApprovals(taskId: String): List<ApprovalRequestEntity> =
-        approvalDao.listByTask(taskId)
+    suspend fun listApprovals(taskId: String): List<ApprovalRequestEntity> = approvalDao.listByTask(taskId)
 
     // ── 发布 ──────────────────────────────────────────────────────────
 
@@ -937,8 +1143,7 @@ class AgentBotRepository(
      *
      * 已提交的条目不动 —— 用户看到的消息不能凭空消失。
      */
-    suspend fun supersedePublication(publicationId: String): Int =
-        publicationDao.supersedePending(publicationId)
+    suspend fun supersedePublication(publicationId: String): Int = publicationDao.supersedePending(publicationId)
 
     suspend fun pendingPublications(): List<PublicationOutboxEntity> = publicationDao.listPending()
 
@@ -966,10 +1171,7 @@ class AgentBotRepository(
      * 否则"重复打开页面"会不断制造写入，备份与审计里全是无意义的变更。
      * 只有会话或助手真正变化时才写。
      */
-    suspend fun ensureBinding(
-        assistantId: String,
-        canonicalAgentSessionId: String,
-    ): BotBindingEntity = writeLock.withLock {
+    suspend fun ensureBinding(assistantId: String, canonicalAgentSessionId: String): BotBindingEntity = writeLock.withLock {
         require(assistantId.isNotBlank()) { "assistantId 不能为空：没有归属的绑定无法回读" }
         require(canonicalAgentSessionId.isNotBlank()) {
             "canonicalAgentSessionId 不能为空：空绑定会让页面每次重开都丢掉会话"
@@ -997,8 +1199,7 @@ class AgentBotRepository(
     }
 
     /** 页面在只有 assistantId 时回读 canonical 会话。 */
-    suspend fun getBindingForAssistant(assistantId: String): BotBindingEntity? =
-        bindingDao.getById(assistantId)
+    suspend fun getBindingForAssistant(assistantId: String): BotBindingEntity? = bindingDao.getById(assistantId)
 
     /**
      * 观察当前页面的作用域快照。
@@ -1068,8 +1269,27 @@ class AgentBotRepository(
             .onFailure { Logger.w("AgentBotRepo", "在途任务计数刷新失败: ${it.message}") }
     }
 
+    private suspend fun settleRoutineTask(task: BotTaskEntity, status: String, at: Long) {
+        if (!BotTaskStatus.isTerminal(status)) return
+        val link = parseRoutineTaskLink(task.requestMessageId) ?: return
+        routineDao?.settleExecution(
+            link.first,
+            link.second,
+            at,
+            status,
+        )
+    }
+
+    private fun parseRoutineTaskLink(value: String): Pair<String, Long>? {
+        if (!value.startsWith(ROUTINE_TASK_PREFIX)) return null
+        val payload = value.removePrefix(ROUTINE_TASK_PREFIX)
+        val timestampSeparator = payload.lastIndexOf(':')
+        if (timestampSeparator <= 0) return null
+        val runAt = payload.substring(timestampSeparator + 1).toLongOrNull() ?: return null
+        return payload.substring(0, timestampSeparator) to runAt
+    }
+
     companion object {
-        private const val TAG = "AgentBotRepo"
         private const val APPROVED_CONSUMED_REASON = "consumed_for_resume"
 
         /** 租约时长。短到能及时发现死 worker，长到不会把正常慢任务误判成掉线。 */
@@ -1083,5 +1303,6 @@ class AgentBotRepository(
 
         /** 暂存候选 id 前缀。格式由 [StagedArtifactStore.stage] 生成。 */
         private const val STAGED_ID_PREFIX = "cand-"
+        private const val ROUTINE_TASK_PREFIX = "routine-task:"
     }
 }

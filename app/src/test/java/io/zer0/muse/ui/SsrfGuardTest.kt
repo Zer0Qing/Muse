@@ -1,10 +1,10 @@
 package io.zer0.muse.ui
 
 import io.zer0.ai.RefImageUrlValidator
+import io.zer0.muse.ui.common.SsrfGuard
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import io.zer0.muse.ui.common.SsrfGuard
 
 class SsrfGuardTest {
 

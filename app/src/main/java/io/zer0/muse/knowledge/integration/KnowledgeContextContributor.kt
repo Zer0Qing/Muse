@@ -9,7 +9,6 @@ import io.zer0.muse.knowledge.retrieval.KnowledgeEntryType
 import io.zer0.muse.knowledge.retrieval.KnowledgeRetriever
 import io.zer0.muse.knowledge.retrieval.KnowledgeSearchRequest
 import io.zer0.muse.knowledge.retrieval.RetrievalOutcome
-import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * R7 消费入口接线 — 设计 §12「所有消费入口的合同」与计划 R7。
@@ -93,13 +92,19 @@ class KnowledgeContextContributor(
             when (val outcome = retriever.search(request)) {
                 is RetrievalOutcome.Found -> {
                     val bundle = assembler.assemble(outcome, budgetTokens, traceId = requestId)
-                    if (bundle.isEmpty) ContributionResult.Skipped("检索命中为空")
-                    else ContributionResult.Evidence(bundle)
+                    if (bundle.isEmpty) {
+                        ContributionResult.Skipped("检索命中为空")
+                    } else {
+                        ContributionResult.Evidence(bundle)
+                    }
                 }
                 is RetrievalOutcome.Partial -> {
                     val bundle = assembler.assemble(outcome, budgetTokens, traceId = requestId)
-                    if (bundle.isEmpty) ContributionResult.Failed("检索部分降级且无可发送证据: ${outcome.missingPaths.joinToString()}")
-                    else ContributionResult.Evidence(bundle)
+                    if (bundle.isEmpty) {
+                        ContributionResult.Failed("检索部分降级且无可发送证据: ${outcome.missingPaths.joinToString()}")
+                    } else {
+                        ContributionResult.Evidence(bundle)
+                    }
                 }
                 is RetrievalOutcome.NoMatch -> ContributionResult.Skipped("范围内无匹配资料")
                 is RetrievalOutcome.EmptyScope -> ContributionResult.Skipped("空范围: ${outcome.reason}")

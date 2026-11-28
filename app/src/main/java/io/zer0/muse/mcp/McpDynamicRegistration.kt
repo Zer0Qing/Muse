@@ -14,6 +14,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -57,6 +58,8 @@ object McpDynamicRegistration {
         io.zer0.ai.core.ProxyProvider.applyTo(OkHttpClient.Builder())
             .connectTimeout(10, TimeUnit.SECONDS)
             .readTimeout(15, TimeUnit.SECONDS)
+            .followRedirects(false)
+            .followSslRedirects(false)
             .build()
     }
 
@@ -103,45 +106,8 @@ object McpDynamicRegistration {
      * @param serverUrl MCP server URL(如 https://server.example.com/mcp)
      * @return 元数据;失败返回 null
      */
-    suspend fun discoverMetadata(serverUrl: String): McpAuthMetadata? = withContext(Dispatchers.IO) {
-        val base = baseUrl(serverUrl) ?: return@withContext null
-        resultOf {
-            // Step 1a: GET {base}/.well-known/oauth-protected-resource
-            val resourceMeta = fetchJson("$base/.well-known/oauth-protected-resource") ?: return@resultOf null
-            val authServers = resourceMeta["authorization_servers"]
-                ?.let { parseStringArray(it) }
-                ?: emptyList()
-            if (authServers.isEmpty()) {
-                // 兼容:部分 server 直接把 endpoints 放在 resource metadata 里
-                val authEndpoint = resourceMeta["authorization_endpoint"]?.jsonPrimitive?.contentOrNull
-                val tokenEndpoint = resourceMeta["token_endpoint"]?.jsonPrimitive?.contentOrNull
-                if (authEndpoint != null && tokenEndpoint != null) {
-                    return@resultOf McpAuthMetadata(
-                        authorizationEndpoint = authEndpoint,
-                        tokenEndpoint = tokenEndpoint,
-                        registrationEndpoint = resourceMeta["registration_endpoint"]?.jsonPrimitive?.contentOrNull,
-                        scopesSupported = parseScopes(resourceMeta["scopes_supported"]),
-                    )
-                }
-                return@resultOf null
-            }
-
-            // 步骤 1b: GET {auth_server}/.well-known/oauth-authorization-server
-            for (authServer in authServers) {
-                val authMeta = fetchJson("$authServer/.well-known/oauth-authorization-server") ?: continue
-                val authEndpoint = authMeta["authorization_endpoint"]?.jsonPrimitive?.contentOrNull ?: continue
-                val tokenEndpoint = authMeta["token_endpoint"]?.jsonPrimitive?.contentOrNull ?: continue
-                return@resultOf McpAuthMetadata(
-                    authorizationEndpoint = authEndpoint,
-                    tokenEndpoint = tokenEndpoint,
-                    registrationEndpoint = authMeta["registration_endpoint"]?.jsonPrimitive?.contentOrNull,
-                    scopesSupported = parseScopes(authMeta["scopes_supported"]),
-                )
-            }
-            null
-        }.onError { msg, t -> Logger.w(TAG, "discoverMetadata 失败: $msg", t) }
-            .getOrNull()
-    }
+    suspend fun discoverMetadata(serverUrl: String, protectedResourceMetadataUrl: String? = null): McpAuthMetadata? =
+        McpMetadataDiscovery.discover(httpClient, serverUrl, protectedResourceMetadataUrl)
 
     /**
      * Step 2: 动态客户端注册(RFC 7591)。
@@ -157,6 +123,7 @@ object McpDynamicRegistration {
         redirectUri: String,
         clientName: String = "muse",
         scopes: String = "",
+        resourceUrl: String = registrationEndpoint,
     ): RegisteredClient? = withContext(Dispatchers.IO) {
         resultOf {
             // M-DYNREG1: 用 buildJsonObject 构造请求体,避免手写 JSON 转义遗漏控制字符
@@ -183,7 +150,7 @@ object McpDynamicRegistration {
                 .url(registrationEndpoint)
                 .post(AppJson.encodeToString(requestBody).toRequestBody("application/json".toMediaType()))
                 .build()
-            httpClient.newCall(req).execute().use { resp ->
+            McpHttpSecurity.secureClient(httpClient, resourceUrl).newCall(req).execute().use { resp ->
                 if (!resp.isSuccessful) {
                     Logger.w(TAG, "registerClient 失败: HTTP ${resp.code}")
                     return@resultOf null
@@ -198,7 +165,7 @@ object McpDynamicRegistration {
                     clientSecretExpiresAt = obj["client_secret_expires_at"]?.jsonPrimitive?.contentOrNull?.toLongOrNull() ?: 0L,
                 )
             }
-        }.onError { msg, t -> Logger.w(TAG, "registerClient 失败: $msg", t) }
+        }.onError { _, _ -> Logger.w(TAG, "registerClient 失败") }
             .getOrNull()
     }
 
@@ -214,60 +181,173 @@ object McpDynamicRegistration {
         serverUrl: String,
         redirectUri: String = "io.zer0.muse://oauth/callback",
         scopes: String = "",
+        protectedResourceMetadataUrl: String? = null,
+        resource: String = serverUrl,
     ): McpOAuthConfig? = withContext(Dispatchers.IO) {
-        val meta = discoverMetadata(serverUrl) ?: return@withContext null
+        val meta = discoverMetadata(serverUrl, protectedResourceMetadataUrl) ?: return@withContext null
         val regEndpoint = meta.registrationEndpoint ?: return@withContext null
-        // M-DYNREG2: 校验 registrationEndpoint 与 serverUrl 同源,防止 Open Redirect
-        val regBase = baseUrl(regEndpoint)
-        val serverBase = baseUrl(serverUrl)
-        if (regBase == null || serverBase == null || regBase != serverBase) {
-            Logger.w(TAG, "registrationEndpoint 与 serverUrl 不同源: $regEndpoint vs $serverUrl,拒绝")
+        // Reject private targets and allow plain HTTP only when metadata stays on the same loopback origin.
+        if (!isAllowedEndpoint(regEndpoint, serverUrl)) {
+            Logger.w(TAG, "registrationEndpoint 无效或不安全,拒绝")
             return@withContext null
         }
-        val registered = registerClient(regEndpoint, redirectUri, scopes = scopes) ?: return@withContext null
+        if (!isAllowedEndpoint(meta.authorizationEndpoint, serverUrl) || !isAllowedEndpoint(meta.tokenEndpoint, serverUrl)) {
+            Logger.w(TAG, "OAuth endpoints 无效或不安全,拒绝")
+            return@withContext null
+        }
+        val registered = registerClient(regEndpoint, redirectUri, scopes = scopes, resourceUrl = serverUrl)
+            ?: return@withContext null
         McpOAuthConfig(
             clientId = registered.clientId,
             redirectUri = redirectUri,
             authorizationEndpoint = meta.authorizationEndpoint,
             tokenEndpoint = meta.tokenEndpoint,
             scopes = scopes,
+            resource = safeResourceIdentifier(resource),
             enabled = true,
         )
     }
 
-    // ── 辅助 ──────────────────────────────────────────────────────────────
+    /** Extract only the standard metadata URL parameter; never retain or log other challenge data. */
+    fun resourceMetadataUrlFromChallenge(header: String): String? {
+        val value = challengeParameter(header, "resource_metadata") ?: return null
+        return runCatching { value.toHttpUrl() }.getOrNull()?.takeIf { url ->
+            url.username.isEmpty() && url.password.isEmpty() && url.fragment == null &&
+                (url.isHttps || url.host in setOf("localhost", "127.0.0.1", "::1"))
+        }?.toString()
+    }
 
-    /** 从完整 URL 提取 base(scheme://host[:port],不含 path)。 */
+    fun scopeFromChallenge(header: String): String? = challengeParameter(header, "scope")
+
+    private fun challengeParameter(header: String, name: String): String? {
+        val match = Regex(
+            "(?:^|[,\\s])${Regex.escape(name)}\\s*=\\s*(?:\"([^\"]*)\"|([^,\\s]+))",
+            RegexOption.IGNORE_CASE,
+        ).find(header) ?: return null
+        return (
+            match.groupValues.getOrNull(1)?.takeIf(String::isNotEmpty)
+                ?: match.groupValues.getOrNull(2)
+            )?.trim()?.takeIf(String::isNotBlank)
+    }
+
+    internal fun isAllowedEndpoint(value: String, resourceUrl: String): Boolean = runCatching {
+        val url = value.toHttpUrl()
+        val resource = resourceUrl.toHttpUrl()
+        if (url.username.isNotEmpty() || url.password.isNotEmpty() || url.fragment != null) return@runCatching false
+        val sameLocalOrigin = url.scheme == "http" && resource.scheme == "http" &&
+            url.host == resource.host && url.port == resource.port &&
+            url.host in setOf("localhost", "127.0.0.1", "::1")
+        sameLocalOrigin || (url.isHttps && !io.zer0.muse.ui.common.SsrfGuard.isBlocked(value))
+    }.getOrDefault(false)
+
+    private fun safeResourceIdentifier(value: String): String = runCatching {
+        value.toHttpUrl().newBuilder().username("").password("").query(null).fragment(null).build().toString()
+    }.getOrDefault(value)
+
+}
+
+private object McpMetadataDiscovery {
+    suspend fun discover(
+        baseClient: OkHttpClient,
+        serverUrl: String,
+        protectedResourceMetadataUrl: String?,
+    ): McpDynamicRegistration.McpAuthMetadata? = withContext(Dispatchers.IO) {
+        val client = McpHttpSecurity.secureClient(baseClient, serverUrl)
+        val urls = resourceMetadataUrls(serverUrl, protectedResourceMetadataUrl) ?: return@withContext null
+        resultOf {
+            val resource = urls.firstNotNullOfOrNull { fetchJson(client, it, serverUrl) } ?: return@resultOf null
+            metadataFromResource(client, resource, serverUrl)
+        }.onError { _, _ -> Logger.w("McpDynReg", "discoverMetadata 失败") }.getOrNull()
+    }
+
+    private fun resourceMetadataUrls(serverUrl: String, hint: String?): List<String>? {
+        val base = baseUrl(serverUrl) ?: return null
+        return buildList {
+            hint?.takeIf { McpDynamicRegistration.isAllowedEndpoint(it, serverUrl) }?.let(::add)
+            add("$base/.well-known/oauth-protected-resource")
+            add("$base/.well-known/oauth-protected-resource${serverUrl.toHttpPath()}")
+        }.distinct()
+    }
+
+    private suspend fun metadataFromResource(
+        client: OkHttpClient,
+        resource: JsonObject,
+        resourceUrl: String,
+    ): McpDynamicRegistration.McpAuthMetadata? {
+        val authServers = resource["authorization_servers"]?.let(::parseStringArray).orEmpty()
+        return if (authServers.isEmpty()) {
+            directAuthMetadata(resource)
+        } else {
+            discoverFirstAuthServer(client, authServers, resourceUrl)
+        }
+    }
+
+    private fun directAuthMetadata(resource: JsonObject): McpDynamicRegistration.McpAuthMetadata? {
+        val authorizationEndpoint = resource["authorization_endpoint"]?.jsonPrimitive?.contentOrNull ?: return null
+        val tokenEndpoint = resource["token_endpoint"]?.jsonPrimitive?.contentOrNull ?: return null
+        return McpDynamicRegistration.McpAuthMetadata(
+            authorizationEndpoint = authorizationEndpoint,
+            tokenEndpoint = tokenEndpoint,
+            registrationEndpoint = resource["registration_endpoint"]?.jsonPrimitive?.contentOrNull,
+            scopesSupported = parseScopes(resource["scopes_supported"]),
+        )
+    }
+
+    private suspend fun discoverFirstAuthServer(
+        client: OkHttpClient,
+        authServers: List<String>,
+        resourceUrl: String,
+    ): McpDynamicRegistration.McpAuthMetadata? {
+        for (authServer in authServers) {
+            val authMetadata = fetchAuthServerMetadata(client, authServer, resourceUrl) ?: continue
+            parseAuthMetadata(authMetadata, authServer)?.let { return it }
+        }
+        return null
+    }
+
+    private suspend fun fetchAuthServerMetadata(client: OkHttpClient, authServer: String, resourceUrl: String): JsonObject? {
+        val base = baseUrl(authServer) ?: return null
+        val path = "/.well-known/oauth-authorization-server"
+        return fetchJson(client, "$base$path", resourceUrl)
+            ?: fetchJson(client, "$base$path${authServer.toHttpPath()}", resourceUrl)
+    }
+
+    private fun parseAuthMetadata(auth: JsonObject, authServer: String): McpDynamicRegistration.McpAuthMetadata? {
+        val issuer = auth["issuer"]?.jsonPrimitive?.contentOrNull
+        if (issuer != null && issuer.trimEnd('/') != authServer.trimEnd('/')) return null
+        val authorizationEndpoint = auth["authorization_endpoint"]?.jsonPrimitive?.contentOrNull ?: return null
+        val tokenEndpoint = auth["token_endpoint"]?.jsonPrimitive?.contentOrNull ?: return null
+        return McpDynamicRegistration.McpAuthMetadata(
+            authorizationEndpoint = authorizationEndpoint,
+            tokenEndpoint = tokenEndpoint,
+            registrationEndpoint = auth["registration_endpoint"]?.jsonPrimitive?.contentOrNull,
+            scopesSupported = parseScopes(auth["scopes_supported"]),
+        )
+    }
+
+    private fun fetchJson(client: OkHttpClient, url: String, resourceUrl: String): JsonObject? = runCatching {
+        if (!McpDynamicRegistration.isAllowedEndpoint(url, resourceUrl)) return@runCatching null
+        val request = Request.Builder().url(url).get().build()
+        client.newCall(request).execute().use { response ->
+            if (response.isSuccessful) AppJson.decodeFromString(JsonObject.serializer(), response.body.string()) else null
+        }
+    }.onFailure { Logger.w("McpDynReg", "获取 OAuth 元数据失败") }.getOrNull()
+
     private fun baseUrl(url: String): String? {
-        val idx = url.indexOf("://").takeIf { it > 0 } ?: return null
-        val afterScheme = url.substring(idx + 3)
-        val slashIdx = afterScheme.indexOf('/')
-        val base = if (slashIdx > 0) afterScheme.substring(0, slashIdx) else afterScheme
-        return url.substring(0, idx + 3) + base
+        val schemeEnd = url.indexOf("://").takeIf { it > 0 } ?: return null
+        val afterScheme = url.substring(schemeEnd + 3)
+        val pathStart = afterScheme.indexOf('/')
+        val host = if (pathStart > 0) afterScheme.substring(0, pathStart) else afterScheme
+        return url.substring(0, schemeEnd + 3) + host
     }
 
-    /** GET 请求并解析 JSON。失败返回 null。 */
-    private fun fetchJson(url: String): JsonObject? {
-        return runCatching {
-            val req = Request.Builder().url(url).get().build()
-            httpClient.newCall(req).execute().use { resp ->
-                if (!resp.isSuccessful) return@runCatching null
-                val body = resp.body.string()
-                AppJson.decodeFromString(JsonObject.serializer(), body)
-            }
-        }.onFailure { Logger.w(TAG, "fetchJson($url) 失败: ${it.message}") }
-            .getOrNull()
-    }
+    private fun String.toHttpPath(): String = runCatching {
+        toHttpUrl().encodedPath.let { path -> if (path == "/") "" else path }
+    }.getOrDefault("")
 
-    /** 解析 scopes_supported 字段(JSON 数组 of string)。 */
-    private fun parseScopes(el: kotlinx.serialization.json.JsonElement?): List<String> {
-        if (el == null) return emptyList()
-        return parseStringArray(el)
-    }
+    private fun parseScopes(element: kotlinx.serialization.json.JsonElement?): List<String> =
+        if (element == null) emptyList() else parseStringArray(element)
 
-    /** 通用:解析 JSON 数组 of string。 */
-    private fun parseStringArray(el: kotlinx.serialization.json.JsonElement): List<String> {
-        val arr = el as? kotlinx.serialization.json.JsonArray ?: return emptyList()
-        return arr.mapNotNull { (it as? kotlinx.serialization.json.JsonPrimitive)?.contentOrNull }
-    }
+    private fun parseStringArray(element: kotlinx.serialization.json.JsonElement): List<String> =
+        (element as? JsonArray)?.mapNotNull { (it as? JsonPrimitive)?.contentOrNull }.orEmpty()
 }

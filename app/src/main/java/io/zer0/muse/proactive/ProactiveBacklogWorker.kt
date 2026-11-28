@@ -25,11 +25,14 @@ class ProactiveBacklogWorker(
             val now = System.currentTimeMillis()
             dispatcher.recoverExpiredClaims(now)
             notifications.recover(now)
-            dispatcher.dispatchOne(now)
+            val outcome = dispatcher.dispatchOne(now)
+            if (outcome is BacklogDispatchOutcome.Sent) {
+                notifications.recover(System.currentTimeMillis())
+            }
             Result.success()
         } catch (e: CancellationException) {
             throw e
-        } catch (e: Exception) {
+        } catch (e: RuntimeException) {
             Logger.w(TAG, "主动 backlog 派发失败: ${e.message}", e)
             Result.retry()
         }

@@ -25,7 +25,7 @@ internal fun AssistantEntriesSection(
     onOpenWorldbook: () -> Unit,
     onOpenQuickMessages: () -> Unit,
     onOpenPromptInjections: () -> Unit,
-    onOpenSkills: () -> Unit,
+    @Suppress("UNUSED_PARAMETER") onOpenSkills: () -> Unit = {},
 ) {
     val rows = listOf(
         AssistantRow(MuseIcons.users, stringResource(R.string.settings_assistant_manage), onOpenAssistants),
@@ -34,7 +34,6 @@ internal fun AssistantEntriesSection(
         AssistantRow(MuseIcons.globe, stringResource(R.string.settings_assistant_worldbook), onOpenWorldbook),
         AssistantRow(MuseIcons.chat, stringResource(R.string.settings_assistant_quick_messages), onOpenQuickMessages),
         AssistantRow(MuseIcons.swapHorizontal, stringResource(R.string.settings_assistant_prompt_injection), onOpenPromptInjections),
-        AssistantRow(MuseIcons.puzzle, stringResource(R.string.settings_assistant_skills), onOpenSkills),
     )
     CardGroup(title = { Text(stringResource(R.string.settings_assistant_section)) }) {
         rows.forEach { row ->

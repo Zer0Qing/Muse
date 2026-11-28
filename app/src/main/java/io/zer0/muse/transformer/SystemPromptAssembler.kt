@@ -24,19 +24,20 @@ import io.zer0.muse.data.assistant.UserPersonaStore
 import io.zer0.muse.data.assistant.VoiceReplyFrequency
 import io.zer0.muse.data.assistant.VoiceReplyPolicy
 import io.zer0.muse.data.assistant.VoiceReplyPolicyStore
-import io.zer0.muse.data.experience.ExperienceEntity
 import io.zer0.muse.data.groupchat.GroupChatMemoryRepository
 import io.zer0.muse.data.session.SessionRepository
 import io.zer0.muse.data.skill.SkillRepository
 import io.zer0.muse.tools.ToolCategories
 import io.zer0.muse.tools.ToolRegistry
+import io.zer0.muse.ui.chat.ChatViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import io.zer0.muse.ui.chat.ChatViewModel
 
 @Suppress("LongParameterList", "LongMethod", "CyclomaticComplexMethod", "ComplexCondition", "ReturnCount")
 class SystemPromptAssembler(
@@ -155,6 +156,7 @@ class SystemPromptAssembler(
      * 让同一用户在不同助手下扮演不同身份。为 null 时不注入（测试/未接时降级）。
      */
     private val userPersonaStore: UserPersonaStore? = null,
+    private val profileShardRepository: io.zer0.muse.data.profile.ProfileShardRepository? = null,
 ) {
     /**
      * 动态段与 Hook 组装的入参。
@@ -175,7 +177,13 @@ class SystemPromptAssembler(
         val relevantMemoryExcludeLines: Set<String> = emptySet(),
         val conversationRecallEnabled: Boolean = false,
         val conversationRecallMaxTokens: Int = 1600,
-    )
+        val memoryEnabled: Boolean = true,
+        val ignoreMemory: Boolean = false,
+    ) {
+        internal fun aboutYouShardAssistantId(): String? = relevantMemoryAssistantId?.takeIf {
+            it.isNotBlank() && memoryEnabled && !ignoreMemory && !forSubagent && !currentUserInput.isNullOrBlank()
+        }
+    }
 
     @Volatile
     private var cachedProfileRevisionHash: Int = 0
@@ -198,18 +206,16 @@ class SystemPromptAssembler(
     /**
      * 刷新静态快照依赖的外部配置哈希，确保设置修改后下一轮立即命中缓存失效。
      */
-    internal suspend fun refreshStaticRevisionHashes(assistantId: String? = null) {
-        val profile =
+    internal suspend fun refreshStaticRevisionHashes(assistantId: String? = null) = coroutineScope {
+        val profileDeferred = async {
             resultOf { settings.getUserProfile() }
                 .onError { _, t -> Logger.w(TAG, "refreshStaticRevisionHashes(profile) 失败", t) }
                 .getOrNull()
-        cachedProfileRevisionHash = profile?.hashCode() ?: 0
-
-        val prefStore =
-            runCatching {
+        }
+        val prefRulesDeferred = async {
+            val prefStore = runCatching {
                 org.koin.core.context.GlobalContext.get().get<io.zer0.muse.data.PreferenceStore>()
             }.getOrNull()
-        val prefRules =
             if (prefStore != null) {
                 resultOf { prefStore.enabledPreferences() }
                     .onError { _, t -> Logger.w(TAG, "refreshStaticRevisionHashes(preferences) 失败", t) }
@@ -219,9 +225,8 @@ class SystemPromptAssembler(
             } else {
                 emptyList()
             }
-        cachedPreferencesRevisionHash = prefRules.hashCode()
-
-        val denied =
+        }
+        val deniedDeferred = async {
             resultOf { toolConfigStore?.policiesFlow?.first() }
                 .onError { msg, t -> Logger.w(TAG, "refreshStaticRevisionHashes(toolPolicies) 失败: ${t?.message ?: msg}") }
                 .getOrNull()
@@ -229,9 +234,8 @@ class SystemPromptAssembler(
                 ?.keys
                 ?.sorted()
                 .orEmpty()
-        cachedDeniedToolsRevisionHash = denied.hashCode()
-
-        val persona =
+        }
+        val personaDeferred = async {
             if (!assistantId.isNullOrBlank() && userPersonaStore != null) {
                 resultOf { userPersonaStore.selectedFor(assistantId) }
                     .onError { _, t -> Logger.w(TAG, "refreshStaticRevisionHashes(userPersona) 失败", t) }
@@ -239,7 +243,11 @@ class SystemPromptAssembler(
             } else {
                 null
             }
-        cachedUserPersonaRevisionHash = persona?.let { "${it.id}|${it.name}|${it.text}".hashCode() } ?: 0
+        }
+        cachedProfileRevisionHash = profileDeferred.await()?.hashCode() ?: 0
+        cachedPreferencesRevisionHash = prefRulesDeferred.await().hashCode()
+        cachedDeniedToolsRevisionHash = deniedDeferred.await().hashCode()
+        cachedUserPersonaRevisionHash = personaDeferred.await()?.let { "${it.id}|${it.name}|${it.text}".hashCode() } ?: 0
     }
 
     private fun resolveLocale(): String {
@@ -258,14 +266,14 @@ class SystemPromptAssembler(
      * 主聊天将其作为独立 SYSTEM #2 消息跟在静态快照 SYSTEM #1 之后，以保留 Prompt Caching 命中率；
      * [build] 则复用同一方法并与静态段拼接。
      */
-    suspend fun buildDynamicSections(request: DynamicPromptRequest): String {
+    suspend fun buildDynamicSections(request: DynamicPromptRequest): String = coroutineScope {
         val locale = resolveLocale()
         val assistant = request.assistant
         val forSubagent = request.forSubagent
         val dynamic = if (request.timeReminderEnabled) buildDynamicSection(locale) else ""
         val userMessageTimeContext = if (request.rawHistory.isNotEmpty()) UserMessageTimeContext.build(request.rawHistory) else ""
         // v2.6.7（P1-1）: 关系状态（客观刻度，语气交给主 prompt）
-        val relationship =
+        val relationshipDeferred = async {
             if (forSubagent) {
                 ""
             } else {
@@ -274,8 +282,9 @@ class SystemPromptAssembler(
                     .getOrNull()
                     .orEmpty()
             }
+        }
         // v2.x: 表情包使用指南(动态读取库分类;库为空/开关关闭时为空串;子代理不注入)
-        val stickerGuide =
+        val stickerGuideDeferred = async {
             if (forSubagent) {
                 ""
             } else {
@@ -284,13 +293,14 @@ class SystemPromptAssembler(
                     .getOrNull()
                     .orEmpty()
             }
+        }
         // v2.7.x(E2): 术语段。子代理不注入:一个词的解释只在原会话里成立,
         // 交给子代理去用更容易用错地方。
-        val sessionTerms =
+        val sessionTermsDeferred = async {
             if (forSubagent) "" else buildSessionTermsSection(sessionId = request.sessionId, assistantId = assistant?.id, locale = locale)
-
+        }
         // 按本轮用户输入召回相关记忆(并排除已出现在 <long_term_memory> 里的事实行)
-        val relevantMemory =
+        val relevantMemoryDeferred = async {
             if (!forSubagent && request.relevantMemoryAssistantId != null && !request.currentUserInput.isNullOrBlank()) {
                 resultOf {
                     buildRelevantMemorySection(
@@ -306,9 +316,9 @@ class SystemPromptAssembler(
             } else {
                 ""
             }
-
+        }
         // 会话原文回溯:复用 messages_fts 的当前会话范围检索,不注入 SYSTEM/TOOL 内部内容
-        val conversationRecall =
+        val conversationRecallDeferred = async {
             if (!forSubagent &&
                 request.conversationRecallEnabled &&
                 !request.currentUserInput.isNullOrBlank() &&
@@ -340,6 +350,41 @@ class SystemPromptAssembler(
             } else {
                 ""
             }
+        }
+        val profileShardsDeferred = async {
+            val query = request.currentUserInput?.trim().orEmpty()
+            val shardRepo = profileShardRepository
+            val profileAssistantId = request.aboutYouShardAssistantId()
+            if (profileAssistantId == null || shardRepo == null) {
+                ""
+            } else {
+                val aboutYouEnabled = resultOf { settings.getChatPreferences().aboutYouProfileEnabled }
+                    .onError { _, t -> Logger.w(TAG, "读取关于你开关失败", t) }
+                    .getOrNull() == true
+                if (!aboutYouEnabled) {
+                    ""
+                } else {
+                    resultOf {
+                        val shardBody = shardRepo.retrieveRelevantShards(
+                            assistantId = profileAssistantId,
+                            query = query,
+                            maxTokens = io.zer0.muse.data.profile.ProfileShardEngine.DEFAULT_SHARD_MAX_TOKENS,
+                            memoryScope = request.memoryScope,
+                            spaceId = request.memorySpaceId,
+                        )
+                        if (shardBody.isBlank()) "" else "<about_you_shards>\n$shardBody\n</about_you_shards>"
+                    }.onError { msg, t -> Logger.w(TAG, "profileShards retrieve 失败: $msg", t) }
+                        .getOrNull()
+                        .orEmpty()
+                }
+            }
+        }
+        val relationship = relationshipDeferred.await()
+        val stickerGuide = stickerGuideDeferred.await()
+        val sessionTerms = sessionTermsDeferred.await()
+        val relevantMemory = relevantMemoryDeferred.await()
+        val conversationRecall = conversationRecallDeferred.await()
+        val profileShards = profileShardsDeferred.await()
 
         var combined =
             buildString {
@@ -359,6 +404,10 @@ class SystemPromptAssembler(
                 if (sessionTerms.isNotBlank()) {
                     if (isNotEmpty()) append("\n\n---\n\n")
                     append(sessionTerms)
+                }
+                if (profileShards.isNotBlank()) {
+                    if (isNotEmpty()) append("\n\n---\n\n")
+                    append(profileShards)
                 }
                 if (relevantMemory.isNotBlank()) {
                     if (isNotEmpty()) append("\n\n---\n\n")
@@ -385,6 +434,7 @@ class SystemPromptAssembler(
                     sessionId = request.sessionId,
                     locale = locale,
                     forSubagent = forSubagent,
+                    userInput = request.currentUserInput.orEmpty(),
                 )
             val hookContent =
                 resultOf {
@@ -417,7 +467,7 @@ class SystemPromptAssembler(
                     }
             }
         }
-        return combined
+        combined
     }
 
     /**
@@ -575,7 +625,9 @@ class SystemPromptAssembler(
             if (chatPrefs?.replyInUserLanguageEnabled != false) {
                 sections.add(replyLanguageInstruction(locale))
             }
-            sections.add(thinkingInstruction(locale))
+            if (chatPrefs?.forceReasoning == true || !assistant?.reasoningLevel.equals("OFF", ignoreCase = true)) {
+                sections.add(thinkingInstruction(locale))
+            }
 
             // ── 2. 用户画像 ──
             // v1.0.72: ignoreMemory=true 时跳过全部记忆类注入(用户画像/近期会话/置顶/长期/群聊/经验),
@@ -590,8 +642,9 @@ class SystemPromptAssembler(
                     },
                 )
             }
+            val aboutYouEnabled = chatPrefs?.aboutYouProfileEnabled == true
             val profile =
-                if (!skipMemorySections && memoryEnabled && canReadGlobalMemory) {
+                if (!skipMemorySections && memoryEnabled && canReadGlobalMemory && aboutYouEnabled) {
                     buildUserProfileSection(chatPrefs?.profileSnapshotEnabled ?: true, assistant?.id)
                 } else {
                     ""
@@ -721,7 +774,9 @@ class SystemPromptAssembler(
                         .getOrNull()
                         ?.filter { it.id != selfAssistantId }
                         ?: emptyList()
-                sections.add(buildMultiAgentHintSection(multiAgentConfig, availableAssistants))
+                if (availableAssistants.isNotEmpty() || multiAgentConfig.teams.isNotEmpty()) {
+                    sections.add(buildMultiAgentHintSection(multiAgentConfig, availableAssistants))
+                }
             }
             perfTimer.split("multi_agent")
 
@@ -797,6 +852,13 @@ class SystemPromptAssembler(
                     }
                 }
             }
+            val proactiveEnabled = resultOf { settings.proactiveMessageConfigFlow.first() }
+                .getOrNull()?.enabled == true
+            if (proactiveEnabled && !forSubagent) {
+                sections.add(
+                    if (isChineseLocale(locale)) PROACTIVE_THOUGHT_TAG_SECTION else PROACTIVE_THOUGHT_TAG_SECTION_EN,
+                )
+            }
             perfTimer.split("mood_artifact")
 
             // v1.0.52: 输出分段计时详情,精确定位首次启动慢的根因
@@ -825,8 +887,7 @@ class SystemPromptAssembler(
      * 不下语气指令——语气应由人设决定，避免两套指令打架。
      * 无记录或未配置时返回空串。
      */
-    suspend fun buildRelationshipSection(assistant: AssistantEntity?): String =
-        buildRelationshipSection(assistant, resolveLocale())
+    suspend fun buildRelationshipSection(assistant: AssistantEntity?): String = buildRelationshipSection(assistant, resolveLocale())
 
     suspend fun buildRelationshipSection(assistant: AssistantEntity?, locale: String): String {
         val repo = relationshipRepository ?: return ""
@@ -899,11 +960,7 @@ class SystemPromptAssembler(
      * 条数上限与"未确认必须标注"都由 SessionTerms 决定,这里只负责取数与拼装 ——
      * 规则在装配器里重写一遍,就会变成两个人各改一处、两套答案。
      */
-    suspend fun buildSessionTermsSection(
-        sessionId: String?,
-        assistantId: String?,
-        locale: String = resolveLocale(),
-    ): String {
+    suspend fun buildSessionTermsSection(sessionId: String?, assistantId: String?, locale: String = resolveLocale()): String {
         val store = sessionTermStore ?: return ""
         if (sessionId.isNullOrBlank()) return ""
         val terms = runCatching { store.termsForContext(sessionId = sessionId, assistantId = assistantId ?: "default") }
@@ -938,7 +995,9 @@ class SystemPromptAssembler(
                 appendLine()
                 appendLine("Rules:")
                 appendLine("- Use only exact category names from the list above; never invent new ones")
-                appendLine("- The app picks a specific image within the category based on your sentence tone; do not describe a specific picture")
+                appendLine(
+                    "- The app picks a specific image within the category based on your sentence tone; do not describe a specific picture",
+                )
                 appendLine("- Use at most one sticker per reply; skip stickers for serious, technical, formal, or sensitive topics")
                 appendLine("- Place at the end of a sentence or on its own line, never inside code blocks")
                 appendLine("</sticker_guide>")
@@ -1244,12 +1303,7 @@ class SystemPromptAssembler(
      * 并在 section 头部声明标签内为数据,防止持久化提示词注入。
      * L-ASM7 — 限制条目数,防止记忆膨胀撑爆 system prompt。
      */
-    private suspend fun buildPinnedMemoriesSection(
-        assistantId: String,
-        includeGlobal: Boolean,
-        scope: String,
-        spaceId: String,
-    ): String {
+    private suspend fun buildPinnedMemoriesSection(assistantId: String, includeGlobal: Boolean, scope: String, spaceId: String): String {
         val store = pinnedMemoryStore ?: return ""
         migrateLegacyPinnedMemories(store)
         val runtime = memoryRuntime ?: return ""
@@ -1783,7 +1837,9 @@ class SystemPromptAssembler(
                 configuredSkillIds = configuredSkillIds,
                 deniedToolNames = deniedToolNames,
             )
-        val localTools = allLocalTools.filter { io.zer0.muse.tools.ToolSchemaRules.localSelected(it.name, criteria) }
+        val localTools = allLocalTools.filter {
+            !it.hiddenFromSchema && io.zer0.muse.tools.ToolSchemaRules.localSelected(it.name, criteria)
+        }
         // H-ASM1: skillRepository.listEnabled() 为 suspend,用 resultOf 正确重抛 CancellationException
         val skills =
             resultOf { skillRepository.listEnabled() }
@@ -1877,50 +1933,16 @@ class SystemPromptAssembler(
         val sb = StringBuilder()
         sb.appendLine("工具能力索引(内部约束):")
         sb.append(toolManifestCountSection(counts, grouped.mapValues { it.value.size }))
-        sb.appendLine("- 但本轮实际可调用的工具以请求中的 tools schema 为准；未出现在 schema 里的名字不要凭空调用。")
-        sb.appendLine(
-            "  不确定设备能力时先调 tool_status（一次返回可用/受阻清单与开通方式），" +
-                "不要靠试错来发现——答应用户之后才发现做不了，比一开始就说清楚更糟。",
-        )
-        sb.appendLine("- 能直接回答就不要调用工具;需要工具时优先一次调用完成,拿到结果后直接收尾。")
-        // v2.x 阶段3:分层收窄后,通过 find_tools 按需装载缺失能力
-        sb.appendLine("- 需要的工具不在本轮 schema 里时,调用 find_tools:带关键词检索并装载(下一轮起可调用);空关键词则返回全部工具的能力总览。")
+        sb.appendLine("- 仅调用本轮 tools schema 中实际存在的工具；缺少能力时用 find_tools 检索装载，未确定设备能力前可调 tool_status。")
         // 仅当存在真实的外部远程 MCP 工具时才注入 MCP 提示（排除本地管理类 mcp_mgmt_* 工具）
         val hasRemoteMcpTools = localTools.any {
             (it.name.startsWith("mcp_") && !it.name.startsWith("mcp_mgmt_")) || it.category == "mcp"
         }
         if (hasRemoteMcpTools) {
-            sb.appendLine("- 索引里的 MCP 工具是真实可执行的外部能力,不是仅供介绍的知识。用户请求涉及对应服务时,直接调用本轮 schema 中最匹配的 MCP 工具,不要声称只能给出操作步骤或要求用户代为执行。")
-            sb.appendLine("- MCP 工具返回结果后,以结果为准继续对话;如果调用失败,如实说明失败原因,不要把工具名或内部协议细节伪装成成功。")
-        }
-
-        val categoryOrder =
-            listOf(
-                "file" to "文件",
-                "web" to "网络",
-                "system" to "系统",
-                "phone" to "手机",
-                "knowledge" to "知识库/记忆",
-                "agent" to "委托/计划",
-                "skill" to "Skill",
-                "mcp" to "MCP",
-                "built-in" to "基础",
-            )
-        for ((cat, displayName) in categoryOrder) {
-            val names = grouped[cat]?.map { it.name }.orEmpty()
-            if (names.isEmpty()) continue
-            val preview =
-                names.take(18).joinToString(", ") { name ->
-                    if (ToolCategories.permissionOf(name).isEmpty()) name else "$name*"
-                }
-            val suffix = if (names.size > 18) " 等 ${names.size} 个" else ""
-            sb.appendLine("- $displayName: $preview$suffix")
+            sb.appendLine("- 外部 MCP 工具可直接执行，遇对应服务请求时直接匹配调用，失败如实反馈。")
         }
         if (localTools.any { ToolCategories.permissionOf(it.name).isNotEmpty() }) {
-            sb.appendLine(
-                "- 名称带 * 的工具需要额外系统授权(Shizuku/Root 或无障碍);未就绪时调用会快速失败并返回明确提示," +
-                    "可用 screen_permission_status 查询三档通道状态。",
-            )
+            sb.appendLine("- 部分设备控制工具需 Shizuku/Root 或无障碍授权（可用 screen_permission_status 检查）。")
         }
 
         val result = sb.toString().trimEnd()
@@ -2002,7 +2024,6 @@ class SystemPromptAssembler(
     // ── 静态 section(决策树 + MOOD 格式) ──────────────────────────────
 
     companion object {
-
         /** v2.6.23(M3): 自动画像段的总注入预算(字符)——画像膨胀会挤掉真正的对话上下文。 */
         private const val SNAPSHOT_MAX_CHARS = 900
 
@@ -2113,32 +2134,19 @@ class SystemPromptAssembler(
         /** v1.0.51: 平台声明 fallback(与 assets/prompt_templates/platform_decl_zh.prompt 同源)。 */
         private val PLATFORM_DECL_FALLBACK =
             """
-            平台声明:你运行在 Muse 应用内 — 一个 Android 端的 AI 助手应用。你拥有文件读写、联网搜索、设置闹钟、发送短信、打开应用、知识库检索、多 Agent 协作等能力。当用户问及 Muse 应用自身功能时,可以调用 knowledge_search 并传 include_internal=true 查询。
-
-            执行环境:
-            - 你的运行载体是一部 Android 手机，工具直接作用于这台设备。文件从工作区沙盒开始，用户另外挂载进来的目录也能读写（只读挂载除外）。
-            - 部分能力需额外的系统授权(Shizuku/Root 或无障碍),未就绪时调用会快速失败。
-            - 部分工具(设置、定时任务、卡片、笔记等)会以可交互卡片或视图的形式呈现给用户,你只负责产出结果,展示由宿主和平台处理。
+            平台声明: 你运行在 Muse（Android）内，可通过 `knowledge_search(include_internal=true)` 查询本应用功能。
+            执行环境: 工具直接作用于本机或工作区/用户挂载目录（只读挂载不可写），部分能力需 Shizuku/Root 或无障碍授权，结果呈现由宿主负责。
             """.trimIndent()
 
         /** 统一执行准则 fallback(与 assets/prompt_templates/execution_rules_zh.prompt 同源)。 */
         private val EXECUTION_RULES_FALLBACK =
             """
-            执行准则(内部约束,不向用户展示):
-
-            路由优先级:
-            1. 闲聊、常识或普通概念解释:直接回答,不无故调工具。
-            2. 个人知识库/文档/笔记:自动 RAG 默认关闭(仅 @文档 或手动开启才注入),主动调用 knowledge_search / knowledge_list_docs / knowledge_read_doc。
-            3. Muse 功能或设置问题:调用 knowledge_search(include_internal=true),查不到就说不知道。
-            4. 时效或不确定事实(论文优先 arxiv_search):三级优先——一级 web_search 找线索与 URL;二级 web_fetch 在已有 URL 且摘要不足时抓正文;三级 browser_* 仅在前两级失效(登录/交互/JS 空白/布局)时用。够用即停:已能直接回答用户的问题、多个来源对同一事实一致或剩余细节不影响结论即停;仅在关键数字/日期/名称仍缺失、来源矛盾或用户要求核实时继续,关键数字必须 web_fetch 核实,不能拿摘要当已核实。
-            5. 明确工具任务:只调用 schema 中匹配工具(缺失用 find_tools 装载),填齐必填参数,优先一次完成。文件覆盖工作区沙盒与用户挂载目录(只读挂载不可写/删/移),勿声称仅限 filesDir。
-            6. 复杂多步(>3 依赖步)或需专长分工才用 task_plan / delegate_agent。
-
-            行动与安全:
-            - 可逆默认值直接动手并简述假设;仅在不可逆/对外/破坏性操作、真歧义、或缺失仅用户掌握的 ID/路径/账号时确认。协作任务只做点名范围。
-            - 成功直接给结论,不复述过程;失败诊断后修一次,否则换方案或说明限制。遇 runtime_missing 一句话说明缺环境并等安装,不重试。
-            - 无证据不称完成,区分已保存与已生效;交付文件与结果本身而非裸路径,展示交由宿主。
-            - 写/删/通信/设备/账号/外部跳转须用户明确意图与审批,优先可逆方案;拒绝违法或有害请求。
+            执行准则(内部约束):
+            1. 闲聊/常识直接答；Muse 功能查 `knowledge_search(include_internal=true)`，查不到说不知道。
+            2. 个人知识库/笔记：自动 RAG 默认关闭（仅 @文档 或手动开启注入），需时主动调 `knowledge_search` / `knowledge_list_docs` / `knowledge_read_doc`。
+            3. 联网事实（论文优先 `arxiv_search`）：`web_search` 找线索 URL → `web_fetch` 抓正文核实 → 前两级失效再 `browser_*`。已能直接回答用户的问题或多个来源对同一事实一致即停；仅在关键数字/日期/名称仍缺失、来源矛盾或用户要求核实时继续，不能拿摘要当已核实。
+            4. 工具与文件：仅调 schema 中匹配工具（缺失用 `find_tools`），覆盖工作区沙盒与用户挂载目录（非只读）；>3 步依赖或专长分工再用 `task_plan` / `delegate_agent`；遇 `runtime_missing` 一句话等安装，不重试。
+            5. 安全与交付：可逆默认直接做，不可逆/对外/破坏性或写删通信设备操作先确认；成功后直接给结论与真实产物（无证据不称完成，区分草稿与已生效）。
             """.trimIndent()
 
         /** v1.0.51: 记忆使用规则 fallback(模板加载失败时使用)。 */
@@ -2202,8 +2210,14 @@ class SystemPromptAssembler(
 
         // categorize 用 Set 常量覆盖当前全量工具族，配合前缀匹配避免大量工具退化进 built-in 后被截断。
         private val FILE_TOOLS = setOf(
-            "read_file", "read_user_file", "write_file", "list_dir",
-            "delete_file", "file_exists", "create_download", "parse_pdf",
+            "read_file",
+            "read_user_file",
+            "write_file",
+            "list_dir",
+            "delete_file",
+            "file_exists",
+            "create_download",
+            "parse_pdf",
         )
         private val WEB_TOOLS = setOf(
             "web_search", "web_fetch", "arxiv_search", "http_get", "http_post",
@@ -2334,11 +2348,38 @@ class SystemPromptAssembler(
               给一张能让他自己拨动的卡片，然后说明怎么用。
             - 卡片里放真实控件（滑块/勾选/展开），并调 window.muse.send(摘要, 状态) 回传，
               把用户调完的结果带回来，下一轮接着用。
+            - 如果是棋类/小游戏/多轮交互卡片，优先在卡片内用 await window.muse.ask({prompt, state, responseFormat:'json'})
+              静默完成每回合，并用 window.muse.saveState(state) 保存进度，避免每一步都向聊天流刷屏。
 
             例外（这些保持纯文本）:
             - 一两句能说清的，硬做卡片是浪费
             - 用户明确只要文字、或者正在问事实/闲聊
             - 纯情绪回应、安慰、陪聊
+            """.trimIndent()
+
+        internal val PROACTIVE_THOUGHT_PROTOCOL_ZH: String
+            get() = PROACTIVE_THOUGHT_TAG_SECTION
+
+        private val PROACTIVE_THOUGHT_TAG_SECTION =
+            """
+            主动牵挂账本自检（用户不可见协议，仅当确实需要后续主动联系用户时输出）：
+
+            每句回复自然写完后，先快速自问：过一段时间或之后某刻，我有必要主动再找用户说一句话吗？
+            只有在**确有具体事由**时（例如：用户提到待办/考试/就医等需后续提醒的事、刚才的话题留有明显后续跟进点、用户处于疲惫/焦虑/生病状态值得之后关心、或对方刚交代的新近计划），才在整条回复**最末尾**另起一行追加**最多一条**隐藏标签：
+            <proactive_thought kind="REMINDER|FOLLOW_UP|CARE|SHARE" urgency="IMMEDIATE|WINDOW|EVERGREEN" due_hours="24" after_minutes="120">写给未来自己的极简一句话事由</proactive_thought>
+            时间属性约定：`due_hours` 表示有效期窗口；若大致知道合适提醒时间点，可额外带 `after_minutes="120"`（多少分钟后提醒）或 `at="YYYY-MM-DDTHH:mm"`（具体本地时间点），系统将在该时间点之后择机唤醒；没有明确时间点时省略这两个属性。
+            若当前对话已闭环、只是普通问答或无需打扰，则**完全不要输出该标签**；严禁在给用户的正文中提及这个标签或「记入账本」。
+            """.trimIndent()
+
+        private val PROACTIVE_THOUGHT_TAG_SECTION_EN =
+            """
+            Proactive follow-up ledger check (hidden protocol — emit ONLY when truly needed):
+
+            After finishing your visible reply, ask yourself briefly: is there a concrete reason to proactively message the user later (an upcoming deadline/event reminder, an open thread worth checking back on, emotional/health care, or a meaningful follow-up)?
+            ONLY if yes, append **at most one** hidden tag at the very end of the reply:
+            <proactive_thought kind="REMINDER|FOLLOW_UP|CARE|SHARE" urgency="IMMEDIATE|WINDOW|EVERGREEN" due_hours="24" after_minutes="120">One-line note for your future self</proactive_thought>
+            Timing attributes: `due_hours` is the expiration window; if a rough wake-up time makes sense, optionally add `after_minutes="120"` or `at="YYYY-MM-DDTHH:mm"`, and the system will wake after that time (otherwise omit them).
+            If no future outreach is needed, emit NOTHING and never mention this tag in visible prose.
             """.trimIndent()
 
         private val PREFER_CARD_OUTPUT_EMPHASIS_EN =
@@ -2350,6 +2391,7 @@ class SystemPromptAssembler(
             - Multi-option comparisons or decisions where the user can pick/toggle options
             - Flows, timelines, dependency trees, or dashboards combining text and numbers
             Include real controls and report selections via window.muse.send(summary, state).
+            For multi-turn games or interactive sandboxes inside a card, use await window.muse.ask({ prompt, state, responseFormat: 'json' }) and window.muse.saveState(state) silently inside the card instead of spamming chat on every turn.
             Keep one-line answers, casual chat, emotional support, or explicit text-only requests in plain text.
             """.trimIndent()
 
@@ -2371,6 +2413,7 @@ class SystemPromptAssembler(
             - 两者可同轮配合(如 show_card 交互调节 + artifact 可复制结果),但**不要**为同一份内容同时出卡片和 artifact。
             - 写卡片时严格遵循 show_card 工具描述中的样式类、图表库、高度声明与脚本安全规范。
             - 卡片含可调参数/选项时用 window.muse.send(摘要, 状态) 回传;用户消息末尾附带 <card_state> 时,视为已确认参数直接使用,不要反问一遍。
+            - 需要与 AI 多轮互动的小游戏/问答/模拟器卡片，优先使用 await window.muse.ask({prompt, state, responseFormat:'json'}) 与 window.muse.saveState(state) 在卡内静默对弈或推进状态，避免每步向主对话发消息。
             """.trimIndent()
 
         /**
@@ -2505,13 +2548,12 @@ class SystemPromptAssembler(
          * [io.zer0.muse.tools.channel.ChannelReadContextTool] 实际 schema 严格一致:
          * chatId 与发言者身份已由框架绑定，模型只需传 content / reason / limit。
          */
-        fun buildChannelToolSection(): String =
-            """
+        fun buildChannelToolSection(): String = """
             你可以使用以下群聊工具(chatId 与发言者身份已由系统绑定,无需手动传入):
             - channel_read_context(limit?): 读取群聊更多历史消息(可选整数 limit,范围 1-50,默认 20)
             - channel_reply(content): 在群聊中发言(必填 content 为你要发送的回复正文;这是消息出现在群聊的唯一方式)
             - channel_pass(reason?): 本轮跳过发言(可选 reason 说明不发言的原因);当前话题不需要你发言时调用
-            """.trimIndent()
+        """.trimIndent()
 
         /**
          * v1.30: 群聊专用提示 section(兼容包装器)。
@@ -2595,4 +2637,3 @@ class SystemPromptAssembler(
             """.trimIndent()
     }
 }
-

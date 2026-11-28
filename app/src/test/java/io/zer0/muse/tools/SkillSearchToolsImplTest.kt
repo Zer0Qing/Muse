@@ -5,12 +5,12 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import io.zer0.muse.data.knowledge.KnowledgeDocEntity
 import io.zer0.muse.data.session.MuseDb
-import kotlinx.coroutines.runBlocking
-import okhttp3.OkHttpClient
 import io.zer0.muse.web.WebSearchResult
 import io.zer0.muse.web.WebSearchService
-import org.junit.Assert.assertFalse
+import kotlinx.coroutines.runBlocking
+import okhttp3.OkHttpClient
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith

@@ -39,7 +39,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
-import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.R
 import io.zer0.muse.crash.MuseCrashHandler
 import io.zer0.muse.ui.common.feedback.MuseToast
@@ -47,6 +46,7 @@ import io.zer0.muse.ui.common.form.MuseBottomSheet
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.icons.MuseIcons
+import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.MuseMonoFontFamily
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MusePaddings
@@ -55,9 +55,7 @@ import io.zer0.muse.util.ShareIntentHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.util.Date
 import java.util.Locale
-import io.zer0.muse.ui.settings.SafeModeScreen
 
 // P1-4:崩溃日志面板 — 把 MuseCrashHandler 已有但仅 SafeMode 使用的崩溃日志
 //       列表 / ZIP 打包 / 单条分享能力,在正常模式下也透出给用户。

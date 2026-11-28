@@ -1,14 +1,10 @@
 package io.zer0.muse.ui.chat
 
-import io.zer0.muse.ui.theme.MuseDateFormats
-import io.zer0.muse.data.session.MessageMarkers
-import io.zer0.muse.tools.DenySource
 import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.zer0.ai.ChatService
-import io.zer0.ai.core.ChatStreamEvent
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.Model
 import io.zer0.ai.core.ModelContextWindowRegistry
@@ -24,20 +20,28 @@ import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.memory.summary.SessionSummaryManager
 import io.zer0.memory.ticker.MemoryTicker
-import io.zer0.muse.util.ErrorMessages
+import io.zer0.muse.R
+import io.zer0.muse.asr.ASRState
+import io.zer0.muse.automation.core.AutonomousAccessibilityRuntime
+import io.zer0.muse.automation.core.PersistentAutonomousAccessibilityRuntime
+import io.zer0.muse.chat.PendingToolCallStore
+import io.zer0.muse.data.AutomationSettingsStore
 import io.zer0.muse.data.MultiAgentConfig
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.SpeechProviderResolver
-import io.zer0.muse.data.withResolvedEndpoint
-import io.zer0.muse.network.NetworkMonitor
 import io.zer0.muse.data.artifact.ArtifactEntity
 import io.zer0.muse.data.artifact.ArtifactRepository
 import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.data.audit.AuditLogger
-import io.zer0.muse.data.milestone.MilestoneChecker
+import io.zer0.muse.data.chat.ConversationTree
+import io.zer0.muse.data.chat.ConversationTreeSnapshotStore
+import io.zer0.muse.data.chat.rewrite.ConversationEventDraft
+import io.zer0.muse.data.chat.rewrite.ConversationService
+import io.zer0.muse.data.chat.rewrite.MessageCommit
 import io.zer0.muse.data.lorebook.LorebookEntity
 import io.zer0.muse.data.lorebook.LorebookRepository
+import io.zer0.muse.data.milestone.MilestoneChecker
 import io.zer0.muse.data.promptinjection.PromptInjectionEntity
 import io.zer0.muse.data.promptinjection.PromptInjectionRepository
 import io.zer0.muse.data.quickmsg.QuickMessageEntity
@@ -45,33 +49,25 @@ import io.zer0.muse.data.quickmsg.QuickMessageRepository
 import io.zer0.muse.data.session.SearchResult
 import io.zer0.muse.data.session.SessionEntity
 import io.zer0.muse.data.session.SessionRepository
+import io.zer0.muse.data.withResolvedEndpoint
 import io.zer0.muse.doc.DocumentParser
-import io.zer0.muse.R
+import io.zer0.muse.network.NetworkMonitor
 import io.zer0.muse.notification.MuseNotificationManager
 import io.zer0.muse.schedule.ChatGenerationManager
 import io.zer0.muse.schedule.ChatGenerationService
 import io.zer0.muse.schedule.UserActivityProfile
-import io.zer0.muse.tools.ToolApprovalPolicy
 import io.zer0.muse.tools.AgentRouter
-import io.zer0.muse.tools.DelegationContract
 import io.zer0.muse.tools.DelegationContextBuilder
+import io.zer0.muse.tools.DelegationContract
+import io.zer0.muse.tools.DenySource
+import io.zer0.muse.tools.SessionPermissionMode
+import io.zer0.muse.tools.SessionPermissionStore
+import io.zer0.muse.tools.ToolApprovalPolicy
 import io.zer0.muse.tools.ToolApprovalState
 import io.zer0.muse.tools.ToolConfigStore
 import io.zer0.muse.tools.ToolPermissionResolver
-import io.zer0.muse.tools.SessionPermissionMode
-import io.zer0.muse.tools.SessionPermissionStore
-import io.zer0.muse.automation.core.AutonomousAccessibilityRuntime
-import io.zer0.muse.automation.core.PersistentAutonomousAccessibilityRuntime
-import io.zer0.muse.data.AutomationSettingsStore
 import io.zer0.muse.tools.ToolRegistry
 import io.zer0.muse.tools.ToolRiskLevel
-import io.zer0.muse.chat.InternalPromptMarkers
-import io.zer0.muse.chat.PendingToolCallStore
-import io.zer0.muse.data.chat.ConversationTree
-import io.zer0.muse.data.chat.ConversationTreeSnapshotStore
-import io.zer0.muse.data.chat.rewrite.ConversationEventDraft
-import io.zer0.muse.data.chat.rewrite.ConversationService
-import io.zer0.muse.data.chat.rewrite.MessageCommit
 import io.zer0.muse.transformer.CompressionDiagnostics
 import io.zer0.muse.transformer.ContextCompressTransformer
 import io.zer0.muse.transformer.ConversationMemoryInjectionTransformer
@@ -82,21 +78,23 @@ import io.zer0.muse.transformer.ThinkTagTransformer
 import io.zer0.muse.transformer.TransformContext
 import io.zer0.muse.transformer.TransformerPipeline
 import io.zer0.muse.transformer.splitThinkTagsForStreaming
-// P2-23: 媒体生成工具的会话投递宿主(工具本体已迁至 io.zer0.muse.tools.MediaGenToolsImpl)
+import io.zer0.muse.ui.common.ManualCompressionPhase
 import io.zer0.muse.ui.common.feedback.MuseToast
-import io.zer0.muse.ui.speech.TtsManager
+import io.zer0.muse.ui.memory.SessionMemoryCache
 import io.zer0.muse.ui.speech.PlaybackState
+import io.zer0.muse.ui.speech.TtsManager
 import io.zer0.muse.ui.speech.VoiceConversationState
 import io.zer0.muse.ui.taskcard.AgentPlan
+import io.zer0.muse.ui.theme.MuseDateFormats
+import io.zer0.muse.util.ErrorMessages
 import io.zer0.muse.util.TokenEstimator
 import io.zer0.muse.util.retryOnNetworkError
 import io.zer0.muse.web.WebSearchConfig
 import io.zer0.muse.web.WebSearchService
-import io.zer0.muse.asr.ASRState
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -105,26 +103,20 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
-import kotlin.uuid.Uuid
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
-import io.zer0.muse.ui.memory.SessionMemoryCache
-import io.zer0.muse.ui.screen.FavoritesScreen
-import io.zer0.muse.ui.screen.SearchScreen
-import io.zer0.muse.ui.screen.LorebookScreen
-import io.zer0.muse.ui.screen.PromptInjectionScreen
-import io.zer0.muse.ui.common.ManualCompressionPhase
+import kotlin.uuid.Uuid
 
 /**
  * v0.49: 聊天错误信息(支持多错误并存)。
@@ -141,15 +133,17 @@ data class ChatError(
     val message: String,
     val timestamp: Long = System.currentTimeMillis(),
     val isRecoverable: Boolean = true,
+    val mcpServerId: String? = null,
 )
 
 /** v0.49: 错误类型枚举,用于分类展示与处理策略。 */
 enum class ChatErrorType {
     NETWORK, // 网络错误
     API_KEY, // API key 无效
-    RATE_LIMIT, // 限流
+    RateLimit, // 限流
     MODEL_ERROR, // 模型返回错误
     TOOL_ERROR, // 工具执行错误
+    MCP_UNAVAILABLE,
     UNKNOWN, // 未知错误
 }
 
@@ -478,6 +472,8 @@ class ChatUiState(
      * 内同步进度,本字段是补充占位卡片反馈,不是替代。
      */
     val isGeneratingVideo: Boolean = false,
+    val isGeneratingVoice: Boolean = false,
+    val synthesizingVoiceMessageIds: Set<Uuid> = emptySet(),
     val isTranslating: Boolean = false,
     val translatingMessageId: Uuid? = null,
     val favoriteMessages: List<UIMessage> = emptyList(),
@@ -738,6 +734,8 @@ class ChatUiState(
         imageGenParams: io.zer0.ai.image.ImageGenParams = this.imageGenParams,
         isGeneratingImage: Boolean = this.isGeneratingImage,
         isGeneratingVideo: Boolean = this.isGeneratingVideo,
+        isGeneratingVoice: Boolean = this.isGeneratingVoice,
+        synthesizingVoiceMessageIds: Set<Uuid> = this.synthesizingVoiceMessageIds,
         isTranslating: Boolean = this.isTranslating,
         translatingMessageId: Uuid? = this.translatingMessageId,
         favoriteMessages: List<UIMessage> = this.favoriteMessages,
@@ -833,139 +831,421 @@ class ChatUiState(
         weakToolHint: String? = this.weakToolHint,
         isSessionLocked: Boolean = this.isSessionLocked,
         agentModeHint: String? = this.agentModeHint,
-    ): ChatUiState = ChatUiState(
-        streamState =
-        streamState.copy(
-            isStreaming = isStreaming,
-            isWaitingFirstToken = isWaitingFirstToken,
-            visionProgress = visionProgress,
-            visionAssistedMessageIds = visionAssistedMessageIds,
-            isOcrProcessing = isOcrProcessing,
-            toolProgressMessage = toolProgressMessage,
-            pendingToolCallCount = pendingToolCallCount,
-        ),
-        inputState =
-        inputState.copy(
-            input = input,
-            hasDraft = hasDraft,
-            inputHistory = inputHistory,
-            inputHistoryIndex = inputHistoryIndex,
-            pendingImages = pendingImages,
-            pendingDocuments = pendingDocuments,
-            replyingTo = replyingTo,
-            replyQuoteOverride = replyQuoteOverride,
-            asrState = asrState,
-            sendQueue = sendQueue,
-        ),
-        sessionState =
-        sessionState.copy(
-            sessions = sessions,
-            currentSessionId = currentSessionId,
-            archivedSessions = archivedSessions,
-            archivedSessionsError = archivedSessionsError,
-            folders = folders,
-            isSessionsLoading = isSessionsLoading,
-            sessionsError = sessionsError,
-        ),
-        agentState =
-        agentState.copy(
-            isAgentMode = isAgentMode,
-            agentSessionId = agentSessionId,
-            assistants = assistants,
-            isAssistantsLoading = isAssistantsLoading,
-            currentAssistant = currentAssistant,
-            delegationChain = delegationChain,
-            activePauseRequest = activePauseRequest,
-            activeSubagentThreads = activeSubagentThreads,
-            pendingSubagentTasks = pendingSubagentTasks,
-            isWeakToolModel = isWeakToolModel,
-            weakToolHint = weakToolHint,
-            isSessionLocked = isSessionLocked,
-            agentModeHint = agentModeHint,
-        ),
-        isSwitchingSession = isSwitchingSession,
-        selectionMode = selectionMode,
-        selectedMessageIds = selectedMessageIds,
-        errors = errors,
-        isConfigured = isConfigured,
-        isFetchingModels = isFetchingModels,
-        fetchModelsError = fetchModelsError,
-        memoryCacheHit = memoryCacheHit,
-        isDrawerOpen = isDrawerOpen,
-        searchQuery = searchQuery,
-        searchResults = searchResults,
-        isSearching = isSearching,
-        searchTab = searchTab,
-        messageResults = messageResults,
-        isSearchingMessages = isSearchingMessages,
-        searchError = searchError,
-        targetMessageId = targetMessageId,
-        searchHighlightQuery = searchHighlightQuery,
-        highlightedMessageId = highlightedMessageId,
-        isDrawMode = isDrawMode,
-        imageGenParams = imageGenParams,
-        isGeneratingImage = isGeneratingImage,
-        isGeneratingVideo = isGeneratingVideo,
-        isTranslating = isTranslating,
-        translatingMessageId = translatingMessageId,
-        favoriteMessages = favoriteMessages,
-        isFavoritesLoading = isFavoritesLoading,
-        favoritesError = favoritesError,
-        favoriteTags = favoriteTags,
-        favoriteTagFilter = favoriteTagFilter,
-        webSearchEnabled = webSearchEnabled,
-        contextTokenCount = contextTokenCount,
-        contextMaxTokens = contextMaxTokens,
-        tokenEstimateEnabled = tokenEstimateEnabled,
-        pasteAsFileEnabled = pasteAsFileEnabled,
-        pasteAsFileThreshold = pasteAsFileThreshold,
-        tokenCountVisible = tokenCountVisible,
-        tokenSnapshot = tokenSnapshot,
-        toolsState =
-        toolsState.copy(
-            taskCards = taskCards,
-            toolCallHistory = toolCallHistory,
-            pendingToolApprovals = pendingToolApprovals,
-        ),
-        deepThinkingEnabled = deepThinkingEnabled,
-        deepThinkingLevel = deepThinkingLevel,
-        webSearchConfig = webSearchConfig,
-        quickMessages = quickMessages,
-        currentMode = currentMode,
-        lorebooks = lorebooks,
-        lorebooksError = lorebooksError,
-        promptInjections = promptInjections,
-        allQuickMessages = allQuickMessages,
-        promptTemplates = promptTemplates,
-        isSpeaking = isSpeaking,
-        speakingMessageId = speakingMessageId,
-        agentPlans = agentPlans,
-        asrConfig = asrConfig,
-        providers = providers,
-        activeProviderId = activeProviderId,
-        selectedModelId = selectedModelId,
-        toolModelId = toolModelId,
-        chatPreferences = chatPreferences,
-        shareTemplate = shareTemplate,
-        mediaConfig = mediaConfig,
-        debugInfo = debugInfo,
-        toast = toast,
-        multiAgentConfig = multiAgentConfig,
-        selectedArtifact = selectedArtifact,
-        listFirstVisibleItemIndex = listFirstVisibleItemIndex,
-        listFirstVisibleItemScrollOffset = listFirstVisibleItemScrollOffset,
-        agentListFirstVisibleItemIndex = agentListFirstVisibleItemIndex,
-        agentListFirstVisibleItemScrollOffset = agentListFirstVisibleItemScrollOffset,
-        agentScrollOwnerSessionId = agentScrollOwnerSessionId,
-        messageExpandedStates = messageExpandedStates,
-        hasMoreHistory = hasMoreHistory,
-        isLoadingMore = isLoadingMore,
-        lastHistoryLoadCount = lastHistoryLoadCount,
-        taskRoutingEnabled = taskRoutingEnabled,
-        sessionPermissionMode = sessionPermissionMode,
-        appRunAllowAllTools = appRunAllowAllTools,
-        pinnedMessageContent = pinnedMessageContent,
-    )
+    ): ChatUiState {
+        val newStreamState =
+            if (isStreaming == streamState.isStreaming &&
+                isWaitingFirstToken == streamState.isWaitingFirstToken &&
+                visionProgress == streamState.visionProgress &&
+                visionAssistedMessageIds == streamState.visionAssistedMessageIds &&
+                isOcrProcessing == streamState.isOcrProcessing &&
+                toolProgressMessage == streamState.toolProgressMessage &&
+                pendingToolCallCount == streamState.pendingToolCallCount
+            ) {
+                streamState
+            } else {
+                streamState.copy(
+                    isStreaming = isStreaming,
+                    isWaitingFirstToken = isWaitingFirstToken,
+                    visionProgress = visionProgress,
+                    visionAssistedMessageIds = visionAssistedMessageIds,
+                    isOcrProcessing = isOcrProcessing,
+                    toolProgressMessage = toolProgressMessage,
+                    pendingToolCallCount = pendingToolCallCount,
+                )
+            }
+        val newInputState =
+            if (input == inputState.input &&
+                hasDraft == inputState.hasDraft &&
+                inputHistory == inputState.inputHistory &&
+                inputHistoryIndex == inputState.inputHistoryIndex &&
+                pendingImages == inputState.pendingImages &&
+                pendingDocuments == inputState.pendingDocuments &&
+                replyingTo == inputState.replyingTo &&
+                replyQuoteOverride == inputState.replyQuoteOverride &&
+                asrState == inputState.asrState &&
+                sendQueue == inputState.sendQueue
+            ) {
+                inputState
+            } else {
+                inputState.copy(
+                    input = input,
+                    hasDraft = hasDraft,
+                    inputHistory = inputHistory,
+                    inputHistoryIndex = inputHistoryIndex,
+                    pendingImages = pendingImages,
+                    pendingDocuments = pendingDocuments,
+                    replyingTo = replyingTo,
+                    replyQuoteOverride = replyQuoteOverride,
+                    asrState = asrState,
+                    sendQueue = sendQueue,
+                )
+            }
+        val newSessionState =
+            if (sessions == sessionState.sessions &&
+                currentSessionId == sessionState.currentSessionId &&
+                archivedSessions == sessionState.archivedSessions &&
+                archivedSessionsError == sessionState.archivedSessionsError &&
+                folders == sessionState.folders &&
+                isSessionsLoading == sessionState.isSessionsLoading &&
+                sessionsError == sessionState.sessionsError
+            ) {
+                sessionState
+            } else {
+                sessionState.copy(
+                    sessions = sessions,
+                    currentSessionId = currentSessionId,
+                    archivedSessions = archivedSessions,
+                    archivedSessionsError = archivedSessionsError,
+                    folders = folders,
+                    isSessionsLoading = isSessionsLoading,
+                    sessionsError = sessionsError,
+                )
+            }
+        val newAgentState =
+            if (isAgentMode == agentState.isAgentMode &&
+                agentSessionId == agentState.agentSessionId &&
+                assistants == agentState.assistants &&
+                isAssistantsLoading == agentState.isAssistantsLoading &&
+                currentAssistant == agentState.currentAssistant &&
+                delegationChain == agentState.delegationChain &&
+                activePauseRequest == agentState.activePauseRequest &&
+                activeSubagentThreads == agentState.activeSubagentThreads &&
+                pendingSubagentTasks == agentState.pendingSubagentTasks &&
+                isWeakToolModel == agentState.isWeakToolModel &&
+                weakToolHint == agentState.weakToolHint &&
+                isSessionLocked == agentState.isSessionLocked &&
+                agentModeHint == agentState.agentModeHint
+            ) {
+                agentState
+            } else {
+                agentState.copy(
+                    isAgentMode = isAgentMode,
+                    agentSessionId = agentSessionId,
+                    assistants = assistants,
+                    isAssistantsLoading = isAssistantsLoading,
+                    currentAssistant = currentAssistant,
+                    delegationChain = delegationChain,
+                    activePauseRequest = activePauseRequest,
+                    activeSubagentThreads = activeSubagentThreads,
+                    pendingSubagentTasks = pendingSubagentTasks,
+                    isWeakToolModel = isWeakToolModel,
+                    weakToolHint = weakToolHint,
+                    isSessionLocked = isSessionLocked,
+                    agentModeHint = agentModeHint,
+                )
+            }
+        val newToolsState =
+            if (taskCards == toolsState.taskCards &&
+                toolCallHistory == toolsState.toolCallHistory &&
+                pendingToolApprovals == toolsState.pendingToolApprovals
+            ) {
+                toolsState
+            } else {
+                toolsState.copy(
+                    taskCards = taskCards,
+                    toolCallHistory = toolCallHistory,
+                    pendingToolApprovals = pendingToolApprovals,
+                )
+            }
+        return ChatUiState(
+            streamState = newStreamState,
+            inputState = newInputState,
+            sessionState = newSessionState,
+            agentState = newAgentState,
+            isSwitchingSession = isSwitchingSession,
+            selectionMode = selectionMode,
+            selectedMessageIds = selectedMessageIds,
+            errors = errors,
+            isConfigured = isConfigured,
+            isFetchingModels = isFetchingModels,
+            fetchModelsError = fetchModelsError,
+            memoryCacheHit = memoryCacheHit,
+            isDrawerOpen = isDrawerOpen,
+            searchQuery = searchQuery,
+            searchResults = searchResults,
+            isSearching = isSearching,
+            searchTab = searchTab,
+            messageResults = messageResults,
+            isSearchingMessages = isSearchingMessages,
+            searchError = searchError,
+            targetMessageId = targetMessageId,
+            searchHighlightQuery = searchHighlightQuery,
+            highlightedMessageId = highlightedMessageId,
+            isDrawMode = isDrawMode,
+            imageGenParams = imageGenParams,
+            isGeneratingImage = isGeneratingImage,
+            isGeneratingVideo = isGeneratingVideo,
+            isGeneratingVoice = isGeneratingVoice,
+            synthesizingVoiceMessageIds = synthesizingVoiceMessageIds,
+            isTranslating = isTranslating,
+            translatingMessageId = translatingMessageId,
+            favoriteMessages = favoriteMessages,
+            isFavoritesLoading = isFavoritesLoading,
+            favoritesError = favoritesError,
+            favoriteTags = favoriteTags,
+            favoriteTagFilter = favoriteTagFilter,
+            webSearchEnabled = webSearchEnabled,
+            contextTokenCount = contextTokenCount,
+            contextMaxTokens = contextMaxTokens,
+            contextCheckpointBoundaryId = contextCheckpointBoundaryId,
+            contextCheckpointTotalCovered = contextCheckpointTotalCovered,
+            tokenEstimateEnabled = tokenEstimateEnabled,
+            pasteAsFileEnabled = pasteAsFileEnabled,
+            pasteAsFileThreshold = pasteAsFileThreshold,
+            tokenCountVisible = tokenCountVisible,
+            tokenSnapshot = tokenSnapshot,
+            toolsState = newToolsState,
+            deepThinkingEnabled = deepThinkingEnabled,
+            deepThinkingLevel = deepThinkingLevel,
+            webSearchConfig = webSearchConfig,
+            quickMessages = quickMessages,
+            currentMode = currentMode,
+            lorebooks = lorebooks,
+            lorebooksError = lorebooksError,
+            promptInjections = promptInjections,
+            allQuickMessages = allQuickMessages,
+            promptTemplates = promptTemplates,
+            isSpeaking = isSpeaking,
+            speakingMessageId = speakingMessageId,
+            agentPlans = agentPlans,
+            asrConfig = asrConfig,
+            providers = providers,
+            activeProviderId = activeProviderId,
+            selectedModelId = selectedModelId,
+            toolModelId = toolModelId,
+            chatPreferences = chatPreferences,
+            shareTemplate = shareTemplate,
+            mediaConfig = mediaConfig,
+            debugInfo = debugInfo,
+            toast = toast,
+            multiAgentConfig = multiAgentConfig,
+            selectedArtifact = selectedArtifact,
+            listFirstVisibleItemIndex = listFirstVisibleItemIndex,
+            listFirstVisibleItemScrollOffset = listFirstVisibleItemScrollOffset,
+            agentListFirstVisibleItemIndex = agentListFirstVisibleItemIndex,
+            agentListFirstVisibleItemScrollOffset = agentListFirstVisibleItemScrollOffset,
+            agentScrollOwnerSessionId = agentScrollOwnerSessionId,
+            messageExpandedStates = messageExpandedStates,
+            hasMoreHistory = hasMoreHistory,
+            isLoadingMore = isLoadingMore,
+            lastHistoryLoadCount = lastHistoryLoadCount,
+            taskRoutingEnabled = taskRoutingEnabled,
+            sessionPermissionMode = sessionPermissionMode,
+            appRunAllowAllTools = appRunAllowAllTools,
+            pinnedMessageContent = pinnedMessageContent,
+        )
+    }
+
+    /** Compares all state except typed text and input-history index so keystrokes stay scoped to the input bar. */
+    fun equalsExcludingInput(other: ChatUiState): Boolean {
+        if (this === other) return true
+        val inputMinusTextEqual =
+            inputState.pendingImages == other.inputState.pendingImages &&
+                inputState.pendingDocuments == other.inputState.pendingDocuments &&
+                inputState.asrState == other.inputState.asrState &&
+                inputState.replyingTo == other.inputState.replyingTo &&
+                inputState.replyQuoteOverride == other.inputState.replyQuoteOverride &&
+                inputState.inputHistory == other.inputState.inputHistory &&
+                inputState.hasDraft == other.inputState.hasDraft &&
+                inputState.sendQueue == other.inputState.sendQueue
+        return inputMinusTextEqual && equalsNonInputFields(other)
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is ChatUiState) return false
+        return inputState == other.inputState && equalsNonInputFields(other)
+    }
+
+    private fun equalsNonInputFields(other: ChatUiState): Boolean =
+        streamState == other.streamState &&
+            sessionState == other.sessionState &&
+            agentState == other.agentState &&
+            toolsState == other.toolsState &&
+            equalsSessionViewState(other) &&
+            equalsSearchState(other) &&
+            equalsMediaState(other) &&
+            equalsPromptState(other) &&
+            equalsUiState(other)
+
+    private fun equalsSessionViewState(other: ChatUiState): Boolean =
+        selectionMode == other.selectionMode &&
+            selectedMessageIds == other.selectedMessageIds &&
+            isSwitchingSession == other.isSwitchingSession &&
+            errors == other.errors &&
+            isConfigured == other.isConfigured &&
+            isFetchingModels == other.isFetchingModels &&
+            fetchModelsError == other.fetchModelsError &&
+            memoryCacheHit == other.memoryCacheHit &&
+            isDrawerOpen == other.isDrawerOpen
+
+    private fun equalsSearchState(other: ChatUiState): Boolean =
+        searchQuery == other.searchQuery &&
+            searchResults == other.searchResults &&
+            isSearching == other.isSearching &&
+            searchTab == other.searchTab &&
+            messageResults == other.messageResults &&
+            isSearchingMessages == other.isSearchingMessages &&
+            searchError == other.searchError &&
+            targetMessageId == other.targetMessageId &&
+            searchHighlightQuery == other.searchHighlightQuery &&
+            highlightedMessageId == other.highlightedMessageId
+
+    private fun equalsMediaState(other: ChatUiState): Boolean =
+        isDrawMode == other.isDrawMode &&
+            imageGenParams == other.imageGenParams &&
+            isGeneratingImage == other.isGeneratingImage &&
+            isGeneratingVideo == other.isGeneratingVideo &&
+            isGeneratingVoice == other.isGeneratingVoice &&
+            synthesizingVoiceMessageIds == other.synthesizingVoiceMessageIds &&
+            isTranslating == other.isTranslating &&
+            translatingMessageId == other.translatingMessageId &&
+            favoriteMessages == other.favoriteMessages &&
+            isFavoritesLoading == other.isFavoritesLoading &&
+            favoritesError == other.favoritesError &&
+            favoriteTags == other.favoriteTags &&
+            favoriteTagFilter == other.favoriteTagFilter
+
+    private fun equalsPromptState(other: ChatUiState): Boolean =
+        webSearchEnabled == other.webSearchEnabled &&
+            contextTokenCount == other.contextTokenCount &&
+            contextMaxTokens == other.contextMaxTokens &&
+            contextCheckpointBoundaryId == other.contextCheckpointBoundaryId &&
+            contextCheckpointTotalCovered == other.contextCheckpointTotalCovered &&
+            tokenEstimateEnabled == other.tokenEstimateEnabled &&
+            pasteAsFileEnabled == other.pasteAsFileEnabled &&
+            pasteAsFileThreshold == other.pasteAsFileThreshold &&
+            tokenCountVisible == other.tokenCountVisible &&
+            tokenSnapshot == other.tokenSnapshot &&
+            deepThinkingEnabled == other.deepThinkingEnabled &&
+            deepThinkingLevel == other.deepThinkingLevel &&
+            webSearchConfig == other.webSearchConfig &&
+            quickMessages == other.quickMessages &&
+            currentMode == other.currentMode &&
+            lorebooks == other.lorebooks &&
+            lorebooksError == other.lorebooksError &&
+            promptInjections == other.promptInjections &&
+            allQuickMessages == other.allQuickMessages &&
+            promptTemplates == other.promptTemplates
+
+    private fun equalsUiState(other: ChatUiState): Boolean =
+        isSpeaking == other.isSpeaking &&
+            speakingMessageId == other.speakingMessageId &&
+            agentPlans == other.agentPlans &&
+            asrConfig == other.asrConfig &&
+            providers == other.providers &&
+            activeProviderId == other.activeProviderId &&
+            selectedModelId == other.selectedModelId &&
+            toolModelId == other.toolModelId &&
+            chatPreferences == other.chatPreferences &&
+            shareTemplate == other.shareTemplate &&
+            mediaConfig == other.mediaConfig &&
+            debugInfo == other.debugInfo &&
+            toast == other.toast &&
+            multiAgentConfig == other.multiAgentConfig &&
+            selectedArtifact == other.selectedArtifact &&
+            listFirstVisibleItemIndex == other.listFirstVisibleItemIndex &&
+            listFirstVisibleItemScrollOffset == other.listFirstVisibleItemScrollOffset &&
+            agentListFirstVisibleItemIndex == other.agentListFirstVisibleItemIndex &&
+            agentListFirstVisibleItemScrollOffset == other.agentListFirstVisibleItemScrollOffset &&
+            agentScrollOwnerSessionId == other.agentScrollOwnerSessionId &&
+            messageExpandedStates == other.messageExpandedStates &&
+            hasMoreHistory == other.hasMoreHistory &&
+            isLoadingMore == other.isLoadingMore &&
+            lastHistoryLoadCount == other.lastHistoryLoadCount &&
+            taskRoutingEnabled == other.taskRoutingEnabled &&
+            sessionPermissionMode == other.sessionPermissionMode &&
+            appRunAllowAllTools == other.appRunAllowAllTools &&
+            pinnedMessageContent == other.pinnedMessageContent
+
+    override fun hashCode(): Int {
+        var result = streamState.hashCode()
+        result = 31 * result + inputState.hashCode()
+        result = 31 * result + sessionState.hashCode()
+        result = 31 * result + agentState.hashCode()
+        result = 31 * result + toolsState.hashCode()
+        result = 31 * result + selectionMode.hashCode()
+        result = 31 * result + selectedMessageIds.hashCode()
+        result = 31 * result + isSwitchingSession.hashCode()
+        result = 31 * result + errors.hashCode()
+        result = 31 * result + isConfigured.hashCode()
+        result = 31 * result + isFetchingModels.hashCode()
+        result = 31 * result + fetchModelsError.hashCode()
+        result = 31 * result + memoryCacheHit.hashCode()
+        result = 31 * result + isDrawerOpen.hashCode()
+        result = 31 * result + searchQuery.hashCode()
+        result = 31 * result + searchResults.hashCode()
+        result = 31 * result + isSearching.hashCode()
+        result = 31 * result + searchTab
+        result = 31 * result + messageResults.hashCode()
+        result = 31 * result + isSearchingMessages.hashCode()
+        result = 31 * result + searchError.hashCode()
+        result = 31 * result + targetMessageId.hashCode()
+        result = 31 * result + searchHighlightQuery.hashCode()
+        result = 31 * result + highlightedMessageId.hashCode()
+        result = 31 * result + isDrawMode.hashCode()
+        result = 31 * result + imageGenParams.hashCode()
+        result = 31 * result + isGeneratingImage.hashCode()
+        result = 31 * result + isGeneratingVideo.hashCode()
+        result = 31 * result + isGeneratingVoice.hashCode()
+        result = 31 * result + synthesizingVoiceMessageIds.hashCode()
+        result = 31 * result + isTranslating.hashCode()
+        result = 31 * result + translatingMessageId.hashCode()
+        result = 31 * result + favoriteMessages.hashCode()
+        result = 31 * result + isFavoritesLoading.hashCode()
+        result = 31 * result + favoritesError.hashCode()
+        result = 31 * result + favoriteTags.hashCode()
+        result = 31 * result + favoriteTagFilter.hashCode()
+        result = 31 * result + webSearchEnabled.hashCode()
+        result = 31 * result + contextTokenCount
+        result = 31 * result + contextMaxTokens
+        result = 31 * result + contextCheckpointBoundaryId.hashCode()
+        result = 31 * result + contextCheckpointTotalCovered
+        result = 31 * result + tokenEstimateEnabled.hashCode()
+        result = 31 * result + pasteAsFileEnabled.hashCode()
+        result = 31 * result + pasteAsFileThreshold
+        result = 31 * result + tokenCountVisible.hashCode()
+        result = 31 * result + tokenSnapshot.hashCode()
+        result = 31 * result + deepThinkingEnabled.hashCode()
+        result = 31 * result + deepThinkingLevel.hashCode()
+        result = 31 * result + webSearchConfig.hashCode()
+        result = 31 * result + quickMessages.hashCode()
+        result = 31 * result + currentMode.hashCode()
+        result = 31 * result + lorebooks.hashCode()
+        result = 31 * result + (lorebooksError?.hashCode() ?: 0)
+        result = 31 * result + promptInjections.hashCode()
+        result = 31 * result + allQuickMessages.hashCode()
+        result = 31 * result + promptTemplates.hashCode()
+        result = 31 * result + isSpeaking.hashCode()
+        result = 31 * result + speakingMessageId.hashCode()
+        result = 31 * result + agentPlans.hashCode()
+        result = 31 * result + asrConfig.hashCode()
+        result = 31 * result + providers.hashCode()
+        result = 31 * result + activeProviderId.hashCode()
+        result = 31 * result + selectedModelId.hashCode()
+        result = 31 * result + toolModelId.hashCode()
+        result = 31 * result + chatPreferences.hashCode()
+        result = 31 * result + shareTemplate.hashCode()
+        result = 31 * result + mediaConfig.hashCode()
+        result = 31 * result + debugInfo.hashCode()
+        result = 31 * result + toast.hashCode()
+        result = 31 * result + multiAgentConfig.hashCode()
+        result = 31 * result + selectedArtifact.hashCode()
+        result = 31 * result + listFirstVisibleItemIndex
+        result = 31 * result + listFirstVisibleItemScrollOffset
+        result = 31 * result + agentListFirstVisibleItemIndex
+        result = 31 * result + agentListFirstVisibleItemScrollOffset
+        result = 31 * result + agentScrollOwnerSessionId.hashCode()
+        result = 31 * result + messageExpandedStates.hashCode()
+        result = 31 * result + hasMoreHistory.hashCode()
+        result = 31 * result + isLoadingMore.hashCode()
+        result = 31 * result + lastHistoryLoadCount
+        result = 31 * result + taskRoutingEnabled.hashCode()
+        result = 31 * result + sessionPermissionMode.hashCode()
+        result = 31 * result + appRunAllowAllTools.hashCode()
+        result = 31 * result + pinnedMessageContent.hashCode()
+        return result
+    }
 }
 data class ToolCallRecord(
     val toolName: String,
@@ -1052,7 +1332,6 @@ data class MessageExpandedState(
 //   - ChatContextController: 上下文管理与压缩
 //   - ChatAudioController: TTS/ASR 状态管理
 //   - ChatErrorHandler: 错误分类与用户提示
-
 
 // 渐进式拆分阶段仍需平铺注入依赖；保持 Koin 参数顺序稳定，避免大范围行为变更。
 @Suppress("LongParameterList")
@@ -1178,6 +1457,10 @@ class ChatViewModel(
             },
             auditLogger = auditLogger,
         ),
+    private val voiceMessageStore: io.zer0.muse.ui.speech.VoiceMessageStore? = null,
+    private val voicePlaybackController: io.zer0.muse.ui.speech.VoicePlaybackController? = null,
+    private val proactiveThoughtRepository: io.zer0.muse.data.proactive.ProactiveThoughtRepository? = null,
+    private val mediaGenerationManager: io.zer0.muse.data.media.MediaGenerationManager? = null,
 ) : ViewModel(), ChatStateAccessor, io.zer0.muse.tools.ToolApprovalBridge {
     // v1.0.54: autoSave 去重状态(30 秒内同会话只跑一次,防堆积)
     // v1.0.54: autoSave 去重状态(30 秒内同会话只跑一次,防堆积)
@@ -1229,7 +1512,7 @@ class ChatViewModel(
         /** v1.79 (L-CV1): 工具轮次上限读取失败时的回退值(正常路径由设置决定,0=无限制)。 */
 
         /**
-         * v1.134 P1-1: 流式自动重试最大次数(NETWORK/RATE_LIMIT 错误)。
+         * v1.134 P1-1: 流式自动重试最大次数(NETWORK/RateLimit 错误)。
          * v1.0.16: 从 2 提到 3,退避 3s/10s/30s,覆盖典型切后台时长(5-15s)。
          */
 
@@ -1294,7 +1577,7 @@ class ChatViewModel(
                     ?: inferFromMessage(message, throwable)
             return when (providerError) {
                 is ProviderError.Network -> ChatErrorType.NETWORK
-                is ProviderError.RateLimit -> ChatErrorType.RATE_LIMIT
+                is ProviderError.RateLimit -> ChatErrorType.RateLimit
                 // v1.0.1 (P4): 5xx 纳入 NETWORK(可重试),原落入 UNKNOWN 不重试
                 is ProviderError.ServerError -> ChatErrorType.NETWORK
                 is ProviderError.AuthError -> ChatErrorType.API_KEY
@@ -1644,6 +1927,7 @@ class ChatViewModel(
             ocrManager = ocrManager,
             chatService = chatService,
             appContext = appContext,
+            mediaGenerationManager = mediaGenerationManager,
         )
     private fun resolveAuditStateString(resourceId: Int, args: Array<out Any>): String {
         val locale = io.zer0.muse.util.AppLocales.parse(settings.getLanguageSync())
@@ -1667,8 +1951,7 @@ class ChatViewModel(
                 override val chatService get() = this@ChatViewModel.chatService
                 override val sessionRepository get() = this@ChatViewModel.sessionRepository
                 override fun displayedSessionId() = this@ChatViewModel.displayedSessionId()
-                override fun updateMessages(transform: (List<UIMessage>) -> List<UIMessage>) =
-                    this@ChatViewModel.updateMessages(transform)
+                override fun updateMessages(transform: (List<UIMessage>) -> List<UIMessage>) = this@ChatViewModel.updateMessages(transform)
                 override fun classifyErrorType(message: String, throwable: Throwable?) =
                     this@ChatViewModel.classifyErrorType(message, throwable)
                 override fun invalidateSessionCache(sessionId: String) {
@@ -1692,6 +1975,9 @@ class ChatViewModel(
             ttsManager = ttsManager,
             settings = settings,
             context = appContext,
+            sessionRepository = sessionRepository,
+            voiceMessageStore = voiceMessageStore,
+            voicePlaybackController = voicePlaybackController,
         )
 
     // v1.x: 输入/草稿/待发送队列/输入历史 Controller
@@ -1922,6 +2208,7 @@ class ChatViewModel(
                 idListJson = idListJson,
                 messageController = messageController,
                 addError = { type, msg, recoverable -> addError(type, msg, recoverable) },
+                updateMcpNotice = ::updateMcpNotice,
                 generateImage = { prompt, sid -> generateImage(prompt, sid) },
                 sessionMemoryCache = sessionMemoryCache,
                 systemPromptCache = systemPromptCache,
@@ -1958,6 +2245,12 @@ class ChatViewModel(
                         }
                     }
                 },
+                onAutoVoiceBar = { assistantId, sid, messageId ->
+                    maybeGenerateAutoVoiceBar(assistantId, sid, messageId)
+                },
+                onProactiveThoughtsExtracted = { assistantId, _, messageId, rawContent ->
+                    persistExtractedProactiveThoughts(assistantId, messageId, rawContent)
+                },
             ),
             accessor = this,
             chatGenerationManager = chatGenerationManager,
@@ -1965,8 +2258,7 @@ class ChatViewModel(
             settings = settings,
             notificationManager = notificationManager,
             onCancelAncillaryJobs = {
-                imageJob?.cancel()
-                imageJob = null
+                imageGenCoordinator.cancelImageGeneration()
                 translateJob?.cancel()
                 translateJob = null
             },
@@ -2215,9 +2507,6 @@ class ChatViewModel(
     /** Phase 8.5 修复: 首次会话初始化标记,防止 observeSessions 竞态重复创建会话。 */
     @Volatile
     private var initializing: Boolean = false
-
-    /** 当前图片生成任务(P5-G)。 */
-    private var imageJob: Job? = null
 
     /** 当前翻译任务(P5-F)。 */
     private var translateJob: Job? = null
@@ -3074,6 +3363,23 @@ class ChatViewModel(
      * 旧实现直接 `delay(5000); dismissError(...)`,叠加“压缩 Banner 优先于错误”的
      * 旧策略后,压缩超过 5 秒时这条错误一次都不会出现在屏幕上。
      */
+    private fun updateMcpNotice(unavailable: List<io.zer0.muse.mcp.McpServerConfig>) {
+        val notice = unavailable.firstOrNull()?.let { server ->
+            ChatError(
+                type = ChatErrorType.MCP_UNAVAILABLE,
+                message = appContext.getString(
+                    R.string.mcp_chat_unavailable,
+                    unavailable.joinToString(", ") { it.name },
+                ),
+                mcpServerId = server.id,
+            )
+        }
+        _state.update { state ->
+            val otherErrors = state.errors.filterNot { it.type == ChatErrorType.MCP_UNAVAILABLE }
+            state.copy(errors = if (notice == null) otherErrors else otherErrors + notice)
+        }
+    }
+
     private fun addError(type: ChatErrorType, message: String, isRecoverable: Boolean = true) {
         val error = ChatError(type = type, message = message, isRecoverable = isRecoverable)
         _state.update { it.copy(errors = it.errors + error) }
@@ -3155,7 +3461,7 @@ class ChatViewModel(
      * 兜底才用 [inferFromMessage] 字符串推断 (向后兼容)。
      *
      *  - ProviderError.Network → NETWORK(IOException / timeout / 连接断开)
-     *  - ProviderError.RateLimit → RATE_LIMIT(429 / RESOURCE_EXHAUSTED)
+     *  - ProviderError.RateLimit → RateLimit(429 / RESOURCE_EXHAUSTED)
      *  - ProviderError.ServerError → NETWORK(5xx / 529 overloaded,可重试)
      *  - ProviderError.AuthError → API_KEY(401 / 403)
      *  - 其余 → UNKNOWN
@@ -3465,7 +3771,9 @@ class ChatViewModel(
                     useChinese ->
                         "你是会话标题助手。请用 4 到 8 个字概括以下对话主题，使用与对话一致的语言，直接输出标题文字，不要加引号、书名号或句末标点。"
                     else ->
-                        "You are a conversation title assistant. Summarize the conversation topic in 3 to 6 words in the same language as the conversation. Output only the title text with no quotes or trailing punctuation."
+                        "You are a conversation title assistant. Summarize the conversation topic " +
+                            "in 3 to 6 words in the same language as the conversation. Output only " +
+                            "the title text with no quotes or trailing punctuation."
                 }
             val titleMessages = listOf(
                 UIMessage(role = MessageRole.SYSTEM, content = systemPrompt),
@@ -4019,16 +4327,21 @@ class ChatViewModel(
                         id = io.zer0.muse.ui.artifact.RichCardArtifacts.id(messageId, language, content),
                         sessionId = sid,
                         messageId = messageId,
-                        title = language.uppercase(),
+                        title = io.zer0.muse.ui.artifact.RichCardArtifacts.deriveTitle(language, content, appContext),
                         type = "rich_card",
                         content = content,
                         language = language,
                         updatedAt = System.currentTimeMillis(),
                     ),
                 )
+            }.onSuccess {
+                MuseToast.show(appContext.getString(R.string.artifact_saved_to_library))
             }.onError { msg, _ -> Logger.w("ChatVM", "卡片保存工件失败: $msg") }
         }
     }
+
+    /** 解析某条收藏消息的原会话 ID（用于从收藏夹跳回原对话）。 */
+    suspend fun resolveFavoriteSourceSessionId(messageId: String): String? = sessionRepository.resolveSourceSessionIdForMessage(messageId)
 
     /**
      * v2.6.13: 卡片收藏 —— 把卡片收进收藏夹。
@@ -5111,11 +5424,10 @@ class ChatViewModel(
             } else {
                 io.zer0.common.Logger.i("ChatVM", "switchAgentAssistant: 新建房间 $sessionId(assistant=$targetId)")
             }
-            // v1.0.54: 同步"默认 Agent 助手"偏好 — 退出再进入 Agent Tab 时保持该助手
-            //   (setAgentMode(true) 按此偏好恢复房间),设置页入口看到的值也一致
+            // 不再静默篡改主动消息已显式绑定的发送助手，仅在主动消息未绑定任何助手时兜底同步
             runCatching {
                 val cfg = settings.proactiveMessageConfigFlow.first()
-                if (cfg.agentId != targetId) {
+                if (cfg.agentId.isBlank()) {
                     settings.saveProactiveMessageConfig(cfg.copy(agentId = targetId))
                 }
             }
@@ -5550,20 +5862,15 @@ class ChatViewModel(
     fun toggleMessageTranslationExpanded(messageId: String) = messageController.toggleMessageTranslationExpanded(messageId)
 
     /**
-     * Phase 8.7: 切换消息朗读状态。
-     * - 当前正在朗读这条消息 → 停止
-     * - 当前正在朗读其他消息或未朗读 → 开始朗读这条
+     * Phase 8.7 / v3.0: 切换或合成微信式语音条。
      *
-     * @param messageId 消息 id
-     * @param content 待朗读的文本(含 Markdown 会被 TtsManager 自动剥离)
-     *
-     * v1.105: 委托至 [ChatAudioCoordinator.toggleTts]。
+     *  - 若消息已绑定可用语音条 → 直接点按播放/暂停；
+     *  - 若未绑定 → 后台合成为本地语音条后静默展示（默认点按才播，不再直接后台干念）。
      */
     fun toggleTts(messageId: Uuid, content: String) {
-        // v1.0.4 (P2): TTS 未就绪时给即时反馈(原仅静默返回 false,用户感觉"点击没反应")
-        // 仅当当前消息未在播放时检查(speakingMessageId == messageId 时是停止操作,无需就绪)
-        if (_state.value.speakingMessageId != messageId && !ttsManager.isReady.value) {
-            // 区分「还在初始化」与「初始化已失败」：后者不该一直让用户“稍后重试”
+        val existingUri = _messages.value.firstOrNull { it.id == messageId }?.voiceUri?.takeIf { it.isNotBlank() }
+        val resolvedExisting = existingUri?.let { voiceMessageStore?.resolve(it) }
+        if (resolvedExisting == null && _state.value.speakingMessageId != messageId && !ttsManager.isEngineAvailable()) {
             MuseToast.show(
                 appContext.getString(
                     if (ttsManager.initFailedState.value) {
@@ -5576,6 +5883,47 @@ class ChatViewModel(
             return
         }
         audioCoordinator.toggleTts(messageId, content, ::reportError)
+    }
+
+    /** 回复完成后若开启了「自动附带语音条」，在后台合成为点按才播的对话语音条。 */
+    private fun maybeGenerateAutoVoiceBar(assistantId: String, sessionId: String, messageId: Uuid) {
+        if (voiceMessageStore == null) return
+        if (voiceState.state.value != VoiceConversationState.IDLE) return
+        if (!ttsManager.isEngineAvailable()) return
+        viewModelScope.launch {
+            val enabled = runCatching {
+                io.zer0.muse.data.assistant.VoiceReplyPolicyStore.of(appContext).autoVoiceBarFor(assistantId)
+            }.getOrDefault(false)
+            if (!enabled) return@launch
+            val msg = _messages.value.firstOrNull { it.id == messageId }
+                ?: sessionRepository.getMessageAsUiMessage(messageId.toString())
+                ?: return@launch
+            if (!msg.voiceUri.isNullOrBlank()) return@launch
+            val speakable = io.zer0.muse.transformer.InternalMarkupSanitizer.exportContent(msg.content)
+            if (speakable.isBlank()) return@launch
+            audioCoordinator.synthesizeVoiceBarForMessage(
+                sessionId = sessionId,
+                messageId = messageId,
+                rawContent = speakable,
+                notifyReady = false,
+            )
+        }
+    }
+
+    /** 将本轮回复末尾模型判断需要主动跟进的 `<proactive_thought>` 写入牵挂账本（含可选定时唤醒）。 */
+    private fun persistExtractedProactiveThoughts(assistantId: String, messageId: Uuid, rawContent: String) {
+        val repo = proactiveThoughtRepository ?: return
+        viewModelScope.launch(Dispatchers.IO) {
+            val scheduler = org.koin.core.context.GlobalContext.getOrNull()
+                ?.let { runCatching { it.get<io.zer0.muse.proactive.ProactiveScheduler>() }.getOrNull() }
+            io.zer0.muse.proactive.ProactiveThoughtRecorder.persistFromModelOutput(
+                repo = repo,
+                scheduler = scheduler,
+                assistantId = assistantId,
+                sourceIdPrefix = "turn_$messageId",
+                rawContent = rawContent,
+            )
+        }
     }
 
     /** Phase 8.7: 停止当前朗读(切换会话/退出页面时调用)。v1.105: 委托至 [ChatAudioCoordinator]。 */

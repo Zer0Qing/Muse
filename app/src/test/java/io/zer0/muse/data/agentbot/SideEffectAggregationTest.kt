@@ -35,10 +35,10 @@ class SideEffectAggregationTest {
 
     @Before
     fun setUp() {
-        val context: Context = ApplicationProvider.getApplicationContext();
+        val context: Context = ApplicationProvider.getApplicationContext()
         db = Room.inMemoryDatabaseBuilder(context, MuseDb::class.java)
             .allowMainThreadQueries()
-            .build();
+            .build()
         repo = AgentBotRepository(
             taskDao = db.botTaskDao(),
             runDao = db.taskRunDao(),
@@ -49,15 +49,15 @@ class SideEffectAggregationTest {
             bindingDao = db.botBindingDao(),
             database = db,
             now = { clock },
-        );
-        dir = File(System.getProperty("java.io.tmpdir"), "agg-" + System.nanoTime());
-        staging = StagedArtifactStore(dir);
+        )
+        dir = File(System.getProperty("java.io.tmpdir"), "agg-" + System.nanoTime())
+        staging = StagedArtifactStore(dir)
     }
 
     @After
     fun tearDown() {
-        db.close();
-        dir.deleteRecursively();
+        db.close()
+        dir.deleteRecursively()
     }
 
     private fun applier() = BotResultApplier(
@@ -66,7 +66,7 @@ class SideEffectAggregationTest {
         reviewer = BotReviewWorker(),
         readTarget = { ref -> targets[ref] },
         writeTarget = { ref, content -> targets[ref] = content },
-    );
+    )
 
     private suspend fun taskAndRun(): Pair<BotTaskEntity, TaskRunEntity> {
         val task = repo.createTask(
@@ -76,18 +76,18 @@ class SideEffectAggregationTest {
             goal = "改错字",
             acceptanceCriteria = "只改错字",
             resourceScope = "notes.md",
-        );
-        val run = repo.openRun(task.taskId)!!;
-        repo.transition(task.taskId, BotTaskStatusMachine.Event.START);
-        repo.transition(task.taskId, BotTaskStatusMachine.Event.EXECUTE_DONE);
+        )
+        val run = repo.openRun(task.taskId)!!
+        repo.transition(task.taskId, BotTaskStatusMachine.Event.START)
+        repo.transition(task.taskId, BotTaskStatusMachine.Event.EXECUTE_DONE)
         repo.closeRun(run.runId, TaskRunStatus.COMPLETED)
-        return task to run;
+        return task to run
     }
 
     @Test
     fun `no-blind-replay step becomes a reported side effect`() = runTest {
-        targets["notes.md"] = "原内容";
-        val (task, run) = taskAndRun();
+        targets["notes.md"] = "原内容"
+        val (task, run) = taskAndRun()
         // 记一步不可盲重放的操作（例如发了外部请求）。
         repo.recordStep(
             runId = run.runId,
@@ -97,11 +97,11 @@ class SideEffectAggregationTest {
             baseHash = "",
             approvalId = "",
             sideEffect = StepSideEffect.NO_BLIND_REPLAY,
-        );
-        val baseHash = StagedArtifactStore.hashOf("原内容");
+        )
+        val baseHash = StagedArtifactStore.hashOf("原内容")
         val stagedId = staging.stage(
             StagedArtifactStore.Candidate("notes.md", "改好的内容", baseHash, run.taskRevision),
-        );
+        )
 
         val outcome = applier().process(
             task = task,
@@ -109,23 +109,23 @@ class SideEffectAggregationTest {
             payloadRef = "改完了\n" + BotResultApplier.STAGED_MARKER + stagedId + "]",
             expectedBaseHash = baseHash,
             criteria = "只改错字",
-        );
+        )
 
         assertEquals(
             "有副作用时不能判全成功",
             ReviewDisposition.PARTIAL,
             outcome.disposition,
-        );
+        )
         assertTrue(
             "必须写出哪个操作已经发生",
             outcome.findings.any { it.contains("send_notification") },
-        );
+        )
     }
 
     @Test
     fun `retry-safe steps are not reported as side effects`() = runTest {
-        targets["notes.md"] = "原内容";
-        val (task, run) = taskAndRun();
+        targets["notes.md"] = "原内容"
+        val (task, run) = taskAndRun()
         repo.recordStep(
             runId = run.runId,
             stepIndex = 0,
@@ -134,11 +134,11 @@ class SideEffectAggregationTest {
             baseHash = "",
             approvalId = "",
             sideEffect = StepSideEffect.RETRY_SAFE,
-        );
-        val baseHash = StagedArtifactStore.hashOf("原内容");
+        )
+        val baseHash = StagedArtifactStore.hashOf("原内容")
         val stagedId = staging.stage(
             StagedArtifactStore.Candidate("notes.md", "改好的内容", baseHash, run.taskRevision),
-        );
+        )
 
         val outcome = applier().process(
             task = task,
@@ -146,19 +146,19 @@ class SideEffectAggregationTest {
             payloadRef = "改完了\n" + BotResultApplier.STAGED_MARKER + stagedId + "]",
             expectedBaseHash = baseHash,
             criteria = "只改错字",
-        );
+        )
 
         assertEquals(
             "可重放的操作不算副作用",
             ReviewDisposition.ACCEPT,
             outcome.disposition,
-        );
+        )
     }
 
     @Test
     fun `side effect blocks acceptance even with a good artifact`() = runTest {
-        targets["notes.md"] = "原内容";
-        val (task, run) = taskAndRun();
+        targets["notes.md"] = "原内容"
+        val (task, run) = taskAndRun()
         repo.recordStep(
             runId = run.runId,
             stepIndex = 0,
@@ -167,11 +167,11 @@ class SideEffectAggregationTest {
             baseHash = "",
             approvalId = "",
             sideEffect = StepSideEffect.NO_BLIND_REPLAY,
-        );
-        val baseHash = StagedArtifactStore.hashOf("原内容");
+        )
+        val baseHash = StagedArtifactStore.hashOf("原内容")
         val stagedId = staging.stage(
             StagedArtifactStore.Candidate("notes.md", "改好的内容", baseHash, run.taskRevision),
-        );
+        )
 
         val outcome = applier().process(
             task = task,
@@ -179,11 +179,11 @@ class SideEffectAggregationTest {
             payloadRef = "改完了\n" + BotResultApplier.STAGED_MARKER + stagedId + "]",
             expectedBaseHash = baseHash,
             criteria = "只改错字",
-        );
+        )
 
         assertFalse(
             "有副作用的任务不能显示为完全成功",
             outcome.disposition == ReviewDisposition.ACCEPT,
-        );
+        )
     }
 }

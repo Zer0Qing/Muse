@@ -3,11 +3,9 @@
 package io.zer0.muse.ui.agentbot
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -56,7 +54,6 @@ import io.zer0.muse.ui.theme.MuseButtonSize
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
-import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.ui.theme.semiLarge
 import io.zer0.muse.ui.theme.statusColors
 
@@ -75,6 +72,8 @@ fun ComputeNodeSetupSheet(
     onStartSsh: (ComputeNodeSshRequest) -> Unit,
     onStartPairing: (String) -> Unit,
     onDeleteNode: (String) -> Unit,
+    repairTarget: RemoteComputeNodeEntity? = null,
+    onRepairSsh: (String, String) -> Unit = { _, _ -> },
 ) {
     var selectedTab by rememberSaveable { mutableStateOf(0) }
     var deleteTarget by remember { mutableStateOf<RemoteComputeNodeEntity?>(null) }
@@ -105,14 +104,16 @@ fun ComputeNodeSetupSheet(
                         compact = true,
                     )
                 }
-                MuseCapsuleTab(
-                    tabs = listOf(
-                        stringResource(R.string.compute_node_tab_ssh),
-                        stringResource(R.string.compute_node_tab_pairing),
-                    ),
-                    selectedIndex = selectedTab,
-                    onSelect = { index -> selectedTab = index.coerceIn(0, 1) },
-                )
+                if (repairTarget == null) {
+                    MuseCapsuleTab(
+                        tabs = listOf(
+                            stringResource(R.string.compute_node_tab_ssh),
+                            stringResource(R.string.compute_node_tab_pairing),
+                        ),
+                        selectedIndex = selectedTab,
+                        onSelect = { index -> selectedTab = index.coerceIn(0, 1) },
+                    )
+                }
                 HorizontalDivider(
                     color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = MuseAlpha.disabled),
                 )
@@ -123,8 +124,13 @@ fun ComputeNodeSetupSheet(
             if (nodes.isNotEmpty()) {
                 ExistingNodesSection(nodes = nodes, onDelete = { deleteTarget = it })
             }
-            when (selectedTab) {
-                0 -> SshSetupForm(busy = busy, onStart = onStartSsh)
+            when {
+                repairTarget != null -> SshRepairFingerprintForm(
+                    node = repairTarget,
+                    busy = busy,
+                    onRepair = onRepairSsh,
+                )
+                selectedTab == 0 -> SshSetupForm(busy = busy, onStart = onStartSsh)
                 else -> PairingSetupForm(busy = busy, onStart = onStartPairing)
             }
             if (state.running || state.finished || state.error.isNotBlank() || state.phaseRows.isNotEmpty()) {
@@ -148,10 +154,31 @@ fun ComputeNodeSetupSheet(
 }
 
 @Composable
-private fun ExistingNodesSection(
-    nodes: List<RemoteComputeNodeEntity>,
-    onDelete: (RemoteComputeNodeEntity) -> Unit,
-) {
+private fun SshRepairFingerprintForm(node: RemoteComputeNodeEntity, busy: Boolean, onRepair: (String, String) -> Unit) {
+    var fingerprint by rememberSaveable(node.nodeId) { mutableStateOf(node.tlsFingerprint) }
+    Column(verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap)) {
+        SectionLabel(text = stringResource(R.string.compute_node_ssh_fingerprint_repair_title))
+        MuseTextField(
+            value = fingerprint,
+            onValueChange = { fingerprint = it.trim() },
+            label = { Text(stringResource(R.string.compute_node_field_host_fingerprint)) },
+            supportingText = { Text(stringResource(R.string.compute_node_host_fingerprint_hint)) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        MuseCapsuleButton(
+            text = stringResource(R.string.compute_node_ssh_repair),
+            onClick = { onRepair(node.nodeId, fingerprint) },
+            enabled = !busy && fingerprint.isNotBlank(),
+            loading = busy,
+            leadingIcon = MuseIcons.refresh,
+            size = MuseButtonSize.Medium,
+        )
+    }
+}
+
+@Composable
+private fun ExistingNodesSection(nodes: List<RemoteComputeNodeEntity>, onDelete: (RemoteComputeNodeEntity) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap)) {
         SectionLabel(text = stringResource(R.string.compute_node_existing_title))
         Surface(
@@ -209,12 +236,10 @@ private fun ExistingNodesSection(
 }
 
 @Composable
-private fun SshSetupForm(
-    busy: Boolean,
-    onStart: (ComputeNodeSshRequest) -> Unit,
-) {
+private fun SshSetupForm(busy: Boolean, onStart: (ComputeNodeSshRequest) -> Unit) {
     var name by rememberSaveable { mutableStateOf("") }
     var host by rememberSaveable { mutableStateOf("") }
+    var hostKeyFingerprint by rememberSaveable { mutableStateOf("") }
     var sshPort by rememberSaveable { mutableStateOf("22") }
     var username by rememberSaveable { mutableStateOf("") }
     var authIndex by rememberSaveable { mutableStateOf(0) }
@@ -240,6 +265,14 @@ private fun SshSetupForm(
             label = { Text(stringResource(R.string.compute_node_field_host)) },
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+            modifier = Modifier.fillMaxWidth(),
+        )
+        MuseTextField(
+            value = hostKeyFingerprint,
+            onValueChange = { hostKeyFingerprint = it.trim() },
+            label = { Text(stringResource(R.string.compute_node_field_host_fingerprint)) },
+            supportingText = { Text(stringResource(R.string.compute_node_host_fingerprint_hint)) },
+            singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
         Row(
@@ -341,6 +374,7 @@ private fun SshSetupForm(
                         daemonPort = daemonPort.toIntOrNull() ?: 0,
                         createSwap = createSwap,
                         installBrowserPack = installBrowser,
+                        hostKeyFingerprint = hostKeyFingerprint,
                     ),
                 )
             },
@@ -353,10 +387,7 @@ private fun SshSetupForm(
 }
 
 @Composable
-private fun PairingSetupForm(
-    busy: Boolean,
-    onStart: (String) -> Unit,
-) {
+private fun PairingSetupForm(busy: Boolean, onStart: (String) -> Unit) {
     // 配对串内含节点 Token，同样不进入 savedInstanceState。
     var pairingRaw by remember { mutableStateOf("") }
     var showScanner by remember { mutableStateOf(false) }
@@ -416,12 +447,7 @@ private fun connectionModeLabel(mode: String): String = when (ComputeNodeMode.fr
 }
 
 @Composable
-private fun OptionSwitchRow(
-    title: String,
-    subtitle: String,
-    checked: Boolean,
-    onCheckedChange: ((Boolean) -> Unit)?,
-) {
+private fun OptionSwitchRow(title: String, subtitle: String, checked: Boolean, onCheckedChange: ((Boolean) -> Unit)?) {
     Surface(
         shape = MuseShapes.semiLarge,
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = MuseAlpha.mutedSurface),

@@ -534,6 +534,7 @@
     <string name="accessibility_status_disabled">有効ではありません。システム設定で「Muse UI 自動化」を許可してください。</string>
     <string name="accessibility_status_enabled">アクセシビリティサービス有効。UI操作（クリック/スワイプ/入力/スクリーンショット/UIツリー読み取り）を利用できます。</string>
     <string name="common_load_failed">読み込みに失敗しました</string>
+    <string name="common_save_failed">保存できませんでした</string>
     <string name="action_undo">元に戻す</string>
     <string name="chat_unarchived">アーカイブを解除しました</string>
     <string name="agent_dm_empty">まだプライベートメッセージはありません</string>
@@ -688,6 +689,8 @@
     <string name="wake_diagnostics_denied">未除外</string>
     <string name="wake_diagnostics_next_run">次回実行: %1$s</string>
     <string name="wake_diagnostics_next_run_none">キューにありません</string>
+    <string name="wake_diagnostics_next_run_overdue">実行時刻を過ぎ、システムの実行待ちです（予定 %1$s）</string>
+    <string name="wake_diagnostics_next_run_overdue_constrained">実行時刻を過ぎ、条件の成立待ちです（予定 %1$s）</string>
     <string name="wake_diagnostics_attempts">試行 %1$d 回</string>
     <string name="wake_diagnostics_history">他に %1$d 件の履歴</string>
     <string name="wake_diagnostics_constrained">実行制約あり</string>

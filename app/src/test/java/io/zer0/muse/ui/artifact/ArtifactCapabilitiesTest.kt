@@ -29,10 +29,11 @@ class ArtifactCapabilitiesTest {
     }
 
     @Test
-    fun `结构化文本走 Markdown 渲染`() {
-        listOf("markdown", "document", "table", "json", "csv").forEach {
+    fun `结构化文本走 Markdown 渲染，json 走代码高亮`() {
+        listOf("markdown", "document", "table", "csv").forEach {
             assertEquals(it, ArtifactRenderMode.Markdown, artifactRenderMode(it, null))
         }
+        assertEquals(ArtifactRenderMode.Code, artifactRenderMode("json", null))
     }
 
     @Test

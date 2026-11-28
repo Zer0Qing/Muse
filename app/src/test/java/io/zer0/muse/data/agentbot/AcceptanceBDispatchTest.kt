@@ -1,8 +1,8 @@
-package io.zer0.muse.data.agentbot;
+package io.zer0.muse.data.agentbot
 
-import org.junit.Assert.assertTrue;
-import org.junit.Test;
-import java.io.File;
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import java.io.File
 
 /**
  * 验收清单 B 组（主 Bot 说话与派工）的可静态验证部分。
@@ -19,11 +19,11 @@ import java.io.File;
 class AcceptanceBDispatchTest {
 
     private val vm: String by lazy {
-        File("src/main/java/io/zer0/muse/ui/agentbot/AgentBotViewModel.kt").readText();
+        File("src/main/java/io/zer0/muse/ui/agentbot/AgentBotViewModel.kt").readText()
     }
 
     private val facade: String by lazy {
-        File("src/main/java/io/zer0/muse/data/agentbot/AgentConversationFacade.kt").readText();
+        File("src/main/java/io/zer0/muse/data/agentbot/AgentConversationFacade.kt").readText()
     }
 
     @Test
@@ -33,16 +33,16 @@ class AcceptanceBDispatchTest {
         assertTrue(
             "前台回合要有独立 Job 句柄",
             vm.contains("foregroundTurnJob"),
-        );
+        )
     }
 
     @Test
     fun `B3 stopping the reply leaves the turn job cancellable`() {
-        val at = vm.indexOf("fun stopReply()");
-        assertTrue(at > 0);
-        val body = vm.substring(at, minOf(at + 400, vm.length));
-        assertTrue("必须 cancel 前台 Job", body.contains("foregroundTurnJob?.cancel()"));
-        assertTrue("并且复位发送状态，否则按钮会卡在「停止」", body.contains("setSending(false)"));
+        val at = vm.indexOf("fun stopReply()")
+        assertTrue(at > 0)
+        val body = vm.substring(at, minOf(at + 400, vm.length))
+        assertTrue("必须 cancel 前台 Job", body.contains("foregroundTurnJob?.cancel()"))
+        assertTrue("并且复位发送状态，否则按钮会卡在「停止」", body.contains("setSending(false)"))
     }
 
     @Test
@@ -51,7 +51,7 @@ class AcceptanceBDispatchTest {
         assertTrue(
             "接纳必须有锁",
             facade.contains("acceptLock.withLock"),
-        );
+        )
     }
 
     @Test
@@ -61,6 +61,6 @@ class AcceptanceBDispatchTest {
         assertTrue(
             "输入必须先持久化再谈合并",
             facade.contains("appendEvent") || facade.contains("repository"),
-        );
+        )
     }
 }

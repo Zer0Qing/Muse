@@ -43,7 +43,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -74,10 +73,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kyant.backdrop.backdrops.layerBackdrop
 import io.github.fletchmckee.liquid.liquefiable
 import io.zer0.common.Logger
-import io.zer0.muse.ui.theme.MuseCornerRadius
 import io.zer0.muse.R
 import io.zer0.muse.data.groupchat.GroupChatMessageEntity
+import io.zer0.muse.ui.assistant.ModelSwitchSheet
+import io.zer0.muse.ui.chat.ChatSelectionBar
 import io.zer0.muse.ui.chat.DateSeparator
+import io.zer0.muse.ui.chat.SmartImage
+import io.zer0.muse.ui.chat.ThinkingIndicator
+import io.zer0.muse.ui.chat.isSameDay
 import io.zer0.muse.ui.common.MuseFloatingActionItem
 import io.zer0.muse.ui.common.MuseFloatingActionMenu
 import io.zer0.muse.ui.common.MusePopover
@@ -93,7 +96,7 @@ import io.zer0.muse.ui.common.navigation.MuseTopBarIconButton
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.common.surface.MusePageScaffold
 import io.zer0.muse.ui.common.surface.museBottomBarInsets
-import io.zer0.muse.ui.chat.isSameDay
+import io.zer0.muse.ui.theme.MuseCornerRadius
 import io.zer0.muse.ui.theme.MuseHaptics
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
@@ -102,6 +105,7 @@ import io.zer0.muse.ui.theme.assistantBubble
 import io.zer0.muse.ui.theme.semiLarge
 import io.zer0.muse.ui.theme.titleMediumStrong
 import io.zer0.muse.util.ShareIntentHelper
+import io.zer0.muse.util.launchSafely
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -109,13 +113,6 @@ import kotlinx.coroutines.flow.sample
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.androidx.compose.koinViewModel
-import io.zer0.muse.ui.assistant.ModelSwitchSheet
-import io.zer0.muse.ui.chat.SmartImage
-import io.zer0.muse.ui.chat.ThinkingIndicator
-import io.zer0.muse.ui.chat.HistoryLoadMorePlaceholder
-import io.zer0.muse.ui.chat.ChatSelectionBar
-import io.zer0.muse.ui.chat.InputBar
-import io.zer0.muse.util.launchSafely
 
 /**
  * 群聊详情页 — 消息流 + 输入栏 + Agent 轮转回复。

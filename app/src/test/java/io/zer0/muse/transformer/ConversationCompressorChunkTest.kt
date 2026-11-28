@@ -70,6 +70,7 @@ class ConversationCompressorChunkTest {
     fun `空列表返回空块`() {
         assertTrue(ConversationCompressor.chunkMessages(emptyList(), 1_000).isEmpty())
     }
+
     @Test
     fun `已否定段单独抽出并保留到下一个同级标题前`() {
         val summary = """

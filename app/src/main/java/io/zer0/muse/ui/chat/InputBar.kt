@@ -12,19 +12,40 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.weight
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.*
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -60,30 +81,29 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.zer0.ai.core.MessageRole
-import io.zer0.muse.ui.theme.MuseCornerRadius
 import io.zer0.muse.R
 import io.zer0.muse.asr.ASRStatus
+import io.zer0.muse.ui.assistant.reasoningLevelLabelRes
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
-import io.zer0.muse.ui.common.form.MuseAnchoredMenu
 import io.zer0.muse.ui.common.form.MuseChip
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.state.MuseSpinner
-import io.zer0.muse.ui.common.surface.MuseListItem
 import io.zer0.muse.ui.theme.MuseActionColors
 import io.zer0.muse.ui.theme.MuseAnimation
+import io.zer0.muse.ui.theme.MuseCornerRadius
 import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MuseHaptics
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.MuseSpacing
 import io.zer0.muse.ui.theme.pill
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeoutOrNull
-import io.zer0.muse.ui.assistant.reasoningLevelLabelRes
 
 /** L-IB1: 输入框字符上限,防止超长文本拖慢渲染或超出模型上下文窗口。 */
 internal const val INPUT_TEXT_MAX_LENGTH = 5000
@@ -105,7 +125,6 @@ private fun extractInsertedSegment(oldText: String, newText: String): String {
         ) suffix++
     return newText.substring(prefix, newText.length - suffix)
 }
-
 /**
  * v1.131: @mention 高亮正则 — 文件级常量,避免每次 [MentionHighlightTransformation.filter]
  * 重组都新建(输入框文本变化时 filter 会被高频调用)。
@@ -384,16 +403,10 @@ internal fun InputBar(state: MuseInputState = MuseInputState(), callbacks: Input
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 pendingDocuments.forEachIndexed { index, doc ->
-                    val docInteractionSource = remember { MutableInteractionSource() }
                     Surface(
                         shape = MuseShapes.medium,
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                        modifier = Modifier
-                            .padding(top = MusePaddings.tightGap)
-                            .clickable(
-                                interactionSource = docInteractionSource,
-                                indication = null,
-                            ) { onRemovePendingDocument(index) },
+                        modifier = Modifier.padding(top = MusePaddings.tightGap),
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -422,11 +435,9 @@ internal fun InputBar(state: MuseInputState = MuseInputState(), callbacks: Input
                                 )
                             }
                             Spacer(Modifier.width(MusePaddings.tightGap))
-                            Icon(
-                                imageVector = MuseIcons.x,
+                            io.zer0.muse.ui.common.media.AttachmentRemoveButton(
                                 contentDescription = stringResource(R.string.chat_remove_document_cd),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                                modifier = Modifier.size(MuseIconSizes.iconTiny),
+                                onClick = { onRemovePendingDocument(index) },
                             )
                         }
                     }
@@ -609,6 +620,7 @@ internal fun InputBar(state: MuseInputState = MuseInputState(), callbacks: Input
             ImageGenParamsPanel(
                 params = imageGenParams,
                 onParamsChange = onImageGenParamsChange,
+                onOpenStudio = callbacks.onOpenMediaStudio,
             )
         }
 
@@ -910,6 +922,8 @@ internal fun InputBar(state: MuseInputState = MuseInputState(), callbacks: Input
                 )
 
                 // 右侧: 麦克风(空文本且无待发图片时) / 发送(有文本时) / 停止(流式中) / 插话(流式中输入非空)
+                var lastSendUptimeMs by remember { mutableStateOf(0L) }
+                var lastStreamActionMs by remember { mutableStateOf(0L) }
                 val canInterject = text.isNotBlank() || pendingImages.isNotEmpty() || pendingVideo != null
                 if (isStreaming && !canInterject) {
                     // 停止生成:红色实心圆形按钮,白色停止图标
@@ -927,6 +941,8 @@ internal fun InputBar(state: MuseInputState = MuseInputState(), callbacks: Input
                                 interactionSource = stopInteractionSource,
                                 indication = null,
                                 onClick = {
+                                    // 发送切停止同位切换保护：450ms 冷却避免双击发送把刚发出的请求停掉
+                                    if (android.os.SystemClock.uptimeMillis() - lastSendUptimeMs < 450L) return@clickable
                                     MuseHaptics.medium(hapticFeedback)
                                     onStop()
                                 },
@@ -964,7 +980,7 @@ internal fun InputBar(state: MuseInputState = MuseInputState(), callbacks: Input
                     // 入队不打断生成,插话打断当前生成并重定向。
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
+                        horizontalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
                     ) {
                         // B2 入队按钮:把当前输入加入待发送队列(不打断生成),发送按钮位左侧新增。
                         val enqueueInteractionSource = remember { MutableInteractionSource() }
@@ -982,6 +998,9 @@ internal fun InputBar(state: MuseInputState = MuseInputState(), callbacks: Input
                                     indication = null,
                                     enabled = true,
                                     onClick = {
+                                        val now = android.os.SystemClock.uptimeMillis()
+                                        if (now - lastStreamActionMs < 350L) return@clickable
+                                        lastStreamActionMs = now
                                         MuseHaptics.medium(hapticFeedback)
                                         onEnqueuePending()
                                     },
@@ -1023,6 +1042,9 @@ internal fun InputBar(state: MuseInputState = MuseInputState(), callbacks: Input
                                     indication = null,
                                     enabled = true,
                                     onClick = {
+                                        val now = android.os.SystemClock.uptimeMillis()
+                                        if (now - lastStreamActionMs < 350L) return@clickable
+                                        lastStreamActionMs = now
                                         MuseHaptics.medium(hapticFeedback)
                                         onInterject()
                                     },
@@ -1085,35 +1107,56 @@ internal fun InputBar(state: MuseInputState = MuseInputState(), callbacks: Input
                                 val slideThresholdPx = MuseIconSizes.touchTarget.toPx()
                                 detectTapGestures(
                                     onPress = { offset ->
-                                        // 留一条可追踪的日志：真机上「点了没反应」最难区分
-                                        // 是「手势没到达」还是「到达了但启动失败」，
-                                        // 有这条就能一眼分开。
-                                        io.zer0.common.Logger.d("InputBar", "mic onPress at $offset")
-                                        val started = currentOnStart()
-                                        if (!started) io.zer0.common.Logger.w("InputBar", "mic onStartRecording 返回 false")
-                                        if (!started) return@detectTapGestures
-                                        MuseHaptics.medium(hapticFeedback)
-                                        // 上滑取消：按住期间跟踪纵向位移，超过阈值即视为放弃本次录音。
-                                        // 用 awaitPointerEventScope 只为读位移，不再靠它计时。
-                                        var cancelled = false
-                                        var released = true
+                                        // 最短按住阈值（200ms）：轻点误触不启动录音也不提交空语音
+                                        var armed = false
+                                        var aborted = false
+                                        var slideCancelled = false
                                         awaitPointerEventScope {
-                                            while (true) {
-                                                val event = awaitPointerEvent()
-                                                val change = event.changes.firstOrNull() ?: continue
-                                                if (offset.y - change.position.y > slideThresholdPx) {
-                                                    cancelled = true
+                                            val deadline = android.os.SystemClock.uptimeMillis() + 200L
+                                            while (!aborted) {
+                                                val now = android.os.SystemClock.uptimeMillis()
+                                                if (!armed && now >= deadline) {
+                                                    armed = true
                                                     break
                                                 }
-                                                if (change.changedToUp()) break
+                                                val event = withTimeoutOrNull(
+                                                    (deadline - now).coerceAtLeast(16L),
+                                                ) { awaitPointerEvent() }
+                                                if (event == null) {
+                                                    armed = true
+                                                    break
+                                                }
+                                                val change = event.changes.firstOrNull()
+                                                if (change == null || !change.pressed || change.isConsumed) {
+                                                    aborted = true
+                                                } else if (offset.y - change.position.y > slideThresholdPx) {
+                                                    slideCancelled = true
+                                                    aborted = true
+                                                }
                                             }
-                                        }
-                                        if (!released) cancelled = true
-                                        if (cancelled) {
-                                            currentOnCancel()
-                                            showCancelledHint = true
-                                        } else {
-                                            currentOnStop()
+                                            if (armed && !aborted) {
+                                                val started = currentOnStart()
+                                                if (started) {
+                                                    MuseHaptics.medium(hapticFeedback)
+                                                    while (true) {
+                                                        val event = awaitPointerEvent()
+                                                        val change = event.changes.firstOrNull() ?: break
+                                                        if (offset.y - change.position.y > slideThresholdPx) {
+                                                            slideCancelled = true
+                                                            break
+                                                        }
+                                                        if (!change.pressed || change.changedToUp()) break
+                                                    }
+                                                    if (slideCancelled) {
+                                                        currentOnCancel()
+                                                        showCancelledHint = true
+                                                    } else {
+                                                        currentOnStop()
+                                                    }
+                                                }
+                                            } else if (aborted && !slideCancelled) {
+                                                io.zer0.muse.ui.common.feedback.MuseToast.show(holdToRecordHint)
+                                            }
                                         }
                                     },
                                 )
@@ -1180,6 +1223,7 @@ internal fun InputBar(state: MuseInputState = MuseInputState(), callbacks: Input
                                 indication = null,
                                 enabled = canSend,
                                 onClick = {
+                                    lastSendUptimeMs = android.os.SystemClock.uptimeMillis()
                                     MuseHaptics.medium(hapticFeedback)
                                     onSend()
                                 },
@@ -1622,11 +1666,3 @@ private fun SlashCommandSuggestions(
         }
     }
 }
-
-/**
- * 「按住说话」的最短按住时长。
- *
- * 400ms 比系统长按（约 500ms）略短：用户体感上「按一下就说话」，
- * 同时又足以区分误触。真正的取消靠上滑，不靠时间。
- */
-private const val HOLD_TO_RECORD_MS = 400L

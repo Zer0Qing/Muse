@@ -1,68 +1,25 @@
 package io.zer0.muse.tools
 
-import android.content.Context
-import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.Model
 import io.zer0.ai.core.ProviderConfig
 import io.zer0.ai.core.ReasoningLevel
-import io.zer0.ai.core.ToolCall
-import io.zer0.ai.core.ToolCallInfo
-import io.zer0.ai.core.ToolCallSanitizer
 import io.zer0.ai.core.ToolDefinition
 import io.zer0.ai.core.UIMessage
 import io.zer0.common.AppJson
-import io.zer0.common.Logger
-import io.zer0.common.Perf
-import io.zer0.common.TextTruncation
-import io.zer0.common.resultOf
-import io.zer0.muse.R
-import io.zer0.muse.runtime.RuntimeMissing
-import io.zer0.muse.chat.PendingToolCallStore
 import io.zer0.muse.data.ExperimentsConfig
 import io.zer0.muse.data.assistant.AssistantEntity
-import io.zer0.muse.data.assistant.AssistantRepository
-import io.zer0.muse.data.audit.AuditLogger
-import io.zer0.muse.data.session.SessionRepository
 import io.zer0.muse.data.session.ToolRoundEntity
 import io.zer0.muse.data.skill.SkillEntity
-import io.zer0.muse.data.skill.SkillRepository
 import io.zer0.muse.ui.chat.ChatErrorType
-import io.zer0.muse.ui.chat.ChatStateAccessor
-import io.zer0.muse.ui.chat.ChatTaskCardCoordinator
-import io.zer0.muse.ui.taskcard.TaskCardData
-import io.zer0.muse.ui.taskcard.TaskCardPhase
-import io.zer0.muse.ui.taskcard.TaskStepStatus
-import io.zer0.muse.util.TokenEstimator
+import io.zer0.muse.ui.chat.ChatViewModel
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.Semaphore
-import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeout
-import kotlinx.coroutines.withTimeoutOrNull
-import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
-import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.serialization.json.put
 import java.io.File
-import kotlin.coroutines.coroutineContext
 import kotlin.uuid.Uuid
-import io.zer0.muse.ui.chat.ToolCallRecord
-import io.zer0.muse.ui.chat.ToolCallCard
-import io.zer0.muse.ui.chat.STICKER_PATH_PATTERN
-import io.zer0.muse.ui.chat.extractStickerPaths
-import io.zer0.muse.ui.chat.MessageBubble
-import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * 工具编排的常量、类型与纯判定函数。
@@ -138,7 +95,7 @@ internal object ToolExecutionTimeoutPolicy {
  * Without a known model window, this threshold only selects inline versus file-backed delivery.
  * It never caps or drops the tool's complete result.
  */
-internal const val TOOL_OUTPUT_INLINE_FALLBACK_CHARS = 32 * 1024
+internal const val TOOL_OUTPUT_INLINE_FALLBACK_CHARS = 12 * 1024
 internal const val SMALL_TOOL_RESULT_INLINE_CHARS = 4 * 1024
 
 /** 超出当前轮剩余上下文预算后，随完整文件引用提供的预览字符数。 */
@@ -433,7 +390,7 @@ interface ToolLoopHost {
      *  - 调用 chatService.streamChat
      *  - 收集 ContentDelta / ReasoningDelta / ToolCallDelta / ImageDelta
      *  - 实时更新 UI(节流)
-     *  - 处理 NETWORK/RATE_LIMIT 自动重试
+     *  - 处理 NETWORK/RateLimit 自动重试
      *  - finalize assistant 消息(mood/reflection/think 提取)
      *  - 返回含/不含 toolCalls 的 assistant 消息
      */
@@ -697,4 +654,3 @@ internal class ToolResultGate(
     /** 编排器读值:已被作废(超时)时返回 null,迟到结果永不外泄。 */
     fun valueOrNull(): String? = if (abandoned.get()) null else result.get()
 }
-

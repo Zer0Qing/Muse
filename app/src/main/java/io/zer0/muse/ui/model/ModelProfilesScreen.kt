@@ -42,11 +42,11 @@ import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.util.launchSafely
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
-import io.zer0.muse.util.launchSafely
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

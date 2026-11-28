@@ -9,7 +9,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonArray
@@ -27,118 +26,163 @@ import okhttp3.Request
 import okhttp3.Response
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 
 /**
- * v2.0.1: QQ 机器人接收器 — WebSocket Gateway 长连接(免公网)。
- *
- * 协议:获取 WSS 接入点 → 连接(收到 Hello 携带心跳周期)→ Identify
- * (token=QQBot {access_token}, intents=GROUP_AND_C2C_EVENT)→ op=1 心跳 → op=0 事件派发。
- * 用户消息写入 [ChannelInbox] 并缓存 msg_id 供被动回复(见 [QqMsgIdCache])。
- * 配置保存/删除后由 UI 调用 [restart];App 启动时由 MuseApp 调起。
+ * v2.0.1: QQ 机器人接收器 — WebSocket Gateway 长连接(免公网)，支持多实例并行。
  */
 class QqReceiver(
     private val channelManager: ChannelManager,
     private val context: Context,
     private val appScope: CoroutineScope,
-) {
+) : ChannelReceiver {
+    override val platform: ChannelPlatform = ChannelPlatform.QQ
+
+    private class SessionState(
+        val sessionIdRef: AtomicReference<String?> = AtomicReference(null),
+        val lastSeqRef: AtomicLong = AtomicLong(0L),
+        val identifyRequired: AtomicBoolean = AtomicBoolean(false),
+    )
+
     private data class FrameContext(
         val accessToken: String,
         val channelId: String,
         val heartbeatInterval: AtomicLong,
-        val lastSeq: AtomicLong,
+        val session: SessionState,
     )
 
-    private var job: Job? = null
+    private val lock = Any()
+    private var watcherJob: Job? = null
+    private val channelJobs = ConcurrentHashMap<String, Job>()
+    private val channelFingerprints = ConcurrentHashMap<String, String>()
+    private val channelSessions = ConcurrentHashMap<String, SessionState>()
 
     /** 启动接收循环(幂等;已有循环先停再起)。 */
-    fun restart() {
-        job?.cancel()
-        job = appScope.launch {
-            ChannelInbox.attach(context)
-            connectLoop()
+    override fun restart() {
+        synchronized(lock) {
+            stopAllLocked()
+            watcherJob = appScope.launch {
+                ChannelInbox.attach(context)
+                channelManager.refresh()
+                reconcile(channelManager.channels.value)
+                channelManager.channels.collect { channels ->
+                    reconcile(channels)
+                }
+            }
         }
     }
 
     /** 停止接收。 */
-    fun stop() {
-        job?.cancel()
-        job = null
+    override fun stop() {
+        synchronized(lock) {
+            stopAllLocked()
+        }
+    }
+
+    private fun stopAllLocked() {
+        watcherJob?.cancel()
+        watcherJob = null
+        channelJobs.keys.toList().forEach { id ->
+            channelJobs.remove(id)?.cancel()
+            channelFingerprints.remove(id)
+            ChannelRuntimeRegistry.markStopped(id, platform)
+        }
+    }
+
+    private fun reconcile(channels: List<ChannelConfig>) {
+        synchronized(lock) {
+            val active = channels.filter {
+                it.enabled && it.platform == platform &&
+                    it.appId.isNotBlank() && it.appSecret.isNotBlank()
+            }
+            val activeMap = active.associateBy { it.id }
+            val allIds = channels.filter { it.platform == platform }.mapTo(HashSet()) { it.id }
+
+            channelJobs.keys.toList().forEach { id ->
+                val nextCfg = activeMap[id]
+                val nextFp = nextCfg?.let { "${it.appId}:${it.appSecret}" }
+                if (nextCfg == null || channelFingerprints[id] != nextFp) {
+                    channelJobs.remove(id)?.cancel()
+                    channelFingerprints.remove(id)
+                    channelSessions.remove(id)
+                    if (id !in allIds) {
+                        ChannelRuntimeRegistry.remove(id)
+                    } else if (nextCfg == null) {
+                        ChannelRuntimeRegistry.markStopped(id, platform)
+                    }
+                }
+            }
+
+            channels.filter { it.platform == platform && !it.enabled }.forEach { disabled ->
+                ChannelRuntimeRegistry.markStopped(disabled.id, platform)
+            }
+
+            active.forEach { cfg ->
+                val existing = channelJobs[cfg.id]
+                if (existing == null || !existing.isActive) {
+                    channelFingerprints[cfg.id] = "${cfg.appId}:${cfg.appSecret}"
+                    val session = channelSessions.getOrPut(cfg.id) { SessionState() }
+                    channelJobs[cfg.id] = appScope.launch {
+                        connectLoopForChannel(cfg, session)
+                    }
+                }
+            }
+        }
     }
 
     @Suppress("TooGenericExceptionCaught") // 连接实现会抛 IO/SSL/协议异常，统一记录后退避重连；取消已单独放行。
-    private suspend fun connectLoop() {
+    private suspend fun connectLoopForChannel(config: ChannelConfig, session: SessionState) {
         while (currentCoroutineContext().isActive) {
-            channelManager.refresh()
-            val config = channelManager.channels.value.firstOrNull {
-                it.enabled && it.platform == ChannelPlatform.QQ &&
-                    it.appId.isNotBlank() && it.appSecret.isNotBlank()
-            }
-            if (config == null) {
-                // v2.6.7: 无启用渠道时**挂起等待配置变化**，不再每 5 秒空转唤醒。
-                // 旧写法 delay(5s)+continue 让五个接收器每分钟合计唤醒 60 次，阻止深度休眠。
-                // 配置变更由 ChannelManager.upsert/remove/refresh 写入 channels；
-                // 设置页保存后还会调 restart() 重进本循环，两条路径都能唤醒。
-                Logger.i(TAG, "无启用中的 QQ 渠道,接收循环挂起等待配置")
-                channelManager.channels.first { list ->
-                    list.any {
-                        it.enabled && it.platform == ChannelPlatform.QQ &&
-                            it.appId.isNotBlank() && it.appSecret.isNotBlank()
-                    }
-                }
-                continue
-            }
-            Logger.i(TAG, "QQ 接收循环: 找到渠道 ${config.id},建立连接…")
+            ChannelRuntimeRegistry.markConnecting(config.id, platform)
+            Logger.i(TAG, "QQ 接收循环: 建立连接 ${config.id}…")
             try {
-                connectOnce(config)
+                connectOnce(config, session)
             } catch (cancel: CancellationException) {
-                // 渠道被重启/停止时会取消连接,这是正常收尾,不是连接故障。
                 throw cancel
             } catch (e: Exception) {
-                // 带上异常类型:此前只打 message,日志里会出现「ynk was cancelled」这种
-                // 看不出是取消还是真断连的孤零零一句话。
                 Logger.w(TAG, "QQ 连接异常: ${e::class.simpleName}: ${e.message}")
+                if (ChannelRuntimeRegistry.looksLikeAuthError(e.message)) {
+                    ChannelRuntimeRegistry.markAuthError(config.id, platform, e.message.orEmpty())
+                } else {
+                    ChannelRuntimeRegistry.markReconnecting(config.id, platform, e.message.orEmpty())
+                }
             }
             if (!currentCoroutineContext().isActive) return
             delay(RECONNECT_DELAY_MS)
         }
     }
 
-    /**
-     * 平台会话状态，跨连接保留。
-     *
-     * 断线重连必须能 Resume 才能拿回断档期间的事件，而这依赖上一次的
-     * session_id 与最后收到的 seq —— 它们不能是 connectOnce 的局部变量。
-     */
-    private val sessionIdRef = java.util.concurrent.atomic.AtomicReference<String?>(null)
-    private val lastSeqRef = java.util.concurrent.atomic.AtomicLong(0L)
-
-    /** 平台要求重新 Identify（session 已失效）时置真。 */
-    private val identifyRequired = java.util.concurrent.atomic.AtomicBoolean(false)
-
     /** 建立一次 WebSocket 并挂起至断开。 */
-    private suspend fun connectOnce(config: ChannelConfig) {
+    private suspend fun connectOnce(config: ChannelConfig, session: SessionState) {
         Logger.i(TAG, "获取 QQ access_token…")
         val token = QqClient.fetchAccessToken(config.appId, config.appSecret).getOrElse { e ->
             Logger.w(TAG, "QQ access_token 获取失败: ${e.message}")
+            if (ChannelRuntimeRegistry.looksLikeAuthError(e.message)) {
+                ChannelRuntimeRegistry.markAuthError(config.id, platform, e.message.orEmpty())
+            } else {
+                ChannelRuntimeRegistry.markReconnecting(config.id, platform, e.message.orEmpty())
+            }
             return
         }
         Logger.i(TAG, "access_token 就绪(有效期 ${token.expiresInSeconds}s),获取 gateway…")
         val gateway = QqClient.getGateway(token.accessToken).getOrElse { e ->
             Logger.w(TAG, "QQ gateway 获取失败: ${e.message}")
+            ChannelRuntimeRegistry.markReconnecting(config.id, platform, e.message.orEmpty())
             return
         }
         Logger.i(TAG, "gateway 就绪(${gateway.take(60)}),建立 WebSocket…")
         val disconnected = CompletableDeferred<Unit>()
         val heartbeatInterval = AtomicLong(DEFAULT_HEARTBEAT_MS)
-        val frameContext = FrameContext(token.accessToken, config.id, heartbeatInterval, lastSeqRef)
+        val frameContext = FrameContext(token.accessToken, config.id, heartbeatInterval, session)
         val socketRef = AtomicReference<WebSocket?>(null)
         val heartbeatJob = appScope.launch {
             while (isActive) {
                 delay(heartbeatInterval.get())
                 val webSocket = socketRef.get() ?: continue
-                val seq = lastSeqRef.get()
+                val seq = session.lastSeqRef.get()
                 val payload = if (seq > 0) seq.toString() else "null"
                 runCatching { webSocket.send("{\"op\":1,\"d\":$payload}") }
             }
@@ -155,19 +199,19 @@ class QqReceiver(
 
                 override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
                     Logger.w(TAG, "QQ WS 断开: ${t.message} (http=${response?.code})")
+                    ChannelRuntimeRegistry.markReconnecting(config.id, platform, t.message.orEmpty())
                     disconnected.complete(Unit)
                 }
 
                 override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
                     Logger.i(TAG, "QQ WS 关闭(code=$code, reason=$reason)")
-                    // 4006 无效 session id / 4007 seq 错误：只能重新 Identify；
-                    // 其余（4008 频控、4009 连接过期、4900~4913 内部错误）保留会话走 Resume。
                     if (code == 4006 || code == 4007) {
-                        sessionIdRef.set(null)
-                        lastSeqRef.set(0L)
-                        identifyRequired.set(true)
+                        session.sessionIdRef.set(null)
+                        session.lastSeqRef.set(0L)
+                        session.identifyRequired.set(true)
                         Logger.w(TAG, "QQ 会话不可恢复(code=$code),下次重新 Identify")
                     }
+                    ChannelRuntimeRegistry.markReconnecting(config.id, platform, reason)
                     disconnected.complete(Unit)
                 }
 
@@ -187,14 +231,15 @@ class QqReceiver(
     private fun handleFrame(webSocket: WebSocket, text: String, frameContext: FrameContext) {
         val obj = AppJson.parseToJsonElement(text).jsonObject
         val op = obj["op"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: return
+        val session = frameContext.session
         when (op) {
             10 -> {
                 obj["d"]?.jsonObject?.get("heartbeat_interval")
                     ?.jsonPrimitive?.contentOrNull?.toLongOrNull()
                     ?.let { interval -> frameContext.heartbeatInterval.set(interval) }
-                val sessionId = sessionIdRef.get()
-                val seq = lastSeqRef.get()
-                val canResume = sessionId != null && seq > 0 && !identifyRequired.get()
+                val sessionId = session.sessionIdRef.get()
+                val seq = session.lastSeqRef.get()
+                val canResume = sessionId != null && seq > 0 && !session.identifyRequired.get()
                 if (canResume) {
                     Logger.i(
                         TAG,
@@ -203,35 +248,32 @@ class QqReceiver(
                     webSocket.send(resumePayload(frameContext.accessToken, sessionId, seq))
                 } else {
                     Logger.i(TAG, "QQ Hello(心跳周期 ${frameContext.heartbeatInterval.get()}ms),发送 Identify")
-                    identifyRequired.set(false)
+                    session.identifyRequired.set(false)
                     webSocket.send(identifyPayload(frameContext.accessToken))
                 }
             }
             11 -> Unit // Heartbeat ACK
-            0 -> handleDispatch(obj, frameContext.channelId)
+            0 -> handleDispatch(obj, frameContext)
             7 -> {
                 Logger.i(TAG, "QQ Gateway 要求重连")
                 webSocket.close(1000, "reconnect")
             }
             9 -> {
                 Logger.w(TAG, "QQ Invalid Session(intents 权限或参数问题,请检查 QQ 开放平台的单聊/群聊消息权限)")
-                // 平台已经明确拒绝这个会话，留着它只会让下一次 Resume 继续被拒。
-                sessionIdRef.set(null)
-                lastSeqRef.set(0L)
-                identifyRequired.set(true)
+                session.sessionIdRef.set(null)
+                session.lastSeqRef.set(0L)
+                session.identifyRequired.set(true)
+                ChannelRuntimeRegistry.markAuthError(frameContext.channelId, platform, "QQ Gateway Invalid Session")
                 webSocket.close(1000, "invalid session")
             }
         }
         obj["s"]?.jsonPrimitive?.contentOrNull?.toLongOrNull()?.let { seq ->
-            if (seq > frameContext.lastSeq.get()) frameContext.lastSeq.set(seq)
+            if (seq > session.lastSeqRef.get()) session.lastSeqRef.set(seq)
         }
     }
 
     /**
      * 全量模式下判断这条群消息是不是提到了机器人。
-     *
-     * QQ 的群消息会把被 @ 的对象放在 `mentions` 里，机器人自己的那条带 `bot: true`；
-     * 拿不到 mentions（部分旧格式事件）时不能猜，宁可不回——猜错就是群里刷屏。
      */
     private fun isBotMentioned(data: JsonObject): Boolean {
         val mentions = data["mentions"] as? JsonArray ?: return false
@@ -241,18 +283,15 @@ class QqReceiver(
     }
 
     /** Dispatch 事件(op=0)。 */
-    private fun handleDispatch(obj: JsonObject, channelId: String) {
+    private fun handleDispatch(obj: JsonObject, frameContext: FrameContext) {
+        val channelId = frameContext.channelId
+        val session = frameContext.session
         val eventType = obj["t"]?.jsonPrimitive?.contentOrNull
         val d = obj["d"] as? JsonObject
         if (eventType != null && d != null) {
             when (eventType) {
                 "C2C_MESSAGE_CREATE" -> handleC2cMessage(d, channelId)
                 "GROUP_AT_MESSAGE_CREATE" -> handleGroupMessage(d, channelId)
-                // 开启「接收所有消息」后群里每条消息都会推这个事件。直接当 @ 消息处理
-                // 会让机器人对群里每句话都回复（刷屏），这里只留痕，不触发回复。
-                // 开了「接收所有消息」之后，@ 机器人的那条也走全量事件，
-                // 不会再单独推一个 GROUP_AT_MESSAGE_CREATE；以前一律忽略，
-                // 用户看到的就是「圈了它也不说话」。这里只放行确实提到了机器人的。
                 "GROUP_MESSAGE_CREATE" ->
                     if (isBotMentioned(d)) {
                         handleGroupMessage(d, channelId)
@@ -262,13 +301,16 @@ class QqReceiver(
                 "READY" -> {
                     val username = d["user"]?.jsonObject
                         ?.get("username")?.jsonPrimitive?.contentOrNull.orEmpty()
-                    // session_id 是 Resume 的入场券，之前完全没存，导致断线必然开新会话。
-                    sessionIdRef.set(d["session_id"]?.jsonPrimitive?.contentOrNull)
-                    lastSeqRef.set(0L)
-                    identifyRequired.set(false)
+                    session.sessionIdRef.set(d["session_id"]?.jsonPrimitive?.contentOrNull)
+                    session.lastSeqRef.set(0L)
+                    session.identifyRequired.set(false)
+                    ChannelRuntimeRegistry.markConnected(channelId, platform, username)
                     Logger.i(TAG, "QQ 已连接($username),session 已记录")
                 }
-                "RESUMED" -> Logger.i(TAG, "QQ 会话已恢复,断档事件由平台补发")
+                "RESUMED" -> {
+                    ChannelRuntimeRegistry.markConnected(channelId, platform)
+                    Logger.i(TAG, "QQ 会话已恢复,断档事件由平台补发")
+                }
             }
         }
     }
@@ -280,6 +322,7 @@ class QqReceiver(
         if (openid.isNotBlank() && messageId.isNotBlank()) QqMsgIdCache.put(openid, messageId)
         val text = resolveInboundText(data)
         if (openid.isNotBlank() && text.isNotBlank()) {
+            ChannelRuntimeRegistry.markInbound(channelId, platform)
             recordQqInbound(appScope, ChannelInbox.Source("QQ", openid, channelId, messageId), data, text)
         } else {
             Logger.i(TAG, "QQ 单聊消息无可用文本,跳过($messageId ← $openid)")
@@ -290,7 +333,6 @@ class QqReceiver(
         val groupOpenId = data["group_openid"]?.jsonPrimitive?.contentOrNull.orEmpty()
         val target = "group:$groupOpenId"
         val messageId = data["id"]?.jsonPrimitive?.contentOrNull.orEmpty()
-        // 全量模式下 @ 消息会同时命中两个事件，同一条消息只处理一次。
         if (messageId.isNotBlank() && QqMsgIdCache.get(target) == messageId) {
             Logger.i(TAG, "QQ 群消息重复推送,已忽略($messageId)")
             return
@@ -298,9 +340,21 @@ class QqReceiver(
         if (groupOpenId.isNotBlank() && messageId.isNotBlank()) QqMsgIdCache.put(target, messageId)
         val text = resolveInboundText(data)
         if (groupOpenId.isNotBlank() && text.isNotBlank()) {
-            recordQqInbound(appScope, ChannelInbox.Source("QQ", target, channelId, messageId), data, text)
+            ChannelRuntimeRegistry.markInbound(channelId, platform)
+            recordQqInbound(
+                appScope,
+                ChannelInbox.Source(
+                    platform = "QQ",
+                    from = target,
+                    channelId = channelId,
+                    eventId = messageId,
+                    isGroup = true,
+                    isMentioned = true,
+                ),
+                data,
+                text,
+            )
         } else {
-            // 只有 @ 不带文字(且无附件)会落到这里:以前是无声丢弃,排查时完全看不出。
             Logger.i(TAG, "QQ 群消息无可用文本,跳过($messageId ← $target)")
         }
     }

@@ -76,7 +76,6 @@ import java.time.LocalDate
 import java.time.format.TextStyle
 import java.time.temporal.TemporalAdjusters
 import java.util.Locale
-import io.zer0.muse.ui.chat.ChatScreen
 
 /**
  * v2.2: 统计页 — 仪表盘风格重构。

@@ -1,8 +1,8 @@
 package io.zer0.muse.data.agentbot
 
 import android.content.Context
-import androidx.test.core.app.ApplicationProvider
 import androidx.lifecycle.viewModelScope
+import androidx.test.core.app.ApplicationProvider
 import io.zer0.muse.ui.agentbot.AgentBotViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -64,8 +64,14 @@ class AgentBotUiProjectionTest {
         assertEquals(1, projection.pendingApprovals.size)
 
         val rows = projection.taskRows.associateBy { it.taskId }
-        assertTrue("approval remains cancellable while its card offers approve and deny", rows.getValue("approval").actions.contains(AgentBotUiState.TaskAction.CANCEL))
-        assertTrue("unknown results need a verification action", rows.getValue("unknown").actions.contains(AgentBotUiState.TaskAction.VERIFY))
+        assertTrue(
+            "approval remains cancellable while its card offers approve and deny",
+            rows.getValue("approval").actions.contains(AgentBotUiState.TaskAction.CANCEL),
+        )
+        assertTrue(
+            "unknown results need a verification action",
+            rows.getValue("unknown").actions.contains(AgentBotUiState.TaskAction.VERIFY),
+        )
         assertEquals(AgentBotPrompt.VERIFY_RESULT, rows.getValue("unknown").needsUser)
         assertTrue("failed tasks expose an explicit retry", rows.getValue("failed").actions.contains(AgentBotUiState.TaskAction.RETRY))
         assertFalse("terminal tasks never appear in the running section", projection.inProgress.any { it.status in BotTaskStatus.TERMINAL })

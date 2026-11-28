@@ -79,10 +79,7 @@ class BotAnnotationService(
      * [currentContentHash] 与标注里的哈希不一致时，把该标注标 STALE 并不返回 ——
      * 用户看到的应该是"这个表情没了"，而不是"表情挂在了错误的位置"。
      */
-    suspend fun activeAnnotations(
-        messageId: String,
-        currentContentHash: String,
-    ): List<BotAnnotationEntity> {
+    suspend fun activeAnnotations(messageId: String, currentContentHash: String): List<BotAnnotationEntity> {
         val active = dao.activeForMessage(messageId)
         val (valid, stale) = active.partition { annotation ->
             annotation.targetContentHash.isBlank() || annotation.targetContentHash == currentContentHash

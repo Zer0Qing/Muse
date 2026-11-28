@@ -14,6 +14,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
 import java.security.MessageDigest
+import java.util.concurrent.ConcurrentHashMap
 
 internal const val WECLAW_REPLY_CONTEXT_TOKEN_PREFIX = "muse.weclaw.context.v1:"
 private const val WECLAW_CURSOR_PREFIX = "muse.weclaw.cursor.v1:"
@@ -41,19 +42,20 @@ internal suspend fun restoreWeClawCursor(storedCursor: String): String {
 }
 
 /**
- * v2.0: 微信 ClawBot(iLink)接收器 — 长轮询循环。
- *
- * 存在启用中的 WECLAW 渠道时循环调用 getupdates(长轮询约 30s):
- * 用户消息写入 [ChannelInbox](触发自动回复链路),context_token 写入
- * 加密暂存于 inbox 直到派发完成,同时更新 [WeClawContextCache] 供其他回发路径使用。
- * 配置保存/删除后由 UI 调用 [restart]。
+ * v2.0: 微信 ClawBot(iLink)接收器 — 长轮询循环（支持多实例并行）。
  */
 class WeClawReceiver(
     private val channelManager: ChannelManager,
     private val context: Context,
     private val appScope: CoroutineScope,
-) {
-    private var job: Job? = null
+) : ChannelReceiver {
+    override val platform: ChannelPlatform = ChannelPlatform.WECLAW
+
+    private val lock = Any()
+    private var watcherJob: Job? = null
+    private val channelJobs = ConcurrentHashMap<String, Job>()
+    private val channelFingerprints = ConcurrentHashMap<String, String>()
+
     private data class PollCursor(
         val channelId: String = "",
         val buffer: String = "",
@@ -63,78 +65,84 @@ class WeClawReceiver(
         val failures: Int = 0,
     )
 
-    /**
-     * 启动入口:先按持久化配置判定一次,再跟随后续的渠道变化起停。
-     *
-     * 只有存在启用中的 WECLAW 渠道时才起接收循环 —— 老实现无条件 [restart],没有渠道时
-     * 循环以 30 秒为周期空转,每次都要往调试日志里写一条「无渠道」。
-     *
-     * [ChannelManager.channels] 是 [kotlinx.coroutines.flow.StateFlow],但进程刚起来时
-     * 还没读过持久化配置(值是空列表),所以先 [ChannelManager.refresh] 再判定;
-     * 就在调用方的启动协程里读,不另开线程。
-     */
+    /** 启动入口:刷新持久配置并对齐可用渠道的长轮询协程。 */
     suspend fun startForEnabledChannels() {
         channelManager.refresh()
-        applyAvailability(weClawChannelAvailable(channelManager.channels.value))
-        appScope.launch {
-            // 渠道增删/启停后跟着起停。StateFlow 只在值真的变化时回调,
-            // 而 pollLoop 每轮 refresh() 出来的列表内容没变就不会触发这里。
-            channelManager.channels.collect { channels ->
-                applyAvailability(weClawChannelAvailable(channels))
-            }
-        }
-    }
-
-    /**
-     * 按「是否存在启用中的 WECLAW 渠道」起停。
-     *
-     * 只在「该跑」与「正在跑」不一致时动手,这就是防自触发的那道判断:[stop] 之后渠道并没有
-     * 变化,同一份值不会把循环重新拉起来。停用再启用依旧收得到消息 —— 渠道变回「有启用渠道」
-     * 就是一次状态转移,会走到 [restart];[pollLoop] 里的 30 秒兜底仍然保留作第二道保险。
-     */
-    @Synchronized
-    private fun applyAvailability(available: Boolean) {
-        when (weClawPollAction(available, job?.isActive == true)) {
-            WeClawPollAction.START -> restart()
-            WeClawPollAction.STOP -> stop()
-            WeClawPollAction.NONE -> Unit
-        }
+        restart()
     }
 
     /** 启动轮询(幂等;已有循环先停再起)。 */
-    @Synchronized
-    fun restart() {
-        job?.cancel()
-        job = appScope.launch {
-            ChannelInbox.attach(context)
-            pollLoop()
+    override fun restart() {
+        synchronized(lock) {
+            stopAllLocked()
+            watcherJob = appScope.launch {
+                ChannelInbox.attach(context)
+                channelManager.refresh()
+                reconcile(channelManager.channels.value)
+                channelManager.channels.collect { channels ->
+                    reconcile(channels)
+                }
+            }
         }
     }
 
     /** 停止轮询(App 关闭或渠道被删时)。 */
-    @Synchronized
-    fun stop() {
-        job?.cancel()
-        job = null
+    override fun stop() {
+        synchronized(lock) {
+            stopAllLocked()
+        }
     }
 
-    private suspend fun pollLoop() {
-        var cursor = PollCursor()
-        // 上一轮是否找到可用渠道。只在状态变化时记日志：老实现每 30 秒打一条「无渠道」，
-        // 6 小时能占满半份调试日志，把真正要看的东西埋掉。
-        var lastAvailable: Boolean? = null
-        while (currentCoroutineContext().isActive) {
-            channelManager.refresh()
-            val config = channelManager.channels.value.firstOrNull { it.isUsableWeClaw() }
-            val available = config != null
-            channelAvailabilityLog(available, lastAvailable)?.let { Logger.i(TAG, it) }
-            lastAvailable = available
-            if (config == null) {
-                // v2.6.7 fix (AUDIT F17): 不要 return —— 旧实现让整个接收 job 终结且无人重启，
-                // 用户停用再启用渠道后就再也收不到消息，直到重启 App 或再点一次保存。
-                delay(30_000L)
-                continue
+    private fun stopAllLocked() {
+        watcherJob?.cancel()
+        watcherJob = null
+        channelJobs.keys.toList().forEach { id ->
+            channelJobs.remove(id)?.cancel()
+            channelFingerprints.remove(id)
+            ChannelRuntimeRegistry.markStopped(id, platform)
+        }
+    }
+
+    private fun reconcile(channels: List<ChannelConfig>) {
+        synchronized(lock) {
+            val active = channels.filter { it.isUsableWeClaw() }
+            val activeMap = active.associateBy { it.id }
+            val allIds = channels.filter { it.platform == platform }.mapTo(HashSet()) { it.id }
+
+            channelJobs.keys.toList().forEach { id ->
+                val nextCfg = activeMap[id]
+                val nextFp = nextCfg?.let { weClawSecretFingerprint(it.appSecret) }
+                if (nextCfg == null || channelFingerprints[id] != nextFp) {
+                    channelJobs.remove(id)?.cancel()
+                    channelFingerprints.remove(id)
+                    if (id !in allIds) {
+                        ChannelRuntimeRegistry.remove(id)
+                    } else if (nextCfg == null) {
+                        ChannelRuntimeRegistry.markStopped(id, platform)
+                    }
+                }
             }
+
+            channels.filter { it.platform == platform && !it.enabled }.forEach { disabled ->
+                ChannelRuntimeRegistry.markStopped(disabled.id, platform)
+            }
+
+            active.forEach { cfg ->
+                val existing = channelJobs[cfg.id]
+                if (existing == null || !existing.isActive) {
+                    channelFingerprints[cfg.id] = weClawSecretFingerprint(cfg.appSecret)
+                    channelJobs[cfg.id] = appScope.launch {
+                        pollLoopForChannel(cfg)
+                    }
+                }
+            }
+        }
+    }
+
+    private suspend fun pollLoopForChannel(config: ChannelConfig) {
+        var cursor = PollCursor()
+        ChannelRuntimeRegistry.markConnecting(config.id, platform)
+        while (currentCoroutineContext().isActive) {
             cursor = pollOnce(config, cursor)
         }
     }
@@ -153,6 +161,7 @@ class WeClawReceiver(
         }
         return try {
             val updates = WeClawClient.getUpdates(config.appSecret, cursor.buffer).getOrThrow()
+            ChannelRuntimeRegistry.markConnected(config.id, platform, config.botDisplayName)
             val nextBuffer = updates.buffer.ifBlank { cursor.buffer }
             updates.messages.forEachIndexed { index, msg ->
                 WeClawContextCache.put(msg.fromUserId, msg.contextToken)
@@ -163,7 +172,9 @@ class WeClawReceiver(
                     channelId = config.id,
                     eventId = eventId,
                     encryptedReplyContextToken = protectWeClawReplyContextToken(msg.contextToken),
+                    isGroup = false,
                 )
+                ChannelRuntimeRegistry.markInbound(config.id, platform)
                 val media = msg.media
                 if (media == null) {
                     ChannelInbox.record(source, msg.text, "")
@@ -178,6 +189,11 @@ class WeClawReceiver(
         } catch (error: Exception) {
             val failures = cursor.failures + 1
             Logger.w(TAG, "WeClaw 更新未能可靠入队(第 $failures 次): ${error.message}")
+            if (ChannelRuntimeRegistry.looksLikeAuthError(error.message)) {
+                ChannelRuntimeRegistry.markAuthError(config.id, platform, error.message.orEmpty())
+            } else {
+                ChannelRuntimeRegistry.markReconnecting(config.id, platform, error.message.orEmpty())
+            }
             if (cursor.buffer.isNotBlank() && failures >= MAX_CONSECUTIVE_FAILURES) {
                 // 游标可能已失效(服务端会话重置/绑定后台数据被清)。带着它只会永远失败,
                 // 清空后重新同步一次,好过让用户以为「只能发不能收」而去重装。

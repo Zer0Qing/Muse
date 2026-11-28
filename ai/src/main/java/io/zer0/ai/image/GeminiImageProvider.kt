@@ -80,7 +80,8 @@ class GeminiImageProvider(
             val refBase64 = request.referenceImages.map { ref ->
                 AgnesImageProvider.resolveReferenceImage(ref, referenceImageUrlValidator)
             }
-            val body = buildImageRequestBody(request.prompt, refBase64)
+            val aspectRatio = resolveAspectRatio(request.size)
+            val body = buildImageRequestBody(request.prompt, refBase64, aspectRatio)
 
             // 复用 GeminiProvider 的端点/鉴权解析(含 Vertex Express / 服务号 OAuth / generativelanguage)
             val endpoint = GeminiProvider(config)
@@ -153,7 +154,7 @@ class GeminiImageProvider(
      * 参考图以 inlineData part 插入(文本在前,与 Gemini 推荐顺序一致),
      * responseModalities=["TEXT","IMAGE"] 开启图片输出。
      */
-    internal fun buildImageRequestBody(prompt: String, referenceImagesBase64: List<String>): String {
+    internal fun buildImageRequestBody(prompt: String, referenceImagesBase64: List<String>, aspectRatio: String? = null): String {
         val parts = buildJsonArray {
             add(buildJsonObject { put("text", prompt) })
             referenceImagesBase64.forEach { b64 ->
@@ -180,6 +181,11 @@ class GeminiImageProvider(
                 putJsonArray("responseModalities") {
                     add(JsonPrimitive("TEXT"))
                     add(JsonPrimitive("IMAGE"))
+                }
+                if (!aspectRatio.isNullOrBlank()) {
+                    putJsonObject("imageConfig") {
+                        put("aspectRatio", aspectRatio)
+                    }
                 }
             }
         }.toString()
@@ -254,5 +260,23 @@ class GeminiImageProvider(
         private const val MAX_RESPONSE_BODY_BYTES = 32 * 1024 * 1024
 
         private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
+
+        private val DIRECT_ASPECT_RATIOS = setOf("1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3", "21:9")
+
+        private val SIZE_TO_ASPECT_RATIO = mapOf(
+            "1024x1024" to "1:1",
+            "1536x1536" to "1:1",
+            "1792x1024" to "16:9",
+            "1024x1792" to "9:16",
+            "1536x1024" to "3:2",
+            "1024x1536" to "2:3",
+        )
+
+        /** Map explicit aspect ratios or common pixel sizes into Gemini imageConfig.aspectRatio. */
+        internal fun resolveAspectRatio(size: String): String? {
+            val trimmed = size.trim()
+            if (trimmed in DIRECT_ASPECT_RATIOS) return trimmed
+            return SIZE_TO_ASPECT_RATIO[trimmed]
+        }
     }
 }

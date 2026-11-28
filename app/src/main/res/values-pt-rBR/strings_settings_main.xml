@@ -21,6 +21,7 @@
     <string name="settings_provider_imported_from_json">Credenciais da conta de serviço importadas do JSON</string>
     <string name="settings_provider_import_failed">Falha na importação: %1$s</string>
     <string name="settings_provider_fill_api_key_first">Por favor, preencha a chave API primeiro</string>
+    <string name="settings_provider_required_fields">Nome e endereço são obrigatórios; sem eles o provedor é criado sem conexão</string>
     <string name="settings_provider_no_models_returned">O upstream não retornou nenhum modelo, verifique o ponto final</string>
     <string name="settings_provider_unknown_error">Erro desconhecido</string>
     <string name="settings_provider_404_error">Este provedor não oferece suporte ao endpoint /models. Adicione modelos manualmente</string>
@@ -144,13 +145,15 @@
     <string name="settings_backup_message_count">Total de mensagens</string>
     <string name="settings_backup_local_title">Backup local &amp; Restauração</string>
     <string name="settings_backup_export">Exportar backup</string>
+    <string name="settings_backup_export_partial">%1$d arquivos excederam o limite de tamanho ou não puderam ser lidos. Eles não estão neste backup.</string>
     <string name="settings_backup_plaintext_export_title">Exportar um backup sem criptografia?</string>
-    <string name="settings_backup_plaintext_export_message">Nenhuma senha de backup está configurada. Continuar criará um arquivo sem criptografia que qualquer pessoa com acesso a ele poderá ler. Se possível, configure primeiro uma senha no Backup na nuvem.</string>
+    <string name="settings_backup_plaintext_export_message">Este arquivo de backup local não é criptografado e pode ser lido por qualquer pessoa que o tenha. O arquivo só será criado se você continuar.</string>
     <string name="settings_backup_plaintext_export_action">Exportar sem criptografia</string>
     <string name="settings_backup_import">Importar backup</string>
     <string name="settings_backup_export_success">Exportação bem-sucedida: %1$d sessões / %2$d mensagens</string>
     <string name="settings_backup_export_failed">Falha na exportação: %1$s</string>
     <string name="settings_backup_import_success">Sessões %1$d importadas / mensagens %2$d</string>
+    <string name="settings_backup_import_failed_title">Falha na importação</string>
     <string name="settings_backup_import_failed">Falha na importação: %1$s</string>
     <string name="settings_backup_export_start_failed">Não é possível iniciar a exportação: %1$s</string>
     <string name="settings_backup_import_start_failed">Não é possível iniciar a importação: %1$s</string>
@@ -396,7 +399,8 @@
     <string name="settings_backup_log_success">Sucesso</string>
     <string name="settings_backup_log_failed">Falha</string>
     <string name="audit_log_category_agent">Execuções do agente</string>
-    <string name="settings_backup_import_password_hint">Senha do backup (pode ficar vazia se o backup estiver criptografado)</string>
+    <string name="settings_backup_import_password_hint">Senha do backup (se necessária para descriptografar)</string>
+    <string name="cloud_backup_provider_secrets_require_password">Defina uma senha de backup para enviar uma cópia com chaves de provedores.</string>
     <string name="settings_backup_log_restore_hint">Clique para restaurar (todas as conversas, mensagens e memórias) · %1$s</string>
     <string name="settings_backup_overwrite_confirm">O backup selecionado substituirá todas as conversas, mensagens, memórias e dados de experiência atuais (uma cópia de proteção será criada automaticamente antes de restaurar). Continuar?</string>
     <string name="settings_backup_overwrite_confirm_action">Continuar</string>

@@ -4,9 +4,9 @@ import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import io.zer0.muse.data.knowledge.IndexGenerationState
-import io.zer0.muse.data.knowledge.KnowledgeGenerationEntity
 import io.zer0.muse.data.knowledge.KnowledgeGenChunkEntity
 import io.zer0.muse.data.knowledge.KnowledgeGenLexicalEntity
+import io.zer0.muse.data.knowledge.KnowledgeGenerationEntity
 import io.zer0.muse.data.knowledge.KnowledgeJobDao
 import io.zer0.muse.data.session.MuseDb
 import io.zer0.muse.knowledge.domain.KnowledgeScope

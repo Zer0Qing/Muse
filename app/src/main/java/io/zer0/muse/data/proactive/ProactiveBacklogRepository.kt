@@ -34,15 +34,15 @@ class ProactiveBacklogRepository(
             if (thought.id in alreadyDispatched) return@forEach
             val id = UUID.nameUUIDFromBytes("muse-backlog:${thought.id}".toByteArray()).toString()
             val rowId = backlog.insertIfAbsent(
-                    ProactiveBacklogDispatchEntity(
-                        dispatchId = id,
-                        thoughtId = thought.id,
-                        assistantId = assistantId,
-                        sessionId = sessionId,
-                        createdAt = now,
-                        updatedAt = now,
-                    ),
-                )
+                ProactiveBacklogDispatchEntity(
+                    dispatchId = id,
+                    thoughtId = thought.id,
+                    assistantId = assistantId,
+                    sessionId = sessionId,
+                    createdAt = now,
+                    updatedAt = now,
+                ),
+            )
             alreadyDispatched += thought.id
             if (rowId != -1L) {
                 inserted++
@@ -110,5 +110,4 @@ class ProactiveBacklogRepository(
     }
 
     suspend fun hasUnfinishedDispatches(): Boolean = backlog.countUnfinished() > 0
-
 }

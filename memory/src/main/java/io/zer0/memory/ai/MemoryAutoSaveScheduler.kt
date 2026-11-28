@@ -73,6 +73,10 @@ class MemoryAutoSaveScheduler(
      * 模型调用可能跟着一次完整的恢复窗口才返回，所以写前还要用入口取的栅栏再判一次。
      */
     private val writeGate: io.zer0.memory.runtime.MemoryWriteGate? = null,
+    /** 会话结束/记忆编译时若AI评估存在主动牵挂，通过该回调写入牵挂账本。 */
+    private val onProactiveThoughtsExtracted: (
+        suspend (assistantId: String, sessionId: String, thoughts: List<ParsedProactiveThought>) -> Unit
+    )? = null,
 ) {
 
     companion object {
@@ -171,12 +175,10 @@ class MemoryAutoSaveScheduler(
      *
      * @return 被移除的条目数
      */
-    fun invalidateFingerprintCacheForSession(sessionId: String): Int =
-        fingerprints.invalidateSession(sessionId)
+    fun invalidateFingerprintCacheForSession(sessionId: String): Int = fingerprints.invalidateSession(sessionId)
 
     /** 作废某个助手的指纹（助手删除时）。 */
-    fun invalidateFingerprintCacheForAssistant(assistantId: String): Int =
-        fingerprints.invalidateAssistant(assistantId)
+    fun invalidateFingerprintCacheForAssistant(assistantId: String): Int = fingerprints.invalidateAssistant(assistantId)
 
     /**
      * v12 (T2-3): 计算历史消息指纹 — 逐条哈希完整历史的 (id + content)，不截断。
@@ -298,27 +300,26 @@ class MemoryAutoSaveScheduler(
             }
         } catch (e: CancellationException) {
             throw e
-        } catch (e: Throwable) {
+        } catch (e: java.io.IOException) {
             Logger.w(TAG_LOG, "$tag 失败(session=$shortId…): ${e.message}", e)
-            if (retry) return
-            // v2.6.9: 配额/余额/鉴权类终态失败不排 30s 补跑。
-            // 上游已在节流(日志里 agnes 的 "not asked again before 02:49" 就是上游文案),
-            // 我们 30s 后再打一次只会继续吃 402。其余错误(网络抖动/限流/解析)保持原行为。
-            if (FailureClassifier.isTerminalQuotaOrAuth(e)) {
-                Logger.w(
-                    TAG_LOG,
-                    "autoSave 失败为配额/鉴权终态错误,不排补跑(重试只会继续吃 402/401): " +
-                        "session=$shortId…, kind=${FailureClassifier.classify(e)}",
-                )
-                return
+            if (!retry && !FailureClassifier.isTerminalQuotaOrAuth(e)) {
+                this@MemoryAutoSaveScheduler.scope.launch {
+                    delay(30_000)
+                    if (!this@MemoryAutoSaveScheduler.scope.isActive) return@launch
+                    analysisSemaphore.withPermit {
+                        runAttempt(key, fingerprint, history, model, locale, retry = true)
+                    }
+                }
             }
-            // C-05: 失败后延迟补跑一次 — 调用侧( ChatViewModel)有 30s 同会话去重,
-            // 失败后立即重试会被去重挡掉,记忆静默丢失;延迟 30s 绕过窗口补跑。
-            this@MemoryAutoSaveScheduler.scope.launch {
-                delay(30_000)
-                if (!this@MemoryAutoSaveScheduler.scope.isActive) return@launch
-                analysisSemaphore.withPermit {
-                    runAttempt(key, fingerprint, history, model, locale, retry = true)
+        } catch (e: IllegalStateException) {
+            Logger.w(TAG_LOG, "$tag 失败(session=$shortId…): ${e.message}", e)
+            if (!retry && !FailureClassifier.isTerminalQuotaOrAuth(e)) {
+                this@MemoryAutoSaveScheduler.scope.launch {
+                    delay(30_000)
+                    if (!this@MemoryAutoSaveScheduler.scope.isActive) return@launch
+                    analysisSemaphore.withPermit {
+                        runAttempt(key, fingerprint, history, model, locale, retry = true)
+                    }
                 }
             }
         }
@@ -373,6 +374,11 @@ class MemoryAutoSaveScheduler(
 
         // 4. 落库(证据已由 extractEntities 回填进 analysis,applyAnalysis 不需要原始消息)
         val result = applyAnalysis(analysis, factStore, linkDao, sessionId, spaceId, scope, assistantId)
+        if (analysis.proactiveThoughts.isNotEmpty()) {
+            runCatching {
+                onProactiveThoughtsExtracted?.invoke(assistantId, sessionId, analysis.proactiveThoughts)
+            }.onFailure { Logger.w("MemoryAutoSaveScheduler", "记忆总结写主动牵挂失败: ${it.message}") }
+        }
         // v2.6.2（用户反馈）: 落库后补边 —— 让本次新增/更新的事实与存量连成网络。
         // 增量策略：取“最近创建的一批事实”作为新事实（补边本就是增量的，不必精确追踪）。
         // 失败不影响主流程。

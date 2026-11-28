@@ -1,13 +1,13 @@
 package io.zer0.muse.web
 
 import io.zer0.common.AppJson
+import io.zer0.muse.ui.common.SsrfGuard
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import io.zer0.muse.ui.common.SsrfGuard
 
 /** Host Mode WebSocket 命令与快照协议的序列化回归测试。 */
 class HostWebSocketProtocolTest {

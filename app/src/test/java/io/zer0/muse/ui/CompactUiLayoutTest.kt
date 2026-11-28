@@ -21,6 +21,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import io.zer0.muse.ui.chat.GeneratedImageCard
 import io.zer0.muse.ui.common.feedback.MUSE_DIALOG_CARD_TAG
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.form.MuseBottomSheet
@@ -35,7 +36,6 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import java.util.concurrent.atomic.AtomicBoolean
-import io.zer0.muse.ui.chat.GeneratedImageCard
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [33])

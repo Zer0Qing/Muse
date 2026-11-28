@@ -8,10 +8,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -19,6 +19,7 @@ import okhttp3.Request
 import okhttp3.Response
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
+import java.util.concurrent.ConcurrentHashMap
 
 internal fun sanitizeDingtalkPayloadForStorage(payload: JsonObject): String = JsonObject(
     payload.toMutableMap().apply {
@@ -28,69 +29,104 @@ internal fun sanitizeDingtalkPayloadForStorage(payload: JsonObject): String = Js
 ).toString()
 
 /**
- * v2.0: 钉钉接收器 — Stream 模式 WebSocket 长连接。
- *
- * 流程:注册连接凭证 → 建立 WebSocket → 处理推送帧:
- *  - CALLBACK 机器人消息 → 解析(文本 / sessionWebhook / 发送人)→ 写入 [ChannelInbox];
- *  - SYSTEM ping → 回 ACK(opaque 原样带回);
- *  - SYSTEM disconnect → 主动断开,由外层循环重新建连。
- *
- * 断开后按 [RECONNECT_DELAY_MS] 退避重连;无启用渠道时退出循环。
- * 出站连接,免公网与隧道。
+ * v2.0: 钉钉接收器 — Stream 模式 WebSocket 长连接（支持多实例并行）。
  */
 class DingtalkReceiver(
     private val channelManager: ChannelManager,
     private val context: Context,
     private val appScope: CoroutineScope,
-) {
+) : ChannelReceiver {
+    override val platform: ChannelPlatform = ChannelPlatform.DINGTALK
 
-    /**
-     * 当前生效的渠道配置。
-     *
-     * 图片下载是异步的，需要读到与连接循环同一份配置。
-     */
-    @Volatile private var currentConfig: ChannelConfig? = null
-    private var job: Job? = null
+    private val lock = Any()
+    private var watcherJob: Job? = null
+    private val channelJobs = ConcurrentHashMap<String, Job>()
+    private val channelFingerprints = ConcurrentHashMap<String, String>()
 
     /** 启动长连接(幂等;已有连接先停再起)。 */
-    fun restart() {
-        job?.cancel()
-        job = appScope.launch {
-            ChannelInbox.attach(context)
-            connectLoop()
+    override fun restart() {
+        synchronized(lock) {
+            stopAllLocked()
+            watcherJob = appScope.launch {
+                ChannelInbox.attach(context)
+                channelManager.refresh()
+                reconcile(channelManager.channels.value)
+                channelManager.channels.collect { channels ->
+                    reconcile(channels)
+                }
+            }
         }
     }
 
     /** 停止长连接。 */
-    fun stop() {
-        job?.cancel()
-        job = null
+    override fun stop() {
+        synchronized(lock) {
+            stopAllLocked()
+        }
     }
 
-    private suspend fun connectLoop() {
-        while (currentCoroutineContext().isActive) {
-            channelManager.refresh()
-            val config = channelManager.channels.value.firstOrNull {
-                it.enabled && it.platform == ChannelPlatform.DINGTALK &&
+    private fun stopAllLocked() {
+        watcherJob?.cancel()
+        watcherJob = null
+        channelJobs.keys.toList().forEach { id ->
+            channelJobs.remove(id)?.cancel()
+            channelFingerprints.remove(id)
+            ChannelRuntimeRegistry.markStopped(id, platform)
+        }
+    }
+
+    private fun reconcile(channels: List<ChannelConfig>) {
+        synchronized(lock) {
+            val active = channels.filter {
+                it.enabled && it.platform == platform &&
                     it.appId.isNotBlank() && it.appSecret.isNotBlank()
             }
-            if (config == null) {
-                // v2.6.7: 无启用渠道时**挂起等待配置变化**，不再每 5 秒空转唤醒。
-                // 旧写法 delay(5s)+continue 让五个接收器每分钟合计唤醒 60 次，阻止深度休眠。
-                // 配置变更由 ChannelManager.upsert/remove/refresh 写入 channels；
-                // 设置页保存后还会调 restart() 重进本循环，两条路径都能唤醒。
-                Logger.i(TAG, "无启用中的钉钉渠道,接收循环挂起等待配置")
-                channelManager.channels.first { list ->
-                    list.any {
-                        it.enabled && it.platform == ChannelPlatform.DINGTALK &&
-                            it.appId.isNotBlank() && it.appSecret.isNotBlank()
+            val activeMap = active.associateBy { it.id }
+            val allIds = channels.filter { it.platform == platform }.mapTo(HashSet()) { it.id }
+
+            channelJobs.keys.toList().forEach { id ->
+                val nextCfg = activeMap[id]
+                val nextFp = nextCfg?.let { "${it.dingtalkApiBase}:${it.appId}:${it.appSecret}" }
+                if (nextCfg == null || channelFingerprints[id] != nextFp) {
+                    channelJobs.remove(id)?.cancel()
+                    channelFingerprints.remove(id)
+                    if (id !in allIds) {
+                        ChannelRuntimeRegistry.remove(id)
+                    } else if (nextCfg == null) {
+                        ChannelRuntimeRegistry.markStopped(id, platform)
                     }
                 }
-                continue
             }
+
+            channels.filter { it.platform == platform && !it.enabled }.forEach { disabled ->
+                ChannelRuntimeRegistry.markStopped(disabled.id, platform)
+            }
+
+            active.forEach { cfg ->
+                val existing = channelJobs[cfg.id]
+                if (existing == null || !existing.isActive) {
+                    channelFingerprints[cfg.id] = "${cfg.dingtalkApiBase}:${cfg.appId}:${cfg.appSecret}"
+                    channelJobs[cfg.id] = appScope.launch {
+                        connectLoopForChannel(cfg)
+                    }
+                }
+            }
+        }
+    }
+
+    private suspend fun connectLoopForChannel(config: ChannelConfig) {
+        while (currentCoroutineContext().isActive) {
+            ChannelRuntimeRegistry.markConnecting(config.id, platform)
             runCatching {
                 connectOnce(config)
-            }.onFailure { e -> Logger.w(TAG, "钉钉 Stream 连接异常: ${e.message}") }
+            }.onFailure { e ->
+                Logger.w(TAG, "钉钉 Stream 连接异常: ${e.message}")
+                if (ChannelRuntimeRegistry.looksLikeAuthError(e.message)) {
+                    ChannelRuntimeRegistry.markAuthError(config.id, platform, e.message.orEmpty())
+                } else {
+                    ChannelRuntimeRegistry.markReconnecting(config.id, platform, e.message.orEmpty())
+                }
+            }
             if (!currentCoroutineContext().isActive) return
             delay(RECONNECT_DELAY_MS)
         }
@@ -98,13 +134,17 @@ class DingtalkReceiver(
 
     /** 建立一次 WebSocket 并挂起至断开。 */
     private suspend fun connectOnce(config: ChannelConfig) {
-        currentConfig = config
         val connection = DingtalkClient.openStreamConnection(
             config.appId,
             config.appSecret,
             config.dingtalkApiBase,
         ).getOrElse { e ->
             Logger.w(TAG, "钉钉 Stream 注册失败: ${e.message}")
+            if (ChannelRuntimeRegistry.looksLikeAuthError(e.message)) {
+                ChannelRuntimeRegistry.markAuthError(config.id, platform, e.message.orEmpty())
+            } else {
+                ChannelRuntimeRegistry.markReconnecting(config.id, platform, e.message.orEmpty())
+            }
             return
         }
         val disconnected = CompletableDeferred<Unit>()
@@ -112,25 +152,32 @@ class DingtalkReceiver(
         val socket = DingtalkClient.WEB_SOCKET.newWebSocket(
             request,
             object : WebSocketListener() {
+                override fun onOpen(webSocket: WebSocket, response: Response) {
+                    ChannelRuntimeRegistry.markConnected(config.id, platform, config.botDisplayName)
+                }
+
                 override fun onMessage(webSocket: WebSocket, text: String) {
                     appScope.launch {
-                        runCatching { handleFrame(webSocket, text, config.id) }
+                        runCatching { handleFrame(webSocket, text, config) }
                             .onFailure { e -> Logger.w(TAG, "钉钉帧处理失败: ${e.message}") }
                     }
                 }
 
                 override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
                     Logger.i(TAG, "钉钉 WebSocket 关闭: code=$code $reason")
+                    ChannelRuntimeRegistry.markReconnecting(config.id, platform, reason)
                     disconnected.complete(Unit)
                 }
 
                 override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
                     Logger.w(TAG, "钉钉 WebSocket 断开: ${t.message}")
+                    ChannelRuntimeRegistry.markReconnecting(config.id, platform, t.message.orEmpty())
                     disconnected.complete(Unit)
                 }
             },
         )
-        Logger.i(TAG, "钉钉 Stream 已连接")
+        Logger.i(TAG, "钉钉 Stream 已连接(${config.id})")
+        ChannelRuntimeRegistry.markConnected(config.id, platform, config.botDisplayName)
         try {
             disconnected.await()
         } finally {
@@ -139,7 +186,7 @@ class DingtalkReceiver(
     }
 
     /** 处理 Stream 推送帧(协议见钉钉开发者文档)。 */
-    private suspend fun handleFrame(webSocket: WebSocket, frame: String, channelId: String) {
+    private suspend fun handleFrame(webSocket: WebSocket, frame: String, config: ChannelConfig) {
         val obj = runCatching { AppJson.parseToJsonElement(frame).jsonObject }.getOrNull() ?: return
         val type = obj["type"]?.jsonPrimitive?.contentOrNull.orEmpty()
         val headers = obj["headers"] as? JsonObject
@@ -158,7 +205,7 @@ class DingtalkReceiver(
                 webSocket.cancel()
             }
             type == "CALLBACK" && topic == "/v1.0/im/bot/messages/get" -> {
-                handleRobotMessage(data, channelId, messageId)
+                handleRobotMessage(data, config, messageId)
                 webSocket.send(DingtalkClient.ackFrame(messageId, "{\"response\": null}"))
             }
             else -> {
@@ -171,7 +218,7 @@ class DingtalkReceiver(
     }
 
     /** 解析机器人消息回调并写入收件箱。 */
-    private suspend fun handleRobotMessage(dataJson: String, channelId: String, eventId: String) {
+    private suspend fun handleRobotMessage(dataJson: String, config: ChannelConfig, eventId: String) {
         val payload = runCatching { AppJson.parseToJsonElement(dataJson).jsonObject }.getOrNull() ?: return
         // text 字段为对象 {"content": "..."};防御式兼容纯字符串形式
         val content = (payload["text"] as? JsonObject)
@@ -187,35 +234,43 @@ class DingtalkReceiver(
         val conversationId = payload["conversationId"]?.jsonPrimitive?.contentOrNull.orEmpty()
         val senderStaffId = payload["senderStaffId"]?.jsonPrimitive?.contentOrNull.orEmpty()
         val conversationType = payload["conversationType"]?.jsonPrimitive?.contentOrNull.orEmpty()
+        val senderNick = payload["senderNick"]?.jsonPrimitive?.contentOrNull.orEmpty()
+        val conversationTitle = payload["conversationTitle"]?.jsonPrimitive?.contentOrNull.orEmpty()
+        val isInAtList = payload["isInAtList"]?.jsonPrimitive?.booleanOrNull == true
         val webhook = payload["sessionWebhook"]?.jsonPrimitive?.contentOrNull.orEmpty()
         val expireAt = payload["sessionWebhookExpiredTime"]?.jsonPrimitive?.contentOrNull?.toLongOrNull() ?: 0L
         // 群/单聊双键缓存,回发侧无需区分来源类型
         DingtalkSessionCache.put(listOf(conversationId, senderStaffId), webhook, expireAt)
         val encryptedReplyContextToken = protectDingtalkReplyContextToken(webhook)
         // 群聊(conversationType=2)用会话 id,单聊用发送人 id,与发送侧目标语义一致
-        val from = if (conversationType == "2") conversationId else senderStaffId
+        val isGroup = conversationType == "2"
+        val from = if (isGroup) conversationId else senderStaffId
+        val displayName = if (isGroup) conversationTitle else senderNick
         val source = ChannelInbox.Source(
             platform = "DINGTALK",
             from = from,
-            channelId = channelId,
+            channelId = config.id,
             eventId = eventId,
             encryptedReplyContextToken = encryptedReplyContextToken,
+            isGroup = isGroup,
+            isMentioned = isInAtList,
+            senderDisplayName = displayName,
         )
+        ChannelRuntimeRegistry.markInbound(config.id, platform)
 
         if (downloadCode == null) {
             ChannelInbox.record(source, text, sanitizeDingtalkPayloadForStorage(payload))
         } else {
             appScope.launch {
-                val cfg = currentConfig ?: return@launch
                 val base64 = runCatching {
-                    val token = DingtalkClient.fetchAccessToken(cfg.appId, cfg.appSecret, cfg.dingtalkApiBase)
+                    val token = DingtalkClient.fetchAccessToken(config.appId, config.appSecret, config.dingtalkApiBase)
                         .getOrNull()?.accessToken
 
                     if (token.isNullOrBlank()) {
                         null
                     } else {
                         ChannelImageFetcher.fetchDingTalk(
-                            apiBase = cfg.dingtalkApiBase,
+                            apiBase = config.dingtalkApiBase,
                             accessToken = token,
                             downloadCode = downloadCode,
                         )

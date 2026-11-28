@@ -226,6 +226,7 @@
     <string name="settings_multi_agent_node_dependencies">Dependencies</string>
 
     <string name="common_load_failed">Failed to load</string>
+    <string name="common_save_failed">Couldn\'t save</string>
     <string name="action_undo">Undo</string>
     <!-- v1.0.75: AI 朋友圈互动 -->
 
@@ -242,6 +243,7 @@
     <string name="schedule_unsaved_title">Discard changes?</string>
     <string name="tool_approval_allow_this_session">Allow for this session</string>
     <string name="tool_approval_always_approve">Always allow</string>
+    <string name="tool_approval_confirm_always">Confirm always allow</string>
     <string name="tool_approval_approve">Approve</string>
     <string name="tool_approval_write_summary">About to write to %1$s (%2$d chars)</string>
     <string name="tool_approval_advanced_details">Advanced details</string>

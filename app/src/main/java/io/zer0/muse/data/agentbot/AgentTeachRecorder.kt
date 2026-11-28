@@ -17,6 +17,11 @@ class AgentTeachRecorder {
         val index: Int,
         val action: String,
         val targetApp: String = "",
+        val targetPackage: String = "",
+        val targetText: String = "",
+        val contentDesc: String = "",
+        val resourceIdHint: String = "",
+        val actionKind: String = "",
         val timestamp: Long = System.currentTimeMillis(),
     )
 
@@ -41,7 +46,26 @@ class AgentTeachRecorder {
         )
     }
 
+    fun resume(snapshot: State) {
+        if (!snapshot.recording) return
+        _state.value = snapshot
+    }
+
     fun recordStep(action: String, targetApp: String = "") {
+        recordStructuredStep(action = action, targetApp = targetApp)
+    }
+
+    /** 记录带结构化无障碍线索的一步操作；字段全可选，保留无障碍节点包名、文案与控件标识。 */
+    @Suppress("LongParameterList")
+    fun recordStructuredStep(
+        action: String,
+        targetApp: String = "",
+        targetPackage: String = "",
+        targetText: String = "",
+        contentDesc: String = "",
+        resourceIdHint: String = "",
+        actionKind: String = "",
+    ) {
         val cleaned = action.trim()
         if (cleaned.isBlank()) return
         _state.update { current ->
@@ -49,7 +73,12 @@ class AgentTeachRecorder {
             val next = RecordedStep(
                 index = current.steps.size + 1,
                 action = cleaned.take(180),
-                targetApp = targetApp.trim(),
+                targetApp = targetApp.trim().take(60),
+                targetPackage = targetPackage.trim().take(120),
+                targetText = targetText.trim().take(80),
+                contentDesc = contentDesc.trim().take(80),
+                resourceIdHint = resourceIdHint.trim().take(120),
+                actionKind = actionKind.trim().take(40),
             )
             current.copy(steps = current.steps + next)
         }
@@ -78,7 +107,8 @@ class AgentTeachRecorder {
             appendLine("请按我之前录制的以下流程完成「$title」：")
             current.steps.forEach { step ->
                 val prefix = if (step.targetApp.isNotBlank()) "（${step.targetApp}）" else ""
-                appendLine("${step.index}. $prefix${step.action}")
+                val meta = formatStructuredMeta(step)
+                appendLine("${step.index}. $prefix${step.action}$meta")
             }
             append("如遇登录、验证码或高风险确认步骤，暂停并通知我接管或拍板。")
         }
@@ -89,6 +119,19 @@ class AgentTeachRecorder {
             stepsSummary = summary,
         )
     }
+
+    private fun formatStructuredMeta(step: RecordedStep): String {
+        val parts = buildList {
+            if (step.targetPackage.isNotBlank()) add("pkg=${sanitizeMetaValue(step.targetPackage)}")
+            if (step.actionKind.isNotBlank()) add("kind=${sanitizeMetaValue(step.actionKind)}")
+            if (step.targetText.isNotBlank()) add("text=${sanitizeMetaValue(step.targetText)}")
+            if (step.contentDesc.isNotBlank()) add("desc=${sanitizeMetaValue(step.contentDesc)}")
+            if (step.resourceIdHint.isNotBlank()) add("id=${sanitizeMetaValue(step.resourceIdHint)}")
+        }
+        return if (parts.isEmpty()) "" else " [meta: ${parts.joinToString("; ")}]"
+    }
+
+    private fun sanitizeMetaValue(raw: String): String = raw.replace("[", "(").replace("]", ")").replace(";", ",").trim()
 
     data class FinishedDraft(
         val botId: String,

@@ -24,8 +24,6 @@ class ExperienceRepository(
         tags: List<String> = emptyList(),
         source: String = ExperienceEntry.SOURCE_MANUAL,
         sessionId: String? = null,
-        createdAt: String? = null,
-        updatedAt: String? = null,
     ): String = store.record(
         assistantId = assistantId,
         category = category,
@@ -34,12 +32,11 @@ class ExperienceRepository(
         tags = tags,
         source = source,
         sessionId = sessionId,
-        createdAt = createdAt,
-        updatedAt = updatedAt,
     )
 
-    suspend fun list(assistantId: String, category: String? = null): List<ExperienceEntry> =
-        store.list(assistantId, category)
+    suspend fun recordAt(input: ExperienceRecordInput): String = store.recordAt(input)
+
+    suspend fun list(assistantId: String, category: String? = null): List<ExperienceEntry> = store.list(assistantId, category)
 
     /** 跨助手读取：prompt 注入与记忆页列表用。工具读写仍按助手隔离。 */
     suspend fun listAll(): List<ExperienceEntry> = store.listAll()

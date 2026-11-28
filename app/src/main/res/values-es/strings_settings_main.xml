@@ -21,6 +21,7 @@
     <string name="settings_provider_imported_from_json">Credenciales de cuenta de servicio importadas desde JSON</string>
     <string name="settings_provider_import_failed">Error de importación: %1$s</string>
     <string name="settings_provider_fill_api_key_first">Primero introduce la clave API</string>
+    <string name="settings_provider_required_fields">El nombre y la dirección son obligatorios; si no, se crea un proveedor que no conecta</string>
     <string name="settings_provider_no_models_returned">El servidor no ha devuelto ningún modelo; comprueba que la dirección del endpoint sea correcta</string>
     <string name="settings_provider_unknown_error">Error desconocido</string>
     <string name="settings_provider_404_error">Este proveedor no admite el endpoint /models; añade los modelos manualmente</string>
@@ -144,13 +145,15 @@
     <string name="settings_backup_message_count">Mensajes totales</string>
     <string name="settings_backup_local_title">Copia de seguridad local y restauración</string>
     <string name="settings_backup_export">Exportar copia de seguridad</string>
+    <string name="settings_backup_export_partial">%1$d archivos superaban el límite de tamaño o no se pudieron leer. No se incluyeron en esta copia.</string>
     <string name="settings_backup_plaintext_export_title">¿Exportar una copia sin cifrar?</string>
-    <string name="settings_backup_plaintext_export_message">No hay una contraseña de copia de seguridad configurada. Si continúas, se creará un archivo sin cifrar que cualquiera que lo obtenga podrá leer. Si es posible, configura primero una contraseña en Copia de seguridad en la nube.</string>
+    <string name="settings_backup_plaintext_export_message">Este archivo de copia local no está cifrado y cualquiera que lo tenga podrá leerlo. El archivo solo se crea si continúas.</string>
     <string name="settings_backup_plaintext_export_action">Exportar sin cifrar</string>
     <string name="settings_backup_import">Importar copia de seguridad</string>
     <string name="settings_backup_export_success">Exportación exitosa: %1$d sesiones / %2$d mensajes</string>
     <string name="settings_backup_export_failed">Error al exportar: %1$s</string>
     <string name="settings_backup_import_success">%1$d sesiones / %2$d mensajes importados</string>
+    <string name="settings_backup_import_failed_title">Error de importación</string>
     <string name="settings_backup_import_failed">Error de importación: %1$s</string>
     <string name="settings_backup_export_start_failed">No se puede iniciar la exportación: %1$s</string>
     <string name="settings_backup_import_start_failed">No se puede iniciar la importación: %1$s</string>
@@ -396,7 +399,8 @@
     <string name="settings_backup_log_success">Correcto</string>
     <string name="settings_backup_log_failed">Fallo</string>
     <string name="audit_log_category_agent">Ejecuciones de agente</string>
-    <string name="settings_backup_import_password_hint">Contraseña de la copia (puede dejarse vacía si la copia está cifrada)</string>
+    <string name="settings_backup_import_password_hint">Contraseña de la copia (si es necesaria para descifrarla)</string>
+    <string name="cloud_backup_provider_secrets_require_password">Configura una contraseña antes de subir una copia con claves de proveedores.</string>
     <string name="settings_backup_log_restore_hint">Toca para restaurar (todas las sesiones, mensajes y recuerdos) · %1$s</string>
     <string name="settings_backup_overwrite_confirm">La copia seleccionada sobrescribirá todas las sesiones, mensajes, recuerdos y datos de experiencia actuales (se creará automáticamente una copia de protección antes de restaurar). ¿Continuar?</string>
     <string name="settings_backup_overwrite_confirm_action">Continuar</string>

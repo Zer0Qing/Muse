@@ -1,5 +1,6 @@
 package io.zer0.muse.computenode
 
+import android.database.SQLException
 import io.zer0.common.Logger
 import io.zer0.muse.data.agentbot.ReconnectActionKind
 import io.zer0.muse.data.agentbot.ReconnectCardPayload
@@ -20,7 +21,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import java.util.concurrent.ConcurrentHashMap
 
 /**
  * 云电脑节点生命周期管理器。
@@ -50,7 +50,6 @@ class ComputeNodeManager(
     /** 各节点最近一次心跳快照，按 nodeId 索引。 */
     val snapshots: StateFlow<Map<String, ComputeNodeSnapshot>> = mutableSnapshots.asStateFlow()
 
-    private val outboxCursors = ConcurrentHashMap<String, Long>()
     private var loopJob: Job? = null
 
     /** 启动心跳循环；重复调用无副作用。 */
@@ -70,7 +69,10 @@ class ComputeNodeManager(
             dao.getAll()
         } catch (e: CancellationException) {
             throw e
-        } catch (e: Exception) {
+        } catch (e: SQLException) {
+            Logger.w(TAG, "cannot load compute nodes: " + e.javaClass.simpleName)
+            return
+        } catch (e: IllegalStateException) {
             Logger.w(TAG, "cannot load compute nodes: " + e.javaClass.simpleName)
             return
         }
@@ -90,12 +92,12 @@ class ComputeNodeManager(
             updateSnapshot(ComputeNodeSnapshot(node.nodeId, ComputeNodeStatus.ONLINE, health, ""))
             if (!wasOnlineInSession) {
                 mutableEvents.emit(ComputeNodeEvent.Online(node.nodeId, health))
-                pullOutboxQuietly(node.nodeId)
             }
+            pullOutboxQuietly(node.nodeId)
             ComputeNodeStatus.ONLINE
         } catch (e: CancellationException) {
             throw e
-        } catch (e: Exception) {
+        } catch (e: MuseNodeException) {
             val reason = failureReason(e)
             val status = if (isConfigurationFailure(e)) ComputeNodeStatus.ERROR else ComputeNodeStatus.OFFLINE
             val now = clock()
@@ -117,6 +119,12 @@ class ComputeNodeManager(
                 }
             }
             status
+        } catch (e: IllegalStateException) {
+            val reason = failureReason(e)
+            val now = clock()
+            dao.updateStatus(node.nodeId, ComputeNodeStatus.OFFLINE.wireValue, node.lastSeenAt, now)
+            updateSnapshot(ComputeNodeSnapshot(node.nodeId, ComputeNodeStatus.OFFLINE, null, reason))
+            ComputeNodeStatus.OFFLINE
         }
     }
 
@@ -135,14 +143,10 @@ class ComputeNodeManager(
             error = MuseNodeError.NODE_NOT_CONFIGURED,
             message = "compute node not found: " + nodeId,
         )
-        val since = outboxCursors[nodeId] ?: 0L
-        val page = client.listOutbox(node, since)
+        // The server removes acknowledged files and does not paginate; rereading retained items is
+        // required so an event that failed local publication remains retryable in this process.
+        val page = client.listOutbox(node, since = 0L)
         if (page.events.isNotEmpty()) {
-            val nextCursor = when {
-                page.serverTime > since -> page.serverTime
-                else -> page.events.maxOf { it.createdAt }.coerceAtLeast(since)
-            }
-            outboxCursors[nodeId] = nextCursor
             mutableEvents.emit(ComputeNodeEvent.OutboxReceived(nodeId, page.events))
         }
         return page.events
@@ -168,8 +172,10 @@ class ComputeNodeManager(
             pullOutbox(nodeId)
         } catch (e: CancellationException) {
             throw e
-        } catch (e: Exception) {
+        } catch (e: MuseNodeException) {
             // 心跳成功但 outbox 拉取失败：记录即可，下一轮心跳会重新拉取。
+            Logger.w(TAG, "outbox pull failed for node " + nodeId + ": " + e.javaClass.simpleName)
+        } catch (e: IllegalStateException) {
             Logger.w(TAG, "outbox pull failed for node " + nodeId + ": " + e.javaClass.simpleName)
         }
     }

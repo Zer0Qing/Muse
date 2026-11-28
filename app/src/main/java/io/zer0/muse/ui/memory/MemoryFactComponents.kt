@@ -1,42 +1,31 @@
 package io.zer0.muse.ui.memory
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.Crossfade
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -44,59 +33,28 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import io.zer0.memory.fact.MemoryLegacyReset
-import io.zer0.memory.space.MemorySpaceEntity
-import io.zer0.memory.summary.MemoryDbArchiveRecovery
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.feedback.MuseDialog
-import io.zer0.muse.ui.common.feedback.MuseToast
-import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseActionSheetRow
 import io.zer0.muse.ui.common.form.MuseAnchoredMenu
-import io.zer0.muse.ui.common.form.MuseBottomSheet
-import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
-import io.zer0.muse.ui.common.media.WindowWidthClass
-import io.zer0.muse.ui.common.media.rememberWindowWidthClass
 import io.zer0.muse.ui.common.museAnimateItem
-import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.common.settings.ConfirmDeleteDialog
-import io.zer0.muse.ui.common.state.MuseEmptyState
-import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import io.zer0.muse.ui.common.state.MuseSpinner
-import io.zer0.muse.ui.memory.MemoryGraphSettingsDialog
-import io.zer0.muse.ui.memory.MemoryGraphView
-import io.zer0.muse.ui.memory.MemoryGraphViewModel
-import io.zer0.muse.ui.memory.MemoryTimelineFilterRow
-import io.zer0.muse.ui.memory.MonthHeader
-import io.zer0.muse.ui.memory.PinnedMemorySection
-import io.zer0.muse.ui.memory.TimelineEventCard
-import io.zer0.muse.ui.memory.TimelineItem
-import io.zer0.muse.ui.memory.TimelineItemActions
-import io.zer0.muse.ui.memory.memorySpaceDisplayName
-import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseIconSizes
-import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
-import io.zer0.muse.ui.theme.bodySmallEmphasis
+import io.zer0.muse.ui.theme.MuseSpacing
+import io.zer0.muse.ui.theme.constellationColors
 import io.zer0.muse.ui.theme.labelLargeStrong
-import io.zer0.muse.ui.theme.titleSmallStrong
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import org.koin.androidx.compose.koinViewModel
-import org.koin.compose.koinInject
+import io.zer0.muse.ui.theme.pill
 import java.time.Instant
 import java.time.ZoneId
-import io.zer0.muse.ui.chat.ChatScreen
 
 /**
  * 记忆条目行的渲染与批量操作组件：
@@ -106,7 +64,8 @@ import io.zer0.muse.ui.chat.ChatScreen
  * 从 `MemoryScreen.kt` 切出——它们与页面骨架无关，可单独预览与测试。
  */
 // F-9: 行内操作文本组与回调透传:与既有列表行惯例一致
-@Suppress("FunctionNaming", "LongParameterList")
+@OptIn(ExperimentalLayoutApi::class)
+@Suppress("FunctionNaming", "LongParameterList", "LongMethod")
 @Composable
 internal fun MemoryFactRow(
     item: MemoryItem,
@@ -117,13 +76,12 @@ internal fun MemoryFactRow(
     onPin: (() -> Unit)? = null,
     onImportance: (() -> Unit)? = null,
     onHistory: (() -> Unit)? = null,
-    // v2.6.10: 多选删除 — 记忆会乱记/重复记，逐条删又要反复滑回原位，
-    // 所以支持长按进入多选，一次性清掉。
     selectionMode: Boolean = false,
     isSelected: Boolean = false,
     onLongPress: (() -> Unit)? = null,
     onToggleSelect: (() -> Unit)? = null,
 ) {
+    val starPalette = MaterialTheme.constellationColors.paper
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -139,29 +97,106 @@ internal fun MemoryFactRow(
             ),
         shape = MuseShapes.extraLarge,
         color = MaterialTheme.colorScheme.surface,
-        // v1.0.92: 去掉 tonalElevation — 浅色模式下 tonal 会让卡片整体偏灰,
-        // 与页面背景形成"莫名阴影/灰块拼接"的观感(用户真机反馈);
-        // 对齐 CardGroup 的既有方向(背景用纯 surface、取消阴影)。
     ) {
         Row(verticalAlignment = Alignment.Top) {
             if (selectionMode) {
                 Icon(
                     imageVector = if (isSelected) MuseIcons.circleCheck else MuseIcons.circle,
-                    contentDescription = null,
-                    tint =
-                    if (isSelected) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.outline
-                    },
-                    modifier = Modifier.padding(start = 14.dp, top = 20.dp).size(20.dp),
+                    contentDescription = stringResource(R.string.memory_card_select_cd),
+                    tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                    modifier = Modifier.padding(start = MuseSpacing.md, top = MuseSpacing.lg).size(MuseIconSizes.iconMedium),
                 )
             }
             Column(
-                modifier = Modifier.padding(16.dp).weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(MuseSpacing.lg).weight(1f),
+                verticalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
             ) {
-                // v2.2.1: 长记忆点击展开 — 点标题/正文或「展开/收起」即可查看全文
+                val categoryKey = item.category?.takeIf { it.isNotBlank() }
+                val hasTopMeta = categoryKey != null ||
+                    item.importance > 0 ||
+                    item.pinnedAt != null ||
+                    item.status.isInactive
+
+                if (hasTopMeta) {
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(MuseSpacing.smTight),
+                        verticalArrangement = Arrangement.spacedBy(MuseSpacing.xs),
+                    ) {
+                        if (categoryKey != null) {
+                            val catColor = memoryCategoryColor(categoryKey, starPalette)
+                            Surface(
+                                shape = MuseShapes.pill,
+                                color = catColor.copy(alpha = 0.12f),
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = MuseSpacing.sm, vertical = MuseSpacing.xxs),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(MuseSpacing.xs),
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(MuseSpacing.smTight)
+                                            .clip(CircleShape)
+                                            .background(catColor),
+                                    )
+                                    Text(
+                                        text = memoryCategoryLabel(categoryKey),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = catColor,
+                                        maxLines = 1,
+                                    )
+                                }
+                            }
+                        }
+                        if (item.importance > 0) {
+                            Surface(
+                                shape = MuseShapes.pill,
+                                color = MaterialTheme.colorScheme.secondaryContainer,
+                            ) {
+                                Text(
+                                    text = stringResource(
+                                        if (item.importance >= 2) {
+                                            R.string.memory_importance_critical
+                                        } else {
+                                            R.string.memory_importance_important
+                                        },
+                                    ),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    maxLines = 1,
+                                    modifier = Modifier.padding(horizontal = MuseSpacing.sm, vertical = MuseSpacing.xxs),
+                                )
+                            }
+                        }
+                        if (item.pinnedAt != null) {
+                            Surface(
+                                shape = MuseShapes.pill,
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = MuseSpacing.sm, vertical = MuseSpacing.xxs),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(MuseSpacing.xxs),
+                                ) {
+                                    Icon(
+                                        imageVector = MuseIcons.pin,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(MuseIconSizes.iconTiny),
+                                    )
+                                    Text(
+                                        text = stringResource(R.string.memory_card_pinned_badge),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        maxLines = 1,
+                                    )
+                                }
+                            }
+                        }
+                        MemoryStatusBadges(status = item.status)
+                    }
+                }
+
                 var expanded by remember(item.id) { mutableStateOf(false) }
                 val titleText = item.title.ifBlank { item.content }
                 val bodyText = item.content.takeIf { item.title != item.content }
@@ -170,34 +205,16 @@ internal fun MemoryFactRow(
                         bodyText?.let { it.length > EXPAND_TEXT_THRESHOLD || it.contains('\n') } == true
                 val toggleExpand = { if (canExpand) expanded = !expanded }
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = titleText,
-                        style = MaterialTheme.typography.titleSmall,
-                        maxLines = if (expanded) Int.MAX_VALUE else 2,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier =
-                        Modifier
-                            .weight(1f)
-                            .clickable(enabled = canExpand) { toggleExpand() },
-                    )
-                    if (onOpenSession != null && item.sessionId != null) {
-                        MuseTactileButton(
-                            icon = MuseIcons.chat,
-                            onClick = { onOpenSession(item.sessionId) },
-                            contentDescription = stringResource(R.string.memory_open_conversation),
-                        )
-                    }
-                    // LAYOUT-01: 纯装饰分隔符 — 只限行，保证永不被压成多行
-                    if (item.pinnedAt != null) {
-                        Text(
-                            "•",
-                            color = MaterialTheme.colorScheme.primary,
-                            maxLines = 1,
-                            modifier = Modifier.padding(start = 8.dp),
-                        )
-                    }
-                }
+                Text(
+                    text = titleText,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = if (expanded) Int.MAX_VALUE else 3,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(enabled = canExpand) { toggleExpand() },
+                )
                 bodyText?.let {
                     Text(
                         text = it,
@@ -205,7 +222,9 @@ internal fun MemoryFactRow(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = if (expanded) Int.MAX_VALUE else 3,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.clickable(enabled = canExpand) { toggleExpand() },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(enabled = canExpand) { toggleExpand() },
                     )
                 }
                 if (canExpand) {
@@ -213,19 +232,16 @@ internal fun MemoryFactRow(
                         text = stringResource(if (expanded) R.string.memory_screen_collapse else R.string.common_expand),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary,
-                        modifier =
-                        Modifier
+                        modifier = Modifier
                             .clickable { toggleExpand() }
-                            .padding(vertical = 2.dp),
+                            .padding(vertical = MuseSpacing.xxs),
                     )
                 }
-                // v2.6.23(M1): 「依据」——这条事实出处的用户原话(写证据才显示;早期数据无)。
-                // 判定分支收进组件内部:MemoryFactRow 的复杂度按签名登记在 detekt 基线,
-                // 在这里内联 ?.let 会把整卡函数顶过阈值。
                 MemoryEvidenceLine(item = item, expanded = expanded)
                 MemoryFactRowFooter(
                     item = item,
                     sourceMeta = sourceMeta,
+                    onOpenSession = onOpenSession,
                     onEdit = onEdit,
                     onDelete = onDelete,
                     onPin = onPin,
@@ -312,32 +328,38 @@ internal fun memoryStatusNote(item: MemoryItem): String? {
 @Composable
 private fun MemoryEvidenceLine(item: MemoryItem, expanded: Boolean) {
     val quote = item.evidenceQuote?.takeIf { it.isNotBlank() } ?: return
-    Text(
-        text = stringResource(R.string.memory_evidence_line, quote),
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.outline,
-        maxLines = if (expanded) 3 else 1,
-        overflow = TextOverflow.Ellipsis,
-    )
+    Surface(
+        shape = MuseShapes.small,
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Text(
+            text = stringResource(R.string.memory_evidence_line, quote),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = if (expanded) 3 else 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(horizontal = MuseSpacing.sm, vertical = MuseSpacing.xs),
+        )
+    }
 }
 
 /**
- * 记忆卡片的底部一行：来源/分类/时间 + 「更多」操作菜单。
- *
- * 从 [MemoryFactRow] 里拆出来的：卡片主体只负责「这条记忆是什么」，
- * 这一行负责「能对它做什么」，两者改动频率不一样。
+ * 记忆卡片底部栏：来源说明 + 日期 + 对话直达 + 「•••」操作菜单。
  */
 @Composable
 private fun MemoryFactRowFooter(
     item: MemoryItem,
     sourceMeta: String?,
+    onOpenSession: ((String) -> Unit)?,
     onEdit: (() -> Unit)?,
     onDelete: (() -> Unit)?,
     onPin: (() -> Unit)?,
     onImportance: (() -> Unit)?,
     onHistory: (() -> Unit)?,
 ) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    val displayDate = (item.time ?: item.createdAt)?.takeIf { it.isNotBlank() }?.take(10)
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(MuseSpacing.sm)) {
         sourceMeta?.takeIf { it.isNotBlank() }?.let {
             Text(
                 text = it,
@@ -347,31 +369,29 @@ private fun MemoryFactRowFooter(
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        // 状态徽章（已合并/已出场/被取代）:放在来源之后、分类之前 ——
-        // “这条还生效吗”比“它属于哪个分类”更需要被一眼看到。
-        MemoryStatusBadges(status = item.status)
-        item.category?.takeIf {
-            it.isNotBlank()
-        }?.let { Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary) }
-        item.time?.takeIf {
-            it.isNotBlank()
-        }?.let { Text(it.take(10), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline) }
-        // F-9: 来源会话可追溯
-        item.sessionId?.takeIf { it.isNotBlank() }?.let { sid ->
+        if (displayDate != null) {
             Text(
-                text = sid.take(MEMORY_FACT_ROW_SESSION_ID_MAX),
+                text = displayDate,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.outline,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
             )
         }
         Spacer(Modifier.weight(1f))
-        // MEM-06: 操作收进「更多」菜单 — 不再一行挤 4 个文字按钮;菜单项触摸区满足 48dp
+        if (onOpenSession != null && item.sessionId != null) {
+            MuseTactileButton(
+                icon = MuseIcons.chat,
+                onClick = { onOpenSession(item.sessionId) },
+                contentDescription = stringResource(R.string.memory_open_conversation),
+                tint = MaterialTheme.colorScheme.primary,
+                size = MuseIconSizes.touchTarget,
+                iconSize = MuseIconSizes.iconSmall,
+            )
+        }
         var showMore by remember { mutableStateOf(false) }
         Box {
             MuseTactileButton(
-                icon = MuseIcons.chevronDown,
+                icon = MuseIcons.moreHorizontal,
                 onClick = { showMore = true },
                 contentDescription = stringResource(R.string.action_more),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -542,9 +562,6 @@ internal fun LazyListScope.memoryStreamTimeline(
         }
     }
 }
-
-// F-9: 来源会话 id 展示的最大长度(避免长 id 撑爆行布局)。
-private const val MEMORY_FACT_ROW_SESSION_ID_MAX = 10
 
 /** 同一行命中多个状态时，次要徽章的淡出程度(最强那个保持完整色)。 */
 private const val MEMORY_STATUS_MUTED_ALPHA = 0.55f

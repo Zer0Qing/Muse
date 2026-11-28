@@ -1,12 +1,12 @@
 package io.zer0.memory.summary
 
 import io.zer0.memory.time.TimeContext
-import java.time.Instant
-import java.time.ZoneId
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.time.Instant
+import java.time.ZoneId
 
 /**
  * 摘要时间归属合同。
@@ -60,7 +60,9 @@ class SummaryTimeAttributionTest {
     fun `source range parses back from json shape`() {
         val range = requireNotNull(TimeContext.sourceTimeRangeOf(oldMessageTimes, zone))
         // 与持久化到 session_summaries.source_time_range 的 JSON 同形。
-        val json = """{"start":"${range.start}","end":"${range.end}","timezone":"${range.timezone}","localDates":[${range.localDates.joinToString(",") { "\"$it\"" }}]}"""
+        val json = """{"start":"${range.start}","end":"${range.end}","timezone":"${range.timezone}","localDates":[""" +
+            range.localDates.joinToString(",") { "\"$it\"" } +
+            "]}"
         val decoded = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
             .decodeFromString(TimeContext.SourceTimeRange.serializer(), json)
         assertEquals(range.start, decoded.start)

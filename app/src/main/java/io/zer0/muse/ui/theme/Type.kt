@@ -37,7 +37,7 @@ val MuseTypography: Typography = Typography(
         fontWeight = FontWeight.Bold,
         fontSize = 34.sp,
         lineHeight = 41.sp,
-        letterSpacing = (-0.5).sp,
+        letterSpacing = 0.sp,
     ),
     // 2026-11-22: displayMedium / displaySmall 删除。
     // 原来 displaySmall(24) 与 headlineLarge(24) 字号字重行高完全相同 ——
@@ -48,12 +48,14 @@ val MuseTypography: Typography = Typography(
         fontWeight = FontWeight.SemiBold,
         fontSize = 24.sp,
         lineHeight = 30.sp,
+        letterSpacing = 0.1.sp,
     ),
     headlineMedium = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.SemiBold,
         fontSize = 22.sp,
         lineHeight = 28.sp,
+        letterSpacing = 0.1.sp,
     ),
     // 2026-11-22: headlineSmall 删除 —— 与 titleLarge 字号/字重/行高完全相同（20/26/SemiBold），
     // 两个名字一个样式。调用方 10 处已并入 titleLarge（23 处），20sp 只剩一个真源。
@@ -64,18 +66,21 @@ val MuseTypography: Typography = Typography(
         fontWeight = FontWeight.SemiBold,
         fontSize = 20.sp,
         lineHeight = 26.sp,
+        letterSpacing = 0.1.sp,
     ),
     titleMedium = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.SemiBold,
         fontSize = 17.sp,
         lineHeight = 23.sp,
+        letterSpacing = 0.1.sp,
     ),
     titleSmall = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Medium,
         fontSize = 15.sp,
         lineHeight = 21.sp,
+        letterSpacing = 0.1.sp,
     ),
 
     // ── 正文层(聊天消息主力) ──────────────────────────────────────────
@@ -84,19 +89,21 @@ val MuseTypography: Typography = Typography(
         fontWeight = FontWeight.Normal,
         fontSize = 16.sp,
         lineHeight = 25.6.sp, // 1.6 倍行高,长文阅读舒适
-        letterSpacing = 0.1.sp,
+        letterSpacing = 0.2.sp,
     ),
     bodyMedium = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Normal,
         fontSize = 14.sp,
         lineHeight = 22.4.sp, // 1.6 倍行高
+        letterSpacing = 0.15.sp,
     ),
     bodySmall = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Normal,
         fontSize = 13.sp,
         lineHeight = 20.8.sp, // L-TP3: 1.6 倍行高,与 bodyLarge/bodyMedium 体系一致
+        letterSpacing = 0.15.sp,
     ),
 
     // ── 标签层(按钮 / Tab / 操作行) ────────────────────────────────────
@@ -112,12 +119,14 @@ val MuseTypography: Typography = Typography(
         fontWeight = FontWeight.Medium,
         fontSize = 13.sp,
         lineHeight = 17.sp,
+        letterSpacing = 0.1.sp,
     ),
     labelSmall = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Medium,
         fontSize = 12.sp, // 紧凑标签也保持可读，不低于 12sp
         lineHeight = 17.sp,
+        letterSpacing = 0.1.sp,
     ),
 )
 

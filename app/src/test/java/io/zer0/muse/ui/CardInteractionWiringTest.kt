@@ -3,18 +3,15 @@ package io.zer0.muse.ui
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.ToolCallInfo
 import io.zer0.ai.core.UIMessage
+import io.zer0.muse.ui.chat.SHOW_CARD_TOOL_NAME
+import io.zer0.muse.ui.chat.inlineDeliverableMessageIds
+import io.zer0.muse.ui.chat.isInlineDeliverableTool
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.nio.file.Files
 import java.nio.file.Path
-import io.zer0.muse.ui.chat.SHOW_CARD_TOOL_NAME
-import io.zer0.muse.ui.chat.isInlineDeliverableTool
-import io.zer0.muse.ui.chat.inlineDeliverableMessageIds
-import io.zer0.muse.ui.chat.DirectToolOutputInline
-import io.zer0.muse.ui.chat.MessageBubble
-import io.zer0.muse.ui.chat.ChatScreen
 
 /**
  * v2.6.8 卡片交互链路回归（源码级 wiring 断言）。

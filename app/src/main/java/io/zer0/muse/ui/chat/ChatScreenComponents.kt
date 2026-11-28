@@ -27,6 +27,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -34,6 +35,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
@@ -56,6 +58,7 @@ import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.media.AssistantAvatar
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.common.surface.MuseDivider
+import io.zer0.muse.ui.memory.isToday
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseAvatarSize
 import io.zer0.muse.ui.theme.MuseDateFormats
@@ -63,7 +66,6 @@ import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.semiLarge
-import io.zer0.muse.ui.memory.isToday
 
 /**
  * v0.29 P0-1: 空聊天引导 — 轻量居中提示 + 建议 prompt 胶囊。
@@ -239,13 +241,16 @@ internal fun ImageGenerationPlaceholder() {
         )
         return
     }
-    val shimmerColors = listOf(
-        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f),
-        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-    )
+    val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
+    val shimmerColors = remember(surfaceVariant) {
+        listOf(
+            surfaceVariant.copy(alpha = 0.4f),
+            surfaceVariant.copy(alpha = 0.15f),
+            surfaceVariant.copy(alpha = 0.4f),
+        )
+    }
     val transition = rememberInfiniteTransition(label = "image_shimmer")
-    val translateAnim by transition.animateFloat(
+    val translateAnim: State<Float> = transition.animateFloat(
         initialValue = 0f,
         targetValue = 1000f,
         animationSpec = infiniteRepeatable(
@@ -253,11 +258,6 @@ internal fun ImageGenerationPlaceholder() {
             repeatMode = RepeatMode.Restart,
         ),
         label = "image_shimmer",
-    )
-    val brush = Brush.linearGradient(
-        colors = shimmerColors,
-        start = Offset(translateAnim - 200f, 0f),
-        end = Offset(translateAnim + 200f, 0f),
     )
     Row(
         modifier = Modifier
@@ -275,7 +275,7 @@ internal fun ImageGenerationPlaceholder() {
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 repeat(3) { index ->
-                    val dotScale by transition.animateFloat(
+                    val dotScale = transition.animateFloat(
                         initialValue = 0.6f,
                         targetValue = 1f,
                         animationSpec = infiniteRepeatable(
@@ -288,7 +288,7 @@ internal fun ImageGenerationPlaceholder() {
                         ),
                         label = "img_dot_scale_$index",
                     )
-                    val dotAlpha by transition.animateFloat(
+                    val dotAlpha = transition.animateFloat(
                         initialValue = 0.4f,
                         targetValue = 1f,
                         animationSpec = infiniteRepeatable(
@@ -304,13 +304,12 @@ internal fun ImageGenerationPlaceholder() {
                     Box(
                         modifier = Modifier
                             .size(7.dp)
-                            .then(
-                                Modifier.graphicsLayer {
-                                    scaleX = dotScale
-                                    scaleY = dotScale
-                                    alpha = dotAlpha
-                                },
-                            )
+                            .graphicsLayer {
+                                val s = dotScale.value
+                                scaleX = s
+                                scaleY = s
+                                alpha = dotAlpha.value
+                            }
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.primary),
                     )
@@ -322,7 +321,16 @@ internal fun ImageGenerationPlaceholder() {
                     .fillMaxWidth()
                     .heightIn(min = 180.dp)
                     .clip(MuseShapes.semiLarge)
-                    .background(brush),
+                    .drawBehind {
+                        val x = translateAnim.value
+                        drawRect(
+                            brush = Brush.linearGradient(
+                                colors = shimmerColors,
+                                start = Offset(x - 200f, 0f),
+                                end = Offset(x + 200f, 0f),
+                            ),
+                        )
+                    },
                 contentAlignment = Alignment.Center,
             ) {
                 Column(
@@ -399,13 +407,16 @@ internal fun VideoGenerationPlaceholder() {
         )
         return
     }
-    val shimmerColors = listOf(
-        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f),
-        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-    )
+    val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
+    val shimmerColors = remember(surfaceVariant) {
+        listOf(
+            surfaceVariant.copy(alpha = 0.4f),
+            surfaceVariant.copy(alpha = 0.15f),
+            surfaceVariant.copy(alpha = 0.4f),
+        )
+    }
     val transition = rememberInfiniteTransition(label = "video_shimmer")
-    val translateAnim by transition.animateFloat(
+    val translateAnim: State<Float> = transition.animateFloat(
         initialValue = 0f,
         targetValue = 1000f,
         animationSpec = infiniteRepeatable(
@@ -413,11 +424,6 @@ internal fun VideoGenerationPlaceholder() {
             repeatMode = RepeatMode.Restart,
         ),
         label = "video_shimmer",
-    )
-    val brush = Brush.linearGradient(
-        colors = shimmerColors,
-        start = Offset(translateAnim - 200f, 0f),
-        end = Offset(translateAnim + 200f, 0f),
     )
     Row(
         modifier = Modifier
@@ -434,7 +440,16 @@ internal fun VideoGenerationPlaceholder() {
                     .fillMaxWidth()
                     .heightIn(min = 180.dp)
                     .clip(MuseShapes.semiLarge)
-                    .background(brush),
+                    .drawBehind {
+                        val x = translateAnim.value
+                        drawRect(
+                            brush = Brush.linearGradient(
+                                colors = shimmerColors,
+                                start = Offset(x - 200f, 0f),
+                                end = Offset(x + 200f, 0f),
+                            ),
+                        )
+                    },
                 contentAlignment = Alignment.Center,
             ) {
                 Column(
@@ -471,13 +486,16 @@ internal fun HistoryLoadMorePlaceholder() {
         StaticHistoryLoadMorePlaceholder()
         return
     }
-    val shimmerColors = listOf(
-        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.1f),
-        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-    )
+    val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
+    val shimmerColors = remember(surfaceVariant) {
+        listOf(
+            surfaceVariant.copy(alpha = 0.3f),
+            surfaceVariant.copy(alpha = 0.1f),
+            surfaceVariant.copy(alpha = 0.3f),
+        )
+    }
     val transition = rememberInfiniteTransition(label = "load_more_shimmer")
-    val translateAnim by transition.animateFloat(
+    val translateAnim: State<Float> = transition.animateFloat(
         initialValue = 0f,
         targetValue = 1000f,
         animationSpec = infiniteRepeatable(
@@ -485,11 +503,6 @@ internal fun HistoryLoadMorePlaceholder() {
             repeatMode = RepeatMode.Restart,
         ),
         label = "load_more_shimmer",
-    )
-    val brush = Brush.linearGradient(
-        colors = shimmerColors,
-        start = Offset(translateAnim - 200f, 0f),
-        end = Offset(translateAnim + 200f, 0f),
     )
     Row(
         modifier = Modifier
@@ -513,7 +526,16 @@ internal fun HistoryLoadMorePlaceholder() {
                 .weight(1f)
                 .height(6.dp)
                 .clip(MuseShapes.extraSmall)
-                .background(brush),
+                .drawBehind {
+                    val x = translateAnim.value
+                    drawRect(
+                        brush = Brush.linearGradient(
+                            colors = shimmerColors,
+                            start = Offset(x - 200f, 0f),
+                            end = Offset(x + 200f, 0f),
+                        ),
+                    )
+                },
         )
     }
 }

@@ -4,6 +4,7 @@
 
 package io.zer0.muse.ui.chat
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -13,20 +14,30 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import io.zer0.muse.R
+import io.zer0.muse.mcp.McpToolResultPresentation
 import io.zer0.muse.ui.markdown.DataCardParser
 import io.zer0.muse.ui.markdown.DataCardRenderer
 import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.bodySmallStrong
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -41,6 +52,10 @@ import org.json.JSONObject
  */
 @Composable
 internal fun ToolResultRenderer(result: String, modifier: Modifier = Modifier) {
+    if (containsMcpPresentationBlock(result)) {
+        McpPresentationView(result, modifier)
+        return
+    }
     val kind = remember(result) { detectResultKind(result) }
     when (kind) {
         ResultKind.DATA_CARD -> {
@@ -66,6 +81,125 @@ internal fun ToolResultRenderer(result: String, modifier: Modifier = Modifier) {
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = modifier,
+        )
+    }
+}
+
+private fun containsMcpPresentationBlock(result: String): Boolean = result.lineSequence().any { line ->
+    line.startsWith("[MCP image:") || line.startsWith("[MCP audio:") || line.startsWith("[MCP resource")
+}
+
+@Composable
+private fun McpPresentationView(result: String, modifier: Modifier) {
+    Column(modifier = modifier, verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(MusePaddings.tinyGap)) {
+        result.lines().forEach { line ->
+            val attachment = parseMcpAttachmentSummary(line)
+            when {
+                attachment != null -> McpAttachmentSummary(attachment)
+                line.startsWith("[MCP resource") -> McpResourceSummary(line)
+                else -> Text(
+                    text = line,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+internal data class McpAttachmentSummary(
+    val kind: String,
+    val mimeType: String,
+    val size: String,
+    val previewId: String? = null,
+)
+
+internal fun parseMcpAttachmentSummary(line: String): McpAttachmentSummary? {
+    val match = MCP_ATTACHMENT_REGEX.matchEntire(line) ?: return null
+    return McpAttachmentSummary(
+        kind = match.groupValues[1],
+        mimeType = match.groupValues[2],
+        size = match.groupValues[3],
+        previewId = match.groupValues[4].takeIf { match.groupValues[1] == "image" && it.isNotBlank() },
+    )
+}
+
+private val MCP_ATTACHMENT_REGEX = Regex(
+    """\[MCP (image|audio): ([^,]+), ([^;]+); (?:preview|playback) (?:unavailable|([0-9a-f-]{36}))]$""",
+)
+
+@Composable
+private fun McpAttachmentSummary(summary: McpAttachmentSummary) {
+    Surface(
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        shape = MuseShapes.small,
+    ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(MusePaddings.contentGap)) {
+            Text(
+                text = stringResource(
+                    if (summary.kind == "image") R.string.chat_mcp_image_result else R.string.chat_mcp_audio_result,
+                    summary.mimeType,
+                    summary.size,
+                ),
+                style = MaterialTheme.typography.bodySmallStrong,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            val image by produceState<ImageBitmap?>(null, summary.previewId) {
+                val id = summary.previewId ?: return@produceState
+                value = withContext(Dispatchers.Default) {
+                    val bytes = McpToolResultPresentation.previewBytes(id) ?: return@withContext null
+                    decodeMcpPreview(bytes)
+                }
+            }
+            val preview = image
+            if (preview != null) {
+                Image(
+                    bitmap = preview,
+                    contentDescription = stringResource(R.string.chat_mcp_image_result, summary.mimeType, summary.size),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            } else {
+                Text(
+                    text = stringResource(
+                        if (summary.kind == "image") {
+                            R.string.chat_mcp_image_preview_unavailable
+                        } else {
+                            R.string.chat_mcp_audio_playback_unavailable
+                        },
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+private fun decodeMcpPreview(bytes: ByteArray): ImageBitmap? {
+    val bounds = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+    if (bounds.outWidth !in 1..4096 || bounds.outHeight !in 1..4096 ||
+        bounds.outWidth.toLong() * bounds.outHeight > 4_000_000
+    ) {
+        return null
+    }
+    val sample = android.graphics.BitmapFactory.Options().apply {
+        inSampleSize = if (maxOf(bounds.outWidth, bounds.outHeight) > 1280) 2 else 1
+    }
+    return android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size, sample)?.asImageBitmap()
+}
+
+@Composable
+private fun McpResourceSummary(line: String) {
+    Surface(
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        shape = MuseShapes.small,
+    ) {
+        Text(
+            text = line.removeSurrounding("[", "]"),
+            style = MaterialTheme.typography.bodySmallStrong,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.fillMaxWidth().padding(MusePaddings.contentGap),
         )
     }
 }

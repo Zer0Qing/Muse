@@ -3,11 +3,10 @@ package io.zer0.muse.schedule
 import android.content.Context
 import io.zer0.common.AppJson
 import io.zer0.common.Logger
+import io.zer0.muse.ui.chat.ChatViewModel
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 import java.util.Calendar
 import kotlin.math.pow
-import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * 用户活跃度画像 — 记录用户最近 7 天每小时的活动频次,驱动自适应主动消息调度。

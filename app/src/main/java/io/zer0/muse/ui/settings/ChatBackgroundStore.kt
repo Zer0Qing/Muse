@@ -7,7 +7,6 @@ import android.net.Uri
 import io.zer0.common.Logger
 import java.io.ByteArrayOutputStream
 import java.io.File
-import io.zer0.muse.ui.chat.SmartImage
 
 /**
  * v2.6.2（用户反馈）: 聊天背景图片落盘工具 —— 三层背景（会话/助手/全局）共用。

@@ -230,6 +230,12 @@ fun MuseTheme(
             // 业务代码不再硬编码裸色(同步注入语义状态色与代码高亮色)。
             val statusColors = if (darkTheme) DarkStatusColors else LightStatusColors
             val codeColors = if (darkTheme) DarkCodeColors else LightCodeColors
+            val channelBrandColors = if (darkTheme) DarkChannelBrandColors else LightChannelBrandColors
+            val constellationColors = MuseConstellationColors(
+                observatory = ObservatoryConstellationPalette,
+                paper = if (darkTheme) DarkPaperConstellationPalette else LightPaperConstellationPalette,
+            )
+            val voiceBubbleColors = if (darkTheme) DarkVoiceBubbleColors else LightVoiceBubbleColors
             CompositionLocalProvider(
                 LocalMuseThemeId provides resolvedThemeId,
                 LocalIndication provides
@@ -242,6 +248,9 @@ fun MuseTheme(
                 LocalRippleConfiguration provides null,
                 LocalStatusColors provides statusColors,
                 LocalCodeColors provides codeColors,
+                LocalChannelBrandColors provides channelBrandColors,
+                LocalConstellationColors provides constellationColors,
+                LocalVoiceBubbleColors provides voiceBubbleColors,
                 // F3.3（用户批准推翻旧全局关闭决策）：不再 provide null，
                 // 交回平台默认越界效果——API31+ 为低强度橡皮筋拉伸，更低版本
                 // 平台本身无拉伸（自然降级为硬停）。真机验收含低帧率设备观察，

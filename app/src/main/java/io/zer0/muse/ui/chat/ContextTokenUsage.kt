@@ -101,6 +101,9 @@ internal object ContextTokenUsage {
         return tokens
     }
 
+    /** Estimates raw message list tokens sharing [tokenCache] across pipeline stages. */
+    fun estimateMessages(messages: List<UIMessage>): Int = TokenEstimator.estimate(messages, cache = tokenCache)
+
     fun estimate(messages: List<UIMessage>, systemPrompt: String = ""): Int {
         // 系统提示每轮都一样，却每次都要重新 BPE 一遍（实测占剩余开销的大头）。
         // 单条缓存即可：它是同一个字符串实例，比较用 === 而不是 equals，命中时零成本。

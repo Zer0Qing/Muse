@@ -12,7 +12,6 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * v1.0.15: 网络状态监听器。

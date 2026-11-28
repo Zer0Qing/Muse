@@ -8,13 +8,13 @@ import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import io.zer0.muse.R
 import io.zer0.muse.data.session.SessionEntity
+import io.zer0.muse.ui.screen.FolderDetailScreen
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
-import io.zer0.muse.ui.screen.FolderDetailScreen
 
 /**
  * 38/文件夹详情页：空文件夹给出可读空态 + 两个动作入口，不再"建了没用"。

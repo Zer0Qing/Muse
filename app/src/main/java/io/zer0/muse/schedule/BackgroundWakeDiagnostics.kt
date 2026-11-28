@@ -10,6 +10,7 @@ import io.zer0.common.resultOf
 import io.zer0.muse.BuildConfig
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.proactive.ProactiveWorker
+import io.zer0.muse.ui.theme.MuseDateFormats
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -17,10 +18,8 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import org.koin.core.context.GlobalContext
-import java.util.Date
 import java.util.Locale
 import java.util.concurrent.ExecutionException
-import io.zer0.muse.ui.theme.MuseDateFormats
 
 /**
  * 后台唤醒的可观测面。

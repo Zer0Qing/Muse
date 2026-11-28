@@ -5,7 +5,6 @@ import io.zer0.muse.data.ThemeSolarCondition
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
-import kotlin.math.PI
 import kotlin.math.asin
 import kotlin.math.cos
 import kotlin.math.floor
@@ -69,13 +68,7 @@ object SolarCalculator {
         return SolarSchedule(date, zoneId, sunrise, sunset, condition)
     }
 
-    private fun findCrossing(
-        start: Instant,
-        end: Instant,
-        latitude: Double,
-        longitude: Double,
-        rising: Boolean,
-    ): Instant {
+    private fun findCrossing(start: Instant, end: Instant, latitude: Double, longitude: Double, rising: Boolean): Instant {
         var low = start
         var high = end
         repeat(24) {

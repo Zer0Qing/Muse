@@ -56,8 +56,7 @@ class DeepMemoryProcessorWriteGateTest {
         return FactDbProvider(context).also { provider = it }
     }
 
-    private suspend fun factCount(): Int =
-        provider.getFactStore("default").getByScopeAndSpace("main", spaceId).size
+    private suspend fun factCount(): Int = provider.getFactStore("default").getByScopeAndSpace("main", spaceId).size
 
     private fun dirtyEntity() = SessionSummaryEntity(
         sessionId = sessionId,
@@ -232,11 +231,7 @@ class DeepMemoryProcessorWriteGateTest {
 
         override suspend fun revisionOf(sessionId: String): Long? = entity.summaryRevision
 
-        override suspend fun bumpRevisionIfCurrent(
-            sessionId: String,
-            expectedRevision: Long,
-            sourceFingerprint: String,
-        ): Int = 0
+        override suspend fun bumpRevisionIfCurrent(sessionId: String, expectedRevision: Long, sourceFingerprint: String): Int = 0
 
         override suspend fun markProcessedIfCurrent(sessionId: String, expectedRevision: Long, now: String): Int {
             if (entity.summaryRevision != expectedRevision) return 0

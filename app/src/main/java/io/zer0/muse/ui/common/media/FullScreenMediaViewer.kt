@@ -3,16 +3,22 @@ package io.zer0.muse.ui.common.media
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.calculatePan
+import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -24,7 +30,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -33,8 +41,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChanged
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import io.zer0.muse.R
@@ -45,49 +55,69 @@ import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.theme.MuseSpacing
 import kotlinx.coroutines.launch
-import io.zer0.muse.ui.chat.MessageBubble
+import kotlin.math.abs
 
 /**
- * v1.0.15: 可缩放图片 — 支持双指缩放、双击缩放、缩放后拖拽平移。
- *
- * 从 MessageBubble.kt v1.60-B 实现抽取为共享组件,供单聊与群聊全屏媒体查看器复用。
- * - 缩放范围 1x-5x(detectTransformGestures)
- * - 双击在 1x ↔ 2.5x 间平滑切换(300ms Animatable 过渡)
- * - scale/offset 用 rememberSaveable,旋屏后保持缩放状态
+ * 可缩放图片 — 双指缩放、双击切换、视口边界内平移；未放大时不拦截翻页手势。
  */
 @Composable
-internal fun ZoomableImage(model: Any?, modifier: Modifier = Modifier, contentDescription: String? = null) {
-    var scale by rememberSaveable { mutableStateOf(1f) }
-    var offsetX by rememberSaveable { mutableStateOf(0f) }
-    var offsetY by rememberSaveable { mutableStateOf(0f) }
+internal fun ZoomableImage(
+    model: Any?,
+    modifier: Modifier = Modifier,
+    contentDescription: String? = null,
+    onSingleTap: (() -> Unit)? = null,
+) {
+    var scale by rememberSaveable { mutableFloatStateOf(1f) }
+    var offsetX by rememberSaveable { mutableFloatStateOf(0f) }
+    var offsetY by rememberSaveable { mutableFloatStateOf(0f) }
+    var boxSize by remember { mutableStateOf(IntSize.Zero) }
     val scope = rememberCoroutineScope()
     val doubleTapSpec = MuseMotion.tween<Float>(
         durationMillis = MuseAnimation.SLOW_MS,
         easing = FastOutSlowInEasing,
     )
+
     Box(
         modifier = modifier
             .clipToBounds()
+            .onSizeChanged { boxSize = it }
             .pointerInput(Unit) {
-                detectTransformGestures { _, pan, zoom, _ ->
-                    val newScale = (scale * zoom).coerceIn(1f, 5f)
-                    if (newScale > 1f) {
-                        scale = newScale
-                        offsetX += pan.x
-                        offsetY += pan.y
-                    } else {
-                        scale = 1f
-                        offsetX = 0f
-                        offsetY = 0f
-                    }
+                awaitEachGesture {
+                    awaitFirstDown(requireUnconsumed = false)
+                    do {
+                        val event = awaitPointerEvent()
+                        val zoomChange = event.calculateZoom()
+                        val panChange = event.calculatePan()
+                        val pointerCount = event.changes.count { it.pressed }
+                        val isPinching = pointerCount >= 2 && zoomChange != 1f
+                        if (isPinching || scale > 1.01f) {
+                            val newScale = (scale * zoomChange).coerceIn(1f, 5f)
+                            if (newScale > 1.01f) {
+                                val maxX = ((newScale - 1f) * boxSize.width) / 2f
+                                val maxY = ((newScale - 1f) * boxSize.height) / 2f
+                                scale = newScale
+                                offsetX = (offsetX + panChange.x).coerceIn(-maxX, maxX)
+                                offsetY = (offsetY + panChange.y).coerceIn(-maxY, maxY)
+                            } else {
+                                scale = 1f
+                                offsetX = 0f
+                                offsetY = 0f
+                            }
+                            event.changes.forEach { change ->
+                                if (change.positionChanged()) change.consume()
+                            }
+                        }
+                    } while (event.changes.any { it.pressed })
                 }
             }
-            .pointerInput(Unit) {
+            .pointerInput(onSingleTap) {
                 detectTapGestures(
+                    onTap = { onSingleTap?.invoke() },
                     onDoubleTap = {
                         scope.launch {
-                            val targetScale = if (scale > 1f) 1f else 2.5f
+                            val targetScale = if (scale > 1.05f) 1f else 2.5f
                             val animatable = Animatable(scale)
                             animatable.animateTo(
                                 targetValue = targetScale,
@@ -95,7 +125,7 @@ internal fun ZoomableImage(model: Any?, modifier: Modifier = Modifier, contentDe
                             ) {
                                 scale = value
                             }
-                            if (targetScale == 1f) {
+                            if (abs(targetScale - 1f) < 0.05f) {
                                 offsetX = 0f
                                 offsetY = 0f
                             }
@@ -121,18 +151,7 @@ internal fun ZoomableImage(model: Any?, modifier: Modifier = Modifier, contentDe
 }
 
 /**
- * v1.0.15: 全屏媒体查看器 — HorizontalPager 左右切换 + 双指/双击缩放。
- *
- * 从 MessageBubble.kt v1.60-B 抽取为共享组件,统一单聊与群聊的图片查看交互。
- * - 遮罩 colorScheme.scrim(0.95 alpha)
- * - 顶部:页码指示器(多图时)+ 关闭按钮
- * - dismissOnClickOutside = false,避免缩放手势误触关闭
- *
- * @param images 图片 URL/data URI 列表
- * @param initialIndex 初始展示页索引
- * @param onDismiss 关闭回调
- * @param onSaveImage v1.0.80: 右下角下载按钮回调(传入当前页图片 URI);null 时不显示按钮。
- *   下载入口从消息气泡卡片移入大图预览,避免按钮遮挡画面。
+ * 全屏媒体查看器 — 统一服务聊天大图、产物图片、工作区与创作工坊作品库。
  */
 @Composable
 internal fun FullScreenMediaViewer(
@@ -140,11 +159,16 @@ internal fun FullScreenMediaViewer(
     initialIndex: Int,
     onDismiss: () -> Unit,
     onSaveImage: ((imageUri: String) -> Unit)? = null,
+    onShareImage: ((imageUri: String) -> Unit)? = null,
+    headerExtra: (@Composable (currentIndex: Int) -> Unit)? = null,
+    bottomContent: (@Composable (currentIndex: Int) -> Unit)? = null,
 ) {
     if (images.isEmpty()) return
     val pagerState = rememberPagerState(
         initialPage = initialIndex.coerceIn(0, images.lastIndex),
     ) { images.size }
+    var showChrome by rememberSaveable { mutableStateOf(true) }
+
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(
@@ -167,65 +191,107 @@ internal fun FullScreenMediaViewer(
                 ZoomableImage(
                     model = images[page],
                     contentDescription = stringResource(R.string.chat_image_page_cd, page + 1, images.size),
+                    onSingleTap = { showChrome = !showChrome },
                     modifier = Modifier.fillMaxSize(),
                 )
             }
-            // 顶部:关闭按钮 + 页码指示器
-            Row(
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .fillMaxWidth()
-                    .padding(horizontal = MusePaddings.itemGap, vertical = 36.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                // 左侧占位(宽度匹配关闭按钮触摸目标),使页码居中、关闭按钮靠右
-                Spacer(modifier = Modifier.width(MuseIconSizes.touchTarget))
-                if (images.size > 1) {
-                    Surface(
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
-                    ) {
-                        Text(
-                            text = "${pagerState.currentPage + 1} / ${images.size}",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.padding(horizontal = MusePaddings.itemGap, vertical = MusePaddings.labelVerticalGap),
-                        )
-                    }
-                }
-                IconButton(
-                    onClick = onDismiss,
+
+            if (showChrome) {
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .fillMaxWidth()
+                        .statusBarsPadding()
+                        .padding(horizontal = MusePaddings.itemGap, vertical = MuseSpacing.sm),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(
-                        imageVector = MuseIcons.x,
-                        contentDescription = stringResource(R.string.common_close),
-                        tint = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
-            }
-            // v1.0.80: 右下角下载按钮(仅在回调非空时显示)
-            if (onSaveImage != null) {
-                val currentImage = images.getOrNull(pagerState.currentPage)
-                if (currentImage != null) {
-                    IconButton(
-                        onClick = { onSaveImage(currentImage) },
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .padding(MusePaddings.itemGap)
-                            .size(MuseIconSizes.touchTarget)
-                            .background(
-                                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
-                                shape = CircleShape,
-                            ),
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(MuseSpacing.xs),
                     ) {
+                        headerExtra?.invoke(pagerState.currentPage)
+                            ?: Spacer(modifier = Modifier.width(MuseIconSizes.touchTarget))
+                    }
+                    if (images.size > 1) {
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
+                        ) {
+                            Text(
+                                text = "${pagerState.currentPage + 1} / ${images.size}",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.padding(
+                                    horizontal = MusePaddings.itemGap,
+                                    vertical = MusePaddings.labelVerticalGap,
+                                ),
+                            )
+                        }
+                    }
+                    IconButton(onClick = onDismiss) {
                         Icon(
-                            imageVector = MuseIcons.download,
-                            contentDescription = stringResource(R.string.chat_save_image_cd),
+                            imageVector = MuseIcons.x,
+                            contentDescription = stringResource(R.string.common_close),
                             tint = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.size(MuseIconSizes.iconMedium),
                         )
                     }
+                }
+
+                val currentImage = images.getOrNull(pagerState.currentPage)
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .padding(horizontal = MusePaddings.itemGap, vertical = MuseSpacing.sm),
+                    verticalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
+                ) {
+                    if (onShareImage != null || onSaveImage != null) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(MuseSpacing.sm, Alignment.End),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            if (onShareImage != null && currentImage != null) {
+                                IconButton(
+                                    onClick = { onShareImage(currentImage) },
+                                    modifier = Modifier
+                                        .size(MuseIconSizes.touchTarget)
+                                        .background(
+                                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
+                                            shape = CircleShape,
+                                        ),
+                                ) {
+                                    Icon(
+                                        imageVector = MuseIcons.share,
+                                        contentDescription = stringResource(R.string.common_share),
+                                        tint = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.size(MuseIconSizes.iconMedium),
+                                    )
+                                }
+                            }
+                            if (onSaveImage != null && currentImage != null) {
+                                IconButton(
+                                    onClick = { onSaveImage(currentImage) },
+                                    modifier = Modifier
+                                        .size(MuseIconSizes.touchTarget)
+                                        .background(
+                                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
+                                            shape = CircleShape,
+                                        ),
+                                ) {
+                                    Icon(
+                                        imageVector = MuseIcons.download,
+                                        contentDescription = stringResource(R.string.chat_save_image_cd),
+                                        tint = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.size(MuseIconSizes.iconMedium),
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    bottomContent?.invoke(pagerState.currentPage)
                 }
             }
         }

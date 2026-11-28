@@ -29,40 +29,40 @@ class TaskActionCoverageTest {
             BotTaskStatus.REVIEWING,
             BotTaskStatus.CANCEL_REQUESTED,
             BotTaskStatus.NEEDS_USER,
-        );
+        )
         val missing = nonTerminal.filter { status ->
             // 在 toRow 的 actions 构造块里找该状态的引用。
-            val actionsAt = vm.indexOf("val actions = buildSet");
-            val actionsEnd = vm.indexOf("return AgentBotUiState.TaskRow(", actionsAt);
-            val block = vm.substring(actionsAt, actionsEnd);
-            !block.contains(status);
-        };
+            val actionsAt = vm.indexOf("val actions = buildSet")
+            val actionsEnd = vm.indexOf("return AgentBotUiState.TaskRow(", actionsAt)
+            val block = vm.substring(actionsAt, actionsEnd)
+            !block.contains(status)
+        }
         assertTrue(
             "这些非终态没有在操作集里被考虑，用户会没有出口：" + missing,
             missing.isEmpty(),
-        );
+        )
     }
 
     @Test
     fun `needs-user row can always be cancelled`() {
-        val actionsAt = vm.indexOf("val actions = buildSet");
-        val actionsEnd = vm.indexOf("return AgentBotUiState.TaskRow(", actionsAt);
-        val block = vm.substring(actionsAt, actionsEnd);
+        val actionsAt = vm.indexOf("val actions = buildSet")
+        val actionsEnd = vm.indexOf("return AgentBotUiState.TaskRow(", actionsAt)
+        val block = vm.substring(actionsAt, actionsEnd)
         assertTrue(
             "NEEDS_USER 必须能取消，否则任务永久停住",
             block.contains("BotTaskStatus.NEEDS_USER"),
-        );
+        )
     }
 
     @Test
     fun `continue is only granted to the approval-approved source`() {
-        val actionsAt = vm.indexOf("val actions = buildSet");
-        val actionsEnd = vm.indexOf("return AgentBotUiState.TaskRow(", actionsAt);
-        val block = vm.substring(actionsAt, actionsEnd);
+        val actionsAt = vm.indexOf("val actions = buildSet")
+        val actionsEnd = vm.indexOf("return AgentBotUiState.TaskRow(", actionsAt)
+        val block = vm.substring(actionsAt, actionsEnd)
         // CONTINUE 必须同时受 NEEDS_USER 与 approvedAwaitingRetry 两个条件约束。
         assertTrue(
             "只给审批通过的来源 CONTINUE，不能只凭 status",
             block.contains("NEEDS_USER") && block.contains("approvedAwaitingRetry"),
-        );
+        )
     }
 }

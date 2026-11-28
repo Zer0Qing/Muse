@@ -6,9 +6,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.nio.file.Files
 import java.nio.file.Path
-import io.zer0.muse.ui.screen.FavoritesScreen
-import io.zer0.muse.ui.screen.favoriteStarTint
-import io.zer0.muse.ui.chat.MessageBubble
 
 /**
  * 收藏夹的源码级回归（审计 §11-1 / §11-8 / §11-9）。

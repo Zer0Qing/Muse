@@ -6,9 +6,11 @@ import io.zer0.muse.data.agentbot.LiveMissionProgressBus
 import io.zer0.muse.data.computenode.ComputeNodeStatus
 import io.zer0.muse.data.computenode.RemoteComputeNodeEntity
 import kotlinx.coroutines.flow.collect
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
+import java.security.MessageDigest
 
 /**
  * 任务类别。
@@ -92,15 +94,13 @@ class ComputeTargetRouter(
     }
 
     /** 按 nodeId 取节点实体，用于把路由结果交给传输层。 */
-    suspend fun nodeFor(target: ComputeTarget.RemoteNode): RemoteComputeNodeEntity =
-        nodeById(target.nodeId) ?: throw MuseNodeException(
-            error = MuseNodeError.NODE_NOT_CONFIGURED,
-            message = "compute node not found: " + target.nodeId,
-        )
+    suspend fun nodeFor(target: ComputeTarget.RemoteNode): RemoteComputeNodeEntity = nodeById(target.nodeId) ?: throw MuseNodeException(
+        error = MuseNodeError.NODE_NOT_CONFIGURED,
+        message = "compute node not found: " + target.nodeId,
+    )
 
     /** 按 nodeId 查询节点；不存在时返回 null。 */
-    suspend fun nodeById(nodeId: String): RemoteComputeNodeEntity? =
-        nodeProvider().firstOrNull { it.nodeId == nodeId }
+    suspend fun nodeById(nodeId: String): RemoteComputeNodeEntity? = nodeProvider().firstOrNull { it.nodeId == nodeId }
 
     /** 在线节点的展示摘要；无在线节点时返回空列表。 */
     suspend fun summaries(): List<CloudComputerSummary> {
@@ -128,18 +128,17 @@ class ComputeTargetRouter(
         }
     }
 
-    private fun bestOnlineNode(nodes: List<RemoteComputeNodeEntity>): RemoteComputeNodeEntity? =
-        nodes.sortedWith(
-            compareByDescending<RemoteComputeNodeEntity> { it.isDefault }
-                .thenByDescending { it.updatedAt }
-                .thenBy { it.createdAt },
-        ).firstOrNull()
+    private fun bestOnlineNode(nodes: List<RemoteComputeNodeEntity>): RemoteComputeNodeEntity? = nodes.sortedWith(
+        compareByDescending<RemoteComputeNodeEntity> { it.isDefault }
+            .thenByDescending { it.updatedAt }
+            .thenBy { it.createdAt },
+    ).firstOrNull()
 
     private fun parseOsLabel(raw: String): String {
         if (raw.isBlank()) return ""
         val obj = try {
             AppJson.parseToJsonElement(raw) as? JsonObject
-        } catch (e: Exception) {
+        } catch (e: SerializationException) {
             Logger.w(TAG, "osInfoJson 无法解析: " + e.javaClass.simpleName)
             null
         }
@@ -191,16 +190,17 @@ class RemoteComputeRuntime(
 ) {
 
     /** 解析算力目标。 */
-    suspend fun resolve(requested: String, taskCategory: TaskCategory): ComputeTarget =
-        router.resolve(requested, taskCategory)
+    suspend fun resolve(requested: String, taskCategory: TaskCategory): ComputeTarget = router.resolve(requested, taskCategory)
 
     /** 在指定远端节点执行命令并收集全部输出。 */
     suspend fun execute(
         target: ComputeTarget.RemoteNode,
         request: ExecRequest,
         taskId: String = "",
+        onRemoteExecStarted: (suspend (nodeId: String, remoteRunId: String) -> Unit)? = null,
     ): RemoteExecOutcome {
         val node = router.nodeFor(target)
+        onRemoteExecStarted?.invoke(node.nodeId, request.runId)
         val stdout = StringBuilder()
         val stderr = StringBuilder()
         var exitCode = -1
@@ -238,5 +238,13 @@ class RemoteComputeRuntime(
                 )
             }
         }
+    }
+}
+
+object RemoteExecOwnerKey {
+    fun digest(nodeId: String, remoteRunId: String): String {
+        val value = "$nodeId\u0000$remoteRunId"
+        val bytes = MessageDigest.getInstance("SHA-256").digest(value.toByteArray(Charsets.UTF_8))
+        return bytes.take(16).joinToString("") { "%02x".format(it) }
     }
 }

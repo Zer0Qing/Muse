@@ -132,10 +132,12 @@ open class ShellExecutor(
                 return@withContext ScreenInfo(source = "shell-display($displayId,unavailable)")
             }
             val xml = exec("cat $dumpPath").getOrDefault("")
+            val nodes = parseUiAutomatorXml(xml)
+            val displayDims = parseVirtualDisplaySize(displayId, nodes)
             ScreenInfo(
-                nodes = parseUiAutomatorXml(xml),
-                screenWidth = context.resources.displayMetrics.widthPixels,
-                screenHeight = context.resources.displayMetrics.heightPixels,
+                nodes = nodes,
+                screenWidth = displayDims.first,
+                screenHeight = displayDims.second,
                 source = "shell-display:$displayId",
             )
         } catch (error: Exception) {
@@ -175,11 +177,12 @@ open class ShellExecutor(
             val escaped = text.replace(" ", "%s").replace("\"", "\\\"")
             exec("input text \"$escaped\"").isSuccess
         } else {
-            // 写剪贴板 + KEYCODE_PASTE
+            // 主线程写剪贴板后通过 KEYCODE_PASTE = 279 粘贴，避免 IO 线程触碰 ClipboardManager
             try {
-                val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                cm.setPrimaryClip(android.content.ClipData.newPlainText("auto", text))
-                // KEYCODE_PASTE = 279
+                withContext(Dispatchers.Main) {
+                    val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                    cm.setPrimaryClip(android.content.ClipData.newPlainText("auto", text))
+                }
                 exec("input keyevent 279").isSuccess
             } catch (e: Exception) {
                 Logger.w(TAG, "inputText i18n failed: ${e.message}")
@@ -420,8 +423,9 @@ open class ShellExecutor(
             val attrs = match.groupValues[1]
             fun attr(name: String): String? = Regex("$name=\"([^\"]*)\"").find(attrs)?.groupValues?.get(1)
 
-            val text = attr("text")?.takeIf { it.isNotBlank() }
-            val desc = attr("content-desc")?.takeIf { it.isNotBlank() }
+            val isPassword = attr("password") == "true"
+            val text = if (isPassword) null else unescapeXml(attr("text"))?.takeIf { it.isNotBlank() }
+            val desc = if (isPassword) null else unescapeXml(attr("content-desc"))?.takeIf { it.isNotBlank() }
             val clickable = attr("clickable") == "true"
             val editable = attr("class")?.contains("EditText") == true
             val scrollable = attr("scrollable") == "true"
@@ -467,11 +471,32 @@ open class ShellExecutor(
         return nodes
     }
 
+    private suspend fun parseVirtualDisplaySize(displayId: Int, nodes: List<UiNode>): Pair<Int, Int> {
+        val wmOut = runCatching { exec("wm size -d $displayId").getOrNull() }.getOrNull()
+        val wmMatch = wmOut?.let { Regex("(\\d+)x(\\d+)").find(it) }
+        if (wmMatch != null) {
+            val w = wmMatch.groupValues[1].toIntOrNull() ?: 0
+            val h = wmMatch.groupValues[2].toIntOrNull() ?: 0
+            if (w > 0 && h > 0) return w to h
+        }
+        val maxRight = nodes.maxOfOrNull { it.boundsRight } ?: 0
+        val maxBottom = nodes.maxOfOrNull { it.boundsBottom } ?: 0
+        if (maxRight in 320..1920 && maxBottom in 320..2560) return maxRight to maxBottom
+        return 720 to 1280
+    }
+
     companion object {
         private const val TAG = "ShellExec"
 
         /** shell 元字符:出现在插值文本中即视为命令注入风险,改用剪贴板路径绕过内插。 */
         private val SHELL_META_REGEX = Regex("[\$`;&|<>]")
+
+        private fun unescapeXml(raw: String?): String? = raw
+            ?.replace("&amp;", "&")
+            ?.replace("&lt;", "<")
+            ?.replace("&gt;", ">")
+            ?.replace("&quot;", "\"")
+            ?.replace("&apos;", "'")
 
         /** 合法包名白名单(仅字母数字点下划线),拒绝含 shell 元字符的包名注入。 */
         private val PACKAGE_NAME_REGEX = Regex("^[a-zA-Z][a-zA-Z0-9_.]*\$")

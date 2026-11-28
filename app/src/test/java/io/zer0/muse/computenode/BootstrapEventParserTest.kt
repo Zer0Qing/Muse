@@ -37,7 +37,9 @@ class BootstrapEventParserTest {
     @Test
     fun okEventParsesNestedData() {
         val event = BootstrapEventParser.parseLine(
-            """@@MUSE_BOOT {"phase":"PROBE","step":"done","percent":25,"status":"ok","msg":"probe done","data":{"os":"ubuntu-24.04","arch":"x86_64","memMb":2048,"hasSwap":false}}""",
+            "@@MUSE_BOOT " +
+                """{"phase":"PROBE","step":"done","percent":25,"status":"ok","msg":"probe done","data":{"os":"ubuntu-24.04",""" +
+            """arch":"x86_64","memMb":2048,"hasSwap":false}}""",
         )
 
         assertNotNull(event)
@@ -53,7 +55,9 @@ class BootstrapEventParserTest {
     fun daemonTokenStayOutOfToString() {
         val token = "test-token-placeholder"
         val event = BootstrapEventParser.parseLine(
-            """@@MUSE_BOOT {"phase":"DAEMON","step":"systemd","percent":60,"status":"ok","msg":"daemon ready","data":{"port":18765,"bind":"127.0.0.1","token":"$token","fp":"SHA256:placeholder"}}""",
+            "@@MUSE_BOOT " +
+                """{"phase":"DAEMON","step":"systemd","percent":60,"status":"ok","msg":"daemon ready","data":{"port":18765,""" +
+            """bind":"127.0.0.1","token":"$token","fp":"SHA256:placeholder"}}""",
         )
 
         assertNotNull(event)

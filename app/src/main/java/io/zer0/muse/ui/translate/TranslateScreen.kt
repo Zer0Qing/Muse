@@ -67,12 +67,12 @@ import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.pill
+import io.zer0.muse.util.launchSafely
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
-import io.zer0.muse.util.launchSafely
 
 /**
  * v1.0.31: 翻译页按新设计重写。
@@ -955,6 +955,7 @@ private fun TranslationResultCard(
 
                     SendToChatButton(
                         onClick = onSendToNewChat,
+                        translating = translating,
                         enabled = !translating && translatedText.isNotBlank(),
                     )
                 }
@@ -965,9 +966,14 @@ private fun TranslationResultCard(
 
 /**
  * "发送到会话" 按钮 — 胶囊形状,主色高亮。
+ *
+ * 翻译中按钮是灰的，但灰按钮也要能解释自己：点击时弹一句“还在翻译，稍等”，
+ * 而不是把一个完全不响应的控件摆在那里（用户只会以为按钮坏了）。
+ * 因此不能靠 `enabled = false` 交给 Surface 自己吞掉点击，得自己接管禁用态。
  */
 @Composable
-private fun SendToChatButton(onClick: () -> Unit, enabled: Boolean) {
+private fun SendToChatButton(onClick: () -> Unit, translating: Boolean, enabled: Boolean) {
+    val context = LocalContext.current
     Surface(
         shape = MuseShapes.pill,
         color = if (enabled) {
@@ -980,8 +986,14 @@ private fun SendToChatButton(onClick: () -> Unit, enabled: Boolean) {
         } else {
             MaterialTheme.colorScheme.outline
         },
-        onClick = onClick,
-        enabled = enabled,
+        onClick = {
+            if (enabled) {
+                onClick()
+            } else if (translating) {
+                MuseToast.show(context.getString(R.string.translate_page_still_translating))
+            }
+        },
+        enabled = enabled || translating,
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),

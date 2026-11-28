@@ -66,6 +66,7 @@ class PhoneToolsRegistrar(
                 required = emptySet(),
                 category = "built-in",
                 riskLevel = ToolRiskLevel.NORMAL,
+                hiddenFromSchema = true,
             ),
         ) { args -> impl.execOpenApp(args) }
 

@@ -8,14 +8,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key as composeKey
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import io.zer0.muse.R
 import io.zer0.muse.data.agentbot.AgentBotUiState
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
@@ -23,6 +22,7 @@ import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.theme.MusePaddings
+import androidx.compose.runtime.key as composeKey
 
 /**
  * 带操作的行列表区块。
@@ -59,38 +59,40 @@ fun <T> AgentBotRowSection(
             text = title,
             style = MaterialTheme.typography.titleSmall,
         )
-        rows.forEach { row -> composeKey(key(row)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = primary(row),
-                        style = MaterialTheme.typography.bodyMedium,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    secondary(row)?.let { line ->
+        rows.forEach { row ->
+            composeKey(key(row)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = line,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            text = primary(row),
+                            style = MaterialTheme.typography.bodyMedium,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
                         )
+                        secondary(row)?.let { line ->
+                            Text(
+                                text = line,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
+                    io.zer0.muse.ui.common.form.MuseCapsuleButton(
+                        text = actionLabel,
+                        onClick = { onAction(row) },
+                        variant = if (secondaryAction) {
+                            io.zer0.muse.ui.common.form.IosCapsuleButtonVariant.Text
+                        } else {
+                            io.zer0.muse.ui.common.form.IosCapsuleButtonVariant.Secondary
+                        },
+                        fillWidth = false,
+                    )
                 }
-                io.zer0.muse.ui.common.form.MuseCapsuleButton(
-                    text = actionLabel,
-                    onClick = { onAction(row) },
-                    variant = if (secondaryAction) {
-                        io.zer0.muse.ui.common.form.IosCapsuleButtonVariant.Text
-                    } else {
-                        io.zer0.muse.ui.common.form.IosCapsuleButtonVariant.Secondary
-                    },
-                    fillWidth = false,
-                )
             }
-        } }
+        }
     }
 }
 
@@ -181,22 +183,31 @@ fun AgentBotTaskRow(
         io.zer0.muse.ui.common.feedback.MuseDialog(
             onDismissRequest = { confirming = null },
             title = stringResource(
-                if (continuing) R.string.agent_bot_prompt_approved_retry
-                else R.string.agent_screen_retry_task_confirm,
+                if (continuing) {
+                    R.string.agent_bot_prompt_approved_retry
+                } else {
+                    R.string.agent_screen_retry_task_confirm
+                },
             ),
             content = {
                 Text(
                     text = stringResource(
-                        if (continuing) R.string.agent_bot_continue_confirm
-                        else R.string.agent_screen_retry_task_confirm_body,
+                        if (continuing) {
+                            R.string.agent_bot_continue_confirm
+                        } else {
+                            R.string.agent_screen_retry_task_confirm_body
+                        },
                     ),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             },
             confirmText = stringResource(
-                if (continuing) R.string.agent_bot_continue
-                else R.string.agent_screen_retry_task,
+                if (continuing) {
+                    R.string.agent_bot_continue
+                } else {
+                    R.string.agent_screen_retry_task
+                },
             ),
             onConfirm = {
                 confirming = null

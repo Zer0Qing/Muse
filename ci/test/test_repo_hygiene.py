@@ -15,7 +15,7 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).resolve().parents[1] / "script"
 sys.path.insert(0, str(SCRIPT_DIR))
 
-from check_repo_hygiene import CONFLICT_PATTERN
+from check_repo_hygiene import CONFLICT_PATTERN, is_ignored_path
 
 
 def _has_conflict(text: str) -> bool:
@@ -70,6 +70,14 @@ def test_each_pattern_kind_detected():
         assert _has_conflict(marker), f"应命中: {marker}"
 
 
+def test_ignored_runtime_work_paths_are_skipped():
+    """运行时 .work-* 目录与缓存输出不进入仓库卫生扫描。"""
+    assert is_ignored_path(Path("runtime/.work-x86_64/rootfs/bin"))
+    assert is_ignored_path(Path("runtime/.cache/archive.json"))
+    assert is_ignored_path(Path("runtime/out/rootfs.json"))
+    assert not is_ignored_path(Path("runtime/src/manifest.json"))
+
+
 def run_all_tests():
     """运行所有测试并报告结果。"""
     tests = [
@@ -80,6 +88,7 @@ def run_all_tests():
         test_shorter_or_longer_runs_not_detected,
         test_embedded_marker_not_detected,
         test_each_pattern_kind_detected,
+        test_ignored_runtime_work_paths_are_skipped,
     ]
 
     passed = 0

@@ -55,24 +55,22 @@ object MemoryDreamPlanValidator {
     fun validate(plan: MemoryDreamPlan, current: Map<String, String>): DreamPlanResult {
         if (plan.sections.isEmpty()) return DreamPlanResult.Empty
         val accepted = LinkedHashMap<String, String>()
-        for ((key, raw) in plan.sections) {
+        var rejection: String? = null
+        plan.sections.asSequence().takeWhile { rejection == null }.forEach { (key, raw) ->
             if (key !in ALLOWED_SECTIONS) {
-                return DreamPlanResult.Rejected("unknown section: $key")
+                rejection = "unknown section: $key"
+            } else {
+                val content = raw.trim()
+                when {
+                    content.isEmpty() -> rejection = "empty content for section: $key"
+                    content.length > MAX_SECTION_CHARS -> {
+                        rejection = "section too long: $key (${content.length} > $MAX_SECTION_CHARS)"
+                    }
+                    content != current[key]?.trim() -> accepted[key] = content
+                }
             }
-            val content = raw.trim()
-            if (content.isEmpty()) {
-                return DreamPlanResult.Rejected("empty content for section: $key")
-            }
-            if (content.length > MAX_SECTION_CHARS) {
-                return DreamPlanResult.Rejected(
-                    "section too long: $key (${content.length} > $MAX_SECTION_CHARS)",
-                )
-            }
-            // 内容与当前一致时不写：一次 Dream 只应该产生真正的差异，
-            // 否则每次都会刷新 updatedAt / fingerprint，让「谁改过这段」失去意义。
-            if (content == current[key]?.trim()) continue
-            accepted[key] = content
         }
-        return if (accepted.isEmpty()) DreamPlanResult.Empty else DreamPlanResult.Planned(accepted)
+        return rejection?.let(DreamPlanResult::Rejected)
+            ?: if (accepted.isEmpty()) DreamPlanResult.Empty else DreamPlanResult.Planned(accepted)
     }
 }

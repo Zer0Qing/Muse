@@ -2,7 +2,6 @@ package io.zer0.muse.ui.theme
 
 import io.zer0.muse.data.ThemeScheduleConfig
 import java.time.Instant
-import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 
@@ -29,12 +28,7 @@ object ThemeDecisionCalculator {
         }
     }
 
-    private fun evaluateCustomTime(
-        schedule: ThemeScheduleConfig,
-        now: Instant,
-        zoneId: ZoneId,
-        baseIsDark: Boolean,
-    ): ThemeDecision {
+    private fun evaluateCustomTime(schedule: ThemeScheduleConfig, now: Instant, zoneId: ZoneId, baseIsDark: Boolean): ThemeDecision {
         val wake = validTime(schedule.wakeUpHour, schedule.wakeUpMinute)
         val sleep = validTime(schedule.sleepHour, schedule.sleepMinute)
         if (wake == null || sleep == null) {
@@ -126,12 +120,7 @@ object ThemeDecisionCalculator {
         }
     }
 
-    private fun solarUnavailable(
-        schedule: ThemeScheduleConfig,
-        baseIsDark: Boolean,
-        zoneId: ZoneId,
-        now: Instant,
-    ) = ThemeDecision(
+    private fun solarUnavailable(schedule: ThemeScheduleConfig, baseIsDark: Boolean, zoneId: ZoneId, now: Instant) = ThemeDecision(
         isDark = baseIsDark,
         nextChangeAt = nextLocalMidnight(now, zoneId),
         source = ThemeDecisionSource.BASE_MODE,
@@ -142,8 +131,7 @@ object ThemeDecisionCalculator {
         },
     )
 
-    private fun validTime(hour: Int, minute: Int): LocalTime? =
-        if (hour in 0..23 && minute in 0..59) LocalTime.of(hour, minute) else null
+    private fun validTime(hour: Int, minute: Int): LocalTime? = if (hour in 0..23 && minute in 0..59) LocalTime.of(hour, minute) else null
 
     private fun nextLocalMidnight(now: Instant, zoneId: ZoneId): Long? =
         now.atZone(zoneId).toLocalDate().plusDays(1).atStartOfDay(zoneId).toInstant().toEpochMilli()

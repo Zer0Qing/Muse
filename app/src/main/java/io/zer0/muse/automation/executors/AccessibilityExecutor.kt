@@ -76,38 +76,38 @@ class AccessibilityExecutor(
     override suspend fun readScreen(): ScreenInfo {
         val svc = service ?: return ScreenInfo(source = "accessibility(unavailable)")
         val root = svc.rootInActiveWindow ?: return ScreenInfo(
-            packageName = svc.rootInActiveWindow?.packageName?.toString(),
+            packageName = svc.getCurrentActivityName().substringBefore('/').takeIf { it.isNotBlank() },
             source = "accessibility(no-root)",
         )
         val nodes = mutableListOf<UiNode>()
         val metrics = getScreenMetrics()
-        val pkg = try {
-            val am = context.getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
-            am.appTasks.firstOrNull()?.taskInfo?.topActivity?.packageName?.toString()
-                ?: svc.rootInActiveWindow?.packageName?.toString()
-        } catch (_: Exception) {
-            svc.rootInActiveWindow?.packageName?.toString()
-        }
+        val pkg = root.packageName?.toString()?.takeIf { it.isNotBlank() }
+            ?: svc.getCurrentActivityName().substringBefore('/').takeIf { it.isNotBlank() }
+        val activity = svc.getCurrentActivityName().ifBlank { root.className?.toString().orEmpty() }
+        val seenRoots = mutableListOf<AccessibilityNodeInfo>()
         try {
-            // B-33: collectNodes 遍历期间控件树可能被系统回收(AbandonedNodeException),
-            // 捕获后保留已收集的部分节点并记录日志,不向上抛导致整次读取失败崩溃。
             val collectState = CollectState()
             var collectError: String? = null
             try {
                 collectNodes(root, nodes, depth = 0, collectState)
+                val extraWindows = runCatching { svc.windows }.getOrNull().orEmpty()
+                for (win in extraWindows) {
+                    if (win.id == root.windowId) continue
+                    val wRoot = runCatching { win.root }.getOrNull() ?: continue
+                    seenRoots.add(wRoot)
+                    collectNodes(wRoot, nodes, depth = 0, collectState)
+                }
             } catch (e: Exception) {
                 collectError = e.message ?: e.javaClass.simpleName
                 Logger.w(TAG, "readScreen collectNodes 中断(返回部分结果): ${e.message}")
             }
             return ScreenInfo(
                 packageName = pkg,
-                activityName = root.className?.toString(),
+                activityName = activity,
                 nodes = nodes,
                 screenWidth = metrics.widthPixels,
                 screenHeight = metrics.heightPixels,
                 source = "accessibility",
-                // 部分结果与深度截断都要写进数据里（toSummary 会排在控件清单之前），
-                // 只写日志等于没写 —— 读数据的是模型，它看不见 logcat。
                 incompleteReason = screenReadIssue(
                     depthTruncated = collectState.depthTruncated,
                     error = collectError,
@@ -116,7 +116,7 @@ class AccessibilityExecutor(
                 ),
             )
         } finally {
-            // B-33: root 需显式 recycle 释放 native 资源,防内存泄漏。
+            seenRoots.forEach { recycleNode(it, TAG) }
             recycleNode(root, TAG)
         }
     }
@@ -158,11 +158,11 @@ class AccessibilityExecutor(
                     )
                     val ok = focused.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)
                     if (ok) return true
-                    // Fallback 2: clipboard paste injection when ACTION_SET_TEXT fails.
-                    Logger.d(TAG, "ACTION_SET_TEXT failed, falling back to clipboard paste")
-                    return pasteText(text)
+                    // Fallback 2: main-thread clipboard write + native ACTION_PASTE.
+                    Logger.d(TAG, "ACTION_SET_TEXT failed, trying ACTION_PASTE fallback")
+                    return pasteText(focused, text)
                 } else {
-                    return pasteText(text)
+                    return pasteText(null, text)
                 }
             } finally {
                 recycleNode(focused, TAG)
@@ -175,11 +175,22 @@ class AccessibilityExecutor(
     }
 
     override suspend fun pressKey(keyCode: Int): Boolean {
-        // 无障碍无法直接注入 KeyEvent,降级到 Shell
-        // 但返回键/Home 键可以通过全局动作
+        val svc = service ?: return false
         return when (keyCode) {
-            4 -> service?.performGlobalAction(AccessibilityService.GLOBAL_ACTION_BACK) == true
-            3 -> service?.performGlobalAction(AccessibilityService.GLOBAL_ACTION_HOME) == true
+            4 -> svc.performGlobalAction(AccessibilityService.GLOBAL_ACTION_BACK)
+            3 -> svc.performGlobalAction(AccessibilityService.GLOBAL_ACTION_HOME)
+            187 -> svc.performGlobalAction(AccessibilityService.GLOBAL_ACTION_RECENTS)
+            66 -> {
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return false
+                val root = svc.rootInActiveWindow ?: return false
+                val focused = root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT)
+                try {
+                    focused?.performAction(AccessibilityNodeInfo.AccessibilityAction.ACTION_IME_ENTER.id) == true
+                } finally {
+                    recycleNode(focused, TAG)
+                    recycleNode(root, TAG)
+                }
+            }
             else -> false
         }
     }
@@ -216,31 +227,38 @@ class AccessibilityExecutor(
             state.depthTruncated = true
             return
         }
-        val text = AccessibilityPathUtils.textForModel(node.text, node.isPassword)
+        val rawText = AccessibilityPathUtils.textForModel(node.text, node.isPassword)
         val description = AccessibilityPathUtils.textForModel(node.contentDescription, node.isPassword)
-        val hasUsefulInfo = !text.isNullOrBlank() ||
+        val hasUsefulInfo = !rawText.isNullOrBlank() ||
             !description.isNullOrBlank() ||
-            node.isClickable || node.isEditable
+            node.isClickable || node.isEditable || node.isScrollable
         if (hasUsefulInfo) {
             val rect = android.graphics.Rect()
             node.getBoundsInScreen(rect)
-            out.add(
-                UiNode(
-                    text = text,
-                    contentDescription = description,
-                    className = node.className?.toString(),
-                    viewIdResourceName = node.viewIdResourceName,
-                    boundsLeft = rect.left,
-                    boundsTop = rect.top,
-                    boundsRight = rect.right,
-                    boundsBottom = rect.bottom,
-                    isClickable = node.isClickable,
-                    isEditable = node.isEditable,
-                    isScrollable = node.isScrollable,
-                    isChecked = if (node.isCheckable) node.isChecked else null,
-                    isEnabled = node.isEnabled,
-                ),
-            )
+            if (rect.width() > 0 && rect.height() > 0) {
+                val effectiveText = if (rawText.isNullOrBlank() && description.isNullOrBlank() && node.isClickable) {
+                    firstDescendantLabel(node)
+                } else {
+                    rawText
+                }
+                out.add(
+                    UiNode(
+                        text = effectiveText,
+                        contentDescription = description,
+                        className = node.className?.toString(),
+                        viewIdResourceName = node.viewIdResourceName,
+                        boundsLeft = rect.left,
+                        boundsTop = rect.top,
+                        boundsRight = rect.right,
+                        boundsBottom = rect.bottom,
+                        isClickable = node.isClickable,
+                        isEditable = node.isEditable,
+                        isScrollable = node.isScrollable,
+                        isChecked = if (node.isCheckable) node.isChecked else null,
+                        isEnabled = node.isEnabled,
+                    ),
+                )
+            }
         }
         for (i in 0 until node.childCount) {
             node.getChild(i)?.let { child ->
@@ -413,14 +431,32 @@ class AccessibilityExecutor(
     /** 手势完成等待上限；要覆盖最长手势（滑动时长上限 5s）并留余量。internal 便于测试调小。 */
     internal var gestureTimeoutMs: Long = 12_000L
 
-    private fun pasteText(text: String): Boolean {
+    private fun firstDescendantLabel(node: AccessibilityNodeInfo, depth: Int = 0): String? {
+        if (depth >= 2) return null
+        for (i in 0 until node.childCount) {
+            val child = node.getChild(i) ?: continue
+            try {
+                val label = AccessibilityPathUtils.textForModel(child.text, child.isPassword)
+                    ?: AccessibilityPathUtils.textForModel(child.contentDescription, child.isPassword)
+                if (!label.isNullOrBlank()) return label.take(40)
+                firstDescendantLabel(child, depth + 1)?.let { return it }
+            } finally {
+                recycleNode(child, TAG)
+            }
+        }
+        return null
+    }
+
+    private suspend fun pasteText(focused: AccessibilityNodeInfo?, text: String): Boolean {
+        if (focused == null) return false
         return try {
-            val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-            cm.setPrimaryClip(ClipData.newPlainText("auto_input", text))
-            // 粘贴需要 Shell 层的 input keyevent 配合 KEYCODE_PASTE,
-            // 这里只做剪贴板写入,返回 false 让上层降级
-            false
+            withContext(Dispatchers.Main) {
+                val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                cm.setPrimaryClip(ClipData.newPlainText("auto_input", text))
+            }
+            focused.performAction(AccessibilityNodeInfo.ACTION_PASTE)
         } catch (e: Exception) {
+            Logger.d(TAG, "pasteText failed: ${e.message}")
             false
         }
     }

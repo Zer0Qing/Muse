@@ -4,7 +4,6 @@ import io.zer0.common.AppJson
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import io.zer0.muse.ui.screen.HomeScreen
 
 /**
  * v1.0.72: 更新检查核心逻辑测试。

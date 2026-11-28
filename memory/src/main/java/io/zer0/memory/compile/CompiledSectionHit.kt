@@ -52,11 +52,7 @@ internal fun compiledSearchTerms(query: String): List<String> {
  * @param query 用户查询串
  * @param limit 最多返回几条
  */
-internal fun scanCompiledSections(
-    sections: List<Pair<String, String>>,
-    query: String,
-    limit: Int,
-): List<CompiledSectionHit> {
+internal fun scanCompiledSections(sections: List<Pair<String, String>>, query: String, limit: Int): List<CompiledSectionHit> {
     if (limit <= 0) return emptyList()
     val terms = compiledSearchTerms(query)
     val exact = if (terms.isEmpty()) emptyList() else scanWith(sections, terms, limit)
@@ -81,11 +77,7 @@ private fun relaxedTerms(term: String): List<String> {
     return chars.windowed(GRAM_SIZE) { gram -> gram.joinToString("") }.distinct()
 }
 
-private fun scanWith(
-    sections: List<Pair<String, String>>,
-    terms: List<String>,
-    limit: Int,
-): List<CompiledSectionHit> =
+private fun scanWith(sections: List<Pair<String, String>>, terms: List<String>, limit: Int): List<CompiledSectionHit> =
     sections.asSequence()
         .filter { (_, content) -> content.isNotBlank() }
         .flatMap { (sectionKey, content) -> content.lineSequence().map { line -> sectionKey to line } }

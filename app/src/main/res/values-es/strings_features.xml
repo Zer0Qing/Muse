@@ -535,6 +535,7 @@
     <string name="accessibility_status_disabled">No habilitado. Autoriza «Automatización de UI de Muse» en los ajustes del sistema.</string>
     <string name="accessibility_status_enabled">Servicio de accesibilidad habilitado. Acciones de UI disponibles (clic/deslizar/entrada/captura/lectura del árbol de UI).</string>
     <string name="common_load_failed">Error al cargar</string>
+    <string name="common_save_failed">No se pudo guardar</string>
     <string name="action_undo">Deshacer</string>
     <string name="chat_unarchived">Desarchivado</string>
     <string name="agent_dm_empty">Aún no hay mensajes privados</string>
@@ -689,6 +690,8 @@
     <string name="wake_diagnostics_denied">no exento</string>
     <string name="wake_diagnostics_next_run">Próxima ejecución: %1$s</string>
     <string name="wake_diagnostics_next_run_none">no está en cola</string>
+    <string name="wake_diagnostics_next_run_overdue">Ya toca, esperando al sistema (prevista %1$s)</string>
+    <string name="wake_diagnostics_next_run_overdue_constrained">Ya toca, esperando condiciones (prevista %1$s)</string>
     <string name="wake_diagnostics_attempts">%1$d intentos</string>
     <string name="wake_diagnostics_history">%1$d registros anteriores</string>
     <string name="wake_diagnostics_constrained">con restricciones de ejecución</string>

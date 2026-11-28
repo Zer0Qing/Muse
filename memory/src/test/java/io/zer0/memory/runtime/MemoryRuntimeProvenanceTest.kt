@@ -2,7 +2,6 @@ package io.zer0.memory.runtime
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -81,15 +80,14 @@ class MemoryRuntimeProvenanceTest {
         assertFalse(MemoryCompiledProjection.visibleSections(listOf(row), includeNonReady = false).containsKey("facts"))
     }
 
-    private fun section(key: String, status: String, content: String) =
-        io.zer0.memory.summary.ScopedCompiledSectionEntity(
-            sectionKey = key,
-            scope = "main",
-            spaceId = "default",
-            content = content,
-            updatedAt = "2026-11-17T09:00:00Z",
-            status = status,
-        )
+    private fun section(key: String, status: String, content: String) = io.zer0.memory.summary.ScopedCompiledSectionEntity(
+        sectionKey = key,
+        scope = "main",
+        spaceId = "default",
+        content = content,
+        updatedAt = "2026-11-17T09:00:00Z",
+        status = status,
+    )
 
     @Test
     fun `legacy backup rows get an explicit baseline instead of looking current`() {

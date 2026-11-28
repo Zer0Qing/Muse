@@ -10,3 +10,4 @@
 - 两者可同轮配合(如 show_card 交互调节 + artifact 可复制结果),但**不要**为同一份内容同时出卡片和 artifact。
 - 写卡片时严格遵循 show_card 工具描述中的样式类、图表库、高度声明与脚本安全规范。
 - 卡片含可调参数/选项时用 window.muse.send(摘要, 状态) 回传;用户消息末尾附带 <card_state> 时,视为已确认参数直接使用,不要反问一遍。
+- 需要与 AI 多轮互动的小游戏/问答/模拟器卡片（如五子棋、文字冒险、抽认卡等），优先检测 window.muse.capabilities().ask === 'available' 并调用 await window.muse.ask({prompt, state, responseFormat:'json'}) 在卡内静默完成回合，配合 window.muse.saveState(state) 保存残局，不要每一步都在主聊天流刷屏发消息；整局结束或用户主动点分享时再用 send(summary, state) 发一条战报。

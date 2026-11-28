@@ -1,8 +1,5 @@
 package io.zer0.muse.ui.settings
 
-import io.zer0.muse.ui.navigation.KeepAliveSettingsRoute
-import io.zer0.muse.ui.navigation.SettingsAppearanceRoute
-import io.zer0.muse.ui.navigation.SettingsChatRoute
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -11,7 +8,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import io.zer0.muse.ui.screen.ToolsScreen
 
 /**
  * 设置入口清单的结构回归锁定。
@@ -29,6 +25,7 @@ class SettingsGroupLayoutTest {
         SettingsGroupKind.GENERAL to listOf(
             SettingsEntryId.APPEARANCE,
             SettingsEntryId.CHAT,
+            SettingsEntryId.SHARE,
             SettingsEntryId.USER_PROFILE,
             SettingsEntryId.STATS,
         ),
@@ -58,15 +55,13 @@ class SettingsGroupLayoutTest {
         ),
         SettingsGroupKind.TOOLS to listOf(
             SettingsEntryId.TOOLS,
+            SettingsEntryId.SKILLS,
             SettingsEntryId.WEB_SEARCH,
             SettingsEntryId.PROVIDER_PLUGINS,
             SettingsEntryId.MCP,
         ),
-        SettingsGroupKind.CONNECTION to listOf(
+        SettingsGroupKind.CHANNELS to listOf(
             SettingsEntryId.CHANNEL,
-            SettingsEntryId.BROWSER,
-            SettingsEntryId.WEB_ACCESS,
-            SettingsEntryId.PROXY,
         ),
         SettingsGroupKind.AUTOMATION to listOf(
             SettingsEntryId.PROACTIVE,
@@ -85,8 +80,12 @@ class SettingsGroupLayoutTest {
             SettingsEntryId.PII_GUARD,
             SettingsEntryId.PERMISSION_WIZARD,
             SettingsEntryId.TOOL_APPROVAL,
-            SettingsEntryId.SHARE,
             SettingsEntryId.AUDIT_LOG,
+        ),
+        SettingsGroupKind.CONNECTION to listOf(
+            SettingsEntryId.BROWSER,
+            SettingsEntryId.WEB_ACCESS,
+            SettingsEntryId.PROXY,
         ),
         SettingsGroupKind.ABOUT to listOf(
             SettingsEntryId.TUTORIAL,
@@ -185,10 +184,15 @@ class SettingsGroupLayoutTest {
      * 断言改成守「多条目必须有中间页」——这正是合并带来的行为变化。
      */
     @Test
-    fun `multi entry categories keep their intermediate page`() {
+    fun `multi entry categories keep their intermediate page and channels navigates directly`() {
         assertNull("多条目分类仍需中间页", SettingsCatalog.group(SettingsGroupKind.MODELS).directEntryRoute())
         assertNull("多条目分类仍需中间页", SettingsCatalog.group(SettingsGroupKind.ASSISTANTS).directEntryRoute())
         assertNull("多条目分类仍需中间页", SettingsCatalog.group(SettingsGroupKind.CONNECTION).directEntryRoute())
+        assertEquals(
+            "消息渠道为一级直达入口，不应再套二级列表",
+            io.zer0.muse.ui.navigation.ChannelSettingsRoute,
+            SettingsCatalog.group(SettingsGroupKind.CHANNELS).directEntryRoute(),
+        )
     }
 
     @Test
@@ -208,10 +212,10 @@ class SettingsGroupLayoutTest {
     private companion object {
         // 2026-11-22: 17 → 12。CHAT / APPEARANCE / KEEP_ALIVE / MINI_PHONE / OFFLINE
         // 五个单条目分类并入相邻组 —— 一个分组只有一条时，分组没有提供任何信息。
-        const val SETTINGS_GROUP_COUNT = 12
-        const val EXPECTED_ENTRY_COUNT = 49
+        const val SETTINGS_GROUP_COUNT = 13
+        const val EXPECTED_ENTRY_COUNT = 50
 
-        /** 12 个均衡分类各自的条目数（每类 3–5 项，分布均衡，无巨型杂物组或单条目组）。 */
-        val EXPECTED_GROUP_SIZES: List<Int> = listOf(4, 5, 3, 5, 3, 4, 4, 4, 5, 5, 3, 4)
+        /** 13 个一级分类各自的条目数（消息渠道为 1 项直达，其余每类 3–5 项）。 */
+        val EXPECTED_GROUP_SIZES: List<Int> = listOf(5, 5, 3, 5, 3, 5, 1, 4, 5, 4, 3, 3, 4)
     }
 }

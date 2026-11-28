@@ -1,0 +1,29 @@
+{
+  "versionName": "2.7.2",
+  "versionCode": 297,
+  "dbVersion": 142,
+  "apkFile": "app-arm64-v8a-release.apk",
+  "apkSizeBytes": 66410533,
+  "apkSha256": "5da1fa4ca0a8a1f6df33d19b6a479c76f4e972933892874af46c54943418152a",
+  "apkArtifacts": [
+    {
+      "name": "app-arm64-v8a-release.apk",
+      "sizeBytes": 66410533,
+      "sha256": "5da1fa4ca0a8a1f6df33d19b6a479c76f4e972933892874af46c54943418152a"
+    },
+    {
+      "name": "app-armeabi-v7a-release.apk",
+      "sizeBytes": 63908814,
+      "sha256": "7dd6b83ed9dc03aa48a813c235ce6d8250e609b108ecbfad614c01c3e278d182"
+    },
+    {
+      "name": "app-universal-release.apk",
+      "sizeBytes": 109278168,
+      "sha256": "c3f4ace77ca26b281f5e14b8c7b37aef6a0eb5ab7ca11f0924e16eacc85a89a8"
+    }
+  ],
+  "releaseNotesRef": "releases/v2.7.2/release_body.md",
+  "sourceCommit": "ff6a622165a18aa4bc72ec29d5ee311eae7a9f89",
+  "sourceRef": "local-dirty-worktree-ff6a622",
+  "generatedAt": "2026-11-28T10:33:46+00:00"
+}

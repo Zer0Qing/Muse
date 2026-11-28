@@ -232,7 +232,11 @@ interface FactDao {
 
     /** v5: 全字段更新(用于合并去重后替换内容)。 */
     @Query(
-        "UPDATE facts SET fact = :fact, tags = :tags, time = :time, session_id = :sessionId, created_at = :createdAt, importance = :importance, category = :category, confidence = :confidence, source = :source, expires_at = :expiresAt, last_confirmed_at = :lastConfirmedAt, last_hit_at = :lastHitAt, entity_key = :entityKey WHERE id = :id",
+        "UPDATE facts SET fact = :fact, tags = :tags, time = :time, " +
+            "session_id = :sessionId, created_at = :createdAt, importance = :importance, " +
+            "category = :category, confidence = :confidence, source = :source, " +
+            "expires_at = :expiresAt, last_confirmed_at = :lastConfirmedAt, " +
+            "last_hit_at = :lastHitAt, entity_key = :entityKey WHERE id = :id",
     )
     suspend fun updateEntity(
         id: Long,
@@ -258,7 +262,9 @@ interface FactDao {
      * 避免"main"作用域的事实与子助手作用域的事实被误合并。
      */
     @Query(
-        "SELECT * FROM facts WHERE fact LIKE :prefix || '%' AND (:scope IS NULL OR scope = :scope) ORDER BY importance DESC, created_at DESC LIMIT 5",
+        "SELECT * FROM facts WHERE fact LIKE :prefix || '%' " +
+            "AND (:scope IS NULL OR scope = :scope) " +
+            "ORDER BY importance DESC, created_at DESC LIMIT 5",
     )
     suspend fun findSimilar(prefix: String, scope: String? = null): List<FactEntity>
 
@@ -315,7 +321,9 @@ interface FactDao {
      * 用户取消置顶后恢复按正常规则衰减。
      */
     @Query(
-        "DELETE FROM facts WHERE created_at < :cutoffIso AND pinned_at IS NULL AND (:scope IS NULL OR scope = :scope) AND (:spaceId IS NULL OR space_id = :spaceId)",
+        "DELETE FROM facts WHERE created_at < :cutoffIso AND pinned_at IS NULL " +
+            "AND (:scope IS NULL OR scope = :scope) " +
+            "AND (:spaceId IS NULL OR space_id = :spaceId)",
     )
     suspend fun deleteOlderThan(cutoffIso: String, scope: String? = null, spaceId: String? = null): Int
 
@@ -329,7 +337,9 @@ interface FactDao {
      */
     // F-6: pinned_at IS NULL — 置顶事实不受自动衰减影响
     @Query(
-        "DELETE FROM facts WHERE created_at < :cutoffIso AND importance < :minImportance AND pinned_at IS NULL AND (:scope IS NULL OR scope = :scope) AND (:spaceId IS NULL OR space_id = :spaceId)",
+        "DELETE FROM facts WHERE created_at < :cutoffIso AND importance < :minImportance " +
+            "AND pinned_at IS NULL AND (:scope IS NULL OR scope = :scope) " +
+            "AND (:spaceId IS NULL OR space_id = :spaceId)",
     )
     suspend fun deleteOlderThanExceptImportant(cutoffIso: String, minImportance: Int, scope: String? = null, spaceId: String? = null): Int
 
@@ -373,7 +383,10 @@ interface FactDao {
      */
     // F-6: pinned_at IS NULL — 置顶的时效性事实不因到期被自动删除(取消置顶后恢复正常规则)
     @Query(
-        "DELETE FROM facts WHERE expires_at IS NOT NULL AND expires_at != '' AND expires_at < :nowISO AND pinned_at IS NULL AND (:scope IS NULL OR scope = :scope) AND (:spaceId IS NULL OR space_id = :spaceId)",
+        "DELETE FROM facts WHERE expires_at IS NOT NULL AND expires_at != '' " +
+            "AND expires_at < :nowISO AND pinned_at IS NULL " +
+            "AND (:scope IS NULL OR scope = :scope) " +
+            "AND (:spaceId IS NULL OR space_id = :spaceId)",
     )
     suspend fun deleteExpired(nowISO: String, scope: String? = null, spaceId: String? = null): Int
 
@@ -445,7 +458,9 @@ interface FactDao {
      * 在 fact 字段上做子串匹配,v4: 按 importance 降序 + time 降序。
      */
     @Query(
-        "SELECT * FROM facts WHERE fact LIKE '%' || :query || '%' AND (scope = :scope OR :scope IS NULL) ORDER BY (pinned_at IS NOT NULL) DESC, importance DESC, time DESC LIMIT :limit",
+        "SELECT * FROM facts WHERE fact LIKE '%' || :query || '%' " +
+            "AND (scope = :scope OR :scope IS NULL) " +
+            "ORDER BY (pinned_at IS NOT NULL) DESC, importance DESC, time DESC LIMIT :limit",
     )
     suspend fun likeSearch(query: String, limit: Int, scope: String? = null): List<FactEntity>
 
@@ -613,7 +628,8 @@ interface FactDao {
      * scope 按 Agent 隔离,space_id 按场景隔离,两者正交。
      */
     @Query(
-        "SELECT * FROM facts WHERE scope = :scope AND space_id = :spaceId ORDER BY (pinned_at IS NOT NULL) DESC, importance DESC, time DESC",
+        "SELECT * FROM facts WHERE scope = :scope AND space_id = :spaceId " +
+            "ORDER BY (pinned_at IS NOT NULL) DESC, importance DESC, time DESC",
     )
     suspend fun getByScopeAndSpace(scope: String, spaceId: String): List<FactEntity>
 

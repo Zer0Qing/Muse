@@ -45,6 +45,8 @@ class HostSettingsEntryAvailabilityTest {
         "session_terms" to "助手术语目前只有 App 侧子页；Web 端补出对应页前只展示不进子页",
         // 单工具审批策略要读写本机 ToolConfigStore，网页端改不了本机工具策略。
         "tool_approval" to "工具批准策略读写在 App 侧 ToolConfigStore，Web 端补出对应页前只展示",
+        // 技能管理只在 App 侧编辑启停，Web 端补出对应页前只展示不进子页。
+        "skills" to "技能管理仅在 App 侧支持；Web 端补出对应页前只展示",
         // 2026-11-22: 小手机入口并入连接组后，仍是「闸门关闭时只展示」的条目。
         // 原来它整组不出现，现在组还在（连接组），只是这一条 disabled。
         "miniphone" to "小手机闸门关闭时只展示；开启后才可进子页",

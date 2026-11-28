@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -26,7 +27,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -37,23 +37,29 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.common.resultOf
 import io.zer0.muse.R
+import io.zer0.muse.data.assistant.AssistantRepository
+import io.zer0.muse.mcp.MCP_HEADER_NAME
+import io.zer0.muse.mcp.McpConfigImport
 import io.zer0.muse.mcp.McpConnectionState
 import io.zer0.muse.mcp.McpFeishuAuthConfig
-import io.zer0.muse.mcp.McpPrompt
-import io.zer0.muse.mcp.McpPromptResult
+import io.zer0.muse.mcp.McpOAuthStatus
 import io.zer0.muse.mcp.McpRegistry
-import io.zer0.muse.mcp.McpResource
-import io.zer0.muse.mcp.McpResourceContent
 import io.zer0.muse.mcp.McpServerConfig
+import io.zer0.muse.mcp.McpServerTemplate
 import io.zer0.muse.mcp.McpServerTemplates
 import io.zer0.muse.mcp.McpTransportType
+import io.zer0.muse.mcp.isMcpEnvironmentName
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
@@ -64,10 +70,8 @@ import io.zer0.muse.ui.common.form.MuseSwitch
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
-import io.zer0.muse.ui.common.state.MuseEmptyState
-import io.zer0.muse.ui.common.state.MuseErrorStateBox
-import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.common.surface.CardGroup
+import io.zer0.muse.ui.common.surface.CardGroupScope
 import io.zer0.muse.ui.common.surface.MuseListItem
 import io.zer0.muse.ui.common.surface.actionItem
 import io.zer0.muse.ui.theme.MuseAnimation
@@ -76,10 +80,9 @@ import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.MuseSpacing
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 
 /**
@@ -90,176 +93,185 @@ import org.koin.compose.koinInject
  * 添加按钮放在分组外(对齐系统列表底部的"添加"操作)。
  */
 @Composable
-internal fun McpSection(openAddTrigger: Int = 0) {
+internal fun McpSection(
+    openAddTrigger: Int = 0,
+    focusServerId: String? = null,
+    onOpenRuntime: () -> Unit,
+    onOpenChatDraft: (String, String) -> Unit,
+) {
     val mcpRegistry: McpRegistry = koinInject()
-    // v1.0.79 (E-1): 注入 ToolRegistry,用于统计各 server 已注册工具数(连接但 0 工具时提示)
-    val toolRegistry: io.zer0.muse.tools.ToolRegistry = koinInject()
+    val assistantRepository: AssistantRepository = koinInject()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    val servers by mcpRegistry.servers.collectAsStateWithLifecycle(initialValue = null)
-    val serversState by mcpRegistry.serversState.collectAsStateWithLifecycle(initialValue = null)
-
+    val servers by mcpRegistry.servers.collectAsStateWithLifecycle()
+    val statuses by mcpRegistry.serverStatuses.collectAsStateWithLifecycle()
+    val assistants by assistantRepository.observeAll.collectAsStateWithLifecycle(initialValue = emptyList())
     var showAddDialog by remember { mutableStateOf(false) }
-    // 顶栏「+」由调用方递增该计数触发，避免页面里再放一个位置不明的添加按钮。
+    var showImportDialog by remember { mutableStateOf(false) }
+    var editServerId by remember { mutableStateOf<String?>(null) }
+    var detailsServerId by remember(focusServerId) { mutableStateOf(focusServerId) }
+
     LaunchedEffect(openAddTrigger) {
         if (openAddTrigger > 0) showAddDialog = true
     }
 
-    // v1.0.92 (B-5): 风险自动判定说明(可折叠,解释为何某些工具需要审批)
     var riskNoteExpanded by remember { mutableStateOf(false) }
     CardGroup {
         content(key = "mcp_desc") {
             Text(
-                text = stringResource(R.string.settings_mcp_desc),
+                text = stringResource(R.string.mcp_add_lede),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(MusePaddings.cardInner),
             )
         }
         content(key = "mcp_risk_note") {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { riskNoteExpanded = !riskNoteExpanded }
-                    .padding(MusePaddings.cardInner),
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
-                ) {
-                    Text(
-                        text = stringResource(R.string.settings_mcp_risk_note_title),
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Medium,
-                        // LAYOUT-01: 折叠标题取剩余宽度 + 限行，防止被右侧 chevron 挤成一列。
-                        modifier = Modifier.weight(1f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Icon(
-                        imageVector = if (riskNoteExpanded) MuseIcons.chevronUp else MuseIcons.chevronDown,
-                        contentDescription = if (riskNoteExpanded) {
-                            stringResource(R.string.settings_common_collapse)
-                        } else {
-                            stringResource(R.string.common_expand)
-                        },
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(MuseIconSizes.iconSmall),
-                    )
-                }
-                AnimatedVisibility(
-                    visible = riskNoteExpanded,
-                    enter = fadeIn(animationSpec = MuseMotion.tween(MuseAnimation.FAST_NORMAL_MS)) +
-                        expandVertically(
-                            animationSpec = MuseMotion.tween(MuseAnimation.NORMAL_MS),
-                        ),
-                    exit = fadeOut(animationSpec = MuseMotion.tween(MuseAnimation.FAST_MS)) +
-                        shrinkVertically(
-                            animationSpec = MuseMotion.tween(MuseAnimation.FAST_NORMAL_MS),
-                        ),
-                ) {
-                    Text(
-                        text = stringResource(R.string.settings_mcp_risk_note_body),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = MuseSpacing.sm),
-                    )
-                }
-            }
+            McpRiskNote(expanded = riskNoteExpanded, onToggle = { riskNoteExpanded = !riskNoteExpanded })
         }
     }
 
-    // v1.74: 局部变量捕获避免 !! 非空断言(委托属性无法 smart-cast)
-    val serverList = servers
-    when {
-        serverList == null -> {
-            CardGroup(modifier = Modifier.padding(top = MusePaddings.cardGap)) {
-                content(key = "mcp_loading") {
-                    Box(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = MuseSpacing.xxl),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        MuseSpinner(size = MuseIconSizes.iconLarge)
-                    }
-                }
-            }
-        }
-
-        serverList.isEmpty() -> {
-            CardGroup(modifier = Modifier.padding(top = MusePaddings.cardGap)) {
-                actionItem(
-                    key = "mcp_empty_add",
-                    title = stringResource(R.string.settings_mcp_empty_title),
-                    onClick = { showAddDialog = true },
-                )
-            }
-        }
-
-        else -> {
-            // v1.0.92 性能: 预计算各 server 工具数 — 旧实现每个 server 行各自全量扫描工具表
-            val toolCountByServerId = remember(serverList, serversState) {
-                val all = toolRegistry.listTools()
-                serverList.associate { s -> s.id to all.count { it.name.startsWith("mcp_${s.id}__") } }
-            }
-            CardGroup(modifier = Modifier.padding(top = MusePaddings.cardGap)) {
-                serverList.forEach { server ->
-                    val state = serversState?.get(server.id) ?: McpConnectionState.DISCONNECTED
-                    val reconnect = {
-                        resultOf { mcpRegistry.reconnect(server.id) }
-                            .onError { _, t ->
-                                MuseToast.show(context.getString(R.string.settings_mcp_failed, t?.message))
-                            }
-                        Unit
-                    }
-                    content(key = "mcp_server_${server.id}") {
-                        McpServerRow(
-                            server = server,
-                            state = state,
-                            mcpRegistry = mcpRegistry,
-                            // v1.0.79 (E-1): 该 server 已注册的工具数(连接成功但 0 工具时警示)
-                            toolCount = toolCountByServerId[server.id] ?: -1,
-                            onToggleEnabled = { enabled ->
-                                scope.launch {
-                                    resultOf { mcpRegistry.updateServer(server.copy(enabled = enabled)) }
-                                        .onError { _, t ->
-                                            MuseToast.show(context.getString(R.string.settings_mcp_failed, t?.message))
-                                        }
-                                }
-                            },
-                            onReconnect = reconnect,
-                            onDelete = {
-                                scope.launch {
-                                    resultOf { mcpRegistry.removeServer(server.id) }
-                                        .onError { _, t ->
-                                            MuseToast.show(context.getString(R.string.settings_mcp_failed, t?.message))
-                                        }
-                                }
-                            },
-                        )
-                    }
-                    if (state == McpConnectionState.FAILED) {
-                        content(key = "mcp_error_${server.id}") {
-                            MuseErrorStateBox(
-                                message = stringResource(R.string.settings_mcp_failed, server.name),
-                                onRetry = reconnect,
-                                modifier = Modifier.padding(MusePaddings.cardInner),
-                            )
-                        }
-                    }
-                }
-                actionItem(
-                    key = "mcp_add",
-                    title = stringResource(R.string.settings_mcp_add_action),
-                    onClick = { showAddDialog = true },
-                )
-            }
-        }
+    CardGroup(modifier = Modifier.padding(top = MusePaddings.cardGap)) {
+        McpServerList(
+            state = McpServerListState(
+                servers = servers,
+                statuses = statuses,
+                assistants = assistants,
+                assistantRepository = assistantRepository,
+                registry = mcpRegistry,
+                scope = scope,
+                context = context,
+            ),
+            onOpenDetails = { detailsServerId = it },
+            onEdit = { editServerId = it },
+            onOpenRuntime = onOpenRuntime,
+            onOpenChatDraft = onOpenChatDraft,
+            onShowAdd = { showAddDialog = true },
+            onShowImport = { showImportDialog = true },
+        )
     }
+    val editing = servers.firstOrNull { it.id == editServerId }
+    val details = servers.firstOrNull { it.id == detailsServerId }
+    McpSectionDialogs(
+        data = McpSectionDialogData(
+            registry = mcpRegistry,
+            statuses = statuses,
+            assistants = assistants,
+            assistantRepository = assistantRepository,
+            scope = scope,
+            context = context,
+        ),
+        visibility = McpSectionDialogVisibility(
+            showImport = showImportDialog,
+            showAdd = showAddDialog,
+            editing = editing,
+            details = details,
+        ),
+        actions = McpSectionDialogActions(
+            onOpenRuntime = onOpenRuntime,
+            onOpenChatDraft = onOpenChatDraft,
+            onDismissImport = { showImportDialog = false },
+            onImportSaved = {
+                showImportDialog = false
+                detailsServerId = it
+            },
+            onDismissAdd = {
+                showAddDialog = false
+                editServerId = null
+            },
+            onSave = { config ->
+                val saved = if (editing == null) {
+                    mcpRegistry.addServer(config)
+                } else {
+                    mcpRegistry.updateServer(config)
+                    true
+                }
+                if (saved) {
+                    showAddDialog = false
+                    editServerId = null
+                    detailsServerId = config.id
+                }
+                saved
+            },
+            onDismissDetails = { detailsServerId = null },
+            onOpenRuntimeFromDetails = {
+                detailsServerId = null
+                onOpenRuntime()
+            },
+            onEditDetails = { editServerId = details?.id },
+        ),
+    )
+}
 
-    if (showAddDialog) {
+private data class McpSectionDialogData(
+    val registry: McpRegistry,
+    val statuses: Map<String, McpRegistry.ServerStatus>,
+    val assistants: List<io.zer0.muse.data.assistant.AssistantEntity>,
+    val assistantRepository: AssistantRepository,
+    val scope: kotlinx.coroutines.CoroutineScope,
+    val context: android.content.Context,
+)
+
+private data class McpSectionDialogVisibility(
+    val showImport: Boolean,
+    val showAdd: Boolean,
+    val editing: McpServerConfig?,
+    val details: McpServerConfig?,
+)
+
+private data class McpSectionDialogActions(
+    val onOpenRuntime: () -> Unit,
+    val onOpenChatDraft: (String, String) -> Unit,
+    val onDismissImport: () -> Unit,
+    val onImportSaved: (String?) -> Unit,
+    val onDismissAdd: () -> Unit,
+    val onSave: suspend (McpServerConfig) -> Boolean,
+    val onDismissDetails: () -> Unit,
+    val onOpenRuntimeFromDetails: () -> Unit,
+    val onEditDetails: () -> Unit,
+)
+
+@Composable
+private fun McpSectionDialogs(
+    data: McpSectionDialogData,
+    visibility: McpSectionDialogVisibility,
+    actions: McpSectionDialogActions,
+) {
+    if (visibility.showImport) {
+        McpImportDialog(
+            onDismiss = actions.onDismissImport,
+            onImport = { configs ->
+                val saved = data.registry.addServers(configs)
+                if (saved) actions.onImportSaved(configs.firstOrNull()?.id)
+                saved
+            },
+        )
+    }
+    if (visibility.showAdd || visibility.editing != null) {
         McpServerAddDialog(
-            onDismiss = { showAddDialog = false },
-            onAdd = { config -> mcpRegistry.addServer(config) },
+            existing = visibility.editing,
+            onOpenRuntime = actions.onOpenRuntime,
+            onDismiss = actions.onDismissAdd,
+            onSave = actions.onSave,
+        )
+    }
+    val details = visibility.details
+    if (details != null && visibility.editing == null && !visibility.showAdd) {
+        McpServerDetailsDialog(
+            state = McpServerDetailsState(
+                details = details,
+                status = data.statuses[details.id] ?: McpRegistry.ServerStatus(),
+                assistants = data.assistants,
+                assistantRepository = data.assistantRepository,
+                registry = data.registry,
+                scope = data.scope,
+                context = data.context,
+            ),
+            actions = McpServerDetailsActions(
+                onDismiss = actions.onDismissDetails,
+                onOpenRuntime = actions.onOpenRuntimeFromDetails,
+                onEdit = actions.onEditDetails,
+                onOpenChatDraft = actions.onOpenChatDraft,
+            ),
         )
     }
 }
@@ -270,932 +282,1313 @@ internal fun McpSection(openAddTrigger: Int = 0) {
  * 抽出为独立 Composable 是为了让"更多"下拉菜单与 Resources/Prompts 浏览 dialog 的
  * 状态能够按行独立持有(避免在 forEach 中共享 remember 状态)。
  */
+private data class McpServerRowSpec(
+    val server: McpServerConfig,
+    val status: McpRegistry.ServerStatus,
+    val registry: McpRegistry,
+    val boundNames: List<String>,
+    val actions: McpServerRowActions,
+    val onInstallRuntime: () -> Unit,
+    val onDraft: ((String) -> Unit)?,
+    val onDelete: () -> Unit,
+)
+
+private data class McpServerDetailsState(
+    val details: McpServerConfig,
+    val status: McpRegistry.ServerStatus,
+    val assistants: List<io.zer0.muse.data.assistant.AssistantEntity>,
+    val assistantRepository: AssistantRepository,
+    val registry: McpRegistry,
+    val scope: kotlinx.coroutines.CoroutineScope,
+    val context: android.content.Context,
+)
+
+private data class McpServerDetailsActions(
+    val onDismiss: () -> Unit,
+    val onOpenRuntime: () -> Unit,
+    val onEdit: () -> Unit,
+    val onOpenChatDraft: (String, String) -> Unit,
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun McpServerRow(
-    server: McpServerConfig,
-    state: McpConnectionState,
-    mcpRegistry: McpRegistry,
-    /** v1.0.79 (E-1): 该 server 已注册的工具数;CONNECTED 但为 0 时警示。 */
-    toolCount: Int = -1,
-    onToggleEnabled: (Boolean) -> Unit,
-    onReconnect: () -> Unit,
-    onDelete: () -> Unit,
-) {
+private fun McpServerRow(spec: McpServerRowSpec) {
+    val server = spec.server
+    val status = spec.status
+    val mcpRegistry = spec.registry
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var menuExpanded by remember { mutableStateOf(false) }
-    var showResources by remember { mutableStateOf(false) }
-    var showPrompts by remember { mutableStateOf(false) }
+    var contentKind by remember { mutableStateOf<McpContentBrowserKind?>(null) }
     // 删除是不可撤销的配置丢失，必须先二次确认再执行。
     var confirmDelete by remember { mutableStateOf(false) }
-    // OAuth 支持:启用 OAuth 配置或已注册 clientId
-    val oauthSupported = server.oauthConfig.let { it.enabled || it.clientId.isNotBlank() }
+    val connectionState = status.connection
+    val authorize = rememberMcpAuthorize(server.id, mcpRegistry)
+    val oauthSupported = server.enabled &&
+        (connectionState == McpConnectionState.NEEDS_AUTH || server.oauthConfig.enabled)
     // 状态描述字符串(需在 @Composable 上下文中提取,不能在 semantics{} lambda 内调用 stringResource)
     val stateEnabledText = stringResource(R.string.common_state_enabled)
     val stateDisabledText = stringResource(R.string.common_state_disabled)
 
+    val rowData = McpServerRowData(
+        server = server,
+        status = status,
+        boundNames = spec.boundNames,
+        stateEnabledText = stateEnabledText,
+        stateDisabledText = stateDisabledText,
+        oauthSupported = oauthSupported,
+    )
+    McpServerRowHeader(rowData, spec.actions, mcpRegistry) { menuExpanded = true }
+    McpServerRowMenu(
+        state = McpServerRowMenuState(
+            data = rowData,
+            actions = spec.actions,
+            registry = mcpRegistry,
+            authorize = authorize,
+            scope = scope,
+            context = context,
+            expanded = menuExpanded,
+            callbacks = McpServerRowMenuCallbacks(
+                onDismiss = { menuExpanded = false },
+                onOpenContent = { contentKind = it },
+                onConfirmDelete = { confirmDelete = true },
+            ),
+        ),
+    )
+
+    McpRecoveryActions(
+        status,
+        server.enabled,
+        authorize,
+        spec.onInstallRuntime,
+        spec.actions.onEdit,
+        spec.actions.onReconnect,
+        modifier = Modifier.padding(horizontal = MuseSpacing.lg),
+    )
+
+    if (confirmDelete) {
+        McpDeleteServerDialog(
+            serverName = server.name.ifBlank { server.id },
+            onDismiss = { confirmDelete = false },
+            onDelete = {
+                confirmDelete = false
+                spec.onDelete()
+            },
+        )
+    }
+
+    contentKind?.let { kind ->
+        McpContentBrowser(
+            server = server,
+            kind = kind,
+            registry = mcpRegistry,
+            onDismiss = { contentKind = null },
+            onDraft = spec.onDraft?.let { use ->
+                { draft ->
+                    contentKind = null
+                    use(draft)
+                }
+            },
+        )
+    }
+}
+
+private data class McpServerListState(
+    val servers: List<McpServerConfig>,
+    val statuses: Map<String, McpRegistry.ServerStatus>,
+    val assistants: List<io.zer0.muse.data.assistant.AssistantEntity>,
+    val assistantRepository: AssistantRepository,
+    val registry: McpRegistry,
+    val scope: kotlinx.coroutines.CoroutineScope,
+    val context: android.content.Context,
+)
+
+@Composable
+private fun McpRiskNote(expanded: Boolean, onToggle: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onToggle)
+            .padding(MusePaddings.cardInner),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
+        ) {
+            Text(
+                text = stringResource(R.string.settings_mcp_risk_note_title),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.weight(1f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Icon(
+                imageVector = if (expanded) MuseIcons.chevronUp else MuseIcons.chevronDown,
+                contentDescription = stringResource(
+                    if (expanded) R.string.settings_common_collapse else R.string.common_expand,
+                ),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(MuseIconSizes.iconSmall),
+            )
+        }
+        AnimatedVisibility(
+            visible = expanded,
+            enter = fadeIn(animationSpec = MuseMotion.tween(MuseAnimation.FAST_NORMAL_MS)) +
+                expandVertically(animationSpec = MuseMotion.tween(MuseAnimation.NORMAL_MS)),
+            exit = fadeOut(animationSpec = MuseMotion.tween(MuseAnimation.FAST_MS)) +
+                shrinkVertically(animationSpec = MuseMotion.tween(MuseAnimation.FAST_NORMAL_MS)),
+        ) {
+            Text(
+                text = stringResource(R.string.mcp_external_tool_policy),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = MuseSpacing.sm),
+            )
+        }
+    }
+}
+
+@Composable
+private fun CardGroupScope.McpServerList(
+    state: McpServerListState,
+    onOpenDetails: (String) -> Unit,
+    onEdit: (String) -> Unit,
+    onOpenRuntime: () -> Unit,
+    onOpenChatDraft: (String, String) -> Unit,
+    onShowAdd: () -> Unit,
+    onShowImport: () -> Unit,
+) {
+    state.servers.forEach { server ->
+        val status = state.statuses[server.id] ?: McpRegistry.ServerStatus()
+        val bound = state.assistants.filter { server.id in state.assistantRepository.parseMcpServerIds(it) }
+        content(key = "mcp_server_${server.id}") {
+            McpServerRow(
+                spec = McpServerRowSpec(
+                    server = server,
+                    status = status,
+                    registry = state.registry,
+                    boundNames = bound.map { it.name },
+                    actions = McpServerRowActions(
+                        onOpen = { onOpenDetails(server.id) },
+                        onEdit = { onEdit(server.id) },
+                        onToggleEnabled = { enabled ->
+                            state.scope.launch {
+                                resultOf { state.registry.setEnabled(server.id, enabled) }
+                                    .onError { _, _ -> MuseToast.show(state.context.getString(R.string.mcp_save_failed)) }
+                            }
+                        },
+                        onReconnect = { state.registry.reconnect(server.id) },
+                    ),
+                    onInstallRuntime = onOpenRuntime,
+                    onDraft = bound.firstOrNull { it.enabled }?.let { assistant ->
+                        { draft -> onOpenChatDraft(assistant.id, draft) }
+                    },
+                    onDelete = {
+                        state.scope.launch {
+                            resultOf { state.registry.removeServer(server.id) }
+                                .onError { _, _ -> MuseToast.show(state.context.getString(R.string.mcp_save_failed)) }
+                        }
+                    },
+                ),
+            )
+        }
+    }
+    actionItem(key = "mcp_add", title = stringResource(R.string.settings_mcp_add_action), onClick = onShowAdd)
+    actionItem(key = "mcp_import", title = stringResource(R.string.mcp_import_action), onClick = onShowImport)
+}
+
+@Composable
+private fun McpServerDetailsDialog(
+    state: McpServerDetailsState,
+    actions: McpServerDetailsActions,
+) {
+    val details = state.details
+    val status = state.status
+    val assistants = state.assistants
+    val assistantRepository = state.assistantRepository
+    val registry = state.registry
+    val scope = state.scope
+    val context = state.context
+    val onDismiss = actions.onDismiss
+    val onOpenRuntime = actions.onOpenRuntime
+    val onEdit = actions.onEdit
+    val onOpenChatDraft = actions.onOpenChatDraft
+    val current = assistants.filter { details.id in assistantRepository.parseMcpServerIds(it) }.map { it.id }.toSet()
+    var selected by remember(details.id, current) { mutableStateOf(current) }
+    var saving by remember(details.id) { mutableStateOf(false) }
+    val authorize = rememberMcpAuthorize(details.id, registry)
+    MuseDialog(
+        onDismissRequest = onDismiss,
+        title = details.name,
+        content = {
+            Column(verticalArrangement = Arrangement.spacedBy(MuseSpacing.sm)) {
+                Text(mcpStatusText(details, status), style = MaterialTheme.typography.bodyMedium)
+                McpAuthorizationStatus(details.id, registry)
+                if (status.connection == McpConnectionState.FAILED) {
+                    status.issue?.let { Text(stringResource(it.label()), style = MaterialTheme.typography.bodySmall) }
+                }
+                McpRecoveryActions(status, details.enabled, authorize, onOpenRuntime, onEdit) { registry.reconnect(details.id) }
+                McpToolsList(status)
+                McpAssistantBindingList(assistants, selected) { assistantId ->
+                    selected = if (assistantId in selected) selected - assistantId else selected + assistantId
+                }
+                val trialAssistant = assistants.firstOrNull { it.enabled && it.id in selected }
+                if (trialAssistant != null && status.tools?.isNotEmpty() == true) {
+                    MuseCapsuleButton(
+                        text = stringResource(R.string.mcp_tool_trial, trialAssistant.name),
+                        onClick = {
+                            saving = true
+                            scope.launch {
+                                resultOf { registry.setAssistantBindings(details.id, selected) }
+                                    .onSuccess {
+                                        onDismiss()
+                                        onOpenChatDraft(
+                                            trialAssistant.id,
+                                            context.getString(R.string.mcp_tool_trial_message, details.name),
+                                        )
+                                    }
+                                    .onError { _, _ -> MuseToast.show(context.getString(R.string.mcp_save_failed)) }
+                                saving = false
+                            }
+                        },
+                        fillWidth = false,
+                        enabled = !saving,
+                    )
+                }
+            }
+        },
+        confirmText = stringResource(R.string.common_save),
+        confirmEnabled = !saving,
+        onConfirm = {
+            saving = true
+            scope.launch {
+                resultOf { registry.setAssistantBindings(details.id, selected) }
+                    .onSuccess { onDismiss() }
+                    .onError { _, _ -> MuseToast.show(context.getString(R.string.mcp_save_failed)) }
+                saving = false
+            }
+        },
+        dismissText = stringResource(R.string.common_close),
+        onDismiss = onDismiss,
+    )
+}
+
+@Composable
+private fun McpToolsList(status: McpRegistry.ServerStatus) {
+    status.tools?.takeIf { it.isNotEmpty() }?.let { tools ->
+        Text(stringResource(R.string.mcp_details_tools), style = MaterialTheme.typography.titleSmall)
+        tools.forEach { tool ->
+            Column {
+                Text(tool.name, style = MaterialTheme.typography.bodyMedium)
+                tool.description?.takeIf(String::isNotBlank)?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun McpAssistantBindingList(
+    assistants: List<io.zer0.muse.data.assistant.AssistantEntity>,
+    selected: Set<String>,
+    onToggle: (String) -> Unit,
+) {
+    Text(stringResource(R.string.mcp_choose_assistants), style = MaterialTheme.typography.titleSmall)
+    assistants.forEach { assistant ->
+        val checked = assistant.id in selected
+        MuseListItem(
+            onClick = { onToggle(assistant.id) },
+            headlineContent = { Text(assistant.name) },
+            trailingContent = { Checkbox(checked = checked, onCheckedChange = null) },
+        )
+    }
+}
+
+private data class McpServerRowData(
+    val server: McpServerConfig,
+    val status: McpRegistry.ServerStatus,
+    val boundNames: List<String>,
+    val stateEnabledText: String,
+    val stateDisabledText: String,
+    val oauthSupported: Boolean,
+)
+
+private data class McpServerRowActions(
+    val onOpen: () -> Unit,
+    val onEdit: () -> Unit,
+    val onToggleEnabled: (Boolean) -> Unit,
+    val onReconnect: () -> Unit,
+)
+
+private data class McpServerRowMenuState(
+    val data: McpServerRowData,
+    val actions: McpServerRowActions,
+    val registry: McpRegistry,
+    val authorize: () -> Unit,
+    val scope: kotlinx.coroutines.CoroutineScope,
+    val context: android.content.Context,
+    val expanded: Boolean,
+    val callbacks: McpServerRowMenuCallbacks,
+)
+
+private data class McpServerRowMenuCallbacks(
+    val onDismiss: () -> Unit,
+    val onOpenContent: (McpContentBrowserKind) -> Unit,
+    val onConfirmDelete: () -> Unit,
+)
+
+@Composable
+private fun McpServerRowHeader(
+    data: McpServerRowData,
+    actions: McpServerRowActions,
+    registry: McpRegistry,
+    onOpenMenu: () -> Unit,
+) {
+    val server = data.server
+    val status = data.status
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(MusePaddings.cardInner),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(MuseSpacing.md),
     ) {
-        // 状态指示小圆点(高级感)
         io.zer0.muse.ui.common.settings.StatusDot(
-            color = when (state) {
+            color = when (status.connection) {
                 McpConnectionState.CONNECTED -> MaterialTheme.colorScheme.primary
                 McpConnectionState.CONNECTING -> MaterialTheme.colorScheme.tertiary
                 McpConnectionState.FAILED -> MaterialTheme.colorScheme.error
                 else -> MaterialTheme.colorScheme.outline
             },
-            // L-SC5: StatusDot.size 改 Dp 类型,调用方 8 → 8.dp。
-            size = 8.dp,
-            pulse = state == McpConnectionState.CONNECTING,
+            size = MuseSpacing.xs,
+            pulse = status.connection == McpConnectionState.CONNECTING,
         )
-        Column(modifier = Modifier.weight(1f)) {
+        Column(modifier = Modifier.weight(1f).clickable(onClick = actions.onOpen)) {
             Text(
                 text = server.name.ifBlank { server.id },
                 style = MaterialTheme.typography.bodyLarge,
-                color = if (server.enabled) {
-                    MaterialTheme.colorScheme.onSurface
-                } else {
-                    MaterialTheme.colorScheme.outline
-                },
+                color = if (server.enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outline,
             )
             Text(
-                text = if (server.transportType == McpTransportType.STDIO) {
-                    "${server.transportType.name} · ${server.command.take(50)}${if (server.command.length > 50) "..." else ""}"
-                } else {
-                    "${server.transportType.name} · ${server.url.take(50)}${if (server.url.length > 50) "..." else ""}"
-                },
+                text = stringResource(server.transportType.label()),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
-                text = state.name,
-                style = MaterialTheme.typography.labelSmall,
-                color = when (state) {
-                    McpConnectionState.CONNECTED -> MaterialTheme.colorScheme.primary
-                    McpConnectionState.FAILED -> MaterialTheme.colorScheme.error
-                    else -> MaterialTheme.colorScheme.outline
-                },
+                text = mcpStatusText(server, status),
+                style = MaterialTheme.typography.labelMedium,
+                color = if (status.issue != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            // v1.0.79 (E-1): 已连接但没有注册任何工具 — 提示用户检查 server 或助手扩展绑定
-            if (state == McpConnectionState.CONNECTED && toolCount == 0) {
-                Text(
-                    text = stringResource(R.string.settings_mcp_connected_no_tools),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.error,
-                )
-            } else if (state == McpConnectionState.CONNECTED && toolCount > 0) {
-                Text(
-                    text = stringResource(R.string.settings_mcp_connected_tools, toolCount),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+            McpAuthorizationStatus(server.id, registry)
+            if (status.connection == McpConnectionState.FAILED) {
+                status.issue?.let { Text(stringResource(it.label()), style = MaterialTheme.typography.bodySmall) }
             }
-            // v1.0.92 (B-4): 未连接时展示最后一次成功连接时间(帮助判断 server 是否曾可用)
-            if (state != McpConnectionState.CONNECTED && server.lastConnectedAt > 0L) {
-                Text(
-                    text = stringResource(
-                        R.string.settings_mcp_last_connected,
-                        android.text.format.DateUtils.getRelativeTimeSpanString(server.lastConnectedAt).toString(),
-                    ),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            Text(
+                text = if (data.boundNames.isEmpty()) {
+                    stringResource(R.string.mcp_none_bound)
+                } else {
+                    data.boundNames.joinToString(", ")
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
-        // 阶段 D: 启停开关(独立于连接,允许保留配置但不连接)
         MuseSwitch(
             checked = server.enabled,
-            onCheckedChange = onToggleEnabled,
+            onCheckedChange = actions.onToggleEnabled,
             modifier = Modifier.semantics {
-                stateDescription = if (server.enabled) stateEnabledText else stateDisabledText
+                stateDescription = if (server.enabled) data.stateEnabledText else data.stateDisabledText
             },
         )
-        // v1.134 P0-6: 更多操作菜单按钮用 MuseTactileButton(48dp 触摸目标 + 无 ripple)
         MuseTactileButton(
             icon = MuseIcons.moreVertical,
-            onClick = { menuExpanded = true },
+            onClick = onOpenMenu,
             contentDescription = stringResource(R.string.settings_mcp_more),
-        )
-        // v1.134 P0-7: DropdownMenu → MuseDialog 操作列表
-        if (menuExpanded) {
-            MuseDialog(
-                onDismissRequest = { menuExpanded = false },
-                title = server.name,
-                content = {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(2.dp),
-                    ) {
-                        if (oauthSupported) {
-                            MuseActionSheetRow(text = stringResource(R.string.settings_mcp_oauth_authorize)) {
-                                menuExpanded = false
-                                resultOf { mcpRegistry.startOAuthFlow(server.id) }
-                                    .onSuccess { url ->
-                                        if (url == null) {
-                                            MuseToast.show(context.getString(R.string.settings_mcp_oauth_cannot_start))
-                                        } else {
-                                            runCatching {
-                                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-                                            }.onFailure {
-                                                MuseToast.show(context.getString(R.string.settings_mcp_oauth_open_failed, it.message))
-                                            }
-                                        }
-                                    }
-                                    .onError { _, t ->
-                                        MuseToast.show(context.getString(R.string.settings_mcp_failed, t?.message))
-                                    }
-                            }
-                            MuseActionSheetRow(text = stringResource(R.string.settings_mcp_oauth_revoke)) {
-                                menuExpanded = false
-                                scope.launch {
-                                    resultOf { mcpRegistry.revokeOAuth(server.id) }
-                                        .onSuccess {
-                                            MuseToast.show(context.getString(R.string.settings_mcp_oauth_revoked))
-                                        }
-                                        .onError { _, t ->
-                                            MuseToast.show(context.getString(R.string.settings_mcp_oauth_revoke_failed, t?.message))
-                                        }
-                                }
-                            }
-                        }
-                        MuseActionSheetRow(text = stringResource(R.string.settings_mcp_browse_resources)) {
-                            menuExpanded = false
-                            showResources = true
-                        }
-                        MuseActionSheetRow(text = stringResource(R.string.settings_mcp_browse_prompts)) {
-                            menuExpanded = false
-                            showPrompts = true
-                        }
-                        MuseActionSheetRow(text = stringResource(R.string.settings_mcp_reconnect)) {
-                            menuExpanded = false
-                            onReconnect()
-                        }
-                        MuseActionSheetRow(
-                            text = stringResource(R.string.common_delete),
-                            contentColor = MaterialTheme.colorScheme.error,
-                            onClick = {
-                                menuExpanded = false
-                                confirmDelete = true
-                            },
-                        )
-                    }
-                },
-                confirmText = stringResource(R.string.common_close),
-                onConfirm = { menuExpanded = false },
-                onDismiss = { menuExpanded = false },
-            )
-        }
-    }
-
-    if (confirmDelete) {
-        MuseDialog(
-            onDismissRequest = { confirmDelete = false },
-            title = stringResource(R.string.common_delete),
-            content = {
-                Text(
-                    text = stringResource(
-                        R.string.provider_plugins_delete_confirm_named,
-                        server.name.ifBlank { server.id },
-                    ),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            },
-            confirmText = stringResource(R.string.common_delete),
-            destructive = true,
-            onConfirm = {
-                confirmDelete = false
-                onDelete()
-            },
-            dismissText = stringResource(R.string.common_cancel),
-            onDismiss = { confirmDelete = false },
-        )
-    }
-
-    if (showResources) {
-        ResourcesBrowserDialog(
-            serverId = server.id,
-            mcpRegistry = mcpRegistry,
-            onDismiss = { showResources = false },
-        )
-    }
-    if (showPrompts) {
-        PromptsBrowserDialog(
-            serverId = server.id,
-            mcpRegistry = mcpRegistry,
-            onDismiss = { showPrompts = false },
         )
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-private fun McpServerAddDialog(onDismiss: () -> Unit, onAdd: suspend (McpServerConfig) -> Unit) {
-    var name by remember { mutableStateOf("") }
-    var url by remember { mutableStateOf("") }
-    var command by remember { mutableStateOf("") }
-    var transportType by remember {
-        mutableStateOf(McpTransportType.STREAMABLE_HTTP)
-    }
-    var authToken by remember { mutableStateOf("") }
-    var addError by remember { mutableStateOf<String?>(null) }
-    val scope = rememberCoroutineScope()
-    val context = LocalContext.current
-
-    // 高级字段(按 ProviderSection 的 showAdvanced 折叠模式)
-    var showAdvanced by remember { mutableStateOf(false) }
-    var headersText by remember { mutableStateOf("") }
-    var autoReconnect by remember { mutableStateOf(true) }
-    var maxReconnectAttempts by remember { mutableStateOf("5") }
-    var reconnectBaseMs by remember { mutableStateOf("3000") }
-    var requestTimeoutMs by remember { mutableStateOf("30000") }
-    var toolsReadyTimeoutMs by remember { mutableStateOf("5000") }
-    var feishuAppId by remember { mutableStateOf("") }
-    var feishuAppSecret by remember { mutableStateOf("") }
-    var selectedTemplateId by remember { mutableStateOf(McpServerTemplates.CUSTOM_ID) }
-    var templateMenuExpanded by remember { mutableStateOf(false) }
-    val selectedTemplate = remember(selectedTemplateId) {
-        McpServerTemplates.find(selectedTemplateId)
-    }
-    val feishuAutoRefresh = selectedTemplate.id == "feishu_remote"
-    // 状态描述字符串(需在 @Composable 上下文中提取,不能在 semantics{} lambda 内调用 stringResource)
-    val stateEnabledText = stringResource(R.string.common_state_enabled)
-    val stateDisabledText = stringResource(R.string.common_state_disabled)
-
+private fun McpServerRowMenu(
+    state: McpServerRowMenuState,
+) {
+    if (!state.expanded) return
+    val data = state.data
+    val actions = state.actions
+    val registry = state.registry
+    val authorize = state.authorize
+    val scope = state.scope
+    val context = state.context
+    val onDismiss = state.callbacks.onDismiss
+    val onOpenContent = state.callbacks.onOpenContent
+    val onConfirmDelete = state.callbacks.onConfirmDelete
+    val server = data.server
     MuseDialog(
         onDismissRequest = onDismiss,
-        title = stringResource(R.string.settings_mcp_add_title),
+        title = server.name,
         content = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                // v1.74: 改 ?.let 避免 !!(委托属性无法 smart-cast)
-                addError?.let { err ->
-                    InlineError(message = err, onDismiss = { addError = null })
-                }
-                Text(
-                    text = stringResource(R.string.code_gap_mcp_config_template),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Box {
-                    MuseCapsuleButton(
-                        text = (selectedTemplate.displayNameResId?.let { context.getString(it) } ?: selectedTemplate.displayName),
-                        onClick = { templateMenuExpanded = true },
-                        variant = IosCapsuleButtonVariant.Text,
-                        fillWidth = false,
-                    )
-                    MuseAnchoredMenu(
-                        expanded = templateMenuExpanded,
-                        onDismissRequest = { templateMenuExpanded = false },
-                    ) {
-                        (listOf(McpServerTemplates.custom) + McpServerTemplates.all).forEach { template ->
-                            MuseListItem(
-                                onClick = {
-                                    selectedTemplateId = template.id
-                                    name = if (template.id == McpServerTemplates.CUSTOM_ID) {
-                                        ""
-                                    } else {
-                                        (template.displayNameResId?.let { context.getString(it) } ?: template.displayName)
-                                    }
-                                    url = ""
-                                    command = if (template.transportType == McpTransportType.STDIO) {
-                                        template.commandPlaceholder
-                                    } else {
-                                        ""
-                                    }
-                                    authToken = ""
-                                    headersText = template.defaultHeaders.entries.joinToString("\n") {
-                                        "${it.key}: ${it.value}"
-                                    }
-                                    feishuAppId = ""
-                                    feishuAppSecret = ""
-                                    transportType = template.transportType
-                                    addError = null
-                                    templateMenuExpanded = false
-                                },
-                                headlineContent = {
-                                    Column {
-                                        Text((template.displayNameResId?.let { context.getString(it) } ?: template.displayName))
-                                        Text(
-                                            text = (template.summaryResId?.let { context.getString(it) } ?: template.summary),
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                McpServerAction(textRes = R.string.mcp_edit_server, onDismiss = onDismiss, onClick = actions.onEdit)
+                McpServerAction(textRes = R.string.mcp_use_assistants, onDismiss = onDismiss, onClick = actions.onOpen)
+                if (data.oauthSupported) {
+                    McpServerAction(textRes = R.string.mcp_authorize_action, onDismiss = onDismiss, onClick = authorize)
+                    McpServerAction(
+                        textRes = R.string.settings_mcp_oauth_revoke,
+                        onDismiss = onDismiss,
+                        onClick = {
+                            scope.launch {
+                                resultOf { registry.revokeOAuth(server.id) }
+                                    .onSuccess { MuseToast.show(context.getString(R.string.settings_mcp_oauth_revoked)) }
+                                    .onError { _, t ->
+                                        MuseToast.show(
+                                            context.getString(R.string.settings_mcp_oauth_revoke_failed, t?.message),
                                         )
                                     }
-                                },
-                            )
-                        }
-                    }
-                }
-                Text(
-                    text = (selectedTemplate.summaryResId?.let { context.getString(it) } ?: selectedTemplate.summary),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                SettingField(
-                    label = stringResource(R.string.settings_mcp_display_name),
-                    value = name,
-                    onValueChange = { name = it },
-                    placeholder = stringResource(R.string.settings_mcp_display_name_placeholder),
-                )
-                if (transportType == McpTransportType.STDIO) {
-                    SettingField(
-                        label = stringResource(R.string.settings_mcp_stdio_command),
-                        value = command,
-                        onValueChange = { command = it },
-                        placeholder = stringResource(R.string.settings_mcp_stdio_command_placeholder),
-                    )
-                    Text(
-                        text = stringResource(R.string.settings_mcp_stdio_command_help),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                } else {
-                    SettingField(
-                        label = "URL",
-                        value = url,
-                        onValueChange = { url = it },
-                        placeholder = (selectedTemplate.urlPlaceholderResId?.let { context.getString(it) } ?: selectedTemplate.urlPlaceholder),
-                    )
-                }
-                Text(stringResource(R.string.settings_mcp_transport_type), style = MaterialTheme.typography.labelMedium)
-                // Transport labels must keep their intrinsic width. A fixed Row lets
-                // MuseCapsuleButton measure StreamableHTTP/STDIO too narrowly, so the
-                // button's single-line ellipsis hides the actual transport option.
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    // 2026-11-20(P2-23):三选一此前全是同一种 Text 样式,点完看不出选中了哪个。
-                    // 选中的用 Primary(实心),未选中的用 Text —— 与其它单选组保持同一套视觉。
-                    val sseSelected = transportType == McpTransportType.SSE
-                    val httpSelected = transportType == McpTransportType.STREAMABLE_HTTP
-                    val stdioSelected = transportType == McpTransportType.STDIO
-                    MuseCapsuleButton(
-                        text = "SSE",
-                        onClick = { transportType = McpTransportType.SSE },
-                        variant = if (sseSelected) IosCapsuleButtonVariant.Primary else IosCapsuleButtonVariant.Text,
-                        fillWidth = false,
-                    )
-                    MuseCapsuleButton(
-                        text = "StreamableHTTP",
-                        onClick = { transportType = McpTransportType.STREAMABLE_HTTP },
-                        variant = if (httpSelected) IosCapsuleButtonVariant.Primary else IosCapsuleButtonVariant.Text,
-                        fillWidth = false,
-                    )
-                    MuseCapsuleButton(
-                        text = "STDIO",
-                        onClick = { transportType = McpTransportType.STDIO },
-                        variant = if (stdioSelected) IosCapsuleButtonVariant.Primary else IosCapsuleButtonVariant.Text,
-                        fillWidth = false,
-                    )
-                }
-                // Phase 11.1.1: stdio 传输在 Android 沙箱不可用(SELinux 限制 exec),
-                // 明确提示用户仅支持 SSE / StreamableHTTP 两种网络传输
-                Text(
-                    text = stringResource(R.string.settings_mcp_stdio_hint),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                if (feishuAutoRefresh) {
-                    SettingField(
-                        label = stringResource(R.string.code_gap_feishu_app_id),
-                        value = feishuAppId,
-                        onValueChange = { feishuAppId = it },
-                        placeholder = "cli_xxxxx",
-                    )
-                    SettingField(
-                        label = stringResource(R.string.code_gap_feishu_app_secret),
-                        value = feishuAppSecret,
-                        onValueChange = { feishuAppSecret = it },
-                        visualTransformation = PasswordVisualTransformation(),
-                    )
-                    Text(
-                        text = stringResource(R.string.code_gap_feishu_token_refresh_hint),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                } else {
-                    SettingField(
-                        label = stringResource(R.string.settings_mcp_bearer_token),
-                        value = authToken,
-                        onValueChange = { authToken = it },
-                        visualTransformation = PasswordVisualTransformation(),
-                    )
-                }
-
-                // 高级折叠区(headers / 重连参数 / 超时)
-                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { showAdvanced = !showAdvanced }
-                        .padding(vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    // LAYOUT-01: 「高级」折叠头取剩余宽度 + 限行,防止被右侧 chevron 图标挤成一列。
-                    Text(
-                        text = stringResource(R.string.settings_common_advanced),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.weight(1f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Icon(
-                        imageVector = if (showAdvanced) MuseIcons.chevronUp else MuseIcons.chevronDown,
-                        contentDescription = if (showAdvanced) {
-                            stringResource(
-                                R.string.settings_common_collapse,
-                            )
-                        } else {
-                            stringResource(R.string.common_expand)
+                            }
                         },
-                        tint = MaterialTheme.colorScheme.outline,
-                        modifier = Modifier.size(20.dp),
                     )
                 }
-                if (showAdvanced) {
-                    MuseTextField(
-                        value = headersText,
-                        onValueChange = { headersText = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        label = { Text(stringResource(R.string.settings_mcp_custom_headers)) },
-                        placeholder = { Text("Authorization: Bearer xxx\nX-API-Key: yyy") },
-                        singleLine = false,
-                    )
-                    // 标题在左、开关在右：此前开关放在标签左边，与全站开关行相反。
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { autoReconnect = !autoReconnect },
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
-                    ) {
-                        Text(
-                            text = stringResource(R.string.settings_mcp_auto_reconnect),
-                            style = MaterialTheme.typography.bodySmall,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f),
-                        )
-                        MuseSwitch(
-                            checked = autoReconnect,
-                            onCheckedChange = { autoReconnect = it },
-                            modifier = Modifier.semantics {
-                                stateDescription = if (autoReconnect) stateEnabledText else stateDisabledText
-                            },
-                        )
-                    }
-                    SettingField(
-                        label = stringResource(R.string.settings_mcp_max_reconnect),
-                        value = maxReconnectAttempts,
-                        onValueChange = { maxReconnectAttempts = it.filter { c -> c.isDigit() } },
-                        placeholder = "5",
-                    )
-                    SettingField(
-                        label = stringResource(R.string.settings_mcp_reconnect_base),
-                        value = reconnectBaseMs,
-                        onValueChange = { reconnectBaseMs = it.filter { c -> c.isDigit() } },
-                        placeholder = "3000",
-                    )
-                    SettingField(
-                        label = stringResource(R.string.settings_mcp_request_timeout),
-                        value = requestTimeoutMs,
-                        onValueChange = { requestTimeoutMs = it.filter { c -> c.isDigit() } },
-                        placeholder = "30000",
-                    )
-                    SettingField(
-                        label = stringResource(R.string.settings_mcp_tools_ready_timeout),
-                        value = toolsReadyTimeoutMs,
-                        onValueChange = { toolsReadyTimeoutMs = it.filter { c -> c.isDigit() } },
-                        placeholder = "5000",
-                    )
-                }
-            }
-        },
-        confirmText = stringResource(R.string.settings_common_add),
-        onConfirm = {
-            if (transportType == McpTransportType.STDIO && command.isBlank()) {
-                addError = context.getString(R.string.settings_mcp_stdio_command_required)
-            } else if (transportType != McpTransportType.STDIO && url.isBlank()) {
-                addError = context.getString(R.string.settings_mcp_failed, context.getString(R.string.audit_mcp_empty_url))
-            } else if (feishuAutoRefresh && (feishuAppId.isBlank() || feishuAppSecret.isBlank())) {
-                addError = context.getString(R.string.settings_mcp_failed, context.getString(R.string.audit_mcp_feishu_credentials))
-            } else {
-                val config = McpServerConfig(
-                    id = "mcp-" + System.currentTimeMillis(),
-                    name = name.ifBlank { (selectedTemplate.displayNameResId?.let { context.getString(it) } ?: selectedTemplate.displayName) },
-                    transportType = transportType,
-                    url = url.trim(),
-                    command = command.trim(),
-                    authToken = authToken.trim(),
-                    headers = parseHeaders(headersText),
-                    autoReconnect = autoReconnect,
-                    maxReconnectAttempts = maxReconnectAttempts.toIntOrNull()?.takeIf { it > 0 }
-                        ?: 5,
-                    reconnectBaseMs = reconnectBaseMs.toLongOrNull()?.takeIf { it > 0 }
-                        ?: 3000L,
-                    requestTimeoutMs = requestTimeoutMs.toLongOrNull()?.takeIf { it > 0 }
-                        ?: 30_000L,
-                    toolsReadyTimeoutMs = toolsReadyTimeoutMs.toLongOrNull()?.takeIf { it > 0 }
-                        ?: 5_000L,
-                    feishuAuth = McpFeishuAuthConfig(
-                        enabled = feishuAutoRefresh,
-                        appId = feishuAppId.trim(),
-                        appSecret = feishuAppSecret.trim(),
-                    ),
+                McpServerAction(
+                    textRes = R.string.mcp_resource_browser,
+                    onDismiss = onDismiss,
+                    onClick = { onOpenContent(McpContentBrowserKind.RESOURCES) },
                 )
-                scope.launch {
-                    runCatching { onAdd(config) }
-                        .onSuccess { onDismiss() }
-                        .onFailure { addError = context.getString(R.string.settings_mcp_failed, it.message) }
-                }
+                McpServerAction(
+                    textRes = R.string.mcp_prompt_browser,
+                    onDismiss = onDismiss,
+                    onClick = { onOpenContent(McpContentBrowserKind.PROMPTS) },
+                )
+                McpServerAction(textRes = R.string.settings_mcp_reconnect, onDismiss = onDismiss, onClick = actions.onReconnect)
+                MuseActionSheetRow(
+                    text = stringResource(R.string.common_delete),
+                    contentColor = MaterialTheme.colorScheme.error,
+                    onClick = {
+                        onDismiss()
+                        onConfirmDelete()
+                    },
+                )
             }
         },
+        confirmText = stringResource(R.string.common_close),
+        onConfirm = onDismiss,
+        onDismiss = onDismiss,
+    )
+}
+
+@Composable
+private fun McpServerAction(
+    textRes: Int,
+    onDismiss: () -> Unit,
+    onClick: () -> Unit,
+) {
+    MuseActionSheetRow(text = stringResource(textRes)) {
+        onDismiss()
+        onClick()
+    }
+}
+
+@Composable
+private fun McpDeleteServerDialog(
+    serverName: String,
+    onDismiss: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    MuseDialog(
+        onDismissRequest = onDismiss,
+        title = stringResource(R.string.common_delete),
+        content = {
+            Text(
+                text = stringResource(R.string.provider_plugins_delete_confirm_named, serverName),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        },
+        confirmText = stringResource(R.string.common_delete),
+        destructive = true,
+        onConfirm = onDelete,
         dismissText = stringResource(R.string.common_cancel),
         onDismiss = onDismiss,
     )
 }
 
-/**
- * 浏览指定 server 的 Resources(Phase 11.1.2 listAllResources / readResource 接入)。
- *
- * - 列表态:Column + forEach 展示 uri / name / description
- * - 详情态:点击某项后读取内容,叠加一个 MuseDialog 展示文本/blob
- */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ResourcesBrowserDialog(serverId: String, mcpRegistry: McpRegistry, onDismiss: () -> Unit) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    var loading by remember { mutableStateOf(true) }
-    var resources by remember { mutableStateOf<List<McpResource>>(emptyList()) }
-    var viewingContent by remember { mutableStateOf<List<McpResourceContent>?>(null) }
-    var loadError by remember { mutableStateOf<String?>(null) }
-    var readError by remember { mutableStateOf<String?>(null) }
-
-    LaunchedEffect(serverId) {
-        loading = true
-        loadError = null
-        resultOf {
-            val all = mcpRegistry.listAllResources()
-            all[serverId] ?: emptyList()
-        }.onSuccess { resources = it }
-            .onError { _, t ->
-                loadError = context.getString(R.string.settings_mcp_load_resources_failed, t?.message)
-            }
-        loading = false
-    }
-
-    MuseDialog(
-        onDismissRequest = onDismiss,
-        title = stringResource(R.string.settings_mcp_browse_resources_title),
-        content = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                // v1.74: 改 ?.let 避免 !!(委托属性无法 smart-cast)
-                loadError?.let { err ->
-                    InlineError(message = err, onDismiss = { loadError = null })
-                }
-                readError?.let { err ->
-                    InlineError(message = err, onDismiss = { readError = null })
-                }
-                if (loading) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        MuseSpinner(
-                            size = 20.dp,
-                        )
-                        Text(stringResource(R.string.settings_mcp_loading), style = MaterialTheme.typography.bodySmall)
-                    }
-                } else if (resources.isEmpty()) {
-                    // v1.48: h14 Resources 空态改为带图标的居中 Row(空间小,不用 MuseEmptyState 大组件)
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            imageVector = MuseIcons.box,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.outline,
-                            modifier = Modifier.size(16.dp),
-                        )
-                        Text(
-                            stringResource(R.string.settings_mcp_no_resources),
-                            style = MaterialTheme.typography.bodySmall,
-                        )
-                    }
-                } else {
-                    // v1.0.7 修复:MuseDialog content 已自带 verticalScroll,不能嵌套 LazyColumn。
-                    // 改用 Column + forEach,由 MuseDialog 外层统一滚动(对齐 VoiceCloningPage v1.132)。
-                    Column {
-                        resources.forEach { res ->
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        scope.launch {
-                                            readError = null
-                                            val contents = runCatching {
-                                                mcpRegistry.readResource(serverId, res.uri)
-                                            }.onFailure {
-                                                readError = context.getString(R.string.settings_mcp_read_failed, it.message)
-                                            }.getOrDefault(emptyList())
-                                            viewingContent = contents
-                                        }
-                                    }
-                                    .padding(vertical = 8.dp),
-                                verticalArrangement = Arrangement.spacedBy(2.dp),
-                            ) {
-                                Text(
-                                    text = res.name ?: res.uri,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                )
-                                if (!res.description.isNullOrBlank()) {
-                                    Text(
-                                        text = res.description,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
-                                Text(
-                                    text = res.uri,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        confirmText = stringResource(R.string.common_close),
-        onConfirm = onDismiss,
-    )
-
-    // 资源内容详情(叠加在列表 dialog 之上)
-    viewingContent?.let { contents ->
-        MuseDialog(
-            onDismissRequest = { viewingContent = null },
-            title = stringResource(R.string.settings_mcp_resource_content),
-            content = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (contents.isEmpty()) {
-                        Text(stringResource(R.string.settings_mcp_empty_content), style = MaterialTheme.typography.bodySmall)
-                    } else {
-                        contents.forEach { c ->
-                            Text(
-                                text = c.text ?: c.blob ?: stringResource(R.string.settings_mcp_no_text),
-                                style = MaterialTheme.typography.bodySmall,
-                            )
-                        }
-                    }
-                }
+private fun mcpStatusText(server: McpServerConfig, status: McpRegistry.ServerStatus): String {
+    if (!server.enabled) return stringResource(R.string.mcp_status_disabled)
+    return when (status.connection) {
+        McpConnectionState.DISCONNECTED -> stringResource(R.string.mcp_status_disconnected)
+        McpConnectionState.CONNECTING -> stringResource(R.string.mcp_status_connecting)
+        McpConnectionState.RECONNECTING -> stringResource(R.string.mcp_status_reconnecting)
+        McpConnectionState.NEEDS_AUTH -> stringResource(R.string.mcp_status_auth)
+        McpConnectionState.FAILED -> stringResource(
+            if (status.issue == McpRegistry.ConnectionIssue.TIMED_OUT) {
+                R.string.mcp_status_timed_out
+            } else {
+                R.string.mcp_status_failed
             },
-            confirmText = stringResource(R.string.common_close),
-            onConfirm = { viewingContent = null },
         )
+        McpConnectionState.CONNECTED -> when {
+            status.issue != null -> stringResource(status.issue.label())
+            status.tools == null -> stringResource(R.string.mcp_status_fetching)
+            status.tools.isEmpty() -> stringResource(R.string.mcp_status_no_tools)
+            else -> stringResource(R.string.mcp_status_tools, status.tools.size)
+        }
     }
 }
 
-/**
- * 浏览指定 server 的 Prompts(Phase 11.1.2 listAllPrompts / getPrompt 接入)。
- *
- * 三态:
- *  - 列表:展示 name / description / 参数名
- *  - 参数输入:选中某个 prompt 后,动态渲染其 arguments 的输入框
- *  - 结果展示:getPrompt 返回的 messages(role + content)
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun PromptsBrowserDialog(serverId: String, mcpRegistry: McpRegistry, onDismiss: () -> Unit) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    var loading by remember { mutableStateOf(true) }
-    var prompts by remember { mutableStateOf<List<McpPrompt>>(emptyList()) }
-    var selectedPrompt by remember { mutableStateOf<McpPrompt?>(null) }
-    var promptResult by remember { mutableStateOf<McpPromptResult?>(null) }
-    var loadingResult by remember { mutableStateOf(false) }
-    val argValues = remember(selectedPrompt) { mutableStateMapOf<String, String>() }
-    var loadError by remember { mutableStateOf<String?>(null) }
-    var promptError by remember { mutableStateOf<String?>(null) }
+private fun McpRegistry.ConnectionIssue.label(): Int = when (this) {
+    McpRegistry.ConnectionIssue.INVALID_ADDRESS -> R.string.mcp_issue_invalid_address
+    McpRegistry.ConnectionIssue.DnsFailed -> R.string.mcp_issue_dns
+    McpRegistry.ConnectionIssue.ADDRESS_BLOCKED -> R.string.mcp_issue_address_blocked
+    McpRegistry.ConnectionIssue.RUNTIME_REQUIRED -> R.string.mcp_issue_runtime
+    McpRegistry.ConnectionIssue.START_FAILED -> R.string.mcp_issue_start
+    McpRegistry.ConnectionIssue.HANDSHAKE_FAILED -> R.string.mcp_issue_handshake
+    McpRegistry.ConnectionIssue.TIMED_OUT -> R.string.mcp_status_timed_out
+    McpRegistry.ConnectionIssue.TOOLS_FAILED -> R.string.mcp_issue_tools
+}
 
-    LaunchedEffect(serverId) {
-        loading = true
-        loadError = null
-        resultOf {
-            val all = mcpRegistry.listAllPrompts()
-            all[serverId] ?: emptyList()
-        }.onSuccess { prompts = it }
-            .onError { _, t ->
-                loadError = context.getString(R.string.settings_mcp_load_prompts_failed, t?.message)
+private fun McpTransportType.label(): Int = when (this) {
+    McpTransportType.STREAMABLE_HTTP -> R.string.mcp_transport_http
+    McpTransportType.SSE -> R.string.mcp_transport_sse
+    McpTransportType.STDIO -> R.string.mcp_transport_stdio
+}
+
+@Composable
+private fun McpAuthorizationStatus(serverId: String, registry: McpRegistry) {
+    val flow = registry.oauthStatus(serverId) ?: return
+    val status by flow.collectAsStateWithLifecycle()
+    val label = when (status) {
+        McpOAuthStatus.LAUNCHING -> R.string.mcp_auth_waiting
+        McpOAuthStatus.DENIED, McpOAuthStatus.FAILED -> R.string.mcp_auth_problem
+        McpOAuthStatus.IDLE, McpOAuthStatus.REQUIRED, McpOAuthStatus.AUTHORIZED -> return
+    }
+    Text(text = stringResource(label), style = MaterialTheme.typography.bodySmall)
+}
+
+@Composable
+private fun rememberMcpAuthorize(serverId: String, registry: McpRegistry): () -> Unit {
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    var pending by remember(serverId) { mutableStateOf(false) }
+    return {
+        if (!pending) {
+            pending = true
+            scope.launch {
+                resultOf {
+                    val url = registry.authorize(serverId)
+                    if (url == null) {
+                        MuseToast.show(context.getString(R.string.mcp_authorize_failed))
+                    } else {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                        MuseToast.show(context.getString(R.string.mcp_auth_browser_return))
+                    }
+                }.onError { _, _ ->
+                    registry.cancelOAuthFlow(serverId)
+                    MuseToast.show(context.getString(R.string.mcp_authorize_failed))
+                }
+                pending = false
             }
-        loading = false
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun McpRecoveryActions(
+    status: McpRegistry.ServerStatus,
+    enabled: Boolean,
+    onAuthorize: () -> Unit,
+    onInstallRuntime: () -> Unit,
+    onEdit: () -> Unit,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    if (!enabled || (status.issue == null && status.connection != McpConnectionState.NEEDS_AUTH)) return
+    FlowRow(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(MuseSpacing.sm)) {
+        when {
+            status.connection == McpConnectionState.NEEDS_AUTH -> MuseCapsuleButton(
+                text = stringResource(R.string.mcp_authorize_action),
+                onClick = onAuthorize,
+                fillWidth = false,
+            )
+            status.issue == McpRegistry.ConnectionIssue.RUNTIME_REQUIRED -> {
+                MuseCapsuleButton(
+                    text = stringResource(R.string.mcp_install_runtime),
+                    onClick = onInstallRuntime,
+                    fillWidth = false,
+                )
+                MuseCapsuleButton(
+                    text = stringResource(R.string.common_retry),
+                    onClick = onRetry,
+                    variant = IosCapsuleButtonVariant.Text,
+                    fillWidth = false,
+                )
+            }
+            else -> {
+                MuseCapsuleButton(
+                    text = stringResource(R.string.mcp_edit_server),
+                    onClick = onEdit,
+                    variant = IosCapsuleButtonVariant.Text,
+                    fillWidth = false,
+                )
+                MuseCapsuleButton(
+                    text = stringResource(R.string.common_retry),
+                    onClick = onRetry,
+                    variant = IosCapsuleButtonVariant.Text,
+                    fillWidth = false,
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@Composable
+private fun McpServerAddDialog(
+    existing: McpServerConfig?,
+    onOpenRuntime: () -> Unit,
+    onDismiss: () -> Unit,
+    onSave: suspend (McpServerConfig) -> Boolean,
+) {
+    var name by remember { mutableStateOf(existing?.name.orEmpty()) }
+    var url by remember { mutableStateOf(existing?.url.orEmpty()) }
+    var command by remember { mutableStateOf(existing?.command.orEmpty()) }
+    var transportType by remember { mutableStateOf(existing?.transportType ?: McpTransportType.STREAMABLE_HTTP) }
+    var authToken by remember { mutableStateOf(existing?.authToken.orEmpty()) }
+    var addError by remember { mutableStateOf<String?>(null) }
+    var saving by remember { mutableStateOf(false) }
+    var runtimeReady by remember { mutableStateOf<Boolean?>(null) }
+    var showAdvanced by remember { mutableStateOf(false) }
+    var headersText by remember {
+        mutableStateOf(existing?.headers?.entries?.joinToString("\n") { "${it.key}: ${it.value}" }.orEmpty())
+    }
+    var environmentText by remember {
+        mutableStateOf(existing?.environment?.entries?.joinToString("\n") { "${it.key}=${it.value}" }.orEmpty())
+    }
+    var autoReconnect by remember { mutableStateOf(existing?.autoReconnect ?: true) }
+    var maxReconnectAttempts by remember { mutableStateOf((existing?.maxReconnectAttempts ?: 5).toString()) }
+    var reconnectBaseMs by remember { mutableStateOf((existing?.reconnectBaseMs ?: 3000L).toString()) }
+    var requestTimeoutMs by remember { mutableStateOf((existing?.requestTimeoutMs ?: 30000L).toString()) }
+    var toolsReadyTimeoutMs by remember { mutableStateOf((existing?.toolsReadyTimeoutMs ?: 5000L).toString()) }
+    var feishuAppId by remember { mutableStateOf(existing?.feishuAuth?.appId.orEmpty()) }
+    var feishuAppSecret by remember { mutableStateOf(existing?.feishuAuth?.appSecret.orEmpty()) }
+    var selectedTemplateId by remember {
+        mutableStateOf(if (existing?.feishuAuth?.enabled == true) "feishu_remote" else McpServerTemplates.CUSTOM_ID)
+    }
+    var templateMenuExpanded by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val selectedTemplate = remember(selectedTemplateId) { McpServerTemplates.find(selectedTemplateId) }
+    LaunchedEffect(transportType) {
+        runtimeReady = if (transportType == McpTransportType.STDIO) {
+            withContext(Dispatchers.IO) { io.zer0.muse.runtime.MuseRuntime.isReady(context) }
+        } else {
+            null
+        }
     }
 
+    val state = McpServerDraftState(
+        connection = McpConnectionDraftState(
+            name = name,
+            url = url,
+            command = command,
+            transportType = transportType,
+            authToken = authToken,
+            environmentText = environmentText,
+            runtimeReady = runtimeReady,
+        ),
+        advanced = McpAdvancedDraftState(
+            showAdvanced = showAdvanced,
+            headersText = headersText,
+            autoReconnect = autoReconnect,
+            maxReconnectAttempts = maxReconnectAttempts,
+            reconnectBaseMs = reconnectBaseMs,
+            requestTimeoutMs = requestTimeoutMs,
+            toolsReadyTimeoutMs = toolsReadyTimeoutMs,
+        ),
+        template = McpTemplateDraftState(
+            feishuAppId = feishuAppId,
+            feishuAppSecret = feishuAppSecret,
+            selectedTemplate = selectedTemplate,
+            templateMenuExpanded = templateMenuExpanded,
+        ),
+        addError = addError,
+        saving = saving,
+    )
+    val actions = McpServerDraftActions(
+        text = McpDraftTextActions(
+            onNameChange = { name = it },
+            onUrlChange = { url = it },
+            onCommandChange = { command = it },
+            onAuthTokenChange = { authToken = it },
+            onHeadersChange = { headersText = it },
+            onEnvironmentChange = { environmentText = it },
+        ),
+        numeric = McpDraftNumericActions(
+            onAutoReconnectChange = { autoReconnect = it },
+            onMaxReconnectAttemptsChange = { maxReconnectAttempts = it.filter(Char::isDigit) },
+            onReconnectBaseMsChange = { reconnectBaseMs = it.filter(Char::isDigit) },
+            onRequestTimeoutChange = { requestTimeoutMs = it.filter(Char::isDigit) },
+            onToolsReadyTimeoutChange = { toolsReadyTimeoutMs = it.filter(Char::isDigit) },
+        ),
+        template = McpDraftTemplateActions(
+            onFeishuAppIdChange = { feishuAppId = it },
+            onFeishuAppSecretChange = { feishuAppSecret = it },
+            onTemplateSelected = { template ->
+                selectedTemplateId = template.id
+                name = if (template.id == McpServerTemplates.CUSTOM_ID) "" else template.displayNameResId
+                    ?.let { context.getString(it) } ?: template.displayName
+                url = ""
+                command = template.commandPlaceholder.takeIf { template.transportType == McpTransportType.STDIO }.orEmpty()
+                authToken = ""
+                headersText = template.defaultHeaders.entries.joinToString("\n") { "${it.key}: ${it.value}" }
+                feishuAppId = ""
+                feishuAppSecret = ""
+                transportType = template.transportType
+                addError = null
+                templateMenuExpanded = false
+            },
+            onTemplateMenuChange = { templateMenuExpanded = it },
+        ),
+        dialog = McpDraftDialogActions(
+            onTransportChange = { transportType = it },
+            onAdvancedChange = { showAdvanced = it },
+            onErrorChange = { addError = it },
+            onSavingChange = { saving = it },
+        ),
+    )
+    McpServerAddDialogContent(
+        existing = existing,
+        state = state,
+        actions = actions,
+        host = McpServerDialogHost(context, scope, onOpenRuntime, onSave, onDismiss),
+    )
+}
+
+private data class McpConnectionDraftState(
+    val name: String,
+    val url: String,
+    val command: String,
+    val transportType: McpTransportType,
+    val authToken: String,
+    val environmentText: String,
+    val runtimeReady: Boolean?,
+)
+
+private data class McpAdvancedDraftState(
+    val showAdvanced: Boolean,
+    val headersText: String,
+    val autoReconnect: Boolean,
+    val maxReconnectAttempts: String,
+    val reconnectBaseMs: String,
+    val requestTimeoutMs: String,
+    val toolsReadyTimeoutMs: String,
+)
+
+private data class McpTemplateDraftState(
+    val feishuAppId: String,
+    val feishuAppSecret: String,
+    val selectedTemplate: McpServerTemplate,
+    val templateMenuExpanded: Boolean,
+)
+
+private data class McpServerDraftState(
+    val connection: McpConnectionDraftState,
+    val advanced: McpAdvancedDraftState,
+    val template: McpTemplateDraftState,
+    val addError: String?,
+    val saving: Boolean,
+) {
+    val name get() = connection.name
+    val url get() = connection.url
+    val command get() = connection.command
+    val transportType get() = connection.transportType
+    val authToken get() = connection.authToken
+    val environmentText get() = connection.environmentText
+    val runtimeReady get() = connection.runtimeReady
+    val showAdvanced get() = advanced.showAdvanced
+    val headersText get() = advanced.headersText
+    val autoReconnect get() = advanced.autoReconnect
+    val maxReconnectAttempts get() = advanced.maxReconnectAttempts
+    val reconnectBaseMs get() = advanced.reconnectBaseMs
+    val requestTimeoutMs get() = advanced.requestTimeoutMs
+    val toolsReadyTimeoutMs get() = advanced.toolsReadyTimeoutMs
+    val feishuAppId get() = template.feishuAppId
+    val feishuAppSecret get() = template.feishuAppSecret
+    val selectedTemplate get() = template.selectedTemplate
+    val templateMenuExpanded get() = template.templateMenuExpanded
+}
+
+private data class McpDraftTextActions(
+    val onNameChange: (String) -> Unit,
+    val onUrlChange: (String) -> Unit,
+    val onCommandChange: (String) -> Unit,
+    val onAuthTokenChange: (String) -> Unit,
+    val onHeadersChange: (String) -> Unit,
+    val onEnvironmentChange: (String) -> Unit,
+)
+
+private data class McpDraftNumericActions(
+    val onAutoReconnectChange: (Boolean) -> Unit,
+    val onMaxReconnectAttemptsChange: (String) -> Unit,
+    val onReconnectBaseMsChange: (String) -> Unit,
+    val onRequestTimeoutChange: (String) -> Unit,
+    val onToolsReadyTimeoutChange: (String) -> Unit,
+)
+
+private data class McpDraftTemplateActions(
+    val onFeishuAppIdChange: (String) -> Unit,
+    val onFeishuAppSecretChange: (String) -> Unit,
+    val onTemplateSelected: (McpServerTemplate) -> Unit,
+    val onTemplateMenuChange: (Boolean) -> Unit,
+)
+
+private data class McpDraftDialogActions(
+    val onTransportChange: (McpTransportType) -> Unit,
+    val onAdvancedChange: (Boolean) -> Unit,
+    val onErrorChange: (String?) -> Unit,
+    val onSavingChange: (Boolean) -> Unit,
+)
+
+private data class McpServerDraftActions(
+    val text: McpDraftTextActions,
+    val numeric: McpDraftNumericActions,
+    val template: McpDraftTemplateActions,
+    val dialog: McpDraftDialogActions,
+) {
+    val onNameChange get() = text.onNameChange
+    val onUrlChange get() = text.onUrlChange
+    val onCommandChange get() = text.onCommandChange
+    val onAuthTokenChange get() = text.onAuthTokenChange
+    val onHeadersChange get() = text.onHeadersChange
+    val onEnvironmentChange get() = text.onEnvironmentChange
+    val onAutoReconnectChange get() = numeric.onAutoReconnectChange
+    val onMaxReconnectAttemptsChange get() = numeric.onMaxReconnectAttemptsChange
+    val onReconnectBaseMsChange get() = numeric.onReconnectBaseMsChange
+    val onRequestTimeoutChange get() = numeric.onRequestTimeoutChange
+    val onToolsReadyTimeoutChange get() = numeric.onToolsReadyTimeoutChange
+    val onFeishuAppIdChange get() = template.onFeishuAppIdChange
+    val onFeishuAppSecretChange get() = template.onFeishuAppSecretChange
+    val onTemplateSelected get() = template.onTemplateSelected
+    val onTemplateMenuChange get() = template.onTemplateMenuChange
+    val onTransportChange get() = dialog.onTransportChange
+    val onAdvancedChange get() = dialog.onAdvancedChange
+    val onErrorChange get() = dialog.onErrorChange
+    val onSavingChange get() = dialog.onSavingChange
+}
+
+private data class McpServerDialogHost(
+    val context: android.content.Context,
+    val scope: kotlinx.coroutines.CoroutineScope,
+    val onOpenRuntime: () -> Unit,
+    val onSave: suspend (McpServerConfig) -> Boolean,
+    val onDismiss: () -> Unit,
+)
+
+private sealed interface McpDraftValidation {
+    data class Invalid(val messageRes: Int) : McpDraftValidation
+    data class Valid(val config: McpServerConfig) : McpDraftValidation
+}
+
+private fun validateMcpDraft(existing: McpServerConfig?, state: McpServerDraftState): McpDraftValidation {
+    val local = state.transportType == McpTransportType.STDIO
+    val address = runCatching { java.net.URI(state.url.trim()) }.getOrNull()
+    val validAddress = address?.scheme?.lowercase() in setOf("http", "https") &&
+        address.host != null && address.userInfo == null && address.fragment == null
+    val environment = if (local) parseConfigPairs(state.environmentText, '=', ::isMcpEnvironmentName) else emptyMap()
+    val headers = if (local) emptyMap() else parseConfigPairs(state.headersText, ':', MCP_HEADER_NAME::matches)
+    val error = when {
+        local && state.command.isBlank() -> R.string.settings_mcp_stdio_command_required
+        !local && !validAddress -> R.string.mcp_issue_invalid_address
+        environment == null -> R.string.mcp_env_invalid
+        headers == null -> R.string.mcp_headers_invalid
+        state.selectedTemplate.id == "feishu_remote" && state.transportType != McpTransportType.STDIO &&
+            (state.feishuAppId.isBlank() || state.feishuAppSecret.isBlank()) -> R.string.audit_mcp_feishu_credentials
+        else -> null
+    }
+    if (error != null) return McpDraftValidation.Invalid(error)
+    val id = existing?.id ?: "mcp-" + java.util.UUID.randomUUID().toString().take(12)
+    val base = existing ?: McpServerConfig(id = id, name = "")
+    val sameEndpoint = base.url == state.url.trim() && base.transportType == state.transportType
+    return McpDraftValidation.Valid(
+        base.copy(
+            name = state.name.trim().ifBlank {
+                if (local) state.command.trim().substringBefore(' ') else address?.host.orEmpty()
+            },
+            transportType = state.transportType,
+            url = if (local) "" else state.url.trim(),
+            command = if (local) state.command.trim() else "",
+            authToken = if (local) "" else state.authToken.trim(),
+            headers = headers.orEmpty(),
+            environment = environment.orEmpty(),
+            autoReconnect = state.autoReconnect,
+            maxReconnectAttempts = state.maxReconnectAttempts.toIntOrNull()?.coerceIn(1, 10) ?: 5,
+            reconnectBaseMs = state.reconnectBaseMs.toLongOrNull()?.coerceIn(250L, 60_000L) ?: 3000L,
+            requestTimeoutMs = state.requestTimeoutMs.toLongOrNull()?.coerceIn(1000L, 120_000L) ?: 30_000L,
+            toolsReadyTimeoutMs = state.toolsReadyTimeoutMs.toLongOrNull()?.coerceIn(1000L, 120_000L) ?: 5_000L,
+            oauthConfig = if (sameEndpoint) base.oauthConfig else io.zer0.muse.mcp.McpOAuthConfig(),
+            feishuAuth = McpFeishuAuthConfig(
+                enabled = state.selectedTemplate.id == "feishu_remote" && !local,
+                appId = state.feishuAppId.trim().takeIf { state.selectedTemplate.id == "feishu_remote" && !local }.orEmpty(),
+                appSecret = state.feishuAppSecret.trim().takeIf { state.selectedTemplate.id == "feishu_remote" && !local }.orEmpty(),
+            ),
+            lastConnectedAt = if (sameEndpoint) base.lastConnectedAt else 0L,
+        ),
+    )
+}
+
+@Composable
+private fun McpServerAddDialogContent(
+    existing: McpServerConfig?,
+    state: McpServerDraftState,
+    actions: McpServerDraftActions,
+    host: McpServerDialogHost,
+) {
     MuseDialog(
-        onDismissRequest = onDismiss,
-        title = stringResource(R.string.settings_mcp_browse_prompts_title),
+        onDismissRequest = host.onDismiss,
+        title = stringResource(if (existing == null) R.string.settings_mcp_add_action else R.string.mcp_edit_server),
         content = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                // v1.74: 改 ?.let 避免 !!(委托属性无法 smart-cast)
-                loadError?.let { err ->
-                    InlineError(message = err, onDismiss = { loadError = null })
-                }
-                if (loading) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        MuseSpinner(
-                            size = 20.dp,
-                        )
-                        Text(stringResource(R.string.settings_mcp_loading), style = MaterialTheme.typography.bodySmall)
-                    }
-                } else if (prompts.isEmpty()) {
-                    // v1.48: h14 Prompts 空态改为带图标的居中 Row(空间小,不用 MuseEmptyState 大组件)
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            imageVector = MuseIcons.note,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.outline,
-                            modifier = Modifier.size(16.dp),
-                        )
-                        Text(
-                            stringResource(R.string.settings_mcp_no_prompts),
-                            style = MaterialTheme.typography.bodySmall,
-                        )
-                    }
-                } else {
-                    // v1.0.7 修复:MuseDialog content 已自带 verticalScroll,不能嵌套 LazyColumn。
-                    // 改用 Column + forEach,由 MuseDialog 外层统一滚动。
-                    Column {
-                        prompts.forEach { p ->
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        argValues.clear()
-                                        selectedPrompt = p
-                                        promptResult = null
-                                        promptError = null
-                                    }
-                                    .padding(vertical = 8.dp),
-                                verticalArrangement = Arrangement.spacedBy(2.dp),
-                            ) {
-                                Text(
-                                    text = p.name,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                )
-                                if (!p.description.isNullOrBlank()) {
-                                    Text(
-                                        text = p.description,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
-                                if (p.arguments.isNotEmpty()) {
-                                    Text(
-                                        text = stringResource(R.string.settings_mcp_prompt_args, p.arguments.joinToString { it.name }),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
+                state.addError?.let { InlineError(message = it, onDismiss = { actions.onErrorChange(null) }) }
+                McpTemplatePicker(state, actions, host.context)
+                Text(
+                    text = state.selectedTemplate.summaryResId?.let { host.context.getString(it) }
+                        ?: state.selectedTemplate.summary,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                McpServerConnectionFields(state, actions, host.context)
+                McpServerAdvancedFields(state, actions)
+            }
+        },
+        confirmText = stringResource(
+            if (state.transportType == McpTransportType.STDIO && state.runtimeReady == false) {
+                R.string.mcp_save_install
+            } else {
+                R.string.mcp_save_connect
+            },
+        ),
+        confirmEnabled = !state.saving,
+        onConfirm = {
+            when (val result = validateMcpDraft(existing, state)) {
+                is McpDraftValidation.Invalid -> actions.onErrorChange(host.context.getString(result.messageRes))
+                is McpDraftValidation.Valid -> {
+                    actions.onErrorChange(null)
+                    actions.onSavingChange(true)
+                    host.scope.launch {
+                        resultOf { host.onSave(result.config) }
+                            .onSuccess { saved ->
+                                if (!saved) {
+                                    actions.onErrorChange(host.context.getString(R.string.mcp_save_failed))
+                                } else if (state.transportType == McpTransportType.STDIO && state.runtimeReady == false) {
+                                    host.onOpenRuntime()
                                 }
                             }
-                        }
+                            .onError { _, _ -> actions.onErrorChange(host.context.getString(R.string.mcp_save_failed)) }
+                        actions.onSavingChange(false)
                     }
                 }
             }
         },
-        confirmText = stringResource(R.string.common_close),
-        onConfirm = onDismiss,
+        dismissText = stringResource(R.string.common_cancel),
+        onDismiss = host.onDismiss,
     )
+}
 
-    // 参数输入 dialog(选中 prompt 后弹出)
-    selectedPrompt?.let { prompt ->
-        MuseDialog(
-            onDismissRequest = { selectedPrompt = null },
-            title = stringResource(R.string.settings_mcp_prompt_title, prompt.name),
-            content = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    // v1.74: 改 ?.let 避免 !!(委托属性无法 smart-cast)
-                    promptError?.let { err ->
-                        InlineError(message = err, onDismiss = { promptError = null })
-                    }
-                    if (loadingResult) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            MuseSpinner(
-                                size = 16.dp,
-                            )
-                            Text(stringResource(R.string.settings_mcp_getting), style = MaterialTheme.typography.bodySmall)
-                        }
-                    }
-                    if (prompt.arguments.isEmpty()) {
-                        Text(stringResource(R.string.settings_mcp_prompt_no_args), style = MaterialTheme.typography.bodySmall)
-                    } else {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            prompt.arguments.forEach { arg ->
-                                MuseTextField(
-                                    value = argValues[arg.name] ?: "",
-                                    onValueChange = { argValues[arg.name] = it },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    label = {
-                                        Text(
-                                            buildString {
-                                                append(arg.name)
-                                                if (arg.required) append(" *")
-                                            },
-                                        )
-                                    },
-                                    placeholder = arg.description?.let { { Text(it) } },
-                                    singleLine = true,
-                                )
-                            }
-                        }
-                    }
-                }
-            },
-            confirmText = stringResource(R.string.settings_mcp_get),
-            onConfirm = {
-                if (!loadingResult) {
-                    loadingResult = true
-                    promptError = null
-                    scope.launch {
-                        val result = resultOf {
-                            mcpRegistry.getPrompt(serverId, prompt.name, argValues.toMap())
-                        }.onError { _, t ->
-                            promptError = context.getString(R.string.settings_mcp_get_failed, t?.message)
-                        }.getOrNull()
-                        loadingResult = false
-                        if (result != null) {
-                            promptResult = result
-                            selectedPrompt = null
-                        }
-                    }
-                }
-            },
-            dismissText = stringResource(R.string.common_cancel),
-            onDismiss = { selectedPrompt = null },
+@Composable
+private fun McpTemplatePicker(
+    state: McpServerDraftState,
+    actions: McpServerDraftActions,
+    context: android.content.Context,
+) {
+    Text(
+        text = stringResource(R.string.code_gap_mcp_config_template),
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    Box {
+        MuseCapsuleButton(
+            text = state.selectedTemplate.displayNameResId?.let { context.getString(it) }
+                ?: state.selectedTemplate.displayName,
+            onClick = { actions.onTemplateMenuChange(true) },
+            variant = IosCapsuleButtonVariant.Text,
+            fillWidth = false,
         )
-    }
-
-    // 结果展示 dialog
-    promptResult?.let { result ->
-        MuseDialog(
-            onDismissRequest = { promptResult = null },
-            title = stringResource(R.string.settings_mcp_prompt_result),
-            content = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (!result.description.isNullOrBlank()) {
-                        Text(
-                            text = result.description,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    if (result.messages.isEmpty()) {
-                        Text(stringResource(R.string.settings_mcp_no_messages), style = MaterialTheme.typography.bodySmall)
-                    } else {
-                        result.messages.forEach { msg ->
+        MuseAnchoredMenu(
+            expanded = state.templateMenuExpanded,
+            onDismissRequest = { actions.onTemplateMenuChange(false) },
+        ) {
+            (listOf(McpServerTemplates.custom) + McpServerTemplates.all).forEach { template ->
+                MuseListItem(
+                    onClick = { actions.onTemplateSelected(template) },
+                    headlineContent = {
+                        Column {
+                            Text(template.displayNameResId?.let { context.getString(it) } ?: template.displayName)
                             Text(
-                                text = "[${msg.role}]",
+                                text = template.summaryResId?.let { context.getString(it) } ?: template.summary,
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary,
-                            )
-                            Text(
-                                text = msg.content.toDisplayText(),
-                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
-                    }
-                }
-            },
-            confirmText = stringResource(R.string.common_close),
-            onConfirm = { promptResult = null },
+                    },
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun McpServerConnectionFields(
+    state: McpServerDraftState,
+    actions: McpServerDraftActions,
+    context: android.content.Context,
+) {
+    SettingField(
+        label = stringResource(R.string.settings_mcp_display_name),
+        value = state.name,
+        onValueChange = actions.onNameChange,
+        placeholder = stringResource(R.string.settings_mcp_display_name_placeholder),
+    )
+    if (state.transportType == McpTransportType.STDIO) {
+        SettingField(
+            label = stringResource(R.string.settings_mcp_stdio_command),
+            value = state.command,
+            onValueChange = actions.onCommandChange,
+            placeholder = stringResource(R.string.mcp_stdio_example),
+        )
+        Text(
+            text = stringResource(R.string.mcp_stdio_help),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    } else {
+        SettingField(
+            label = stringResource(R.string.mcp_address),
+            value = state.url,
+            onValueChange = actions.onUrlChange,
+            placeholder = state.selectedTemplate.urlPlaceholderResId?.let { context.getString(it) }
+                ?: state.selectedTemplate.urlPlaceholder,
+        )
+    }
+    Text(stringResource(R.string.settings_mcp_transport_type), style = MaterialTheme.typography.labelMedium)
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        TransportChoice(
+            text = stringResource(R.string.mcp_transport_sse),
+            selected = state.transportType == McpTransportType.SSE,
+            onClick = { actions.onTransportChange(McpTransportType.SSE) },
+        )
+        TransportChoice(
+            text = stringResource(R.string.mcp_transport_http),
+            selected = state.transportType == McpTransportType.STREAMABLE_HTTP,
+            onClick = { actions.onTransportChange(McpTransportType.STREAMABLE_HTTP) },
+        )
+        TransportChoice(
+            text = stringResource(R.string.mcp_transport_stdio),
+            selected = state.transportType == McpTransportType.STDIO,
+            onClick = { actions.onTransportChange(McpTransportType.STDIO) },
+        )
+    }
+    if (state.transportType == McpTransportType.STDIO) {
+        MuseTextField(
+            value = state.environmentText,
+            onValueChange = actions.onEnvironmentChange,
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text(stringResource(R.string.mcp_env_label)) },
+            singleLine = false,
+            visualTransformation = McpEnvironmentMask,
+        )
+        if (state.runtimeReady == false) {
+            Text(stringResource(R.string.mcp_issue_runtime), style = MaterialTheme.typography.bodySmall)
+        }
+    }
+    if (state.selectedTemplate.id == "feishu_remote" && state.transportType != McpTransportType.STDIO) {
+        SettingField(
+            label = stringResource(R.string.code_gap_feishu_app_id),
+            value = state.feishuAppId,
+            onValueChange = actions.onFeishuAppIdChange,
+            placeholder = "cli_xxxxx",
+        )
+        SettingField(
+            label = stringResource(R.string.code_gap_feishu_app_secret),
+            value = state.feishuAppSecret,
+            onValueChange = actions.onFeishuAppSecretChange,
+            visualTransformation = PasswordVisualTransformation(),
+        )
+        Text(
+            text = stringResource(R.string.code_gap_feishu_token_refresh_hint),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.primary,
+        )
+    } else if (state.transportType != McpTransportType.STDIO) {
+        SettingField(
+            label = stringResource(R.string.settings_mcp_bearer_token),
+            value = state.authToken,
+            onValueChange = actions.onAuthTokenChange,
+            visualTransformation = PasswordVisualTransformation(),
         )
     }
 }
 
-/**
- * Dialog 内容区错误条 — 替代 MuseToast,避免 Toast 被 Dialog 窗口遮挡。
- */
+@Composable
+private fun TransportChoice(text: String, selected: Boolean, onClick: () -> Unit) {
+    MuseCapsuleButton(
+        text = text,
+        onClick = onClick,
+        variant = if (selected) IosCapsuleButtonVariant.Primary else IosCapsuleButtonVariant.Text,
+        fillWidth = false,
+    )
+}
+
+@Composable
+private fun McpServerAdvancedFields(
+    state: McpServerDraftState,
+    actions: McpServerDraftActions,
+) {
+    val enabledState = stringResource(R.string.common_state_enabled)
+    val disabledState = stringResource(R.string.common_state_disabled)
+    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { actions.onAdvancedChange(!state.showAdvanced) }
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(
+            text = stringResource(R.string.settings_common_advanced),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Icon(
+            imageVector = if (state.showAdvanced) MuseIcons.chevronUp else MuseIcons.chevronDown,
+            contentDescription = stringResource(
+                if (state.showAdvanced) R.string.settings_common_collapse else R.string.common_expand,
+            ),
+            tint = MaterialTheme.colorScheme.outline,
+            modifier = Modifier.size(20.dp),
+        )
+    }
+    if (state.showAdvanced) {
+        if (state.transportType != McpTransportType.STDIO) {
+            MuseTextField(
+                value = state.headersText,
+                onValueChange = actions.onHeadersChange,
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text(stringResource(R.string.settings_mcp_custom_headers)) },
+                placeholder = { Text("Authorization: Bearer xxx\nX-API-Key: yyy") },
+                singleLine = false,
+            )
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { actions.onAutoReconnectChange(!state.autoReconnect) },
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
+        ) {
+            Text(
+                text = stringResource(R.string.settings_mcp_auto_reconnect),
+                style = MaterialTheme.typography.bodySmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            MuseSwitch(
+                checked = state.autoReconnect,
+                onCheckedChange = actions.onAutoReconnectChange,
+                modifier = Modifier.semantics {
+                    stateDescription = if (state.autoReconnect) enabledState else disabledState
+                },
+            )
+        }
+        TimeoutField(R.string.settings_mcp_max_reconnect, state.maxReconnectAttempts, actions.onMaxReconnectAttemptsChange, "5")
+        TimeoutField(R.string.settings_mcp_reconnect_base, state.reconnectBaseMs, actions.onReconnectBaseMsChange, "3000")
+        TimeoutField(R.string.settings_mcp_request_timeout, state.requestTimeoutMs, actions.onRequestTimeoutChange, "30000")
+        TimeoutField(R.string.settings_mcp_tools_ready_timeout, state.toolsReadyTimeoutMs, actions.onToolsReadyTimeoutChange, "5000")
+    }
+}
+
+@Composable
+private fun TimeoutField(labelRes: Int, value: String, onValueChange: (String) -> Unit, placeholder: String) {
+    SettingField(
+        label = stringResource(labelRes),
+        value = value,
+        onValueChange = onValueChange,
+        placeholder = placeholder,
+    )
+}
+@Composable
+private fun McpImportDialog(onDismiss: () -> Unit, onImport: suspend (List<McpServerConfig>) -> Boolean) {
+    val scope = rememberCoroutineScope()
+    var input by remember { mutableStateOf("") }
+    var preview by remember { mutableStateOf<List<McpServerConfig>?>(null) }
+    var invalid by remember { mutableStateOf(false) }
+    var saving by remember { mutableStateOf(false) }
+    MuseDialog(
+        onDismissRequest = onDismiss,
+        title = stringResource(R.string.mcp_import_action),
+        content = {
+            Column(verticalArrangement = Arrangement.spacedBy(MuseSpacing.sm)) {
+                if (invalid) Text(stringResource(R.string.mcp_import_failed), color = MaterialTheme.colorScheme.error)
+                val configs = preview
+                if (configs == null) {
+                    MuseTextField(
+                        value = input,
+                        onValueChange = {
+                            input = it.take(100_001)
+                            invalid = false
+                        },
+                        singleLine = false,
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text(stringResource(R.string.mcp_import_json)) },
+                    )
+                } else {
+                    Text(stringResource(R.string.mcp_import_review))
+                    configs.forEach { config ->
+                        Text(config.name, style = MaterialTheme.typography.titleSmall)
+                        val destination = if (config.transportType == McpTransportType.STDIO) {
+                            config.command
+                        } else {
+                            runCatching { java.net.URI(config.url).host }.getOrNull().orEmpty()
+                        }
+                        Text(destination, style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+        },
+        confirmText = stringResource(if (preview == null) R.string.mcp_content_preview else R.string.mcp_save_connect),
+        confirmEnabled = input.isNotBlank() && !saving,
+        onConfirm = {
+            val configs = preview
+            if (configs == null) {
+                preview = McpConfigImport.parse(input)
+                invalid = preview == null
+            } else {
+                saving = true
+                scope.launch {
+                    resultOf { onImport(configs) }
+                        .onSuccess { invalid = !it }
+                        .onError { _, _ -> invalid = true }
+                    saving = false
+                }
+            }
+        },
+        dismissText = stringResource(if (preview != null) R.string.mcp_content_back else R.string.common_cancel),
+        onDismiss = { if (preview == null) onDismiss() else preview = null },
+    )
+}
+
 @Composable
 private fun InlineError(message: String, onDismiss: () -> Unit) {
     Surface(
@@ -1241,25 +1634,35 @@ private fun InlineError(message: String, onDismiss: () -> Unit) {
  * 把"每行 key:value"的文本解析成 headers Map。
  * 空行 / 无冒号的行被忽略,空文本返回空 map。
  */
-private fun parseHeaders(text: String): Map<String, String> {
-    return text.lines()
-        .mapNotNull { line ->
-            val trimmed = line.trim()
-            if (trimmed.isEmpty()) return@mapNotNull null
-            val idx = trimmed.indexOf(':')
-            if (idx <= 0) return@mapNotNull null
-            trimmed.substring(0, idx).trim() to trimmed.substring(idx + 1).trim()
-        }
-        .toMap()
+internal fun parseConfigPairs(raw: String, separator: Char, validName: (String) -> Boolean): Map<String, String>? {
+    val parsed = mutableMapOf<String, String>()
+    for (line in raw.lineSequence().filter(String::isNotBlank)) {
+        val index = line.indexOf(separator)
+        if (index < 1) return null
+        val name = line.substring(0, index).trim()
+        if (!validName(name) || parsed.containsKey(name)) return null
+        val value = line.substring(index + 1)
+        parsed[name] = if (separator == '=') value else value.trim()
+    }
+    return parsed
 }
 
-/**
- * 把 MCP prompt message 的 content(JsonElement)转成可显示文本。
- * 形如 {type:"text", text:"..."} 提取 text;否则 toString()。
- */
-private fun JsonElement.toDisplayText(): String {
-    val obj = this as? JsonObject ?: return toString()
-    val type = (obj["type"] as? JsonPrimitive)?.content
-    val text = (obj["text"] as? JsonPrimitive)?.content
-    return if (type == "text" && text != null) text else toString()
+private val McpEnvironmentMask = VisualTransformation { source ->
+    var inValue = false
+    val masked = buildString(source.length) {
+        for (char in source.text) {
+            when {
+                char == '\n' -> {
+                    inValue = false
+                    append(char)
+                }
+                inValue -> append('•')
+                else -> {
+                    append(char)
+                    if (char == '=') inValue = true
+                }
+            }
+        }
+    }
+    TransformedText(AnnotatedString(masked), OffsetMapping.Identity)
 }

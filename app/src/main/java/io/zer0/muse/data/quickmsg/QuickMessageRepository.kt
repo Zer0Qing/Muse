@@ -3,7 +3,6 @@ package io.zer0.muse.data.quickmsg
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
-import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * QuickMessage 仓库 — Phase 8.5。

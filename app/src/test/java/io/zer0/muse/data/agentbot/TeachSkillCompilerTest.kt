@@ -130,12 +130,11 @@ class TeachSkillCompilerTest {
         assertEquals(null, TeachSkillCompiler.classifyRisk("查看今日日程", "com.example.calendar"))
     }
 
-    private fun compiler(refiner: TeachSkillRefiner? = null): TeachSkillCompiler =
-        TeachSkillCompiler(
-            refiner = refiner,
-            now = { fixedNow },
-            idFactory = { "teach_test_skill" },
-        )
+    private fun compiler(refiner: TeachSkillRefiner? = null): TeachSkillCompiler = TeachSkillCompiler(
+        refiner = refiner,
+        now = { fixedNow },
+        idFactory = { "teach_test_skill" },
+    )
 
     private fun draft(
         goalPrompt: String = """

@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import io.zer0.muse.data.session.MuseDb
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -48,6 +50,7 @@ class AgentBotRepositoryTest {
             approvalDao = db.approvalRequestDao(),
             publicationDao = db.publicationOutboxDao(),
             bindingDao = db.botBindingDao(),
+            cardDao = db.botMessageCardDao(),
             database = db,
             now = { clock },
         )
@@ -79,11 +82,75 @@ class AgentBotRepositoryTest {
     }
 
     @Test
+    fun `confirmation card resolution is scoped and consumed once`() = runTest {
+        val card = BotMessageCardEntity(
+            cardId = "confirm-card",
+            botId = "bot-1",
+            originSessionId = "session-1",
+        )
+        assertTrue(repo.insertMessageCardIfAbsent(card))
+        assertFalse(repo.insertMessageCardIfAbsent(card))
+
+        assertFalse(repo.resolveActiveMessageCard("confirm-card", "bot-2", "session-1", "approve"))
+        assertFalse(repo.resolveActiveMessageCard("confirm-card", "bot-1", "session-2", "approve"))
+        assertTrue(repo.resolveActiveMessageCard("confirm-card", "bot-1", "session-1", "approve"))
+        assertFalse(repo.resolveActiveMessageCard("confirm-card", "bot-1", "session-1", "approve"))
+        assertFalse(repo.insertMessageCardIfAbsent(card))
+        assertEquals(BotCardStatus.RESOLVED, repo.getMessageCard("confirm-card")?.status)
+    }
+
+    @Test
+    fun `confirmation card can be dismissed with scope CAS`() = runTest {
+        repo.insertMessageCardIfAbsent(
+            BotMessageCardEntity(
+                cardId = "dismiss-card",
+                botId = "bot-1",
+                originSessionId = "session-1",
+            ),
+        )
+        assertFalse(repo.dismissActiveMessageCard("dismiss-card", "bot-2", "session-1"))
+        assertTrue(repo.dismissActiveMessageCard("dismiss-card", "bot-1", "session-1"))
+        assertFalse(repo.dismissActiveMessageCard("dismiss-card", "bot-1", "session-1"))
+        assertEquals(BotCardStatus.DISMISSED, repo.getMessageCard("dismiss-card")?.status)
+    }
+
+    @Test
     fun `same idempotency key does not create a second task`() = runTest {
         val a = newTask("input:msg-1")
         val b = newTask("input:msg-1")
         assertEquals("同一次输入只能有一个任务", a.taskId, b.taskId)
         assertEquals(1, repo.listTasks("bot-1").size)
+    }
+
+    @Test
+    fun `claim and run record commit together and only one claimant wins`() = runTest {
+        val task = newTask()
+        val claims = kotlinx.coroutines.coroutineScope {
+            listOf(
+                async { repo.claimAndOpenRun(task.taskId) },
+                async { repo.claimAndOpenRun(task.taskId) },
+            ).map { it.await() }
+        }
+
+        assertEquals(1, claims.count { it != null })
+        assertEquals(BotTaskStatus.RUNNING, repo.getTask(task.taskId)?.status)
+        assertEquals(1, repo.listRuns(task.taskId).size)
+        assertEquals(TaskRunStatus.RUNNING, repo.listRuns(task.taskId).single().status)
+    }
+
+    @Test
+    fun `run insert failure rolls the task status claim back`() = runTest {
+        val task = newTask()
+        db.openHelper.writableDatabase.execSQL(
+            "CREATE TRIGGER fail_task_run_insert BEFORE INSERT ON bot_task_runs " +
+                "BEGIN SELECT RAISE(ABORT, 'injected run insert failure'); END",
+        )
+
+        val failure = runCatching { repo.claimAndOpenRun(task.taskId) }.exceptionOrNull()
+
+        assertNotNull(failure)
+        assertEquals(BotTaskStatus.QUEUED, repo.getTask(task.taskId)?.status)
+        assertTrue(repo.listRuns(task.taskId).isEmpty())
     }
 
     @Test
@@ -428,6 +495,7 @@ class AgentBotRepositoryTest {
                 items = listOf("MODEL_RAW_TEXT" to "should not pass"),
             )
         } catch (e: IllegalArgumentException) {
+            assertNotNull(e.message)
             threw = true
         }
         assertTrue("模型正文不得进入公共发布通道", threw)
@@ -446,6 +514,7 @@ class AgentBotRepositoryTest {
                 dedupeKey = "x",
             )
         } catch (e: IllegalArgumentException) {
+            assertNotNull(e.message)
             threw = true
         }
         assertTrue(threw)

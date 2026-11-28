@@ -52,11 +52,7 @@ import kotlinx.coroutines.launch
  */
 @Suppress("LongMethod", "CyclomaticComplexMethod", "FunctionNaming")
 @Composable
-internal fun WebServerSection(
-    settings: SettingsRepository,
-    webServer: WebServer,
-    onOpenWebAccess: (() -> Unit)? = null,
-) {
+internal fun WebServerSection(settings: SettingsRepository, webServer: WebServer, onOpenWebAccess: (() -> Unit)? = null) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val config by settings.webServerConfigFlow.collectAsStateWithLifecycle(

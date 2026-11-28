@@ -25,7 +25,7 @@ class ToolTraceProjectionTest {
         val projected = ToolTraceProjection.project(messages)
 
         assertEquals(6, projected.size)
-        assertEquals(MessageRole.SYSTEM, projected[1].role)
+        assertEquals(MessageRole.ASSISTANT, projected[1].role)
         assertTrue(projected[1].content.contains(ToolTraceProjection.SUMMARY_MARKER))
         assertTrue(projected[1].content.contains("search"))
         assertTrue(projected[1].content.contains("成功(SUCCESS)"))
@@ -131,7 +131,11 @@ class ToolTraceProjectionTest {
         assertEquals(MessageRole.ASSISTANT, projected[0].role)
         assertEquals("json-failed", projected[0].toolCalls?.single()?.id)
         assertEquals(MessageRole.TOOL, projected[1].role)
-        assertTrue(projected.any { it.role == MessageRole.SYSTEM && it.content.contains("lookup") })
+        assertTrue(
+            projected.any {
+                it.role == MessageRole.ASSISTANT && it.content.contains(ToolTraceProjection.SUMMARY_MARKER) && it.content.contains("lookup")
+            },
+        )
     }
 
     @Test
@@ -166,11 +170,14 @@ class ToolTraceProjectionTest {
         val projected = ToolTraceProjection.project(messages, keepRecentRounds = 0)
 
         assertEquals(3, projected.size)
-        assertEquals(MessageRole.SYSTEM, projected[0].role)
+        assertEquals(MessageRole.ASSISTANT, projected[0].role)
         assertTrue(projected[0].content.contains("search"))
         assertTrue(projected[0].content.contains("成功(SUCCESS)"))
-        assertEquals(failedCard, projected[2])
-        assertTrue(projected.none { it.content.contains("失败(FAILED)") })
+        assertEquals(MessageRole.ASSISTANT, projected[2].role)
+        assertEquals(null, projected[2].toolCallInfo)
+        assertTrue(projected[2].content.contains("write_file"))
+        assertTrue(projected[2].content.contains("失败(FAILED)"))
+        assertTrue(projected.none { it.content.contains(ToolTraceProjection.SUMMARY_MARKER) && it.content.contains("失败(FAILED)") })
     }
 
     @Test
@@ -198,8 +205,12 @@ class ToolTraceProjectionTest {
         val projected = ToolTraceProjection.project(messages)
 
         assertEquals(4, projected.size)
-        assertEquals(MessageRole.SYSTEM, projected[0].role)
-        assertEquals(firstLatestCard, projected[2])
-        assertEquals(secondLatestCard, projected[3])
+        assertEquals(MessageRole.ASSISTANT, projected[0].role)
+        assertEquals(null, projected[2].toolCallInfo)
+        assertTrue(projected[2].content.contains("search"))
+        assertTrue(projected[2].content.contains("first"))
+        assertEquals(null, projected[3].toolCallInfo)
+        assertTrue(projected[3].content.contains("fetch"))
+        assertTrue(projected[3].content.contains("second"))
     }
 }

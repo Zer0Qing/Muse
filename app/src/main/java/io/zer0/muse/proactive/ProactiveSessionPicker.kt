@@ -42,10 +42,16 @@ class ProactiveSessionPicker(private val runtime: ProactiveRuntime) {
         val config = runCatching { runtime.settings.proactiveMessageConfigFlow.first() }.getOrDefault(
             io.zer0.muse.data.ProactiveMessageConfig(),
         )
-        val pick =
-            (if (config.agentSessionEnabled) pickExistingAgent(assistant) else null)
-                ?: (if (config.allowPlainChatSession) pickPlainSession(assistant) else null)
-                ?: (if (config.agentSessionEnabled) createAgentSession(assistant) else null)
+        val agentPick = if (config.agentSessionEnabled) pickExistingAgent(assistant) else null
+        val plainPick = if (config.allowPlainChatSession) pickPlainSession(assistant) else null
+        val pick = when {
+            plainPick != null && agentPick != null ->
+                if (plainPick.lastActivityAt >= agentPick.lastActivityAt) plainPick else agentPick
+            agentPick != null -> agentPick
+            plainPick != null -> plainPick
+            config.agentSessionEnabled -> createAgentSession(assistant)
+            else -> null
+        }
         return pick?.let { logPick(assistant, it, now) }
     }
 

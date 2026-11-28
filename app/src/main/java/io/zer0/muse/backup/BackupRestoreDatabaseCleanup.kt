@@ -28,7 +28,6 @@ internal suspend fun <T> restoreAndPruneMessageImages(
     return result
 }
 
-@Suppress("TooGenericExceptionCaught")
 internal suspend fun pruneMessageImageSnapshot(
     imageStore: MessageImageStore,
     snapshot: Set<String>,
@@ -40,7 +39,7 @@ internal suspend fun pruneMessageImageSnapshot(
             val referenced = readReferencedPaths() ?: return@withContext
             imageStore.deleteSnapshotFilesNotReferenced(snapshot, referenced)
         }
-    } catch (error: Exception) {
+    } catch (error: SecurityException) {
         Logger.w("BackupRestore", "恢复后图片清理未完成: ${error.message}", error)
     }
 }

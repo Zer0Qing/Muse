@@ -2,10 +2,10 @@ package io.zer0.muse.ui
 
 import io.zer0.ai.core.ProviderError
 import io.zer0.ai.core.ProviderException
-import org.junit.Assert.assertEquals
-import org.junit.Test
 import io.zer0.muse.ui.chat.ChatErrorType
 import io.zer0.muse.ui.chat.ChatViewModel
+import org.junit.Assert.assertEquals
+import org.junit.Test
 
 /**
  * B4 错误恢复补测：classifyErrorType 全分支。
@@ -29,9 +29,9 @@ class ClassifyErrorTypeTest {
     }
 
     @Test
-    fun `provider exception rate limit maps to RATE_LIMIT`() {
+    fun `provider exception rate limit maps to RateLimit`() {
         val t = ProviderException(ProviderError.RateLimit(displayMessage = "429 slow down"))
-        assertEquals(ChatErrorType.RATE_LIMIT, classify("ignored", t))
+        assertEquals(ChatErrorType.RateLimit, classify("ignored", t))
     }
 
     @Test
@@ -72,8 +72,8 @@ class ClassifyErrorTypeTest {
     }
 
     @Test
-    fun `rate limit message maps to RATE_LIMIT`() {
-        assertEquals(ChatErrorType.RATE_LIMIT, classify("429 rate limited"))
+    fun `rate limit message maps to RateLimit`() {
+        assertEquals(ChatErrorType.RateLimit, classify("429 rate limited"))
     }
 
     @Test

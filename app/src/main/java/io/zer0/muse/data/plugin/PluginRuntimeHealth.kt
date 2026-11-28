@@ -12,7 +12,7 @@ import java.util.concurrent.ConcurrentHashMap
  * 返回可读原因而不是继续空跑。
  *
  * 语义:
- *  - 连续 [FAILURE_THRESHOLD] 次失败(任何引擎层 Error,含超时) → 熔断 [baseCooldownMs],
+ *  - 连续 [FAILURE_THRESHOLD] 次失败(任何引擎层 Error,含超时) → 熔断 [BASE_COOLDOWN_MS],
  *    之后每多一次失败翻倍退避,封顶 [MAX_COOLDOWN_MS];
  *  - 冷却到期后**半开**:放一条请求去真实执行,成功即清零,失败重新计时;
  *  - 成功(哪怕插件业务返回错误文本)记为引擎可用,直接关闭熔断;
@@ -64,7 +64,7 @@ class PluginRuntimeHealth(
             return
         }
         val exponent = (failures - FAILURE_THRESHOLD).coerceAtMost(MAX_COOLDOWN_EXPONENT)
-        val cooldown = minOf(baseCooldownMs shl exponent, MAX_COOLDOWN_MS)
+        val cooldown = minOf(BASE_COOLDOWN_MS shl exponent, MAX_COOLDOWN_MS)
         states[pluginId] = PluginState(
             consecutiveFailures = failures,
             openUntilMs = now + cooldown,
@@ -119,7 +119,7 @@ class PluginRuntimeHealth(
         const val FAILURE_THRESHOLD = 3
 
         /** 首次熔断冷却。 */
-        internal const val baseCooldownMs = 60_000L
+        internal const val BASE_COOLDOWN_MS = 60_000L
 
         /** 退避封顶。 */
         internal const val MAX_COOLDOWN_MS = 5 * 60_000L

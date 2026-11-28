@@ -3,6 +3,8 @@ package io.zer0.muse.computenode
 import android.content.Context
 import com.jcraft.jsch.ChannelExec
 import com.jcraft.jsch.ChannelSftp
+import com.jcraft.jsch.HostKey
+import com.jcraft.jsch.HostKeyRepository
 import com.jcraft.jsch.JSch
 import com.jcraft.jsch.JSchException
 import com.jcraft.jsch.Session
@@ -18,8 +20,8 @@ import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.job
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
@@ -27,6 +29,7 @@ import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import java.io.ByteArrayOutputStream
 import java.io.OutputStream
+import java.security.MessageDigest
 import java.util.Locale
 
 /**
@@ -49,10 +52,7 @@ class SshBootstrapEngine(
      * 事件流按脚本输出顺序发射；遇到认证失败、上传失败或脚本非零退出时以
      * [SshBootstrapException] 结束。调用方取消收集会断开 SSH 会话。
      */
-    fun bootstrap(
-        node: RemoteComputeNodeEntity,
-        options: BootstrapOptions = BootstrapOptions(),
-    ): Flow<BootstrapEvent> = flow {
+    fun bootstrap(node: RemoteComputeNodeEntity, options: BootstrapOptions = BootstrapOptions()): Flow<BootstrapEvent> = flow {
         emitAll(bootstrap(node.toSshConnectionSpec(cipher), options))
     }
 
@@ -60,10 +60,7 @@ class SshBootstrapEngine(
      * 使用已解析的连接参数执行自举。凭据由 [SshConnectionSpec] 持有，
      * 其 toString 已脱敏，不得在日志里直接打印。
      */
-    fun bootstrap(
-        spec: SshConnectionSpec,
-        options: BootstrapOptions = BootstrapOptions(),
-    ): Flow<BootstrapEvent> = flow {
+    fun bootstrap(spec: SshConnectionSpec, options: BootstrapOptions = BootstrapOptions()): Flow<BootstrapEvent> = flow {
         val session = SshSessions.connect(spec)
         try {
             val stageDir = uploadBootstrapAssets(session)
@@ -111,11 +108,7 @@ class SshBootstrapEngine(
     }
 
     /** 执行 bootstrap.sh 并把每一行 @@MUSE_BOOT 转成事件。 */
-    private fun runBootstrap(
-        session: Session,
-        stageDir: String,
-        options: BootstrapOptions,
-    ): Flow<BootstrapEvent> = flow {
+    private fun runBootstrap(session: Session, stageDir: String, options: BootstrapOptions): Flow<BootstrapEvent> = flow {
         val channel = session.openChannel("exec")
         val exec = channel as? ChannelExec
             ?: throw SshBootstrapException("SSH server did not open an exec channel")
@@ -223,6 +216,7 @@ data class SshConnectionSpec(
     val port: Int,
     val username: String,
     val auth: SshAuth,
+    val hostKeyFingerprint: String = "",
     val connectTimeoutMs: Int = 15_000,
 ) {
     init {
@@ -237,29 +231,35 @@ data class SshConnectionSpec(
  * 把节点实体转换成连接参数：encryptedCredential 经 [SecureKeyCipher.decryptOrNull] 解密，
  * 失败时显式报错，不把损坏的密文当成空密码继续连接。
  */
-suspend fun RemoteComputeNodeEntity.toSshConnectionSpec(
-    cipher: SecureKeyCipher = SecureKeyStore,
-): SshConnectionSpec {
+suspend fun RemoteComputeNodeEntity.toSshConnectionSpec(cipher: SecureKeyCipher = SecureKeyStore): SshConnectionSpec {
+    if (connectionMode != io.zer0.muse.data.computenode.ComputeNodeMode.SSH_TUNNEL.wireValue) {
+        sshConfigurationFailure("node is not configured for SSH")
+    }
     if (host.isBlank() || username.isBlank()) {
-        throw SshBootstrapException("node connection is incomplete")
+        sshConfigurationFailure("node connection is incomplete")
     }
     val plain = cipher.decryptOrNull(encryptedCredential)
-        ?: throw SshBootstrapException("stored SSH credential cannot be decrypted")
+        ?: sshConfigurationFailure("stored SSH credential cannot be decrypted")
     if (plain.isBlank()) {
-        throw SshBootstrapException("stored SSH credential is empty")
+        sshConfigurationFailure("stored SSH credential is empty")
     }
+    val fingerprint = SshHostKeyFingerprint.normalize(tlsFingerprint)
+        ?: sshConfigurationFailure("SSH host key fingerprint is missing or invalid")
     val auth = when (authType.uppercase(Locale.US)) {
         "PASSWORD" -> SshAuth.Password(plain)
         "PRIVATE_KEY" -> SshAuth.PrivateKey(plain)
-        else -> throw SshBootstrapException("unsupported SSH auth type")
+        else -> sshConfigurationFailure("unsupported SSH auth type")
     }
     return SshConnectionSpec(
         host = host,
         port = sshPort,
         username = username,
         auth = auth,
+        hostKeyFingerprint = fingerprint,
     )
 }
+
+private fun sshConfigurationFailure(message: String): Nothing = throw SshBootstrapException(message)
 
 /** 自举过程中的一条结构化进度事件。 */
 data class BootstrapEvent(
@@ -271,9 +271,8 @@ data class BootstrapEvent(
     val data: JsonObject = JsonObject(emptyMap()),
 ) {
     /** data 可能含节点 Token；任何日志/异常打印都不能带上它。 */
-    override fun toString(): String =
-        "BootstrapEvent(phase=" + phase.wireValue + ", step=" + step +
-            ", percent=" + percent + ", status=" + status.wireValue + ")"
+    override fun toString(): String = "BootstrapEvent(phase=" + phase.wireValue + ", step=" + step +
+        ", percent=" + percent + ", status=" + status.wireValue + ")"
 
     /** 读取 data 中的字符串字段；非字符串或缺失返回 null。 */
     fun stringValue(key: String): String? = (data[key] as? JsonPrimitive)?.contentOrNull
@@ -313,38 +312,47 @@ object BootstrapEventParser {
     fun parseLine(line: String): BootstrapEvent? {
         val trimmed = line.trim()
         if (!trimmed.startsWith(PREFIX)) return null
-        val payload = trimmed.removePrefix(PREFIX)
-        return try {
-            val obj = Json.parseToJsonElement(payload) as? JsonObject ?: return null
-            val phase = obj["phase"]?.jsonPrimitive?.contentOrNull?.let(BootstrapPhase::fromWire) ?: return null
-            val step = obj["step"]?.jsonPrimitive?.contentOrNull ?: return null
-            val percent = obj["percent"]?.jsonPrimitive?.intOrNull ?: return null
-            val status = obj["status"]?.jsonPrimitive?.contentOrNull?.let(BootstrapStatus::fromWire) ?: return null
-            val message = obj["msg"]?.jsonPrimitive?.contentOrNull.orEmpty()
-            val data = when (val element = obj["data"]) {
-                null -> JsonObject(emptyMap())
-                is JsonObject -> element
-                is JsonArray -> return null
-                is JsonPrimitive -> return null
-            }
-            BootstrapEvent(
-                phase = phase,
-                step = step,
-                percent = percent,
-                status = status,
-                message = message,
-                data = data,
-            )
-        } catch (e: Exception) {
-            // 非协议行与坏 JSON 都可能出现在同一条 stdout 上；跳过即可，日志不带原始内容。
-            Logger.d(TAG, "skipped malformed bootstrap event: " + e.javaClass.simpleName)
-            null
-        }
+        return parsePayload(trimmed.removePrefix(PREFIX))
     }
+
+    private fun parsePayload(payload: String): BootstrapEvent? = runCatching {
+        val obj = Json.parseToJsonElement(payload) as? JsonObject ?: return@runCatching null
+        val phase = obj["phase"]?.jsonPrimitive?.contentOrNull?.let(BootstrapPhase::fromWire)
+        val step = obj["step"]?.jsonPrimitive?.contentOrNull
+        val percent = obj["percent"]?.jsonPrimitive?.intOrNull
+        val status = obj["status"]?.jsonPrimitive?.contentOrNull?.let(BootstrapStatus::fromWire)
+        if (phase == null || step == null || percent == null || status == null) return@runCatching null
+        val data = when (val element = obj["data"]) {
+            null -> JsonObject(emptyMap())
+            is JsonObject -> element
+            else -> return@runCatching null
+        }
+        BootstrapEvent(phase, step, percent, status, obj["msg"]?.jsonPrimitive?.contentOrNull.orEmpty(), data)
+    }.onFailure { error ->
+        if (error is SerializationException) {
+            Logger.d(TAG, "skipped malformed bootstrap event: " + error.javaClass.simpleName)
+        }
+    }.getOrNull()
 }
 
 /** 自举失败；message 只包含阶段/退出码等非敏感信息。 */
 class SshBootstrapException(message: String, cause: Throwable? = null) : Exception(message, cause)
+
+/** OpenSSH SHA-256 host key fingerprints, computed from the server's raw SSH key blob. */
+internal object SshHostKeyFingerprint {
+    private val fingerprintPattern = Regex("^SHA256:[A-Za-z0-9+/]{43}$")
+
+    fun normalize(value: String): String? = value.trim().takeIf(fingerprintPattern::matches)
+
+    fun fromRawKey(key: ByteArray): String {
+        val digest = MessageDigest.getInstance("SHA-256").digest(key)
+        val encoded = java.util.Base64.getEncoder().withoutPadding().encodeToString(digest)
+        return "SHA256:$encoded"
+    }
+
+    fun matches(rawKey: ByteArray, pinnedFingerprint: String): Boolean =
+        normalize(pinnedFingerprint)?.let { it == fromRawKey(rawKey) } ?: false
+}
 
 /** 建立 JSch 会话的共用入口，自举与隧道管理器都从这里取连接。 */
 internal object SshSessions {
@@ -353,11 +361,26 @@ internal object SshSessions {
     private const val SERVER_ALIVE_COUNT_MAX = 3
 
     fun connect(spec: SshConnectionSpec): Session {
+        val expectedFingerprint = SshHostKeyFingerprint.normalize(spec.hostKeyFingerprint)
+            ?: throw SshBootstrapException("SSH host key fingerprint is required")
         val jsch = JSch()
+        jsch.setHostKeyRepository(object : HostKeyRepository {
+            override fun check(host: String, key: ByteArray): Int = if (SshHostKeyFingerprint.matches(key, expectedFingerprint)) {
+                HostKeyRepository.OK
+            } else {
+                HostKeyRepository.CHANGED
+            }
+
+            override fun add(hostkey: HostKey, userinfo: com.jcraft.jsch.UserInfo?) = Unit
+            override fun remove(host: String, type: String) = Unit
+            override fun remove(host: String, type: String, key: ByteArray) = Unit
+            override fun getHostKey(): Array<HostKey> = emptyArray()
+            override fun getHostKey(host: String, type: String): Array<HostKey> = emptyArray()
+            override fun getKnownHostsRepositoryID(): String = "muse-pinned-host-key"
+        })
         val session = jsch.getSession(spec.username, spec.host, spec.port)
         try {
-            // 首次连接没有可核对的主机指纹，交给用户确认节点地址后直接建立通道。
-            session.setConfig("StrictHostKeyChecking", "no")
+            session.setConfig("StrictHostKeyChecking", "yes")
             when (val auth = spec.auth) {
                 is SshAuth.Password -> {
                     session.setConfig("PreferredAuthentications", "password,keyboard-interactive")
@@ -379,7 +402,14 @@ internal object SshSessions {
             return session
         } catch (e: JSchException) {
             session.disconnect()
-            throw SshBootstrapException("SSH connection failed: " + e.javaClass.simpleName, e)
+            val detail = if (e.message.orEmpty().contains("host key", ignoreCase = true) ||
+                e.message.orEmpty().contains("hostkey", ignoreCase = true)
+            ) {
+                "SSH host key fingerprint mismatch"
+            } else {
+                "SSH connection failed: " + e.javaClass.simpleName
+            }
+            throw SshBootstrapException(detail, e)
         }
     }
 }
@@ -405,6 +435,7 @@ internal fun sshFailureReason(e: Exception): String {
     val jsch = e as? JSchException ?: e.cause as? JSchException
     val message = jsch?.message?.lowercase()
     return when {
+        message?.contains("hostkey") == true || message?.contains("host key") == true -> "host key fingerprint mismatch"
         message?.contains("auth") == true -> "authentication failed"
         message?.contains("timeout") == true -> "connection timed out"
         jsch != null -> "ssh connection failed"

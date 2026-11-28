@@ -85,11 +85,7 @@ class AgentBotResultPublisher(
      * 幂等由 `publicationKey` 保证：事件未被确认前重投，返回的是已有的 messageId，
      * 不会再写第二条消息。
      */
-    private suspend fun publishReviewed(
-        event: BotEventEntity,
-        fallbackBotId: String,
-        fallbackSessionId: String,
-    ): Outcome {
+    private suspend fun publishReviewed(event: BotEventEntity, fallbackBotId: String, fallbackSessionId: String): Outcome {
         val decision = ReviewDecision.decode(event.payloadRef)
         if (decision == null) {
             // 解析不出来就当没有可发布事实：猜一份内容发出去，会以审核的名义
@@ -137,11 +133,7 @@ class AgentBotResultPublisher(
     }
 
     /** 执行失败的状态提示。正文是固定文案，不含任何执行内容。 */
-    private suspend fun publishFailureNotice(
-        event: BotEventEntity,
-        fallbackBotId: String,
-        fallbackSessionId: String,
-    ): Outcome {
+    private suspend fun publishFailureNotice(event: BotEventEntity, fallbackBotId: String, fallbackSessionId: String): Outcome {
         val result = runCatching {
             publication.publishIdempotent(
                 publicationKey = PublicationService.failurePublicationKeyFor(event.eventId),

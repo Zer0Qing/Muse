@@ -60,10 +60,7 @@ class AgentModelRouter(context: Context) {
      * 解析指定角色实际使用的 (ProviderConfig?, Model?)。
      * 未配置或目标模型已不存在时返回 null to null，由调用方平滑回退到默认主模型。
      */
-    suspend fun resolve(
-        role: Role,
-        configStore: ProviderConfigStore,
-    ): Pair<ProviderConfig?, Model?> {
+    suspend fun resolve(role: Role, configStore: ProviderConfigStore): Pair<ProviderConfig?, Model?> {
         val binding = when (role) {
             Role.FOREGROUND -> _snapshot.value.foreground
             Role.BACKGROUND -> _snapshot.value.background

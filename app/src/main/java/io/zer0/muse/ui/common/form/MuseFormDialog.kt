@@ -34,6 +34,7 @@ fun MuseFormDialog(
     dismissText: String? = stringResource(R.string.common_cancel),
     onDismiss: (() -> Unit)? = null,
     destructive: Boolean = false,
+    dismissOnClickOutside: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     MuseDialog(
@@ -62,5 +63,11 @@ fun MuseFormDialog(
         dismissText = dismissText,
         onDismiss = onDismiss,
         destructive = destructive,
+        properties = androidx.compose.ui.window.DialogProperties(
+            dismissOnClickOutside = dismissOnClickOutside,
+            dismissOnBackPress = true,
+            decorFitsSystemWindows = false,
+            usePlatformDefaultWidth = false,
+        ),
     )
 }

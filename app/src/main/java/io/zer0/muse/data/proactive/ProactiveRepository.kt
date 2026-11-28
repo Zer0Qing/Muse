@@ -43,6 +43,9 @@ class ProactiveThoughtRepository(
 
     suspend fun markSurfacedIfOpen(id: String, at: Long): Int = writeDao.markSurfacedIfOpen(id, at)
 
+    suspend fun markSurfacedIfEligible(id: String, at: Long, reSurfaceBefore: Long, maxSurface: Int = MAX_SURFACE_COUNT): Int =
+        writeDao.markSurfacedIfEligible(id, at, reSurfaceBefore, maxSurface)
+
     /** 用户已经把这件事解决了（由对话或用户手动标记）。 */
     suspend fun complete(id: String) {
         writeDao.updateStatus(id, ThoughtStatus.DONE.name)
@@ -57,7 +60,12 @@ class ProactiveThoughtRepository(
 
     suspend fun getAllOpen(): List<PendingThoughtEntity> = readDao.getAllOpen()
 
+    suspend fun getById(id: String): PendingThoughtEntity? = readDao.getById(id)
+
     suspend fun getRecent(limit: Int = 30): List<PendingThoughtEntity> = readDao.getRecent(limit)
+
+    suspend fun getRecentByAssistant(assistantId: String, limit: Int = 60): List<PendingThoughtEntity> =
+        readDao.getRecentByAssistant(assistantId, limit)
 
     suspend fun countOpen(assistantId: String): Int = readDao.countOpen(assistantId)
 
@@ -187,6 +195,7 @@ class ProactiveOutcomeRepository(
     private val dao: ProactiveOutcomeDao,
     private val relations: ProactiveRelationRepository,
 ) {
+    internal val outcomeDao: ProactiveOutcomeDao get() = dao
 
     companion object {
         /**
@@ -276,8 +285,9 @@ class ProactiveOutcomeRepository(
         val current = dao.getById(outcomeId) ?: return 0
         val currentState = OutcomeState.entries.firstOrNull { it.name == current.state } ?: return 0
         val allowed = when (currentState) {
-            OutcomeState.PENDING -> state == OutcomeState.OPENED || state == OutcomeState.REPLIED ||
-                state == OutcomeState.DISMISSED || state == OutcomeState.EXPIRED
+            OutcomeState.PENDING ->
+                state == OutcomeState.OPENED || state == OutcomeState.REPLIED ||
+                    state == OutcomeState.DISMISSED || state == OutcomeState.EXPIRED
             OutcomeState.OPENED -> state == OutcomeState.REPLIED
             OutcomeState.REPLIED, OutcomeState.DISMISSED, OutcomeState.EXPIRED -> false
         }

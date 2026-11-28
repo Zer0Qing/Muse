@@ -7,7 +7,6 @@ import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
 import org.junit.Assert.assertTrue
-import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -32,13 +31,13 @@ class RedirectHopGuardTest {
 
     @Before
     fun setUp() {
-        server = MockWebServer();
-        server.start();
+        server = MockWebServer()
+        server.start()
     }
 
     @After
     fun tearDown() {
-        server.shutdown();
+        server.shutdown()
     }
 
     private fun impl() = SkillSearchToolsImpl(
@@ -57,21 +56,21 @@ class RedirectHopGuardTest {
             MockResponse()
                 .setResponseCode(302)
                 .setHeader("Location", "http://127.0.0.1:1/internal"),
-        );
+        )
 
-        val url = server.url("/start").toString();
+        val url = server.url("/start").toString()
         // MockWebServer 监听的是 127.0.0.1，首跳本身就会被拒 ——
         // 这正好验证"本地地址不放行"。
         assertTrue(
             "本地地址必须被拒绝",
             !impl().validatePublicUrl(url),
-        );
+        )
     }
 
     @Test
     fun `validatePublicUrl rejects the metadata service address`() {
         // 云元数据服务：拿到它等于拿到云账号凭据。
-        val impl = impl();
+        val impl = impl()
         listOf(
             "http://169.254.169.254/latest/meta-data/",
             "http://127.0.0.1/",
@@ -82,7 +81,7 @@ class RedirectHopGuardTest {
             assertTrue(
                 "内网地址必须被拒绝: " + url,
                 !impl.validatePublicUrl(url),
-            );
+            )
         }
     }
 }

@@ -23,20 +23,15 @@ class SkillKnowledgeFolderScopeTest {
 
     private val context: Context get() = ApplicationProvider.getApplicationContext()
 
-    private fun doc(
-        id: String,
-        title: String,
-        kbId: String,
-        folder: String,
-        content: String = "virtual display recovery",
-    ) = KnowledgeDocEntity(
-        id = id,
-        title = title,
-        content = content,
-        fileType = "txt",
-        kbId = kbId,
-        metadataJson = if (folder.isEmpty()) "{}" else """{"folderPath":"$folder"}""",
-    )
+    private fun doc(id: String, title: String, kbId: String, folder: String, content: String = "virtual display recovery") =
+        KnowledgeDocEntity(
+            id = id,
+            title = title,
+            content = content,
+            fileType = "txt",
+            kbId = kbId,
+            metadataJson = if (folder.isEmpty()) "{}" else """{"folderPath":"$folder"}""",
+        )
 
     private fun tools(dao: io.zer0.muse.data.knowledge.KnowledgeDocDao) = SkillSearchToolsImpl(
         context = context,

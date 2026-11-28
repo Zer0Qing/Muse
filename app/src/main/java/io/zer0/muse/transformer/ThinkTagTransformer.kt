@@ -2,8 +2,8 @@ package io.zer0.muse.transformer
 
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.UIMessage
-import io.zer0.muse.util.MusePatterns
 import io.zer0.muse.ui.chat.ChatViewModel
+import io.zer0.muse.util.MusePatterns
 
 /**
  * v1.131: <think>...</think> 标签正则已迁移到 io.zer0.muse.util.MusePatterns.THINK_TAG_REGEX。

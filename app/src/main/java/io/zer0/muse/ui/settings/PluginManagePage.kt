@@ -96,6 +96,9 @@ fun PluginManagePage(onBack: () -> Unit) {
     var externalPlugins by remember { mutableStateOf(pluginManager.list()) }
     var providerPlugins by remember { mutableStateOf(registry.list()) }
     var importing by remember { mutableStateOf(false) }
+    // 导入失败必须留在屏幕上。之前只弹 3.5s 的 toast，而失败原因往往是
+    // 一长串反序列化信息 —— 用户抬头时它已经消失，看起来就像「导入没反应」。
+    var importErrorMessage by remember { mutableStateOf<String?>(null) }
 
     /** UI-FIX: 插件页三档层级 —— 0 已安装 / 1 市场 / 2 信任管理。 */
     var pluginTab by rememberSaveable { mutableIntStateOf(0) }
@@ -354,7 +357,7 @@ fun PluginManagePage(onBack: () -> Unit) {
                     .onFailure { e ->
                         val msg = e.message ?: e::class.simpleName ?: "unknown"
                         withContext(Dispatchers.Main) {
-                            MuseToast.show(context.getString(R.string.provider_plugins_import_failed, msg), 3500)
+                            importErrorMessage = context.getString(R.string.provider_plugins_import_failed, msg)
                         }
                     }
                 return@withContext
@@ -389,7 +392,7 @@ fun PluginManagePage(onBack: () -> Unit) {
                     .onFailure { e ->
                         val msg = e.message ?: e::class.simpleName ?: "unknown"
                         withContext(Dispatchers.Main) {
-                            MuseToast.show(context.getString(R.string.provider_plugins_import_failed, msg), 3500)
+                            importErrorMessage = context.getString(R.string.provider_plugins_import_failed, msg)
                         }
                     }
             } finally {
@@ -413,7 +416,12 @@ fun PluginManagePage(onBack: () -> Unit) {
         scope.launch {
             importing = true
             resultOf { importFromUri(uri) }
-                .onError { msg, t -> Logger.w("PluginManagePage", "importFromUri failed: $msg", t) }
+                .onError { msg, t ->
+                    // 读取失败 / 超限 / 解析失败都抛异常，这里必须转成用户看得见的弹窗。
+                    // 只记日志的话，用户选完文件页面毫无变化，只能以为“导入没反应”。
+                    Logger.w("PluginManagePage", "importFromUri failed: $msg", t)
+                    importErrorMessage = context.getString(R.string.provider_plugins_import_failed, msg)
+                }
             importing = false
         }
     }
@@ -435,7 +443,9 @@ fun PluginManagePage(onBack: () -> Unit) {
                 icon = MuseIcons.plus,
                 onClick = {
                     importLauncher.launchSafely(
-                        arrayOf("application/zip", "application/json", "application/octet-stream", "*/*"),
+                        // 不再接受 */*：选到任意文本会在序列化器里报「Expected start of the object」，
+                        // 用户根本看不出是自己选错了文件。只给 JSON 与 zip 两个入口。
+                        arrayOf("application/json", "application/zip"),
                         context,
                     )
                 },
@@ -1161,6 +1171,23 @@ fun PluginManagePage(onBack: () -> Unit) {
                 pendingDeleteProvider = null
             },
             destructive = true,
+        )
+    }
+
+    // 导入失败：留在屏幕上直到用户确认，并附上原始原因便于自查文件格式。
+    importErrorMessage?.let { message ->
+        MuseDialog(
+            onDismissRequest = { importErrorMessage = null },
+            title = stringResource(R.string.provider_plugins_import_failed_title),
+            content = {
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            },
+            confirmText = stringResource(R.string.common_confirm),
+            onConfirm = { importErrorMessage = null },
         )
     }
 }

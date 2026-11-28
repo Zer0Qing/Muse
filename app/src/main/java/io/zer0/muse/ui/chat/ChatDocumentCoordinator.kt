@@ -9,11 +9,11 @@ import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.doc.DocumentParser
 import io.zer0.muse.rag.SessionAttachmentService
+import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.workspace.WorkspaceManager
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.koin.core.context.GlobalContext
-import io.zer0.muse.ui.theme.MuseDateFormats
 
 /**
  * v1.105 阶段 1: 从 ChatViewModel 抽离的文档解析 Coordinator。

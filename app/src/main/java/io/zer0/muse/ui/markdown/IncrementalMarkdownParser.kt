@@ -40,9 +40,10 @@ class IncrementalMarkdownParser {
             text.startsWith(lastFullText) &&
             text != lastFullText
         if (isAppendable) {
-            val reparseStart = resolveReparseStart(text)
+            val lines = text.split(MARKDOWN_LINE_SPLIT)
+            val reparseStart = resolveReparseStart(text, lines)
             if (reparseStart >= 0) {
-                return reparseFrom(reparseStart, text.split(MARKDOWN_LINE_SPLIT), text)
+                return reparseFrom(reparseStart, lines, text)
             }
         }
         return if (text == lastFullText) stableBlocks.toList() else fullParse(text)
@@ -54,14 +55,15 @@ class IncrementalMarkdownParser {
      * 起点 = 追加内容第一个字符所在行(字符定位,规避 trailing 空行行号错位),
      * 开放块(围栏/公式/表格未闭合)存在时回溯到其起始行。
      */
-    private fun resolveReparseStart(text: String): Int {
+    private fun resolveReparseStart(text: String, lines: List<String>): Int {
         val appendPos = lastFullText.length
-        val appended = text.substring(appendPos)
-        val lines = text.split(MARKDOWN_LINE_SPLIT)
         // 追加内容以换行开头时,该换行只是行分隔,第一个内容行在其后
-        val firstContentChar = if (appended.startsWith('\n')) appendPos + 1 else appendPos
+        val firstContentChar = if (appendPos < text.length && text[appendPos] == '\n') appendPos + 1 else appendPos
         val lineStart = text.lastIndexOf('\n', firstContentChar - 1) + 1
-        var reparseStart = text.substring(0, lineStart).count { it == '\n' }
+        var reparseStart = 0
+        for (i in 0 until lineStart) {
+            if (text[i] == '\n') reparseStart++
+        }
         if (openStartLine >= 0) reparseStart = minOf(openStartLine, reparseStart)
 
         // 表格前向依赖(隔行): 重扫起点前一行若是潜在表头/分隔线(含 |),

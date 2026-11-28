@@ -30,6 +30,7 @@ import io.zer0.muse.ui.navigation.SettingsDataRoute
 import io.zer0.muse.ui.navigation.SettingsDiagnosticsRoute
 import io.zer0.muse.ui.navigation.SettingsExperimentsRoute
 import io.zer0.muse.ui.navigation.SettingsMcpRoute
+import io.zer0.muse.ui.navigation.SettingsMediaGenRoute
 import io.zer0.muse.ui.navigation.SettingsMediaRoute
 import io.zer0.muse.ui.navigation.SettingsMemoryRoute
 import io.zer0.muse.ui.navigation.SettingsModelRoute
@@ -45,11 +46,11 @@ import io.zer0.muse.ui.navigation.SettingsTutorialRoute
 import io.zer0.muse.ui.navigation.SettingsVisionRoute
 import io.zer0.muse.ui.navigation.SettingsWebAccessRoute
 import io.zer0.muse.ui.navigation.SettingsWebSearchRoute
+import io.zer0.muse.ui.navigation.SkillsRoute
 import io.zer0.muse.ui.navigation.StatsRoute
 import io.zer0.muse.ui.navigation.ToolsScreenRoute
 import io.zer0.muse.ui.navigation.ToolsSettingsRoute
 import io.zer0.muse.ui.navigation.UserProfileEditRoute
-import io.zer0.muse.ui.navigation.VideoGenerationRoute
 import io.zer0.muse.ui.navigation.VoiceCloningRoute
 import io.zer0.muse.ui.navigation.WorkspaceRoute
 import kotlinx.coroutines.flow.Flow
@@ -74,10 +75,11 @@ enum class SettingsGroupKind {
     MEDIA,
     MEMORY,
     TOOLS,
-    CONNECTION,
+    CHANNELS,
     AUTOMATION,
     DATA_STORAGE,
     PRIVACY_SECURITY,
+    CONNECTION,
     ABOUT,
     DEVELOPER,
 }
@@ -99,8 +101,10 @@ enum class SettingsEntryId {
     TASK_ROUTING,
     PROVIDER_PLUGINS,
     TOOLS,
+    SKILLS,
     PERMISSION_WIZARD,
     WEB_SEARCH,
+
     /** 单工具审批策略页（可写）。此前只有搜索索引指向只读的 [ToolsScreenRoute]。 */
     TOOL_APPROVAL,
     APPEARANCE,
@@ -260,6 +264,13 @@ object SettingsCatalog {
                         "fasong", "lt", "dh", "xx", "全屏编辑", "展开", "气泡", "阴影", "模型", "MOOD", "思维链",
                         "快捷键", "引用回复",
                     ),
+                ),
+                entry(
+                    SettingsEntryId.SHARE,
+                    R.string.common_share,
+                    MuseIcons.share,
+                    SettingsEntryAction.Navigate(SettingsSecurityRoute),
+                    keywords = listOf("分享", "导出", "分享模板", "share", "fenxiang", "daochu", "fx", "dc"),
                 ),
                 entry(
                     SettingsEntryId.USER_PROFILE,
@@ -435,13 +446,13 @@ object SettingsCatalog {
                         ),
                         entry(
                             SettingsEntryId.IMAGE_VIDEO_GEN,
-                            R.string.video_gen_title,
+                            R.string.settings_media_gen_models_title,
                             MuseIcons.video,
-                            SettingsEntryAction.Navigate(VideoGenerationRoute),
+                            SettingsEntryAction.Navigate(SettingsMediaGenRoute),
                             keywords = listOf(
-                                "视频生成", "图片生成", "绘图", "生成图片", "文生图", "生成视频", "video gen",
-                                "image gen", "shipinshengcheng", "tupianshengcheng", "huitu", "shengchengtupian",
-                                "wenshengtu", "spsc", "tpsc", "ht",
+                                "视频生成", "图片生成", "生图模型", "生视频模型", "绘图", "生成图片", "文生图", "生成视频",
+                                "video gen", "image gen", "shipinshengcheng", "tupianshengcheng", "huitu",
+                                "shengchengtupian", "wenshengtu", "spsc", "tpsc", "ht",
                             ),
                         ),
                     ),
@@ -500,6 +511,13 @@ object SettingsCatalog {
                     keywords = listOf("工具", "AI工具", "ToolRegistry", "tool", "插件", "gongju", "AIgongju", "chajian", "gj", "AIgj", "cj"),
                 ),
                 entry(
+                    SettingsEntryId.SKILLS,
+                    R.string.settings_assistant_skills,
+                    MuseIcons.puzzle,
+                    SettingsEntryAction.Navigate(SkillsRoute),
+                    keywords = listOf("技能", "Skills", "skill", "扩展技能", "能力", "jineng", "jn"),
+                ),
+                entry(
                     SettingsEntryId.WEB_SEARCH,
                     R.string.settings_screen_web_search,
                     MuseIcons.globe,
@@ -529,51 +547,21 @@ object SettingsCatalog {
             ),
         ),
         group(
-            SettingsGroupKind.CONNECTION,
+            SettingsGroupKind.CHANNELS,
             SettingsHomeBlock.CAPABILITIES,
-            R.string.settings_group_connection,
-            MuseIcons.link,
+            R.string.settings_group_channels,
+            MuseIcons.chat,
             entries(
                 entry(
                     SettingsEntryId.CHANNEL,
                     R.string.channel_page_title,
-                    MuseIcons.wifi,
+                    MuseIcons.chat,
                     SettingsEntryAction.Navigate(ChannelSettingsRoute),
                     keywords = listOf(
-                        "消息渠道", "渠道", "平台互通", "桥接", "社交平台", "飞书", "QQ", "微信", "IM",
-                        "channel", "feishu", "bridge", "xiaoxi", "qidao", "weixin", "xxqd",
+                        "消息渠道", "渠道", "平台互通", "桥接", "社交平台", "飞书", "QQ", "微信", "Telegram", "钉钉", "IM",
+                        "channel", "feishu", "telegram", "dingtalk", "bridge", "xiaoxi", "qidao", "weixin", "xxqd",
                         "pingtaihutong", "qiaojie",
                     ),
-                ),
-                entry(
-                    SettingsEntryId.BROWSER,
-                    R.string.settings_screen_browser,
-                    MuseIcons.globe,
-                    SettingsEntryAction.Navigate(SettingsBrowserRoute),
-                    keywords = listOf(
-                        "浏览器", "内置浏览器", "搜索引擎", "地址栏", "Cookies", "Cookie", "网站数据",
-                        "liulanqi", "neizhiliulanqi", "sousuoyinqing", "dizhilan", "cookies", "zhandianshuju",
-                    ),
-                ),
-                entry(
-                    SettingsEntryId.WEB_ACCESS,
-                    R.string.settings_screen_web_access,
-                    MuseIcons.router,
-                    SettingsEntryAction.Navigate(SettingsWebAccessRoute),
-                    keywords = listOf(
-                        "网页版", "网页", "Web 服务", "Web 服务器", "浏览器", "局域网", "二维码", "扫一扫",
-                        "扫码", "手机访问", "PIN", "上网地址",
-                        "wangyeban", "wangye", "liulanqi", "juyuwang", "erweima", "saoyisao", "sao",
-                        "shoujifangwen", "pin", "web",
-                    ),
-                    browseVisible = false,
-                ),
-                entry(
-                    SettingsEntryId.PROXY,
-                    R.string.proxy_title,
-                    MuseIcons.proxy,
-                    SettingsEntryAction.Navigate(SettingsProxyRoute),
-                    keywords = listOf("代理", "proxy", "网络", "VPN", "HTTP代理", "daili", "wangluo", "dl", "wl"),
                 ),
             ),
         ),
@@ -713,13 +701,6 @@ object SettingsCatalog {
                     ),
                 ),
                 entry(
-                    SettingsEntryId.SHARE,
-                    R.string.common_share,
-                    MuseIcons.lock,
-                    SettingsEntryAction.Navigate(SettingsSecurityRoute),
-                    keywords = listOf("分享", "导出", "分享模板", "share", "fenxiang", "daochu", "fx", "dc"),
-                ),
-                entry(
                     SettingsEntryId.AUDIT_LOG,
                     R.string.settings_audit_log,
                     MuseIcons.history,
@@ -728,6 +709,44 @@ object SettingsCatalog {
                         "审计", "日志", "audit", "操作记录", "审计日志", "shenji",
                         "rizhi", "caozuojilu", "shenjirizhi", "sj", "rz", "czjl", "sjrz",
                     ),
+                ),
+            ),
+        ),
+        group(
+            SettingsGroupKind.CONNECTION,
+            SettingsHomeBlock.SYSTEM,
+            R.string.settings_group_connection,
+            MuseIcons.globe,
+            entries(
+                entry(
+                    SettingsEntryId.BROWSER,
+                    R.string.settings_screen_browser,
+                    MuseIcons.globe,
+                    SettingsEntryAction.Navigate(SettingsBrowserRoute),
+                    keywords = listOf(
+                        "浏览器", "内置浏览器", "搜索引擎", "地址栏", "Cookies", "Cookie", "网站数据",
+                        "liulanqi", "neizhiliulanqi", "sousuoyinqing", "dizhilan", "cookies", "zhandianshuju",
+                    ),
+                ),
+                entry(
+                    SettingsEntryId.WEB_ACCESS,
+                    R.string.settings_screen_web_access,
+                    MuseIcons.router,
+                    SettingsEntryAction.Navigate(SettingsWebAccessRoute),
+                    keywords = listOf(
+                        "网页版", "网页", "Web 服务", "Web 服务器", "浏览器", "局域网", "二维码", "扫一扫",
+                        "扫码", "手机访问", "PIN", "上网地址",
+                        "wangyeban", "wangye", "liulanqi", "juyuwang", "erweima", "saoyisao", "sao",
+                        "shoujifangwen", "pin", "web",
+                    ),
+                    browseVisible = false,
+                ),
+                entry(
+                    SettingsEntryId.PROXY,
+                    R.string.proxy_title,
+                    MuseIcons.proxy,
+                    SettingsEntryAction.Navigate(SettingsProxyRoute),
+                    keywords = listOf("代理", "proxy", "网络", "VPN", "HTTP代理", "daili", "wangluo", "dl", "wl"),
                 ),
             ),
         ),

@@ -65,6 +65,9 @@ class AgentConversationFacade(
         originSessionId: String,
         text: String,
         messageId: String = UUID.randomUUID().toString(),
+        sessions: io.zer0.muse.data.session.SessionRepository? = null,
+        imageBase64List: List<String> = emptyList(),
+        replacedMessageId: String? = null,
     ): AcceptedBatch? = acceptLock.withLock {
         if (originSessionId.isBlank()) {
             // 缺归属不能兜底到"当前会话"：那会把 A 的输入写进 B。
@@ -72,7 +75,7 @@ class AgentConversationFacade(
             return@withLock null
         }
         val trimmed = text.trim()
-        if (trimmed.isBlank()) return@withLock null
+        if (trimmed.isBlank() && imageBase64List.isEmpty()) return@withLock null
 
         val ts = now()
         val previous = lastBatch[botId]
@@ -81,16 +84,36 @@ class AgentConversationFacade(
             previous.originSessionId == originSessionId &&
             ts - previous.acceptedAt <= mergeWindowMs
 
-        val event = repository.appendEvent(
-            botId = botId,
-            originSessionId = originSessionId,
-            taskId = "",
-            runId = "",
-            kind = BotEventKind.USER_INPUT_RECEIVED,
-            // 每条用户消息都有自己的稳定事件与版本；合并只影响批次唤醒。
-            dedupeKey = "input:$messageId",
-            payloadRef = trimmed.take(MAX_INPUT_CHARS),
-        )
+        val event = if (sessions != null) {
+            repository.commitUserInput(
+                sessions = sessions,
+                botId = botId,
+                sessionId = originSessionId,
+                message = io.zer0.ai.core.UIMessage(
+                    id = kotlin.uuid.Uuid.parse(messageId),
+                    role = io.zer0.ai.core.MessageRole.USER,
+                    content = trimmed,
+                    imageBase64List = imageBase64List,
+                ),
+                replacedMessageId = replacedMessageId,
+                payloadRef = trimmed.take(MAX_INPUT_CHARS).ifBlank {
+                    if (imageBase64List.isNotEmpty()) "[image attachment]" else ""
+                },
+            ) ?: return@withLock null
+        } else {
+            repository.appendEvent(
+                botId = botId,
+                originSessionId = originSessionId,
+                taskId = "",
+                runId = "",
+                kind = BotEventKind.USER_INPUT_RECEIVED,
+                // 每条用户消息都有自己的稳定事件与版本；合并只影响批次唤醒。
+                dedupeKey = "input:$messageId",
+                payloadRef = trimmed.take(MAX_INPUT_CHARS).ifBlank {
+                    if (imageBase64List.isNotEmpty()) "[image attachment]" else ""
+                },
+            )
+        }
 
         if (canMerge) {
             // 合并批次保留每条消息的独立事件；回合仍可以按具体 requestId 隔离。

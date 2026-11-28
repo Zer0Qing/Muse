@@ -57,11 +57,15 @@ class DeviceCapabilityHook(
         if (context.forSubagent) return ""
         return try {
             val profile = detectProfile()
-            buildString {
-                append(profile.renderForModel())
-                appendLine()
-                appendLine()
-                append(profile.renderOperatingGuide())
+            if (hasDeviceAutomationIntent(context.userInput)) {
+                buildString {
+                    append(profile.renderForModel())
+                    appendLine()
+                    appendLine()
+                    append(profile.renderOperatingGuide())
+                }
+            } else {
+                "## 设备能力\n${profile.renderOneLineSummary()}"
             }
         } catch (e: CancellationException) {
             throw e
@@ -77,14 +81,8 @@ class DeviceCapabilityHook(
      * 刷新失败时使用缓存状态（`permissionState.value`），保证档案始终有一份可用快照。
      */
     private suspend fun detectProfile(): DeviceCapabilityProfile {
-        val state = try {
-            automationManager.refreshPermissions()
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            Logger.w(TAG, "权限刷新失败，使用缓存状态: ${e.message}")
-            automationManager.permissionState.value
-        }
+        val state = runCatching { automationManager.liveSnapshot() }
+            .getOrElse { automationManager.permissionState.value }
 
         return DeviceCapabilityProfile.fromFlags(
             accessibility = state.accessibilityEnabled,
@@ -118,7 +116,18 @@ class DeviceCapabilityHook(
         fallback
     }
 
+    private fun hasDeviceAutomationIntent(userInput: String): Boolean {
+        val normalized = userInput.trim().lowercase()
+        if (normalized.isBlank()) return false
+        return DEVICE_INTENT_KEYWORDS.any { normalized.contains(it) }
+    }
+
     private companion object {
         const val TAG = "DeviceCapabilityHook"
+        val DEVICE_INTENT_KEYWORDS = setOf(
+            "屏幕", "点击", "滑动", "截图", "截屏", "无障碍", "自动化",
+            "打开应用", "启动应用", "手机", "设备", "shizuku", "root", "shell",
+            "脚本", "node", "python", "screen", "tap", "swipe", "automation", "app",
+        )
     }
 }

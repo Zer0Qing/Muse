@@ -70,12 +70,11 @@ class ProactiveContextLoader(
      * 优先用配置里指定的，否则 default，再否则第一个。
      * 与旧实现的区别是不再依赖「当前前台助手」这种易变状态。
      */
-    suspend fun loadAssistant(configuredId: String): AssistantEntity? {
+    suspend fun loadAssistant(configuredId: String, allowFallback: Boolean = true): AssistantEntity? {
         val all = runCatching { runtime.assistants.observeAll.first() }.getOrDefault(emptyList())
         if (all.isEmpty()) return null
         return all.firstOrNull { it.id == configuredId.takeIf { id -> id.isNotBlank() } }
-            ?: all.firstOrNull { it.id == "default" }
-            ?: all.first()
+            ?: if (allowFallback) all.firstOrNull { it.id == "default" } ?: all.first() else null
     }
 
     /**

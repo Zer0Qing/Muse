@@ -14,12 +14,15 @@ import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Icon
@@ -38,6 +41,7 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
@@ -52,9 +56,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import io.zer0.muse.R
+import io.zer0.muse.channel.ChannelManager
+import io.zer0.muse.channel.ChannelRuntimeRegistry
 import io.zer0.muse.ui.common.form.MuseSearchBar
 import io.zer0.muse.ui.common.form.MuseSettingsIcon
 import io.zer0.muse.ui.common.form.MuseTactileButton
@@ -65,17 +72,6 @@ import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.common.surface.MuseDialogWindowEffect
 import io.zer0.muse.ui.common.surface.museModalScrim
 import io.zer0.muse.ui.common.surface.museSafeTopInsetPadding
-import io.zer0.muse.ui.settings.SettingsCatalog
-import io.zer0.muse.ui.settings.SettingsEntryAction
-import io.zer0.muse.ui.settings.SettingsEntryId
-import io.zer0.muse.ui.settings.SettingsGroupKind
-import io.zer0.muse.ui.settings.SettingsGroupSpec
-import io.zer0.muse.ui.settings.SettingsSearchCatalog
-import io.zer0.muse.ui.settings.SettingsSearchRecord
-import io.zer0.muse.ui.settings.filterSettingsSearch
-import io.zer0.muse.ui.settings.isAvailable
-import io.zer0.muse.ui.settings.rememberSettingsActionHost
-import io.zer0.muse.ui.settings.settingsBreadcrumb
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseButtonSizes
 import io.zer0.muse.ui.theme.MuseElevation
@@ -86,6 +82,8 @@ import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.MuseSpacing
 import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.ui.theme.semiLarge
+import io.zer0.muse.ui.theme.statusColors
+import org.koin.compose.koinInject
 
 /** 首页分类行的测试标签；测试按它数分类行、断言首页没有子页条目。 */
 internal const val SETTINGS_GROUP_ROW_TAG: String = "settings-group-row"
@@ -151,6 +149,22 @@ private fun SettingsHomeList(
     onOpenGroup: (SettingsGroupKind, SettingsEntryId?) -> Unit,
     onOpenSearch: () -> Unit,
 ) {
+    val channelManager: ChannelManager = koinInject()
+    val channels by channelManager.channels.collectAsStateWithLifecycle(initialValue = emptyList())
+    val channelStatuses by ChannelRuntimeRegistry.statuses.collectAsStateWithLifecycle()
+    val channelOnlineCount = remember(channels, channelStatuses) { ChannelRuntimeRegistry.onlineCount(channels) }
+    val channelIssueCount = remember(channels, channelStatuses) { ChannelRuntimeRegistry.issueCount(channels) }
+    val onlineLabel = stringResource(R.string.channel_home_badge_online, channelOnlineCount)
+    val issueLabel = stringResource(R.string.channel_home_badge_issue)
+    val groupBadges = remember(channelOnlineCount, channelIssueCount, onlineLabel, issueLabel) {
+        buildMap {
+            when {
+                channelIssueCount > 0 -> put(SettingsGroupKind.CHANNELS, GroupStatusBadge(issueLabel, isIssue = true))
+                channelOnlineCount > 0 -> put(SettingsGroupKind.CHANNELS, GroupStatusBadge(onlineLabel, isIssue = false))
+            }
+        }
+    }
+
     val settingsListState = rememberLazyListState()
     val isSearchBarStuck by remember {
         derivedStateOf { settingsListState.firstVisibleItemIndex >= 1 }
@@ -162,6 +176,14 @@ private fun SettingsHomeList(
         label = "searchStuckProgress",
     )
     val surfaceHazeState = remember { HazeState() }
+
+    val blockGroups = remember {
+        val visibleGroups = SettingsCatalog.groups.filter { group -> group.entries.any { it.isAvailable() } }
+        SettingsHomeBlock.entries.mapNotNull { block ->
+            val itemsInBlock = visibleGroups.filter { it.block == block }
+            if (itemsInBlock.isEmpty()) null else block to itemsInBlock
+        }
+    }
 
     io.zer0.muse.ui.common.surface.MusePageScaffold(
         // v2.0.1: 搜索已改为浮层，不做顶部工具栏切换。
@@ -176,16 +198,15 @@ private fun SettingsHomeList(
                 state = settingsListState,
                 modifier = Modifier
                     .fillMaxSize()
-                    // 列表自持状态栏内边距（大标题随列表滚动、搜索栏吸顶于状态栏下方）。
+                    // 列表自持状态栏与底部导航栏内边距，保证末尾项完全避让系统手势条。
                     .museSafeTopInsetPadding()
+                    .navigationBarsPadding()
                     // 作为 Haze 背景模糊的内容源（吸顶玻璃搜索栏读取列表内容）。
                     .hazeSource(state = surfaceHazeState),
                 contentPadding = PaddingValues(
-                    // 吸顶后 stickyHeader 脱离内容流，占位栏不再撑开空间，
-                    // 列表项会直接从搜索栏下方钻过去。这里按吸顶进度补一份
-                    // 等高 padding，保证内容始终停留在搜索栏之下。
-                    top = innerPadding.calculateTopPadding() +
-                        (MusePaddings.searchBarHeight + MusePaddings.contentGap) * searchStuckProgress,
+                    // 保持 top 恒定：禁止在惯性滑动中途动态撑开 contentPadding.top，
+                    // 否则 fling 命中旧边界停止后内容被往下顶移，导致末行「开发者」卡在屏外。
+                    top = innerPadding.calculateTopPadding(),
                     bottom = innerPadding.calculateBottomPadding() + MusePaddings.sectionGap,
                     start = innerPadding.calculateStartPadding(layoutDirection),
                     end = innerPadding.calculateEndPadding(layoutDirection),
@@ -207,8 +228,16 @@ private fun SettingsHomeList(
                         modifier = Modifier.padding(horizontal = MusePaddings.pageMargin),
                     )
                 }
-                item(key = "settings_groups") {
-                    SettingsGroupCards(onOpenGroup = onOpenGroup)
+                items(
+                    items = blockGroups,
+                    key = { it.first.name },
+                ) { (_, groupsInBlock) ->
+                    SettingsGroupBlockCard(
+                        groups = groupsInBlock,
+                        groupBadges = groupBadges,
+                        onOpenGroup = onOpenGroup,
+                        modifier = Modifier.padding(horizontal = MusePaddings.pageMargin),
+                    )
                 }
             }
 
@@ -261,6 +290,11 @@ private fun SettingsStickySearchBar(progress: Float, onOpenSearch: () -> Unit) {
     }
 }
 
+internal data class GroupStatusBadge(
+    val label: String,
+    val isIssue: Boolean,
+)
+
 /**
  * 首页分类区块：按 4 个心智区块分卡排列，用留白代替多余标题文字。
  */
@@ -269,28 +303,96 @@ internal fun SettingsGroupCards(
     onOpenGroup: (SettingsGroupKind, SettingsEntryId?) -> Unit,
     modifier: Modifier = Modifier,
     groups: List<SettingsGroupSpec> = SettingsCatalog.groups,
+    groupBadges: Map<SettingsGroupKind, GroupStatusBadge> = emptyMap(),
 ) {
-    val visibleGroups = groups.filter { group -> group.entries.any { it.isAvailable() } }
-    val blocks = SettingsHomeBlock.entries.mapNotNull { block ->
-        visibleGroups.filter { it.block == block }.takeIf { it.isNotEmpty() }
+    val blocks = remember(groups) {
+        val visibleGroups = groups.filter { group -> group.entries.any { it.isAvailable() } }
+        SettingsHomeBlock.entries.mapNotNull { block ->
+            visibleGroups.filter { it.block == block }.takeIf { it.isNotEmpty() }
+        }
     }
     Column(
         modifier = modifier.padding(horizontal = MusePaddings.pageMargin),
         verticalArrangement = Arrangement.spacedBy(MusePaddings.cardGap),
     ) {
         blocks.forEach { blockGroups ->
-            CardGroup {
-                blockGroups.forEach { group ->
-                    item(
-                        key = group.kind,
-                        modifier = Modifier.testTag(SETTINGS_GROUP_ROW_TAG),
-                        onClick = { onOpenGroup(group.kind, null) },
-                        leadingContent = { MuseSettingsIcon(group.icon) },
-                        headlineContent = { Text(stringResource(group.titleRes)) },
-                        trailingContent = { ChevronRight() },
-                    )
-                }
-            }
+            SettingsGroupBlockCard(
+                groups = blockGroups,
+                groupBadges = groupBadges,
+                onOpenGroup = onOpenGroup,
+            )
+        }
+    }
+}
+
+@Composable
+private fun SettingsGroupBlockCard(
+    groups: List<SettingsGroupSpec>,
+    groupBadges: Map<SettingsGroupKind, GroupStatusBadge>,
+    onOpenGroup: (SettingsGroupKind, SettingsEntryId?) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val statusColors = MaterialTheme.statusColors
+    CardGroup(modifier = modifier) {
+        groups.forEach { group ->
+            val badge = groupBadges[group.kind]
+            item(
+                key = group.kind,
+                modifier = Modifier.testTag(SETTINGS_GROUP_ROW_TAG),
+                onClick = { onOpenGroup(group.kind, null) },
+                leadingContent = { MuseSettingsIcon(group.icon) },
+                headlineContent = { Text(stringResource(group.titleRes)) },
+                trailingContent = {
+                    if (badge != null) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
+                        ) {
+                            Surface(
+                                shape = MuseShapes.pill,
+                                color = if (badge.isIssue) {
+                                    statusColors.errorContainer
+                                } else {
+                                    statusColors.successContainer
+                                },
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(MusePaddings.chipInnerLoose),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(MuseSpacing.xs),
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(MuseSpacing.smTight)
+                                            .clip(CircleShape)
+                                            .background(
+                                                if (badge.isIssue) {
+                                                    statusColors.error
+                                                } else {
+                                                    statusColors.success
+                                                },
+                                            ),
+                                    )
+                                    Text(
+                                        text = badge.label,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = if (badge.isIssue) {
+                                            statusColors.error
+                                        } else {
+                                            statusColors.success
+                                        },
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
+                            }
+                            ChevronRight()
+                        }
+                    } else {
+                        ChevronRight()
+                    }
+                },
+            )
         }
     }
 }
@@ -308,18 +410,20 @@ private fun SettingsSearchPalette(
     onDismiss: () -> Unit,
     onSelect: (SettingsSearchRecord) -> Unit,
 ) {
-    // 资源在组合期解析一次：过滤逻辑是纯函数，不能在里面调 stringResource。
+    val records = SettingsSearchCatalog.records
     val groupTitles: Map<SettingsGroupKind, String> = SettingsCatalog.groups.associate { group ->
         group.kind to stringResource(group.titleRes)
     }
-    val records = SettingsSearchCatalog.records
-    val titles: Map<Int, String> = records.map { it.titleRes }.distinct().associateWith { stringResource(it) }
-    val results = filterSettingsSearch(
-        records = records,
-        query = query,
-        titleOf = { titles[it].orEmpty() },
-        groupTitleOf = { groupTitles[it].orEmpty() },
-    )
+    val distinctTitleRes = remember(records) { records.map { it.titleRes }.distinct() }
+    val titles: Map<Int, String> = distinctTitleRes.associateWith { stringResource(it) }
+    val results = remember(query, titles, groupTitles) {
+        filterSettingsSearch(
+            records = records,
+            query = query,
+            titleOf = { titles[it].orEmpty() },
+            groupTitleOf = { groupTitles[it].orEmpty() },
+        )
+    }
 
     Dialog(
         onDismissRequest = onDismiss,

@@ -1,10 +1,10 @@
 package io.zer0.muse.ui
 
+import io.zer0.muse.ui.common.ManualCompressionPhase
+import io.zer0.muse.ui.common.runManualCompressionStages
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
-import io.zer0.muse.ui.common.ManualCompressionPhase
-import io.zer0.muse.ui.common.runManualCompressionStages
 
 class ManualCompressionProgressTest {
 

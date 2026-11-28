@@ -6,7 +6,6 @@ import io.zer0.memory.fact.DedupVerdict
 import io.zer0.memory.fact.FactDedupJudge
 import io.zer0.memory.llm.MemoryLlmClient
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 
 /**
  * v12: LLM 事实去重判定器 — 算法层(字符相似度/实体键)无法确定的模糊候选对,

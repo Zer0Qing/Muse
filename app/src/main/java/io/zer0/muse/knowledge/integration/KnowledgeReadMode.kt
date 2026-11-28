@@ -30,11 +30,7 @@ data class KnowledgeReadDecision(
 
 object KnowledgeReadModeResolver {
 
-    fun decide(
-        requested: KnowledgeReadMode,
-        v2Available: Boolean,
-        cutoverApproved: Boolean,
-    ): KnowledgeReadDecision = when (requested) {
+    fun decide(requested: KnowledgeReadMode, v2Available: Boolean, cutoverApproved: Boolean): KnowledgeReadDecision = when (requested) {
         KnowledgeReadMode.LEGACY -> KnowledgeReadDecision(
             servingEngine = KnowledgeReadMode.LEGACY,
             runShadowRead = false,

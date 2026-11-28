@@ -1,14 +1,14 @@
 package io.zer0.muse.knowledge
 
 import io.zer0.muse.data.knowledge.KnowledgeBaseEntity
-import io.zer0.muse.knowledge.domain.KnowledgePolicyResolver
-import io.zer0.muse.knowledge.index.EmbeddingSpaceRegistry
 import io.zer0.muse.knowledge.domain.EmbeddingProfile
+import io.zer0.muse.knowledge.domain.KnowledgePolicyResolver
+import io.zer0.muse.knowledge.domain.PolicyFieldSource
+import io.zer0.muse.knowledge.index.EmbeddingSpaceRegistry
 import io.zer0.muse.rag.RagConfig
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Test
-import io.zer0.muse.knowledge.domain.PolicyFieldSource
 
 /**
  * R5 步骤 1/2(计划 R5:「先写覆盖优先级与字段来源测试；修改 topK 不变 spaceId」;

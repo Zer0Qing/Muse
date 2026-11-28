@@ -3,7 +3,6 @@ package io.zer0.muse.workspace
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
-import io.zer0.muse.ui.screen.WorkspaceScreen
 
 /**
  * 「移除挂载」按钮的失败必须被接住，文案必须七语齐全。

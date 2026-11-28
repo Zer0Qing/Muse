@@ -42,9 +42,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontFamily
-import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
-import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -52,14 +49,17 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import io.zer0.common.FileSizeFormatter
 import io.zer0.common.Logger
-import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseFloatingButton
+import io.zer0.muse.ui.common.form.MuseSearchField
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
+import io.zer0.muse.ui.common.media.FullScreenMediaViewer
 import io.zer0.muse.ui.common.media.WindowWidthClass
 import io.zer0.muse.ui.common.media.rememberWindowWidthClass
 import io.zer0.muse.ui.common.navigation.MuseTopBar
@@ -67,6 +67,9 @@ import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import io.zer0.muse.ui.common.state.MuseLoadingState
 import io.zer0.muse.ui.common.state.MuseSpinner
+import io.zer0.muse.ui.common.surface.MuseDialogWindowEffect
+import io.zer0.muse.ui.media.MuseVideoPlayerDialog
+import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
@@ -79,7 +82,6 @@ import org.koin.compose.koinInject
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import io.zer0.muse.ui.chat.SmartImage
 
 /**
  * P2-7: 工作区文件管理器 UI。
@@ -143,6 +145,8 @@ fun WorkspaceScreen(
     var mediaShareUri by remember { mutableStateOf<android.net.Uri?>(null) }
     var viewingContent by remember { mutableStateOf<String?>(null) }
     var viewingLoading by rememberSaveable { mutableStateOf(false) }
+    var htmlOverlay by remember { mutableStateOf<Pair<String, String>?>(null) }
+    var searchQuery by rememberSaveable { mutableStateOf("") }
     // 长按操作菜单弹窗
     var menuEntry by remember { mutableStateOf<WorkspaceManager.WorkspaceEntry?>(null) }
     // 删除确认弹窗
@@ -454,6 +458,16 @@ fun WorkspaceScreen(
                     }
                 }
                 else -> {
+                    val filteredEntries = remember(entries, searchQuery) {
+                        val q = searchQuery.trim()
+                        if (q.isBlank()) {
+                            entries
+                        } else {
+                            entries.filter {
+                                it.name.contains(q, ignoreCase = true) || it.relativePath.contains(q, ignoreCase = true)
+                            }
+                        }
+                    }
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxSize()
@@ -484,7 +498,14 @@ fun WorkspaceScreen(
                                 ParentRow(onClick = { currentPath = parentPath(currentPath) })
                             }
                         }
-                        items(entries, key = { it.relativePath }) { entry ->
+                        item(key = "__search__") {
+                            MuseSearchField(
+                                query = searchQuery,
+                                onQueryChange = { searchQuery = it },
+                                placeholder = stringResource(R.string.workspace_search_placeholder),
+                            )
+                        }
+                        items(filteredEntries, key = { it.relativePath }) { entry ->
                             WorkspaceEntryRow(
                                 entry = entry,
                                 dateFormat = dateFormat,
@@ -537,71 +558,108 @@ fun WorkspaceScreen(
         }
     }
 
-    // 文件内容查看弹窗
+    // 文件内容全屏阅读器 / HTML 全屏预览
     viewingEntry?.let { entry ->
-        MuseDialog(
-            onDismissRequest = {
-                viewingEntry = null
-                viewingContent = null
-            },
-            title = entry.name,
-            content = {
-                // 注:不使用内部 verticalScroll(MuseDialog 已在外层提供滚动容器,
-                // 嵌套滚动会触发 IllegalStateException — 见项目记忆)
-                when {
-                    viewingLoading -> {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = MusePaddings.sectionGap),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            MuseSpinner(
-                                size = MuseIconSizes.iconMedium,
-                            )
-                        }
+        if (viewingLoading) {
+            MuseDialog(
+                onDismissRequest = {
+                    viewingEntry = null
+                    viewingContent = null
+                },
+                title = entry.name,
+                content = {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = MusePaddings.sectionGap),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        MuseSpinner(size = MuseIconSizes.iconMedium)
                     }
-                    viewingContent != null -> {
-                        // 03: 弹窗里的 Text 拿不到系统长按选择菜单，长内容不给明确入口用户就复制不走。
-                        // 滚动由 MuseDialog 外层容器负责（这里不能再裸套同向滚动）。
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.End,
-                        ) {
-                            MuseTactileButton(
-                                icon = MuseIcons.copy,
-                                onClick = {
-                                    copyToClipboard(context, viewingContent ?: "")
-                                    MuseToast.show(context.getString(R.string.quick_notes_copied))
-                                },
-                                contentDescription = stringResource(R.string.common_copy),
-                            )
-                        }
-                        // 长文件内容靠 MuseDialog 外层 verticalScroll 滚动展示
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = MuseShapes.small,
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        ) {
-                            Text(
-                                text = viewingContent ?: "",
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    fontFamily = FontFamily.Monospace,
-                                ),
-                                color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.padding(MusePaddings.contentGap),
-                            )
-                        }
-                    }
+                },
+                dismissText = stringResource(R.string.common_close),
+                onDismiss = {
+                    viewingEntry = null
+                    viewingContent = null
+                },
+            )
+        } else {
+            val contentText = viewingContent
+            if (contentText != null) {
+                val (mode, lang) = remember(entry.name) {
+                    io.zer0.muse.ui.artifact.inferRenderModeFromFileName(entry.name)
                 }
-            },
-            confirmText = stringResource(R.string.common_confirm),
-            onConfirm = {
-                viewingEntry = null
-                viewingContent = null
-            },
-            dismissText = null,
-        )
+                if (mode == io.zer0.muse.ui.artifact.ArtifactRenderMode.RichWeb) {
+                    androidx.compose.ui.window.Dialog(
+                        onDismissRequest = {
+                            viewingEntry = null
+                            viewingContent = null
+                        },
+                        properties = androidx.compose.ui.window.DialogProperties(
+                            usePlatformDefaultWidth = false,
+                            decorFitsSystemWindows = false,
+                        ),
+                    ) {
+                        MuseDialogWindowEffect(forceFullScreen = true)
+                        HtmlPreviewScreen(
+                            html = contentText,
+                            language = lang ?: "html",
+                            title = entry.name,
+                            onBack = {
+                                viewingEntry = null
+                                viewingContent = null
+                            },
+                        )
+                    }
+                } else {
+                    io.zer0.muse.ui.artifact.FullScreenDocumentReader(
+                        title = entry.name,
+                        subtitle = lang?.uppercase(),
+                        content = contentText,
+                        mode = mode,
+                        language = lang,
+                        onDismiss = {
+                            viewingEntry = null
+                            viewingContent = null
+                        },
+                        onCopy = { copied ->
+                            copyToClipboard(context, copied)
+                            MuseToast.show(context.getString(R.string.quick_notes_copied))
+                        },
+                        onShare = {
+                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_SUBJECT, entry.name)
+                                putExtra(Intent.EXTRA_TEXT, contentText)
+                            }
+                            io.zer0.muse.util.ShareIntentHelper.startChooserSafely(
+                                context = context,
+                                shareIntent = shareIntent,
+                                chooserTitle = context.getString(R.string.artifact_share_chooser),
+                            )
+                        },
+                        onHtmlPreview = { previewHtml -> htmlOverlay = previewHtml to entry.name },
+                    )
+                }
+            }
+        }
+    }
+
+    htmlOverlay?.let { (previewHtml, previewTitle) ->
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = { htmlOverlay = null },
+            properties = androidx.compose.ui.window.DialogProperties(
+                usePlatformDefaultWidth = false,
+                decorFitsSystemWindows = false,
+            ),
+        ) {
+            MuseDialogWindowEffect(forceFullScreen = true)
+            HtmlPreviewScreen(
+                html = previewHtml,
+                title = previewTitle,
+                onBack = { htmlOverlay = null },
+            )
+        }
     }
 
     // v2.0.1: PDF 文档预览（pdf.js 全屏渲染）
@@ -613,70 +671,94 @@ fun WorkspaceScreen(
         )
     }
 
-    // v2.6.22: 图片就地预览；音频/视频/压缩包/可执行文件给类型与大小，并能转给外部应用。
+    // 媒体文件全屏预览：图片走 FullScreenMediaViewer，视频走 MuseVideoPlayerDialog，其余提供元数据与外部打开
     mediaEntry?.let { entry ->
         val info = mediaInfo
-        MuseDialog(
-            onDismissRequest = {
-                mediaEntry = null
-                mediaInfo = null
-                mediaShareUri = null
-            },
-            title = entry.name,
-            content = {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
-                ) {
-                    if (info != null && info.kind == io.zer0.muse.workspace.WorkspaceFileKind.IMAGE) {
-                        SmartImage(
-                            model = info.uri,
-                            modifier = Modifier.fillMaxWidth(),
-                            contentDescription = entry.name,
-                        )
-                    }
-                    Text(
-                        text = info?.let {
-                            context.getString(
-                                R.string.workspace_media_info,
-                                it.kind.name,
-                                it.mimeType.ifBlank { "-" },
-                                io.zer0.muse.workspace.WorkspaceMediaReport.formatBytes(it.sizeBytes),
-                            )
-                        } ?: context.getString(R.string.workspace_media_info, "-", "-", "-"),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    mediaShareUri?.let { uri ->
-                        MenuActionRow(
-                            icon = MuseIcons.download,
-                            label = stringResource(R.string.workspace_media_open_external),
-                            onClick = {
-                                runCatching {
-                                    context.startActivity(
-                                        Intent(Intent.ACTION_VIEW).apply {
-                                            setDataAndType(uri, info?.mimeType?.takeIf { it.isNotBlank() } ?: "*/*")
-                                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                        },
-                                    )
-                                }.onFailure {
-                                    // 系统里没有能处理这个 MIME 的应用：只说这一件事，不把类型信息当错误弹。
-                                    MuseToast.show(context.getString(R.string.workspace_media_no_handler))
+        val uriString = info?.uri?.toString()
+        val clearMedia = {
+            mediaEntry = null
+            mediaInfo = null
+            mediaShareUri = null
+        }
+        when {
+            info?.kind == io.zer0.muse.workspace.WorkspaceFileKind.IMAGE && uriString != null -> {
+                FullScreenMediaViewer(
+                    images = listOf(uriString),
+                    initialIndex = 0,
+                    onDismiss = clearMedia,
+                    onShareImage = mediaShareUri?.let { shareUri ->
+                        {
+                            runCatching {
+                                val intent = Intent(Intent.ACTION_SEND).apply {
+                                    type = info.mimeType.ifBlank { "image/*" }
+                                    putExtra(Intent.EXTRA_STREAM, shareUri)
+                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                                 }
-                                mediaEntry = null
-                            },
-                        )
-                    }
-                }
-            },
-            confirmText = stringResource(R.string.common_close),
-            onConfirm = {
-                mediaEntry = null
-                mediaInfo = null
-                mediaShareUri = null
-            },
-            dismissText = null,
-        )
+                                io.zer0.muse.util.ShareIntentHelper.startChooserSafely(
+                                    context = context,
+                                    shareIntent = intent,
+                                    chooserTitle = context.getString(R.string.common_share),
+                                )
+                            }
+                        }
+                    },
+                )
+            }
+            info?.kind == io.zer0.muse.workspace.WorkspaceFileKind.VIDEO && uriString != null -> {
+                MuseVideoPlayerDialog(
+                    videoUri = uriString,
+                    promptSummary = entry.name,
+                    onDismiss = clearMedia,
+                )
+            }
+            else -> {
+                MuseDialog(
+                    onDismissRequest = clearMedia,
+                    title = entry.name,
+                    content = {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+                        ) {
+                            Text(
+                                text = info?.let {
+                                    context.getString(
+                                        R.string.workspace_media_info,
+                                        it.kind.name,
+                                        it.mimeType.ifBlank { "-" },
+                                        io.zer0.muse.workspace.WorkspaceMediaReport.formatBytes(it.sizeBytes),
+                                    )
+                                } ?: context.getString(R.string.workspace_media_info, "-", "-", "-"),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            mediaShareUri?.let { uri ->
+                                MenuActionRow(
+                                    icon = MuseIcons.download,
+                                    label = stringResource(R.string.workspace_media_open_external),
+                                    onClick = {
+                                        runCatching {
+                                            context.startActivity(
+                                                Intent(Intent.ACTION_VIEW).apply {
+                                                    setDataAndType(uri, info?.mimeType?.takeIf { it.isNotBlank() } ?: "*/*")
+                                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                                },
+                                            )
+                                        }.onFailure {
+                                            MuseToast.show(context.getString(R.string.workspace_media_no_handler))
+                                        }
+                                        clearMedia()
+                                    },
+                                )
+                            }
+                        }
+                    },
+                    confirmText = stringResource(R.string.common_close),
+                    onConfirm = clearMedia,
+                    dismissText = null,
+                )
+            }
+        }
     }
 
     // 长按操作菜单弹窗

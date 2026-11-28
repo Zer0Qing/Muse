@@ -8,16 +8,12 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
@@ -29,14 +25,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
@@ -62,8 +63,8 @@ import io.zer0.muse.ui.theme.MuseSpringTier
 import io.zer0.muse.ui.theme.glassBorder
 import io.zer0.muse.ui.theme.glassEdgeHighlight
 import io.zer0.muse.ui.theme.glassFakeSurfaceColor
-import io.zer0.muse.ui.theme.pill
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlin.math.roundToInt
 
 /**
@@ -119,22 +120,27 @@ fun MuseThinkingPanel(
     }
 
     // 思考中节流刷新焦点副标（>= 1.2s，含尾缘补刷），避免标题随每 token 频繁跳动且不漏末条焦点
+    val latestReasoning by rememberUpdatedState(reasoning)
     var throttledFocus by remember(cacheKey) { mutableStateOf("") }
-    var lastFocusUpdateMs by remember(cacheKey) { mutableLongStateOf(0L) }
-    LaunchedEffect(reasoning, isThinkingActive) {
+    LaunchedEffect(cacheKey, isThinkingActive) {
         if (!isThinkingActive) {
             throttledFocus = ""
             return@LaunchedEffect
         }
-        val elapsed = System.currentTimeMillis() - lastFocusUpdateMs
-        if (throttledFocus.isNotEmpty() && elapsed < FOCUS_THROTTLE_MS) {
-            delay(FOCUS_THROTTLE_MS - elapsed)
-        }
-        val next = ReasoningPreviewExtractor.extractCurrentFocus(reasoning)
-        if (next.isNotBlank()) {
-            throttledFocus = next
-            lastFocusUpdateMs = System.currentTimeMillis()
-        }
+        var lastFocusUpdateMs = 0L
+        snapshotFlow { latestReasoning }
+            .distinctUntilChanged()
+            .collect { raw ->
+                val elapsed = System.currentTimeMillis() - lastFocusUpdateMs
+                if (throttledFocus.isNotEmpty() && elapsed < FOCUS_THROTTLE_MS) {
+                    delay(FOCUS_THROTTLE_MS - elapsed)
+                }
+                val next = ReasoningPreviewExtractor.extractCurrentFocus(latestReasoning)
+                if (next.isNotBlank()) {
+                    throttledFocus = next
+                    lastFocusUpdateMs = System.currentTimeMillis()
+                }
+            }
     }
 
     val displaySec = when {
@@ -185,15 +191,17 @@ fun MuseThinkingPanel(
 
     val surfaceModifier = when {
         !useFakeGlass -> modifier
-        isMono -> modifier
-            .clip(MuseShapes.medium)
-            .glassEdgeHighlight(MuseShapes.medium, glassConfig)
-            .glassBorder(MuseShapes.medium, glassConfig)
-        else -> modifier
-            .clip(MuseShapes.medium)
-            .background(glassFakeSurfaceColor(baseContainerColor, glassConfig))
-            .glassEdgeHighlight(MuseShapes.medium, glassConfig)
-            .glassBorder(MuseShapes.medium, glassConfig)
+        isMono ->
+            modifier
+                .clip(MuseShapes.medium)
+                .glassEdgeHighlight(MuseShapes.medium, glassConfig)
+                .glassBorder(MuseShapes.medium, glassConfig)
+        else ->
+            modifier
+                .clip(MuseShapes.medium)
+                .background(glassFakeSurfaceColor(baseContainerColor, glassConfig))
+                .glassEdgeHighlight(MuseShapes.medium, glassConfig)
+                .glassBorder(MuseShapes.medium, glassConfig)
     }
 
     Surface(
@@ -277,6 +285,8 @@ fun MuseThinkingPanel(
                 LaunchedEffect(previewText) {
                     previewScroll.scrollTo(previewScroll.maxValue)
                 }
+                val barGap = MuseSpacing.sm
+                val barWidth = MuseSpacing.xxs
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -287,49 +297,45 @@ fun MuseThinkingPanel(
                             bottom = MusePaddings.contentGap,
                         ),
                 ) {
-                    Row(
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(IntrinsicSize.Min)
-                            .heightIn(max = LIVE_PREVIEW_MAX_HEIGHT),
-                        horizontalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .width(MuseSpacing.xxs)
-                                .fillMaxHeight()
-                                .clip(MuseShapes.pill)
-                                .background(accentBarColor),
-                        )
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .heightIn(max = LIVE_PREVIEW_MAX_HEIGHT),
-                        ) {
-                            Text(
-                                text = previewText,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = MuseAlpha.titleMuted),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .verticalScroll(previewScroll),
-                            )
-                            if (previewScroll.value > 0 && !useFakeGlass) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(MuseSpacing.lg)
-                                        .align(Alignment.TopCenter)
-                                        .background(
-                                            Brush.verticalGradient(
-                                                colors = listOf(
-                                                    baseContainerColor,
-                                                    Color.Transparent,
-                                                ),
-                                            ),
-                                        ),
+                            .heightIn(max = LIVE_PREVIEW_MAX_HEIGHT)
+                            .drawBehind {
+                                val w = barWidth.toPx()
+                                val r = w / 2f
+                                drawRoundRect(
+                                    color = accentBarColor,
+                                    topLeft = Offset.Zero,
+                                    size = Size(w, size.height),
+                                    cornerRadius = CornerRadius(r, r),
                                 )
                             }
+                            .padding(start = barWidth + barGap),
+                    ) {
+                        Text(
+                            text = previewText,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = MuseAlpha.titleMuted),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .verticalScroll(previewScroll),
+                        )
+                        if (previewScroll.value > 0 && !useFakeGlass) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(MuseSpacing.lg)
+                                    .align(Alignment.TopCenter)
+                                    .background(
+                                        Brush.verticalGradient(
+                                            colors = listOf(
+                                                baseContainerColor,
+                                                Color.Transparent,
+                                            ),
+                                        ),
+                                    ),
+                            )
                         }
                     }
                 }
@@ -341,25 +347,29 @@ fun MuseThinkingPanel(
                 enter = MuseMotion.expandFadeEnter(),
                 exit = MuseMotion.expandFadeExit(),
             ) {
-                Row(
+                val barGap = MuseSpacing.sm
+                val barWidth = MuseSpacing.xxs
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(IntrinsicSize.Min)
                         .padding(
                             start = MusePaddings.inputPadding,
                             end = MusePaddings.inputPadding,
                             bottom = MusePaddings.inputPadding,
-                        ),
-                    horizontalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
+                        )
+                        .drawBehind {
+                            val w = barWidth.toPx()
+                            val r = w / 2f
+                            drawRoundRect(
+                                color = accentBarColor,
+                                topLeft = Offset.Zero,
+                                size = Size(w, size.height),
+                                cornerRadius = CornerRadius(r, r),
+                            )
+                        }
+                        .padding(start = barWidth + barGap),
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .width(MuseSpacing.xxs)
-                            .fillMaxHeight()
-                            .clip(MuseShapes.pill)
-                            .background(accentBarColor),
-                    )
-                    SelectionContainer(modifier = Modifier.weight(1f)) {
+                    SelectionContainer(modifier = Modifier.fillMaxWidth()) {
                         MarkdownText(
                             text = reasoning,
                             style = MaterialTheme.typography.bodySmall,

@@ -19,11 +19,7 @@ class V2LexicalRetriever(
     private val oversample: Int = 4,
 ) : LexicalRetriever {
 
-    override suspend fun search(
-        request: KnowledgeSearchRequest,
-        activeGenerationIds: List<String>,
-        limit: Int,
-    ): LexicalRecall {
+    override suspend fun search(request: KnowledgeSearchRequest, activeGenerationIds: List<String>, limit: Int): LexicalRecall {
         if (activeGenerationIds.isEmpty()) {
             return LexicalRecall(hits = emptyList(), degradedReason = null)
         }
@@ -61,16 +57,19 @@ class V2LexicalRetriever(
                     index = lexical.indexOf(term, index + term.length)
                 }
             }
-            if (score <= 0f) null
-            else LexicalHit(
-                chunkId = "${row.generationId}#${row.chunkIndex}",
-                docId = row.docId,
-                generationId = row.generationId,
-                text = row.content,
-                locator = row.locator,
-                score = score,
-                rank = 0,
-            )
+            if (score <= 0f) {
+                null
+            } else {
+                LexicalHit(
+                    chunkId = "${row.generationId}#${row.chunkIndex}",
+                    docId = row.docId,
+                    generationId = row.generationId,
+                    text = row.content,
+                    locator = row.locator,
+                    score = score,
+                    rank = 0,
+                )
+            }
         }
             .sortedWith(compareByDescending<LexicalHit> { it.score }.thenBy { it.chunkId })
             .take(candidateBudget)
@@ -84,15 +83,13 @@ class V2LexicalRetriever(
         const val NORMALIZATION_VERSION = "v1-lowercase-collapse"
         private val WHITESPACE_REGEX = Regex("\\s+")
 
-        fun tokenize(query: String): List<String> =
-            query.lowercase()
-                .replace(WHITESPACE_REGEX, " ")
-                .trim()
-                .split(' ')
-                .filter { it.isNotBlank() }
+        fun tokenize(query: String): List<String> = query.lowercase()
+            .replace(WHITESPACE_REGEX, " ")
+            .trim()
+            .split(' ')
+            .filter { it.isNotBlank() }
 
         /** LIKE 通配符转义:用户输入中的 % / _ / \ 按字面匹配(参数化查询不涉及注入)。 */
-        fun escapeLike(term: String): String =
-            term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        fun escapeLike(term: String): String = term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
     }
 }

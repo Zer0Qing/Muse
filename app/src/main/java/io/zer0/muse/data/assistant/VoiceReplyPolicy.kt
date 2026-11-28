@@ -79,10 +79,11 @@ internal object VoiceReplyPolicy {
     }
 }
 
-/** 全局默认档 + 按助手覆盖，落 `filesDir/voice_reply_policy.json`。 */
+/** 全局默认档 + 按助手覆盖 + 自动生成语音条开关，落 `filesDir/voice_reply_policy.json`。 */
 @Serializable
 private data class VoiceReplyPolicyFile(
     val byAgent: Map<String, String> = emptyMap(),
+    val autoVoiceBarByAgent: Map<String, Boolean> = emptyMap(),
     val schema: Int = 0,
 )
 
@@ -98,12 +99,20 @@ class VoiceReplyPolicyStore private constructor(context: Context) {
 
     // 反例字段没用 `_x` 前缀：ktlint 的 property-naming 不容忍下划线开头（Compose 惯例在此让位于门禁）。
     private val byAgentState = MutableStateFlow(emptyMap<String, String>())
+    private val autoBarState = MutableStateFlow(emptyMap<String, Boolean>())
 
     /** 原始映射（供界面显示当前档位）；坏文件当空表处理。 */
     val snapshot: StateFlow<Map<String, String>> = byAgentState.asStateFlow()
 
+    /** 自动语音条开关映射（`__global__` + 各 assistantId 显式覆盖）。 */
+    val autoVoiceBarSnapshot: StateFlow<Map<String, Boolean>> = autoBarState.asStateFlow()
+
     init {
-        runCatching { byAgentState.value = readFromDisk() }
+        runCatching {
+            val loaded = readPolicyFile()
+            byAgentState.value = loaded.first
+            autoBarState.value = loaded.second
+        }
     }
 
     /** 某助手生效档：显式覆盖优先，否则跟随全局默认。 */
@@ -111,6 +120,12 @@ class VoiceReplyPolicyStore private constructor(context: Context) {
         val override = current()[agentId]
         if (override != null) return VoiceReplyFrequency.fromName(override)
         return globalFrequency()
+    }
+
+    /** 某助手是否自动附带语音条（默认关闭；显式覆盖优先于全局）。 */
+    suspend fun autoVoiceBarFor(agentId: String): Boolean {
+        val map = currentAutoBars()
+        return map[agentId] ?: map[GLOBAL_KEY] ?: false
     }
 
     /** 全局默认档；未设回落 RARELY。 */
@@ -123,36 +138,66 @@ class VoiceReplyPolicyStore private constructor(context: Context) {
     /** 清除某助手覆盖＝让它跟随全局默认。 */
     suspend fun clearOverride(agentId: String): Result<Unit> = mutate { it.remove(agentId) }
 
+    suspend fun setGlobalAutoVoiceBar(enabled: Boolean): Result<Unit> = mutateAutoBar { it[GLOBAL_KEY] = enabled }
+
+    suspend fun setAutoVoiceBar(agentId: String, enabled: Boolean): Result<Unit> = mutateAutoBar { it[agentId] = enabled }
+
+    suspend fun clearAutoVoiceBarOverride(agentId: String): Result<Unit> = mutateAutoBar { it.remove(agentId) }
+
     private suspend fun mutate(transform: (MutableMap<String, String>) -> Unit): Result<Unit> = withContext(Dispatchers.IO) {
         mutex.withLock {
             resultOf<Unit> {
-                val next = current().toMutableMap().apply(transform)
-                writeToDisk(next)
-                byAgentState.value = next
+                val (freqMap, autoMap) = readPolicyFile()
+                val nextFreq = freqMap.toMutableMap().apply(transform)
+                writePolicyFile(nextFreq, autoMap)
+                byAgentState.value = nextFreq
+                autoBarState.value = autoMap
             }
         }
     }
 
-    private suspend fun current(): Map<String, String> = byAgentState.value.ifEmpty { readFromDisk().also { byAgentState.value = it } }
+    private suspend fun mutateAutoBar(transform: (MutableMap<String, Boolean>) -> Unit): Result<Unit> = withContext(Dispatchers.IO) {
+        mutex.withLock {
+            resultOf<Unit> {
+                val (freqMap, autoMap) = readPolicyFile()
+                val nextAuto = autoMap.toMutableMap().apply(transform)
+                writePolicyFile(freqMap, nextAuto)
+                byAgentState.value = freqMap
+                autoBarState.value = nextAuto
+            }
+        }
+    }
 
-    private fun readFromDisk(): Map<String, String> {
-        if (!file.isFile) return emptyMap()
+    private suspend fun current(): Map<String, String> = byAgentState.value.ifEmpty {
+        readPolicyFile().first.also { byAgentState.value = it }
+    }
+
+    private suspend fun currentAutoBars(): Map<String, Boolean> = autoBarState.value.ifEmpty {
+        readPolicyFile().second.also { autoBarState.value = it }
+    }
+
+    private fun readPolicyFile(): Pair<Map<String, String>, Map<String, Boolean>> {
+        if (!file.isFile) return emptyMap<String, String>() to emptyMap()
         return runCatching {
             val decoded = json.decodeFromString(VoiceReplyPolicyFile.serializer(), file.readText())
-            if (decoded.schema < CURRENT_SCHEMA) {
-                // 旧版按助手存且 RARELY 等同未设：迁移时丢弃 RARELY 让它跟随新的全局默认，
-                // 其它档保留为显式覆盖。schema 升级后不再迁移，显式设的 RARELY 才能钉住。
+            val freq = if (decoded.schema < CURRENT_SCHEMA) {
                 decoded.byAgent.filterValues { VoiceReplyFrequency.fromName(it) != VoiceReplyFrequency.RARELY }
             } else {
                 decoded.byAgent
             }
-        }.getOrDefault(emptyMap())
+            freq to decoded.autoVoiceBarByAgent
+        }.getOrDefault(emptyMap<String, String>() to emptyMap())
     }
 
-    private fun writeToDisk(map: Map<String, String>) {
+    private fun writePolicyFile(freqMap: Map<String, String>, autoMap: Map<String, Boolean>) {
         // 与约定表同一套纪律：临时文件 + 替换，不留半截 JSON
         val tmp = File(file.parentFile, "$FILE_NAME.tmp")
-        tmp.writeText(json.encodeToString(VoiceReplyPolicyFile.serializer(), VoiceReplyPolicyFile(map, CURRENT_SCHEMA)))
+        tmp.writeText(
+            json.encodeToString(
+                VoiceReplyPolicyFile.serializer(),
+                VoiceReplyPolicyFile(byAgent = freqMap, autoVoiceBarByAgent = autoMap, schema = CURRENT_SCHEMA),
+            ),
+        )
         if (file.exists() && !file.delete() && !tmp.delete()) {
             error("旧文件删不掉，语音档位未保存")
         }

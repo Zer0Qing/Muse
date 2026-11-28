@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="workspace_mount_remove_failed">Impossible de retirer « %1$s » ; il reste dans la liste</string>
+</resources>

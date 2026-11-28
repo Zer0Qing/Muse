@@ -148,6 +148,7 @@ class ChannelAutoReply(
     fun start() {
         ChannelInbox.attach(context)
         ChannelConversationStore.attach(context)
+        ChannelContactMetaStore.attach(context)
         ChannelInbox.journal.setPendingListener {
             wakeups.trySend(Unit)
         }
@@ -274,12 +275,32 @@ class ChannelAutoReply(
 
     private suspend fun handleMessage(inbound: ChannelInbox.Inbound, text: String): HandleResult {
         channelManager.refresh()
+        val matchingChannel = channelManager.channels.value.firstOrNull {
+            it.enabled && it.platform.name == inbound.platform && it.id == inbound.sourceChannelId
+        }
+        if (matchingChannel != null && inbound.from.isNotBlank()) {
+            ChannelContactMetaStore.recordObservedProfile(
+                channelId = matchingChannel.id,
+                contactId = inbound.from,
+                displayName = inbound.senderDisplayName,
+                isGroup = inbound.isGroup,
+            )
+        }
         val config = selectAutoReplyConfig(channelManager.channels.value, inbound)
         if (config == null) return HandleResult.Ignored
         // 每轮处理开始前清零转发计数:限定「一轮里最多转几条」。
         ChannelRelayLedger.beginTurn()
         // 回复前的两道预检(策略 + 排队超窗),都必须早于 appendTurn。
         preDispatchBlock(inbound, config)?.let { return it }
+        // 远程斜杠指令（/new /status /pause /resume /help）优先于 AI 对话与暂停判定。
+        ChannelSlashCommandParser.parse(text)?.let { cmd ->
+            return handleSlashCommand(inbound, config, cmd)
+        }
+        // 群聊触发过滤（仅 @ 机器人 / 关键词 / 全量）。
+        if (!ChannelGroupTriggerPolicy.shouldRespond(config, inbound.isGroup, inbound.isMentioned, text)) {
+            Logger.i(TAG, "群聊消息未命中触发规则(${config.groupTriggerMode}),跳过: channel=${config.id}")
+            return HandleResult.Ignored
+        }
         ChannelConversationStore.appendTurn(
             config.id,
             inbound.from,
@@ -292,6 +313,11 @@ class ChannelAutoReply(
                 dispatchId = inbound.dispatchId,
             ),
         )
+        // 人工接管暂停状态:保留入站用户消息记录供观战,但不调用模型回复。
+        if (ChannelContactMetaStore.isAiPaused(config.id, inbound.from)) {
+            Logger.i(TAG, "会话处于人工接管暂停态,跳过自动回复: channel=${config.id}, from=${inbound.from.take(16)}")
+            return HandleResult.Ignored
+        }
         // 回声防护:本机刚通过某个渠道转出去的内容,如果原样回来了(对方也是自动回复机器人),
         // 就只入库不回应,避免两个机器人互相转述刷屏。人写的回复不会一字不差地撞上。
         if (ChannelRelayLedger.isEcho(config.id, text, System.currentTimeMillis())) {
@@ -304,6 +330,76 @@ class ChannelAutoReply(
             is ReplyPreparation.Blocked -> HandleResult.Blocked(reply.errorCode)
             ReplyPreparation.Retry -> HandleResult.Retry
         }
+    }
+
+    private suspend fun handleSlashCommand(
+        inbound: ChannelInbox.Inbound,
+        config: ChannelConfig,
+        command: ChannelSlashCommand,
+    ): HandleResult {
+        val replyText = when (command) {
+            ChannelSlashCommand.NEW_SESSION -> {
+                ChannelConversationStore.clear(config.id, inbound.from)
+                "已重置当前对话上下文，我们可以从头开始聊。"
+            }
+            ChannelSlashCommand.PAUSE_AI -> {
+                ChannelContactMetaStore.setAiPaused(config.id, inbound.from, true)
+                "已暂停此会话的 AI 自动回复。发送 /resume 可恢复。"
+            }
+            ChannelSlashCommand.RESUME_AI -> {
+                ChannelContactMetaStore.setAiPaused(config.id, inbound.from, false)
+                "已恢复此会话的 AI 自动回复。"
+            }
+            ChannelSlashCommand.STATUS -> {
+                val assistant = runCatching { resolveAssistant(config, inbound.from) }.getOrNull()
+                val modelName = assistant?.let { runCatching { resolveModelAndProvider(it).first?.id }.getOrNull() }
+                val paused = ChannelContactMetaStore.isAiPaused(config.id, inbound.from)
+                buildString {
+                    appendLine("渠道：${config.name.ifBlank { config.platform.name }}")
+                    appendLine("状态：${if (paused) "人工接管（AI 已暂停）" else "AI 自动回复中"}")
+                    appendLine("助手：${assistant?.name ?: "默认"}")
+                    if (!modelName.isNullOrBlank()) appendLine("模型：$modelName")
+                    append("群触发：${config.groupTriggerMode}")
+                }
+            }
+            ChannelSlashCommand.HELP -> {
+                "可用远程指令：\n/new · 重置当前对话上下文\n/status · 查看渠道与模型状态\n/pause · 暂停当前会话自动回复\n/resume · 恢复当前会话自动回复\n/help · 查看指令说明"
+            }
+        }
+        val contextTokenOverride = resolveReplyContextToken(inbound)
+        if (contextTokenOverride is ContextTokenOverride.DecryptFailed) {
+            return HandleResult.Blocked(contextTokenOverride.detail)
+        }
+        val tokenValue = (contextTokenOverride as? ContextTokenOverride.Value)?.value
+        val qqEventId = qqReplyEventIdOverride(
+            platform = inbound.platform,
+            target = inbound.from,
+            sourceEventId = inbound.sourceEventId,
+            receivedAt = inbound.timestamp,
+        )
+        val result = channelManager.sendTextWithOptions(
+            channelId = config.id,
+            text = replyText,
+            options = ChannelSendOptions(
+                targetOverride = inbound.from.takeIf { it.isNotBlank() },
+                contextTokenOverride = tokenValue,
+                sourceEventIdOverride = qqEventId,
+                sourceEventSequenceOverride = if (inbound.platform == ChannelPlatform.QQ.name) 1 else null,
+            ),
+        )
+        if (!result.ok) return HandleResult.Retry
+        if (command != ChannelSlashCommand.NEW_SESSION) {
+            ChannelConversationStore.appendTurn(
+                config.id,
+                inbound.from,
+                ChannelConversationStore.Turn(
+                    role = "assistant",
+                    text = replyText,
+                    source = "command",
+                ),
+            )
+        }
+        return HandleResult.Sent(config, inbound.from)
     }
 
     private suspend fun prepareReply(inbound: ChannelInbox.Inbound, config: ChannelConfig): ReplyPreparation {
@@ -494,7 +590,7 @@ class ChannelAutoReply(
             return ChannelAgentRunResult.Blocked(CHANNEL_AGENT_CHECKPOINT_UNREADABLE)
         }
         return try {
-            val assistant = resolveAssistant(config)
+            val assistant = resolveAssistant(config, from)
             // v2.0.1: 渲染系统提示词的模板变量 — 此前直接发送原始文本,模型会复读 "{{char}}" 字面量。
             val renderedSystem = if (restoredCheckpoint == null) renderSystemPrompt(assistant) else ""
             // v2.0.1: 与聊天主链路同规则解析模型/Provider — 修复此前不带 model 请求、
@@ -973,11 +1069,14 @@ class ChannelAutoReply(
         return rendered?.takeIf { it.isNotBlank() } ?: raw
     }
 
-    /** v2.0.1: 渠道绑定助手优先,再回退默认助手,再兜底第一个;完全无助手则抛出(由 runAgent 捕获)。 */
-    private suspend fun resolveAssistant(config: ChannelConfig): AssistantEntity {
+    /** v2.0.1: 会话级助手覆盖优先，其次渠道绑定助手，再回退默认助手。 */
+    private suspend fun resolveAssistant(config: ChannelConfig, contactId: String = ""): AssistantEntity {
         val assistants = assistantRepository.observeAll.first()
-        val bound = config.assistantId.takeIf { it.isNotBlank() }
-            ?.let { id -> assistants.firstOrNull { it.id == id } }
+        val overrideId = contactId.takeIf { it.isNotBlank() }
+            ?.let { ChannelContactMetaStore.get(config.id, it)?.assistantIdOverride }
+            ?.takeIf { it.isNotBlank() }
+        val targetId = overrideId ?: config.assistantId.takeIf { it.isNotBlank() }
+        val bound = targetId?.let { id -> assistants.firstOrNull { it.id == id } }
         return bound
             ?: assistants.firstOrNull { it.id == "default" }
             ?: assistants.firstOrNull()

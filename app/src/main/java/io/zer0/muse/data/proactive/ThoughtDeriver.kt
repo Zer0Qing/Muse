@@ -34,12 +34,14 @@ object ThoughtDeriver {
     private val CARE_KEYWORDS = listOf(
         "失眠", "睡不着", "熬夜", "感冒", "发烧", "生病", "头疼", "头痛",
         "焦虑", "压力", "难过", "低落", "emo", "累了", "好累", "疲惫", "失恋", "吵架",
+        "insomnia", "fever", "sick", "headache", "anxious", "stressed", "exhausted",
     )
 
     /** 未成行的打算类关键词。命中即当作 FOLLOW_UP。 */
     private val INTENT_KEYWORDS = listOf(
         "想去看", "打算", "准备去", "计划", "要去", "想试试", "想学",
         "考虑", "琢磨", "再看吧", "等我",
+        "planning to", "going to", "want to try", "haven't decided",
     )
 
     /**
@@ -76,11 +78,12 @@ object ThoughtDeriver {
         }
     }
 
-    /** ① 未来 1~3 天内的事 → 立即类提醒，过期即作废，绝不补发。 */
+    /** ① 今天及未来 3 天内的事 → 立即类提醒，过期即作废，绝不补发。 */
     private fun asEvent(base: Base, fact: FactStore.Fact): PendingThoughtEntity? {
         val date = parseDate(fact.time)
-        val days = date?.let { ChronoUnit.DAYS.between(LocalDate.now(), it) }
-        val isUpcoming = date != null && days != null && days in 1..EVENT_LOOKAHEAD_DAYS
+        val today = Instant.ofEpochMilli(base.now).atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+        val days = date?.let { ChronoUnit.DAYS.between(today, it) }
+        val isUpcoming = date != null && days != null && days in 0..EVENT_LOOKAHEAD_DAYS
         return if (isUpcoming) {
             draft(
                 base = base,

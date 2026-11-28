@@ -127,8 +127,7 @@ class ComputeTargetRouterTest {
         assertEquals(MuseNodeError.NODE_NOT_CONFIGURED, error.error)
     }
 
-    private fun routerWith(nodes: List<RemoteComputeNodeEntity>): ComputeTargetRouter =
-        ComputeTargetRouter(nodeProvider = { nodes })
+    private fun routerWith(nodes: List<RemoteComputeNodeEntity>): ComputeTargetRouter = ComputeTargetRouter(nodeProvider = { nodes })
 
     private fun node(
         id: String,
@@ -147,8 +146,5 @@ class ComputeTargetRouterTest {
         createdAt = 0L,
     )
 
-    private fun snapshot(
-        id: String,
-        status: ComputeNodeStatus,
-    ): ComputeNodeSnapshot = ComputeNodeSnapshot(nodeId = id, status = status)
+    private fun snapshot(id: String, status: ComputeNodeStatus): ComputeNodeSnapshot = ComputeNodeSnapshot(nodeId = id, status = status)
 }

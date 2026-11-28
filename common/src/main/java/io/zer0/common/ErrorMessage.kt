@@ -39,7 +39,7 @@ package io.zer0.common
  *   - [defaultMessage] 必须为英文：它**只进日志**（[toLogString]）。界面文案由 app/ui 的
  *     `ErrorMessageMapper.toLocalizedString` 用穷尽 `when` 从 `R.string` 取，
  *     新增子类不补分支就编译失败 —— 所以这条英文不会漏到用户眼前。
- *   - 带可变参数的错误(如 RATE_LIMIT 的 retryAfter)用 data class 而非 object
+ *   - 带可变参数的错误(如 RateLimit 的 retryAfter)用 data class 而非 object
  *   - 与 [io.zer0.common.ErrorCode] 旧枚举共存:新代码优先用 [ErrorMessage],
  *     旧枚举将在全部 TODO 清理完毕后废弃(详见 [ErrorCode] 顶部注释)
  * ============================================================================
@@ -52,7 +52,7 @@ sealed class ErrorMessage {
     /** 英文兜底消息(locale 资源缺失时使用)。 */
     abstract val defaultMessage: String
 
-    /** 可选元数据(如 RATE_LIMIT 的 retryAfter 秒数,不参与 code 唯一性)。 */
+    /** 可选元数据(如 RateLimit 的 retryAfter 秒数,不参与 code 唯一性)。 */
     open val metadata: Map<String, String> get() = emptyMap()
 
     /**
@@ -87,13 +87,13 @@ sealed class ErrorMessage {
         }
 
         /** 无可用网络连接(飞行模式 / WiFi 断开)。 */
-        data object NO_CONNECTION : NetworkError() {
+        data object NoConnection : NetworkError() {
             override val code = "network_no_connection"
             override val defaultMessage = "No network connection available"
         }
 
         /** DNS 解析失败(域名无法解析为目标 IP)。 */
-        data object DNS_FAILED : NetworkError() {
+        data object DnsFailed : NetworkError() {
             override val code = "network_dns_failed"
             override val defaultMessage = "DNS resolution failed"
         }
@@ -104,7 +104,7 @@ sealed class ErrorMessage {
     /** 鉴权层错误:API Key / Token 失效或权限不足。 */
     sealed class AuthError : ErrorMessage() {
         /** API Key 无效或格式错误。 */
-        data object INVALID_KEY : AuthError() {
+        data object InvalidKey : AuthError() {
             override val code = "auth_invalid_key"
             override val defaultMessage = "Invalid API key, please check model service settings"
         }
@@ -127,7 +127,7 @@ sealed class ErrorMessage {
     /** 上游 API 服务返回的业务层错误(HTTP 4xx/5xx 透传或语义映射)。 */
     sealed class ApiError : ErrorMessage() {
         /** 触发速率限制(429)。携带 [retryAfter] 建议重试等待秒数。 */
-        data class RATE_LIMIT(
+        data class RateLimit(
             /** 建议的重试等待秒数(若上游未返回则为 null)。 */
             val retryAfter: Long? = null,
         ) : ApiError() {
@@ -138,19 +138,19 @@ sealed class ErrorMessage {
         }
 
         /** 上游服务器内部错误(5xx)。 */
-        data object SERVER_ERROR : ApiError() {
+        data object ServerError : ApiError() {
             override val code = "api_server_error"
             override val defaultMessage = "Upstream service returned an error"
         }
 
         /** 指定的模型在 Provider 不存在或不支持。 */
-        data object MODEL_NOT_FOUND : ApiError() {
+        data object ModelNotFound : ApiError() {
             override val code = "api_model_not_found"
             override val defaultMessage = "Requested model is not available"
         }
 
         /** 输入超出模型的上下文长度上限。 */
-        data object CONTEXT_LENGTH : ApiError() {
+        data object ContextLength : ApiError() {
             override val code = "api_context_length"
             override val defaultMessage = "Input exceeds the model context length limit"
         }
@@ -161,19 +161,19 @@ sealed class ErrorMessage {
     /** 本地存储层错误:数据库 / 文件 IO / 迁移失败。 */
     sealed class StorageError : ErrorMessage() {
         /** 数据库已满(磁盘空间不足或 DB 配额耗尽)。 */
-        data object DB_FULL : StorageError() {
+        data object DbFull : StorageError() {
             override val code = "storage_db_full"
             override val defaultMessage = "Database is full"
         }
 
         /** 通用文件 / DB IO 错误(读写失败、文件锁占用等)。 */
-        data object IO_ERROR : StorageError() {
+        data object IoError : StorageError() {
             override val code = "storage_io_error"
             override val defaultMessage = "Local storage read/write failed"
         }
 
         /** 数据库 schema 迁移失败(版本升级 SQL 出错)。 */
-        data object MIGRATION_FAILED : StorageError() {
+        data object MigrationFailed : StorageError() {
             override val code = "storage_migration_failed"
             override val defaultMessage = "Database migration failed"
         }
@@ -184,13 +184,13 @@ sealed class ErrorMessage {
     /** 输入校验错误:用户输入不满足前置条件。 */
     sealed class ValidationError : ErrorMessage() {
         /** 输入为空或仅含空白字符。 */
-        data object EMPTY_INPUT : ValidationError() {
+        data object EmptyInput : ValidationError() {
             override val code = "validation_empty_input"
             override val defaultMessage = "Input cannot be empty"
         }
 
         /** 输入格式不合法(参数类型 / 长度 / 模式不匹配)。 */
-        data object INVALID_FORMAT : ValidationError() {
+        data object InvalidFormat : ValidationError() {
             override val code = "validation_invalid_format"
             override val defaultMessage = "Input format is invalid"
         }
@@ -206,4 +206,3 @@ sealed class ErrorMessage {
         }
     }
 }
-

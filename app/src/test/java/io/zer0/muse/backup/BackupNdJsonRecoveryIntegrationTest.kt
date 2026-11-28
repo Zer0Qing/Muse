@@ -17,7 +17,10 @@ import io.zer0.memory.fact.FactStore
 import io.zer0.memory.summary.MemoryDb
 import io.zer0.memory.summary.SessionSummaryEntity
 import io.zer0.muse.data.AtomicFileStore
+import io.zer0.muse.data.SecureKeyCipher
+import io.zer0.muse.data.SecureKeyStore
 import io.zer0.muse.data.SettingsRepository
+import io.zer0.muse.data.computenode.RemoteComputeNodeEntity
 import io.zer0.muse.data.session.MessageEntity
 import io.zer0.muse.data.session.MessageImageStore
 import io.zer0.muse.data.session.MuseDb
@@ -181,6 +184,51 @@ class BackupNdJsonRecoveryIntegrationTest {
         assertEquals(2, ftsCalls.get())
         assertFalse(File(context.filesDir, "restore-journal.json").exists())
         assertTrue(!File(context.filesDir, "restore-staging").exists())
+    }
+
+    @Test
+    fun `failed restore puts back local provider settings and node credentials`() = runBlocking {
+        seedOldState()
+        var rawProviders: String? = "original providers"
+        val oldNode = RemoteComputeNodeEntity(nodeId = "original", encryptedCredential = "enc_v1:fixture")
+        museDb.remoteComputeNodeDao().upsert(oldNode)
+        val settings = mockk<SettingsRepository>(relaxed = true)
+        everyCloudConfig(settings)
+        coEvery { settings.exportSettingsSnapshot(any()) } returns emptyMap()
+        coEvery { settings.rawProvidersForLocalRecovery() } answers { rawProviders }
+        coEvery { settings.restoreLocalProviders(any()) } answers { rawProviders = firstArg() }
+        coEvery { settings.restoreSettingsSnapshot(any(), any()) } answers {
+            rawProviders = firstArg<Map<String, String>>()[BackupService.KEY_PROVIDERS_SETTING]
+        }
+        val fts = mockk<SessionRepository>(relaxed = true)
+        val ftsCalls = AtomicInteger()
+        coEvery { fts.rebuildFtsIndex() } answers {
+            if (ftsCalls.incrementAndGet() == 1) {
+                assertEquals("incoming providers", rawProviders)
+                error("synthetic target FTS failure")
+            }
+        }
+        val service = newService(settings, fts)
+        val cipher = SecureKeyStore.delegate
+        SecureKeyStore.delegate = object : SecureKeyCipher {
+            override suspend fun encrypt(plain: String) = if (plain.isEmpty()) plain else "test:$plain"
+            override suspend fun decrypt(stored: String) = stored.removePrefix("test:")
+        }
+        try {
+            val settingsLine = dataLine(
+                "settings",
+                MapSerializer(String.serializer(), String.serializer()),
+                mapOf(BackupService.KEY_PROVIDERS_SETTING to "incoming providers"),
+            )
+            assertThrows(IllegalStateException::class.java) {
+                runBlocking { invokeNdJsonRecovery(service, sequenceOf(metaLine(0, 0, settings = 1), settingsLine)) }
+            }
+            assertEquals("original providers", rawProviders)
+            assertEquals(oldNode.encryptedCredential, museDb.remoteComputeNodeDao().getById(oldNode.nodeId)?.encryptedCredential)
+            assertEquals(2, ftsCalls.get())
+        } finally {
+            SecureKeyStore.delegate = cipher
+        }
     }
 
     private suspend fun seedOldState(): Pair<SessionEntity, MessageEntity> {

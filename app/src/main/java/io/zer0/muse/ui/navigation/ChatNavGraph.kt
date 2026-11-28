@@ -12,9 +12,9 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
+import io.zer0.muse.ui.chat.ChatListScreen
 import io.zer0.muse.ui.chat.ChatScreen
 import io.zer0.muse.ui.chat.ChatViewModel
-import io.zer0.muse.ui.screen.HomeScreen
 import io.zer0.muse.ui.common.animation.LocalMuseAnimatedVisibilityScope
 import io.zer0.muse.ui.common.media.WindowWidthClass
 import io.zer0.muse.ui.common.media.rememberWindowWidthClass
@@ -22,14 +22,13 @@ import io.zer0.muse.ui.groupchat.ArchivedGroupChatsScreen
 import io.zer0.muse.ui.groupchat.GroupChatViewModel
 import io.zer0.muse.ui.quicknotes.QuickNotesScreen
 import io.zer0.muse.ui.quicknotes.QuickNotesViewModel
-import io.zer0.muse.ui.settings.PromptTemplateManagerPage
-import org.koin.androidx.compose.koinViewModel
-import io.zer0.muse.ui.screen.HtmlPreviewScreen
-import io.zer0.muse.ui.screen.FolderDetailScreen
 import io.zer0.muse.ui.screen.ArchivedChatsScreen
+import io.zer0.muse.ui.screen.FolderDetailScreen
+import io.zer0.muse.ui.screen.HomeScreen
 import io.zer0.muse.ui.screen.RecentlyDeletedScreen
 import io.zer0.muse.ui.screen.SearchScreen
-import io.zer0.muse.ui.chat.ChatListScreen
+import io.zer0.muse.ui.settings.PromptTemplateManagerPage
+import org.koin.androidx.compose.koinViewModel
 
 /**
  * 聊天域 NavGraph — 包含首页、搜索、聊天详情、群聊详情、最近删除、快速记录、
@@ -55,6 +54,7 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
                 // v0.45: 右上角搜索 → 独立全局搜索页
                 onOpenSearch = { navController.navigateSingleTop(SearchRoute) },
                 onOpenWorkspace = { path -> navController.navigateSingleTop(WorkspaceRoute(path)) },
+                onOpenArtifactCenter = { navController.navigateSingleTop(ArtifactCenterRoute) },
                 // v1.30: 群聊卡片点击 → 群聊详情页(右滑入场)
                 onOpenGroupChat = { chatId ->
                     navController.navigateSingleTop(GroupChatDetailRoute(chatId))
@@ -73,6 +73,7 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
                 onOpenPromptTemplateManager = { navController.navigateSingleTop(PromptTemplateManagerRoute) },
                 // 首页与 Agent Tab 的「未配置模型」横幅要靠它给出可点的自救出口。
                 onOpenProviderSettings = { navController.navigateSingleTop(SettingsModelRoute) },
+                onOpenMcpSettings = { navController.openMcpSettings(it) },
                 onOpenRuntimeInstall = { navController.navigateSingleTop(SettingsRuntimeRoute) },
             )
         } // 关闭共享元素作用域注入（目的地级 AnimatedVisibilityScope，见 F2 基建）
@@ -125,6 +126,7 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
         ) {
             ChatScreen(
                 onOpenProviderSettings = { navController.navigateSingleTop(io.zer0.muse.ui.navigation.SettingsModelRoute) },
+                onOpenMcpSettings = { navController.openMcpSettings(it) },
                 onBack = { navController.popBackStackSafe() },
                 surface = io.zer0.muse.ui.chat.ChatSurface.MINI_PHONE,
                 viewModel = sharedViewModel,
@@ -257,22 +259,27 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
                     Box(modifier = Modifier.weight(0.6f).fillMaxSize()) {
                         ChatScreen(
                             onOpenProviderSettings = { navController.navigateSingleTop(io.zer0.muse.ui.navigation.SettingsModelRoute) },
+                            onOpenMcpSettings = { navController.openMcpSettings(it) },
                             onOpenAssistants = { navController.navigateSingleTop(AssistantsRoute) },
                             onBack = null,
                             isAgentMode = state.isAgentMode,
                             viewModel = sharedViewModel,
                             onHtmlPreview = { html ->
-                                navController.navigateSingleTop(HtmlPreviewRoute(html))
+                                navController.navigateSingleTop(
+                                    HtmlPreviewRoute(io.zer0.muse.ui.screen.HtmlPreviewStore.put(navController.context, html)),
+                                )
                             },
                             onOpenSkills = { navController.navigateSingleTop(SkillsRoute) },
                             onOpenWorkspace = { path -> navController.navigateSingleTop(WorkspaceRoute(path)) },
                             onOpenPromptTemplateManager = { navController.navigateSingleTop(PromptTemplateManagerRoute) },
+                            onOpenMediaStudio = { navController.navigateSingleTop(MediaStudioRoute) },
                         )
                     }
                 }
             } else {
                 ChatScreen(
                     onOpenProviderSettings = { navController.navigateSingleTop(io.zer0.muse.ui.navigation.SettingsModelRoute) },
+                    onOpenMcpSettings = { navController.openMcpSettings(it) },
                     onOpenAssistants = { navController.navigateSingleTop(AssistantsRoute) },
                     onBack = {
                         // 退出对话时触发 AI 摘要命名(仅当标题仍为默认值且有至少一轮完整对话)
@@ -286,13 +293,16 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
                         navController.popBackStackSafe()
                     },
                     isAgentMode = state.isAgentMode,
-                    // HTML/SVG 代码块全屏预览:URL 编码后跳转 HtmlPreviewScreen
+                    // HTML/SVG 代码块全屏预览:通过 HtmlPreviewStore 中转 ID 跳转，避免 SavedState 超限
                     onHtmlPreview = { html ->
-                        navController.navigateSingleTop(HtmlPreviewRoute(html))
+                        navController.navigateSingleTop(
+                            HtmlPreviewRoute(io.zer0.muse.ui.screen.HtmlPreviewStore.put(navController.context, html)),
+                        )
                     },
                     onOpenSkills = { navController.navigateSingleTop(SkillsRoute) },
                     onOpenWorkspace = { path -> navController.navigateSingleTop(WorkspaceRoute(path)) },
                     onOpenPromptTemplateManager = { navController.navigateSingleTop(PromptTemplateManagerRoute) },
+                    onOpenMediaStudio = { navController.navigateSingleTop(MediaStudioRoute) },
                 )
             }
         } // 关闭共享元素作用域注入
@@ -315,9 +325,11 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
         io.zer0.muse.ui.groupchat.GroupChatDetailScreen(
             chatId = chatId,
             onBack = { navController.popBackStackSafe() },
-            // HTML/SVG 代码块全屏预览:URL 编码后跳转 HtmlPreviewScreen
+            // HTML/SVG 代码块全屏预览:通过 HtmlPreviewStore 中转 ID 跳转，避免 SavedState 超限
             onHtmlPreview = { html ->
-                navController.navigateSingleTop(HtmlPreviewRoute(html))
+                navController.navigateSingleTop(
+                    HtmlPreviewRoute(io.zer0.muse.ui.screen.HtmlPreviewStore.put(navController.context, html)),
+                )
             },
             onOpenPromptTemplateManager = { navController.navigateSingleTop(PromptTemplateManagerRoute) },
             // v1.0.72: 编辑助手供应商 → 模型与服务设置页
@@ -395,10 +407,12 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
         io.zer0.muse.ui.translate.TranslateScreen(
             onBack = { navController.popBackStackSafe() },
             onSendToNewChat = { text ->
-                // 创建新会话并发送文本,然后跳转到聊天详情页
-                sharedViewModel.sendToNewChat(text)
-                navController.navigate(ChatDetailRoute) {
-                    popUpTo(TranslateRoute) { inclusive = true }
+                // 先建会话再跳转。直接先跳再异步建会话，用户可能落到旧会话上，
+                // 表现就是“点了发送但还停在翻译页、最近会话也没多东西”。
+                sharedViewModel.sendToNewChat(text) {
+                    navController.navigate(ChatDetailRoute) {
+                        popUpTo(TranslateRoute) { inclusive = true }
+                    }
                 }
             },
         )
@@ -423,5 +437,13 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController, sharedViewMod
             previewId = previewId,
             onBack = { navController.popBackStackSafe() },
         )
+    }
+}
+
+private fun androidx.navigation.NavHostController.openMcpSettings(serverId: String?) {
+    if (serverId == null) {
+        navigateSingleTop(SettingsMcpRoute)
+    } else {
+        navigateSingleTop(McpServerSettingsRoute(serverId))
     }
 }

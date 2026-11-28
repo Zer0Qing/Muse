@@ -27,12 +27,7 @@ import io.zer0.muse.ui.theme.MusePaddings
  * 不直接读 DAO、不解析文件(页面职责边界)。
  */
 @Composable
-fun KnowledgeJobsScreen(
-    state: KnowledgeJobsUiState?,
-    onBack: () -> Unit,
-    onCancel: (String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
+fun KnowledgeJobsScreen(state: KnowledgeJobsUiState?, onBack: () -> Unit, onCancel: (String) -> Unit, modifier: Modifier = Modifier) {
     MusePageScaffold(
         modifier = modifier,
         topBar = { MuseTopBar(title = stringResource(R.string.kb_jobs_title), onBack = onBack) },

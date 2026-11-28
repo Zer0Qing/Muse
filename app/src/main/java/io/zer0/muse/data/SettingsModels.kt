@@ -1,8 +1,4 @@
 package io.zer0.muse.data
-import io.zer0.muse.ui.chat.InputBar
-import io.zer0.muse.ui.chat.MessageBubble
-import io.zer0.muse.ui.chat.ChatScreen
-import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * v0.34: 图片生成默认参数配置。
@@ -239,7 +235,7 @@ data class ChatPreferences(
      * 默认开启等于把不可靠的东西摆在用户第一眼能看到的位置。
      * 想用的人可以在设置里打开；存量用户的旧值由 ChatSettingsStore 的一次性迁移关掉。
      */
-    val preferCardOutput: Boolean = true,
+    val preferCardOutput: Boolean = false,
     /** 是否暂停本轮及后续回合的真实工具执行(思考与最终回复仍可继续)。 */
     val pauseToolExecution: Boolean = false,
     /** 时间戳是否使用 24 小时制。 */
@@ -296,6 +292,11 @@ data class ChatPreferences(
     val agentShowMood: Boolean = false,
     /** Agent 界面是否在对话流内展示计划/任务卡（默认关闭，仅在顶栏电脑图标显示角标，可在 Agent 设置中开启）。 */
     val agentShowPlanCards: Boolean = false,
+    /**
+     * 「关于你」（用户画像与分域画像检索）是否注入对话上下文（与夜间 Dream 整理相互独立）。
+     * 默认开启；关闭后仅停用画像与分域知识库检索注入，不影响常规对话记忆与 Dream 整理。
+     */
+    val aboutYouProfileEnabled: Boolean = true,
 )
 
 /**

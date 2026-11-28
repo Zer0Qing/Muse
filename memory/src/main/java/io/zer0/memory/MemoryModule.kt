@@ -4,13 +4,13 @@ import androidx.room.Room
 import io.zer0.memory.compile.MemoryCompiler
 import io.zer0.memory.deep.DeepMemoryProcessor
 import io.zer0.memory.fact.FactDb
+import io.zer0.memory.runtime.MemoryScopeKey
 import io.zer0.memory.summary.MEMORY_DB_VERSION
 import io.zer0.memory.summary.MemoryDb
 import io.zer0.memory.summary.MemoryDbArchiveRecovery
 import io.zer0.memory.summary.MemoryDbDowngradeGuard
 import io.zer0.memory.summary.SessionSummaryManager
 import io.zer0.memory.ticker.MemoryTicker
-import io.zer0.memory.runtime.MemoryScopeKey
 import kotlinx.coroutines.CoroutineScope
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.Module
@@ -123,7 +123,9 @@ val memoryModule: Module = module {
 
     // v2.6.2（用户反馈）: 通知 → 记忆 梳理器（大工具模型梳理/整合/去重后落库）。
     // 写闸:通知梳理要调模型,返回时可能已跨过一次备份恢复。
-    single { io.zer0.memory.ai.NotificationMemoryDigest(get(), get(), get<io.zer0.memory.runtime.MemoryWriteGate>()) } // factDbProvider + llmClient + writeGate
+    single {
+        io.zer0.memory.ai.NotificationMemoryDigest(get(), get(), get<io.zer0.memory.runtime.MemoryWriteGate>())
+    } // factDbProvider + llmClient + writeGate
 
     // v2.6.2（用户反馈）: 记忆星座补边构建器（实体键/同会话/同分类/语义近邻）
     single { io.zer0.memory.ai.MemoryEdgeBuilder(get(), get()) } // memoryLinkDao + llmClient（LLM 深化用）

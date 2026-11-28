@@ -259,12 +259,19 @@ private fun PlanStepRow(step: AgentPlanStep) {
                 )
             }
             if (step.result.isNotBlank() && step.status == AgentPlanStepStatus.DONE) {
+                var resultExpanded by remember(step.title, step.result) { mutableStateOf(false) }
+                val longResult = step.result.length > 200
                 Text(
-                    text = step.result.take(200),
+                    text = if (resultExpanded || !longResult) step.result else step.result.take(200),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
-                    maxLines = 3,
+                    maxLines = if (resultExpanded) Int.MAX_VALUE else 3,
                     overflow = TextOverflow.Ellipsis,
+                    modifier = if (longResult) {
+                        Modifier.clickable { resultExpanded = !resultExpanded }
+                    } else {
+                        Modifier
+                    },
                 )
             }
         }

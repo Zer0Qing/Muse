@@ -79,13 +79,14 @@ import io.zer0.muse.schedule.DailySummaryService
 import io.zer0.muse.schedule.DailySummaryWorker
 import io.zer0.muse.schedule.GreetingHintGenerator
 import io.zer0.muse.transformer.InternalMarkupSanitizer
+import io.zer0.muse.ui.common.GreetingHelper
+import io.zer0.muse.ui.common.RegionErrorBoundary
 import io.zer0.muse.ui.common.animation.museSharedElement
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.MuseActionSheetRow
 import io.zer0.muse.ui.common.form.MuseBottomSheet
 import io.zer0.muse.ui.common.form.MuseTextField
-import io.zer0.muse.ui.common.horizontalGestureExclusion
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.museAnimateItem
 import io.zer0.muse.ui.common.state.MuseErrorStateBox
@@ -96,7 +97,6 @@ import io.zer0.muse.ui.theme.MuseActionColors
 import io.zer0.muse.ui.theme.MuseCornerRadius
 import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.MuseHaptics
-import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.bodyLargeStrong
@@ -108,9 +108,6 @@ import org.koin.compose.koinInject
 import java.util.Date
 import java.util.concurrent.TimeUnit
 import kotlin.math.roundToInt
-import io.zer0.muse.ui.common.GreetingHelper
-import io.zer0.muse.ui.screen.ArchivedChatsScreen
-import io.zer0.muse.ui.common.RegionErrorBoundary
 
 /** v1.x: 问候语个性化提醒通知 ID(与其它通知 ID 错开)。 */
 private const val GREETING_NOTIFY_ID = 1010
@@ -256,8 +253,8 @@ fun ChatListScreen(
             var resolvedGreetingHint: String? = null
             // v1.x: 个性化问候 — 缓存优先(当天),未命中则 LLM 生成,失败回退规则版。
             runCatching {
-                val today = java.time.LocalDate.now().toString()
-                val cachePrefix = "$today|${context.resources.configuration.locales[0].toLanguageTag()}|"
+                val today = java.time.LocalDate.now()
+                val cachePrefix = GreetingHelper.hintCachePrefix(today, context.resources.configuration.locales[0].toLanguageTag())
                 val cached = settings.getGreetingHintCache()
                 if (cached?.startsWith(cachePrefix) == true) {
                     resolvedGreetingHint = GreetingHelper.compactGreetingText(
@@ -795,15 +792,20 @@ private fun LazyListScope.pinnedSectionItems(
     onMoveSessionToFolder: (String, String?) -> Unit,
     onArchive: (String) -> Unit,
 ) {
-    item(key = "section_pinned_title") {
+    item(key = "section_pinned_title", contentType = "section_title") {
         TaskSectionTitle { Text(stringResource(R.string.chat_list_section_pinned)) }
     }
-    itemsIndexed(pinned, key = { _, session -> "pinned_${session.id}" }) { index, session ->
+    val pinnedIds = pinned.map { it.id }
+    itemsIndexed(
+        items = pinned,
+        key = { _, session -> "pinned_${session.id}" },
+        contentType = { _, _ -> "pinned_session" },
+    ) { index, session ->
         SectionGroupRow(index = index, total = pinned.size) {
             PinnedTaskRow(
                 session = session,
                 index = index,
-                pinnedIds = pinned.map { it.id },
+                pinnedIds = pinnedIds,
                 folders = folders,
                 onSelect = onSelect,
                 onDelete = onDelete,
@@ -1115,9 +1117,11 @@ private fun TaskItem(
 
     SwipeToDismissBox(
         state = dismissState,
-        // P2-9（审计报告）: 左滑删除/右滑归档从屏幕边缘起手会被系统返回手势抢走，
-        // 这里把左右边缘声明为排除区，保证横滑意图优先。
-        modifier = modifier.horizontalGestureExclusion(),
+        // 关闭行级横滑手势，避免在 HomeScreen HorizontalPager 横滑切 Tab 时误触发删档/归档；
+        // 归档、删除等动作统一经由长按操作面板触发。
+        enableDismissFromStartToEnd = false,
+        enableDismissFromEndToStart = false,
+        modifier = modifier,
         backgroundContent = {
             val direction = dismissState.dismissDirection
             val color = when (direction) {

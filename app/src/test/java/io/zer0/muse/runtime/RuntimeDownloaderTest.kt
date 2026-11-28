@@ -12,7 +12,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
-import java.io.File
 import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
 
@@ -177,11 +176,7 @@ class RuntimeDownloaderTest {
         }
     }
 
-    private fun request(
-        server: RuntimeDownloaderHttpFixture,
-        body: ByteArray,
-        paths: List<String>,
-    ): RuntimeDownloadRequest {
+    private fun request(server: RuntimeDownloaderHttpFixture, body: ByteArray, paths: List<String>): RuntimeDownloadRequest {
         val sha = sha256(body)
         val urls = paths.map(server::url)
         val version = RuntimeVersion(

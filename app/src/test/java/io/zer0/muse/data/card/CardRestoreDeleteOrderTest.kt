@@ -26,7 +26,7 @@ class CardRestoreDeleteOrderTest {
         val source = requireNotNull(candidates.firstOrNull { it.exists() }) {
             "找不到 CardDataStore.kt，工作目录=${File(".").absolutePath}"
         }.readText()
-        val start = source.indexOf("fun remove(cardId: String)")
+        val start = source.indexOf("private fun removeLocked(cardId: String)")
         assertTrue("签名变了，这条守卫要跟着更新", start >= 0)
         return source.substring(start).substringBefore("\n    /**").let { body ->
             // 截到方法结束，避免把后面方法里的登记也算进来

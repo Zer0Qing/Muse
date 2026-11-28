@@ -1,11 +1,8 @@
 package io.zer0.muse.data.session
 
 import androidx.room.migration.Migration
-import io.zer0.common.Logger
 import androidx.sqlite.db.SupportSQLiteDatabase
-import kotlinx.serialization.builtins.ListSerializer
-import kotlinx.serialization.builtins.serializer
-import java.io.File
+import io.zer0.common.Logger
 
 /**
 Room 迁移链第二段（37 个迁移）。
@@ -74,6 +71,51 @@ internal object MigrationsB {
             db.execSQL("ALTER TABLE `card_entities` ADD COLUMN `refreshIntervalMinutes` INTEGER NOT NULL DEFAULT 0")
             db.execSQL("ALTER TABLE `card_entities` ADD COLUMN `refreshPrompt` TEXT NOT NULL DEFAULT ''")
             db.execSQL("ALTER TABLE `card_entities` ADD COLUMN `lastRefreshedAt` INTEGER NOT NULL DEFAULT 0")
+        }
+    }
+
+    /** M4: 新增媒体创作台后台任务表与本地资产表（纯新增表，不改动既有行）。 */
+    val MIGRATION_140_141 = object : Migration(140, 141) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `media_gen_tasks` (" +
+                    "`id` TEXT NOT NULL, `kind` TEXT NOT NULL, `status` TEXT NOT NULL, " +
+                    "`prompt` TEXT NOT NULL, `providerId` TEXT NOT NULL, `modelId` TEXT NOT NULL, " +
+                    "`paramsJson` TEXT NOT NULL, `referenceImagePath` TEXT, " +
+                    "`elapsedSeconds` INTEGER NOT NULL, `errorMessage` TEXT, `source` TEXT NOT NULL, " +
+                    "`createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+            )
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_media_gen_tasks_kind` ON `media_gen_tasks` (`kind`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_media_gen_tasks_status` ON `media_gen_tasks` (`status`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_media_gen_tasks_createdAt` ON `media_gen_tasks` (`createdAt`)")
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `media_gen_assets` (" +
+                    "`id` TEXT NOT NULL, `taskId` TEXT NOT NULL, `kind` TEXT NOT NULL, " +
+                    "`localPath` TEXT NOT NULL, `thumbnailPath` TEXT, `remoteUrl` TEXT, " +
+                    "`mimeType` TEXT NOT NULL, `width` INTEGER NOT NULL, `height` INTEGER NOT NULL, " +
+                    "`durationMs` INTEGER NOT NULL, `prompt` TEXT NOT NULL, `modelId` TEXT NOT NULL, " +
+                    "`providerId` TEXT NOT NULL, `paramsJson` TEXT NOT NULL, `favorite` INTEGER NOT NULL, " +
+                    "`createdAt` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+            )
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_media_gen_assets_taskId` ON `media_gen_assets` (`taskId`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_media_gen_assets_kind` ON `media_gen_assets` (`kind`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_media_gen_assets_createdAt` ON `media_gen_assets` (`createdAt`)")
+        }
+    }
+
+    /** 为牵挂账本追加可空定时触发列 triggerAt（与 expiresAt 有效期窗口解耦）。 */
+    val MIGRATION_141_142 = object : Migration(141, 142) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            val cols = mutableSetOf<String>()
+            db.query("PRAGMA table_info(`pending_thought`)").use { cursor ->
+                val nameIdx = cursor.getColumnIndex("name")
+                while (cursor.moveToNext()) {
+                    if (nameIdx >= 0) cols += cursor.getString(nameIdx)
+                }
+            }
+            if ("triggerAt" !in cols) {
+                db.execSQL("ALTER TABLE `pending_thought` ADD COLUMN `triggerAt` INTEGER DEFAULT NULL")
+            }
         }
     }
 
@@ -168,7 +210,9 @@ internal object MigrationsB {
                     "`createdAt` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`id`))",
             )
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_bot_annotations_targetMessageId` ON `bot_annotations`(`targetMessageId`)")
-            db.execSQL("CREATE INDEX IF NOT EXISTS `index_bot_annotations_botId_originSessionId` ON `bot_annotations`(`botId`,`originSessionId`)")
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_bot_annotations_botId_originSessionId` ON `bot_annotations`(`botId`,`originSessionId`)",
+            )
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_bot_annotations_status` ON `bot_annotations`(`status`)")
         }
     }
@@ -317,11 +361,7 @@ internal object MigrationsB {
             addNullableIntColumnIfMissing(db, "group_chat_messages", "reasoningDurationMs")
         }
 
-        private fun addNullableIntColumnIfMissing(
-            db: SupportSQLiteDatabase,
-            table: String,
-            column: String,
-        ) {
+        private fun addNullableIntColumnIfMissing(db: SupportSQLiteDatabase, table: String, column: String) {
             val cols = mutableSetOf<String>()
             db.query("PRAGMA table_info(`$table`)").use { cursor ->
                 val nameIdx = cursor.getColumnIndex("name")
@@ -432,7 +472,10 @@ internal object MigrationsB {
                     "`status` TEXT NOT NULL DEFAULT 'PENDING', `messageId` TEXT NOT NULL DEFAULT '', " +
                     "`createdAt` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`id`))",
             )
-            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_bot_publications_publicationId_itemIndex` ON `bot_publications`(`publicationId`,`itemIndex`)")
+            db.execSQL(
+                "CREATE UNIQUE INDEX IF NOT EXISTS `index_bot_publications_publicationId_itemIndex` " +
+                    "ON `bot_publications`(`publicationId`,`itemIndex`)",
+            )
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_bot_publications_botId_status` ON `bot_publications`(`botId`,`status`)")
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_bot_publications_messageId` ON `bot_publications`(`messageId`)")
 
@@ -445,7 +488,9 @@ internal object MigrationsB {
                     "`createdAt` INTEGER NOT NULL DEFAULT 0, `updatedAt` INTEGER NOT NULL DEFAULT 0, " +
                     "PRIMARY KEY(`botId`))",
             )
-            db.execSQL("CREATE INDEX IF NOT EXISTS `index_bot_bindings_canonicalAgentSessionId` ON `bot_bindings`(`canonicalAgentSessionId`)")
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_bot_bindings_canonicalAgentSessionId` ON `bot_bindings`(`canonicalAgentSessionId`)",
+            )
         }
     }
 
@@ -998,7 +1043,7 @@ internal object MigrationsB {
                     FROM skills
                     """.trimIndent(),
                 ).use { /* 执行 INSERT,关闭 Cursor */ }
-            } catch (e: Exception) {
+            } catch (e: RuntimeException) {
                 // 旧表异常:放弃数据迁移,skills 表将重建为空(内置 skill 会在启动时重新写入)
                 // v1.71: 记录日志,便于排查用户 skill 丢失问题
                 Logger.w("MuseDb", "skills 表迁移失败,用户自定义 skill 将丢失", e)
@@ -1162,7 +1207,7 @@ internal object MigrationsB {
                     FROM skills
                     """.trimIndent(),
                 ).use { /* 执行 INSERT,关闭 Cursor */ }
-            } catch (e: Exception) {
+            } catch (e: RuntimeException) {
                 // 旧表异常:放弃数据迁移,skills 表将重建为空(内置 skill 会在启动时重新写入)
                 Logger.w("MuseDb", "skills 表迁移失败,用户自定义 skill 将丢失", e)
             }
@@ -1315,5 +1360,4 @@ internal object MigrationsB {
             )
         }
     }
-
-};
+}

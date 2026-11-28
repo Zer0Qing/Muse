@@ -32,6 +32,7 @@ import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.routing.UtilityModelBinding
 import io.zer0.muse.data.routing.UtilityModelHealth
 import io.zer0.muse.data.routing.UtilityTier
+import io.zer0.muse.ui.assistant.ModelSwitchSheet
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
@@ -43,7 +44,6 @@ import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseSpacing
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
-import io.zer0.muse.ui.assistant.ModelSwitchSheet
 
 /**
  * v2.x: 辅助模型设置页(原"任务路由"页重构)。
@@ -206,6 +206,7 @@ fun TaskRoutingSettingsPage(
                         )
                     },
                     headlineContent = { Text(stringResource(R.string.settings_agent_tool_model_title)) },
+                    supportingContent = { Text(stringResource(R.string.settings_agent_tool_model_subtitle)) },
                     trailingContent = {
                         ModelValue(
                             text = utilitySmallLabel ?: utilitySmallInheritText,
@@ -228,24 +229,13 @@ fun TaskRoutingSettingsPage(
                         )
                     },
                     headlineContent = { Text(stringResource(R.string.settings_agent_subagent_model_title)) },
+                    supportingContent = { Text(stringResource(R.string.settings_agent_subagent_model_subtitle)) },
                     trailingContent = {
                         ModelValue(
                             text = utilityLargeLabel ?: utilityLargeInheritText,
                             bound = utilityLargeBinding != null,
                         )
                     },
-                )
-                item(
-                    key = "aux_compress_model",
-                    leadingContent = {
-                        Icon(
-                            imageVector = MuseIcons.gauge,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(MuseIconSizes.iconMedium),
-                        )
-                    },
-                    headlineContent = { Text(stringResource(R.string.settings_chat_compress_model)) },
                 )
                 navigationItem(
                     key = "aux_compress_prompt",

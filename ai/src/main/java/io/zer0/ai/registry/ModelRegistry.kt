@@ -423,8 +423,7 @@ object ModelRegistry {
      * [io.zer0.ai.core.ModelContextWindowRegistry] 的 12 项各不相同,导致同一模型 ID
      * 在不同查表路径上得出不一致结果。
      */
-    private fun stripAggregatorPrefix(modelId: String): String =
-        io.zer0.ai.core.normalizeModelIdForLookup(modelId)
+    private fun stripAggregatorPrefix(modelId: String): String = io.zer0.ai.core.normalizeModelIdForLookup(modelId)
 
     /**
      * 解析模型 ID 对应的能力。

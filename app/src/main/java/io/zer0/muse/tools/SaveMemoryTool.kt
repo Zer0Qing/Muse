@@ -16,6 +16,9 @@ object SaveMemoryTool {
         required = setOf("content"),
         category = "built-in",
         parameterTypes = mapOf("importance" to "integer"),
+        parameterEnums = mapOf(
+            "category" to listOf("preference", "identity", "event", "relationship", "goal", "medical", "other"),
+        ),
         riskLevel = ToolRiskLevel.HIGH,
     )
 }

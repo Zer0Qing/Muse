@@ -387,10 +387,7 @@ class MemoryFileWriter(
      * @return [SpaceFileMergeResult.Merged] 已处理;[SpaceFileMergeResult.Rejected]
      *         表示入参不是可用的目录段,源目录原样保留。
      */
-    fun mergeSpaceIntoDefault(
-        sourceSpaceId: String,
-        targetSpaceId: String = "default",
-    ): SpaceFileMergeResult {
+    fun mergeSpaceIntoDefault(sourceSpaceId: String, targetSpaceId: String = "default"): SpaceFileMergeResult {
         val source = sourceSpaceId.trim()
         val target = targetSpaceId.trim()
         segmentProblem(source)?.let { return SpaceFileMergeResult.Rejected("source $it") }
@@ -494,12 +491,12 @@ class MemoryFileWriter(
         val body = mutableListOf<String>()
         for (raw in existing.lines() + incoming.lines()) {
             val line = raw.trim()
-            if (line.isEmpty()) continue
-            if (!seen.add(line)) continue
-            if (heading.isEmpty() && DAILY_HEADING_RE.matches(line)) {
-                heading = line
-            } else {
-                body += line
+            if (line.isNotEmpty() && seen.add(line)) {
+                if (heading.isEmpty() && DAILY_HEADING_RE.matches(line)) {
+                    heading = line
+                } else {
+                    body += line
+                }
             }
         }
         return when {
@@ -514,6 +511,7 @@ class MemoryFileWriter(
         if (!file.exists()) return
         if (!file.delete()) Logger.w(TAG, "删除 ${file.absolutePath} 失败(保留原文件)")
     }
+
     /** 剥离 daily 文件中的 "## {date}" 抬头,返回正文。 */
     private fun normalizeDailyBody(raw: String): String {
         val lines = raw.lines()

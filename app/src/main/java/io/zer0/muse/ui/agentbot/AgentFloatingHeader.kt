@@ -46,12 +46,13 @@ import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.media.AssistantAvatar
 import io.zer0.muse.ui.theme.GlassIsland
+import io.zer0.muse.ui.theme.LiquidGlassConfig
 import io.zer0.muse.ui.theme.LocalLiquidGlass
 import io.zer0.muse.ui.theme.MuseAlpha
+import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseAvatarSize
 import io.zer0.muse.ui.theme.MuseBorderWidth
 import io.zer0.muse.ui.theme.MuseElevation
-import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MusePaddings
@@ -59,14 +60,7 @@ import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.ui.theme.statusColors
 
-/** Agent 头像的生命感状态；只有非 IDLE 才需要动画，VOICE 用主色呼吸，待处理用警告色。 */
-enum class AgentPresenceState {
-    IDLE,
-    WORKING,
-    NEEDS_ATTENTION,
-    VOICE,
-}
-
+/** Agent 头像的生命感状态；只有非 IDLE 才需要动画，待处理用警告色。 */
 /**
  * 流内轻量身份与模型条：跟随消息流滚动，替代粘性顶栏第二排，不遮挡首条消息。
  */
@@ -185,7 +179,6 @@ fun AgentFloatingHeader(
     assistantName: String,
     assistant: AssistantEntity? = null,
     avatarUri: String?,
-    modelLabel: String,
     activeBadgeCount: Int,
     hasPendingApproval: Boolean,
     onOpenIdentitySwitch: () -> Unit,
@@ -204,165 +197,180 @@ fun AgentFloatingHeader(
             .fillMaxWidth()
             .padding(horizontal = MusePaddings.screen),
     ) {
-        // 中央：紧凑圆形头像 + 底部压边白色名牌胶囊，点击直接切换助手，两侧完全透明镂空
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier
-                .align(Alignment.Center)
-                .clip(MuseShapes.medium)
-                .clickable(onClick = onOpenIdentitySwitch)
-                .semantics { contentDescription = switchCd },
-        ) {
-            val presenceColor = if (presenceState == AgentPresenceState.NEEDS_ATTENTION) {
-                MaterialTheme.statusColors.warning
-            } else {
-                MaterialTheme.colorScheme.primary
-            }
-            val presencePulse = if (presenceState != AgentPresenceState.IDLE && !MuseMotion.isReducedMotion()) {
-                val transition = rememberInfiniteTransition(label = "agentPresence")
-                val alpha by transition.animateFloat(
-                    initialValue = 0.25f,
-                    targetValue = 0.9f,
-                    animationSpec = infiniteRepeatable(
-                        animation = MuseMotion.tween(
-                            MuseAnimation.LOOP_SLOW_MS,
-                            easing = FastOutSlowInEasing,
-                        ),
-                        repeatMode = RepeatMode.Reverse,
-                    ),
-                    label = "agentPresenceAlpha",
-                )
-                alpha
-            } else {
-                0.25f
-            }
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.surface,
-                shadowElevation = MuseElevation.card,
-                border = if (presenceState == AgentPresenceState.IDLE) {
-                    BorderStroke(
-                        width = MuseBorderWidth.thin,
-                        color = MaterialTheme.colorScheme.surface,
-                    )
-                } else {
-                    BorderStroke(
-                        width = MuseBorderWidth.thick,
-                        color = presenceColor.copy(alpha = presencePulse),
-                    )
-                },
-            ) {
-                if (assistant != null) {
-                    AssistantAvatar(
-                        assistant = assistant,
-                        avatarSize = MuseAvatarSize.list,
-                    )
-                } else {
-                    AgentAvatarCircle(
-                        name = resolvedName,
-                        avatarUri = avatarUri,
-                        compact = true,
-                    )
-                }
-            }
-            GlassIsland(
-                config = glassConfig,
-                shape = MuseShapes.pill,
-                solidColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
-                modifier = Modifier.offset(y = -MusePaddings.contentGap),
-            ) {
-                Row(
-                    modifier = Modifier.padding(
-                        start = MusePaddings.auxGap,
-                        end = MusePaddings.contentGap,
-                        top = MusePaddings.compactChipVertical,
-                        bottom = MusePaddings.compactChipVertical,
-                    ),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(MusePaddings.tinyGap),
-                ) {
-                    Text(
-                        text = resolvedName,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = LocalContentColor.current,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.widthIn(max = MusePaddings.maxInlineWidth),
-                    )
-                    Icon(
-                        imageVector = MuseIcons.chevronRight,
-                        contentDescription = null,
-                        tint = LocalContentColor.current.copy(alpha = MuseAlpha.subtleBorder),
-                        modifier = Modifier.size(MuseIconSizes.iconTiny),
-                    )
-                }
-            }
-        }
-
-        // 右侧：独立页时显示圆形工作台按钮 + 活跃徽章；嵌入首页 3 Tab 时由顶栏右上角承载
+        AgentFloatingHeaderIdentity(
+            assistant = assistant,
+            resolvedName = resolvedName,
+            avatarUri = avatarUri,
+            presenceState = presenceState,
+            contentDescription = switchCd,
+            onClick = onOpenIdentitySwitch,
+            glassConfig = glassConfig,
+            modifier = Modifier.align(Alignment.Center),
+        )
         if (showWorkbenchButton) {
-            Box(modifier = Modifier.align(Alignment.CenterEnd)) {
-            GlassIsland(
-                config = glassConfig,
-                shape = CircleShape,
-                solidColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
-                modifier = Modifier
-                    .size(MuseIconSizes.topBarSolid)
-                    .clip(CircleShape)
-                    .clickable(onClick = onOpenWorkbench)
-                    .semantics { contentDescription = workbenchCd },
-            ) {
-                Box(
-                    modifier = Modifier.size(MuseIconSizes.topBarSolid),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = MuseIcons.computer,
-                        contentDescription = null,
-                        tint = if (hasPendingApproval) {
-                            MaterialTheme.statusColors.warning
-                        } else {
-                            LocalContentColor.current
-                        },
-                        modifier = Modifier.size(MuseIconSizes.iconMedium),
-                    )
-                }
-            }
-            if (activeBadgeCount > 0) {
-                Surface(
-                    shape = MuseShapes.pill,
-                    color = if (hasPendingApproval) {
-                        MaterialTheme.statusColors.warning
-                    } else {
-                        MaterialTheme.colorScheme.primary
-                    },
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .offset(x = MusePaddings.tinyGap, y = -MusePaddings.tinyGap),
-                ) {
-                    Text(
-                        text = if (activeBadgeCount > 9) "9+" else activeBadgeCount.toString(),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.padding(
-                            horizontal = MusePaddings.labelVerticalGap,
-                            vertical = MusePaddings.compactChipVertical,
-                        ),
-                    )
-                }
-            }
-        }
+            AgentFloatingHeaderWorkbench(
+                activeBadgeCount = activeBadgeCount,
+                hasPendingApproval = hasPendingApproval,
+                contentDescription = workbenchCd,
+                onClick = onOpenWorkbench,
+                glassConfig = glassConfig,
+                modifier = Modifier.align(Alignment.CenterEnd),
+            )
         }
     }
 }
 
 @Composable
-internal fun AgentAvatarCircle(
-    name: String,
+private fun AgentFloatingHeaderIdentity(
+    assistant: AssistantEntity?,
+    resolvedName: String,
     avatarUri: String?,
-    modifier: Modifier = Modifier,
-    compact: Boolean = false,
+    presenceState: AgentPresenceState,
+    contentDescription: String,
+    onClick: () -> Unit,
+    glassConfig: LiquidGlassConfig,
+    modifier: Modifier,
 ) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier
+            .clip(MuseShapes.medium)
+            .clickable(onClick = onClick)
+            .semantics { this.contentDescription = contentDescription },
+    ) {
+        val presenceColor = if (presenceState == AgentPresenceState.NEEDS_ATTENTION) {
+            MaterialTheme.statusColors.warning
+        } else {
+            MaterialTheme.colorScheme.primary
+        }
+        val presencePulse = if (presenceState != AgentPresenceState.IDLE && !MuseMotion.isReducedMotion()) {
+            val transition = rememberInfiniteTransition(label = "agentPresence")
+            val alpha by transition.animateFloat(
+                initialValue = 0.25f,
+                targetValue = 0.9f,
+                animationSpec = infiniteRepeatable(
+                    animation = MuseMotion.tween(
+                        MuseAnimation.LOOP_SLOW_MS,
+                        easing = FastOutSlowInEasing,
+                    ),
+                    repeatMode = RepeatMode.Reverse,
+                ),
+                label = "agentPresenceAlpha",
+            )
+            alpha
+        } else {
+            0.25f
+        }
+        Surface(
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.surface,
+            shadowElevation = MuseElevation.card,
+            border = BorderStroke(
+                width = if (presenceState == AgentPresenceState.IDLE) MuseBorderWidth.thin else MuseBorderWidth.thick,
+                color = if (presenceState == AgentPresenceState.IDLE) {
+                    MaterialTheme.colorScheme.surface
+                } else {
+                    presenceColor.copy(alpha = presencePulse)
+                },
+            ),
+        ) {
+            if (assistant != null) {
+                AssistantAvatar(assistant = assistant, avatarSize = MuseAvatarSize.list)
+            } else {
+                AgentAvatarCircle(name = resolvedName, avatarUri = avatarUri, compact = true)
+            }
+        }
+        GlassIsland(
+            config = glassConfig,
+            shape = MuseShapes.pill,
+            solidColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+            modifier = Modifier.offset(y = -MusePaddings.contentGap),
+        ) {
+            Row(
+                modifier = Modifier.padding(
+                    start = MusePaddings.auxGap,
+                    end = MusePaddings.contentGap,
+                    top = MusePaddings.compactChipVertical,
+                    bottom = MusePaddings.compactChipVertical,
+                ),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(MusePaddings.tinyGap),
+            ) {
+                Text(
+                    text = resolvedName,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = LocalContentColor.current,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.widthIn(max = MusePaddings.maxInlineWidth),
+                )
+                Icon(
+                    imageVector = MuseIcons.chevronRight,
+                    contentDescription = null,
+                    tint = LocalContentColor.current.copy(alpha = MuseAlpha.subtleBorder),
+                    modifier = Modifier.size(MuseIconSizes.iconTiny),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AgentFloatingHeaderWorkbench(
+    activeBadgeCount: Int,
+    hasPendingApproval: Boolean,
+    contentDescription: String,
+    onClick: () -> Unit,
+    glassConfig: LiquidGlassConfig,
+    modifier: Modifier,
+) {
+    Box(modifier = modifier) {
+        GlassIsland(
+            config = glassConfig,
+            shape = CircleShape,
+            solidColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
+            modifier = Modifier
+                .size(MuseIconSizes.topBarSolid)
+                .clip(CircleShape)
+                .clickable(onClick = onClick)
+                .semantics { this.contentDescription = contentDescription },
+        ) {
+            Box(
+                modifier = Modifier.size(MuseIconSizes.topBarSolid),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = MuseIcons.computer,
+                    contentDescription = null,
+                    tint = if (hasPendingApproval) MaterialTheme.statusColors.warning else LocalContentColor.current,
+                    modifier = Modifier.size(MuseIconSizes.iconMedium),
+                )
+            }
+        }
+        if (activeBadgeCount > 0) {
+            Surface(
+                shape = MuseShapes.pill,
+                color = if (hasPendingApproval) MaterialTheme.statusColors.warning else MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(x = MusePaddings.tinyGap, y = -MusePaddings.tinyGap),
+            ) {
+                Text(
+                    text = if (activeBadgeCount > 9) "9+" else activeBadgeCount.toString(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.padding(
+                        horizontal = MusePaddings.labelVerticalGap,
+                        vertical = MusePaddings.compactChipVertical,
+                    ),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+internal fun AgentAvatarCircle(name: String, avatarUri: String?, modifier: Modifier = Modifier, compact: Boolean = false) {
     val avatarSize = if (compact) MuseAvatarSize.inline else MuseAvatarSize.detail
     Surface(
         shape = CircleShape,

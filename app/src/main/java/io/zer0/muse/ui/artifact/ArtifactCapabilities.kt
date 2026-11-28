@@ -11,13 +11,13 @@ enum class ArtifactRenderMode {
     /** 图片：真正的图片查看（URL/data-URI/本地路径），可全屏、可保存。 */
     Image,
 
-    /** markdown/document/table/json/csv：GFM 渲染。 */
+    /** markdown/document/table/csv：GFM 渲染。 */
     Markdown,
 
-    /** 代码：等宽 + 语法高亮。 */
+    /** 代码 / JSON：等宽 + 语法高亮。 */
     Code,
 
-    /** 其余文本/文件：可滚动正文 + 外部打开，而不是 inert 预览框。 */
+    /** 其余文本/文件：可滚动正文 + 外部打开。 */
     PlainText,
 }
 
@@ -26,8 +26,8 @@ fun artifactRenderMode(type: String, language: String?): ArtifactRenderMode {
     if (richPreviewLanguage(type, language) != null) return ArtifactRenderMode.RichWeb
     return when (type.lowercase()) {
         "image" -> ArtifactRenderMode.Image
-        "markdown", "document", "table", "json", "csv" -> ArtifactRenderMode.Markdown
-        "code" -> ArtifactRenderMode.Code
+        "markdown", "document", "table", "csv" -> ArtifactRenderMode.Markdown
+        "code", "json" -> ArtifactRenderMode.Code
         else -> ArtifactRenderMode.PlainText
     }
 }

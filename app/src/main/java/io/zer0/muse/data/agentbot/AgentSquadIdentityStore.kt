@@ -58,14 +58,11 @@ class AgentSquadIdentityStore(context: Context) {
         saveBinding(current.copy(defaultComputeNodeId = nodeId.trim()))
     }
 
-    fun channelsOf(botId: String): Set<String> =
-        _bindings.value[botId]?.channelIds.orEmpty()
+    fun channelsOf(botId: String): Set<String> = _bindings.value[botId]?.channelIds.orEmpty()
 
-    fun specialtyOf(botId: String): String =
-        _bindings.value[botId]?.specialty.orEmpty()
+    fun specialtyOf(botId: String): String = _bindings.value[botId]?.specialty.orEmpty()
 
-    fun botForChannel(channelId: String): String? =
-        _bindings.value.values.firstOrNull { channelId in it.channelIds }?.botId
+    fun botForChannel(channelId: String): String? = _bindings.value.values.firstOrNull { channelId in it.channelIds }?.botId
 
     private fun saveBinding(binding: IdentityBinding) {
         prefs.edit()

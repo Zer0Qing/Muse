@@ -21,6 +21,7 @@
     <string name="settings_provider_imported_from_json">Учетные данные сервисной учетной записи, импортированные из JSON.</string>
     <string name="settings_provider_import_failed">Не удалось импортировать: %1$s</string>
     <string name="settings_provider_fill_api_key_first">Пожалуйста, сначала заполните ключ API</string>
+    <string name="settings_provider_required_fields">Имя и адрес обязательны, иначе провайдер не сможет подключиться</string>
     <string name="settings_provider_no_models_returned">Вышестоящая компания не вернула ни одной модели. Проверьте конечную точку.</string>
     <string name="settings_provider_unknown_error">Неизвестная ошибка</string>
     <string name="settings_provider_404_error">Этот поставщик не поддерживает конечную точку /models, добавьте модели вручную.</string>
@@ -144,13 +145,15 @@
     <string name="settings_backup_message_count">Всего сообщений</string>
     <string name="settings_backup_local_title">Локальная резервная копия &amp; Восстановление</string>
     <string name="settings_backup_export">Экспортировать резервную копию</string>
+    <string name="settings_backup_export_partial">%1$d файлов превысили допустимый размер или не удалось прочитать. Они не вошли в эту копию.</string>
     <string name="settings_backup_plaintext_export_title">Экспортировать незашифрованную резервную копию?</string>
-    <string name="settings_backup_plaintext_export_message">Пароль резервной копии не задан. Продолжение создаст незашифрованный файл, который сможет прочитать любой получивший его. По возможности сначала задайте пароль в облачном резервном копировании.</string>
+    <string name="settings_backup_plaintext_export_message">Этот локальный файл резервной копии не зашифрован, и его сможет прочитать любой, кто получит файл. Файл будет создан только после продолжения.</string>
     <string name="settings_backup_plaintext_export_action">Экспортировать без шифрования</string>
     <string name="settings_backup_import">Импортировать резервную копию</string>
     <string name="settings_backup_export_success">Экспорт выполнен успешно: %1$d сеансов / %2$d сообщений</string>
     <string name="settings_backup_export_failed">Не удалось экспортировать: %1$s</string>
     <string name="settings_backup_import_success">Импортированные сеансы %1$d/сообщения %2$d</string>
+    <string name="settings_backup_import_failed_title">Не удалось импортировать</string>
     <string name="settings_backup_import_failed">Не удалось импортировать: %1$s</string>
     <string name="settings_backup_export_start_failed">Невозможно начать экспорт: %1$s</string>
     <string name="settings_backup_import_start_failed">Невозможно начать импорт: %1$s</string>
@@ -395,7 +398,8 @@
     <string name="settings_backup_log_success">Успех</string>
     <string name="settings_backup_log_failed">Ошибка</string>
     <string name="audit_log_category_agent">Запуски агента</string>
-    <string name="settings_backup_import_password_hint">Пароль резервной копии (можно оставить пустым, если копия зашифрована)</string>
+    <string name="settings_backup_import_password_hint">Пароль резервной копии (если нужен для расшифровки)</string>
+    <string name="cloud_backup_provider_secrets_require_password">Задайте пароль резервной копии для загрузки ключей поставщиков.</string>
     <string name="settings_backup_log_restore_hint">Нажмите для восстановления (весь диалог, все сообщения и воспоминания) · %1$s</string>
     <string name="settings_backup_overwrite_confirm">Выбранная резервная копия перезапишет все текущие диалоги, сообщения, воспоминания и данные опыта (перед восстановлением будет автоматически создана защитная копия). Продолжить?</string>
     <string name="settings_backup_overwrite_confirm_action">Продолжить</string>

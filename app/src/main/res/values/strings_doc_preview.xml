@@ -3,4 +3,5 @@
     <string name="doc_preview_title">"PDF 预览"</string>
     <string name="doc_preview_waiting">"正在等待文档数据…"</string>
     <string name="doc_preview_failed">"文档渲染失败："</string>
+    <string name="doc_preview_too_large">"文档超过 20 MB 在线预览上限，请使用右上角外部打开"</string>
 </resources>

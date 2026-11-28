@@ -14,6 +14,13 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import io.zer0.muse.R
+import io.zer0.muse.ui.assistant.AssistantAdvancedPage
+import io.zer0.muse.ui.assistant.AssistantBasicPage
+import io.zer0.muse.ui.assistant.AssistantDetailPage
+import io.zer0.muse.ui.assistant.AssistantExtensionsPage
+import io.zer0.muse.ui.assistant.AssistantMemoryPage
+import io.zer0.muse.ui.assistant.AssistantPromptPage
+import io.zer0.muse.ui.assistant.AssistantScreen
 import io.zer0.muse.ui.chat.ChatViewModel
 import io.zer0.muse.ui.chat.QuickMessageScreen
 import io.zer0.muse.ui.common.animation.LocalMuseAnimatedVisibilityScope
@@ -22,17 +29,10 @@ import io.zer0.muse.ui.common.media.WindowWidthClass
 import io.zer0.muse.ui.common.media.rememberWindowWidthClass
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.memory.MemoryScreen
-import io.zer0.muse.ui.assistant.AssistantAdvancedPage
-import io.zer0.muse.ui.assistant.AssistantDetailPage
-import io.zer0.muse.ui.assistant.AssistantBasicPage
-import io.zer0.muse.ui.assistant.AssistantPromptPage
-import io.zer0.muse.ui.assistant.AssistantExtensionsPage
-import io.zer0.muse.ui.assistant.AssistantMemoryPage
-import io.zer0.muse.ui.assistant.AssistantScreen
 import io.zer0.muse.ui.screen.FavoritesScreen
-import io.zer0.muse.ui.screen.SkillScreen
 import io.zer0.muse.ui.screen.LorebookScreen
 import io.zer0.muse.ui.screen.PromptInjectionScreen
+import io.zer0.muse.ui.screen.SkillScreen
 
 /**
  * 助手域 NavGraph — 包含助手管理、助手详情及 5 个子页、收藏夹、世界书、
@@ -187,6 +187,10 @@ fun NavGraphBuilder.assistantNavGraph(navController: NavHostController, sharedVi
         FavoritesScreen(
             viewModel = sharedViewModel,
             onBack = { navController.popBackStackSafe() },
+            onOpenSession = { sessionId ->
+                sharedViewModel.switchSession(sessionId)
+                navController.navigate(ChatDetailRoute) { launchSingleTop = true }
+            },
         )
     }
     composable<LorebooksRoute>(

@@ -22,8 +22,7 @@ class KnowledgeEngine(
     fun assemble(outcome: RetrievalOutcome, budgetTokens: Int, traceId: String) =
         assembler.assemble(outcome, budgetTokens, traceId = traceId)
 
-    fun contributor(deps: KnowledgeContextContributorDeps): KnowledgeContextContributor =
-        contributorFactory(deps)
+    fun contributor(deps: KnowledgeContextContributorDeps): KnowledgeContextContributor = contributorFactory(deps)
 }
 
 /** 贡献器依赖束 — 由装配层提供(策略解析器按入口取配置)。 */

@@ -41,6 +41,8 @@ data class PendingThoughtEntity(
     @ColumnInfo(defaultValue = "0") val createdAt: Long = 0L,
     /** 过期时间戳。NULL = 永不过期。 */
     @ColumnInfo(defaultValue = "NULL") val expiresAt: Long? = null,
+    /** 预计最早允许唤醒/触发的时间戳。NULL = 不限制具体时刻。 */
+    @ColumnInfo(defaultValue = "NULL") val triggerAt: Long? = null,
     /** [ThoughtUrgency] 的 name。 */
     @ColumnInfo(defaultValue = "WINDOW") val urgency: String = ThoughtUrgency.WINDOW.name,
     /** 我多在意这件事，0..1。 */
@@ -101,6 +103,7 @@ interface PendingThoughtDao {
     @Query(
         "SELECT * FROM pending_thought WHERE assistantId = :assistantId AND status = 'OPEN' " +
             "AND lastSurfacedAt IS NULL AND createdAt <= :createdBefore " +
+            "AND (triggerAt IS NULL OR triggerAt <= :now) " +
             "AND (expiresAt IS NULL OR expiresAt > :now) ORDER BY createdAt ASC, id ASC",
     )
     suspend fun getBacklogEligible(assistantId: String, createdBefore: Long, now: Long): List<PendingThoughtEntity>
@@ -118,6 +121,10 @@ interface PendingThoughtDao {
     /** 最近记下的若干条，供设置页展示。 */
     @Query("SELECT * FROM pending_thought ORDER BY createdAt DESC LIMIT :limit")
     suspend fun getRecent(limit: Int): List<PendingThoughtEntity>
+
+    /** 按助手取近期牵挂（含待发送与已结束），供账本与历史页签展示。 */
+    @Query("SELECT * FROM pending_thought WHERE assistantId = :assistantId ORDER BY createdAt DESC LIMIT :limit")
+    suspend fun getRecentByAssistant(assistantId: String, limit: Int): List<PendingThoughtEntity>
 
     /**
      * 同源去重：同一来源对象只记一条。
@@ -173,6 +180,16 @@ interface PendingThoughtWriteDao {
             "WHERE id = :id AND status = 'OPEN' AND lastSurfacedAt IS NULL",
     )
     suspend fun markSurfacedIfOpen(id: String, at: Long): Int
+
+    /**
+     * 原子标记牵挂在本轮已提及：首次提及或冷却期已过且仍在 OPEN 状态时才允许更新。
+     */
+    @Query(
+        "UPDATE pending_thought SET lastSurfacedAt = :at, surfaceCount = surfaceCount + 1 " +
+            "WHERE id = :id AND status = 'OPEN' AND surfaceCount < :maxSurface " +
+            "AND (lastSurfacedAt IS NULL OR lastSurfacedAt <= :reSurfaceBefore)",
+    )
+    suspend fun markSurfacedIfEligible(id: String, at: Long, reSurfaceBefore: Long, maxSurface: Int): Int
 
     /** 清理已过期但状态还停在 OPEN 的行。 */
     @Query(

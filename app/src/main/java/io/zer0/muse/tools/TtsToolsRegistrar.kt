@@ -10,8 +10,9 @@ import android.content.Context
 class TtsToolsRegistrar(
     private val context: Context,
     private val toolRegistry: ToolRegistry,
+    mediaGenTools: MediaGenToolsImpl? = null,
 ) {
-    private val impl = TtsToolsImpl(context)
+    private val impl = TtsToolsImpl(context, mediaGenTools)
 
     init {
         registerAll()

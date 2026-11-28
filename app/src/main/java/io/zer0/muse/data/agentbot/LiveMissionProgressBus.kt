@@ -111,12 +111,7 @@ class LiveMissionProgressBus {
         _liveSteps.update { it - taskId }
     }
 
-    fun appendSandboxLog(
-        taskId: String,
-        source: String,
-        text: String,
-        isError: Boolean = false,
-    ) {
+    fun appendSandboxLog(taskId: String, source: String, text: String, isError: Boolean = false) {
         if (text.isBlank()) return
         val entry = SandboxLogLine(
             id = logSeq.incrementAndGet(),
@@ -160,12 +155,7 @@ class LiveMissionProgressBus {
         return drained
     }
 
-    fun reportVirtualDisplay(
-        displayId: Int,
-        packageName: String,
-        taskId: String = "",
-        action: String = "",
-    ) {
+    fun reportVirtualDisplay(displayId: Int, packageName: String, taskId: String = "", action: String = "") {
         _activeVirtualDisplay.value = ActiveVirtualDisplay(
             displayId = displayId,
             packageName = packageName,

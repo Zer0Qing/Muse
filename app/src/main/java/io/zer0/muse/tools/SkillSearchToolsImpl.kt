@@ -273,11 +273,7 @@ class SkillSearchToolsImpl(
      *  - `folderPath` —— 裸路径。若许可覆盖多个知识库且同路径在多个库都存在,
      *    不合并、返回 [FolderScope.Ambiguous],要求调用方限定知识库。
      */
-    private fun resolveFolderScope(
-        folderArg: String,
-        allDocs: List<KnowledgeDocEntity>,
-        permittedDocIds: Set<String>?,
-    ): FolderScope {
+    private fun resolveFolderScope(folderArg: String, allDocs: List<KnowledgeDocEntity>, permittedDocIds: Set<String>?): FolderScope {
         val separator = folderArg.indexOf("::")
         val explicitKbId = if (separator >= 0) folderArg.substring(0, separator).trim() else null
         val rawPath = if (separator >= 0) folderArg.substring(separator + 2) else folderArg
@@ -297,8 +293,7 @@ class SkillSearchToolsImpl(
     }
 
     /** 裸 folder 名跨库同名时的提示:要求限定知识库,而不是把两个库合并成一个检索域。 */
-    private fun ambiguousFolderMessage(folderArg: String): String =
-        "文件夹「$folderArg」在多个知识库下同名存在,未合并检索。请改用 kbId::folderPath 形式限定知识库后重试。"
+    private fun ambiguousFolderMessage(folderArg: String): String = "文件夹「$folderArg」在多个知识库下同名存在,未合并检索。请改用 kbId::folderPath 形式限定知识库后重试。"
 
     /** 空路径 = 整库;否则路径相等或前缀含子目录。 */
     private fun pathHitsFolder(doc: KnowledgeDocEntity, path: String): Boolean {
@@ -308,9 +303,8 @@ class SkillSearchToolsImpl(
     }
 
     /** 会话附件判定(fileType 哨兵或 docId 前缀任一命中)。 */
-    private fun isSessionAttachmentDoc(doc: KnowledgeDocEntity): Boolean =
-        doc.fileType == io.zer0.muse.rag.SessionAttachment.FILE_TYPE ||
-            io.zer0.muse.rag.SessionAttachment.isSessionAttachmentDocId(doc.id)
+    private fun isSessionAttachmentDoc(doc: KnowledgeDocEntity): Boolean = doc.fileType == io.zer0.muse.rag.SessionAttachment.FILE_TYPE ||
+        io.zer0.muse.rag.SessionAttachment.isSessionAttachmentDocId(doc.id)
 
     /**
      * web_search — 用配置好的 WebSearchService(SearXNG/Tavily)搜索。
@@ -368,7 +362,10 @@ class SkillSearchToolsImpl(
                 Logger.w("SkillExecutor", "web_search 失败: $msg")
             }.getOrNull() ?: emptyList()
         val outcome = io.zer0.muse.web.WebSearchResultPostProcessor.process(
-            raw, plan, plan.effectiveDateRange, System.currentTimeMillis(),
+            raw,
+            plan,
+            plan.effectiveDateRange,
+            System.currentTimeMillis(),
         )
         if (!outcome.recallOk && raw.isNotEmpty()) {
             return "搜索“${plan.outboundQuery}”没有返回与问题相关的结果。" +

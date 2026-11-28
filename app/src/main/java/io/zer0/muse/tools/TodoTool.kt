@@ -7,6 +7,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -63,6 +67,35 @@ object TodoTool {
         ),
         required = setOf("todos"),
         category = "built-in",
+        parameterSchemas = mapOf(
+            "todos" to buildJsonObject {
+                put("type", "array")
+                put(
+                    "items",
+                    buildJsonObject {
+                        put("type", "object")
+                        put(
+                            "properties",
+                            buildJsonObject {
+                                put("content", buildJsonObject { put("type", "string") })
+                                put("activeForm", buildJsonObject { put("type", "string") })
+                                put(
+                                    "status",
+                                    buildJsonObject {
+                                        put("type", "string")
+                                        put(
+                                            "enum",
+                                            JsonArray(listOf("pending", "in_progress", "completed").map { JsonPrimitive(it) }),
+                                        )
+                                    },
+                                )
+                            },
+                        )
+                        put("required", JsonArray(listOf(JsonPrimitive("content"), JsonPrimitive("status"))))
+                    },
+                )
+            },
+        ),
         riskLevel = ToolRiskLevel.NORMAL,
     )
 

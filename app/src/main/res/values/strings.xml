@@ -41,6 +41,7 @@
     <string name="action_select_text">选择文本</string>
     <string name="chat_select_text_hint">长按文字即可划选复制</string>
     <string name="common_load_failed">加载失败</string>
+    <string name="common_save_failed">保存失败</string>
     <string name="action_undo">撤销</string>
     <string name="chat_unarchived">已取消归档</string>
     <string name="action_collapse">收起</string>
@@ -248,6 +249,7 @@
     <string name="tool_approval_deny_reason">拒绝原因（可选）</string>
     <!-- v1.0.20: 持久化策略按钮 — 点击后写入 ToolConfigStore,后续该工具不再弹审批卡片 -->
     <string name="tool_approval_always_approve">始终允许</string>
+    <string name="tool_approval_confirm_always">确认始终允许</string>
     <!-- v1.x: 会话级临时允许按钮 — 本会话不再问,切换会话/冷启动后自动失效 -->
     <string name="tool_approval_allow_this_session">本会话允许</string>
 

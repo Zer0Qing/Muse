@@ -31,10 +31,10 @@ class ApprovalResumeTest {
 
     @Before
     fun setUp() {
-        val context: Context = ApplicationProvider.getApplicationContext();
+        val context: Context = ApplicationProvider.getApplicationContext()
         db = Room.inMemoryDatabaseBuilder(context, MuseDb::class.java)
             .allowMainThreadQueries()
-            .build();
+            .build()
         repo = AgentBotRepository(
             taskDao = db.botTaskDao(),
             runDao = db.taskRunDao(),
@@ -43,60 +43,63 @@ class ApprovalResumeTest {
             approvalDao = db.approvalRequestDao(),
             publicationDao = db.publicationOutboxDao(),
             bindingDao = db.botBindingDao(),
-        );
+        )
         service = ApprovalService(
             repository = repo,
             onSettled = { taskId, approvalId, status ->
-                resumed += Triple(taskId, approvalId, status);
+                resumed += Triple(taskId, approvalId, status)
             },
-        );
+        )
     }
 
     @After
     fun tearDown() {
-        db.close();
+        db.close()
     }
 
     private suspend fun setup(): Pair<BotTaskEntity, ApprovalRequestEntity> {
         val task = repo.createTask(
-            botId = "bot-1", originSessionId = "s1", requestMessageId = "m1",
-            goal = "改错字", acceptanceCriteria = "只改错字",
-        );
-        repo.transition(task.taskId, BotTaskStatusMachine.Event.START);
-        val run = repo.openRun(task.taskId)!!;
-        repo.transition(task.taskId, BotTaskStatusMachine.Event.WAIT_APPROVAL);
+            botId = "bot-1",
+            originSessionId = "s1",
+            requestMessageId = "m1",
+            goal = "改错字",
+            acceptanceCriteria = "只改错字",
+        )
+        repo.transition(task.taskId, BotTaskStatusMachine.Event.START)
+        val run = repo.openRun(task.taskId)!!
+        repo.transition(task.taskId, BotTaskStatusMachine.Event.WAIT_APPROVAL)
         val approval = repo.createApproval(
             botId = "bot-1", originSessionId = "s1", taskId = task.taskId,
             runId = run.runId, stepId = "step-0", taskRevision = 1,
             toolCallId = "c1", toolName = "workspace_write",
             argumentsRef = "a", argumentsHash = "h", resourceVersion = "v1", risk = "NORMAL",
-        );
-        return task to approval;
+        )
+        return task to approval
     }
 
     @Test
     fun `approving notifies the resume callback`() = runTest {
-        val (task, approval) = setup();
-        service.approve(approval.approvalId, "h", "v1");
+        val (task, approval) = setup()
+        service.approve(approval.approvalId, "h", "v1")
 
-        assertEquals(1, resumed.size);
-        assertEquals(task.taskId, resumed.single().first);
-        assertEquals(ApprovalStatus.APPROVED, resumed.single().third);
+        assertEquals(1, resumed.size)
+        assertEquals(task.taskId, resumed.single().first)
+        assertEquals(ApprovalStatus.APPROVED, resumed.single().third)
     }
 
     @Test
     fun `denying notifies the resume callback as not approved`() = runTest {
-        val (task, approval) = setup();
-        service.deny(approval.approvalId, "不想让它改");
+        val (task, approval) = setup()
+        service.deny(approval.approvalId, "不想让它改")
 
-        assertEquals(1, resumed.size);
-        assertEquals(task.taskId, resumed.single().first);
-        assertEquals(ApprovalStatus.DENIED, resumed.single().third);
+        assertEquals(1, resumed.size)
+        assertEquals(task.taskId, resumed.single().first)
+        assertEquals(ApprovalStatus.DENIED, resumed.single().third)
     }
 
     @Test
     fun `a stale approval does not trigger resume`() = runTest {
-        val (_, approval) = setup();
+        val (_, approval) = setup()
         // 参数变了 → INVALIDATED。
         //
         // 但**仍然要回调**：卡已结算（用户看不到它了），任务却还停在
@@ -104,11 +107,11 @@ class ApprovalResumeTest {
         // PENDING，卡已结算，扫不到。
         //
         // 回调保留 INVALIDATED 状态，供上层区别参数失效与用户拒绝。
-        val outcome = service.approve(approval.approvalId, "different-hash", "v1");
+        val outcome = service.approve(approval.approvalId, "different-hash", "v1")
 
-        assertTrue("必须是 Stale 结论", outcome is ApprovalService.Outcome.Stale);
-        assertEquals("早退分支也要复位任务", 1, resumed.size);
-        assertEquals(ApprovalStatus.INVALIDATED, resumed.single().third);
+        assertTrue("必须是 Stale 结论", outcome is ApprovalService.Outcome.Stale)
+        assertEquals("早退分支也要复位任务", 1, resumed.size)
+        assertEquals(ApprovalStatus.INVALIDATED, resumed.single().third)
     }
 
     @Test
@@ -124,21 +127,21 @@ class ApprovalResumeTest {
 
     @Test
     fun `a failing resume callback does not undo the settlement`() = runTest {
-        val (_, approval) = setup();
+        val (_, approval) = setup()
         val failing = ApprovalService(
             repository = repo,
             onSettled = { _, _, _ -> error("复位失败") },
-        );
+        )
 
-        val outcome = failing.approve(approval.approvalId, "h", "v1");
+        val outcome = failing.approve(approval.approvalId, "h", "v1")
 
         assertTrue(
             "审批已经结算成功，不能因为复位失败就告诉用户审批失败",
             outcome is ApprovalService.Outcome.Settled,
-        );
+        )
         assertEquals(
             ApprovalStatus.APPROVED,
             repo.getApproval(approval.approvalId)!!.status,
-        );
+        )
     }
 }

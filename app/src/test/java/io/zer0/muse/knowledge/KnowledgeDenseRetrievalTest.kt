@@ -55,11 +55,7 @@ class KnowledgeDenseRetrievalTest {
         return buffer.array()
     }
 
-    private suspend fun seedGeneration(
-        generationId: String,
-        docId: String,
-        rows: List<Pair<String, FloatArray?>>,
-    ) {
+    private suspend fun seedGeneration(generationId: String, docId: String, rows: List<Pair<String, FloatArray?>>) {
         db.knowledgeJobDao().insertGeneration(
             KnowledgeGenerationEntity(
                 generationId = generationId,

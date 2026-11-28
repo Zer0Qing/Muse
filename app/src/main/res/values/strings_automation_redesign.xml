@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="automation_overlay_stop">急停</string>
+
+    <string name="automation_vdisplay_title_no_pkg">虚拟屏 #%1$d</string>
+    <string name="automation_vdisplay_title_with_pkg">虚拟屏 #%1$d · %2$s</string>
+    <string name="automation_vdisplay_content_desc">虚拟屏画面</string>
+    <string name="automation_vdisplay_disconnected">取不到画面，虚拟屏服务可能已断开。关闭后可重新执行任务。</string>
+    <string name="automation_vdisplay_loading">正在加载画面…</string>
+    <string name="automation_vdisplay_tap_hint">点击或拖动画面可操作应用</string>
+    <string name="automation_vdisplay_last_tap">已点击 (%1$d, %2$d)</string>
+    <string name="automation_vdisplay_last_swipe">已滑动</string>
+    <string name="automation_vdisplay_key_back">返回</string>
+    <string name="automation_vdisplay_key_home">主页</string>
+    <string name="automation_vdisplay_input_placeholder">输入文本</string>
+    <string name="automation_vdisplay_input_send">发送文本</string>
+    <string name="automation_vdisplay_input_cd">发送输入</string>
+    <string name="automation_vdisplay_input_rejected_non_ascii">包含虚拟屏不支持的特殊符号或过长</string>
+
+    <string name="automation_readiness_title">能力状态</string>
+    <string name="automation_readiness_ready">就绪</string>
+    <string name="automation_readiness_off">未启用</string>
+    <string name="automation_readiness_dead">已掉线</string>
+    <string name="automation_readiness_accessibility">屏幕读控（无障碍）</string>
+    <string name="automation_readiness_shell">高权限通道（Shizuku / Root）</string>
+    <string name="automation_readiness_vdisplay">后台虚拟屏</string>
+    <string name="automation_readiness_vision">视觉识屏模型</string>
+    <string name="automation_readiness_vision_on">已配置：%1$s</string>
+    <string name="automation_readiness_vision_on_unnamed">已开启</string>
+    <string name="automation_readiness_vision_off">未配置，仅用控件树识屏</string>
+    <string name="automation_a11y_dead_banner">无障碍服务已被系统回收。关闭再重开系统设置中的 Muse 无障碍开关即可恢复。</string>
+
+    <string name="automation_selftest_title">四项联通自检</string>
+    <string name="automation_selftest_action">运行自检</string>
+    <string name="automation_selftest_pass">通过</string>
+    <string name="automation_selftest_fail">未通过</string>
+    <string name="automation_selftest_warn">需注意</string>
+    <string name="automation_selftest_check_a11y">无障碍通道</string>
+    <string name="automation_selftest_check_shell">高权限命令</string>
+    <string name="automation_selftest_check_vdisplay">虚拟屏服务</string>
+    <string name="automation_selftest_check_screen">当前读屏</string>
+    <string name="automation_selftest_a11y_live">服务在线</string>
+    <string name="automation_selftest_a11y_dead">系统开关开着，但服务进程未运行</string>
+    <string name="automation_selftest_a11y_off">未开启</string>
+    <string name="automation_selftest_shell_ok">通道：%1$s</string>
+    <string name="automation_selftest_shell_off">未授权 Shizuku 或 Root</string>
+    <string name="automation_selftest_vd_ok">可用（%1$s）</string>
+    <string name="automation_selftest_vd_off">暂不可用（%1$s）</string>
+    <string name="automation_selftest_screen_ok">%1$d 个控件 · %2$dx%3$d</string>
+
+    <string name="automation_autonomous_pick_app">从已安装应用选择</string>
+    <string name="automation_autonomous_picker_title">选择允许的应用</string>
+    <string name="automation_autonomous_picker_search">搜索应用名或包名</string>
+    <string name="automation_autonomous_picker_empty">没有匹配的应用</string>
+    <string name="automation_autonomous_picker_done">完成</string>
+    <string name="automation_autonomous_picker_added">已添加</string>
+</resources>

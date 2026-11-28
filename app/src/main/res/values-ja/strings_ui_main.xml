@@ -163,7 +163,8 @@
     <string name="settings_group_media">音声と視覚</string>
     <string name="settings_group_memory">記憶と知識</string>
     <string name="settings_group_tools">ツールと拡張機能</string>
-    <string name="settings_group_connection">チャネルとネットワーク</string>
+    <string name="settings_group_channels">メッセージチャネル</string>
+    <string name="settings_group_connection">ネットワーク</string>
     <string name="settings_group_automation">自動化とバックグラウンド</string>
     <string name="settings_group_data_storage">データとバックアップ</string>
     <string name="settings_group_privacy_security">プライバシーと権限</string>
@@ -299,6 +300,7 @@
     <string name="search_suggestion_idea">アイデア</string>
     <string name="search_no_result">一致する結果はありません</string>
     <string name="search_try_other">他のキーワードを試してください</string>
+    <string name="search_timeout_hint">検索がタイムアウトしました。もっと短い語で試してください</string>
     <string name="search_section_sessions">セッション</string>
     <string name="search_section_messages">メッセージ</string>
     <string name="search_time_today">今日 %1$s</string>
@@ -504,6 +506,7 @@
     <string name="provider_plugins_delete">プラグインの削除</string>
     <string name="provider_plugins_convert">プロバイダーに変換</string>
     <string name="provider_plugins_import_failed">インポートに失敗しました: %1$s</string>
+    <string name="provider_plugins_import_failed_title">プラグインファイルを認識できません</string>
     <string name="provider_plugins_import_success">インポート成功</string>
     <string name="provider_plugins_delete_confirm_named">プラグイン「%1$s」を削除しますか？削除後は利用できなくなります。復元するにはプラグインパッケージを再インポートしてください。</string>
     <string name="muse_plugins_publisher_fingerprint">発行者: %1$s · 鍵フィンガープリント: %2$s</string>

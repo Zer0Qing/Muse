@@ -68,7 +68,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.ai.core.Model
 import io.zer0.ai.core.ProviderConfig
 import io.zer0.common.Logger
+import io.zer0.common.resultOf
 import io.zer0.muse.R
+import io.zer0.muse.data.HomeLayoutMode
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.data.preset.PresetProviders
@@ -83,6 +85,7 @@ import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.state.MuseSpinner
+import io.zer0.muse.ui.settings.HomeLayoutPreviewChoices
 import io.zer0.muse.ui.settings.ModelAbilityChips
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseMotion
@@ -92,7 +95,6 @@ import io.zer0.muse.ui.theme.PresetThemes
 import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.ui.theme.semiLarge
 import io.zer0.muse.util.AppLocales
-import java.util.Locale
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -106,12 +108,12 @@ private sealed class TestStatus {
 }
 
 /**
- * 开机引导页面 — 全屏 HorizontalPager,9 步完成初始配置:
- * 欢迎(多语言问候轮播) → 语言 → 认识 → 记忆 → 接入 → 模型 → 外观 → 运行环境 → 出发。
+ * 开机引导页面 — 全屏 HorizontalPager,10 步完成初始配置:
+ * 欢迎(多语言问候轮播) → 语言 → 首页布局 → 认识 → 记忆 → 接入 → 模型 → 外观 → 运行环境 → 出发。
  *
  * 数据流：OnboardingScreen 接收 [onComplete] 回调，内部用 koinInject 获取
  * [SettingsRepository] / [AssistantRepository] / [PresetProviders]，
- * 每步完成后即时保存到 SettingsRepository。
+ * 各步骤在选择后或进入下一步前写入 SettingsRepository。
  *
  * 设计令牌：使用 [MuseShapes]（圆角）与 [MusePaddings]（间距令牌），
  * 全程 Material Icons（无 emoji），Material 3 组件。
@@ -127,7 +129,7 @@ fun OnboardingScreen(onComplete: () -> Unit, onOpenSection: (String) -> Unit = {
     val context = LocalContext.current
     // 引导走到第几步存几步:中途按返回退出后再进来,不该从第 1 步重来。
     var lastPage by rememberSaveable { mutableStateOf(0) }
-    val pagerState = rememberPagerState(initialPage = lastPage, pageCount = { 9 })
+    val pagerState = rememberPagerState(initialPage = lastPage, pageCount = { 10 })
 
     val keyboardController = LocalSoftwareKeyboardController.current
 
@@ -158,6 +160,27 @@ fun OnboardingScreen(onComplete: () -> Unit, onOpenSection: (String) -> Unit = {
     var providerSkipped by rememberSaveable { mutableStateOf(false) }
     // v2.x: 记忆系统开关(新增步骤;默认开,切换即时落库)
     var memoryEnabled by rememberSaveable { mutableStateOf(true) }
+    val savedHomeLayoutMode by settings.homeLayoutModeFlow.collectAsStateWithLifecycle(
+        initialValue = HomeLayoutMode.CLASSIC,
+    )
+    var selectedHomeLayoutModeWire by rememberSaveable { mutableStateOf(HomeLayoutMode.CLASSIC.wireValue) }
+    var homeLayoutTouched by rememberSaveable { mutableStateOf(false) }
+    var homeLayoutSaveFailed by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(savedHomeLayoutMode, homeLayoutTouched) {
+        if (!homeLayoutTouched) selectedHomeLayoutModeWire = savedHomeLayoutMode.wireValue
+    }
+    val selectedHomeLayoutMode = HomeLayoutMode.fromWire(selectedHomeLayoutModeWire)
+
+    suspend fun persistHomeLayout(): Boolean {
+        val saved = resultOf {
+            settings.saveHomeLayoutMode(selectedHomeLayoutMode)
+            true
+        }.onError { _, error ->
+            Logger.w("Onboarding", "首页布局保存失败", error)
+        }.getOrNull() == true
+        homeLayoutSaveFailed = !saved
+        return saved
+    }
 
     // 翻页时收起键盘,并记住走到第几步
     LaunchedEffect(pagerState.currentPage) {
@@ -165,9 +188,9 @@ fun OnboardingScreen(onComplete: () -> Unit, onOpenSection: (String) -> Unit = {
         lastPage = pagerState.currentPage
     }
 
-    // 后退目标:跳过供应商后,模型步(5)是空态死角;而前进时被整体跳过(4→6),
-    // 所以从外观步(6)后退同样不能落回那一页 —— 两处一起跳过,回到记忆步(3)。
-    fun previousPage(from: Int): Int = if (providerSkipped && (from == 5 || from == 6)) 3 else from - 1
+    // 后退目标:跳过供应商后,模型步(6)是空态死角;而前进时被整体跳过(5→7),
+    // 所以从外观步(7)后退同样不能落回那一页 —— 两处一起跳过,回到记忆步(4)。
+    fun previousPage(from: Int): Int = if (providerSkipped && (from == 6 || from == 7)) 4 else from - 1
 
     // 引导期误触系统返回不该直接退应用:非首页先回上一步,首页才交回系统默认行为。
     BackHandler(enabled = pagerState.currentPage > 0) {
@@ -185,7 +208,7 @@ fun OnboardingScreen(onComplete: () -> Unit, onOpenSection: (String) -> Unit = {
         }
     }
 
-    val pageCount = 9
+    val pageCount = pagerState.pageCount
     val currentPage = pagerState.currentPage
 
     Column(
@@ -222,20 +245,29 @@ fun OnboardingScreen(onComplete: () -> Unit, onOpenSection: (String) -> Unit = {
                         scope.launch { settings.saveLanguage(lang) }
                     },
                 )
-                2 -> StepNames(
+                2 -> StepHomeLayout(
+                    selectedMode = selectedHomeLayoutMode,
+                    saveFailed = homeLayoutSaveFailed,
+                    onSelectMode = { mode ->
+                        selectedHomeLayoutModeWire = mode.wireValue
+                        homeLayoutTouched = true
+                        homeLayoutSaveFailed = false
+                    },
+                )
+                3 -> StepNames(
                     userName = userName,
                     onUserNameChange = { userName = it },
                     agentName = agentName,
                     onAgentNameChange = { agentName = it },
                 )
-                3 -> StepMemory(
+                4 -> StepMemory(
                     memoryEnabled = memoryEnabled,
                     onMemoryEnabledChange = { v ->
                         memoryEnabled = v
                         scope.launch { settings.saveMemoryEnabled(v) }
                     },
                 )
-                4 -> StepProviderConfig(
+                5 -> StepProviderConfig(
                     presetProviders = presetProviders,
                     selectedPresetId = selectedPresetId,
                     onPresetSelected = { id ->
@@ -305,15 +337,15 @@ fun OnboardingScreen(onComplete: () -> Unit, onOpenSection: (String) -> Unit = {
                                 if (selectedModelId.isNotBlank()) {
                                     settings.saveSelectedModel(selectedModelId)
                                 }
-                                pagerState.animateScrollToPage(6)
+                                pagerState.animateScrollToPage(7)
                             }
                         } else {
                             providerSkipped = true
-                            scope.launch { pagerState.animateScrollToPage(6) }
+                            scope.launch { pagerState.animateScrollToPage(7) }
                         }
                     },
                 )
-                5 -> StepSelectModel(
+                6 -> StepSelectModel(
                     models = fetchedModels,
                     selectedModelId = selectedModelId,
                     onSelectModel = { id ->
@@ -324,15 +356,15 @@ fun OnboardingScreen(onComplete: () -> Unit, onOpenSection: (String) -> Unit = {
                     onSearchQueryChange = { modelSearchQuery = it },
                     providerSkipped = providerSkipped,
                 )
-                6 -> StepTheme(
+                7 -> StepTheme(
                     selectedThemeId = selectedThemeId,
                     onThemeSelected = { id ->
                         selectedThemeId = id
                         scope.launch { settings.saveThemeId(id) }
                     },
                 )
-                7 -> StepRuntime()
-                8 -> StepComplete(
+                8 -> StepRuntime()
+                9 -> StepComplete(
                     onOpenSection = { route ->
                         scope.launch {
                             // 走这条路也要落"引导已完成":否则下次冷启动又从头再来一遍。
@@ -344,12 +376,21 @@ fun OnboardingScreen(onComplete: () -> Unit, onOpenSection: (String) -> Unit = {
             }
         }
 
+        if (homeLayoutSaveFailed && currentPage != 2) {
+            Text(
+                text = stringResource(R.string.onboarding_home_layout_save_failed),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(horizontal = MusePaddings.screen),
+            )
+        }
+
         // 底部按钮区域
         BottomButtons(
             currentPage = currentPage,
-            // 接入步(4)需测试成功才能下一步
+            // 接入步(5)需测试成功才能下一步
             canGoNext = when (currentPage) {
-                4 -> testStatus is TestStatus.Success
+                5 -> testStatus is TestStatus.Success
                 else -> true
             },
             onPrevious = {
@@ -358,6 +399,7 @@ fun OnboardingScreen(onComplete: () -> Unit, onOpenSection: (String) -> Unit = {
             onNext = {
                 // 翻页前保存当前步骤数据
                 scope.launch {
+                    if (currentPage == 2 && !persistHomeLayout()) return@launch
                     saveStepData(
                         currentPage = currentPage,
                         settings = settings,
@@ -371,8 +413,8 @@ fun OnboardingScreen(onComplete: () -> Unit, onOpenSection: (String) -> Unit = {
                         providerSkipped = providerSkipped,
                     )
                     val targetPage = when {
-                        // 接入步(4)→ 若已跳过配置则直接去"外观"(6),顺带跳过模型步
-                        currentPage == 4 && providerSkipped -> 6
+                        // 接入步(5)→ 若已跳过配置则直接去"外观"(7),顺带跳过模型步
+                        currentPage == 5 && providerSkipped -> 7
                         else -> currentPage + 1
                     }
                     pagerState.animateScrollToPage(targetPage)
@@ -380,6 +422,7 @@ fun OnboardingScreen(onComplete: () -> Unit, onOpenSection: (String) -> Unit = {
             },
             onComplete = {
                 scope.launch {
+                    if (selectedHomeLayoutMode != savedHomeLayoutMode && !persistHomeLayout()) return@launch
                     saveStepData(
                         currentPage = currentPage,
                         settings = settings,
@@ -437,6 +480,47 @@ private fun ProgressDots(currentPage: Int, pageCount: Int, modifier: Modifier = 
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+    }
+}
+
+@Composable
+private fun StepHomeLayout(selectedMode: HomeLayoutMode, saveFailed: Boolean, onSelectMode: (HomeLayoutMode) -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = MusePaddings.screen),
+        verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+    ) {
+        Text(
+            text = stringResource(R.string.settings_home_layout_title),
+            style = MaterialTheme.typography.headlineSmall,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Text(
+            text = stringResource(R.string.onboarding_home_layout_intro),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        HomeLayoutPreviewChoices(selectedMode, onSelectMode)
+        Text(
+            text = stringResource(
+                if (selectedMode == HomeLayoutMode.CLASSIC) {
+                    R.string.settings_home_layout_classic_desc
+                } else {
+                    R.string.settings_home_layout_drawer_desc
+                },
+            ),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        if (saveFailed) {
+            Text(
+                text = stringResource(R.string.onboarding_home_layout_save_failed),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
     }
 }
 
@@ -1495,7 +1579,7 @@ private fun TutorialCard(item: FeatureItem, onClick: () -> Unit) {
     }
 }
 
-/// ── 底部按钮 ──────────────────────────────────────────────────
+// / ── 底部按钮 ──────────────────────────────────────────────────
 
 @Composable
 private fun BottomButtons(currentPage: Int, canGoNext: Boolean, onPrevious: () -> Unit, onNext: () -> Unit, onComplete: () -> Unit) {
@@ -1515,8 +1599,8 @@ private fun BottomButtons(currentPage: Int, canGoNext: Boolean, onPrevious: () -
                         .padding(MusePaddings.screen),
                 )
             }
-            // 步骤 8：只有"开始使用"按钮（居中）
-            8 -> {
+            // 步骤 9：只有"开始使用"按钮（居中）
+            9 -> {
                 // v2.0 修复: Surface 内部为 Box,两个按钮直接并列会叠画导致文字重叠 —
                 // 改为垂直排列(主按钮在上、游客入口在下)。
                 Column(
@@ -1569,11 +1653,11 @@ private fun BottomButtons(currentPage: Int, canGoNext: Boolean, onPrevious: () -
  * 翻页前保存当前步骤的数据到持久化存储。
  *
  * 各步骤对应的保存逻辑：
- *  - 步骤 2：保存用户名（mockLogin）+ 更新默认助手名字
- *  - 步骤 4：创建并保存 ProviderConfig + 设置激活供应商
- *  - 步骤 5：保存选中的模型 id
+ *  - 步骤 3：保存用户名（mockLogin）+ 更新默认助手名字
+ *  - 步骤 5：创建并保存 ProviderConfig + 设置激活供应商
+ *  - 步骤 6：保存选中的模型 id
  *
- * 语言(步骤 1)/记忆开关(步骤 3)/主题(步骤 6)在用户操作时即时保存，此处不重复。
+ * 语言(步骤 1)/记忆开关(步骤 4)/主题(步骤 7)在用户操作时即时保存，此处不重复。
  */
 private suspend fun saveStepData(
     currentPage: Int,
@@ -1588,7 +1672,7 @@ private suspend fun saveStepData(
     providerSkipped: Boolean,
 ) {
     when (currentPage) {
-        2 -> {
+        3 -> {
             // 保存用户名 —— 只有真填了才写:空串会把称呼落库成空,
             // 个人资料页与注入 system prompt 的称呼一起变空。
             if (userName.isNotBlank()) settings.mockLogin(userName)
@@ -1607,7 +1691,7 @@ private suspend fun saveStepData(
                 ),
             )
         }
-        4 -> {
+        5 -> {
             // 创建并保存供应商配置（仅当测试成功且未跳过时）
             // v1.0.18: allowMissingApiKey 供应商(如 SiliconFlow 免费)允许不填 key 保存
             // v2.0: 改用 upsert 幂等保存 — 测试成功时已即时落库,此处为翻页兑底,避免重复条目
@@ -1622,7 +1706,7 @@ private suspend fun saveStepData(
                 settings.setActiveProvider(config.id)
             }
         }
-        5 -> {
+        6 -> {
             // 保存选中的模型
             settings.saveSelectedModel(selectedModelId.ifBlank { null })
         }

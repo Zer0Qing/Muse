@@ -1,4 +1,13 @@
-@file:Suppress("FunctionNaming", "LongMethod", "LongParameterList", "CyclomaticComplexMethod", "TooManyFunctions", "ReturnCount", "MaxLineLength", "ComplexCondition")
+@file:Suppress(
+    "FunctionNaming",
+    "LongMethod",
+    "LongParameterList",
+    "CyclomaticComplexMethod",
+    "TooManyFunctions",
+    "ReturnCount",
+    "MaxLineLength",
+    "ComplexCondition",
+)
 
 package io.zer0.muse.ui.settings
 

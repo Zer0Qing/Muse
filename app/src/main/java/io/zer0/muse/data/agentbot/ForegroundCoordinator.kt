@@ -104,23 +104,18 @@ class ForegroundCoordinator(
      * @param userText 用户这次说的话
      * @return 回合产出；模型调用失败时返回 null，调用方据此保留原文并给重试
      */
-    suspend fun runTurn(
-        botId: String,
-        originSessionId: String,
-        history: List<UIMessage>,
-        userText: String,
-        requestRevision: Long,
-    ): Turn? = runTurn(
-        identity = AgentTurnIdentity(
-            assistantId = botId,
-            sessionId = originSessionId,
-            requestId = "legacy-request-$requestRevision",
-            requestRevision = requestRevision.coerceAtLeast(1L),
-        ),
-        history = history,
-        userText = userText,
-        currentRequestRevision = { requestRevision.coerceAtLeast(1L) },
-    )
+    suspend fun runTurn(botId: String, originSessionId: String, history: List<UIMessage>, userText: String, requestRevision: Long): Turn? =
+        runTurn(
+            identity = AgentTurnIdentity(
+                assistantId = botId,
+                sessionId = originSessionId,
+                requestId = "legacy-request-$requestRevision",
+                requestRevision = requestRevision.coerceAtLeast(1L),
+            ),
+            history = history,
+            userText = userText,
+            currentRequestRevision = { requestRevision.coerceAtLeast(1L) },
+        )
 
     suspend fun runTurn(
         identity: AgentTurnIdentity,
@@ -146,11 +141,11 @@ class ForegroundCoordinator(
             modelCaller.complete(messages)
         }.onFailure {
             Logger.w("ForegroundCoordinator", "主 Bot 回合失败: ${it.message}")
-        }.getOrNull();
+        }.getOrNull()
 
         if (completion == null) return null
 
-        var turn = parse(completion.text, completion.toolCalls)
+        var turn = parse(completion.toolCalls)
 
         // V15: 没调 bot_say 时做一次受限补救。
         //
@@ -270,7 +265,7 @@ class ForegroundCoordinator(
             Logger.w("ForegroundCoordinator", "bot_say 补救失败: ${it.message}")
         }.getOrNull() ?: return null
 
-        val turn = parse(retry.text, retry.toolCalls)
+        val turn = parse(retry.toolCalls)
         return if (turn.saidSomething || turn.shouldDispatch) turn else null
     }
 
@@ -281,7 +276,7 @@ class ForegroundCoordinator(
      * **绝不因为没拿到结构化动作就丢弃用户该收到的回复** —— 那会让主 Bot
      * 在模型不配合时彻底失声。
      */
-    private fun parse(text: String, toolCalls: List<io.zer0.ai.core.ToolCall>?): Turn {
+    private fun parse(toolCalls: List<io.zer0.ai.core.ToolCall>?): Turn {
         // 刻意**不**拿 text 兜底。
         //
         // 计划把"模型正文只有经 bot_say 提交才可见"定为固定前提；用 text 兜底
@@ -297,17 +292,17 @@ class ForegroundCoordinator(
                 Json.parseToJsonElement(call.arguments) as? JsonObject
             }.onFailure {
                 Logger.w("ForegroundCoordinator", "工具参数解析失败: ${call.name}")
-            }.getOrNull();
+            }.getOrNull()
 
             when (call.name) {
                 TOOL_SAY -> {
-                    val content = args?.get("text")?.jsonPrimitive?.content.orEmpty();
-                    if (content.isNotBlank()) say = content.trim();
+                    val content = args?.get("text")?.jsonPrimitive?.content.orEmpty()
+                    if (content.isNotBlank()) say = content.trim()
                 }
                 TOOL_DISPATCH -> {
-                    goal = args?.get("goal")?.jsonPrimitive?.content.orEmpty().trim();
-                    acceptance = args?.get("acceptance")?.jsonPrimitive?.content.orEmpty().trim();
-                    scope = args?.get("resource_scope")?.jsonPrimitive?.content.orEmpty().trim();
+                    goal = args?.get("goal")?.jsonPrimitive?.content.orEmpty().trim()
+                    acceptance = args?.get("acceptance")?.jsonPrimitive?.content.orEmpty().trim()
+                    scope = args?.get("resource_scope")?.jsonPrimitive?.content.orEmpty().trim()
                 }
                 else -> Logger.w("ForegroundCoordinator", "未知控制工具，忽略: ${call.name}")
             }
@@ -334,9 +329,6 @@ class ForegroundCoordinator(
         suspend fun complete(messages: List<UIMessage>): io.zer0.ai.core.ChatCompletion
     }
     companion object {
-        /** 前台回合 token 上限。短回合，说清一件事就够。 */
-        private const val FOREGROUND_MAX_TOKENS = 600
-
         /**
          * 补救提示词。
          *

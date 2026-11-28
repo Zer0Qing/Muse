@@ -10,20 +10,26 @@ import androidx.compose.ui.window.DialogProperties
 import io.zer0.muse.R
 import io.zer0.muse.data.artifact.ArtifactEntity
 import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.surface.MuseDialogWindowEffect
 import io.zer0.muse.ui.screen.HtmlPreviewScreen
 
 /**
- * v2.0.1: 产物打开宿主 — 富内容（HTML/SVG/Chart/Mermaid）走全屏浏览器形态，
- * 其余（代码/文本）走弹窗查看器。聊天页与产物中心共用同一分流。
+ * 产物打开宿主 — 统一分流：
+ *  - 富内容（HTML/SVG/Chart/Mermaid）走全屏交互浏览宿主；
+ *  - 其余（Markdown/代码/JSON/文档/图片/文本）走全屏阅读器或图片浏览器。
  */
 @Composable
-fun ArtifactOpenHost(artifact: ArtifactEntity?, onDismiss: () -> Unit) {
+fun ArtifactOpenHost(
+    artifact: ArtifactEntity?,
+    onDismiss: () -> Unit,
+    onOpenSession: ((String) -> Unit)? = null,
+    onDelete: (() -> Unit)? = null,
+    onRename: ((String) -> Unit)? = null,
+) {
     if (artifact == null) return
     val context = LocalContext.current
     val richLang = richPreviewLanguage(artifact.type, artifact.language)
-    // html/svg 走全屏浏览器形态；chart/mermaid 交给查看器内的卡片运行时正确包裹渲染，
-    // 不再把图表 JSON / mermaid 源码当裸 HTML 塞进浏览器（37：展开后什么都看不到的根因之一）。
-    if (richLang == "html" || richLang == "svg") {
+    if (richLang != null) {
         Dialog(
             onDismissRequest = onDismiss,
             properties = DialogProperties(
@@ -31,8 +37,10 @@ fun ArtifactOpenHost(artifact: ArtifactEntity?, onDismiss: () -> Unit) {
                 decorFitsSystemWindows = false,
             ),
         ) {
+            MuseDialogWindowEffect(forceFullScreen = true)
             HtmlPreviewScreen(
                 html = artifact.content,
+                language = richLang,
                 title = artifact.title.ifBlank { null },
                 onBack = onDismiss,
             )
@@ -42,11 +50,14 @@ fun ArtifactOpenHost(artifact: ArtifactEntity?, onDismiss: () -> Unit) {
             artifact = artifact,
             onDismiss = onDismiss,
             onCopy = { text -> copyArtifactText(context, text) },
+            onOpenSession = onOpenSession,
+            onDelete = onDelete,
+            onRename = onRename,
         )
     }
 }
 
-/** 复制产物文本到剪贴板 + Toast 反馈（聊天页与产物中心共用）。 */
+/** 复制产物文本到剪贴板 + Toast 反馈（聊天页与产物库共用）。 */
 internal fun copyArtifactText(context: Context, text: String) {
     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     clipboard.setPrimaryClip(ClipData.newPlainText("Muse Artifact", text))

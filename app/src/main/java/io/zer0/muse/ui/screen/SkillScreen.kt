@@ -52,9 +52,9 @@ import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.navigation.MuseTopBar
-import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.state.MuseSpinner
+import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMonoFontFamily
 import io.zer0.muse.ui.theme.MuseShapes
@@ -124,7 +124,7 @@ fun SkillScreen(onBack: () -> Unit, skillRepository: SkillRepository = koinInjec
                     // v1.73: 用 use{} 确保 InputStream/BufferedReader 关闭,避免 FD 泄漏
                     context.contentResolver.openInputStream(uri)?.use { input ->
                         // v1.114: 限制读取 10MB,防止超大文件 OOM
-                        val MAX_READ_BYTES = 10L * 1024 * 1024
+                        val maxReadBytes = 10L * 1024 * 1024
                         val sb = StringBuilder()
                         val buffer = CharArray(8192)
                         var total = 0L
@@ -133,11 +133,11 @@ fun SkillScreen(onBack: () -> Unit, skillRepository: SkillRepository = koinInjec
                                 val read = reader.read(buffer)
                                 if (read <= 0) break
                                 total += read
-                                if (total > MAX_READ_BYTES) {
+                                if (total > maxReadBytes) {
                                     error(
                                         context.getString(
                                             R.string.code_gap_skill_file_too_large,
-                                            MAX_READ_BYTES / 1024 / 1024,
+                                            maxReadBytes / 1024 / 1024,
                                         ),
                                     )
                                 }

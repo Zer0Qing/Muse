@@ -45,6 +45,8 @@ fun ConnectionCenterScreen(
     val skillRepository: io.zer0.muse.data.skill.SkillRepository = koinInject()
     val channels by channelManager.channels.collectAsStateWithLifecycle(initialValue = emptyList())
     val mcpServers by mcpRegistry.servers.collectAsStateWithLifecycle(initialValue = emptyList())
+    val mcpStatuses by mcpRegistry.serverStatuses.collectAsStateWithLifecycle()
+    val mcpReadyCount = mcpServers.count { mcpStatuses[it.id]?.tools?.isNotEmpty() == true }
     val skills by skillRepository.observeAll.collectAsStateWithLifecycle(initialValue = emptyList())
     val (skillCount, packageCount) = skillAndPackageCounts(skills)
 
@@ -67,7 +69,7 @@ fun ConnectionCenterScreen(
                 navigationItem(
                     key = "mcp",
                     title = stringResource(R.string.connection_mcp_title),
-                    subtitle = stringResource(R.string.connection_mcp_subtitle, mcpServers.size),
+                    subtitle = stringResource(R.string.mcp_connection_summary, mcpReadyCount, mcpServers.size),
                     onClick = onOpenMcp,
                     leadingContent = { ConnectionEntryIcon(MuseIcons.share) },
                 )

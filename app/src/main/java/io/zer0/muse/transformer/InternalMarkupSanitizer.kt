@@ -46,31 +46,35 @@ object InternalMarkupSanitizer {
     private val whitespaceRun = Regex("\\n{3,}")
 
     private val closedInternalBlock = Regex(
-        "(?is)(?:<(?:(?:mood|mod|think|thinking|reflection|moodfx))>|\\[(?:(?:mood|mod|think|thinking|reflection|moodfx))\\])" +
+        "(?is)(?:<(?:(?:mood|mod|think|thinking|reflection|moodfx|proactive_thought))(?:\\s[^>]*)?>|" +
+            "\\[(?:(?:mood|mod|think|thinking|reflection|moodfx|proactive_thought))(?:\\s[^\\]]*)?\\])" +
             "[\\s\\S]*?" +
-            "(?:</(?:(?:mood|mod|think|thinking|reflection|moodfx))>|\\[/(?:(?:mood|mod|think|thinking|reflection|moodfx))\\])",
+            "(?:</(?:(?:mood|mod|think|thinking|reflection|moodfx|proactive_thought))>|" +
+            "\\[/(?:(?:mood|mod|think|thinking|reflection|moodfx|proactive_thought))\\])",
     )
     private val unclosedInternalStart = Regex(
-        "(?is)(?:<(?:(?:mood|mod|think|thinking|reflection|moodfx))>|\\[(?:(?:mood|mod|think|thinking|reflection|moodfx))\\]).*$",
+        "(?is)(?:<(?:(?:mood|mod|think|thinking|reflection|moodfx|proactive_thought))(?:\\s[^>]*)?>|" +
+            "\\[(?:(?:mood|mod|think|thinking|reflection|moodfx|proactive_thought))(?:\\s[^\\]]*)?\\]).*$",
     )
     private val moodBlock = Regex(
         "(?is)(?:<(?:mood|mod)>|\\[(?:mood|mod)\\])([\\s\\S]*?)(?:</(?:mood|mod)>|\\[/(?:mood|mod)\\])",
     )
+    private val proactiveThoughtBlock = Regex(
+        "(?is)(?:<proactive_thought(\\s[^>]*)?>|\\[proactive_thought(\\s[^\\]]*)?\\])" +
+            "([\\s\\S]*?)" +
+            "(?:</proactive_thought>|\\[/proactive_thought\\])",
+    )
+    private val thoughtAttrRegex = Regex(
+        """(?i)\b(kind|urgency|due_hours|after_minutes|trigger_after_minutes|after_hours|at|trigger_at)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'\]]+))""",
+    )
 
-    /**
-     * v1.0.90: 标签名标记检测（含半个标签与孤立闭标签）。
-     *
-     * 原来调用方只检测 `<mood>` 这种完整开标签，模型吐半个标签（`<mood`）或只吐闭标签
-     * （`</mood>`）时会被当成普通正文直接上屏，用户就看到 mood 标签原文。
-     * 凡是命中这个标记的内容，都必须走完整清洗路径。
-     */
     val TAG_MARKER_REGEX =
-        Regex("(?i)[<\\[]/?\\s*(?:mood|mod|think|thinking|reflection|moodfx)")
+        Regex("(?i)[<\\[]/?\\s*(?:mood|mod|think|thinking|reflection|moodfx|proactive_thought)")
 
     /** 只移除内部标签外壳，保留其中的思考内容，供 reasoning 面板使用。 */
     fun stripContainerTags(text: String): String = text
-        .replace(Regex("(?i)</?(?:mood|mod|think|thinking|reflection|moodfx)>"), "")
-        .replace(Regex("(?i)\\[/?(?:mood|mod|think|thinking|reflection|moodfx)\\]"), "")
+        .replace(Regex("(?i)</?(?:mood|mod|think|thinking|reflection|moodfx|proactive_thought)(?:\\s[^>]*)?>"), "")
+        .replace(Regex("(?i)\\[/?(?:mood|mod|think|thinking|reflection|moodfx|proactive_thought)(?:\\s[^\\]]*)?\\]"), "")
         .trim()
 
     /** 从推理通道移除完整 mood/mod 块,但保留其中其他 think 内容。 */
@@ -180,6 +184,104 @@ object InternalMarkupSanitizer {
         .joinToString("\n")
         .trim()
         .ifBlank { null }
+
+    data class ExtractedProactiveThought(
+        val seed: String,
+        val kind: String? = null,
+        val urgency: String? = null,
+        val dueHours: Float? = null,
+        val triggerAfterMinutes: Int? = null,
+        val triggerAtIso: String? = null,
+    ) {
+        /**
+         * 解析模型给出的定时唤醒时间戳；未给出具体触发时刻时返回 null，交由常规巡检挑选。
+         * 结果夹紧到 `[now + 5min, now + 30d]`，避免短时间刷屏或过期时间错乱。
+         */
+        fun resolveTriggerAtMillis(
+            now: Long = System.currentTimeMillis(),
+            zoneId: java.time.ZoneId = java.time.ZoneId.systemDefault(),
+        ): Long? {
+            val minAt = now + MIN_TRIGGER_DELAY_MS
+            val maxAt = now + MAX_TRIGGER_DELAY_MS
+            val parsedIso = triggerAtIso?.trim()?.takeIf { it.isNotEmpty() }?.let { raw ->
+                parseIsoToEpochMillis(raw, zoneId)
+            }
+            if (parsedIso != null) {
+                return parsedIso.coerceIn(minAt, maxAt)
+            }
+            val delayMin = triggerAfterMinutes?.takeIf { it > 0 } ?: return null
+            return (now + delayMin * 60_000L).coerceIn(minAt, maxAt)
+        }
+
+        private fun parseIsoToEpochMillis(raw: String, zoneId: java.time.ZoneId): Long? {
+            val offsetMillis = runCatching {
+                java.time.OffsetDateTime.parse(raw).toInstant().toEpochMilli()
+            }.getOrNull()
+            if (offsetMillis != null) return offsetMillis
+            val instantMillis = runCatching {
+                java.time.Instant.parse(raw).toEpochMilli()
+            }.getOrNull()
+            if (instantMillis != null) return instantMillis
+            val localMillis = runCatching {
+                java.time.LocalDateTime.parse(raw).atZone(zoneId).toInstant().toEpochMilli()
+            }.getOrNull()
+            if (localMillis != null) return localMillis
+            return runCatching {
+                java.time.LocalDateTime.parse(raw.replace(' ', 'T'))
+                    .atZone(zoneId)
+                    .toInstant()
+                    .toEpochMilli()
+            }.getOrNull()
+        }
+
+        companion object {
+            private const val MIN_TRIGGER_DELAY_MS = 5 * 60_000L
+            private const val MAX_TRIGGER_DELAY_MS = 30L * 86_400_000L
+        }
+    }
+
+    /** 提取每轮回复末尾内联的 `<proactive_thought>` 牵挂建议。 */
+    fun extractProactiveThoughts(text: String): List<ExtractedProactiveThought> {
+        if (!text.contains("proactive_thought", ignoreCase = true)) return emptyList()
+        return proactiveThoughtBlock.findAll(text).mapNotNull { match ->
+            val attrsRaw = match.groupValues[1].ifBlank { match.groupValues[2] }
+            val body = match.groupValues[3].trim()
+            if (body.isBlank()) return@mapNotNull null
+            var kind: String? = null
+            var urgency: String? = null
+            var dueHours: Float? = null
+            var afterMinutes: Int? = null
+            var triggerAtIso: String? = null
+            thoughtAttrRegex.findAll(attrsRaw).forEach { attr ->
+                val value = attr.groupValues[2]
+                    .ifBlank { attr.groupValues[3] }
+                    .ifBlank { attr.groupValues[4] }
+                    .trim()
+                when (attr.groupValues[1].lowercase()) {
+                    "kind" -> kind = value.uppercase().takeIf { it.isNotBlank() }
+                    "urgency" -> urgency = value.uppercase().takeIf { it.isNotBlank() }
+                    "due_hours" -> dueHours = value.toFloatOrNull()?.takeIf { it > 0f }
+                    "after_minutes", "trigger_after_minutes" ->
+                        afterMinutes = value.toIntOrNull()?.takeIf { it > 0 }
+                    "after_hours" ->
+                        if (afterMinutes == null) {
+                            afterMinutes = value.toFloatOrNull()?.takeIf { it > 0f }
+                                ?.let { kotlin.math.round(it * 60f).toInt().coerceAtLeast(1) }
+                        }
+                    "at", "trigger_at" ->
+                        triggerAtIso = value.takeIf { it.isNotBlank() }
+                }
+            }
+            ExtractedProactiveThought(
+                seed = body,
+                kind = kind,
+                urgency = urgency,
+                dueHours = dueHours,
+                triggerAfterMinutes = afterMinutes,
+                triggerAtIso = triggerAtIso,
+            )
+        }.toList()
+    }
 }
 
 /** [DisplayContentCache] 的条数上限：约等于「两屏消息 + 前后各留一段」。 */

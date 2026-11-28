@@ -17,7 +17,6 @@ class RuntimeInstaller(
     private val context: Context,
     private val store: RuntimeStore,
     private val downloader: RuntimeDownloader = RuntimeDownloader(),
-    private val prootRuntime: ProotRuntime = ProotRuntime(context, store),
     private val operationStore: RuntimeInstallOperationStore = RuntimeInstallOperationStore(store.operationFile()),
 ) {
 
@@ -42,57 +41,27 @@ class RuntimeInstaller(
             if (!forceRepair && current is RuntimeState.Ready && current.revision == manifest.revision) {
                 operationStore.load()
                     ?.takeIf { it.runtimeId == id.manifestKey && it.revision == manifest.revision }
-                    ?.let { operationStore.saveAtomic(it.copy(phase = RuntimeInstallPhase.COMPLETED, lastError = null, updatedAt = System.currentTimeMillis())) }
+                    ?.let {
+                        operationStore.saveAtomic(
+                            it.copy(phase = RuntimeInstallPhase.COMPLETED, lastError = null, updatedAt = System.currentTimeMillis()),
+                        )
+                    }
                 onProgress(Progress.Done)
                 return@withContext Result.success(Unit)
             }
 
-            val need = manifest.installedBytes + manifest.archive.sizeBytes + SPACE_MARGIN_BYTES
-            val available = availableBytes(store.rootDir())
-            if (available in 1 until need) {
-                return@withContext Result.failure(
-                    IllegalStateException("存储空间不足：需要约 ${need / MB} MB，可用 ${available / MB} MB"),
-                )
-            }
+            storageFailure(manifest)?.let { return@withContext Result.failure(it) }
 
             val operationId = UUID.randomUUID().toString()
             val archiveFile = File(store.rootDir(), "${id.manifestKey}-${manifest.revision}.tar.gz")
-            val partFile = File(archiveFile.parentFile, archiveFile.name + ".part")
-            val previousOperation = operationStore.load()
-                ?.takeIf { it.runtimeId == id.manifestKey && it.revision == manifest.revision }
-            operation = RuntimeInstallOperation(
-                operationId = operationId,
-                runtimeId = id.manifestKey,
-                abi = manifest.abi,
-                revision = manifest.revision,
-                phase = RuntimeInstallPhase.SELECTING,
-                sourceTrust = manifest.sourceTrust,
-                expectedSha256 = manifest.archive.sha256.takeIf(String::isNotBlank),
-                sourceUrl = manifest.archive.urls.firstOrNull().orEmpty(),
-                archivePath = archiveFile.absolutePath,
-                partPath = partFile.absolutePath,
-                downloadedBytes = partFile.takeIf(File::isFile)?.length() ?: 0L,
-                totalBytes = manifest.archive.sizeBytes,
-                attemptCount = (previousOperation?.attemptCount ?: 0) + 1,
-                updatedAt = System.currentTimeMillis(),
-                etag = previousOperation?.etag,
-                lastModified = previousOperation?.lastModified,
-            )
+            operation = createOperation(id, manifest, operationId, archiveFile)
             operationStore.saveAtomic(operation)
             operation = operation.copy(phase = RuntimeInstallPhase.DOWNLOADING, updatedAt = System.currentTimeMillis())
             operationStore.saveAtomic(operation)
 
-            val version = RuntimeVersion(
-                revision = manifest.revision,
-                upstream = manifest.upstream,
-                archive = manifest.archive,
-                installedBytes = manifest.installedBytes,
-                bins = manifest.bins,
-                sourceTrust = manifest.sourceTrust,
-            )
             val download = downloader.download(
                 RuntimeDownloadRequest(
-                    version = version,
+                    version = versionFor(manifest),
                     destination = archiveFile,
                     expectedSha256 = manifest.archive.sha256.takeIf(String::isNotBlank),
                     expectedSize = manifest.archive.sizeBytes,
@@ -164,11 +133,64 @@ class RuntimeInstaller(
             )
             operation?.let(operationStore::saveAtomic)
             throw cancelled
-        } catch (error: Exception) {
+        } catch (error: IOException) {
             operation = failedOperation(operation, error)
             operation?.let(operationStore::saveAtomic)
             Logger.e(TAG, "安装失败: ${error.message}", error)
             Result.failure(error)
+        } catch (error: IllegalStateException) {
+            operation = failedOperation(operation, error)
+            operation?.let(operationStore::saveAtomic)
+            Logger.e(TAG, "安装失败: ${error.message}", error)
+            Result.failure(error)
+        }
+    }
+
+    private fun versionFor(manifest: RuntimeManifest): RuntimeVersion = RuntimeVersion(
+        revision = manifest.revision,
+        upstream = manifest.upstream,
+        archive = manifest.archive,
+        installedBytes = manifest.installedBytes,
+        bins = manifest.bins,
+        sourceTrust = manifest.sourceTrust,
+    )
+
+    private fun createOperation(
+        id: RuntimeId,
+        manifest: RuntimeManifest,
+        operationId: String,
+        archiveFile: File,
+    ): RuntimeInstallOperation {
+        val partFile = File(archiveFile.parentFile, archiveFile.name + ".part")
+        val previousOperation = operationStore.load()
+            ?.takeIf { it.runtimeId == id.manifestKey && it.revision == manifest.revision }
+        return RuntimeInstallOperation(
+            operationId = operationId,
+            runtimeId = id.manifestKey,
+            abi = manifest.abi,
+            revision = manifest.revision,
+            phase = RuntimeInstallPhase.SELECTING,
+            sourceTrust = manifest.sourceTrust,
+            expectedSha256 = manifest.archive.sha256.takeIf(String::isNotBlank),
+            sourceUrl = manifest.archive.urls.firstOrNull().orEmpty(),
+            archivePath = archiveFile.absolutePath,
+            partPath = partFile.absolutePath,
+            downloadedBytes = partFile.takeIf(File::isFile)?.length() ?: 0L,
+            totalBytes = manifest.archive.sizeBytes,
+            attemptCount = (previousOperation?.attemptCount ?: 0) + 1,
+            updatedAt = System.currentTimeMillis(),
+            etag = previousOperation?.etag,
+            lastModified = previousOperation?.lastModified,
+        )
+    }
+
+    private fun storageFailure(manifest: RuntimeManifest): IllegalStateException? {
+        val need = manifest.installedBytes + manifest.archive.sizeBytes + SPACE_MARGIN_BYTES
+        val available = availableBytes(store.rootDir())
+        return if (available in 1 until need) {
+            IllegalStateException("存储空间不足：需要约 ${need / MB} MB，可用 ${available / MB} MB")
+        } else {
+            null
         }
     }
 
@@ -291,7 +313,13 @@ class RuntimeInstaller(
             operation?.let(operationStore::saveAtomic)
             staging.deleteRecursively()
             throw cancelled
-        } catch (error: Exception) {
+        } catch (error: IOException) {
+            staging.deleteRecursively()
+            operation = failedOperation(operation, error)
+            operation?.let(operationStore::saveAtomic)
+            Logger.e(TAG, "运行环境解包或切换失败: ${error.message}", error)
+            Result.failure(error)
+        } catch (error: IllegalStateException) {
             staging.deleteRecursively()
             operation = failedOperation(operation, error)
             operation?.let(operationStore::saveAtomic)
@@ -300,10 +328,7 @@ class RuntimeInstaller(
         }
     }
 
-    private fun failedOperation(
-        operation: RuntimeInstallOperation?,
-        error: Throwable,
-    ): RuntimeInstallOperation? {
+    private fun failedOperation(operation: RuntimeInstallOperation?, error: Throwable): RuntimeInstallOperation? {
         val phase = when (error) {
             is SocketTimeoutException, is IOException -> RuntimeInstallPhase.FAILED_RETRYABLE
             else -> RuntimeInstallPhase.FAILED_PERMANENT

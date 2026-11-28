@@ -29,10 +29,9 @@ class DocumentParserAdapter(
 ) {
 
     /** 旧链截断/上限标记识别:含「已截断」或「仅提取前」的方括号提示行。 */
-    internal fun detectTruncationMarker(text: String): String? =
-        text.lineSequence().map { it.trim() }.firstOrNull { line ->
-            line.startsWith("[…") && (line.contains("已截断") || line.contains("仅提取前"))
-        }
+    internal fun detectTruncationMarker(text: String): String? = text.lineSequence().map { it.trim() }.firstOrNull { line ->
+        line.startsWith("[…") && (line.contains("已截断") || line.contains("仅提取前"))
+    }
 
     /**
      * 正文是否有实际内容 —— 排除解析器附加的「[文档信息]」「[目录]」元数据块与截断提示行。

@@ -59,8 +59,7 @@ class StreamingAsrCoordinatorTest {
      * [FakeAsrController.finishIdle] 一发射状态时就同步恢复，
      * 否则断言只能观察到「等待协程从未被唤醒」，测不出自动发送逻辑本身。
      */
-    private fun TestScope.unconfinedScope(): CoroutineScope =
-        CoroutineScope(UnconfinedTestDispatcher(testScheduler))
+    private fun TestScope.unconfinedScope(): CoroutineScope = CoroutineScope(UnconfinedTestDispatcher(testScheduler))
 
     private fun mockContext(): Context {
         val ctx = mockk<Context>(relaxed = true)

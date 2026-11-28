@@ -1,8 +1,8 @@
 package io.zer0.muse.mcp
 
 import io.zer0.muse.data.SecureKeyStore
-import kotlinx.serialization.Serializable
 import io.zer0.muse.ui.common.SsrfGuard
+import kotlinx.serialization.Serializable
 
 /**
  * Phase 9.5 (M3): MCP 传输类型。
@@ -46,6 +46,9 @@ enum class McpConnectionState {
     NEEDS_AUTH,
 }
 
+/** User-visible progress for the current MCP browser authorization attempt. */
+enum class McpOAuthStatus { IDLE, REQUIRED, LAUNCHING, DENIED, FAILED, AUTHORIZED }
+
 /**
  * Phase 10.4 (M3): MCP OAuth 2.1 PKCE 配置。
  *
@@ -72,6 +75,7 @@ data class McpOAuthConfig(
     val authorizationEndpoint: String = "",
     val tokenEndpoint: String = "",
     val scopes: String = "",
+    val resource: String = "",
     val enabled: Boolean = false,
 )
 
@@ -191,6 +195,7 @@ data class McpServerConfig(
     val lastConnectedAt: Long = 0L,
     /** v1.0.92 (B-2): 等待该 server 工具就绪的超时(毫秒);多 server 同时等待时取最大值。 */
     val toolsReadyTimeoutMs: Long = 5_000L,
+    val environment: Map<String, String> = emptyMap(),
 ) {
     /**
      * 这条配置**现在是否可以发起连接** —— 必填字段按传输类型选。
@@ -226,6 +231,7 @@ data class McpServerConfig(
             if (isSensitiveHeader(key)) SecureKeyStore.encrypt(value) else value
         },
         authToken = SecureKeyStore.encrypt(authToken),
+        environment = environment.mapValues { (_, value) -> SecureKeyStore.encrypt(value) },
         feishuAuth = feishuAuth.encrypted(),
     )
 
@@ -248,6 +254,7 @@ data class McpServerConfig(
             if (isSensitiveHeader(key)) SecureKeyStore.decrypt(value) else value
         },
         authToken = SecureKeyStore.decrypt(authToken),
+        environment = environment.mapValues { (_, value) -> SecureKeyStore.decrypt(value) },
         feishuAuth = feishuAuth.decrypted(),
     )
 
@@ -269,8 +276,11 @@ data class McpServerConfig(
         val host = uri.host ?: return true
         val resolved = runCatching { java.net.InetAddress.getAllByName(host) }.getOrNull()
             ?: return true // 解析失败 → 保守拒绝
-        val all = resolved.filter { !it.isLoopbackAddress }
-        if (all.isEmpty()) return false // 全 loopback(localhost/127.x/::1)→ 允许本地 MCP
+        return isSsrfBlocked(resolved)
+    }
+
+    internal fun isSsrfBlocked(resolved: Array<java.net.InetAddress>): Boolean {
+        if (resolved.isNotEmpty() && resolved.all { it.isLoopbackAddress }) return false
         return SsrfGuard.isBlocked(url)
     }
 }

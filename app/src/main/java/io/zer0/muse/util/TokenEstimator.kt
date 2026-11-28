@@ -170,7 +170,7 @@ class MessageTokenCache {
 
     private companion object {
         /** 上限见 [count]：超过就整体清空。 */
-        const val MAX_CACHED_MESSAGES = 512
+        const val MAX_CACHED_MESSAGES = 256
     }
 
     /** 命中次数（测试与诊断用）。 */

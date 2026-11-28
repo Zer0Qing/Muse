@@ -3,7 +3,6 @@ package io.zer0.muse.rag
 import io.zer0.common.AppJson
 import io.zer0.muse.data.knowledge.KnowledgeDocEntity
 import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject

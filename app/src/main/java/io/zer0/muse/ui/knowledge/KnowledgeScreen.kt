@@ -8,13 +8,11 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -42,10 +40,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -53,7 +47,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import io.zer0.common.FileSizeFormatter
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.muse.R
@@ -62,7 +55,6 @@ import io.zer0.muse.data.knowledge.KnowledgeDocEntity
 import io.zer0.muse.rag.KnowledgeFolderBrowser
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
-import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseFloatingButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
@@ -75,18 +67,13 @@ import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.settings.SettingField
 import io.zer0.muse.ui.theme.MuseAnimation
-import io.zer0.muse.ui.theme.MuseDateFormats
-import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MuseIconSizes
-import io.zer0.muse.ui.theme.MuseMonoFontFamily
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.MuseSpacing
-import io.zer0.muse.ui.theme.bodyLargeStrong
-import io.zer0.muse.ui.theme.bodyMediumStrong
 import io.zer0.muse.ui.theme.semiLarge
-import io.zer0.muse.ui.theme.statusColors
+import io.zer0.muse.util.launchSafely
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -101,9 +88,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.koin.compose.koinInject
 import java.security.MessageDigest
-import java.util.Date
 import java.util.Locale
-import io.zer0.muse.util.launchSafely
 
 // L-KUI1: 内容截断上限,防止超大文档导致 OOM
 private const val MAX_CONTENT_LENGTH = 500_000
@@ -115,11 +100,7 @@ private const val META_COVERAGE_NOTE = "coverageNote"
 /**
  * 把解析覆盖度写进 metadata_json(与 folderPath 共存,不覆盖其它键)。
  */
-internal fun withParseCoverage(
-    metadataJson: String,
-    coverage: io.zer0.muse.knowledge.ingest.ParseCoverage,
-    coverageNote: String,
-): String {
+internal fun withParseCoverage(metadataJson: String, coverage: io.zer0.muse.knowledge.ingest.ParseCoverage, coverageNote: String): String {
     val existing = runCatching {
         io.zer0.common.AppJson.parseToJsonElement(metadataJson).jsonObject
     }.getOrDefault(JsonObject(emptyMap()))
@@ -133,15 +114,14 @@ internal fun withParseCoverage(
 }
 
 /** 读出文档的解析覆盖度;未写入过的旧文档返回 null(按完整处理,不改变旧行为)。 */
-internal fun parseCoverageOf(metadataJson: String): io.zer0.muse.knowledge.ingest.ParseCoverage? =
-    runCatching {
-        io.zer0.common.AppJson.parseToJsonElement(metadataJson)
-            .jsonObject[META_COVERAGE]
-            ?.jsonPrimitive
-            ?.content
-    }.getOrNull()?.let { name ->
-        io.zer0.muse.knowledge.ingest.ParseCoverage.entries.firstOrNull { it.name == name }
-    }
+internal fun parseCoverageOf(metadataJson: String): io.zer0.muse.knowledge.ingest.ParseCoverage? = runCatching {
+    io.zer0.common.AppJson.parseToJsonElement(metadataJson)
+        .jsonObject[META_COVERAGE]
+        ?.jsonPrimitive
+        ?.content
+}.getOrNull()?.let { name ->
+    io.zer0.muse.knowledge.ingest.ParseCoverage.entries.firstOrNull { it.name == name }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -162,9 +142,11 @@ fun KnowledgeScreen(
     chunkDao: io.zer0.muse.data.knowledge.KnowledgeChunkDao = koinInject(),
     assistantRepository: io.zer0.muse.data.assistant.AssistantRepository = koinInject(),
     database: io.zer0.muse.data.session.MuseDb = koinInject(),
+    appScope: kotlinx.coroutines.CoroutineScope = koinInject(),
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    var activeDeleteKeys by remember { mutableStateOf(emptySet<String>()) }
     // R3: 解析合同适配器 —— 解析型导入必须走 ParseOutcome,不能只看文本是否为空
     val documentParserAdapter = remember(documentParser) {
         io.zer0.muse.knowledge.ingest.DocumentParserAdapter(documentParser)
@@ -1868,34 +1850,48 @@ fun KnowledgeScreen(
                 title = stringResource(R.string.common_delete),
                 itemName = stringResource(R.string.kb_manage_delete_confirm, kb.name),
                 onConfirm = {
-                    scope.launch {
-                        // 与 knowledge_delete_kb 工具走同一级联：文档/分块/文件夹/绑定/助手引用一次清完
-                        when (val result = cascade.deleteKnowledgeBase(kb.id)) {
-                            is io.zer0.common.Result.Success -> {
-                                if (browsingKbId == kb.id) {
-                                    browsingKbId = null
-                                    currentFolderPath = ""
-                                }
-                                deletingKb = null
-                                MuseToast.show(context.getString(R.string.kb_manage_deleted, kb.name))
-                                val details = result.data
-                                Logger.i(
-                                    "KnowledgeScreen",
-                                    "删库 ${kb.id}: 文档 ${details.deletedDocs} 篇，" +
-                                        "内部文档改挂 ${details.reassignedInternalDocs} 篇，" +
-                                        "同步助手 ${details.detachedAssistants} 个",
-                                )
-                            }
+                    val kbToDelete = kb
+                    deletingKb = null
+                    val opKey = "kb:${kbToDelete.id}"
+                    if (opKey !in activeDeleteKeys) {
+                        activeDeleteKeys = activeDeleteKeys + opKey
+                        // 使用应用级长生命周期作用域，关闭弹窗或退出页面也不会中途打断删库事务
+                        appScope.launch(kotlinx.coroutines.NonCancellable) {
+                            try {
+                                when (val result = cascade.deleteKnowledgeBase(kbToDelete.id)) {
+                                    is io.zer0.common.Result.Success -> {
+                                        val details = result.data
+                                        Logger.i(
+                                            "KnowledgeScreen",
+                                            "删库 ${kbToDelete.id}: 文档 ${details.deletedDocs} 篇，" +
+                                                "内部文档改挂 ${details.reassignedInternalDocs} 篇，" +
+                                                "同步助手 ${details.detachedAssistants} 个",
+                                        )
+                                        withContext(Dispatchers.Main) {
+                                            if (browsingKbId == kbToDelete.id) {
+                                                browsingKbId = null
+                                                currentFolderPath = ""
+                                            }
+                                            MuseToast.show(context.getString(R.string.kb_manage_deleted, kbToDelete.name))
+                                        }
+                                    }
 
-                            is io.zer0.common.Result.Error -> {
-                                Logger.w("KnowledgeScreen", "删库失败: ${kb.id}: ${result.message}", result.throwable)
-                                deletingKb = null
-                                MuseToast.show(
-                                    context.getString(
-                                        R.string.knowledge_delete_failed_reason,
-                                        result.message.take(80).ifBlank { context.getString(R.string.common_load_failed) },
-                                    ),
-                                )
+                                    is io.zer0.common.Result.Error -> {
+                                        Logger.w("KnowledgeScreen", "删库失败: ${kbToDelete.id}: ${result.message}", result.throwable)
+                                        withContext(Dispatchers.Main) {
+                                            MuseToast.show(
+                                                context.getString(
+                                                    R.string.knowledge_delete_failed_reason,
+                                                    result.message.take(80).ifBlank { context.getString(R.string.common_load_failed) },
+                                                ),
+                                            )
+                                        }
+                                    }
+                                }
+                            } finally {
+                                withContext(Dispatchers.Main) {
+                                    activeDeleteKeys = activeDeleteKeys - opKey
+                                }
                             }
                         }
                     }
@@ -2034,22 +2030,30 @@ fun KnowledgeScreen(
                 if (kbNow == null || newName.isBlank()) {
                     if (newName.isBlank()) MuseToast.show(context.getString(R.string.knowledge_folder_name_empty))
                 } else {
-                    scope.launch {
+                    renamingFolder = null
+                    appScope.launch(kotlinx.coroutines.NonCancellable) {
                         // 文件夹行、文档 folderPath、助手文件夹作用域一起重写 ——
                         // 少改任何一边都会留下指向旧路径的失效绑定。
                         when (val result = cascade.renameFolder(kbNow, oldPath, newName)) {
                             is io.zer0.muse.tools.KnowledgeCascade.FolderResult.Ok -> {
-                                if (currentFolderPath == oldPath || currentFolderPath.startsWith("$oldPath/")) {
-                                    currentFolderPath = result.path + currentFolderPath.removePrefix(oldPath)
+                                withContext(Dispatchers.Main) {
+                                    if (currentFolderPath == oldPath || currentFolderPath.startsWith("$oldPath/")) {
+                                        currentFolderPath = result.path + currentFolderPath.removePrefix(oldPath)
+                                    }
+                                    MuseToast.show(context.getString(R.string.knowledge_folder_renamed, newName))
                                 }
-                                MuseToast.show(context.getString(R.string.knowledge_folder_renamed, newName))
                             }
                             io.zer0.muse.tools.KnowledgeCascade.FolderResult.NameConflict ->
-                                MuseToast.show(context.getString(R.string.knowledge_folder_name_duplicate, newName))
+                                withContext(Dispatchers.Main) {
+                                    MuseToast.show(context.getString(R.string.knowledge_folder_name_duplicate, newName))
+                                }
                             io.zer0.muse.tools.KnowledgeCascade.FolderResult.NotFound ->
-                                MuseToast.show(context.getString(R.string.knowledge_folder_deleted))
+                                withContext(Dispatchers.Main) {
+                                    MuseToast.show(context.getString(R.string.knowledge_folder_deleted))
+                                }
                         }
                     }
+                    return@KbEditDialog
                 }
                 renamingFolder = null
             },
@@ -2064,23 +2068,36 @@ fun KnowledgeScreen(
             title = stringResource(R.string.knowledge_folder_delete),
             itemName = stringResource(R.string.knowledge_folder_delete_confirm, path),
             onConfirm = {
+                deletingFolder = null
                 if (kbNow != null) {
-                    scope.launch {
-                        // 文档不删,只回根;助手里指向该目录（含子目录）的作用域同步移除
-                        when (val result = cascade.deleteFolder(kbNow, path)) {
-                            is io.zer0.muse.tools.KnowledgeCascade.FolderResult.Ok -> {
-                                if (currentFolderPath == path || currentFolderPath.startsWith("$path/")) {
-                                    currentFolderPath = KnowledgeFolderBrowser.parent(path)
+                    val opKey = "folder:$kbNow:$path"
+                    if (opKey !in activeDeleteKeys) {
+                        activeDeleteKeys = activeDeleteKeys + opKey
+                        appScope.launch(kotlinx.coroutines.NonCancellable) {
+                            try {
+                                when (val result = cascade.deleteFolder(kbNow, path)) {
+                                    is io.zer0.muse.tools.KnowledgeCascade.FolderResult.Ok -> {
+                                        withContext(Dispatchers.Main) {
+                                            if (currentFolderPath == path || currentFolderPath.startsWith("$path/")) {
+                                                currentFolderPath = KnowledgeFolderBrowser.parent(path)
+                                            }
+                                            MuseToast.show(context.getString(R.string.knowledge_folder_deleted))
+                                        }
+                                    }
+                                    io.zer0.muse.tools.KnowledgeCascade.FolderResult.NameConflict,
+                                    io.zer0.muse.tools.KnowledgeCascade.FolderResult.NotFound,
+                                    -> withContext(Dispatchers.Main) {
+                                        MuseToast.show(context.getString(R.string.knowledge_folder_deleted))
+                                    }
                                 }
-                                MuseToast.show(context.getString(R.string.knowledge_folder_deleted))
+                            } finally {
+                                withContext(Dispatchers.Main) {
+                                    activeDeleteKeys = activeDeleteKeys - opKey
+                                }
                             }
-                            io.zer0.muse.tools.KnowledgeCascade.FolderResult.NameConflict,
-                            io.zer0.muse.tools.KnowledgeCascade.FolderResult.NotFound,
-                            -> MuseToast.show(context.getString(R.string.knowledge_folder_deleted))
                         }
                     }
                 }
-                deletingFolder = null
             },
             onDismiss = { deletingFolder = null },
         )

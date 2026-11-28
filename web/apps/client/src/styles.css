@@ -996,6 +996,19 @@ textarea.host-input:disabled { opacity: var(--muse-color-alpha-action-content-di
 .host-approval pre { max-height: 42vh; overflow: auto; margin: var(--muse-space-content-gap) 0; padding: var(--muse-space-input-padding); border-radius: var(--muse-radius-small); color: var(--ink-soft); background: var(--host-veil); font-family: var(--font-mono); font-size: var(--muse-type-scale-body-small-font-size); line-height: var(--muse-type-scale-body-small-line-height); white-space: pre-wrap; overflow-wrap: anywhere; }
 .host-approval-actions { display: flex; gap: var(--muse-space-content-gap); }
 .host-approval-actions > button { flex: 1 1 0; min-height: var(--host-touch-min); }
+.mcp-server-list { display: flex; flex-direction: column; gap: var(--muse-space-content-gap); margin-top: var(--muse-space-content-gap); }
+.mcp-server { display: flex; flex-direction: column; gap: var(--muse-space-tight-gap); padding: var(--muse-space-input-padding); border: var(--host-hairline) solid var(--border); border-radius: var(--muse-radius-semi-large); background: var(--host-veil); }
+.mcp-server > div:first-child { display: flex; justify-content: space-between; gap: var(--muse-space-content-gap); }
+.mcp-server small { color: var(--ink-soft); overflow-wrap: anywhere; }
+.mcp-server-actions { display: flex; gap: var(--muse-space-content-gap); }
+.mcp-server-actions > button { flex: 1 1 0; }
+.mcp-approval-card { margin: 0 var(--muse-space-input-padding) var(--muse-space-content-gap); padding: var(--muse-space-input-padding); border: var(--host-hairline) solid var(--host-danger-line); border-radius: var(--muse-radius-semi-large); background: var(--host-danger-veil); }
+.mcp-approval-card > b { color: var(--danger); }
+.mcp-approval-card > p { margin: var(--muse-space-content-gap) 0; overflow-wrap: anywhere; }
+.mcp-approval-card > pre { max-height: 32vh; overflow: auto; padding: var(--muse-space-input-padding); border-radius: var(--muse-radius-small); background: var(--host-veil); white-space: pre-wrap; overflow-wrap: anywhere; }
+.mcp-approval-actions { display: flex; gap: var(--muse-space-content-gap); }
+.mcp-approval-actions > button { flex: 1 1 0; min-height: var(--host-touch-min); }
+.mcp-mode-hint { margin: 0 var(--muse-space-input-padding) var(--muse-space-tight-gap); color: var(--ink-soft); font-size: var(--muse-type-scale-body-small-font-size); }
 button.host-approve { color: var(--on-accent); background: var(--accent); }
 button.quiet.host-deny { color: var(--danger); background: var(--host-danger-soft); }
 button.quiet.host-deny:hover { color: var(--danger); background: var(--host-danger-soft); }

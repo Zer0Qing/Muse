@@ -6,6 +6,7 @@ import io.zer0.muse.computenode.ComputeTarget
 import io.zer0.muse.computenode.ComputeTargetRouter
 import io.zer0.muse.computenode.ExecKind
 import io.zer0.muse.computenode.ExecRequest
+import io.zer0.muse.computenode.MuseNodeException
 import io.zer0.muse.computenode.RemoteComputeRuntime
 import io.zer0.muse.computenode.TaskCategory
 import io.zer0.muse.runtime.NodeLauncher
@@ -57,7 +58,11 @@ object NodeScriptTool {
         riskLevel = ToolRiskLevel.HIGH,
     )
 
-    suspend fun execute(context: Context, args: Map<String, String>): String {
+    suspend fun execute(
+        context: Context,
+        args: Map<String, String>,
+        onRemoteExecStarted: (suspend (nodeId: String, remoteRunId: String) -> Unit)? = null,
+    ): String {
         val code = args["code"].orEmpty()
         val timeoutMs = args["timeout_ms"]?.toLongOrNull()?.coerceIn(1L, MAX_TIMEOUT_MS) ?: DEFAULT_TIMEOUT_MS
         if (code.isBlank()) return errorJson("参数 code 缺失或为空")
@@ -73,13 +78,16 @@ object NodeScriptTool {
                 }
         } catch (e: CancellationException) {
             throw e
-        } catch (e: Exception) {
+        } catch (e: MuseNodeException) {
+            Logger.w("NodeScriptTool", "解析算力目标失败: ${e.message}", e)
+            return errorJson("云端电脑不可用: ${e.message}")
+        } catch (e: RuntimeException) {
             Logger.w("NodeScriptTool", "解析算力目标失败: ${e.message}", e)
             return errorJson("云端电脑不可用: ${e.message}")
         }
         if (computeTarget is ComputeTarget.RemoteNode) {
             val runtime = remoteRuntime ?: return errorJson("云端电脑未配置")
-            return executeRemote(code, timeoutMs, computeTarget, runtime)
+            return executeRemote(code, timeoutMs, computeTarget, runtime, onRemoteExecStarted)
         }
         return when {
             !NodeLauncher.isAvailable(context) -> RuntimeMissing.toJson()
@@ -93,6 +101,7 @@ object NodeScriptTool {
         timeoutMs: Long,
         target: ComputeTarget.RemoteNode,
         runtime: RemoteComputeRuntime,
+        onRemoteExecStarted: (suspend (nodeId: String, remoteRunId: String) -> Unit)?,
     ): String {
         val outcome = try {
             runtime.execute(
@@ -103,10 +112,14 @@ object NodeScriptTool {
                     cwd = "~/muse-workspace",
                     timeoutSec = (timeoutMs / 1000).coerceIn(1L, 3600L).toInt(),
                 ),
+                onRemoteExecStarted = onRemoteExecStarted,
             )
         } catch (e: CancellationException) {
             throw e
-        } catch (e: Exception) {
+        } catch (e: MuseNodeException) {
+            Logger.w("NodeScriptTool", "云端执行失败: ${e.message}", e)
+            return errorJson("云端执行失败: ${e.message}")
+        } catch (e: RuntimeException) {
             Logger.w("NodeScriptTool", "云端执行失败: ${e.message}", e)
             return errorJson("云端执行失败: ${e.message}")
         }

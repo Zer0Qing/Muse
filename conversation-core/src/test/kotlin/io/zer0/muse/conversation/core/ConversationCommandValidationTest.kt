@@ -16,13 +16,12 @@ import org.junit.Test
  */
 class ConversationCommandValidationTest {
 
-    private fun submit(text: String, sessionId: String = "s1", commandId: String = "c1") =
-        ConversationCommand.Submit(
-            commandId = commandId,
-            sessionId = sessionId,
-            text = text,
-            selectionSetId = "sel-1",
-        )
+    private fun submit(text: String, sessionId: String = "s1", commandId: String = "c1") = ConversationCommand.Submit(
+        commandId = commandId,
+        sessionId = sessionId,
+        text = text,
+        selectionSetId = "sel-1",
+    )
 
     private fun editUser(content: String, messageId: String = "m1") = ConversationCommand.EditUser(
         commandId = "c1",

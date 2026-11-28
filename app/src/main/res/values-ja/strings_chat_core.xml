@@ -552,6 +552,7 @@
     <string name="backup_import_error_version">バックアップのバージョンが新しすぎるか古すぎます。</string>
     <string name="backup_import_error_missing">バックアップファイルが見つかりません。移動または削除された可能性があります。</string>
     <string name="backup_import_error_space">空き容量が不足しています。容量を確保して再試行してください。</string>
+    <string name="backup_import_error_empty">バックアップファイルが空（0 バイト）のため、インポートできる内容がありません。エクスポートが中断されていないか確認するか、別のバックアップをお試しください。</string>
     <string name="backup_import_error_unknown">バックアップが無効です。以前の状態に戻しました。</string>
     <string name="onboarding_connect_error_unauthorized">API キーが無効か期限切れです。もう一度入力してください。</string>
     <string name="onboarding_connect_error_forbidden">アクセスが拒否されました。このキーでモデルを利用できるか確認してください。</string>

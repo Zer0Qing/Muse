@@ -2,7 +2,6 @@ package io.zer0.muse.data.chat.rewrite
 
 import io.zer0.muse.data.session.ConversationTurnEntity
 import io.zer0.muse.data.session.SessionRepository
-import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * 对话重构适配层。

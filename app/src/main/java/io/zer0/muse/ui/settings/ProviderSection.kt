@@ -215,12 +215,7 @@ private fun ProviderCollisionWarning(providers: List<ProviderConfig>) {
 }
 
 @Composable
-private fun ProviderCategoryHeader(
-    title: String,
-    showTestAll: Boolean,
-    isTestingAll: Boolean,
-    onTestAll: () -> Unit,
-) {
+private fun ProviderCategoryHeader(title: String, showTestAll: Boolean, isTestingAll: Boolean, onTestAll: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -403,8 +398,6 @@ internal fun ProviderRow(
                 } else {
                     MaterialTheme.colorScheme.onSurface
                 },
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
             )
             Text(
                 text = subtitleText,

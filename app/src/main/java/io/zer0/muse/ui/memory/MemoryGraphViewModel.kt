@@ -138,21 +138,23 @@ class MemoryGraphViewModel(
     /** 按事实行自身的作用域键删除;false = 没删。 */
     private suspend fun deleteFactScoped(factId: Long, scope: String?, spaceId: String): Boolean {
         val store = storeForScope(scope)
-        val fact = store.getById(factId) ?: return false
-        if (fact.spaceId != spaceId) return false
-        if (scope != null && fact.scope != scope) return false
-        val unified = memoryUseCases
-        if (unified != null) {
-            val key = MemoryScopeKey(assistantIdForScope(fact.scope), fact.scope, fact.spaceId)
-            when (unified.delete(DeleteMemoryRequest(key, factId))) {
-                is DeleteMemoryResult.Deleted -> return true
-                // 历史数据里子助手 scope 的行可能物理上就在默认库(分库迁移之前写入),
-                // 按 scope 路由的分库找不到它。这种行本页确实读到了,就该能删。
-                is DeleteMemoryResult.Missing -> Unit
-                is DeleteMemoryResult.Rejected -> return false
+        val fact = store.getById(factId)
+        when {
+            fact == null -> false
+            fact.spaceId != spaceId -> false
+            scope != null && fact.scope != scope -> false
+            memoryUseCases != null -> {
+                val key = MemoryScopeKey(assistantIdForScope(fact.scope), fact.scope, fact.spaceId)
+                when (memoryUseCases.delete(DeleteMemoryRequest(key, factId))) {
+                    is DeleteMemoryResult.Deleted -> true
+                    // 历史数据里子助手 scope 的行可能物理上就在默认库(分库迁移之前写入),
+                    // 按 scope 路由的分库找不到它。这种行本页确实读到了,就该能删。
+                    is DeleteMemoryResult.Missing -> store.delete(factId, store.assistantId, fact.scope, fact.spaceId)
+                    is DeleteMemoryResult.Rejected -> false
+                }
             }
+            else -> store.delete(factId, store.assistantId, fact.scope, fact.spaceId)
         }
-        return store.delete(factId, store.assistantId, fact.scope, fact.spaceId)
     }
 
     /**
@@ -206,20 +208,25 @@ class MemoryGraphViewModel(
      */
     private suspend fun toggleFactPin(factId: Long, scope: String?, spaceId: String): FactPinResult {
         val store = storeForScope(scope)
-        val fact = store.getById(factId) ?: return FactPinResult.Missing
-        if (fact.scope != (scope ?: "main") || fact.spaceId != spaceId) {
-            return FactPinResult.Rejected("memory belongs to another space")
-        }
-        val unified = memoryUseCases
-        if (unified != null) {
-            return unified.toggleFactPinned(
+        val fact = store.getById(factId)
+        when {
+            fact == null -> FactPinResult.Missing
+            fact.scope != (scope ?: "main") || fact.spaceId != spaceId -> {
+                FactPinResult.Rejected("memory belongs to another space")
+            }
+            memoryUseCases != null -> memoryUseCases.toggleFactPinned(
                 MemoryScopeKey(assistantIdForScope(fact.scope), fact.scope, fact.spaceId),
                 factId,
             )
+            else -> {
+                val target = fact.pinnedAt == null
+                if (store.setPinned(factId, target, fact.scope, fact.spaceId)) {
+                    FactPinResult.Changed(target)
+                } else {
+                    FactPinResult.Missing
+                }
+            }
         }
-        val target = fact.pinnedAt == null
-        if (!store.setPinned(factId, target, fact.scope, fact.spaceId)) return FactPinResult.Missing
-        return FactPinResult.Changed(target)
     }
 
     /** 主助手在 assistantId 维度的名字是 "default",子助手用自己的 scope 名。 */

@@ -99,10 +99,7 @@ class ReviewBeforePublicationTest {
         dir.deleteRecursively()
     }
 
-    private suspend fun taskAndRun(
-        sessionId: String,
-        resourceScope: String = "notes.md",
-    ): Pair<BotTaskEntity, TaskRunEntity> {
+    private suspend fun taskAndRun(sessionId: String, resourceScope: String = "notes.md"): Pair<BotTaskEntity, TaskRunEntity> {
         val task = repo.createTask(
             botId = "bot-1",
             originSessionId = sessionId,

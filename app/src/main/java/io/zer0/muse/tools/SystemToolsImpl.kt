@@ -4,9 +4,9 @@ import android.annotation.SuppressLint
 import android.content.Context
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
-import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.R
 import io.zer0.muse.notification.MuseNotificationListenerService
+import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.util.MusePatterns
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.withTimeoutOrNull

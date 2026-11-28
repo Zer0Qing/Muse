@@ -83,7 +83,7 @@ internal object ToolDataPrivacy {
         else -> element
     }
 
-    private fun redactText(text: String): String {
+    internal fun redactText(text: String): String {
         var value = text
         value = Regex(
             """(?i)(api[\s_-]?key|access[\s_-]?token|refresh[\s_-]?token|authorization|cookie|password|passwd|secret|private[\s_-]?key|jwt|pin|webhook|token)\s*[:=]?\s*["']?[A-Za-z0-9._~+/=-]{6,}""",

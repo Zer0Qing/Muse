@@ -1,5 +1,9 @@
 package io.zer0.muse.tools
-import io.zer0.muse.ui.chat.ChatViewModel
+
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
 /**
  * P2-23: 媒体生成工具注册器(图片 / 视频 / 二维码)。
@@ -41,6 +45,10 @@ class MediaGenToolsRegistrar(
                 required = setOf("prompt"),
                 riskLevel = ToolRiskLevel.HIGH,
                 parameterTypes = mapOf("n" to "integer"),
+                parameterEnums = mapOf(
+                    "quality" to listOf("standard", "hd"),
+                    "style" to listOf("vivid", "natural"),
+                ),
             ),
         ) { args -> impl.execGenerateImage(args) }
 
@@ -55,10 +63,22 @@ class MediaGenToolsRegistrar(
                     "provider_id" to "供应商 ID;未指定时自动选择第一个支持视频输出的供应商",
                     "duration" to "视频时长(秒),仅支持 5 或 10,默认 5",
                     "resolution" to "分辨率,如 720p / 1080p,默认 720p",
+                    "aspect_ratio" to "画面比例,如 16:9 / 9:16 / 1:1",
+                    "reference_image" to "首帧或参考图 URL/base64;本地参考图由用户在审批卡片中选择后注入,LLM 无需填写",
                 ),
                 required = setOf("prompt"),
                 riskLevel = ToolRiskLevel.HIGH,
                 parameterTypes = mapOf("duration" to "integer"),
+                parameterEnums = mapOf(
+                    "resolution" to listOf("720p", "1080p"),
+                    "aspect_ratio" to listOf("16:9", "9:16", "1:1"),
+                ),
+                parameterSchemas = mapOf(
+                    "duration" to buildJsonObject {
+                        put("type", "integer")
+                        put("enum", JsonArray(listOf(JsonPrimitive(5), JsonPrimitive(10))))
+                    },
+                ),
             ),
         ) { args -> impl.execGenerateVideo(args) }
 

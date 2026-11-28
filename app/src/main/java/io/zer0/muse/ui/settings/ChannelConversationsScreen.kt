@@ -1,5 +1,6 @@
 package io.zer0.muse.ui.settings
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -13,8 +14,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -22,31 +25,63 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.R
+import io.zer0.muse.channel.ChannelContactMetaStore
 import io.zer0.muse.channel.ChannelConversationStore
 import io.zer0.muse.channel.ChannelInbox
+import io.zer0.muse.channel.ChannelManager
+import io.zer0.muse.channel.ChannelPlatform
+import io.zer0.muse.channel.ChannelRuntimeRegistry
+import io.zer0.muse.ui.channel.ChannelTagPill
+import io.zer0.muse.ui.channel.ContactAvatarWithPlatform
+import io.zer0.muse.ui.channel.LiveStatusPill
 import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.navigation.MuseTopBar
-import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.common.surface.MusePageScaffold
+import io.zer0.muse.ui.theme.MuseAlpha
+import io.zer0.muse.ui.theme.MuseBorderWidth
+import io.zer0.muse.ui.theme.MuseButtonSize
+import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.MuseSpacing
+import io.zer0.muse.ui.theme.statusColors
+import org.koin.compose.koinInject
 import java.util.Date
-import java.util.Locale
 
 /**
- * v2.0.1: 渠道对话页 — 按渠道查看各联系人的对话记录与上下文状态。
- *
- * 数据源:[ChannelConversationStore](与自动回复同一份存储);
- * 每个联系人一段对话,支持展开查看最近消息,可"重启上下文"(清空该对话历史与摘要)。
+ * 渠道会话列表页 — 按单渠道查看联系人会话记录、实时连接状态、接管标志与失败重试。
  */
 @Composable
 fun ChannelConversationsScreen(channelId: String, onBack: () -> Unit, onOpenConversation: (String) -> Unit) {
+    val context = LocalContext.current
+    val manager: ChannelManager = koinInject()
+    val channels by manager.channels.collectAsStateWithLifecycle(initialValue = emptyList())
+    val statuses by ChannelRuntimeRegistry.statuses.collectAsStateWithLifecycle()
     val conversations by ChannelConversationStore.conversations.collectAsStateWithLifecycle()
+    val metas by ChannelContactMetaStore.metas.collectAsStateWithLifecycle()
+    val inbox by ChannelInbox.messages.collectAsStateWithLifecycle()
+
+    LaunchedEffect(Unit) {
+        manager.refresh()
+        ChannelInbox.attach(context)
+        ChannelConversationStore.attach(context)
+        ChannelContactMetaStore.attach(context)
+    }
+
+    val channelConfig = channels.firstOrNull { it.id == channelId }
+    val platform = channelConfig?.platform ?: ChannelPlatform.FEISHU
+    val groupLabel = stringResource(R.string.channel_contact_group_label)
+
     val entries = remember(conversations, channelId) {
         conversations
             .filterKeys { key -> key.startsWith("$channelId|") }
@@ -54,27 +89,25 @@ fun ChannelConversationsScreen(channelId: String, onBack: () -> Unit, onOpenConv
             .sortedByDescending { (_, conversation) -> conversation.updatedAt }
     }
     var resetTarget by remember { mutableStateOf<String?>(null) }
-    // 最近一次失败的派发：错误码此前只落库不展示，用户只能猜“它为什么不回”。
-    // 群聊里「不在群里」和「被动回复超时」的处置完全不同，必须显出来。
-    val inbox by ChannelInbox.messages.collectAsStateWithLifecycle()
-    val lastFailure = remember(inbox, channelId) {
+    val blockedLatest = remember(inbox, channelId) {
         inbox
-            .filter { item -> item.sourceChannelId == channelId && item.dispatchErrorCode.isNotBlank() }
-            .maxByOrNull { item -> item.timestamp }
-            ?.dispatchErrorCode
-            .orEmpty()
+            .filter {
+                it.sourceChannelId == channelId &&
+                    it.dispatchState == ChannelInbox.DispatchState.BLOCKED &&
+                    it.dispatchErrorCode.isNotBlank()
+            }
+            .maxByOrNull { it.timestamp }
     }
 
     MusePageScaffold(
         topBar = {
             MuseTopBar(
-                title = stringResource(R.string.channel_conversations_title),
+                title = channelConfig?.name?.ifBlank { null } ?: stringResource(R.string.channel_conversations_title),
                 onBack = onBack,
             )
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { innerPadding ->
-        // v2.0.1: 沿用设置域既有防抖模式(BoxWithConstraints 收口有限高度)。
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
@@ -89,22 +122,58 @@ fun ChannelConversationsScreen(channelId: String, onBack: () -> Unit, onOpenConv
                     .fillMaxWidth()
                     .heightIn(max = boundedHeight),
                 contentPadding = PaddingValues(
-                    start = MusePaddings.screen,
-                    end = MusePaddings.screen,
-                    top = 12.dp,
-                    bottom = 24.dp,
+                    start = MusePaddings.pageMargin,
+                    end = MusePaddings.pageMargin,
+                    top = MusePaddings.contentGap,
+                    bottom = MusePaddings.largeGap,
                 ),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(MusePaddings.itemGap),
             ) {
-                if (lastFailure.isNotBlank()) {
-                    item(key = "last_failure") { FailureBanner(lastFailure) }
+                if (channelConfig != null) {
+                    item(key = "channel_status_bar") {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
+                        ) {
+                            LiveStatusPill(
+                                enabled = channelConfig.enabled,
+                                status = statuses[channelId],
+                            )
+                            Text(
+                                text = stringResource(R.string.channel_card_chats_count, entries.size),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                }
+                if (blockedLatest != null) {
+                    item(key = "last_failure") {
+                        FailureBanner(
+                            message = blockedLatest.dispatchErrorCode,
+                            onRetry = {
+                                if (ChannelInbox.retryBlocked(blockedLatest.dispatchId)) {
+                                    MuseToast.show(context.getString(R.string.channel_retry_enqueued))
+                                }
+                            },
+                        )
+                    }
                 }
                 if (entries.isEmpty()) {
                     item(key = "empty") { EmptyHint() }
                 }
                 items(entries, key = { (from, _) -> from }) { (from, conversation) ->
+                    val meta = metas[ChannelContactMetaStore.key(channelId, from)]
+                    val resolvedName = ChannelContactMetaStore.resolvedName(channelId, from, groupLabel)
+                    val isGroup = meta?.isGroup == true || from.startsWith("group:")
                     ConversationCard(
-                        from = from,
+                        displayName = resolvedName,
+                        platform = platform,
+                        isGroup = isGroup,
+                        aiPaused = meta?.aiPaused == true,
                         conversation = conversation,
                         onOpen = { onOpenConversation(from) },
                         onReset = { resetTarget = from },
@@ -124,7 +193,6 @@ fun ChannelConversationsScreen(channelId: String, onBack: () -> Unit, onOpenConv
     )
 }
 
-/** 重启上下文确认。抽出只为控制主函数长度，逻辑本身没分支。 */
 @Composable
 private fun ResetContextDialog(target: String?, onConfirm: (String) -> Unit, onDismiss: () -> Unit) {
     val from = target ?: return
@@ -140,65 +208,80 @@ private fun ResetContextDialog(target: String?, onConfirm: (String) -> Unit, onD
     )
 }
 
-/**
- * 单个联系人的入口卡。
- *
- * 只回答三件事：谁、最后说了什么、什么时候。正文详情点进去看 ——
- * 摊在列表里既读不出上下文，也把列表变成一堵字墙。
- */
 @Composable
-private fun ConversationCard(from: String, conversation: ChannelConversationStore.Conversation, onOpen: () -> Unit, onReset: () -> Unit) {
+private fun ConversationCard(
+    displayName: String,
+    platform: ChannelPlatform,
+    isGroup: Boolean,
+    aiPaused: Boolean,
+    conversation: ChannelConversationStore.Conversation,
+    onOpen: () -> Unit,
+    onReset: () -> Unit,
+) {
     val turns = conversation.turns
     val lastTurn = turns.lastOrNull()
     val timeText = remember(conversation.updatedAt) {
-        if (conversation.updatedAt <= 0L) {
-            ""
-        } else {
-            MuseDateFormats.dateTimeShort().format(Date(conversation.updatedAt))
-        }
+        if (conversation.updatedAt <= 0L) "" else MuseDateFormats.dateTimeShort().format(Date(conversation.updatedAt))
     }
+    val colors = MaterialTheme.statusColors
 
-    CardGroup(modifier = Modifier.fillMaxWidth()) {
-        item {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onOpen),
+        shape = MuseShapes.large,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(
+            MuseBorderWidth.hairline,
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = MuseAlpha.divider),
+        ),
+    ) {
+        Row(
+            modifier = Modifier.padding(MusePaddings.cardInner),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+        ) {
+            ContactAvatarWithPlatform(
+                displayName = displayName,
+                platform = platform,
+                isGroup = isGroup,
+            )
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(onClick = onOpen)
-                    .padding(MusePaddings.cardInner),
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(MuseSpacing.xs),
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    horizontalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
                 ) {
                     Text(
-                        text = prettifyContactLabel(
-                            raw = from,
-                            groupLabel = stringResource(R.string.channel_contact_group_label),
-                        ),
+                        text = displayName,
                         style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Medium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f),
                     )
-                    Text(
+                    if (aiPaused) {
+                        ChannelTagPill(
+                            text = stringResource(R.string.channel_badge_manual_paused),
+                            containerColor = colors.warningContainer,
+                            contentColor = colors.warning,
+                        )
+                    }
+                    MuseCapsuleButton(
                         text = stringResource(R.string.channel_conversation_reset),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.error,
-                        // LAYOUT-01: 右侧动作是定宽短标注(剩余宽度已归左侧联系人名的 weight),限 1 行兜底。
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier
-                            .clickable(onClick = onReset)
-                            .padding(horizontal = 4.dp, vertical = 2.dp),
+                        onClick = onReset,
+                        variant = IosCapsuleButtonVariant.Text,
+                        fillWidth = false,
+                        size = MuseButtonSize.Compact,
                     )
                 }
                 Text(
                     text = stringResource(R.string.channel_conversation_meta, turns.size, timeText),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 2.dp),
                 )
                 LastTurnPreview(lastTurn)
                 if (conversation.summary.isNotBlank()) {
@@ -209,12 +292,7 @@ private fun ConversationCard(from: String, conversation: ChannelConversationStor
     }
 }
 
-/**
- * 联系人 id 展示美化。
- *
- * 群目标存成 `group:<openid>`，直接显示会带前缀且超长，
- * 这里把前缀转成可读标签并对长 id 保留首尾。
- */
+/** 联系人 id 展示美化。 */
 internal fun prettifyContactLabel(raw: String, groupLabel: String = "Group"): String {
     val isGroup = raw.startsWith("group:")
     val core = raw.removePrefix("group:")
@@ -222,29 +300,48 @@ internal fun prettifyContactLabel(raw: String, groupLabel: String = "Group"): St
     return if (isGroup) groupLabel + " " + shown else shown
 }
 
-/** 最近一次发送失败提示。放列表最上方，因为它是"为什么它不回"的直接答案。 */
 @Composable
-private fun FailureBanner(message: String) {
-    Text(
-        text = stringResource(R.string.channel_last_failure, message),
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.error,
-        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
-    )
+private fun FailureBanner(message: String, onRetry: () -> Unit) {
+    val colors = MaterialTheme.statusColors
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MuseShapes.medium,
+        color = colors.errorContainer,
+    ) {
+        Row(
+            modifier = Modifier.padding(MusePaddings.cardInner),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
+        ) {
+            Text(
+                text = stringResource(R.string.channel_last_failure, message),
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.error,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            MuseCapsuleButton(
+                text = stringResource(R.string.channel_card_retry_now),
+                onClick = onRetry,
+                variant = IosCapsuleButtonVariant.Text,
+                fillWidth = false,
+                size = MuseButtonSize.Compact,
+            )
+        }
+    }
 }
 
-/** 空态。单独成函数只是为了不让主函数继续变长。 */
 @Composable
 private fun EmptyHint() {
     Text(
         text = stringResource(R.string.channel_conversations_empty),
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(horizontal = 8.dp, vertical = 32.dp),
+        modifier = Modifier.padding(MusePaddings.largeGap),
     )
 }
 
-/** 最后一条消息的预览。 */
 @Composable
 private fun LastTurnPreview(turn: ChannelConversationStore.Turn?) {
     val current = turn ?: return
@@ -265,11 +362,9 @@ private fun LastTurnPreview(turn: ChannelConversationStore.Turn?) {
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         maxLines = 2,
         overflow = TextOverflow.Ellipsis,
-        modifier = Modifier.padding(top = 6.dp),
     )
 }
 
-/** 更早对话的滚动摘要。 */
 @Composable
 private fun SummaryLine(summary: String) {
     Text(
@@ -278,6 +373,5 @@ private fun SummaryLine(summary: String) {
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
-        modifier = Modifier.padding(top = 4.dp),
     )
 }

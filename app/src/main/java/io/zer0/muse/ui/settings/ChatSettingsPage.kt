@@ -1,22 +1,11 @@
 package io.zer0.muse.ui.settings
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -29,26 +18,15 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import io.zer0.common.Logger
-import io.zer0.muse.ui.theme.MuseCornerRadius
 import io.zer0.muse.R
-import io.zer0.muse.data.ChatGradient
 import io.zer0.muse.data.ChatPreferences
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.tools.SessionPermissionMode
 import io.zer0.muse.ui.common.feedback.MuseDialog
-import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.MuseChip
-import io.zer0.muse.ui.common.form.MuseSlider
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.settings.SettingsSegmentedRow
@@ -58,17 +36,10 @@ import io.zer0.muse.ui.common.surface.navigationItem
 import io.zer0.muse.ui.common.surface.switchItem
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
-import io.zer0.muse.ui.theme.MuseSpacing
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
-import io.zer0.muse.ui.chat.InputBar
-import io.zer0.muse.ui.chat.MessageBubble
-import io.zer0.muse.ui.chat.ChatScreen
-import io.zer0.muse.util.launchSafely
 
 /**
  * v0.31: 聊天二级设置页 — 给用户更多控制权。
@@ -91,6 +62,8 @@ fun ChatSettingsPage(
     onOpenQuickActions: () -> Unit = {},
     /** 打开工具与权限设置页（全局默认审批策略主归属页）。 */
     onOpenToolsSettings: () -> Unit = {},
+    /** 打开表情包库独立设置页。 */
+    onOpenStickers: () -> Unit = {},
 ) {
     val settings: SettingsRepository = koinInject()
     val prefs by settings.chatPreferencesFlow.collectAsStateWithLifecycle(initialValue = ChatPreferences())
@@ -151,240 +124,6 @@ fun ChatSettingsPage(
             }
         }
 
-        // ── 聊天背景（亮色图 / 深色图 / 渐变）合并为一张卡 ──
-        item(key = "chat_background_group") {
-            val chatBackground by settings.chatBackgroundFlow.collectAsStateWithLifecycle(initialValue = null)
-            val darkBg by settings.chatBackgroundDarkFlow.collectAsStateWithLifecycle(initialValue = null)
-            val chatGradient by settings.chatGradientFlow.collectAsStateWithLifecycle(initialValue = null)
-            val bgContext = LocalContext.current
-            val bgLauncher =
-                rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
-                    uri?.let { picked ->
-                        scope.launch {
-                            val savedPath =
-                                withContext(Dispatchers.IO) {
-                                    runCatching {
-                                        val bytes =
-                                            bgContext.contentResolver.openInputStream(picked)?.use { it.readBytes() }
-                                                ?: return@runCatching null
-                                        val bmp =
-                                            android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                                                ?: return@runCatching null
-                                        val maxSide = 1920
-                                        val scale = minOf(1f, maxSide.toFloat() / maxOf(bmp.width, bmp.height))
-                                        val scaled =
-                                            if (scale < 1f) {
-                                                android.graphics.Bitmap.createScaledBitmap(
-                                                    bmp,
-                                                    (bmp.width * scale).toInt(),
-                                                    (bmp.height * scale).toInt(),
-                                                    true,
-                                                )
-                                            } else {
-                                                bmp
-                                            }
-                                        val out = java.io.ByteArrayOutputStream()
-                                        scaled.compress(android.graphics.Bitmap.CompressFormat.JPEG, 82, out)
-                                        if (scaled !== bmp) scaled.recycle()
-                                        bmp.recycle()
-                                        val target = java.io.File(bgContext.filesDir, "chat_background.jpg")
-                                        java.io.FileOutputStream(target).use { fos -> fos.write(out.toByteArray()) }
-                                        out.close()
-                                        "file://" + target.absolutePath
-                                    }
-                                        .onFailure { e ->
-                                            Logger.w(
-                                                "ChatSettings",
-                                                "设置聊天背景失败 uri=$picked | 原因: ${e.message ?: e.javaClass.simpleName}",
-                                                e,
-                                            )
-                                        }
-                                        .getOrNull()
-                                }
-                            if (savedPath != null) {
-                                settings.saveChatBackground(savedPath)
-                                MuseToast.show(bgContext.getString(R.string.settings_chat_background_saved))
-                            } else {
-                                MuseToast.show(bgContext.getString(R.string.settings_chat_background_failed))
-                            }
-                        }
-                    }
-                }
-            val darkBgLauncher =
-                rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
-                    uri?.let { picked ->
-                        scope.launch {
-                            val savedPath = withContext(Dispatchers.IO) {
-                                ChatBackgroundStore.saveFromUri(bgContext, picked, "chat_background_dark")
-                            }
-                            if (savedPath != null) {
-                                settings.saveChatBackgroundDark(savedPath)
-                                MuseToast.show(bgContext.getString(R.string.settings_chat_background_saved))
-                            } else {
-                                MuseToast.show(bgContext.getString(R.string.chat_background_save_failed))
-                            }
-                        }
-                    }
-                }
-            CardGroup(title = { Text(stringResource(R.string.settings_chat_background_section)) }) {
-                item(
-                    key = "bg_light",
-                    onClick = { bgLauncher.launchSafely("image/*", bgContext) },
-                    leadingContent = {
-                        Icon(
-                            imageVector = MuseIcons.image,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(MuseIconSizes.iconMedium),
-                        )
-                    },
-                    headlineContent = { Text(stringResource(R.string.settings_chat_background_title)) },
-                    supportingContent = { Text(stringResource(R.string.settings_chat_background_subtitle)) },
-                    trailingContent = {
-                        if (chatBackground != null) {
-                            Text(
-                                text = stringResource(R.string.action_clear),
-                                style = MaterialTheme.typography.bodySmall,
-                                fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(MuseCornerRadius.SEMI_LARGE.dp))
-                                    .clickable {
-                                        scope.launch {
-                                            settings.saveChatBackground(null)
-                                            ChatBackgroundStore.deleteSlot(bgContext, null)
-                                        }
-                                    }
-                                    .padding(horizontal = MuseSpacing.sm, vertical = MuseSpacing.xs),
-                            )
-                        } else {
-                            Text(
-                                text = stringResource(R.string.settings_chat_background_choose),
-                                style = MaterialTheme.typography.bodySmall,
-                                fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.primary,
-                            )
-                        }
-                    },
-                )
-                item(
-                    key = "bg_dark",
-                    onClick = { darkBgLauncher.launchSafely("image/*", bgContext) },
-                    leadingContent = {
-                        Icon(
-                            imageVector = MuseIcons.image,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(MuseIconSizes.iconMedium),
-                        )
-                    },
-                    headlineContent = { Text(stringResource(R.string.settings_chat_background_dark_title)) },
-                    supportingContent = { Text(stringResource(R.string.settings_chat_background_dark_subtitle)) },
-                    trailingContent = {
-                        if (darkBg != null) {
-                            Text(
-                                text = stringResource(R.string.action_clear),
-                                style = MaterialTheme.typography.bodySmall,
-                                fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(MuseCornerRadius.SEMI_LARGE.dp))
-                                    .clickable {
-                                        scope.launch {
-                                            settings.saveChatBackgroundDark(null)
-                                            ChatBackgroundStore.deleteSlot(bgContext, "chat_background_dark")
-                                        }
-                                    }
-                                    .padding(horizontal = MuseSpacing.sm, vertical = MuseSpacing.xs),
-                            )
-                        } else {
-                            Text(
-                                text = stringResource(R.string.settings_chat_background_choose),
-                                style = MaterialTheme.typography.bodySmall,
-                                fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.primary,
-                            )
-                        }
-                    },
-                )
-                content(key = "bg_gradient") {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(MusePaddings.cardInner),
-                        verticalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(MuseSpacing.md),
-                        ) {
-                            Icon(
-                                imageVector = MuseIcons.palette,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(MuseIconSizes.iconMedium),
-                            )
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = stringResource(R.string.settings_chat_gradient_title),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                )
-                                Text(
-                                    text = stringResource(R.string.settings_chat_gradient_subtitle),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                            if (chatGradient != null) {
-                                Text(
-                                    text = stringResource(R.string.action_clear),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(MuseCornerRadius.SEMI_LARGE.dp))
-                                        .clickable { scope.launch { settings.saveChatGradient(null) } }
-                                        .padding(horizontal = MuseSpacing.sm, vertical = MuseSpacing.xs),
-                                )
-                            }
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
-                        ) {
-                            PRESET_CHAT_GRADIENTS.forEach { (start, end) ->
-                                val selected = chatGradient?.startColorArgb == start && chatGradient?.endColorArgb == end
-                                Box(
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .clip(RoundedCornerShape(MuseCornerRadius.SMALL.dp))
-                                        .background(
-                                            Brush.linearGradient(
-                                                listOf(Color(start.toInt()), Color(end.toInt())),
-                                            ),
-                                        )
-                                        .border(
-                                            width = if (selected) 2.dp else 1.dp,
-                                            color = if (selected) {
-                                                MaterialTheme.colorScheme.primary
-                                            } else {
-                                                MaterialTheme.colorScheme.outlineVariant
-                                            },
-                                            shape = RoundedCornerShape(MuseCornerRadius.SMALL.dp),
-                                        )
-                                        .clickable {
-                                            scope.launch { settings.saveChatGradient(ChatGradient(start, end)) }
-                                        },
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
         // ── 1. 消息显示 ──
         item(key = "chat_message_display") {
             CardGroup(title = { Text(stringResource(R.string.settings_chat_message_display)) }) {
@@ -394,7 +133,12 @@ fun ChatSettingsPage(
                     checked = prefs.showMoodBlock,
                     onCheckedChange = { v -> update { it.copy(showMoodBlock = v) } },
                     leadingContent = {
-                        Icon(MuseIcons.moodSmile, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium))
+                        Icon(
+                            MuseIcons.moodSmile,
+                            null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
                     },
                 )
                 switchItem(
@@ -403,7 +147,12 @@ fun ChatSettingsPage(
                     checked = prefs.showReasoning,
                     onCheckedChange = { v -> update { it.copy(showReasoning = v) } },
                     leadingContent = {
-                        Icon(MuseIcons.brain, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium))
+                        Icon(
+                            MuseIcons.brain,
+                            null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
                     },
                 )
                 switchItem(
@@ -412,7 +161,12 @@ fun ChatSettingsPage(
                     checked = prefs.forceReasoning,
                     onCheckedChange = { v -> update { it.copy(forceReasoning = v) } },
                     leadingContent = {
-                        Icon(MuseIcons.brain, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium))
+                        Icon(
+                            MuseIcons.brain,
+                            null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
                     },
                 )
                 switchItem(
@@ -421,7 +175,12 @@ fun ChatSettingsPage(
                     checked = prefs.showReflectionBlock,
                     onCheckedChange = { v -> update { it.copy(showReflectionBlock = v) } },
                     leadingContent = {
-                        Icon(MuseIcons.reflect, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium))
+                        Icon(
+                            MuseIcons.reflect,
+                            null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
                     },
                 )
                 switchItem(
@@ -430,7 +189,12 @@ fun ChatSettingsPage(
                     checked = prefs.showModelName,
                     onCheckedChange = { v -> update { it.copy(showModelName = v) } },
                     leadingContent = {
-                        Icon(MuseIcons.switch, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium))
+                        Icon(
+                            MuseIcons.switch,
+                            null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
                     },
                 )
                 switchItem(
@@ -439,7 +203,12 @@ fun ChatSettingsPage(
                     checked = prefs.showAssistantName,
                     onCheckedChange = { v -> update { it.copy(showAssistantName = v) } },
                     leadingContent = {
-                        Icon(MuseIcons.user, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium))
+                        Icon(
+                            MuseIcons.user,
+                            null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
                     },
                 )
                 switchItem(
@@ -448,7 +217,12 @@ fun ChatSettingsPage(
                     checked = prefs.showUserName,
                     onCheckedChange = { v -> update { it.copy(showUserName = v) } },
                     leadingContent = {
-                        Icon(MuseIcons.user, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium))
+                        Icon(
+                            MuseIcons.user,
+                            null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
                     },
                 )
                 switchItem(
@@ -457,7 +231,12 @@ fun ChatSettingsPage(
                     checked = prefs.showTimestamp,
                     onCheckedChange = { v -> update { it.copy(showTimestamp = v) } },
                     leadingContent = {
-                        Icon(MuseIcons.calendarTime, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium))
+                        Icon(
+                            MuseIcons.calendarTime,
+                            null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
                     },
                 )
             }
@@ -472,7 +251,12 @@ fun ChatSettingsPage(
                     checked = prefs.carryOverEnabled,
                     onCheckedChange = { v -> update { it.copy(carryOverEnabled = v) } },
                     leadingContent = {
-                        Icon(MuseIcons.chat, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium))
+                        Icon(
+                            MuseIcons.chat,
+                            null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
                     },
                 )
                 if (prefs.carryOverEnabled) {
@@ -501,61 +285,15 @@ fun ChatSettingsPage(
                     key = "quick_actions_entry",
                     title = stringResource(R.string.settings_chat_quick_customize),
                     leadingContent = {
-                        Icon(MuseIcons.copy, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium))
+                        Icon(
+                            MuseIcons.copy,
+                            null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
                     },
                     onClick = onOpenQuickActions,
                 )
-            }
-        }
-
-        // ── 正文排版 ──
-        item(key = "chat_typography") {
-            var fontScaleDraft by remember { mutableStateOf(prefs.messageFontScale) }
-            LaunchedEffect(prefs.messageFontScale) {
-                if (prefs.messageFontScale != fontScaleDraft) fontScaleDraft = prefs.messageFontScale
-            }
-            LaunchedEffect(fontScaleDraft) {
-                if (fontScaleDraft != prefs.messageFontScale) {
-                    delay(400)
-                    update { it.copy(messageFontScale = fontScaleDraft) }
-                }
-            }
-            var letterSpacingDraft by remember { mutableStateOf(prefs.messageLetterSpacingEm) }
-            LaunchedEffect(prefs.messageLetterSpacingEm) {
-                if (prefs.messageLetterSpacingEm != letterSpacingDraft) letterSpacingDraft = prefs.messageLetterSpacingEm
-            }
-            LaunchedEffect(letterSpacingDraft) {
-                if (letterSpacingDraft != prefs.messageLetterSpacingEm) {
-                    delay(400)
-                    update { it.copy(messageLetterSpacingEm = letterSpacingDraft) }
-                }
-            }
-            CardGroup(title = { Text(stringResource(R.string.settings_chat_typography_section)) }) {
-                content(key = "bubble_preview") {
-                    BubblePreviewPanel(prefs = prefs)
-                }
-                content(key = "font_scale_slider") {
-                    SettingsSliderRow(
-                        title = stringResource(R.string.settings_chat_message_font_size),
-                        subtitle = stringResource(R.string.settings_chat_message_font_size_subtitle),
-                        value = fontScaleDraft,
-                        valueRange = 0.85f..1.25f,
-                        steps = 7,
-                        valueText = "${(fontScaleDraft * 100).toInt()}%",
-                        onValueChange = { fontScaleDraft = it },
-                    )
-                }
-                content(key = "letter_spacing_slider") {
-                    SettingsSliderRow(
-                        title = stringResource(R.string.settings_chat_letter_spacing),
-                        subtitle = stringResource(R.string.settings_chat_letter_spacing_subtitle),
-                        value = letterSpacingDraft,
-                        valueRange = -0.02f..0.08f,
-                        steps = 9,
-                        valueText = "%.2f em".format(letterSpacingDraft),
-                        onValueChange = { letterSpacingDraft = it },
-                    )
-                }
             }
         }
 
@@ -605,7 +343,12 @@ fun ChatSettingsPage(
                     checked = prefs.replyInUserLanguageEnabled,
                     onCheckedChange = { v -> update { it.copy(replyInUserLanguageEnabled = v) } },
                     leadingContent = {
-                        Icon(MuseIcons.languages, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium))
+                        Icon(
+                            MuseIcons.languages,
+                            null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
                     },
                 )
                 content(key = "global_temp") {
@@ -657,6 +400,11 @@ fun ChatSettingsPage(
             }
         }
 
+        // ── 卡片与生成式界面（从外观页归位聊天页）──
+        item(key = "chat_generative_ui") {
+            GenerativeUiSection(prefs = prefs, update = ::update)
+        }
+
         // ── 2. 默认展开状态 ──
         item(key = "chat_default_expand") {
             CardGroup(title = { Text(stringResource(R.string.settings_chat_default_expand)) }) {
@@ -665,28 +413,56 @@ fun ChatSettingsPage(
                     title = stringResource(R.string.settings_chat_mood_expand),
                     checked = prefs.moodExpandedByDefault,
                     onCheckedChange = { v -> update { it.copy(moodExpandedByDefault = v) } },
-                    leadingContent = { Icon(MuseIcons.expand, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                    leadingContent = {
+                        Icon(
+                            MuseIcons.expand,
+                            null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
+                    },
                 )
                 switchItem(
                     key = "show_expand_btn",
                     title = stringResource(R.string.settings_chat_expand_button),
                     checked = prefs.showExpandButton,
                     onCheckedChange = { v -> update { it.copy(showExpandButton = v) } },
-                    leadingContent = { Icon(MuseIcons.expand, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                    leadingContent = {
+                        Icon(
+                            MuseIcons.expand,
+                            null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
+                    },
                 )
                 switchItem(
                     key = "expand_reasoning",
                     title = stringResource(R.string.settings_chat_reasoning_expand),
                     checked = prefs.reasoningExpandedByDefault,
                     onCheckedChange = { v -> update { it.copy(reasoningExpandedByDefault = v) } },
-                    leadingContent = { Icon(MuseIcons.expand, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                    leadingContent = {
+                        Icon(
+                            MuseIcons.expand,
+                            null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
+                    },
                 )
                 switchItem(
                     key = "expand_reflection",
                     title = stringResource(R.string.settings_chat_reflection_expand),
                     checked = prefs.reflectionExpandedByDefault,
                     onCheckedChange = { v -> update { it.copy(reflectionExpandedByDefault = v) } },
-                    leadingContent = { Icon(MuseIcons.expand, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                    leadingContent = {
+                        Icon(
+                            MuseIcons.expand,
+                            null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
+                    },
                 )
             }
         }
@@ -699,49 +475,98 @@ fun ChatSettingsPage(
                     title = stringResource(R.string.settings_chat_streaming),
                     checked = prefs.streamResponse,
                     onCheckedChange = { v -> update { it.copy(streamResponse = v) } },
-                    leadingContent = { Icon(MuseIcons.chat, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                    leadingContent = {
+                        Icon(
+                            MuseIcons.chat,
+                            null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
+                    },
                 )
                 switchItem(
                     key = "fast_reply",
                     title = stringResource(R.string.settings_chat_fast_reply),
                     checked = prefs.fastReplyMode,
                     onCheckedChange = { v -> update { it.copy(fastReplyMode = v) } },
-                    leadingContent = { Icon(MuseIcons.arrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                    leadingContent = {
+                        Icon(
+                            MuseIcons.arrowRight,
+                            null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
+                    },
                 )
                 switchItem(
                     key = "auto_scroll",
                     title = stringResource(R.string.settings_chat_auto_scroll),
                     checked = prefs.autoScrollToBottom,
                     onCheckedChange = { v -> update { it.copy(autoScrollToBottom = v) } },
-                    leadingContent = { Icon(MuseIcons.arrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                    leadingContent = {
+                        Icon(
+                            MuseIcons.arrowRight,
+                            null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
+                    },
                 )
                 switchItem(
                     key = "volume_scroll",
                     title = stringResource(R.string.settings_chat_volume_scroll),
                     checked = prefs.volumeKeyScroll,
                     onCheckedChange = { v -> update { it.copy(volumeKeyScroll = v) } },
-                    leadingContent = { Icon(MuseIcons.volume, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                    leadingContent = {
+                        Icon(
+                            MuseIcons.volume,
+                            null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
+                    },
                 )
                 switchItem(
                     key = "enter_send",
                     title = stringResource(R.string.settings_chat_enter_send),
                     checked = prefs.enterToSend,
                     onCheckedChange = { v -> update { it.copy(enterToSend = v) } },
-                    leadingContent = { Icon(MuseIcons.handFinger, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                    leadingContent = {
+                        Icon(
+                            MuseIcons.handFinger,
+                            null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
+                    },
                 )
                 switchItem(
                     key = "haptic",
                     title = stringResource(R.string.settings_chat_haptic),
                     checked = prefs.hapticFeedback,
                     onCheckedChange = { v -> update { it.copy(hapticFeedback = v) } },
-                    leadingContent = { Icon(MuseIcons.bolt, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                    leadingContent = {
+                        Icon(
+                            MuseIcons.bolt,
+                            null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
+                    },
                 )
                 switchItem(
                     key = "predictive_back",
                     title = stringResource(R.string.settings_chat_predictive_back),
                     checked = prefs.predictiveBackEnabled,
                     onCheckedChange = { v -> update { it.copy(predictiveBackEnabled = v) } },
-                    leadingContent = { Icon(MuseIcons.handFinger, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                    leadingContent = {
+                        Icon(
+                            MuseIcons.handFinger,
+                            null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
+                    },
                 )
             }
         }
@@ -756,28 +581,56 @@ fun ChatSettingsPage(
                     title = stringResource(R.string.settings_chat_show_tool_calls),
                     checked = prefs.showToolCallDetails,
                     onCheckedChange = { v -> update { it.copy(showToolCallDetails = v) } },
-                    leadingContent = { Icon(MuseIcons.eye, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                    leadingContent = {
+                        Icon(
+                            MuseIcons.eye,
+                            null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
+                    },
                 )
                 switchItem(
                     key = "pause_tools",
                     title = stringResource(R.string.settings_chat_pause_tool_execution),
                     checked = prefs.pauseToolExecution,
                     onCheckedChange = { v -> update { it.copy(pauseToolExecution = v) } },
-                    leadingContent = { Icon(MuseIcons.pause, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                    leadingContent = {
+                        Icon(
+                            MuseIcons.pause,
+                            null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
+                    },
                 )
                 switchItem(
                     key = "use_24h",
                     title = stringResource(R.string.settings_chat_24h),
                     checked = prefs.use24Hour,
                     onCheckedChange = { v -> update { it.copy(use24Hour = v) } },
-                    leadingContent = { Icon(MuseIcons.calendarTime, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                    leadingContent = {
+                        Icon(
+                            MuseIcons.calendarTime,
+                            null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
+                    },
                 )
                 switchItem(
                     key = "perf_mode",
                     title = stringResource(R.string.settings_chat_performance_mode),
                     checked = prefs.performanceMode,
                     onCheckedChange = { v -> update { it.copy(performanceMode = v) } },
-                    leadingContent = { Icon(MuseIcons.gauge, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                    leadingContent = {
+                        Icon(
+                            MuseIcons.gauge,
+                            null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
+                    },
                 )
                 content(key = "session_cache_size") {
                     SessionCacheSizeRow(settings = settings, scope = scope)
@@ -787,14 +640,28 @@ fun ChatSettingsPage(
                     title = stringResource(R.string.settings_chat_token_estimate),
                     checked = tokenEstimateEnabled,
                     onCheckedChange = { v -> scope.launch { settings.saveTokenEstimateEnabled(v) } },
-                    leadingContent = { Icon(MuseIcons.chartBar, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                    leadingContent = {
+                        Icon(
+                            MuseIcons.chartBar,
+                            null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
+                    },
                 )
                 switchItem(
                     key = "paste_as_file",
                     title = stringResource(R.string.settings_chat_paste_as_file),
                     checked = pasteAsFileEnabled,
                     onCheckedChange = { v -> scope.launch { settings.savePasteAsFileEnabled(v) } },
-                    leadingContent = { Icon(MuseIcons.clipboard, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                    leadingContent = {
+                        Icon(
+                            MuseIcons.clipboard,
+                            null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
+                    },
                 )
                 if (pasteAsFileEnabled) {
                     val thresholdOptions = listOf("1000", "2000", "5000")
@@ -825,7 +692,14 @@ fun ChatSettingsPage(
                     key = "custom_title_prompt",
                     title = stringResource(R.string.settings_chat_custom_title_prompt),
                     subtitle = titlePromptSubtitle,
-                    leadingContent = { Icon(MuseIcons.edit, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                    leadingContent = {
+                        Icon(
+                            MuseIcons.edit,
+                            null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
+                    },
                     onClick = {
                         titlePromptDraft = customTitlePrompt.orEmpty()
                         showTitlePromptDialog = true
@@ -883,7 +757,23 @@ fun ChatSettingsPage(
         }
 
         // ── 表情包库 ──
-        item(key = "chat_stickers_section") { StickerSettingsSection(settings = settings, scope = scope) }
+        item(key = "chat_stickers_section") {
+            CardGroup(title = { Text(stringResource(R.string.settings_chat_sticker_section)) }) {
+                navigationItem(
+                    key = "chat_stickers_nav",
+                    title = stringResource(R.string.settings_chat_sticker_section),
+                    leadingContent = {
+                        Icon(
+                            imageVector = MuseIcons.sticker,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
+                    },
+                    onClick = onOpenStickers,
+                )
+            }
+        }
     }
 
     if (showTitlePromptDialog) {
@@ -906,6 +796,45 @@ fun ChatSettingsPage(
             dismissText = stringResource(R.string.common_cancel),
             onDismiss = { showTitlePromptDialog = false },
         )
+    }
+}
+
+/**
+ * 卡片与生成式界面：是否允许模型用可交互卡片承载内容，以及是否主动优先卡片而不是长文字。
+ */
+@Composable
+private fun GenerativeUiSection(prefs: ChatPreferences, update: ((ChatPreferences) -> ChatPreferences) -> Unit) {
+    CardGroup(title = { Text(stringResource(R.string.settings_screen_group_cards)) }) {
+        switchItem(
+            key = "gen_ui_enabled",
+            title = stringResource(R.string.settings_chat_generative_ui),
+            checked = prefs.generativeUiEnabled,
+            onCheckedChange = { v -> update { it.copy(generativeUiEnabled = v) } },
+            leadingContent = {
+                Icon(
+                    imageVector = MuseIcons.sparkle,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(MuseIconSizes.iconMedium),
+                )
+            },
+        )
+        if (prefs.generativeUiEnabled) {
+            switchItem(
+                key = "gen_ui_prefer_card",
+                title = stringResource(R.string.settings_chat_prefer_card_output),
+                checked = prefs.preferCardOutput,
+                onCheckedChange = { v -> update { it.copy(preferCardOutput = v) } },
+                leadingContent = {
+                    Icon(
+                        imageVector = MuseIcons.sparkle,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(MuseIconSizes.iconMedium),
+                    )
+                },
+            )
+        }
     }
 }
 

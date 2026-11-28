@@ -52,9 +52,7 @@ object KnowledgeRegressionFixtures {
      * metadata provider 的签名只有 (filter, limit, offset),拿不到调用方另传的
      * scopeDocIds —— 这正是生产缺陷的根源:SQL 层只按 metadata 过滤,不感知范围。
      */
-    fun vectorServiceLikeProduction(
-        chunks: List<FixtureChunk> = twoLibraryChunks,
-    ): VectorSearchService {
+    fun vectorServiceLikeProduction(chunks: List<FixtureChunk> = twoLibraryChunks): VectorSearchService {
         val all = chunks.map(::toChunkWithDoc)
         return VectorSearchService(
             chunkPageProvider = { limit, offset -> all.drop(offset).take(limit) },

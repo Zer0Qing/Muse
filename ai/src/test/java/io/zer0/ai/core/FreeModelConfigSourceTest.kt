@@ -201,4 +201,5 @@ class FreeModelConfigSourceTest {
         assertTrue("tools 必须解析", config.supportsTools)
         assertTrue("reasoning 必须解析", config.supportsReasoning)
         assertTrue("空 displayName 时回退到 model", config.effectiveDisplayName == "agnes-2.5-flash")
-    }}
+    }
+}

@@ -24,9 +24,13 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.security.MessageDigest
+import java.util.Base64
 import java.util.Locale
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 
 /** 采集一次 Watcher 目标内容。实现必须只做采集，不调用模型。 */
 interface WatcherOutputCollector {
@@ -35,11 +39,7 @@ interface WatcherOutputCollector {
 
 /** 只在指纹变化时被调用，把原始变化写成用户能读懂的一句话。 */
 interface WatcherAnnouncer {
-    suspend fun announce(
-        watcher: AgentWatcherEntity,
-        previousResult: String,
-        currentResult: String,
-    ): String
+    suspend fun announce(watcher: AgentWatcherEntity, previousResult: String, currentResult: String): String
 }
 
 /** 变化播报的系统通知出口。 */
@@ -51,7 +51,11 @@ interface WatcherNotificationSink {
 interface WatcherCloudHost {
     suspend fun findOnlineNode(): RemoteComputeNodeEntity?
 
+    suspend fun findNode(nodeId: String): RemoteComputeNodeEntity? = findOnlineNode()?.takeIf { it.nodeId == nodeId }
+
     suspend fun upsert(node: RemoteComputeNodeEntity, spec: WatcherSpec): String
+
+    suspend fun remove(node: RemoteComputeNodeEntity, remoteWatcherId: String): Boolean = false
 }
 
 /**
@@ -76,6 +80,7 @@ class AgentWatcherEngine(
 ) {
 
     private var loopJob: Job? = null
+    private val watcherClaims = ConcurrentHashMap<String, Mutex>()
 
     fun observeAll(): Flow<List<AgentWatcherEntity>> = dao.observeAll()
 
@@ -92,7 +97,7 @@ class AgentWatcherEngine(
                     checkDue()
                 } catch (e: CancellationException) {
                     throw e
-                } catch (e: Exception) {
+                } catch (e: java.io.IOException) {
                     Logger.w(TAG, "watcher poll failed: " + e.javaClass.simpleName + ": " + e.message)
                 }
                 delay(pollIntervalMs)
@@ -116,6 +121,7 @@ class AgentWatcherEngine(
         computeTarget: String = ComputeTargetRouter.TARGET_LOCAL,
         intervalMinutes: Int = DEFAULT_INTERVAL_MINUTES,
         webhookUrl: String = "",
+        watcherId: String = "",
     ): AgentWatcherEntity? {
         val safeTitle = title.trim()
         val safeScript = script.trim()
@@ -130,24 +136,43 @@ class AgentWatcherEngine(
         } else {
             ComputeTargetRouter.TARGET_LOCAL
         }
-        val entity = AgentWatcherEntity(
-            watcherId = UUID.randomUUID().toString(),
-            botId = botId.trim(),
-            originSessionId = originSessionId.trim(),
-            title = safeTitle,
-            instruction = instruction.trim().ifBlank { safeTitle },
-            script = safeScript,
-            scriptKind = normalizeScriptKind(scriptKind),
-            computeTarget = target,
-            intervalMinutes = interval,
-            webhookUrl = webhookUrl.trim(),
-            status = AgentWatcherStatus.ACTIVE,
-            nextCheckAt = ts + interval * 60_000L,
-            createdAt = ts,
-            updatedAt = ts,
-        )
-        dao.upsert(entity)
-        if (target == ComputeTargetRouter.TARGET_CLOUD) {
+        val stableId = watcherId.trim().ifBlank { UUID.randomUUID().toString() }
+        val claim = watcherClaims.getOrPut(stableId) { Mutex() }
+        val entity = claim.withLock {
+            val existing = dao.getById(stableId)
+            if (existing != null) {
+                val requestedInstruction = instruction.trim().ifBlank { safeTitle }
+                val identityChanged = existing.botId != botId.trim() || existing.originSessionId != originSessionId.trim()
+                val contentChanged = existing.title != safeTitle || existing.instruction != requestedInstruction ||
+                    existing.script != safeScript || existing.scriptKind != normalizeScriptKind(scriptKind)
+                val scheduleChanged = existing.computeTarget != target || existing.intervalMinutes != interval ||
+                    existing.webhookUrl != webhookUrl.trim()
+                if (identityChanged || contentChanged || scheduleChanged) {
+                    Logger.w(TAG, "create watcher rejected: stable id is already owned or has a different definition")
+                    null
+                } else {
+                    existing
+                }
+            } else {
+                AgentWatcherEntity(
+                    watcherId = stableId,
+                    botId = botId.trim(),
+                    originSessionId = originSessionId.trim(),
+                    title = safeTitle,
+                    instruction = instruction.trim().ifBlank { safeTitle },
+                    script = safeScript,
+                    scriptKind = normalizeScriptKind(scriptKind),
+                    computeTarget = target,
+                    intervalMinutes = interval,
+                    webhookUrl = webhookUrl.trim(),
+                    status = AgentWatcherStatus.ACTIVE,
+                    nextCheckAt = ts + interval * 60_000L,
+                    createdAt = ts,
+                    updatedAt = ts,
+                ).also { dao.upsert(it) }
+            }
+        } ?: return null
+        if (target == ComputeTargetRouter.TARGET_CLOUD && entity.remoteWatcherId.isBlank()) {
             syncCloudWatcher(entity)
         }
         return dao.getById(entity.watcherId) ?: entity
@@ -156,55 +181,134 @@ class AgentWatcherEngine(
     /**
      * 把一条 cloud 跟进项下沉到在线节点。
      *
-     * @return true 表示远端已接受；false 表示当前没有在线节点或下沉失败，调用方应继续本机托管。
+     * @return true 表示远端已接受；false 表示节点不可用或下沉失败，云端目标不会改成本机执行。
      */
     suspend fun syncCloudWatcher(watcher: AgentWatcherEntity): Boolean {
-        val host = cloudHost ?: return false
-        val node = try {
-            host.findOnlineNode()
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            Logger.w(TAG, "find online node failed: " + e.javaClass.simpleName + ": " + e.message)
-            return false
-        } ?: return false
-        val spec = watcher.toWatcherSpec()
-        val remoteId = try {
-            host.upsert(node, spec)
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            Logger.w(TAG, "upsert remote watcher failed: " + e.javaClass.simpleName + ": " + e.message)
-            return false
+        val claim = watcherClaims.getOrPut(watcher.watcherId) { Mutex() }
+        return claim.withLock {
+            val current = dao.getById(watcher.watcherId) ?: return@withLock false
+            if (current.status != AgentWatcherStatus.ACTIVE || current.botId != watcher.botId ||
+                current.originSessionId != watcher.originSessionId
+            ) {
+                return@withLock false
+            }
+            syncCloudWatcherClaimed(current)
         }
-        val ts = clock()
-        dao.upsert(watcher.copy(remoteWatcherId = remoteId, updatedAt = ts))
-        return true
+    }
+
+    private suspend fun syncCloudWatcherClaimed(watcher: AgentWatcherEntity): Boolean {
+        val host = cloudHost
+        val existingBinding = RemoteWatcherBinding.decode(watcher.remoteWatcherId)
+        return if (host == null || (watcher.remoteWatcherId.isNotBlank() && existingBinding == null)) {
+            false
+        } else {
+            val node = findCloudNode(host, existingBinding)
+            if (node == null) {
+                false
+            } else {
+                val spec = watcher.toWatcherSpec()
+                val expectedRemoteId = existingBinding?.remoteId ?: watcher.watcherId
+                dao.upsert(
+                    watcher.copy(
+                        remoteWatcherId = RemoteWatcherBinding(node.nodeId, expectedRemoteId).encode(),
+                        updatedAt = clock(),
+                    ),
+                )
+                val remoteId = upsertCloudWatcher(host, node, spec)
+                if (remoteId == null || remoteId != expectedRemoteId) {
+                    false
+                } else {
+                    val ts = clock()
+                    dao.upsert(
+                        watcher.copy(
+                            remoteWatcherId = RemoteWatcherBinding(node.nodeId, remoteId).encode(),
+                            updatedAt = ts,
+                        ),
+                    )
+                    true
+                }
+            }
+        }
+    }
+
+    private suspend fun findCloudNode(
+        host: WatcherCloudHost,
+        binding: RemoteWatcherBinding?,
+    ): RemoteComputeNodeEntity? = try {
+        if (binding == null) host.findOnlineNode() else host.findNode(binding.nodeId)
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: java.io.IOException) {
+        Logger.w(TAG, "find online node failed: " + e.javaClass.simpleName + ": " + e.message)
+        null
+    }
+
+    private suspend fun upsertCloudWatcher(
+        host: WatcherCloudHost,
+        node: RemoteComputeNodeEntity,
+        spec: WatcherSpec,
+    ): String? = try {
+        host.upsert(node, spec)
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: java.io.IOException) {
+        Logger.w(TAG, "upsert remote watcher failed: " + e.javaClass.simpleName + ": " + e.message)
+        null
     }
 
     /** 检查所有到点的跟进项。单个失败不会中断其他项。 */
     suspend fun checkDue(at: Long = clock()): List<WatcherCheckOutcome> {
+        reconcilePendingRemoteRevocations()
+        retryPendingNotifications()
         val due = dao.listDue(at)
         return due.map { watcher -> checkWatcher(watcher, at) }
     }
 
     /** 检查一条跟进项；所有异常都收敛为 [WatcherCheckOutcome.Failed] 并记录 lastError。 */
     suspend fun checkWatcher(watcher: AgentWatcherEntity, at: Long = clock()): WatcherCheckOutcome {
-        if (watcher.status != AgentWatcherStatus.ACTIVE) {
-            return WatcherCheckOutcome.Skipped(watcher.watcherId, watcher.status)
+        return claimAndCheck(watcher.watcherId, at, force = false)
+    }
+
+    private suspend fun claimAndCheck(watcherId: String, at: Long, force: Boolean): WatcherCheckOutcome {
+        val claim = watcherClaims.getOrPut(watcherId) { Mutex() }
+        return claim.withLock {
+            val current = dao.getById(watcherId)
+                ?: return@withLock WatcherCheckOutcome.Skipped(watcherId, "MISSING")
+            if (hasPendingNotification(current)) {
+                retryPendingNotification(current)
+                return@withLock WatcherCheckOutcome.Skipped(watcherId, "NOTIFICATION_RETRY")
+            }
+            if (current.status != AgentWatcherStatus.ACTIVE) {
+                return@withLock WatcherCheckOutcome.Skipped(current.watcherId, current.status)
+            }
+            if ((!force && current.nextCheckAt > at) || (force && current.lastCheckedAt > 0 && current.lastCheckedAt >= at)) {
+                return@withLock WatcherCheckOutcome.Skipped(current.watcherId, "CLAIMED")
+            }
+            checkWatcherClaimed(current, at)
         }
+    }
+
+    private suspend fun checkWatcherClaimed(watcher: AgentWatcherEntity, at: Long): WatcherCheckOutcome {
         val nextCheckAt = at + intervalMillis(watcher)
 
-        if (watcher.computeTarget == ComputeTargetRouter.TARGET_CLOUD && cloudHost != null) {
-            val delegated = tryDelegateToCloud(watcher, at, nextCheckAt)
-            if (delegated != null) return delegated
+        return if (watcher.computeTarget == ComputeTargetRouter.TARGET_CLOUD) {
+            tryDelegateToCloud(watcher, at, nextCheckAt)
+        } else {
+            checkLocalWatcher(watcher, at, nextCheckAt)
         }
+    }
+
+    private suspend fun checkLocalWatcher(
+        watcher: AgentWatcherEntity,
+        at: Long,
+        nextCheckAt: Long,
+    ): WatcherCheckOutcome {
 
         val rawOutput = try {
             collector.collect(watcher)
         } catch (e: CancellationException) {
             throw e
-        } catch (e: Exception) {
+        } catch (e: java.io.IOException) {
             val reason = (e.message ?: e.javaClass.simpleName).take(MAX_ERROR_CHARS)
             Logger.w(TAG, "collect watcher failed: " + watcher.watcherId + ": " + reason)
             dao.recordCheck(
@@ -253,26 +357,30 @@ class AgentWatcherEngine(
             ).trim()
         } catch (e: CancellationException) {
             throw e
-        } catch (e: Exception) {
+        } catch (e: java.io.IOException) {
             // 播报模型失败不能把“确有变化”吞掉：仍写通知，正文退回原始结果摘要。
             Logger.w(TAG, "announce watcher failed: " + watcher.watcherId + ": " + e.message)
         }
         val message = announcement.ifBlank {
             normalized.take(MAX_NOTIFICATION_CHARS).ifBlank { watcher.title }
         }
-        try {
-            notifier.notify(watcher, message)
-        } catch (e: Exception) {
-            Logger.w(TAG, "notify watcher failed: " + watcher.watcherId + ": " + e.message)
-        }
+        val pendingMarker = pendingNotificationMarker(fingerprint, at, message)
         dao.recordCheck(
             watcherId = watcher.watcherId,
             fingerprint = fingerprint,
             result = normalized.take(MAX_RESULT_CHARS),
             checkedAt = at,
             nextCheckAt = nextCheckAt,
-            error = "",
+            error = pendingMarker,
         )
+        val updatedWatcher = dao.getById(watcher.watcherId) ?: watcher.copy(
+            lastFingerprint = fingerprint,
+            lastResult = normalized.take(MAX_RESULT_CHARS),
+            lastCheckedAt = at,
+            nextCheckAt = nextCheckAt,
+            lastError = pendingMarker,
+        )
+        retryPendingNotification(updatedWatcher)
         return WatcherCheckOutcome.Changed(
             watcherId = watcher.watcherId,
             fingerprint = fingerprint,
@@ -282,80 +390,243 @@ class AgentWatcherEngine(
 
     /** 立即检查一条；用于用户在列表里点“立即查一次”。 */
     suspend fun checkNow(watcherId: String): WatcherCheckOutcome? {
-        val watcher = dao.getById(watcherId) ?: return null
-        return checkWatcher(watcher)
+        if (dao.getById(watcherId) == null) return null
+        return claimAndCheck(watcherId, clock(), force = true)
     }
 
     suspend fun pause(watcherId: String): Boolean {
-        val updated = dao.setStatus(watcherId, AgentWatcherStatus.PAUSED, clock())
-        return updated > 0
+        val claim = watcherClaims.getOrPut(watcherId) { Mutex() }
+        return claim.withLock {
+            val watcher = dao.getById(watcherId) ?: return@withLock false
+            val paused = watcher.copy(status = AgentWatcherStatus.PAUSED, updatedAt = clock())
+            dao.upsert(paused)
+            revokeRemoteIfPresent(paused)
+        }
     }
 
     suspend fun resume(watcherId: String): Boolean {
-        val watcher = dao.getById(watcherId) ?: return false
-        val ts = clock()
-        dao.upsert(
-            watcher.copy(
-                status = AgentWatcherStatus.ACTIVE,
-                nextCheckAt = ts + intervalMillis(watcher),
-                updatedAt = ts,
-            ),
-        )
-        return true
+        val claim = watcherClaims.getOrPut(watcherId) { Mutex() }
+        return claim.withLock {
+            val watcher = dao.getById(watcherId) ?: return@withLock false
+            if (watcher.remoteWatcherId.isNotBlank() && !revokeRemoteIfPresent(watcher)) return@withLock false
+            val current = dao.getById(watcherId) ?: return@withLock false
+            val ts = clock()
+            dao.upsert(
+                current.copy(
+                    status = AgentWatcherStatus.ACTIVE,
+                    nextCheckAt = ts + intervalMillis(current),
+                    updatedAt = ts,
+                ),
+            )
+            true
+        }
     }
 
     /** 删除跟进项；云端存在的远端定义会在下一次同步前自然过期，不阻塞本地删除。 */
     suspend fun delete(watcherId: String) {
-        dao.deleteById(watcherId)
+        val claim = watcherClaims.getOrPut(watcherId) { Mutex() }
+        claim.withLock {
+            val watcher = dao.getById(watcherId) ?: return@withLock
+            val ended = watcher.copy(status = AgentWatcherStatus.ENDED, updatedAt = clock())
+            dao.upsert(ended)
+            if (revokeRemoteIfPresent(ended)) dao.deleteById(watcherId)
+        }
     }
 
-    private suspend fun tryDelegateToCloud(
+    private suspend fun revokeRemoteIfPresent(watcher: AgentWatcherEntity): Boolean {
+        val binding = RemoteWatcherBinding.decode(watcher.remoteWatcherId)
+        return when {
+            watcher.remoteWatcherId.isBlank() -> true
+            binding == null -> {
+                dao.upsert(watcher.copy(lastError = AgentWatcherStatus.ERROR_REMOTE_BINDING_UNKNOWN, updatedAt = clock()))
+                false
+            }
+            cloudHost == null -> {
+                dao.upsert(watcher.copy(lastError = AgentWatcherStatus.ERROR_REMOTE_REVOCATION_PENDING, updatedAt = clock()))
+                false
+            }
+            else -> {
+                val host = requireNotNull(cloudHost)
+                val node = try {
+                    host.findNode(binding.nodeId)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: java.io.IOException) {
+                    Logger.w(TAG, "find bound watcher node failed: " + e.message)
+                    null
+                }
+                if (node == null) {
+                    dao.upsert(
+                        watcher.copy(
+                            lastError = AgentWatcherStatus.ERROR_REMOTE_REVOCATION_PENDING,
+                            updatedAt = clock(),
+                        ),
+                    )
+                    false
+                } else {
+                    revokeRemoteBinding(watcher, host, node, binding.remoteId)
+                }
+            }
+        }
+    }
+
+    private suspend fun revokeRemoteBinding(
+        watcher: AgentWatcherEntity,
+        host: WatcherCloudHost,
+        node: RemoteComputeNodeEntity,
+        remoteId: String,
+    ): Boolean = try {
+        if (host.remove(node, remoteId)) {
+            dao.upsert(watcher.copy(remoteWatcherId = "", lastError = "", updatedAt = clock()))
+            true
+        } else {
+            dao.upsert(watcher.copy(lastError = AgentWatcherStatus.ERROR_REMOTE_REVOCATION_PENDING, updatedAt = clock()))
+            false
+        }
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: java.io.IOException) {
+        Logger.w(TAG, "revoke remote watcher failed: " + e.message)
+        dao.upsert(watcher.copy(lastError = AgentWatcherStatus.ERROR_REMOTE_REVOCATION_PENDING, updatedAt = clock()))
+        false
+    }
+
+    suspend fun reconcilePendingRemoteRevocations() {
+        dao.listPendingRemoteRevocation().forEach { watcher ->
+            val claim = watcherClaims.getOrPut(watcher.watcherId) { Mutex() }
+            claim.withLock {
+                val current = dao.getById(watcher.watcherId) ?: return@withLock
+                if (revokeRemoteIfPresent(current) && current.status == AgentWatcherStatus.ENDED) {
+                    dao.deleteById(current.watcherId)
+                }
+            }
+        }
+    }
+
+    private suspend fun retryPendingNotifications() {
+        dao.listPendingNotifications().forEach { stale ->
+            val claim = watcherClaims.getOrPut(stale.watcherId) { Mutex() }
+            claim.withLock {
+                val current = dao.getById(stale.watcherId) ?: return@withLock
+                retryPendingNotification(current)
+            }
+        }
+    }
+
+    private suspend fun retryPendingNotification(watcher: AgentWatcherEntity): Boolean {
+        val marker = watcher.lastError
+        if (!hasPendingNotification(watcher)) return false
+        val pending = decodePendingNotification(marker)
+        if (pending == null) {
+            Logger.w(TAG, "pending watcher notification marker is invalid: ${watcher.watcherId}")
+            return true
+        }
+        try {
+            notifier.notify(watcher, pending.message)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: java.io.IOException) {
+            Logger.w(TAG, "notify watcher failed: " + watcher.watcherId + ": " + e.message)
+            return true
+        }
+        dao.clearPendingNotification(watcher.watcherId, marker)
+        return true
+    }
+
+    private fun hasPendingNotification(watcher: AgentWatcherEntity): Boolean =
+        watcher.lastError.startsWith(AgentWatcherStatus.WATCHER_NOTIFY_PENDING_PREFIX)
+
+    private fun pendingNotificationMarker(fingerprint: String, checkedAt: Long, message: String): String {
+        val encodedMessage = Base64.getUrlEncoder().withoutPadding()
+            .encodeToString(message.toByteArray(Charsets.UTF_8))
+        return AgentWatcherStatus.WATCHER_NOTIFY_PENDING_PREFIX + checkedAt + "|" + fingerprint + "|" + encodedMessage
+    }
+
+    private fun decodePendingNotification(marker: String): PendingWatcherNotification? {
+        if (!marker.startsWith(AgentWatcherStatus.WATCHER_NOTIFY_PENDING_PREFIX)) return null
+        val parts = marker.removePrefix(AgentWatcherStatus.WATCHER_NOTIFY_PENDING_PREFIX).split('|', limit = 3)
+        if (parts.size != 3 || parts[0].toLongOrNull() == null || parts[1].length != 64) return null
+        return try {
+            val message = Base64.getUrlDecoder().decode(parts[2]).toString(Charsets.UTF_8)
+            message.takeIf(String::isNotBlank)?.let { PendingWatcherNotification(it) }
+        } catch (_: IllegalArgumentException) {
+            null
+        }
+    }
+
+    private suspend fun tryDelegateToCloud(watcher: AgentWatcherEntity, at: Long, nextCheckAt: Long): WatcherCheckOutcome {
+        val host = cloudHost
+        val binding = RemoteWatcherBinding.decode(watcher.remoteWatcherId)
+        return when {
+            host == null -> WatcherCheckOutcome.Failed(watcher.watcherId, "cloud host unavailable")
+            watcher.remoteWatcherId.isNotBlank() && binding == null ->
+                WatcherCheckOutcome.Failed(watcher.watcherId, "remote binding is unknown; local execution refused")
+            else -> delegateToCloudHost(watcher, at, nextCheckAt, host, binding)
+        }
+    }
+
+    private suspend fun delegateToCloudHost(
         watcher: AgentWatcherEntity,
         at: Long,
         nextCheckAt: Long,
-    ): WatcherCheckOutcome.Delegated? {
-        val host = cloudHost ?: return null
-        val node = try {
-            host.findOnlineNode()
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            Logger.w(TAG, "find online node failed, fallback to local: " + e.message)
-            null
-        } ?: return null
-        val remoteId = if (watcher.remoteWatcherId.isNotBlank()) {
-            watcher.remoteWatcherId
-        } else {
-            try {
-                host.upsert(node, watcher.toWatcherSpec())
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Logger.w(TAG, "upsert remote watcher failed, fallback to local: " + e.message)
-                return null
+        host: WatcherCloudHost,
+        binding: RemoteWatcherBinding?,
+    ): WatcherCheckOutcome {
+        val node = findCloudNode(host, binding)
+        if (node == null) return WatcherCheckOutcome.Failed(watcher.watcherId, "bound cloud node unavailable")
+        val expectedRemoteId = binding?.remoteId ?: watcher.watcherId
+        val remoteBinding = RemoteWatcherBinding(node.nodeId, expectedRemoteId).encode()
+        if (binding == null) dao.upsert(watcher.copy(remoteWatcherId = remoteBinding, updatedAt = at))
+        val remoteId = upsertCloudWatcher(host, node, watcher.copy(remoteWatcherId = remoteBinding))
+        return when {
+            remoteId == null -> WatcherCheckOutcome.Failed(watcher.watcherId, "remote watcher upsert failed")
+            remoteId != expectedRemoteId ->
+                WatcherCheckOutcome.Failed(watcher.watcherId, "remote watcher returned a different id")
+            else -> {
+                dao.upsert(
+                    watcher.copy(
+                        remoteWatcherId = RemoteWatcherBinding(node.nodeId, remoteId).encode(),
+                        lastCheckedAt = at,
+                        nextCheckAt = nextCheckAt,
+                        lastError = "",
+                        updatedAt = at,
+                    ),
+                )
+                WatcherCheckOutcome.Delegated(watcher.watcherId, node.nodeId, remoteId)
             }
         }
-        dao.upsert(
-            watcher.copy(
-                remoteWatcherId = remoteId,
-                lastCheckedAt = at,
-                nextCheckAt = nextCheckAt,
-                lastError = "",
-                updatedAt = at,
-            ),
-        )
-        return WatcherCheckOutcome.Delegated(
-            watcherId = watcher.watcherId,
-            nodeId = node.nodeId,
-            remoteWatcherId = remoteId,
-        )
+    }
+
+    private suspend fun findCloudNode(
+        host: WatcherCloudHost,
+        binding: RemoteWatcherBinding?,
+    ): RemoteComputeNodeEntity? = try {
+        if (binding == null) host.findOnlineNode() else host.findNode(binding.nodeId)
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: java.io.IOException) {
+        Logger.w(TAG, "find bound cloud node failed: " + e.message)
+        null
+    }
+
+    private suspend fun upsertCloudWatcher(
+        host: WatcherCloudHost,
+        node: RemoteComputeNodeEntity,
+        watcher: AgentWatcherEntity,
+    ): String? = try {
+        host.upsert(node, watcher.toWatcherSpec())
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: java.io.IOException) {
+        Logger.w(TAG, "upsert remote watcher failed; local execution refused: " + e.message)
+        null
     }
 
     private fun intervalMillis(watcher: AgentWatcherEntity): Long =
         watcher.intervalMinutes.coerceIn(MIN_INTERVAL_MINUTES, MAX_INTERVAL_MINUTES) * 60_000L
 
     private fun AgentWatcherEntity.toWatcherSpec(): WatcherSpec = WatcherSpec(
-        watcherId = remoteWatcherId.ifBlank { watcherId },
+        watcherId = RemoteWatcherBinding.decode(remoteWatcherId)?.remoteId ?: watcherId,
         intervalMinutes = intervalMinutes.coerceIn(MIN_INTERVAL_MINUTES, MAX_INTERVAL_MINUTES),
         script = script,
         kind = if (normalizeScriptKind(scriptKind) == SCRIPT_KIND_NODE) {
@@ -419,6 +690,31 @@ class AgentWatcherEngine(
     }
 }
 
+private data class PendingWatcherNotification(val message: String)
+
+data class RemoteWatcherBinding(val nodeId: String, val remoteId: String) {
+    fun encode(): String {
+        val encoder = Base64.getUrlEncoder().withoutPadding()
+        return "v1." + encoder.encodeToString(nodeId.toByteArray(Charsets.UTF_8)) + "." +
+            encoder.encodeToString(remoteId.toByteArray(Charsets.UTF_8))
+    }
+
+    companion object {
+        fun decode(value: String): RemoteWatcherBinding? {
+            val parts = value.split('.')
+            if (parts.size != 3 || parts[0] != "v1") return null
+            return try {
+                val decoder = Base64.getUrlDecoder()
+                val nodeId = decoder.decode(parts[1]).toString(Charsets.UTF_8)
+                val remoteId = decoder.decode(parts[2]).toString(Charsets.UTF_8)
+                if (nodeId.isBlank() || remoteId.isBlank()) null else RemoteWatcherBinding(nodeId, remoteId)
+            } catch (_: IllegalArgumentException) {
+                null
+            }
+        }
+    }
+}
+
 /** 一次检查的结果。 */
 sealed interface WatcherCheckOutcome {
     val watcherId: String
@@ -463,7 +759,7 @@ class LocalScriptWatcherCollector(
 
     override suspend fun collect(watcher: AgentWatcherEntity): String {
         val script = watcher.script.trim()
-        if (script.isBlank()) throw IllegalStateException("watcher script is empty")
+        require(script.isNotBlank()) { "watcher script is empty" }
         val result = when (watcher.scriptKind.lowercase(Locale.ROOT)) {
             AgentWatcherEngine.SCRIPT_KIND_NODE -> NodeScriptTool.evaluate(context, script)
             else -> PythonScriptTool.evaluate(context, script)
@@ -488,11 +784,7 @@ class LlmWatcherAnnouncer(
     private val localeProvider: () -> String = { Locale.getDefault().language },
 ) : WatcherAnnouncer {
 
-    override suspend fun announce(
-        watcher: AgentWatcherEntity,
-        previousResult: String,
-        currentResult: String,
-    ): String {
+    override suspend fun announce(watcher: AgentWatcherEntity, previousResult: String, currentResult: String): String {
         val isZh = localeProvider().startsWith("zh", ignoreCase = true)
         val completion = chatService.completeText(
             messages = listOf(
@@ -515,11 +807,7 @@ class LlmWatcherAnnouncer(
         return completion.text.trim()
     }
 
-    private fun buildPrompt(
-        watcher: AgentWatcherEntity,
-        previousResult: String,
-        currentResult: String,
-    ): String = buildString {
+    private fun buildPrompt(watcher: AgentWatcherEntity, previousResult: String, currentResult: String): String = buildString {
         appendLine("<watcher>")
         appendLine("title: " + watcher.title)
         appendLine("instruction: " + watcher.instruction)
@@ -579,9 +867,12 @@ class MuseNodeWatcherCloudHost(
     private val client: MuseNodeClient,
 ) : WatcherCloudHost {
 
-    override suspend fun findOnlineNode(): RemoteComputeNodeEntity? =
-        router.onlineNodes().firstOrNull()
+    override suspend fun findOnlineNode(): RemoteComputeNodeEntity? = router.onlineNodes().firstOrNull()
 
-    override suspend fun upsert(node: RemoteComputeNodeEntity, spec: WatcherSpec): String =
-        client.upsertWatcher(node, spec).watcherId
+    override suspend fun findNode(nodeId: String): RemoteComputeNodeEntity? = router.onlineNodes().firstOrNull { it.nodeId == nodeId }
+
+    override suspend fun upsert(node: RemoteComputeNodeEntity, spec: WatcherSpec): String = client.upsertWatcher(node, spec).watcherId
+
+    override suspend fun remove(node: RemoteComputeNodeEntity, remoteWatcherId: String): Boolean =
+        client.deleteWatcher(node, remoteWatcherId)
 }

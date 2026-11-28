@@ -16,6 +16,7 @@
     <string name="translate_page_speak_result">朗读译文</string>
     <string name="translate_page_use_as_input">使用译文继续翻译</string>
     <string name="translate_page_send_to_chat_session">发送到会话</string>
+    <string name="translate_page_still_translating">还在翻译，完成后再发送</string>
     <string name="translate_page_more">更多</string>
     <string name="translate_page_style_label">翻译风格</string>
     <string name="translate_page_tts_not_ready">语音播报正在准备，请稍后再试</string>

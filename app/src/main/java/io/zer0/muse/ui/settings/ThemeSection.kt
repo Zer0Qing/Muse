@@ -1,6 +1,7 @@
 package io.zer0.muse.ui.settings
 
-import android.content.Intent
+import android.Manifest
+import android.content.pm.PackageManager
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -9,7 +10,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -59,13 +59,10 @@ import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.ThemeSolarCondition
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
-import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseAnchoredMenu
-import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseCapsuleTab
 import io.zer0.muse.ui.common.form.MuseChip
 import io.zer0.muse.ui.common.form.MuseSlider
-import io.zer0.muse.ui.common.form.MuseSwitch
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
@@ -88,16 +85,14 @@ import io.zer0.muse.ui.theme.ThemeReconcileWorker
 import io.zer0.muse.ui.theme.semiLarge
 import io.zer0.muse.ui.theme.tiny
 import io.zer0.muse.util.AppLocales
+import io.zer0.muse.util.launchSafely
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.text.DateFormat
 import java.util.Date
-import android.content.pm.PackageManager
-import android.Manifest
 import kotlin.math.roundToInt
-import io.zer0.muse.util.launchSafely
 
 /**
  * 阶段 7: 外观 section — 分组列表。
@@ -332,9 +327,9 @@ internal fun ThemeSection(themeMode: String, fontSizeScale: String, settings: Se
         onDelete = { theme -> deletingTheme = theme },
         onImport = {
             importThemeLauncher.launchSafely(
-                    arrayOf("application/json", "text/plain", "application/octet-stream"),
-                    context,
-                )
+                arrayOf("application/json", "text/plain", "application/octet-stream"),
+                context,
+            )
         },
         onExport = shareTheme,
     )
@@ -615,9 +610,9 @@ internal fun ThemeSection(themeMode: String, fontSizeScale: String, settings: Se
         customFontPath = customFontPath,
         onImport = {
             fontImportLauncher.launchSafely(
-                    arrayOf("font/ttf", "font/otf", "application/octet-stream"),
-                    context,
-                )
+                arrayOf("font/ttf", "font/otf", "application/octet-stream"),
+                context,
+            )
         },
         onClear = {
             scope.launch {

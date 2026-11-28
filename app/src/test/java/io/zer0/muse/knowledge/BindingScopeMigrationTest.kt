@@ -16,8 +16,7 @@ class BindingScopeMigrationTest {
     private class Dir : FolderIdResolver.FolderDirectory {
         val rows = mutableMapOf<Pair<String, String>, String>()
         override fun findById(kbId: String, path: String): String? = rows[kbId to path]
-        override fun create(kbId: String, path: String): String =
-            FolderIdResolver.folderIdOf(kbId, path).also { rows[kbId to path] = it }
+        override fun create(kbId: String, path: String): String = FolderIdResolver.folderIdOf(kbId, path).also { rows[kbId to path] = it }
     }
 
     @Test

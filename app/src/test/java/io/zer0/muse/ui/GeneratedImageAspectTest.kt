@@ -1,9 +1,9 @@
 package io.zer0.muse.ui
 
+import io.zer0.muse.ui.chat.generatedImageAspectOf
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
-import io.zer0.muse.ui.chat.generatedImageAspectOf
 
 /**
  * 作品卡画幅选择:只有 data-URI 预占固定画幅,URL / 文件路径不预占。

@@ -6,11 +6,10 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Process
 import androidx.core.content.ContextCompat
-import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.context.PhoneContext
 import io.zer0.muse.context.PhoneContextDispatcher
+import io.zer0.muse.ui.theme.MuseDateFormats
 import java.util.Date
-import java.util.Locale
 
 /**
  * `phone_context`：把手机侧的个人数据按**统一信封**交给模型（对比清单 P2-02）。

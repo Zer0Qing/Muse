@@ -60,7 +60,7 @@ val appToolModule = module {
     single { io.zer0.muse.tools.ScheduledTaskToolsRegistrar(androidContext(), get()) }
     single { io.zer0.muse.tools.TranslateToolsRegistrar(get()) }
     // P1-3b 拆域: TTS 工具注册器(speak_text)
-    single { io.zer0.muse.tools.TtsToolsRegistrar(androidContext(), get()) }
+    single { io.zer0.muse.tools.TtsToolsRegistrar(androidContext(), get(), get()) }
 
     // v1.137: 快速记录存储,供自动化任务和 UI 共享同一实例
     single { io.zer0.muse.tools.quicknote.QuickNoteStore(androidContext()) }

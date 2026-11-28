@@ -16,6 +16,8 @@ import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.UIMessage
 import io.zer0.muse.R
 import io.zer0.muse.data.ChatPreferences
+import io.zer0.muse.ui.chat.MessageBubble
+import io.zer0.muse.ui.chat.messageCopyText
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Rule
@@ -25,8 +27,6 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.nio.file.Files
 import java.nio.file.Path
-import io.zer0.muse.ui.chat.messageCopyText
-import io.zer0.muse.ui.chat.MessageBubble
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [33])

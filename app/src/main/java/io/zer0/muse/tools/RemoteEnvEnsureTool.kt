@@ -58,7 +58,10 @@ class RemoteEnvEnsureTool(
             resolveNode(args["node_id"].orEmpty())
         } catch (e: CancellationException) {
             throw e
-        } catch (e: Exception) {
+        } catch (e: MuseNodeException) {
+            Logger.w(TAG, "resolve compute node failed: " + e.message, e)
+            null
+        } catch (e: RuntimeException) {
             Logger.w(TAG, "resolve compute node failed: " + e.message, e)
             null
         } ?: return ToolOutcome.error("没有可用的在线云端电脑，请先在工作台接入并启动节点")
@@ -83,7 +86,7 @@ class RemoteEnvEnsureTool(
                 "云端依赖安装失败: " + e.message,
                 mapOf("errorType" to "remote_env_failed", "code" to e.serverCode, "nodeId" to node.nodeId),
             )
-        } catch (e: Exception) {
+        } catch (e: RuntimeException) {
             Logger.w(TAG, "env ensure failed: " + e.message, e)
             return ToolOutcome.error(
                 "云端依赖安装失败: " + (e.message ?: e.javaClass.simpleName),
@@ -158,11 +161,10 @@ class RemoteEnvEnsureTool(
         }
     }
 
-    private fun parsePackages(raw: String): List<String> =
-        raw.split(PACKAGE_SPLIT_REGEX)
-            .map { it.trim() }
-            .filter { it.isNotEmpty() }
-            .distinct()
+    private fun parsePackages(raw: String): List<String> = raw.split(PACKAGE_SPLIT_REGEX)
+        .map { it.trim() }
+        .filter { it.isNotEmpty() }
+        .distinct()
 
     companion object {
         const val NAME = "remote_ensure_env"

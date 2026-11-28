@@ -657,6 +657,7 @@
     <string name="settings_session_terms_scope_assistant">Nivel asistente</string>
     <string name="settings_session_terms_scope_confirmed">Confirmado</string>
     <string name="settings_session_terms_scope_candidate">Por confirmar</string>
+    <string name="settings_session_terms_scope_pending">Registrado</string>
     <string name="kb_doc_version">Versión %1$d</string>
     <string name="kb_doc_edit">Editar contenido</string>
     <string name="kb_doc_source">Origen</string>
@@ -694,4 +695,14 @@
     <string name="settings_about_memory_low_heap">dispositivo de baja memoria</string>
     <string name="settings_about_memory_normal_heap">largeHeap activado</string>
     <string name="settings_theme_custom_import_failed_with_reason">Error al importar: %1$s</string>
+    <string name="onboarding_home_layout_intro">Elige un diseño para la pantalla de inicio. Puedes cambiarlo más tarde en los ajustes de apariencia.</string>
+    <string name="onboarding_home_layout_save_failed">No se pudo guardar el diseño. Inténtalo de nuevo.</string>
+    <string name="settings_home_layout_title">Diseño de inicio</string>
+    <string name="settings_home_layout_classic">Tres pestañas clásicas</string>
+    <string name="settings_home_layout_classic_desc">Cambia entre Tareas, Agent y chats grupales desde la barra superior</string>
+    <string name="settings_home_layout_drawer">Cajón minimalista</string>
+    <string name="settings_home_layout_drawer_desc">Chat directo con un cajón lateral para buscar y acceder a chats y herramientas</string>
+    <string name="settings_home_layout_preview_classic_bar">Tareas · Agent · Grupos</string>
+    <string name="settings_home_layout_preview_drawer_chat">Iniciar chat…</string>
+    <string name="settings_home_layout_preview_drawer_search">Buscar chats y herramientas</string>
 </resources>

@@ -149,7 +149,7 @@ class KnowledgeBaselineCorpusTest {
             assertEquals(0, recall.hits.size) // 空活动代列表必须零结果(不扩域)
         }
         val recallAt10 = hits.toDouble() / answerable.size
-        println("R0 基线 Recall@10 = $recallAt10 (${hits}/${answerable.size}), misses=$misses")
+        println("R0 基线 Recall@10 = $recallAt10 ($hits/${answerable.size}), misses=$misses")
         assertTrue("Recall@10 必须 >= 0.90,实际=$recallAt10 misses=$misses", recallAt10 >= 0.90)
     }
 }

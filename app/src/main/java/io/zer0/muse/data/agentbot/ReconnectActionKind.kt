@@ -27,8 +27,7 @@ data class ReconnectCardPayload(
     companion object {
         private val json = Json { ignoreUnknownKeys = true }
 
-        fun decode(raw: String): ReconnectCardPayload? =
-            runCatching { json.decodeFromString<ReconnectCardPayload>(raw) }.getOrNull()
+        fun decode(raw: String): ReconnectCardPayload? = runCatching { json.decodeFromString<ReconnectCardPayload>(raw) }.getOrNull()
 
         /**
          * 从失败摘要推断可修复类型；识别不到时返回 null，避免把所有失败都伪装成可重连。

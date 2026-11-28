@@ -1,5 +1,4 @@
 package io.zer0.muse.transformer
-import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * 上下文自动压缩的阈值策略 —— 单一真源。

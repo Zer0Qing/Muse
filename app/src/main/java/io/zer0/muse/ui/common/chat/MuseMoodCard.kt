@@ -48,13 +48,7 @@ import io.zer0.muse.ui.theme.glassFakeSurfaceColor
  * 流式阶段自动保持折叠，避免尚未闭合的标签造成整块跳动。
  */
 @Composable
-fun MuseMoodCard(
-    mood: String,
-    expanded: Boolean,
-    onToggle: () -> Unit,
-    modifier: Modifier = Modifier,
-    isStreaming: Boolean = false,
-) {
+fun MuseMoodCard(mood: String, expanded: Boolean, onToggle: () -> Unit, modifier: Modifier = Modifier, isStreaming: Boolean = false) {
     val showExpanded = if (isStreaming) false else expanded
     val moodSections = remember(mood) { MoodSectionParser.parse(mood) }
     val moodLabel = stringResource(R.string.chat_mood_label)
@@ -97,15 +91,17 @@ fun MuseMoodCard(
 
     val surfaceModifier = when {
         !useFakeGlass -> modifier
-        isMono -> modifier
-            .clip(MuseShapes.medium)
-            .glassEdgeHighlight(MuseShapes.medium, glassConfig)
-            .glassBorder(MuseShapes.medium, glassConfig)
-        else -> modifier
-            .clip(MuseShapes.medium)
-            .background(glassFakeSurfaceColor(baseContainerColor, glassConfig))
-            .glassEdgeHighlight(MuseShapes.medium, glassConfig)
-            .glassBorder(MuseShapes.medium, glassConfig)
+        isMono ->
+            modifier
+                .clip(MuseShapes.medium)
+                .glassEdgeHighlight(MuseShapes.medium, glassConfig)
+                .glassBorder(MuseShapes.medium, glassConfig)
+        else ->
+            modifier
+                .clip(MuseShapes.medium)
+                .background(glassFakeSurfaceColor(baseContainerColor, glassConfig))
+                .glassEdgeHighlight(MuseShapes.medium, glassConfig)
+                .glassBorder(MuseShapes.medium, glassConfig)
     }
 
     Surface(

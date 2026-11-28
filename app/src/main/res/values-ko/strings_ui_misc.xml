@@ -220,6 +220,7 @@
     <string name="agent_bot_error_binding_unreadable">이 어시스턴트의 저장된 대화를 읽지 못해 전송하지 않았습니다. 잠시 후 다시 시도해 주세요</string>
     <string name="agent_bot_error_no_session">아직 사용할 수 있는 대화가 없습니다</string>
     <string name="agent_bot_error_save_failed">메시지를 저장하지 못했습니다. 다시 시도해 주세요</string>
+    <string name="agent_bot_error_provider_failed">모델 서비스가 오류를 반환해 이번 턴에는 응답이 없습니다</string>
     <string name="agent_bot_error_already_decided">이 단계는 이미 결정되었습니다</string>
     <string name="agent_bot_error_approval_expired">이 단계는 시간이 지났습니다. 다시 시작해야 합니다</string>
     <string name="agent_bot_error_approval_stale">내용이 바뀌어 이전 승인이 무효가 되었습니다</string>

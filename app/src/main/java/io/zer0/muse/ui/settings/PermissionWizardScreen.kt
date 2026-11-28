@@ -52,10 +52,10 @@ import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.common.surface.MusePageScaffold
 import io.zer0.muse.ui.common.surface.MuseSurface
 import io.zer0.muse.ui.theme.statusColors
+import io.zer0.muse.util.launchSafely
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
-import io.zer0.muse.util.launchSafely
 
 /**
  * P3-3: 权限引导页 — 三通道(无障碍/Shizuku/Root)权限配置向导。
@@ -187,7 +187,8 @@ fun PermissionWizardScreen(onBack: () -> Unit) {
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         compact = true,
                     )
-                },            )
+                },
+            )
         },
     ) { padding ->
         Column(
@@ -434,9 +435,9 @@ fun PermissionWizardScreen(onBack: () -> Unit) {
                         // 未装 Termux 时系统会直接回调拒绝，由 denied 提示引导用户先装。
                         if (activity != null) {
                             termuxPermissionLauncher.launchSafely(
-                                    io.zer0.muse.terminal.TermuxChannel.PERMISSION,
-                                    context,
-                                )
+                                io.zer0.muse.terminal.TermuxChannel.PERMISSION,
+                                context,
+                            )
                             return@TermuxChannelCard
                         }
                         // 回落: 无法发起运行时请求时，给可自查的 adb 命令而不是指错路。

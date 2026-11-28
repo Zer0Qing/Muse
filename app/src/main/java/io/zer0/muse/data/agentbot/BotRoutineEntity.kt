@@ -68,6 +68,7 @@ object RoutineTriggerType {
 /** 惯例最近一次运行的结果标记；用于界面区分“排队中”和“已静默归档”。 */
 object RoutineRunStatus {
     const val QUEUED = "QUEUED"
+    const val SKILL_UNAVAILABLE = "SKILL_UNAVAILABLE"
 
     /**
      * 无异常、无实质变化、无需确认的例行运行。
@@ -114,6 +115,18 @@ interface BotRoutineDao {
             "WHERE routineId = :routineId",
     )
     suspend fun recordExecution(routineId: String, runAt: Long, status: String): Int
+
+    @Query(
+        "UPDATE bot_routines SET lastRunAt = :runAt, lastRunStatus = :status, " +
+            "runCount = runCount + 1, updatedAt = :runAt WHERE routineId = :routineId AND lastRunAt < :runAt",
+    )
+    suspend fun recordExecutionIfNewer(routineId: String, runAt: Long, status: String): Int
+
+    @Query(
+        "UPDATE bot_routines SET lastRunStatus = :status, updatedAt = :runAt " +
+            "WHERE routineId = :routineId AND lastRunAt = :expectedRunAt AND lastRunStatus = 'QUEUED'",
+    )
+    suspend fun settleExecution(routineId: String, expectedRunAt: Long, runAt: Long, status: String): Int
 
     @Query("DELETE FROM bot_routines WHERE routineId = :routineId")
     suspend fun deleteById(routineId: String)

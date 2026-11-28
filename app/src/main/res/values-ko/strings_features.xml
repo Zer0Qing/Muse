@@ -535,6 +535,7 @@
     <string name="accessibility_status_disabled">사용 안 함. 시스템 설정에서 «Muse UI 자동화»를 승인하세요.</string>
     <string name="accessibility_status_enabled">접근성 서비스 사용 중. UI 작업(클릭/스와이프/입력/스크린샷/UI 트리 읽기)을 사용할 수 있습니다.</string>
     <string name="common_load_failed">불러오기 실패</string>
+    <string name="common_save_failed">저장하지 못했습니다</string>
     <string name="action_undo">실행 취소</string>
     <string name="chat_unarchived">보관 취소됨</string>
     <string name="agent_dm_empty">아직 비공개 메시지가 없습니다</string>
@@ -689,6 +690,8 @@
     <string name="wake_diagnostics_denied">예외 없음</string>
     <string name="wake_diagnostics_next_run">다음 실행: %1$s</string>
     <string name="wake_diagnostics_next_run_none">대기열에 없음</string>
+    <string name="wake_diagnostics_next_run_overdue">실행 시각이 지나 시스템 실행을 기다리는 중 (예정 %1$s)</string>
+    <string name="wake_diagnostics_next_run_overdue_constrained">실행 시각이 지나 조건 충족을 기다리는 중 (예정 %1$s)</string>
     <string name="wake_diagnostics_attempts">%1$d회 시도</string>
     <string name="wake_diagnostics_history">과거 기록 %1$d건</string>
     <string name="wake_diagnostics_constrained">실행 제약 있음</string>

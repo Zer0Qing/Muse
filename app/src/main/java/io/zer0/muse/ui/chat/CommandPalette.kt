@@ -72,7 +72,6 @@ import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.ui.theme.semiLarge
 import kotlinx.coroutines.delay
 import org.koin.compose.koinInject
-import io.zer0.muse.ui.screen.SearchScreen
 
 /**
  * C1 全局命令面板 — 桌面 Ctrl+K / 首页搜索按钮唤起的统一入口。
@@ -411,6 +410,7 @@ private fun PaletteResultList(
             itemsIndexed(
                 visibleCommands,
                 key = { index, entry -> "command_${entry.command}_$index" },
+                contentType = { _, _ -> "command_entry" },
             ) { index, entry ->
                 // v2.x: 动效补齐 — 结果行入场(令牌 animateItem)
                 Box(museAnimateItem()) {

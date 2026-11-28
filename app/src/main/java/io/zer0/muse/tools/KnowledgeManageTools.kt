@@ -1,5 +1,6 @@
 package io.zer0.muse.tools
 
+import androidx.room.withTransaction
 import io.zer0.common.Logger
 import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.data.knowledge.KnowledgeBaseDao
@@ -12,8 +13,10 @@ import io.zer0.muse.data.knowledge.KnowledgeFolderEntity
 import io.zer0.muse.data.session.MuseDb
 import io.zer0.muse.rag.KnowledgeFolderBrowser
 import io.zer0.muse.rag.RagService
-import androidx.room.withTransaction
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -45,6 +48,7 @@ class KnowledgeCascade(
 
         /** 与 [KnowledgeDocEntity.kbId] 默认值一致。 */
         const val DEFAULT_KB_ID = "default"
+        private const val DELETE_CHUNK_BATCH_SIZE = 200
     }
 
     /** 删库结果。 */
@@ -72,38 +76,42 @@ class KnowledgeCascade(
         if (kbDao.getById(kbId) == null) {
             return io.zer0.common.Result.Error("未找到知识库 $kbId")
         }
-        // 业务拒绍与执行失败分开：前者是调用方的错，后者需要留日志与原因。
+        // 业务拒绝与执行失败分开：前者是调用方的错，后者需要留日志与原因。
+        // 放到 NonCancellable + Dispatchers.IO：删大型知识库时关弹窗或退出页面不得中断删库，
+        // 同时用批量删除接口，只在结束时统一重写一次 HNSW 索引。
         val outcome = runCatching {
-            inTransaction {
-                // 含 internal 文档：getByKbIds 会排掉它们，而“孤儿内部文档”正是要修的问题之一。
-                val allDocs = docDao.getAll().filter { it.kbId == kbId }
-                val userDocs = allDocs.filterNot { it.isInternal }
-                val internalDocs = allDocs.filter { it.isInternal }
+            withContext(NonCancellable + Dispatchers.IO) {
+                inTransaction {
+                    // 含 internal 文档：getByKbIds 会排掉它们，而“孤儿内部文档”正是要修的问题之一。
+                    val allDocs = docDao.getAll().filter { it.kbId == kbId }
+                    val userDocs = allDocs.filterNot { it.isInternal }
+                    val internalDocs = allDocs.filter { it.isInternal }
 
-                userDocs.forEach { doc ->
-                    // 分块 / FTS / 向量索引 / 文档行一次清完（RagService 是这条链的唯一实现）
-                    ragService.deleteDocument(doc.id)
+                    val userDocIds = userDocs.map { it.id }
+                    if (userDocIds.isNotEmpty()) {
+                        ragService.deleteDocuments(userDocIds)
+                        // SQLite 单次 IN 参数上限 999，分批兜底清理残余分块行
+                        userDocIds.chunked(DELETE_CHUNK_BATCH_SIZE).forEach { batch ->
+                            chunkDao.deleteByDocIds(batch)
+                        }
+                    }
+                    internalDocs.forEach { doc ->
+                        docDao.upsert(doc.copy(kbId = DEFAULT_KB_ID, updatedAt = System.currentTimeMillis()))
+                    }
+                    folderDao.deleteByKb(kbId)
+                    kbDao.delete(kbId)
+                    val detached = assistantRepository?.detachKnowledgeBase(kbId) ?: 0
+                    Logger.i(
+                        TAG,
+                        "删除知识库 $kbId：文档 ${userDocs.size} 篇，内部文档改挂 ${internalDocs.size} 篇，" +
+                            "同步助手 $detached 个",
+                    )
+                    DeleteKbResult(
+                        deletedDocs = userDocs.size,
+                        reassignedInternalDocs = internalDocs.size,
+                        detachedAssistants = detached,
+                    )
                 }
-                // 兜底：派生索引清理若只删了部分，分块表不能再留残余行
-                if (userDocs.isNotEmpty()) {
-                    chunkDao.deleteByDocIds(userDocs.map { it.id })
-                }
-                internalDocs.forEach { doc ->
-                    docDao.upsert(doc.copy(kbId = DEFAULT_KB_ID, updatedAt = System.currentTimeMillis()))
-                }
-                folderDao.deleteByKb(kbId)
-                kbDao.delete(kbId)
-                val detached = assistantRepository?.detachKnowledgeBase(kbId) ?: 0
-                Logger.i(
-                    TAG,
-                    "删除知识库 $kbId：文档 ${userDocs.size} 篇，内部文档改挂 ${internalDocs.size} 篇，" +
-                        "同步助手 $detached 个",
-                )
-                DeleteKbResult(
-                    deletedDocs = userDocs.size,
-                    reassignedInternalDocs = internalDocs.size,
-                    detachedAssistants = detached,
-                )
             }
         }
         return outcome.fold(
@@ -132,63 +140,67 @@ class KnowledgeCascade(
     }
 
     /** 重命名文件夹（含子目录）：文件夹行、文档 folderPath、助手作用域一起改。 */
-    suspend fun renameFolder(kbId: String, oldPath: String, newName: String): FolderResult = inTransaction {
-        val old = KnowledgeFolderBrowser.normalize(oldPath)
-        val name = newName.trim()
-        if (kbId.isBlank() || old.isEmpty() || name.isEmpty()) return@inTransaction FolderResult.NotFound
-        val parent = KnowledgeFolderBrowser.parent(old)
-        val newPath = KnowledgeFolderBrowser.normalize(if (parent.isEmpty()) name else "$parent/$name")
-        if (newPath == old) return@inTransaction FolderResult.Ok(newPath)
-        if (!folderExists(kbId, old)) return@inTransaction FolderResult.NotFound
-        if (folderExists(kbId, newPath)) return@inTransaction FolderResult.NameConflict
-        val now = System.currentTimeMillis()
-        // 显式文件夹行：整棵子树换前缀
-        folderDao.getByPathRecursive(kbId, old).forEach { folder ->
-            val moved = newPath + folder.path.removePrefix(old)
-            folderDao.deleteById(folder.id)
-            folderDao.upsert(
-                folder.copy(
-                    id = "kbfolder-$kbId-$moved",
-                    path = moved,
-                    name = moved.substringAfterLast('/'),
-                    updatedAt = now,
-                ),
-            )
-        }
-        docDao.getAll()
-            .filter { it.kbId == kbId }
-            .forEach { doc ->
-                val path = KnowledgeFolderBrowser.folderPath(doc)
-                if (path == old || path.startsWith("$old/")) {
-                    docDao.upsert(
-                        KnowledgeFolderBrowser.withFolderPath(doc, newPath + path.removePrefix(old))
-                            .copy(updatedAt = now),
-                    )
-                }
+    suspend fun renameFolder(kbId: String, oldPath: String, newName: String): FolderResult = withContext(NonCancellable + Dispatchers.IO) {
+        inTransaction {
+            val old = KnowledgeFolderBrowser.normalize(oldPath)
+            val name = newName.trim()
+            if (kbId.isBlank() || old.isEmpty() || name.isEmpty()) return@inTransaction FolderResult.NotFound
+            val parent = KnowledgeFolderBrowser.parent(old)
+            val newPath = KnowledgeFolderBrowser.normalize(if (parent.isEmpty()) name else "$parent/$name")
+            if (newPath == old) return@inTransaction FolderResult.Ok(newPath)
+            if (!folderExists(kbId, old)) return@inTransaction FolderResult.NotFound
+            if (folderExists(kbId, newPath)) return@inTransaction FolderResult.NameConflict
+            val now = System.currentTimeMillis()
+            // 显式文件夹行：整棵子树换前缀
+            folderDao.getByPathRecursive(kbId, old).forEach { folder ->
+                val moved = newPath + folder.path.removePrefix(old)
+                folderDao.deleteById(folder.id)
+                folderDao.upsert(
+                    folder.copy(
+                        id = "kbfolder-$kbId-$moved",
+                        path = moved,
+                        name = moved.substringAfterLast('/'),
+                        updatedAt = now,
+                    ),
+                )
             }
-        assistantRepository?.rewriteKnowledgeFolderScopes(kbId, old, newPath)
-        FolderResult.Ok(newPath)
+            docDao.getAll()
+                .filter { it.kbId == kbId }
+                .forEach { doc ->
+                    val path = KnowledgeFolderBrowser.folderPath(doc)
+                    if (path == old || path.startsWith("$old/")) {
+                        docDao.upsert(
+                            KnowledgeFolderBrowser.withFolderPath(doc, newPath + path.removePrefix(old))
+                                .copy(updatedAt = now),
+                        )
+                    }
+                }
+            assistantRepository?.rewriteKnowledgeFolderScopes(kbId, old, newPath)
+            FolderResult.Ok(newPath)
+        }
     }
 
     /** 删除文件夹（含子目录）：文档回根，助手作用域里指向它的条目一并移除。 */
-    suspend fun deleteFolder(kbId: String, path: String): FolderResult = inTransaction {
-        val target = KnowledgeFolderBrowser.normalize(path)
-        if (kbId.isBlank() || target.isEmpty()) return@inTransaction FolderResult.NotFound
-        if (!folderExists(kbId, target)) return@inTransaction FolderResult.NotFound
-        val now = System.currentTimeMillis()
-        folderDao.deleteByPathRecursive(kbId, target)
-        docDao.getAll()
-            .filter { it.kbId == kbId }
-            .forEach { doc ->
-                val docPath = KnowledgeFolderBrowser.folderPath(doc)
-                if (docPath == target || docPath.startsWith("$target/")) {
-                    docDao.upsert(
-                        KnowledgeFolderBrowser.withFolderPath(doc, "").copy(updatedAt = now),
-                    )
+    suspend fun deleteFolder(kbId: String, path: String): FolderResult = withContext(NonCancellable + Dispatchers.IO) {
+        inTransaction {
+            val target = KnowledgeFolderBrowser.normalize(path)
+            if (kbId.isBlank() || target.isEmpty()) return@inTransaction FolderResult.NotFound
+            if (!folderExists(kbId, target)) return@inTransaction FolderResult.NotFound
+            val now = System.currentTimeMillis()
+            folderDao.deleteByPathRecursive(kbId, target)
+            docDao.getAll()
+                .filter { it.kbId == kbId }
+                .forEach { doc ->
+                    val docPath = KnowledgeFolderBrowser.folderPath(doc)
+                    if (docPath == target || docPath.startsWith("$target/")) {
+                        docDao.upsert(
+                            KnowledgeFolderBrowser.withFolderPath(doc, "").copy(updatedAt = now),
+                        )
+                    }
                 }
-            }
-        assistantRepository?.rewriteKnowledgeFolderScopes(kbId, target, newPath = null)
-        FolderResult.Ok(target)
+            assistantRepository?.rewriteKnowledgeFolderScopes(kbId, target, newPath = null)
+            FolderResult.Ok(target)
+        }
     }
 
     /** 同层同名判定：显式文件夹行，或已被文档路径隐式占用的目录都算已存在。 */

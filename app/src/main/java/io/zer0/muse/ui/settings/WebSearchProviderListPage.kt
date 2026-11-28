@@ -1,6 +1,5 @@
 package io.zer0.muse.ui.settings
 
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -16,17 +15,13 @@ import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.common.surface.navigationItem
 import io.zer0.muse.ui.theme.MuseIconSizes
-import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.web.WebSearchConfig
 import io.zer0.muse.web.WebSearchProviderCatalog
 import org.koin.compose.koinInject
 
 /** 供应商选择页；具体字段只在单家详情页展示。 */
 @Composable
-fun SettingsWebSearchProviderListPage(
-    onBack: () -> Unit,
-    onOpenProvider: (String) -> Unit,
-) {
+fun SettingsWebSearchProviderListPage(onBack: () -> Unit, onOpenProvider: (String) -> Unit) {
     val settings: SettingsRepository = koinInject()
     val config by settings.webSearchConfigFlow.collectAsStateWithLifecycle(
         initialValue = WebSearchConfig(),

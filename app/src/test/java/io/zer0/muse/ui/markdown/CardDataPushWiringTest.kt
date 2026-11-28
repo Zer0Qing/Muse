@@ -71,8 +71,8 @@ class CardDataPushWiringTest {
             source.contains("val pushBoot = if (pushEnabled)"),
         )
         assertTrue(
-            "HTML 必须带上 pushBoot",
-            source.contains("\$idBoot\$pushBoot\$safe\$scripts"),
+            "HTML 必须带上 pushBoot，且门面脚本要排在卡片正文之前",
+            source.contains("\$idBoot\$pushBoot\$preludeScripts\$safe\$scripts"),
         )
     }
 

@@ -41,8 +41,16 @@
     <string name="agent_follow_up_watcher_end_confirm_title">End this watcher?</string>
     <string name="agent_follow_up_watcher_last_checked">Last checked: %1$s</string>
     <string name="agent_follow_up_watcher_last_error">Check failed: %1$s</string>
+    <string name="agent_follow_up_watcher_remote_pending">Aguardando sincronização com o ambiente original</string>
+    <string name="agent_follow_up_watcher_remote_unknown">Ambiente desconhecido. Verifique este acompanhamento.</string>
+    <string name="agent_follow_up_watcher_notify_pending">Alerta ainda não enviada. Haverá novas tentativas automáticas.</string>
     <string name="agent_follow_up_watcher_last_result">Last result: %1$s</string>
-    <string name="agent_follow_up_watcher_meta">%1$s · every %2$d min</string>
+    <string name="agent_follow_up_watcher_meta">%1$s · a cada %2$d min</string>
+    <string name="agent_watcher_confirm_schedule">A cada %1$d min · %2$s</string>
+    <string name="agent_watcher_confirm_notification">Notificações para: %1$s</string>
+    <string name="agent_watcher_confirm_notification_app">Notificações do Muse</string>
+    <string name="agent_watcher_confirm_show_script">Ver script</string>
+    <string name="agent_watcher_confirm_hide_script">Ocultar script</string>
     <string name="agent_follow_up_watcher_never_checked">Not checked yet</string>
     <string name="agent_follow_up_watcher_pause">Pause</string>
     <string name="agent_follow_up_watcher_resume">Resume</string>
@@ -63,7 +71,6 @@
     <string name="agent_hub_tab_about_you">About you</string>
     <string name="agent_hub_tab_follow_up">Follow-up</string>
     <string name="agent_hub_tab_spaces">Spaces</string>
-    <string name="agent_hub_voice_mode_cd">Voice call</string>
     <string name="agent_hub_voice_mode_hint">Talk with your assistant in real time</string>
     <string name="agent_reconnect_dismiss_cd">Dismiss this notice</string>
     <string name="agent_reconnect_fix">Fix it</string>
@@ -134,7 +141,7 @@
     <string name="agent_suggestion_pending_title">%1$d items need your approval</string>
     <string name="agent_suggestion_routine_prompt">Check the enabled automations and tell me about their latest run</string>
     <string name="agent_suggestion_routine_title">%1$d automations enabled</string>
-    <string name="agent_suggestion_strip_title">Guess what you want</string>
+    <string name="agent_suggestion_strip_title">Próximo passo</string>
     <string name="agent_voice_list_separator">, </string>
     <string name="agent_voice_relay_artifacts">Artifacts: %1$s</string>
     <string name="agent_voice_relay_blockers">Unverified/blocked: %1$s</string>
@@ -169,6 +176,10 @@
     <string name="compute_node_existing_title">Connected computers</string>
     <string name="compute_node_field_daemon_port">Node port</string>
     <string name="compute_node_field_host">Server address</string>
+    <string name="compute_node_field_host_fingerprint">Impressão digital do host SSH</string>
+    <string name="compute_node_host_fingerprint_hint">Confira a impressão SHA256 em uma fonte confiável. Exemplo: ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub -E sha256</string>
+    <string name="compute_node_ssh_fingerprint_repair_title">Verificar e atualizar a identidade do host</string>
+    <string name="compute_node_ssh_repair">Verificar e reparar</string>
     <string name="compute_node_field_name">Name (optional)</string>
     <string name="compute_node_field_password">Login password</string>
     <string name="compute_node_field_password_hint">Enter the server login password</string>

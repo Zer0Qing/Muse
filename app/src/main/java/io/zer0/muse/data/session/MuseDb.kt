@@ -238,6 +238,9 @@ import java.io.File
         io.zer0.muse.data.agentbot.AgentGoalEntity::class,
         // v2.7.x: Linux 轻量云电脑节点（纯新增表，不动既有行）。
         io.zer0.muse.data.computenode.RemoteComputeNodeEntity::class,
+        // M4: 媒体创作台后台任务与本地资产持久表。
+        io.zer0.muse.data.media.MediaGenTaskEntity::class,
+        io.zer0.muse.data.media.MediaGenAssetEntity::class,
     ],
     version = MuseDb.LATEST_SCHEMA_VERSION,
     exportSchema = true,
@@ -398,9 +401,12 @@ abstract class MuseDb : RoomDatabase() {
     /** Linux 轻量云电脑节点。 */
     abstract fun remoteComputeNodeDao(): io.zer0.muse.data.computenode.RemoteComputeNodeDao
 
+    /** M4: 媒体创作台任务与本地资产。 */
+    abstract fun mediaGenDao(): io.zer0.muse.data.media.MediaGenDao
+
     companion object {
         /** Single schema-version source; must match the latest exported JSON. */
-        const val LATEST_SCHEMA_VERSION = 140
+        const val LATEST_SCHEMA_VERSION = 142
 
         @Volatile
         private var dbInstance: MuseDb? = null
@@ -542,7 +548,6 @@ abstract class MuseDb : RoomDatabase() {
             }
         }
 
-
         /**
          * R-DB-04: 75→76 — messages 表存量 base64 图片外置到 filesDir/muse_images/。
          * 复用 MessageImageStore.toPersistable:长 base64 落盘并改为 file:// 引用,
@@ -585,13 +590,31 @@ abstract class MuseDb : RoomDatabase() {
          * 都以这里为唯一真源(见 `MuseDbMigrationChainTest`),所以不要再在别处直接 `addMigrations`。
          */
         internal fun migrations(context: Context): List<Migration> = listOf(
-            MuseDbMigrations.MIGRATION_1_2, MuseDbMigrations.MIGRATION_2_3, MuseDbMigrations.MIGRATION_3_4, MuseDbMigrations.MIGRATION_4_5,
-            MuseDbMigrations.MIGRATION_5_6, MuseDbMigrations.MIGRATION_6_7, MuseDbMigrations.MIGRATION_7_8, MuseDbMigrations.MIGRATION_8_9,
-            MuseDbMigrations.MIGRATION_9_10, MuseDbMigrations.MIGRATION_10_11, MuseDbMigrations.MIGRATION_11_12, MuseDbMigrations.MIGRATION_12_13,
-            MuseDbMigrations.MIGRATION_13_14, MuseDbMigrations.MIGRATION_14_15, MuseDbMigrations.MIGRATION_15_16, MuseDbMigrations.MIGRATION_16_17,
-            MuseDbMigrations.MIGRATION_17_18, MuseDbMigrations.MIGRATION_18_19, MuseDbMigrations.MIGRATION_19_20, MuseDbMigrations.MIGRATION_20_21,
+            MuseDbMigrations.MIGRATION_1_2,
+            MuseDbMigrations.MIGRATION_2_3,
+            MuseDbMigrations.MIGRATION_3_4,
+            MuseDbMigrations.MIGRATION_4_5,
+            MuseDbMigrations.MIGRATION_5_6,
+            MuseDbMigrations.MIGRATION_6_7,
+            MuseDbMigrations.MIGRATION_7_8,
+            MuseDbMigrations.MIGRATION_8_9,
+            MuseDbMigrations.MIGRATION_9_10,
+            MuseDbMigrations.MIGRATION_10_11,
+            MuseDbMigrations.MIGRATION_11_12,
+            MuseDbMigrations.MIGRATION_12_13,
+            MuseDbMigrations.MIGRATION_13_14,
+            MuseDbMigrations.MIGRATION_14_15,
+            MuseDbMigrations.MIGRATION_15_16,
+            MuseDbMigrations.MIGRATION_16_17,
+            MuseDbMigrations.MIGRATION_17_18,
+            MuseDbMigrations.MIGRATION_18_19,
+            MuseDbMigrations.MIGRATION_19_20,
+            MuseDbMigrations.MIGRATION_20_21,
             MuseDbMigrations.MIGRATION_21_22, MuseDbMigrations.MIGRATION_22_23, MuseDbMigrations.MIGRATION_23_24,
-            MuseDbMigrations.MIGRATION_24_25, MuseDbMigrations.MIGRATION_25_26, MuseDbMigrations.MIGRATION_26_27, MuseDbMigrations.MIGRATION_27_28,
+            MuseDbMigrations.MIGRATION_24_25,
+            MuseDbMigrations.MIGRATION_25_26,
+            MuseDbMigrations.MIGRATION_26_27,
+            MuseDbMigrations.MIGRATION_27_28,
             MuseDbMigrations.MIGRATION_28_29, MuseDbMigrations.MIGRATION_29_30, MuseDbMigrations.MIGRATION_30_31,
             MuseDbMigrations.MIGRATION_31_32,
             MuseDbMigrations.MIGRATION_32_33,
@@ -679,7 +702,10 @@ abstract class MuseDb : RoomDatabase() {
             MuseDbMigrations.MIGRATION_112_113,
             MuseDbMigrations.MIGRATION_113_114,
             MuseDbMigrations.MIGRATION_114_115,
-            MuseDbMigrations.MIGRATION_115_116, MuseDbMigrations.MIGRATION_116_117, MuseDbMigrations.MIGRATION_117_118, MuseDbMigrations.MIGRATION_118_119,
+            MuseDbMigrations.MIGRATION_115_116,
+            MuseDbMigrations.MIGRATION_116_117,
+            MuseDbMigrations.MIGRATION_117_118,
+            MuseDbMigrations.MIGRATION_118_119,
             MuseDbMigrations.MIGRATION_119_120,
             MuseDbMigrations.MIGRATION_120_121,
             MuseDbMigrations.MIGRATION_121_122,
@@ -701,6 +727,8 @@ abstract class MuseDb : RoomDatabase() {
             MuseDbMigrations.MIGRATION_137_138,
             MuseDbMigrations.MIGRATION_138_139,
             MuseDbMigrations.MIGRATION_139_140,
+            MuseDbMigrations.MIGRATION_140_141,
+            MuseDbMigrations.MIGRATION_141_142,
         )
 
         // SpreadOperator:展开 126 个已包装的迁移对象。这里必须用 vararg 形式交给 Room 的

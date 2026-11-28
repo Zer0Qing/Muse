@@ -2,16 +2,15 @@ package io.zer0.muse.ui
 
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.UIMessage
+import io.zer0.muse.ui.chat.buildSendText
+import io.zer0.muse.ui.chat.buildTranslationSourceText
+import io.zer0.muse.ui.chat.canContinueGeneration
+import io.zer0.muse.ui.chat.canRegenerate
+import io.zer0.muse.ui.chat.resumeFromInterrupted
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import io.zer0.muse.ui.chat.buildSendText
-import io.zer0.muse.ui.chat.canContinueGeneration
-import io.zer0.muse.ui.chat.resumeFromInterrupted
-import io.zer0.muse.ui.chat.canRegenerate
-import io.zer0.muse.ui.chat.buildTranslationSourceText
-import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * R-TEST-06: ChatViewModel 发送/继续/重生成状态机纯函数测试。

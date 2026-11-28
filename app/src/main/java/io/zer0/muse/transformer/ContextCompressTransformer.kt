@@ -205,16 +205,49 @@ class ContextCompressTransformer(
         // 它们不可恢复，压掉就等于把人物设定和检索结果一起忘了。
         val prefix = messages.subList(0, prefixEnd)
 
-        // v5: 优先级保留 — 工具调用消息和包含工具结果的消息应保留,不压缩
-        val priorityIds =
-            messages.filter { msg ->
-                msg.toolCalls != null || msg.toolCallInfo != null ||
-                    msg.role == MessageRole.TOOL || msg.role == MessageRole.SYSTEM
-            }.map { it.id.toString() }.toSet()
-
         // 可压缩区间 = prefix 之后到 recent 之前
         val compressibleEnd = messages.size - keepRecent
         if (prefixEnd >= compressibleEnd) return messages // prefix 本身就占了大部分,无可压缩区间
+
+        // 仅保留最近 2 个工具回合及跨切点的配对，避免历史旧工具回合长期锁死无法压缩。
+        val recentToolCallIds =
+            messages.subList(compressibleEnd, messages.size)
+                .mapNotNull { msg -> msg.toolCallId?.takeIf { msg.role == MessageRole.TOOL && it.isNotBlank() } }
+                .toSet()
+        val pinnedToolIds = HashSet<String>()
+        var keptRounds = 0
+        var activeRoundCallIds = emptySet<String>()
+        for (i in messages.indices.reversed()) {
+            val m = messages[i]
+            val idStr = m.id.toString()
+            when {
+                m.toolCalls != null && m.toolCalls!!.isNotEmpty() -> {
+                    val callIds = m.toolCalls!!.map { it.id }.toSet()
+                    val straddlesRecent = callIds.any { it in recentToolCallIds }
+                    val overlapsActive = callIds.any { it in activeRoundCallIds }
+                    if (keptRounds < KEEP_RECENT_TOOL_ROUNDS || straddlesRecent || overlapsActive) {
+                        pinnedToolIds += idStr
+                        keptRounds++
+                    }
+                }
+                m.toolCallInfo != null -> {
+                    if (keptRounds < KEEP_RECENT_TOOL_ROUNDS) {
+                        pinnedToolIds += idStr
+                        keptRounds++
+                    }
+                }
+                m.role == MessageRole.TOOL -> {
+                    if (keptRounds < KEEP_RECENT_TOOL_ROUNDS || m.toolCallId in recentToolCallIds) {
+                        pinnedToolIds += idStr
+                        m.toolCallId?.takeIf { it.isNotBlank() }?.let { activeRoundCallIds = activeRoundCallIds + it }
+                    }
+                }
+            }
+        }
+        val priorityIds =
+            messages.filter { msg ->
+                msg.role == MessageRole.SYSTEM || msg.id.toString() in pinnedToolIds
+            }.map { it.id.toString() }.toSet()
 
         // M-COMP3: 跳过已压缩的 SYSTEM 摘要消息,避免摘要叠加摘要
         val toCompress =
@@ -530,7 +563,9 @@ class ContextCompressTransformer(
                     appendLine("- 附加要求: $instruction")
                 }
             } else {
-                appendLine("You are a conversation compression assistant. Summarize the conversation history concisely in the conversation's language, keeping key facts, decisions, and user preferences.")
+                appendLine(
+                    "You are a conversation compression assistant. Summarize the conversation history concisely in the conversation's language, keeping key facts, decisions, and user preferences.",
+                )
                 appendLine("- Use one bullet per line; never fabricate unmentioned facts; keep under 500 words")
                 if (!instruction.isNullOrBlank()) {
                     appendLine("- Additional requirement: $instruction")
@@ -635,6 +670,8 @@ class ContextCompressTransformer(
         // X-5: 默认值改为引用 CompressionPolicy 单一真源（与主对话组装侧共用一套）。
         val DEFAULT_THRESHOLD = CompressionPolicy.THRESHOLD_DEFAULT
         val DEFAULT_KEEP_RECENT = CompressionPolicy.KEEP_RECENT_DEFAULT
+
+        const val KEEP_RECENT_TOOL_ROUNDS = 2
 
         // v1.116 (C1-5): 单条消息送入 LLM 压缩时的最大字符数(原 500,提升到 1500)
         const val MAX_COMPRESS_MSG_CHARS = 1500

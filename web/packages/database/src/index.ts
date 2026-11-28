@@ -300,6 +300,26 @@ export const migrations: readonly Migration[] = [
       create index if not exists jobs_user_idx on jobs(user_id, created_at desc);
     `,
   },
+  {
+    version: 10,
+    name: "account_mcp_connections",
+    upSql: `
+      create table if not exists mcp_servers (
+        user_id uuid not null references user_accounts(id) on delete cascade,
+        id text not null,
+        name text not null,
+        url text not null,
+        transport text not null default 'streamable_http' check (transport = 'streamable_http'),
+        enabled boolean not null default true,
+        status text not null default 'disabled' check (status in ('disabled', 'connecting', 'connected', 'failed', 'needs_auth')),
+        tools jsonb not null default '[]'::jsonb,
+        created_at timestamptz not null default now(),
+        updated_at timestamptz not null default now(),
+        primary key (user_id, id)
+      );
+      create index if not exists mcp_servers_user_idx on mcp_servers(user_id, created_at desc);
+    `,
+  },
 ];
 
 export function validateMigrationChain(items: readonly Migration[]): void {

@@ -54,7 +54,6 @@ object BackupCrypto {
         }
     }
 
-
     /**
      * 流式加密：把明文流包成密文流，头格式与 [encrypt] 完全一致。
      *
@@ -69,10 +68,7 @@ object BackupCrypto {
      *
      * 调用方负责 `close()` —— 那一步才会写出 GCM tag。
      */
-    fun encryptingStream(
-        out: java.io.OutputStream,
-        password: String,
-    ): java.io.OutputStream {
+    fun encryptingStream(out: java.io.OutputStream, password: String): java.io.OutputStream {
         require(password.isNotEmpty()) { "backupPassword must not be empty" }
         val salt = ByteArray(SALT_LENGTH).also { SecureRandom().nextBytes(it) }
         val iv = ByteArray(IV_LENGTH).also { SecureRandom().nextBytes(it) }
@@ -87,6 +83,7 @@ object BackupCrypto {
         out.flush()
         return javax.crypto.CipherOutputStream(out, cipher)
     }
+
     /** 解密。data 须为 [encrypt] 输出格式。password 错误或数据损坏抛异常。 */
     fun decrypt(data: ByteArray, password: String): ByteArray {
         require(password.isNotEmpty()) { "backupPassword must not be empty" }
@@ -109,12 +106,12 @@ object BackupCrypto {
 
     /** 判断字节流是否为本工具加密的格式(用于 importFromCloud 兼容旧明文备份)。 */
     fun isEncrypted(data: ByteArray): Boolean {
-        if (data.size <= MAGIC.length) return false
+        if (data.size < MAGIC.length) return false
         val magic = runCatching { String(data, 0, MAGIC.length, Charsets.US_ASCII) }.getOrNull()
         return magic == MAGIC
     }
 
-    private fun deriveKey(password: String, salt: ByteArray): SecretKeySpec {
+    internal fun deriveKey(password: String, salt: ByteArray): SecretKeySpec {
         val spec = PBEKeySpec(password.toCharArray(), salt, PBKDF2_ITERATIONS, KEY_LENGTH_BITS)
         val factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
         // H-SEC-6: 生成密钥后立即复制并清零敏感字节,防止原始 secret 残留在堆中

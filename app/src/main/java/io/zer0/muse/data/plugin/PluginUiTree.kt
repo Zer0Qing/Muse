@@ -107,7 +107,7 @@ object PluginUiTree {
 
         @Serializable
         @SerialName("list")
-        data class List_(val items: List<String> = emptyList(), val ordered: Boolean? = null) : Node
+        data class ListItems(val items: List<String> = emptyList(), val ordered: Boolean? = null) : Node
 
         @Serializable
         @SerialName("progress")
@@ -230,7 +230,7 @@ object PluginUiTree {
     private fun nodeViolation(node: Node): String? = when (node) {
         is Node.Input -> inputViolation(node)
         is Node.Submit -> if (node.handler.isBlank()) "submit.handler 必须指向一个已声明的插件函数" else null
-        is Node.List_ -> if (node.items.size > MAX_NODES) "列表项超过 $MAX_NODES 条" else null
+        is Node.ListItems -> if (node.items.size > MAX_NODES) "列表项超过 $MAX_NODES 条" else null
         is Node.Progress -> if (!node.value.isFinite()) "progress.value 必须是有限数" else null
         is Node.AssetImage -> if (node.path.isBlank()) "assetImage.path 不能为空" else null
         else -> {

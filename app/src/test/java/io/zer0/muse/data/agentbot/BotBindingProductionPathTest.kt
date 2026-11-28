@@ -42,7 +42,7 @@ class BotBindingProductionPathTest {
     private val viewModels = mutableListOf<AgentBotViewModel>()
 
     /** 没有 bind 过时页面用的 bot id，与 ViewModel 的默认值同源。 */
-    private val BOT_ID = AgentBotViewModel.DEFAULT_BOT_ID
+    private val botId = AgentBotViewModel.DEFAULT_BOT_ID
 
     @Before
     fun setUp() {
@@ -190,7 +190,7 @@ class BotBindingProductionPathTest {
     @Test
     fun `a binding read failure aborts send instead of rewriting the binding`() = runTest(dispatcher) {
         // 旧绑定还在库里：读失败时它必须原样保留。
-        graph.repository.ensureBinding(BOT_ID, "old-session")
+        graph.repository.ensureBinding(botId, "old-session")
         val brokenDao = UnreadableBindingDao(graph.db.botBindingDao())
         val brokenRepository = graph.repositoryWith(bindingDao = brokenDao)
 
@@ -211,7 +211,7 @@ class BotBindingProductionPathTest {
         assertEquals(
             "旧绑定必须保持原值，否则用户历史看起来会消失",
             "old-session",
-            graph.db.botBindingDao().getById(BOT_ID)?.canonicalAgentSessionId,
+            graph.db.botBindingDao().getById(botId)?.canonicalAgentSessionId,
         )
     }
 }

@@ -292,12 +292,16 @@ class ConversationCompressor(
                 appendLine("- 尚未完成的工作、下一步、未解决问题和需要跟进的事项")
                 appendLine("- 不要编造未提及的内容；总长度不超过 800 字")
             } else {
-                appendLine("You are a conversation compression assistant. Compress the conversation history into a concise handoff summary in the conversation's language, retaining only what is needed to continue work.")
+                appendLine(
+                    "You are a conversation compression assistant. Compress the conversation history into a concise handoff summary in the conversation's language, retaining only what is needed to continue work.",
+                )
                 appendLine("Output ONLY these three level-3 headings in exact order, using one bullet per line:")
                 appendLine("### Completed")
                 appendLine("- Completed and confirmed work, decisions made, and key reasons")
                 appendLine("### Negated")
-                appendLine("- Explicitly rejected approaches, conclusions, or options; write `- None` if none. Items here must not be re-proposed")
+                appendLine(
+                    "- Explicitly rejected approaches, conclusions, or options; write `- None` if none. Items here must not be re-proposed",
+                )
                 appendLine("### Pending")
                 appendLine("- Unfinished work, next steps, open questions, and follow-ups")
                 appendLine("- Never fabricate unmentioned facts; keep the total under 500 words")

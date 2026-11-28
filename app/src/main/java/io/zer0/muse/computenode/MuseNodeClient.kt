@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
@@ -187,8 +188,7 @@ class MuseNodeClient(
         )
     }
 
-    suspend fun readTextFile(node: RemoteComputeNodeEntity, path: String): String =
-        String(readFile(node, path), Charsets.UTF_8)
+    suspend fun readTextFile(node: RemoteComputeNodeEntity, path: String): String = String(readFile(node, path), Charsets.UTF_8)
 
     /** PUT /files。单次请求限制 10MB，与服务端一致。 */
     suspend fun writeFile(node: RemoteComputeNodeEntity, path: String, bytes: ByteArray): FileWriteReceipt {
@@ -314,32 +314,20 @@ class MuseNodeClient(
             )
         }
         val token = cipher.decryptOrNull(node.encryptedNodeToken)?.takeIf { it.isNotBlank() }
-            ?: throw MuseNodeException(
-                error = MuseNodeError.AUTH_REQUIRED,
-                message = "node token is missing or cannot be decrypted",
-            )
+            ?: nodeFailure(MuseNodeError.AUTH_REQUIRED, "node token is missing or cannot be decrypted")
         val mode = ComputeNodeMode.fromWire(node.connectionMode)
-            ?: throw MuseNodeException(
-                error = MuseNodeError.NODE_NOT_CONFIGURED,
-                message = "unsupported node connection mode",
-            )
+            ?: nodeFailure(MuseNodeError.NODE_NOT_CONFIGURED, "unsupported node connection mode")
         return when (mode) {
             ComputeNodeMode.SSH_TUNNEL -> {
-                val manager = tunnelManager ?: throw MuseNodeException(
-                    error = MuseNodeError.TUNNEL_UNAVAILABLE,
-                    message = "SSH tunnel manager is not available",
-                )
+                val manager = tunnelManager
+                    ?: nodeFailure(MuseNodeError.TUNNEL_UNAVAILABLE, "SSH tunnel manager is not available")
                 val localPort = try {
                     manager.awaitLocalPort(node)
                 } catch (e: CancellationException) {
                     throw e
-                } catch (e: Exception) {
+                } catch (e: SshBootstrapException) {
                     Logger.w(TAG, "tunnel unavailable for node " + node.nodeId + ": " + e.javaClass.simpleName)
-                    throw MuseNodeException(
-                        error = MuseNodeError.TUNNEL_UNAVAILABLE,
-                        message = "SSH tunnel is not available",
-                        cause = e,
-                    )
+                    nodeFailure(MuseNodeError.TUNNEL_UNAVAILABLE, "SSH tunnel is not available", e)
                 }
                 ResolvedEndpoint(
                     baseUrl = "http://127.0.0.1:" + localPort,
@@ -453,20 +441,19 @@ class MuseNodeClient(
         }
     }
 
-    private suspend fun executeCall(client: OkHttpClient, request: Request): Response =
-        suspendCancellableCoroutine { continuation ->
-            val call = client.newCall(request)
-            continuation.invokeOnCancellation { call.cancel() }
-            call.enqueue(object : Callback {
-                override fun onFailure(call: Call, e: IOException) {
-                    if (continuation.isActive) continuation.resumeWithException(e)
-                }
+    private suspend fun executeCall(client: OkHttpClient, request: Request): Response = suspendCancellableCoroutine { continuation ->
+        val call = client.newCall(request)
+        continuation.invokeOnCancellation { call.cancel() }
+        call.enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                if (continuation.isActive) continuation.resumeWithException(e)
+            }
 
-                override fun onResponse(call: Call, response: Response) {
-                    if (continuation.isActive) continuation.resume(response) else response.close()
-                }
-            })
-        }
+            override fun onResponse(call: Call, response: Response) {
+                if (continuation.isActive) continuation.resume(response) else response.close()
+            }
+        })
+    }
 
     private fun networkException(e: IOException, endpoint: ResolvedEndpoint): MuseNodeException {
         val sslFailure = generateSequence<Throwable>(e) { it.cause }.any {
@@ -490,7 +477,7 @@ class MuseNodeClient(
     private fun responseException(status: Int, text: String): MuseNodeException {
         val obj = try {
             if (text.isBlank()) null else AppJson.parseToJsonElement(text) as? JsonObject
-        } catch (e: Exception) {
+        } catch (e: SerializationException) {
             Logger.w(TAG, "error response is not JSON: " + e.javaClass.simpleName)
             null
         }
@@ -516,33 +503,26 @@ class MuseNodeClient(
 
     private fun parseJsonObject(text: String): JsonObject {
         if (text.isBlank()) {
-            throw MuseNodeException(MuseNodeError.INVALID_RESPONSE, message = "server returned an empty response")
+            return invalidResponse("server returned an empty response")
         }
-        return try {
-            AppJson.parseToJsonElement(text) as? JsonObject
-                ?: throw MuseNodeException(
-                    MuseNodeError.INVALID_RESPONSE,
-                    message = "server response is not a JSON object",
-                )
-        } catch (e: MuseNodeException) {
-            throw e
-        } catch (e: Exception) {
+        val element = try {
+            AppJson.parseToJsonElement(text)
+        } catch (e: SerializationException) {
             Logger.w(TAG, "server response cannot be parsed: " + e.javaClass.simpleName)
-            throw MuseNodeException(
-                error = MuseNodeError.INVALID_RESPONSE,
-                message = "server response is malformed",
-                cause = e,
-            )
+            return invalidResponse("server response is malformed", e)
         }
+        return element as? JsonObject ?: invalidResponse("server response is not a JSON object")
     }
 
-    private fun <T> decodeOrInvalid(
-        label: String,
-        serializer: kotlinx.serialization.KSerializer<T>,
-        json: JsonObject,
-    ): T = try {
+    private fun nodeFailure(error: MuseNodeError, message: String, cause: Throwable? = null): Nothing =
+        throw MuseNodeException(error = error, message = message, cause = cause)
+
+    private fun invalidResponse(message: String, cause: Throwable? = null): Nothing =
+        nodeFailure(MuseNodeError.INVALID_RESPONSE, message, cause)
+
+    private fun <T> decodeOrInvalid(label: String, serializer: kotlinx.serialization.KSerializer<T>, json: JsonObject): T = try {
         AppJson.decodeFromString(serializer, json.toString())
-    } catch (e: Exception) {
+    } catch (e: SerializationException) {
         Logger.w(TAG, label + " response cannot be parsed: " + e.javaClass.simpleName)
         throw MuseNodeException(
             error = MuseNodeError.INVALID_RESPONSE,
@@ -622,9 +602,8 @@ class MuseNodeException(
     val httpStatus: Int = 0,
     cause: Throwable? = null,
 ) : Exception(message, cause) {
-    override fun toString(): String =
-        "MuseNodeException(error=" + error + ", serverCode=" + serverCode +
-            ", httpStatus=" + httpStatus + ", message=" + message + ")"
+    override fun toString(): String = "MuseNodeException(error=" + error + ", serverCode=" + serverCode +
+        ", httpStatus=" + httpStatus + ", message=" + message + ")"
 }
 
 /** GET /health 的响应。 */
@@ -756,7 +735,7 @@ internal object ExecEventParser {
     fun parse(text: String): ExecEvent? {
         val obj = try {
             AppJson.parseToJsonElement(text) as? JsonObject
-        } catch (e: Exception) {
+        } catch (e: SerializationException) {
             Logger.w(TAG, "exec frame is not JSON: " + e.javaClass.simpleName)
             null
         } ?: return null
@@ -945,25 +924,31 @@ class BrowserSession internal constructor(
     }
 
     fun tap(x: Float, y: Float) {
-        send(buildJsonObject {
-            put("type", "tap")
-            put("x", x)
-            put("y", y)
-        })
+        send(
+            buildJsonObject {
+                put("type", "tap")
+                put("x", x)
+                put("y", y)
+            },
+        )
     }
 
     fun type(text: String) {
-        send(buildJsonObject {
-            put("type", "text")
-            put("value", text)
-        })
+        send(
+            buildJsonObject {
+                put("type", "text")
+                put("value", text)
+            },
+        )
     }
 
     fun navigate(url: String) {
-        send(buildJsonObject {
-            put("type", "navigate")
-            put("url", url)
-        })
+        send(
+            buildJsonObject {
+                put("type", "navigate")
+                put("url", url)
+            },
+        )
     }
 
     fun handoffDone() {
@@ -994,7 +979,7 @@ internal object BrowserFrameParser {
     fun parse(text: String): BrowserFrame? {
         val obj = try {
             AppJson.parseToJsonElement(text) as? JsonObject
-        } catch (e: Exception) {
+        } catch (e: SerializationException) {
             Logger.w(TAG, "browser frame is not JSON: " + e.javaClass.simpleName)
             null
         } ?: return null
@@ -1049,8 +1034,7 @@ private data class OutboxAckPayload(val eventIds: List<String>)
 @Serializable
 private data class BrowserStartPayload(val url: String, val width: Int, val height: Int)
 
-private fun JsonObject?.stringValue(key: String): String =
-    (this?.get(key) as? JsonPrimitive)?.contentOrNull.orEmpty()
+private fun JsonObject?.stringValue(key: String): String = (this?.get(key) as? JsonPrimitive)?.contentOrNull.orEmpty()
 
 private class FingerprintTrustManager(private val expectedHex: String) : X509TrustManager {
 

@@ -183,7 +183,15 @@ class Wave2SchemaMigrationTest {
                     "refreshPrompt" to "''",
                     "lastRefreshedAt" to "0",
                 ),
-                cardColumns.filter { it.name in setOf("spacePinned", "spaceCategory", "refreshIntervalMinutes", "refreshPrompt", "lastRefreshedAt") }
+                cardColumns.filter {
+                    it.name in setOf(
+                        "spacePinned",
+                        "spaceCategory",
+                        "refreshIntervalMinutes",
+                        "refreshPrompt",
+                        "lastRefreshedAt",
+                    )
+                }
                     .associate { it.name to it.defaultValue },
             )
 
@@ -247,18 +255,22 @@ class Wave2SchemaMigrationTest {
         createSchemaAtVersion(139, dbFile.absolutePath)
 
         val room = Room.databaseBuilder(context.applicationContext, MuseDb::class.java, dbName)
-            .addMigrations(MuseDbMigrations.MIGRATION_139_140)
+            .addMigrations(
+                MuseDbMigrations.MIGRATION_139_140,
+                MuseDbMigrations.MIGRATION_140_141,
+                MuseDbMigrations.MIGRATION_141_142,
+            )
             .allowMainThreadQueries()
             .build()
         try {
             val db = room.openHelper.writableDatabase
-            assertEquals("Room 必须把库升到 140", 140, db.version)
-            assertEquals("LATEST_SCHEMA_VERSION 必须与迁移终点一致", 140, MuseDb.LATEST_SCHEMA_VERSION)
-            val expected = loadSchema(140).getJSONObject("database").getString("identityHash")
+            val expectedVersion = MuseDb.LATEST_SCHEMA_VERSION
+            assertEquals("Room 必须把库升到最新版本", expectedVersion, db.version)
+            val expected = loadSchema(expectedVersion).getJSONObject("database").getString("identityHash")
             db.query("SELECT identity_hash FROM room_master_table WHERE id = 42").use { cursor ->
                 assertTrue("Room 必须写入迁移后的 identity_hash", cursor.moveToFirst())
                 assertEquals(
-                    "identity_hash 必须等于 140 快照（证明 Room 已校验并通过全部实体）",
+                    "identity_hash 必须等于最新快照（证明 Room 已校验并通过全部实体）",
                     expected,
                     cursor.getString(0),
                 )
@@ -274,7 +286,8 @@ class Wave2SchemaMigrationTest {
                 val nameIndex = cursor.getColumnIndexOrThrow("name")
                 while (cursor.moveToNext()) names += cursor.getString(nameIndex)
                 assertTrue(
-                    "Room 校验后的 card_entities 缺少 Spaces 刷新列: ${names - setOf("spacePinned", "spaceCategory", "refreshIntervalMinutes", "refreshPrompt", "lastRefreshedAt")}",
+                    "Room 校验后的 card_entities 缺少 Spaces 刷新列: " +
+                        "${names - setOf("spacePinned", "spaceCategory", "refreshIntervalMinutes", "refreshPrompt", "lastRefreshedAt")}",
                     names.containsAll(
                         setOf(
                             "spacePinned",
@@ -345,11 +358,7 @@ class Wave2SchemaMigrationTest {
         else -> "TEXT|notnull=1"
     }
 
-    private fun openHelper(
-        dbName: String,
-        version: Int,
-        onCreate: (SupportSQLiteDatabase) -> Unit,
-    ): SupportSQLiteOpenHelper {
+    private fun openHelper(dbName: String, version: Int, onCreate: (SupportSQLiteDatabase) -> Unit): SupportSQLiteOpenHelper {
         val dbFile = context.getDatabasePath(dbName).apply { parentFile?.mkdirs() }
         return FrameworkSQLiteOpenHelperFactory().create(
             SupportSQLiteOpenHelper.Configuration.builder(context)

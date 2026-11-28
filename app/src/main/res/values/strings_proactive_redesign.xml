@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="proactive_status_card_title">运行状态与诊断</string>
+    <string name="proactive_status_ok">调度正常</string>
+    <string name="proactive_status_paused_master">主动消息总开关已关闭</string>
+    <string name="proactive_status_paused_bg">后台调度总控已关闭</string>
+    <string name="proactive_status_blocked_notif">通知被拦截：%1$s</string>
+    <string name="proactive_status_cooldown">冷却中，暂不主动联系</string>
+    <string name="proactive_status_quiet">当前处于免打扰时段</string>
+    <string name="proactive_status_summary">今日剩余 %1$s 次 · 账本 %2$d 条 · 间隔 %3$s</string>
+    <string name="proactive_status_last_patrol">最近巡检：%1$s</string>
+    <string name="proactive_status_last_patrol_none">最近巡检：尚无记录</string>
+    <string name="proactive_status_test_now">立即测试发送</string>
+    <string name="proactive_status_test_result_title">测试巡检结果</string>
+    <string name="proactive_interval_title">巡检与发送间隔</string>
+    <string name="proactive_interval_hint">决定两次主动消息之间至少隔多久；即使选「黏人」，过短的间隔也受后台系统约束。</string>
+    <string name="proactive_prob_title">触发倾向（几率）</string>
+    <string name="proactive_prob_hint" formatted="false">模型判断适合发消息后，最终放行发送的概率倾向（10%–100%）。</string>
+    <string name="proactive_directives_entry">给它的约定与规矩</string>
+    <string name="proactive_directives_entry_sub">配置主动联系时什么该说、什么绝不要提</string>
+    <string name="proactive_ledger_tab_open">待发送 (%1$d)</string>
+    <string name="proactive_ledger_tab_history">历史与记录 (%1$d)</string>
+    <string name="proactive_ledger_add_btn">记一条</string>
+    <string name="proactive_ledger_add_title">记一条主动牵挂</string>
+    <string name="proactive_ledger_add_seed_label">想让助手记着后续哪天提醒/关心你的事</string>
+    <string name="proactive_ledger_add_seed_hint">例如：明天下午三点提醒我看牙医 / 这周问问感冒好没</string>
+    <string name="proactive_ledger_add_kind_label">牵挂类型</string>
+    <string name="proactive_ledger_mark_done">完成</string>
+    <string name="proactive_ledger_delete">移除</string>
+    <string name="proactive_ledger_history_empty">还没有已结束或已送达的记录</string>
+    <string name="proactive_ledger_source_conversation">对话记下</string>
+    <string name="proactive_ledger_source_memory">记忆总结</string>
+    <string name="proactive_ledger_source_milestone">里程碑</string>
+    <string name="proactive_ledger_source_manual">手动添加</string>
+    <string name="proactive_ledger_status_done">已完成</string>
+    <string name="proactive_ledger_status_expired">已过期</string>
+    <string name="proactive_ledger_status_dropped">已放弃</string>
+    <string name="proactive_ledger_status_open">待发送</string>
+    <string name="proactive_ledger_surfaced_count">已提及 %1$d 次</string>
+    <string name="proactive_ledger_added_toast">已加入牵挂账本</string>
+    <string name="proactive_ledger_add_schedule_label">唤醒时间（可选）</string>
+    <string name="proactive_ledger_schedule_none">不定时</string>
+    <string name="proactive_ledger_schedule_30m">30 分钟后</string>
+    <string name="proactive_ledger_schedule_2h">2 小时后</string>
+    <string name="proactive_ledger_schedule_tomorrow_morning">明早 09:00</string>
+    <string name="proactive_ledger_scheduled_at">定时 %1$s</string>
+    <string name="proactive_ledger_scheduled_due">已到点 · %1$s</string>
+</resources>

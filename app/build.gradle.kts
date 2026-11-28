@@ -247,6 +247,13 @@ android {
                 keyAlias = props["keyAlias"] as String
                 keyPassword = props["keyPassword"] as String
             }
+            // AGP 默认只按 minSdk 决定签名方案，minSdk 26 时只产出 v2，
+            // META-INF 里没有任何 .SF/.RSA。部分国产 ROM 的安装器（小米/HyperOS）
+            // 在 v1 缺失时直接报「该安装包未包含任何证书」并拒绝安装，
+            // 因此三种方案全部显式开启：v1 给老解析器兜底，v3 给 Android 9+ 轮换密钥用。
+            enableV1Signing = true
+            enableV2Signing = true
+            enableV3Signing = true
         }
     }
 
@@ -516,6 +523,9 @@ dependencies {
     implementation(libs.camera.camera2)
     implementation(libs.camera.lifecycle)
     implementation(libs.camera.view)
+    // M4: 应用内视频播放 (Media3 ExoPlayer)
+    implementation(libs.androidx.media3.exoplayer)
+    implementation(libs.androidx.media3.ui)
 
     // OkHttp
     implementation(libs.okhttp)

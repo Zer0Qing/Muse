@@ -23,8 +23,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import okhttp3.OkHttpClient
 import org.koin.android.ext.koin.androidContext
-import org.koin.core.qualifier.named
 import org.koin.androidx.viewmodel.dsl.viewModel
+import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import java.util.concurrent.TimeUnit
 
@@ -134,6 +134,31 @@ val appModule = module {
             ragConfigProvider = { get<io.zer0.muse.data.SettingsRepository>().getRagConfig() },
         )
     }
+    single {
+        val factProvider = get<io.zer0.memory.fact.FactDbProvider>()
+        io.zer0.muse.data.profile.ProfileShardRepository(
+            storageDir = java.io.File(androidContext().filesDir, "profile_shards"),
+            legacyKnowledgeDocDao = get<MuseDb>().knowledgeDocDao(),
+            legacyRagService = getOrNull(),
+            currentFacts = { scope ->
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    factProvider.getFactStore(scope.assistantId)
+                        .getByScopeAndSpace(scope.scope, scope.spaceId, includeSuppressed = false)
+                        .filter { it.mergedIntoId == null }
+                        .map { fact ->
+                            io.zer0.muse.data.profile.ProfileShardEngine.ProfileFactInput(
+                                id = fact.id,
+                                content = fact.fact,
+                                category = fact.category,
+                                tags = fact.tags,
+                                importance = fact.importance.toFloat(),
+                                pinned = fact.pinnedAt != null,
+                            )
+                        }
+                }
+            },
+        )
+    }
     single { get<MuseDb>().knowledgeChunkDao() } // v1.54: 知识库分块(RAG)
     single { get<MuseDb>().scheduledTaskExecutionDao() } // P1-7: 定时任务执行历史
     single { get<MuseDb>().groupChatDao() } // v1.30: 群聊
@@ -150,6 +175,23 @@ val appModule = module {
     single { get<MuseDb>().translateHistoryDao() } // v1.0.17: 翻译历史
     single { get<MuseDb>().patrolLogDao() }
     single { get<MuseDb>().remoteComputeNodeDao() } // v2.7.x: Linux 轻量云电脑节点
+    single { get<MuseDb>().mediaGenDao() } // M4: 媒体创作台后台任务与作品库
+    single {
+        io.zer0.muse.data.media.MediaAssetStorage(
+            context = androidContext(),
+            httpClient = get(named("chat")),
+        )
+    }
+    single {
+        io.zer0.muse.data.media.MediaGenerationManager(
+            context = androidContext(),
+            dao = get(),
+            storage = get(),
+            settings = get(),
+            imageService = get(),
+            videoGenerationService = get(),
+        )
+    }
     single { get<MuseDb>().agentWatcherDao() } // v2.7.x: 帮你跟进（Watcher）
     // v2.7.x: SSH 自举引擎与本地端口转发（两者共享应用级 CoroutineScope）
     single { io.zer0.muse.computenode.SshBootstrapEngine(androidContext()) }
@@ -441,6 +483,8 @@ val appModule = module {
             stores = get(),
             cycle = get(),
             appScope = get(),
+            appContext = androidContext(),
+            settings = get(),
         )
     }
     // 依赖顺序:SettingsRepository / ChatService(ai 模块) / SessionRepository / AssistantRepository /
@@ -554,6 +598,14 @@ val appModule = module {
     single { io.zer0.muse.data.session.SessionFileManager(androidContext()) }
     // v2.0: 卡片数据存储(show_card / update_card_data 的数据绑定)
     single { io.zer0.muse.data.card.CardDataStore(androidContext()) }
+    single {
+        io.zer0.muse.data.card.CardSilentAiCoordinator(
+            chatService = getOrNull(),
+            assistantRepository = getOrNull(),
+            cardDataStore = getOrNull(),
+            cardEntityDao = getOrNull<MuseDb>()?.cardEntityDao(),
+        )
+    }
     // 既有工具系统实现:工具注册器(注册 pin/experience/search_memory/todo/card/notify/status 工具)
     // v1.202: 注入 SkillExecutor / SubagentThreadStore / DeferredResultStore / appScope,
     //         供 SubagentTool(launch/reply/close 三件套)使用
@@ -619,17 +671,19 @@ val appModule = module {
     single {
         val database = get<io.zer0.muse.data.session.MuseDb>()
         io.zer0.muse.data.agentbot.AgentBotRepository(
-            taskDao = database.botTaskDao(),
-            runDao = database.taskRunDao(),
-            stepDao = database.taskStepDao(),
-            eventDao = database.botEventDao(),
-            approvalDao = database.approvalRequestDao(),
-            publicationDao = database.publicationOutboxDao(),
-            bindingDao = database.botBindingDao(),
-            database = database,
-            annotationDao = database.botAnnotationDao(),
-            cardDao = database.botMessageCardDao(),
-            routineDao = database.botRoutineDao(),
+            daos = io.zer0.muse.data.agentbot.AgentBotRepositoryDaos(
+                task = database.botTaskDao(),
+                run = database.taskRunDao(),
+                step = database.taskStepDao(),
+                event = database.botEventDao(),
+                approval = database.approvalRequestDao(),
+                publication = database.publicationOutboxDao(),
+                binding = database.botBindingDao(),
+                annotation = database.botAnnotationDao(),
+                card = database.botMessageCardDao(),
+                routine = database.botRoutineDao(),
+            ),
+            runtime = io.zer0.muse.data.agentbot.AgentBotRepositoryRuntime(database = database),
         )
     }
 
@@ -694,14 +748,16 @@ val appModule = module {
             ),
             publication = get(),
             governor = get(),
-            toolRegistry = get(),
-            skillRepository = get(),
-            skillExecutorProvider = { get<io.zer0.muse.tools.SkillExecutor>() },
-            toolConfigStore = get(),
-            settings = get(),
-            allowances = get(),
-            ragService = get(),
-            assistantRepository = get(),
+            dependencies = io.zer0.muse.data.agentbot.AgentStreamCoordinatorDependencies(
+                toolRegistry = get(),
+                skillRepository = get(),
+                skillExecutorProvider = { get<io.zer0.muse.tools.SkillExecutor>() },
+                toolConfigStore = get(),
+                settings = get(),
+                ragService = get(),
+                assistantRepository = get(),
+                agentBotRepository = get(),
+            ),
         )
     }
 
@@ -714,9 +770,15 @@ val appModule = module {
     }
 
     // 帮你跟进（Watcher）：采集脚本走本机 proot，变化播报走一次轻量模型，云电脑在线时下沉托管。
-    single { io.zer0.muse.data.agentbot.LocalScriptWatcherCollector(androidContext()) }
-    single { io.zer0.muse.data.agentbot.LlmWatcherAnnouncer(get<io.zer0.ai.ChatService>()) }
-    single { io.zer0.muse.data.agentbot.MuseWatcherNotificationSink(androidContext()) }
+    single<io.zer0.muse.data.agentbot.WatcherOutputCollector> {
+        io.zer0.muse.data.agentbot.LocalScriptWatcherCollector(androidContext())
+    }
+    single<io.zer0.muse.data.agentbot.WatcherAnnouncer> {
+        io.zer0.muse.data.agentbot.LlmWatcherAnnouncer(get<io.zer0.ai.ChatService>())
+    }
+    single<io.zer0.muse.data.agentbot.WatcherNotificationSink> {
+        io.zer0.muse.data.agentbot.MuseWatcherNotificationSink(androidContext())
+    }
     single {
         io.zer0.muse.data.agentbot.AgentWatcherEngine(
             dao = get(),
@@ -750,14 +812,23 @@ val appModule = module {
     // 同一个助手在三条路径上读到了不同的库。
     single {
         io.zer0.muse.data.agentbot.AgentMemoryBridge(
-            memoryRuntime = get<io.zer0.memory.runtime.MemoryRuntime>(),
-            memoryUseCases = get<io.zer0.memory.runtime.MemoryUseCases>(),
-            factDbProvider = get<io.zer0.memory.fact.FactDbProvider>(),
-            memoryTicker = getOrNull<io.zer0.memory.ticker.MemoryTicker>(),
-            autoSaveScheduler = getOrNull<io.zer0.memory.ai.MemoryAutoSaveScheduler>(),
-            settings = get<io.zer0.muse.data.SettingsRepository>(),
-            appScope = get<CoroutineScope>(),
-            assistantRepository = get(),
+            dependencies = io.zer0.muse.data.agentbot.AgentMemoryBridgeDependencies(
+                runtime = io.zer0.muse.data.agentbot.AgentMemoryBridgeDependencies.Runtime(
+                    memoryRuntime = get<io.zer0.memory.runtime.MemoryRuntime>(),
+                    memoryUseCases = get<io.zer0.memory.runtime.MemoryUseCases>(),
+                    factDbProvider = get<io.zer0.memory.fact.FactDbProvider>(),
+                    memoryTicker = getOrNull<io.zer0.memory.ticker.MemoryTicker>(),
+                    autoSaveScheduler = getOrNull<io.zer0.memory.ai.MemoryAutoSaveScheduler>(),
+                ),
+                policy = io.zer0.muse.data.agentbot.AgentMemoryBridgeDependencies.Policy(
+                    settings = get<io.zer0.muse.data.SettingsRepository>(),
+                ),
+                lifecycle = io.zer0.muse.data.agentbot.AgentMemoryBridgeDependencies.Lifecycle(
+                    appScope = get<CoroutineScope>(),
+                    assistantRepository = get(),
+                    profileShardRepository = getOrNull<io.zer0.muse.data.profile.ProfileShardRepository>(),
+                ),
+            ),
         )
     }
 
@@ -793,6 +864,7 @@ val appModule = module {
             knowledgeDocDao = getOrNull<MuseDb>()?.knowledgeDocDao(),
             appContext = androidContext(),
             memoryBridge = get(),
+            mcpRegistry = getOrNull(),
         )
     }
     // 候选产物暂存区。任务产出先落这里，审核通过且版本最新才应用到目标 ——
@@ -923,6 +995,13 @@ val appModule = module {
     }
     // 云端电脑事件桥接器：消费重连、上线消卡与离机 outbox 结果。
     single {
+        io.zer0.muse.data.agentbot.ComputeNodeOutboxOwnerResolver(
+            watcherDao = get<io.zer0.muse.data.session.MuseDb>().agentWatcherDao(),
+            repository = get(),
+        )
+    }
+    single {
+        val outboxOwnerResolver = get<io.zer0.muse.data.agentbot.ComputeNodeOutboxOwnerResolver>()
         io.zer0.muse.data.agentbot.ComputeNodeEventBridge(
             context = androidContext(),
             computeNodeManager = get(),
@@ -930,6 +1009,10 @@ val appModule = module {
             repository = get(),
             publication = get(),
             settings = get(),
+            outboxOwnerResolver = { nodeId, event -> outboxOwnerResolver.resolve(nodeId, event) },
+            outboxOwnerAcknowledged = { nodeId, event ->
+                outboxOwnerResolver.acknowledged(nodeId, event)
+            },
         )
     }
     // 隐藏任务执行器。独立 scope 与独立 Job 登记：中枢的 Job 与
@@ -943,22 +1026,31 @@ val appModule = module {
                     kotlinx.coroutines.Dispatchers.IO +
                     io.zer0.muse.util.GlobalCoroutineExceptionHandler,
             ),
-            keepAlive = { ctx -> io.zer0.muse.data.agentbot.AgentBotKeepAliveService.start(ctx) },
-            staging = get(),
-            applier = get(),
-            toolRegistryRef = get(),
-            workspaceIO = get(),
-            workspaceManager = get(),
-            context = androidContext(),
-            approvalService = get(),
-            progressBus = get(),
-            modelRouter = get(),
-            configStore = get(),
-            annotationService = get(),
-            allowances = get(),
-            settings = get(),
-            assistantRepository = get(),
-            toolConfigStore = get(),
+            dependencies = io.zer0.muse.data.agentbot.BotTaskSchedulerDependencies(
+                execution = io.zer0.muse.data.agentbot.BotTaskSchedulerDependencies.Execution(
+                    keepAlive = { ctx -> io.zer0.muse.data.agentbot.AgentBotKeepAliveService.start(ctx) },
+                    context = androidContext(),
+                ),
+                artifacts = io.zer0.muse.data.agentbot.BotTaskSchedulerDependencies.Artifacts(
+                    staging = get(),
+                    applier = get(),
+                    workspaceIO = get(),
+                    workspaceManager = get(),
+                ),
+                integrations = io.zer0.muse.data.agentbot.BotTaskSchedulerDependencies.Integrations(
+                    toolRegistry = get(),
+                    approvalService = get(),
+                    progressBus = get(),
+                    annotationService = get(),
+                ),
+                models = io.zer0.muse.data.agentbot.BotTaskSchedulerDependencies.Models(
+                    modelRouter = get(),
+                    configStore = get(),
+                    settings = get(),
+                    assistantRepository = get(),
+                    toolConfigStore = get(),
+                ),
+            ),
         )
     }
 
@@ -1123,6 +1215,7 @@ val appModule = module {
                     tts.synthesizeToWithClonedVoice(text, file, emotion, voiceId)
             },
             voiceMessageStore = get<io.zer0.muse.ui.speech.VoiceMessageStore>(),
+            mediaGenerationManager = get<io.zer0.muse.data.media.MediaGenerationManager>(),
         )
     }
     // P2-23: 媒体生成工具注册器(init 块自动注册到 ToolRegistry)。

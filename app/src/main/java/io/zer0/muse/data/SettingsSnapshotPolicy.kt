@@ -4,9 +4,62 @@ package io.zer0.muse.data
  * R-TEST-04: 备份设置快照的安全键策略。
  *
  * 备份恢复跨设备,依赖 SecureKeyStore 的敏感值无法解密,因此导出时只允许
- * 显式白名单键;任何包含 apiKey/token/password/secret 等敏感字段名的键一律排除。
+ * 显式白名单键;敏感配置需由结构化策略清理后单独处理。
  */
 object SettingsSnapshotPolicy {
+
+    /** MCP connection metadata is portable; credentials are handled only by the local encrypted store. */
+    const val MCP_SERVERS_KEY = "mcp_servers_json"
+    const val MCP_CREDENTIALS_OMITTED_KEY = "backup:mcp_credentials_omitted"
+
+    fun portableMcpConfig(server: io.zer0.muse.mcp.McpServerConfig): io.zer0.muse.mcp.McpServerConfig = server.copy(
+        url = if (server.transportType == io.zer0.muse.mcp.McpTransportType.STDIO) "" else sanitizeEndpoint(server.url),
+        command = "",
+        enabled = server.enabled && server.transportType != io.zer0.muse.mcp.McpTransportType.STDIO,
+        headers = emptyMap(),
+        authToken = "",
+        oauthConfig = server.oauthConfig.copy(
+            authorizationEndpoint = sanitizeEndpoint(server.oauthConfig.authorizationEndpoint),
+            tokenEndpoint = sanitizeEndpoint(server.oauthConfig.tokenEndpoint),
+            resource = sanitizeEndpoint(server.oauthConfig.resource),
+        ),
+        feishuAuth = io.zer0.muse.mcp.McpFeishuAuthConfig(),
+        environment = server.environment.mapValues { "" },
+    )
+
+    fun sameMcpConnectionIdentity(local: io.zer0.muse.mcp.McpServerConfig, imported: io.zer0.muse.mcp.McpServerConfig): Boolean {
+        if (local.transportType != imported.transportType) return false
+        if (local.transportType == io.zer0.muse.mcp.McpTransportType.STDIO) {
+            return imported.command.isNotBlank() && local.command == imported.command
+        }
+        return local.url == imported.url &&
+            local.oauthConfig.clientId == imported.oauthConfig.clientId &&
+            local.oauthConfig.authorizationEndpoint == imported.oauthConfig.authorizationEndpoint &&
+            local.oauthConfig.tokenEndpoint == imported.oauthConfig.tokenEndpoint &&
+            local.oauthConfig.resource == imported.oauthConfig.resource
+    }
+
+    private fun sanitizeEndpoint(value: String): String {
+        if (value.isBlank()) return value
+        return runCatching {
+            val uri = java.net.URI(value)
+            val scheme = uri.scheme ?: return ""
+            val host = uri.host ?: return ""
+            java.net.URI(scheme, null, host, uri.port, uri.path, null, null).toASCIIString()
+        }.getOrDefault("")
+    }
+
+    /** 仅作为备份元数据存在，不是 DataStore key。 */
+    const val PROVIDER_SECRETS_INCLUDED_KEY = "backup:provider_secrets_included"
+
+    fun providerSecretsIncluded(snapshot: Map<String, String>): Boolean = when (
+        snapshot[PROVIDER_SECRETS_INCLUDED_KEY]
+    ) {
+        "true" -> true
+        "false" -> false
+        null -> snapshot.containsKey("providers_json")
+        else -> false
+    }
 
     val safeStringKeys = listOf(
         "active_provider_id", "selected_model_id", "tool_model_id",
@@ -21,6 +74,8 @@ object SettingsSnapshotPolicy {
         "task_routing_config_json", "model_profiles_json",
         "account_user_name", "account_login_method",
         "multi_agent_review_model",
+        "chat_background", "chat_background_dark",
+        "home_layout_mode",
         // v2.6.7 fix (AUDIT F9): 用户偏好（“以后别…”沉淀的硬约束）是用户资产，
         // 不进备份则换机后全丢。该 key 不含敏感字段名。
         "user_preferences",
@@ -115,9 +170,19 @@ object SettingsSnapshotPolicy {
             STRING_SET_PREFIX -> name in safeStringSetKeys
             else -> name in safeStringKeys
         }
+        val privateBackground = prefix.isEmpty() && isPortableBackgroundKey(name)
+        val portableMcpConfig = prefix.isEmpty() && name == MCP_SERVERS_KEY
         return name.isNotEmpty() &&
-            (explicitlyAllowedSecret || (whitelisted && !isSensitiveName(name)))
+            (
+                portableMcpConfig ||
+                    (
+                        privateBackground ||
+                            (explicitlyAllowedSecret || (whitelisted && !isSensitiveName(name)))
+                        )
+                )
     }
+
+    private fun isPortableBackgroundKey(name: String): Boolean = Regex("chat_background_(?:assistant|session)_[A-Za-z0-9_-]+").matches(name)
 
     private fun isSensitiveName(name: String): Boolean {
         val lower = name.lowercase()

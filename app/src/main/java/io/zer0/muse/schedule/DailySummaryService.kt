@@ -12,6 +12,7 @@ import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.session.SessionRepository
 import io.zer0.muse.notification.MuseNotificationManager
+import io.zer0.muse.ui.common.GreetingHelper
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -21,7 +22,6 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import java.time.LocalDate
 import java.time.ZoneId
-import io.zer0.muse.ui.common.GreetingHelper
 
 internal fun dailySummaryNotificationsEnabledOrFalse(value: Boolean?): Boolean = scheduleWorkEnabledOrFalse(value)
 

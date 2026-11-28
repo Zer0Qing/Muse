@@ -3,16 +3,16 @@ package io.zer0.muse.data.proactive
 import android.content.Context
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import androidx.test.core.app.ApplicationProvider
 import androidx.sqlite.db.SupportSQLiteDatabase
+import androidx.test.core.app.ApplicationProvider
+import io.zer0.ai.core.MessageRole
+import io.zer0.ai.core.UIMessage
 import io.zer0.muse.data.session.MessageFtsDdl
 import io.zer0.muse.data.session.MessageFtsRuntime
 import io.zer0.muse.data.session.MessageImageStore
 import io.zer0.muse.data.session.MuseDb
 import io.zer0.muse.data.session.SessionEntity
 import io.zer0.muse.data.session.SessionRepository
-import io.zer0.ai.core.MessageRole
-import io.zer0.ai.core.UIMessage
 import io.zer0.muse.notification.MuseNotificationIdPolicy
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -114,7 +114,11 @@ class ProactiveBacklogPublishTransactionTest {
         assertEquals(expectedMessageId, published.messageId)
         assertEquals(expectedOutcomeId, published.outcomeId)
         assertTrue(
-            "published message is committed with its canonical session scope; byId=${db.messageDao().getByMessageId(published.messageId)}, all=${db.messageDao().getAllForFtsRebuild()}, outcomes=${db.proactiveOutcomeDao().getAll().size}, dispatch=${db.proactiveBacklogDao().getById(DISPATCH)?.state}, schedule=${db.proactiveBacklogScheduleDao().getNextBacklogDispatchAt()}",
+            "published message is committed with its canonical session scope; byId=${db.messageDao().getByMessageId(
+                published.messageId,
+            )}, all=${db.messageDao().getAllForFtsRebuild()}, outcomes=${db.proactiveOutcomeDao().getAll().size}, dispatch=${db.proactiveBacklogDao().getById(
+                DISPATCH,
+            )?.state}, schedule=${db.proactiveBacklogScheduleDao().getNextBacklogDispatchAt()}",
             db.messageDao().getById(SESSION, published.messageId) != null,
         )
         assertEquals(1, db.messageDao().countBySession(SESSION))

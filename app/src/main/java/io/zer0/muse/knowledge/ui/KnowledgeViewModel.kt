@@ -94,15 +94,14 @@ class KnowledgeViewModel(
         }
     }
 
-    private fun io.zer0.muse.knowledge.retrieval.EvidenceCandidate.toUiResult() =
-        KnowledgeSearchResultUi(
-            chunkId = chunkId,
-            docId = docId,
-            locator = locator,
-            snippet = text,
-            lexicalScore = lexicalScore,
-            denseScore = denseScore,
-        )
+    private fun io.zer0.muse.knowledge.retrieval.EvidenceCandidate.toUiResult() = KnowledgeSearchResultUi(
+        chunkId = chunkId,
+        docId = docId,
+        locator = locator,
+        snippet = text,
+        lexicalScore = lexicalScore,
+        denseScore = denseScore,
+    )
 
     fun observeJob(jobId: String) {
         viewModelScope.launch {

@@ -40,11 +40,7 @@ class AssistantKnowledgeScopeRewriteTest {
         db.close()
     }
 
-    private suspend fun seed(
-        id: String,
-        kbIds: List<String>,
-        scopes: List<Pair<String, String>>,
-    ) {
+    private suspend fun seed(id: String, kbIds: List<String>, scopes: List<Pair<String, String>>) {
         db.assistantDao().upsert(
             AssistantEntity(
                 id = id,

@@ -75,6 +75,10 @@ fun AgentSettingsPage(
     onOpenAgentDm: () -> Unit = {},
     /** v2.6.7 fix (AUDIT F9): 用户偏好管理页入口。 */
     onOpenPreferences: () -> Unit = {},
+    /** 跳转「给它的约定与规矩」页。 */
+    onOpenDirectives: () -> Unit = {},
+    /** 跳转「常驻后台与保活」设置页。 */
+    onOpenKeepAlive: () -> Unit = {},
     /** 独立主动消息页复用同一套配置组件时隐藏 Agent/协作区。 */
     proactiveOnly: Boolean = false,
     showProactiveSettings: Boolean = false,
@@ -94,11 +98,8 @@ fun AgentSettingsPage(
     // v2.6.7（P0-1）: 朋友圈内容模式（决定动态/评论/日记的生成视角）
     val momentContentMode by settings.momentContentModeFlow
         .collectAsStateWithLifecycle(initialValue = io.zer0.muse.data.moment.MomentContentMode.REAL)
-    // v1.xxx: 后台调度总控开关
+    // v1.xxx: 后台调度总控开关（用于顶部状态诊断展示）
     val scheduleWorkEnabled by settings.scheduleWorkEnabledFlow.collectAsStateWithLifecycle(initialValue = true)
-    // v2.x: 保活开关自记忆页归位(系统级后台行为)
-    val keepAwake by settings.keepAwakeFlow.collectAsStateWithLifecycle(initialValue = false)
-    val autoLaunch by settings.autoLaunchFlow.collectAsStateWithLifecycle(initialValue = false)
     val nightPatrolEnabled by settings.nightPatrolEnabledFlow.collectAsStateWithLifecycle(initialValue = true)
     val multiAgentConfig by settings.multiAgentConfigFlow.collectAsStateWithLifecycle(
         initialValue = io.zer0.muse.data.MultiAgentConfig(),
@@ -119,13 +120,21 @@ fun AgentSettingsPage(
     val proactiveThoughts: io.zer0.muse.data.proactive.ProactiveThoughtRepository = koinInject()
     val proactiveRelations: io.zer0.muse.data.proactive.ProactiveRelationRepository = koinInject()
     val proactiveScheduler: io.zer0.muse.proactive.ProactiveScheduler = koinInject()
+    val notificationManager: io.zer0.muse.notification.MuseNotificationManager = koinInject()
     var showLedger by remember { mutableStateOf(false) }
     var ledgerThoughts by remember {
+        mutableStateOf<List<io.zer0.muse.data.proactive.PendingThoughtEntity>>(emptyList())
+    }
+    var historyThoughts by remember {
         mutableStateOf<List<io.zer0.muse.data.proactive.PendingThoughtEntity>>(emptyList())
     }
     var ledgerRelation by remember {
         mutableStateOf<io.zer0.muse.data.proactive.ProactiveRelationEntity?>(null)
     }
+    var notificationBlocker by remember { mutableStateOf<String?>(null) }
+    var testResultDetail by remember { mutableStateOf<String?>(null) }
+    var showIntervalPicker by remember { mutableStateOf(false) }
+    var showProbabilityPicker by remember { mutableStateOf(false) }
 
     var showAssistantPicker by remember { mutableStateOf(false) }
     var showOffsetPicker by remember { mutableStateOf(false) }
@@ -136,8 +145,6 @@ fun AgentSettingsPage(
     var showMomentCountPicker by remember { mutableStateOf(false) }
     // v2.6.7（P0-1）: 朋友圈内容模式选择（真实系 / 角色系）
     var showMomentContentModePicker by remember { mutableStateOf(false) }
-    // v1.x: 保持后台运行引导弹窗(被动入口)
-    var showKeepAliveGuide by remember { mutableStateOf(false) }
     var showTemperaturePicker by remember { mutableStateOf(false) }
 
     // v2.6.x: 全天开放时摘要直接写「全天开放」,避免显示一个无意义的 23:00 – 23:00
@@ -163,13 +170,37 @@ fun AgentSettingsPage(
     // v2.6.9: 账本数据随面板打开刷新；同时把当日额度、等级、冷却一并取出来，
     // 供入口行与面板共用。放在 LaunchedEffect 里而不是每次重组都读库，
     // 是因为它要跨三张表，不该跟着输入框的每次按键重跑。
-    LaunchedEffect(showLedger, proactiveConfig.enabled) {
-        if (!proactiveConfig.enabled) return@LaunchedEffect
+    val addedToast = stringResource(R.string.proactive_ledger_added_toast)
+    suspend fun reloadLedger(assistantId: String) {
+        val now = System.currentTimeMillis()
+        ledgerRelation = proactiveRelations.getOrCreate(assistantId, now)
+        ledgerThoughts = proactiveThoughts.getOpen(assistantId)
+        historyThoughts = proactiveThoughts.getRecentByAssistant(assistantId, 40)
+            .filter { it.status != io.zer0.muse.data.proactive.ThoughtStatus.OPEN.name }
+        notificationBlocker = runCatching { notificationManager.proactiveNotificationBlocker() }.getOrNull()
+    }
+
+    LaunchedEffect(showLedger, proactiveConfig.enabled, proactiveConfig.agentId) {
         runCatching {
             val assistantId = proactiveConfig.agentId.takeIf { it.isNotBlank() } ?: "default"
-            ledgerRelation = proactiveRelations.getOrCreate(assistantId, System.currentTimeMillis())
-            ledgerThoughts = proactiveThoughts.getOpen(assistantId)
+            reloadLedger(assistantId)
         }
+    }
+
+    if (testResultDetail != null) {
+        MuseDialog(
+            onDismissRequest = { testResultDetail = null },
+            title = stringResource(R.string.proactive_status_test_result_title),
+            content = {
+                Text(
+                    text = testResultDetail.orEmpty(),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            },
+            confirmText = stringResource(R.string.common_confirm),
+            onConfirm = { testResultDetail = null },
+        )
     }
 
     if (showLedger) {
@@ -185,12 +216,13 @@ fun AgentSettingsPage(
                 } ?: 0f,
                 cooldownUntil = relation?.cooldownUntil ?: 0L,
                 now = now,
+                historyThoughts = historyThoughts,
             ),
             onIntensityChange = { level ->
                 scope.launch {
                     val assistantId = proactiveConfig.agentId.takeIf { it.isNotBlank() } ?: "default"
                     proactiveRelations.setIntensity(assistantId, level)
-                    ledgerRelation = proactiveRelations.getOrCreate(assistantId, System.currentTimeMillis())
+                    reloadLedger(assistantId)
                 }
             },
             onResetIntensity = {
@@ -199,21 +231,72 @@ fun AgentSettingsPage(
                     val today =
                         java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE)
                     proactiveRelations.resetIntensity(assistantId, today)
-                    ledgerRelation = proactiveRelations.getOrCreate(assistantId, System.currentTimeMillis())
+                    reloadLedger(assistantId)
                 }
             },
             onCooldown = {
                 scope.launch {
                     val assistantId = proactiveConfig.agentId.takeIf { it.isNotBlank() } ?: "default"
                     proactiveRelations.startCooldown(assistantId, System.currentTimeMillis())
-                    ledgerRelation = proactiveRelations.getOrCreate(assistantId, System.currentTimeMillis())
+                    reloadLedger(assistantId)
                 }
             },
             onClearCooldown = {
                 scope.launch {
                     val assistantId = proactiveConfig.agentId.takeIf { it.isNotBlank() } ?: "default"
                     proactiveRelations.clearCooldown(assistantId)
-                    ledgerRelation = proactiveRelations.getOrCreate(assistantId, System.currentTimeMillis())
+                    reloadLedger(assistantId)
+                }
+            },
+            onCompleteThought = { id ->
+                scope.launch {
+                    val assistantId = proactiveConfig.agentId.takeIf { it.isNotBlank() } ?: "default"
+                    proactiveThoughts.complete(id)
+                    reloadLedger(assistantId)
+                }
+            },
+            onDropThought = { id ->
+                scope.launch {
+                    val assistantId = proactiveConfig.agentId.takeIf { it.isNotBlank() } ?: "default"
+                    proactiveThoughts.drop(id)
+                    reloadLedger(assistantId)
+                }
+            },
+            onAddThought = { seed, kind, triggerAt ->
+                scope.launch {
+                    val assistantId = proactiveConfig.agentId.takeIf { it.isNotBlank() } ?: "default"
+                    val nowAdd = System.currentTimeMillis()
+                    val defaultExpiry = nowAdd + 14L * 86_400_000L
+                    val expiresAt = if (triggerAt != null) {
+                        maxOf(defaultExpiry, triggerAt + 6L * 3_600_000L)
+                    } else {
+                        defaultExpiry
+                    }
+                    proactiveThoughts.note(
+                        io.zer0.muse.data.proactive.PendingThoughtEntity(
+                            id = "manual_${nowAdd}_${seed.hashCode().toUInt()}",
+                            assistantId = assistantId,
+                            kind = kind.name,
+                            seed = seed,
+                            source = io.zer0.muse.data.proactive.ThoughtSource.USER_DEFINED.name,
+                            createdAt = nowAdd,
+                            expiresAt = expiresAt,
+                            triggerAt = triggerAt,
+                            urgency = if (kind == io.zer0.muse.data.proactive.ThoughtKind.REMINDER || triggerAt != null) {
+                                io.zer0.muse.data.proactive.ThoughtUrgency.IMMEDIATE.name
+                            } else {
+                                io.zer0.muse.data.proactive.ThoughtUrgency.WINDOW.name
+                            },
+                            weight = if (triggerAt != null) 0.92f else 0.85f,
+                        ),
+                    )
+                    if (triggerAt != null) {
+                        org.koin.core.context.GlobalContext.getOrNull()
+                            ?.getOrNull<io.zer0.muse.proactive.ProactiveScheduler>()
+                            ?.scheduleWakeUpForThought(triggerAt)
+                    }
+                    MuseToast.show(addedToast)
+                    reloadLedger(assistantId)
                 }
             },
             onDismiss = { showLedger = false },
@@ -243,13 +326,27 @@ fun AgentSettingsPage(
                         key = "default_assistant",
                         title = stringResource(R.string.settings_agent_default_assistant_title),
                         subtitle = agentSub,
-                        leadingContent = { Icon(MuseIcons.user, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                        leadingContent = {
+                            Icon(
+                                MuseIcons.user,
+                                null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(MuseIconSizes.iconMedium),
+                            )
+                        },
                         onClick = { showAssistantPicker = true },
                     )
                     navigationItem(
                         key = "user_preferences",
                         title = stringResource(R.string.settings_preference_title),
-                        leadingContent = { Icon(MuseIcons.check, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                        leadingContent = {
+                            Icon(
+                                MuseIcons.check,
+                                null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(MuseIconSizes.iconMedium),
+                            )
+                        },
                         onClick = onOpenPreferences,
                     )
                 }
@@ -264,7 +361,14 @@ fun AgentSettingsPage(
                         onCheckedChange = { v ->
                             scope.launch { settings.updateChatPreferences { it.copy(agentShowThinking = v) } }
                         },
-                        leadingContent = { Icon(MuseIcons.brain, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                        leadingContent = {
+                            Icon(
+                                MuseIcons.brain,
+                                null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(MuseIconSizes.iconMedium),
+                            )
+                        },
                     )
                     switchItem(
                         key = "agent_show_mood",
@@ -273,7 +377,14 @@ fun AgentSettingsPage(
                         onCheckedChange = { v ->
                             scope.launch { settings.updateChatPreferences { it.copy(agentShowMood = v) } }
                         },
-                        leadingContent = { Icon(MuseIcons.moodSmile, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                        leadingContent = {
+                            Icon(
+                                MuseIcons.moodSmile,
+                                null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(MuseIconSizes.iconMedium),
+                            )
+                        },
                     )
                     switchItem(
                         key = "agent_show_plan_cards",
@@ -283,7 +394,14 @@ fun AgentSettingsPage(
                         onCheckedChange = { v ->
                             scope.launch { settings.updateChatPreferences { it.copy(agentShowPlanCards = v) } }
                         },
-                        leadingContent = { Icon(MuseIcons.computer, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                        leadingContent = {
+                            Icon(
+                                MuseIcons.computer,
+                                null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(MuseIconSizes.iconMedium),
+                            )
+                        },
                     )
                 }
             }
@@ -299,13 +417,27 @@ fun AgentSettingsPage(
                         key = "collab_team",
                         title = stringResource(R.string.settings_agent_collab_team),
                         subtitle = collabSub,
-                        leadingContent = { Icon(MuseIcons.users, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                        leadingContent = {
+                            Icon(
+                                MuseIcons.users,
+                                null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(MuseIconSizes.iconMedium),
+                            )
+                        },
                         onClick = onOpenMultiAgentSettings,
                     )
                     navigationItem(
                         key = "agent_dm",
                         title = stringResource(R.string.agent_dm_title),
-                        leadingContent = { Icon(MuseIcons.mail, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                        leadingContent = {
+                            Icon(
+                                MuseIcons.mail,
+                                null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(MuseIconSizes.iconMedium),
+                            )
+                        },
                         onClick = onOpenAgentDm,
                     )
                 }
@@ -313,6 +445,127 @@ fun AgentSettingsPage(
         }
 
         if (showProactiveSettings) {
+            item(key = "proactive_diagnostics_card") {
+                val now = System.currentTimeMillis()
+                val blocker = notificationBlocker
+                val inCooldown = (ledgerRelation?.cooldownUntil ?: 0L) > now
+                val inQuiet = !proactiveConfig.allDayAllowed &&
+                    io.zer0.muse.data.proactive.ProactiveTimingEngine.isInQuietHours(
+                        io.zer0.muse.data.proactive.ProactiveTimingEngine.hourOfDay(now),
+                        proactiveConfig.allowedHourStart,
+                        proactiveConfig.allowedHourEnd,
+                    )
+                val statusText = when {
+                    !proactiveConfig.enabled -> stringResource(R.string.proactive_status_paused_master)
+                    !scheduleWorkEnabled -> stringResource(R.string.proactive_status_paused_bg)
+                    blocker != null -> stringResource(R.string.proactive_status_blocked_notif, blocker)
+                    inCooldown -> stringResource(R.string.proactive_status_cooldown)
+                    inQuiet -> stringResource(R.string.proactive_status_quiet)
+                    else -> stringResource(R.string.proactive_status_ok)
+                }
+                val isHealthy = proactiveConfig.enabled && scheduleWorkEnabled && blocker == null && !inCooldown
+                val relationNow = ledgerRelation
+                val budgetStr = when {
+                    relationNow == null -> "--"
+                    relationNow.intensityEnum().unlimited -> "∞"
+                    else -> io.zer0.muse.data.proactive.ProactiveTimingEngine.remainingBudget(relationNow).toInt().toString()
+                }
+                val lastOutcomeText = proactiveScheduler.lastOutcome
+                val lastPatrolLabel = if (lastOutcomeText.isNullOrBlank()) {
+                    stringResource(R.string.proactive_status_last_patrol_none)
+                } else {
+                    stringResource(R.string.proactive_status_last_patrol, lastOutcomeText)
+                }
+                CardGroup(title = { Text(stringResource(R.string.proactive_status_card_title)) }) {
+                    content(key = "proactive_status_body") {
+                        Column(
+                            modifier = Modifier.padding(MusePaddings.cardInner),
+                            verticalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
+                            ) {
+                                Icon(
+                                    imageVector = if (isHealthy) MuseIcons.shieldCheck else MuseIcons.bell,
+                                    contentDescription = null,
+                                    tint = if (isHealthy) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(MuseIconSizes.iconMedium),
+                                )
+                                Text(
+                                    text = statusText,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = if (isHealthy) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                            Text(
+                                text = stringResource(
+                                    R.string.proactive_status_summary,
+                                    budgetStr,
+                                    ledgerThoughts.size,
+                                    intervalLabel(proactiveConfig.intervalMinutes),
+                                ),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Text(
+                                text = lastPatrolLabel,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
+                            ) {
+                                io.zer0.muse.ui.common.form.MuseCapsuleButton(
+                                    text = if (testSending) {
+                                        stringResource(R.string.settings_agent_test_generating)
+                                    } else {
+                                        stringResource(R.string.proactive_status_test_now)
+                                    },
+                                    onClick = {
+                                        if (!testSending) {
+                                            testSending = true
+                                            scope.launch {
+                                                try {
+                                                    val result = proactiveScheduler.runCycle(
+                                                        io.zer0.muse.proactive.ProactiveScheduler.TRIGGER_MANUAL,
+                                                        force = true,
+                                                    )
+                                                    testResultDetail = if (result.alreadyRunning) {
+                                                        testAlreadyRunningText
+                                                    } else {
+                                                        result.detail
+                                                    }
+                                                } catch (e: Exception) {
+                                                    if (e is kotlin.coroutines.cancellation.CancellationException) throw e
+                                                    testResultDetail = context.getString(R.string.settings_agent_test_failed, e.message)
+                                                } finally {
+                                                    testSending = false
+                                                }
+                                            }
+                                        }
+                                    },
+                                    enabled = !testSending,
+                                    loading = testSending,
+                                    size = io.zer0.muse.ui.theme.MuseButtonSize.Compact,
+                                    fillWidth = false,
+                                )
+                                io.zer0.muse.ui.common.form.MuseCapsuleButton(
+                                    text = stringResource(R.string.settings_proactive_v2_ledger),
+                                    onClick = { showLedger = true },
+                                    variant = io.zer0.muse.ui.common.form.IosCapsuleButtonVariant.Secondary,
+                                    size = io.zer0.muse.ui.theme.MuseButtonSize.Compact,
+                                    fillWidth = false,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
             item(key = "proactive_core_group") {
                 val ledgerSub = if (ledgerThoughts.isEmpty()) {
                     stringResource(R.string.settings_proactive_v2_empty)
@@ -337,6 +590,8 @@ fun AgentSettingsPage(
                     quietHoursLabel
                 }
                 val senderAgent = assistants?.find { it.id == proactiveConfig.agentId }
+                    ?: assistants?.firstOrNull { it.id == "default" }
+                    ?: assistants?.firstOrNull()
                 val senderName = senderAgent?.name ?: stringResource(R.string.settings_agent_default_assistant_fallback)
                 CardGroup(title = { Text(stringResource(R.string.settings_agent_proactive_section)) }) {
                     switchItem(
@@ -344,24 +599,76 @@ fun AgentSettingsPage(
                         title = stringResource(R.string.settings_agent_proactive_title),
                         checked = proactiveConfig.enabled,
                         onCheckedChange = { v ->
-                            scope.launch { settings.saveProactiveMessageConfig(proactiveConfig.copy(enabled = v)) }
+                            scope.launch {
+                                settings.saveProactiveMessageConfig(proactiveConfig.copy(enabled = v))
+                                if (v) proactiveScheduler.refreshWakeUpForOpenThoughts()
+                            }
                         },
-                        leadingContent = { Icon(MuseIcons.bell, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                        leadingContent = {
+                            Icon(
+                                MuseIcons.bell,
+                                null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(MuseIconSizes.iconMedium),
+                            )
+                        },
                     )
                     if (proactiveConfig.enabled) {
                         navigationItem(
                             key = "proactive_ledger",
                             title = stringResource(R.string.settings_proactive_v2_ledger),
                             subtitle = ledgerSub,
-                            leadingContent = { Icon(MuseIcons.note, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                            leadingContent = {
+                                Icon(
+                                    MuseIcons.note,
+                                    null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(MuseIconSizes.iconMedium),
+                                )
+                            },
                             onClick = { showLedger = true },
                         )
                         navigationItem(
                             key = "proactive_intensity",
                             title = stringResource(R.string.settings_proactive_v2_intensity),
                             value = intensityLabel,
-                            leadingContent = { Icon(MuseIcons.calendarTime, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                            leadingContent = {
+                                Icon(
+                                    MuseIcons.calendarTime,
+                                    null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(MuseIconSizes.iconMedium),
+                                )
+                            },
                             onClick = { showLedger = true },
+                        )
+                        navigationItem(
+                            key = "proactive_interval",
+                            title = stringResource(R.string.proactive_interval_title),
+                            value = intervalLabel(proactiveConfig.intervalMinutes),
+                            leadingContent = {
+                                Icon(
+                                    MuseIcons.clock,
+                                    null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(MuseIconSizes.iconMedium),
+                                )
+                            },
+                            onClick = { showIntervalPicker = true },
+                        )
+                        navigationItem(
+                            key = "proactive_prob",
+                            title = stringResource(R.string.proactive_prob_title),
+                            value = "${proactiveConfig.sendProbability}%",
+                            leadingContent = {
+                                Icon(
+                                    MuseIcons.bolt,
+                                    null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(MuseIconSizes.iconMedium),
+                                )
+                            },
+                            onClick = { showProbabilityPicker = true },
                         )
                         switchItem(
                             key = "proactive_timing_scoring",
@@ -374,21 +681,56 @@ fun AgentSettingsPage(
                                     )
                                 }
                             },
-                            leadingContent = { Icon(MuseIcons.clock, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                            leadingContent = {
+                                Icon(
+                                    MuseIcons.clock,
+                                    null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(MuseIconSizes.iconMedium),
+                                )
+                            },
                         )
                         navigationItem(
                             key = "proactive_quiet_hours",
                             title = stringResource(R.string.settings_agent_quiet_hours_title),
                             subtitle = quietSub,
-                            leadingContent = { Icon(MuseIcons.moon, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                            leadingContent = {
+                                Icon(
+                                    MuseIcons.moon,
+                                    null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(MuseIconSizes.iconMedium),
+                                )
+                            },
                             onClick = { showQuietHoursPicker = true },
                         )
                         navigationItem(
                             key = "proactive_sender",
                             title = stringResource(R.string.settings_agent_default_assistant_title),
                             value = senderName,
-                            leadingContent = { Icon(MuseIcons.user, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                            leadingContent = {
+                                Icon(
+                                    MuseIcons.user,
+                                    null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(MuseIconSizes.iconMedium),
+                                )
+                            },
                             onClick = { showAssistantPicker = true },
+                        )
+                        navigationItem(
+                            key = "proactive_directives",
+                            title = stringResource(R.string.proactive_directives_entry),
+                            subtitle = stringResource(R.string.proactive_directives_entry_sub),
+                            leadingContent = {
+                                Icon(
+                                    MuseIcons.shield,
+                                    null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(MuseIconSizes.iconMedium),
+                                )
+                            },
+                            onClick = onOpenDirectives,
                         )
                     }
                 }
@@ -404,7 +746,9 @@ fun AgentSettingsPage(
                     }
                     val momentModeSub = when (momentContentMode) {
                         io.zer0.muse.data.moment.MomentContentMode.REAL -> stringResource(R.string.settings_moment_content_mode_real)
-                        io.zer0.muse.data.moment.MomentContentMode.CHARACTER -> stringResource(R.string.settings_moment_content_mode_character)
+                        io.zer0.muse.data.moment.MomentContentMode.CHARACTER -> stringResource(
+                            R.string.settings_moment_content_mode_character,
+                        )
                     }
                     CardGroup(title = { Text(stringResource(R.string.settings_agent_content_title)) }) {
                         switchItem(
@@ -412,14 +756,28 @@ fun AgentSettingsPage(
                             title = stringResource(R.string.settings_agent_content_daily_summary),
                             checked = dailySummaryEnabled,
                             onCheckedChange = { v -> scope.launch { settings.saveDailySummaryEnabled(v) } },
-                            leadingContent = { Icon(MuseIcons.calendarStats, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                            leadingContent = {
+                                Icon(
+                                    MuseIcons.calendarStats,
+                                    null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(MuseIconSizes.iconMedium),
+                                )
+                            },
                         )
                         if (dailySummaryEnabled) {
                             navigationItem(
                                 key = "daily_summary_slots",
                                 title = stringResource(R.string.settings_agent_daily_summary_slots_title),
                                 subtitle = slotsText,
-                                leadingContent = { Icon(MuseIcons.clock, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                                leadingContent = {
+                                    Icon(
+                                        MuseIcons.clock,
+                                        null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(MuseIconSizes.iconMedium),
+                                    )
+                                },
                                 onClick = { showSlotsDialog = true },
                             )
                         }
@@ -428,31 +786,61 @@ fun AgentSettingsPage(
                             title = stringResource(R.string.settings_agent_content_night_diary),
                             checked = nightPatrolEnabled,
                             onCheckedChange = { v -> scope.launch { settings.saveNightPatrolEnabled(v) } },
-                            leadingContent = { Icon(MuseIcons.moon, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                            leadingContent = {
+                                Icon(
+                                    MuseIcons.moon,
+                                    null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(MuseIconSizes.iconMedium),
+                                )
+                            },
                         )
-                        switchItem(
-                            key = "moment_toggle",
-                            title = stringResource(R.string.settings_agent_content_moment),
-                            subtitle = momentCountSub,
-                            checked = dailyMomentCount > 0,
-                            onCheckedChange = { v -> scope.launch { settings.saveDailyMomentCount(if (v) 2 else 0) } },
-                            leadingContent = { Icon(MuseIcons.calendarStats, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
-                        )
-                        if (dailyMomentCount > 0) {
-                            navigationItem(
-                                key = "moment_count",
-                                title = stringResource(R.string.settings_agent_moment_count_title),
-                                value = stringResource(R.string.settings_agent_moment_count_per_day, dailyMomentCount),
-                                leadingContent = { Icon(MuseIcons.clock, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
-                                onClick = { showMomentCountPicker = true },
+                        if (io.zer0.muse.feature.FeatureFlags.MOMENTS) {
+                            switchItem(
+                                key = "moment_toggle",
+                                title = stringResource(R.string.settings_agent_content_moment),
+                                subtitle = momentCountSub,
+                                checked = dailyMomentCount > 0,
+                                onCheckedChange = { v -> scope.launch { settings.saveDailyMomentCount(if (v) 2 else 0) } },
+                                leadingContent = {
+                                    Icon(
+                                        MuseIcons.calendarStats,
+                                        null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(MuseIconSizes.iconMedium),
+                                    )
+                                },
                             )
-                            navigationItem(
-                                key = "moment_mode",
-                                title = stringResource(R.string.settings_moment_content_mode_title),
-                                value = momentModeSub,
-                                leadingContent = { Icon(MuseIcons.typography, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
-                                onClick = { showMomentContentModePicker = true },
-                            )
+                            if (dailyMomentCount > 0) {
+                                navigationItem(
+                                    key = "moment_count",
+                                    title = stringResource(R.string.settings_agent_moment_count_title),
+                                    value = stringResource(R.string.settings_agent_moment_count_per_day, dailyMomentCount),
+                                    leadingContent = {
+                                        Icon(
+                                            MuseIcons.clock,
+                                            null,
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                                        )
+                                    },
+                                    onClick = { showMomentCountPicker = true },
+                                )
+                                navigationItem(
+                                    key = "moment_mode",
+                                    title = stringResource(R.string.settings_moment_content_mode_title),
+                                    value = momentModeSub,
+                                    leadingContent = {
+                                        Icon(
+                                            MuseIcons.typography,
+                                            null,
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                                        )
+                                    },
+                                    onClick = { showMomentContentModePicker = true },
+                                )
+                            }
                         }
                     }
                 }
@@ -464,7 +852,14 @@ fun AgentSettingsPage(
                         item(
                             key = "advanced_expand_toggle",
                             onClick = { showAdvancedSection = !showAdvancedSection },
-                            leadingContent = { Icon(MuseIcons.robot, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                            leadingContent = {
+                                Icon(
+                                    MuseIcons.robot,
+                                    null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(MuseIconSizes.iconMedium),
+                                )
+                            },
                             headlineContent = { Text(stringResource(R.string.settings_agent_group_advanced)) },
                             supportingContent = { Text(stringResource(R.string.settings_agent_advanced_hint)) },
                             trailingContent = {
@@ -486,7 +881,14 @@ fun AgentSettingsPage(
                                         settings.saveProactiveMessageConfig(proactiveConfig.copy(agentSessionEnabled = v))
                                     }
                                 },
-                                leadingContent = { Icon(MuseIcons.user, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                                leadingContent = {
+                                    Icon(
+                                        MuseIcons.user,
+                                        null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(MuseIconSizes.iconMedium),
+                                    )
+                                },
                             )
                             switchItem(
                                 key = "adv_plain_chat",
@@ -497,27 +899,55 @@ fun AgentSettingsPage(
                                         settings.saveProactiveMessageConfig(proactiveConfig.copy(allowPlainChatSession = v))
                                     }
                                 },
-                                leadingContent = { Icon(MuseIcons.chat, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                                leadingContent = {
+                                    Icon(
+                                        MuseIcons.chat,
+                                        null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(MuseIconSizes.iconMedium),
+                                    )
+                                },
                             )
                             navigationItem(
                                 key = "adv_guarantee",
                                 title = stringResource(R.string.settings_agent_daily_guarantee),
                                 value = guaranteeText,
-                                leadingContent = { Icon(MuseIcons.clock, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                                leadingContent = {
+                                    Icon(
+                                        MuseIcons.clock,
+                                        null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(MuseIconSizes.iconMedium),
+                                    )
+                                },
                                 onClick = { showGuaranteePicker = true },
                             )
                             navigationItem(
                                 key = "adv_temperature",
                                 title = stringResource(R.string.settings_agent_temperature),
                                 value = "%.1f".format(proactiveConfig.temperature),
-                                leadingContent = { Icon(MuseIcons.switch, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                                leadingContent = {
+                                    Icon(
+                                        MuseIcons.switch,
+                                        null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(MuseIconSizes.iconMedium),
+                                    )
+                                },
                                 onClick = { showTemperaturePicker = true },
                             )
                             navigationItem(
                                 key = "adv_offset",
                                 title = stringResource(R.string.settings_agent_random_offset),
                                 value = offsetText,
-                                leadingContent = { Icon(MuseIcons.switch, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
+                                leadingContent = {
+                                    Icon(
+                                        MuseIcons.switch,
+                                        null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(MuseIconSizes.iconMedium),
+                                    )
+                                },
                                 onClick = { showOffsetPicker = true },
                             )
                             actionItem(
@@ -560,32 +990,19 @@ fun AgentSettingsPage(
 
             item(key = "proactive_background_group") {
                 CardGroup(title = { Text(stringResource(R.string.settings_agent_group_background)) }) {
-                    switchItem(
-                        key = "schedule_work",
-                        title = stringResource(R.string.settings_agent_schedule_work_title),
-                        checked = scheduleWorkEnabled,
-                        onCheckedChange = { v -> scope.launch { settings.saveScheduleWorkEnabled(v) } },
-                        leadingContent = { Icon(MuseIcons.switch, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
-                    )
-                    switchItem(
-                        key = "keep_awake",
-                        title = stringResource(R.string.settings_memory_keep_awake),
-                        checked = keepAwake,
-                        onCheckedChange = { v -> scope.launch { settings.saveKeepAwake(v) } },
-                        leadingContent = { Icon(MuseIcons.bolt, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
-                    )
-                    switchItem(
-                        key = "auto_launch",
-                        title = stringResource(R.string.settings_memory_auto_launch),
-                        checked = autoLaunch,
-                        onCheckedChange = { v -> scope.launch { settings.saveAutoLaunch(v) } },
-                        leadingContent = { Icon(MuseIcons.power, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
-                    )
                     navigationItem(
-                        key = "keep_alive_guide",
-                        title = stringResource(R.string.settings_agent_keep_alive_title),
-                        leadingContent = { Icon(MuseIcons.lifebuoy, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium)) },
-                        onClick = { showKeepAliveGuide = true },
+                        key = "proactive_keep_alive_nav",
+                        title = stringResource(R.string.settings_keep_alive_title),
+                        subtitle = stringResource(R.string.settings_agent_background_redirect_hint),
+                        leadingContent = {
+                            Icon(
+                                MuseIcons.battery,
+                                null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(MuseIconSizes.iconMedium),
+                            )
+                        },
+                        onClick = onOpenKeepAlive,
                     )
                 }
             }
@@ -956,6 +1373,114 @@ fun AgentSettingsPage(
         )
     }
 
+    if (showIntervalPicker) {
+        var minutes by rememberSaveable { mutableStateOf(proactiveConfig.intervalMinutes.coerceIn(30, 1440)) }
+        MuseDialog(
+            onDismissRequest = { showIntervalPicker = false },
+            title = stringResource(R.string.proactive_interval_title),
+            content = {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = intervalLabel(minutes),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(bottom = MuseSpacing.sm),
+                    )
+                    Text(
+                        text = stringResource(R.string.proactive_interval_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = MuseSpacing.md),
+                    )
+                    MuseSlider(
+                        value = minutes.toFloat(),
+                        onValueChange = { minutes = (it.toInt() / 15) * 15 },
+                        valueRange = 30f..1440f,
+                        valueFormatter = { "${it.toInt()}m" },
+                    )
+                    @OptIn(ExperimentalLayoutApi::class)
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth().padding(top = MuseSpacing.sm),
+                        horizontalArrangement = Arrangement.spacedBy(MuseSpacing.xs),
+                    ) {
+                        io.zer0.muse.data.proactive.ProactivePace.entries.forEach { pace ->
+                            MuseChip(
+                                selected = minutes == pace.intervalMinutes &&
+                                    proactiveConfig.sendProbability == pace.sendProbability,
+                                onClick = {
+                                    minutes = pace.intervalMinutes
+                                    scope.launch {
+                                        settings.saveProactiveMessageConfig(
+                                            proactiveConfig.copy(
+                                                intervalMinutes = pace.intervalMinutes,
+                                                sendProbability = pace.sendProbability,
+                                            ),
+                                        )
+                                    }
+                                },
+                                label = intervalLabel(pace.intervalMinutes),
+                            )
+                        }
+                    }
+                }
+            },
+            confirmText = stringResource(R.string.common_save),
+            onConfirm = {
+                scope.launch {
+                    settings.saveProactiveMessageConfig(
+                        proactiveConfig.copy(intervalMinutes = minutes),
+                    )
+                }
+                showIntervalPicker = false
+            },
+            dismissText = stringResource(R.string.common_cancel),
+            onDismiss = { showIntervalPicker = false },
+        )
+    }
+
+    if (showProbabilityPicker) {
+        var pct by rememberSaveable { mutableStateOf(proactiveConfig.sendProbability.coerceIn(10, 100)) }
+        MuseDialog(
+            onDismissRequest = { showProbabilityPicker = false },
+            title = stringResource(R.string.proactive_prob_title),
+            content = {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "$pct%",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(bottom = MuseSpacing.sm),
+                    )
+                    Text(
+                        text = stringResource(R.string.proactive_prob_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = MuseSpacing.md),
+                    )
+                    MuseSlider(
+                        value = pct.toFloat(),
+                        onValueChange = { pct = (it.toInt() / 5) * 5 },
+                        valueRange = 10f..100f,
+                        valueFormatter = { "${it.toInt()}%" },
+                    )
+                }
+            },
+            confirmText = stringResource(R.string.common_save),
+            onConfirm = {
+                scope.launch {
+                    settings.saveProactiveMessageConfig(
+                        proactiveConfig.copy(sendProbability = pct),
+                    )
+                }
+                showProbabilityPicker = false
+            },
+            dismissText = stringResource(R.string.common_cancel),
+            onDismiss = { showProbabilityPicker = false },
+        )
+    }
+
     // ── 随机偏移选择弹窗(v1.30: 改为 Slider 自定义,步长 15 分钟,范围 0 ~ 间隔值)──
     if (showOffsetPicker) {
         var sliderMinutes by rememberSaveable { mutableStateOf(proactiveConfig.randomOffsetMinutes) }
@@ -1127,19 +1652,16 @@ fun AgentSettingsPage(
             onDismiss = { showTemperaturePicker = false },
         )
     }
-
-    // ── v1.x: 保持后台运行引导(被动入口,点击才弹出)──
-    if (showKeepAliveGuide) {
-        KeepAliveGuideDialog(onDismiss = { showKeepAliveGuide = false })
-    }
 }
 
 /** 独立主动消息设置页：复用 Agent 页的完整主动消息设置，不复制状态逻辑。 */
 @Composable
-fun ProactiveMessageSettingsPage(onBack: () -> Unit) {
+fun ProactiveMessageSettingsPage(onBack: () -> Unit, onOpenDirectives: () -> Unit = {}, onOpenKeepAlive: () -> Unit = {}) {
     AgentSettingsPage(
         onBack = onBack,
         onOpenMultiAgentSettings = {},
+        onOpenDirectives = onOpenDirectives,
+        onOpenKeepAlive = onOpenKeepAlive,
         proactiveOnly = true,
         showProactiveSettings = true,
     )

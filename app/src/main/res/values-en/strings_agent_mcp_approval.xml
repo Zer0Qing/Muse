@@ -1,0 +1,8 @@
+<resources>
+    <string name="agent_mcp_approval_title">MCP tool request</string>
+    <string name="agent_mcp_approval_target">Server: %1$s · Tool: %2$s</string>
+    <string name="agent_mcp_approval_arguments">Arguments for this call: %1$s</string>
+    <string name="agent_mcp_approval_view_arguments">View arguments</string>
+    <string name="agent_mcp_approval_allow_once">Allow once</string>
+    <string name="agent_mcp_approval_reject">Reject</string>
+</resources>

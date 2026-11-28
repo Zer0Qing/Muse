@@ -145,10 +145,7 @@ fun ImageGenSection(settings: SettingsRepository = koinInject(), scope: Coroutin
 }
 
 @Composable
-internal fun MediaProviderAvatar(
-    provider: ProviderConfig?,
-    fallbackIcon: androidx.compose.ui.graphics.vector.ImageVector,
-) {
+internal fun MediaProviderAvatar(provider: ProviderConfig?, fallbackIcon: androidx.compose.ui.graphics.vector.ImageVector) {
     Box(
         modifier = Modifier
             .size(MuseSpacing.xxl)

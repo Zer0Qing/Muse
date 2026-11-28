@@ -313,13 +313,15 @@ class ChatTaskCardCoordinator(
 
                 val timedOut = retryResult == null
                 val toolResult = retryResult
-                    ?: ("[超时] " + auditStateString(
-                        localizeString,
-                        R.string.audit_retry_timeout,
-                        "重试 %1\$s 超过 %2\$d 秒未响应,已终止",
-                        step.title,
-                        retryTimeoutMs / 1000,
-                    ))
+                    ?: (
+                        "[超时] " + auditStateString(
+                            localizeString,
+                            R.string.audit_retry_timeout,
+                            "重试 %1\$s 超过 %2\$d 秒未响应,已终止",
+                            step.title,
+                            retryTimeoutMs / 1000,
+                        )
+                        )
                 val isSuccess = !timedOut && isToolResultSuccess(toolResult)
                 writeRetriedStep(
                     taskCardId = taskCardId,

@@ -1,9 +1,9 @@
-package io.zer0.muse.data.agentbot;
+package io.zer0.muse.data.agentbot
 
-import org.junit.Assert.assertTrue;
-import org.junit.Test;
-import java.io.File;
-import io.zer0.muse.ui.screen.HomeScreen
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import java.io.File
 
 /**
  * 验收清单 A 组（入口与可达性）的可静态验证部分。
@@ -17,19 +17,19 @@ import io.zer0.muse.ui.screen.HomeScreen
 class AcceptanceAEntryTest {
 
     private val home: String by lazy {
-        File("src/main/java/io/zer0/muse/ui/screen/HomeScreen.kt").readText();
+        File("src/main/java/io/zer0/muse/ui/screen/HomeScreen.kt").readText()
     }
 
     private val screen: String by lazy {
-        File("src/main/java/io/zer0/muse/ui/agentbot/AgentBotScreen.kt").readText();
+        File("src/main/java/io/zer0/muse/ui/agentbot/AgentBotScreen.kt").readText()
     }
 
     private val workbench: String by lazy {
-        File("src/main/java/io/zer0/muse/ui/agentbot/AgentWorkbenchSheet.kt").readText();
+        File("src/main/java/io/zer0/muse/ui/agentbot/AgentWorkbenchSheet.kt").readText()
     }
 
     private val agentBotUi: String by lazy {
-        screen + "\n" + workbench;
+        screen + "\n" + workbench
     }
 
     @Test
@@ -37,41 +37,38 @@ class AcceptanceAEntryTest {
         assertTrue(
             "Agent Tab 必须真的渲染 AgentBotScreen，不能只有 ViewModel",
             home.contains("AgentBotScreen(viewModel") || home.contains("AgentBotScreen("),
-        );
+        )
     }
 
     @Test
     fun `A2 provider menu entry actually opens the sheet`() {
         // 审查报告点名过：面板存在，但没有一处把 showModelSheet 置 true。
-        assertTrue("必须有一处把 showModelSheet 置 true", home.contains("showModelSheet = true"));
-        assertTrue("面板必须被渲染", home.contains("if (showModelSheet)"));
+        assertTrue("必须有一处把 showModelSheet 置 true", home.contains("showModelSheet = true"))
+        assertTrue("面板必须被渲染", home.contains("if (showModelSheet)"))
     }
 
     @Test
     fun `A3 provider settings callback is wired through`() {
         // 空 lambda 默认值会让"点了没反应"看起来像正常。
-        val count = Regex("onOpenProviderSettings").findAll(home).count();
+        val count = Regex("onOpenProviderSettings").findAll(home).count()
         assertTrue(
             "声明 + 至少两处传递，实际 " + count + " 处",
             count >= 3,
-        );
+        )
     }
 
     @Test
     fun `A4 task board is rendered from state`() {
-        assertTrue("页面必须消费四态作用域", screen.contains("viewModel.scopeState.collectAsStateWithLifecycle()"));
-        assertTrue("任务区必须从投影渲染", screen.contains("AgentLiveMissionCard("));
-        assertTrue("加载与失败状态要参与投影", screen.contains("AgentBotScopeState.Error"));
+        assertTrue("页面必须消费四态作用域", screen.contains("viewModel.scopeState.collectAsStateWithLifecycle()"))
+        assertTrue("任务区必须从投影渲染", screen.contains("AgentLiveMissionCard("))
+        assertTrue("加载与失败状态要参与投影", screen.contains("AgentBotScopeState.Error"))
     }
 
     @Test
-    fun `A5 allowance section is reachable and can revoke`() {
-        assertTrue(
-            "放行列表必须订阅状态",
-            screen.contains("viewModel.allowedTools.collectAsStateWithLifecycle()"),
-        );
-        assertTrue("并且有收回入口", screen.contains("onRevokeAllowance = viewModel::revokeAllowance"));
-        assertTrue("放行项通过统一行区渲染", workbench.contains("AgentBotRowSection("));
+    fun `A5 conversation wide tool allowance controls are absent`() {
+        assertFalse(screen.contains("allowedTools ="))
+        assertFalse(screen.contains("onRevokeAllowance"))
+        assertFalse(workbench.contains("agent_bot_allowed_title"))
     }
 
     @Test
@@ -79,13 +76,13 @@ class AcceptanceAEntryTest {
         assertTrue(
             "候选来自带作用域的页面投影",
             screen.contains("projection?.candidates"),
-        );
+        )
         assertTrue(
             "候选必须可以打开和丢弃",
             screen.contains("AgentArtifactDeliveryCard(") &&
                 screen.contains("onOpen = onOpenArtifact ?: viewModel::openCandidatePreview") &&
                 screen.contains("onDiscard = viewModel::discardCandidate"),
-        );
+        )
     }
 
     @Test
@@ -93,9 +90,8 @@ class AcceptanceAEntryTest {
         // 防止"渲染了一个空壳区块"：每个 Section 都要有对应的 collect。
         // 调用点有缩进，定义是顶格 —— 用词边界而不是行首锚点。
         val sections = Regex("\\b(AgentLiveMissionCard|AgentInlineApprovalCard|AgentBotRowSection|AgentArtifactDeliveryCard)\\(")
-            .findAll(agentBotUi).map { it.groupValues[1] }.toSet();
-        assertTrue("任务、审批、候选与放行列表都要出现", sections.size >= 4)
+            .findAll(agentBotUi).map { it.groupValues[1] }.toSet()
+        assertTrue("任务、审批与候选都要出现", sections.size >= 3)
         assertTrue(screen.contains("viewModel.scopeState.collectAsStateWithLifecycle()"))
-        assertTrue(screen.contains("viewModel.allowedTools.collectAsStateWithLifecycle()"))
     }
 }

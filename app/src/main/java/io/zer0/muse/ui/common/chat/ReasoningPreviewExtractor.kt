@@ -11,6 +11,7 @@ object ReasoningPreviewExtractor {
 
     private val MARKDOWN_HEADING_RE = Regex("^#{1,6}\\s+(.+)$")
     private val BOLD_HEADING_RE = Regex("^\\*{2}([^*]{2,48})\\*{2}\\s*[:\uFF1A]?\\s*$")
+
     // 步骤前缀：第N步 / Step N / 1. —— 步骤词用 Unicode 转义，避免源码出现字面量中文。
     private val STEP_PREFIX_RE = Regex(
         "^(?:\u7b2c[\u4e00\u4e8c\u4e09\u56db\u4e94\u516d\u4e03\u516b\u4e5d\u5341\u3007\u4e24\\d]+[\u6b65\u9636\u6bb5\u9879]|Step\\s*\\d+|\\d+[.)\u3001])\\s*[:\uFF1A]?\\s*(.+)$",

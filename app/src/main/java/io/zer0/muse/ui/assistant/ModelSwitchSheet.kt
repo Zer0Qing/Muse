@@ -2,7 +2,10 @@ package io.zer0.muse.ui.assistant
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -36,6 +39,7 @@ import io.zer0.ai.core.ModelVerification
 import io.zer0.ai.core.ProviderConfig
 import io.zer0.ai.core.ProviderType
 import io.zer0.muse.R
+import io.zer0.muse.ui.chat.ChatScreen
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
@@ -46,9 +50,8 @@ import io.zer0.muse.ui.common.surface.MuseCardPress
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.MuseSpacing
 import io.zer0.muse.ui.theme.pill
-import io.zer0.muse.ui.chat.ChatScreen
-import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * 阶段 5: 模型切换底部面板。
@@ -92,7 +95,11 @@ internal fun ModelSwitchSheet(
     fetchModelsError: String?,
     onDismiss: () -> Unit,
 ) {
-    val activeProvider = providers.firstOrNull { it.id == activeProviderId }
+    // 激活 id 可能指向已被删掉的供应商（例如刚删完卡就点进来，或设置里换了 id）。
+    // 此时不能既列出一张带「免费」徽章的卡、又在下面写「未选择模型供应商」——
+    // 两句话互相矛盾。列表非空时一律拿第一个可用供应商作为实际生效项。
+    val activeProvider = providers.firstOrNull { it.id == activeProviderId } ?: providers.firstOrNull()
+    val resolvedActiveProviderId = activeProvider?.id
     // 当前生效模型:显式选中优先,否则回退到 Provider 首个模型
     val effectiveModelId = selectedModelId ?: activeProvider?.models?.firstOrNull()?.id
 
@@ -141,7 +148,7 @@ internal fun ModelSwitchSheet(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     providers.forEach { provider ->
-                        val isSelected = provider.id == activeProviderId
+                        val isSelected = provider.id == resolvedActiveProviderId
                         Surface(
                             color = if (isSelected) {
                                 MaterialTheme.colorScheme.primaryContainer
@@ -224,6 +231,8 @@ internal fun ModelSwitchSheet(
                 )
 
                 // 下半:当前 Provider 的模型列表
+                // 这个分支现在不会命中：providers 为空已在上方返回，非空时 activeProvider 已回退到第一个。
+                // 保留它只是为了让 activeProvider 在下方得到非空窄化；不要因为“看不到效果”就删掉。
                 if (activeProvider == null) {
                     Text(
                         text = stringResource(R.string.model_switch_no_provider_selected),
@@ -242,11 +251,13 @@ internal fun ModelSwitchSheet(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(
-                        text = stringResource(R.string.model_switch_models_label, activeProvider.displayName),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.outline,
-                    )
+                    Box(modifier = Modifier.weight(1f).padding(end = MuseSpacing.sm)) {
+                        Text(
+                            text = stringResource(R.string.model_switch_models_label, activeProvider.displayName),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.outline,
+                        )
+                    }
                     Surface(
                         onClick = {
                             if (!isFetchingModels) onRefreshModels(activeProvider.id)
@@ -274,6 +285,7 @@ internal fun ModelSwitchSheet(
                                 } else {
                                     stringResource(R.string.model_switch_refresh)
                                 },
+                                maxLines = 1,
                                 style = MaterialTheme.typography.labelMedium,
                                 color = if (isFetchingModels) {
                                     MaterialTheme.colorScheme.onSurfaceVariant
@@ -535,6 +547,7 @@ private fun providerSupportsNativeWebSearch(providerType: ProviderType): Boolean
  * @param hasNativeWebSearch 当前 Provider 是否支持原生搜索;true 时即使模型未内置
  *   SEARCH 工具也展示"联网"标签。
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ModelRow(
     model: Model?,
@@ -553,18 +566,18 @@ private fun ModelRow(
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = if (isDefaultFallback) stringResource(R.string.model_switch_default, model.name) else model.name,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                    color = if (isSelected) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.onSurface
-                    },
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                Box(modifier = Modifier.weight(1f, fill = false)) {
+                    Text(
+                        text = if (isDefaultFallback) stringResource(R.string.model_switch_default, model.name) else model.name,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                        color = if (isSelected) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        },
+                    )
+                }
                 // 免费档白名单模型追加「免费」徽章(白名单随服务端轮换)
                 if (FreeModelConfig.allowedModelIds().any { it.equals(model.id, ignoreCase = true) }) {
                     Spacer(Modifier.width(6.dp))
@@ -574,12 +587,17 @@ private fun ModelRow(
             // 能力标签行:视觉 / 推理 / 工具调用 / 绘图 / 联网
             // stringResource 需在 @Composable 直接调用位置提取,buildList 非 @Composable,故预提取到局部变量。
             val visionLabel = stringResource(R.string.model_switch_ability_vision)
+            val noImageInputLabel = stringResource(R.string.settings_model_ability_no_image_input)
             val reasoningLabel = stringResource(R.string.model_switch_ability_reasoning)
             val toolLabel = stringResource(R.string.model_switch_ability_tool)
             val imageLabel = stringResource(R.string.model_switch_ability_image)
             val searchLabel = stringResource(R.string.model_switch_ability_search)
             val abilities = buildList {
-                if (model.supportsVisionInput()) add(visionLabel to MuseIcons.eye)
+                if (model.supportsVisionInput()) {
+                    add(visionLabel to MuseIcons.eye)
+                } else {
+                    add(noImageInputLabel to MuseIcons.eyeOff)
+                }
                 if (model.supportsReasoning()) add(reasoningLabel to MuseIcons.brain)
                 if (model.supportsToolCalling()) add(toolLabel to MuseIcons.wrench)
                 // v0.47: 补充绘图能力(模型支持图片输出)
@@ -588,27 +606,25 @@ private fun ModelRow(
                 // v2.x: 图标从 languages(翻译语义)修正为 globe
                 if (model.tools.contains(BuiltInTool.SEARCH) || hasNativeWebSearch) add(searchLabel to MuseIcons.globe)
             }
-            if (abilities.isNotEmpty()) {
-                Row(
-                    modifier = Modifier.padding(top = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    abilities.forEach { (label, icon) ->
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = icon,
-                                contentDescription = label,
-                                tint = MaterialTheme.colorScheme.outline,
-                                modifier = Modifier.size(14.dp),
-                            )
-                            Spacer(Modifier.width(4.dp))
-                            Text(
-                                text = label,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.outline,
-                            )
-                        }
+            FlowRow(
+                modifier = Modifier.padding(top = MuseSpacing.xs),
+                horizontalArrangement = Arrangement.spacedBy(MuseSpacing.md),
+                verticalArrangement = Arrangement.spacedBy(MuseSpacing.xxs),
+            ) {
+                abilities.forEach { (label, icon) ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconSmall),
+                        )
+                        Spacer(Modifier.width(MuseSpacing.xs))
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 }
             }

@@ -74,11 +74,9 @@ object EvidenceSnapshotCodec {
         degraded = false,
     )
 
-    fun encode(snapshot: EvidenceBundleSnapshot): String =
-        json.encodeToString(EvidenceBundleSnapshot.serializer(), snapshot)
+    fun encode(snapshot: EvidenceBundleSnapshot): String = json.encodeToString(EvidenceBundleSnapshot.serializer(), snapshot)
 
-    fun decode(text: String): EvidenceBundleSnapshot =
-        json.decodeFromString(EvidenceBundleSnapshot.serializer(), text)
+    fun decode(text: String): EvidenceBundleSnapshot = json.decodeFromString(EvidenceBundleSnapshot.serializer(), text)
 
     private fun EvidenceUnit.toSnapshot() = EvidenceUnitSnapshot(
         index = index,

@@ -121,8 +121,10 @@ class KlingVideoProvider(
                     val apiMsg = parseApiErrorMessage(respBody)
                     error(
                         "Kling submit 失败: HTTP ${resp.code}" +
-                            (apiMsg?.let { ": $it" }
-                                ?: ProviderError.safeErrorDetail(respBody)?.let { ": $it" }.orEmpty()),
+                            (
+                                apiMsg?.let { ": $it" }
+                                    ?: ProviderError.safeErrorDetail(respBody)?.let { ": $it" }.orEmpty()
+                                ),
                     )
                 }
                 val root = json.parseToJsonElement(respBody).jsonObject
@@ -242,12 +244,17 @@ class KlingVideoProvider(
         return buildJsonObject {
             put("model", request.model.ifBlank { DEFAULT_MODEL })
             put("prompt", request.prompt)
-            // duration 必须是 5 或 10(可灵限制),非法则回退 5
             val duration = if (request.duration == 5 || request.duration == 10) request.duration else 5
             put("duration", duration)
             put("resolution", request.resolution.ifBlank { "720p" })
-            // mode 默认 std(标准模式),pro 模式需付费更高,不暴露
-            put("mode", "std")
+            val mode = if (request.resolution.equals("1080p", ignoreCase = true)) "pro" else "std"
+            put("mode", mode)
+            if (request.aspectRatio.isNotBlank()) {
+                put("aspect_ratio", request.aspectRatio.trim())
+            }
+            if (request.negativePrompt.isNotBlank()) {
+                put("negative_prompt", request.negativePrompt.trim())
+            }
             if (!imageUrl.isNullOrBlank()) {
                 put("image", imageUrl)
             }

@@ -80,8 +80,10 @@ object LlmBudget {
 
     /** 组装后的 memory markdown 中的一个 `##` 段。 */
     internal data class Segment(
-        val heading: String, // 形如 "## 重要事实"
-        val body: String, // 段正文(不含标题)
+        // 形如 "## 重要事实"
+        val heading: String,
+        // 段正文(不含标题)
+        val body: String,
     ) {
         fun render(): String = if (body.isEmpty()) heading else "$heading\n\n$body"
     }
@@ -185,16 +187,15 @@ object LlmBudget {
     }
 
     /** 宽字符判定:CJK 部首~彝文、谚文、CJK 兼容表意、全角形式、emoji 与扩展区表意。 */
-    private fun isWideCharacter(codePoint: Int): Boolean =
-        codePoint in 0x1100..0x115F ||
-            codePoint in 0x2E80..0xA4CF ||
-            codePoint in 0xAC00..0xD7A3 ||
-            codePoint in 0xF900..0xFAFF ||
-            codePoint in 0xFE30..0xFE6F ||
-            codePoint in 0xFF00..0xFF60 ||
-            codePoint in 0xFFE0..0xFFE6 ||
-            codePoint in 0x1F300..0x1FAFF ||
-            codePoint in 0x20000..0x3FFFD
+    private fun isWideCharacter(codePoint: Int): Boolean = codePoint in 0x1100..0x115F ||
+        codePoint in 0x2E80..0xA4CF ||
+        codePoint in 0xAC00..0xD7A3 ||
+        codePoint in 0xF900..0xFAFF ||
+        codePoint in 0xFE30..0xFE6F ||
+        codePoint in 0xFF00..0xFF60 ||
+        codePoint in 0xFFE0..0xFFE6 ||
+        codePoint in 0x1F300..0x1FAFF ||
+        codePoint in 0x20000..0x3FFFD
 
     /**
      * B-20: 按段优先级裁剪 memory markdown。

@@ -144,3 +144,264 @@ val BrandAnthropic = Color(0xFFD4A574)
 
 /** Google Gemini 品牌蓝。 */
 val BrandGemini = Color(0xFF4285F4)
+
+// ── 消息渠道平台品牌色（深/浅成对，UI 层禁止硬编码色值） ──────────────────
+
+/** 单个消息渠道平台的品牌前景与浅底容器色对。 */
+data class MuseChannelBrandPair(
+    val accent: Color,
+    val container: Color,
+)
+
+/** 五大消息渠道平台的品牌色集合，随深浅主题切换。 */
+data class MuseChannelBrandColors(
+    val weclaw: MuseChannelBrandPair,
+    val feishu: MuseChannelBrandPair,
+    val telegram: MuseChannelBrandPair,
+    val dingtalk: MuseChannelBrandPair,
+    val qq: MuseChannelBrandPair,
+)
+
+val LightChannelBrandColors = MuseChannelBrandColors(
+    weclaw = MuseChannelBrandPair(accent = Color(0xFF07C160), container = Color(0xFFE8F8EE)),
+    feishu = MuseChannelBrandPair(accent = Color(0xFF1456F0), container = Color(0xFFEBF2FF)),
+    telegram = MuseChannelBrandPair(accent = Color(0xFF229ED9), container = Color(0xFFE8F5FC)),
+    dingtalk = MuseChannelBrandPair(accent = Color(0xFF007FFF), container = Color(0xFFE8F2FF)),
+    qq = MuseChannelBrandPair(accent = Color(0xFF12B7F5), container = Color(0xFFE7F7FE)),
+)
+
+val DarkChannelBrandColors = MuseChannelBrandColors(
+    weclaw = MuseChannelBrandPair(accent = Color(0xFF4ADE80), container = Color(0xFF152E20)),
+    feishu = MuseChannelBrandPair(accent = Color(0xFF60A5FA), container = Color(0xFF16253E)),
+    telegram = MuseChannelBrandPair(accent = Color(0xFF56CCF2), container = Color(0xFF142B3A)),
+    dingtalk = MuseChannelBrandPair(accent = Color(0xFF6BA6FF), container = Color(0xFF172740)),
+    qq = MuseChannelBrandPair(accent = Color(0xFF5CD1FF), container = Color(0xFF132D3B)),
+)
+
+val LocalChannelBrandColors = compositionLocalOf { LightChannelBrandColors }
+
+/** 便捷访问：`MaterialTheme.channelBrandColors.weclaw`。 */
+@Suppress("UnusedReceiverParameter")
+val MaterialTheme.channelBrandColors: MuseChannelBrandColors
+    @Composable
+    @ReadOnlyComposable
+    get() = LocalChannelBrandColors.current
+
+// ── 记忆星座星图调色板（星夜观星台 / 浅深纸图，零硬编码色值） ──────────────
+
+/** 记忆星座全套配色：覆盖星空底板、七类星体色、四种关系弧线色与悬浮控件色。 */
+data class MuseConstellationPalette(
+    val canvasBg: Color,
+    val canvasNebulaPrimary: Color,
+    val canvasNebulaSecondary: Color,
+    val stardust: Color,
+    val skeletonEdge: Color,
+    val identity: Color,
+    val preference: Color,
+    val relationship: Color,
+    val event: Color,
+    val goal: Color,
+    val medical: Color,
+    val general: Color,
+    val edgeRelated: Color,
+    val edgeCauses: Color,
+    val edgePartOf: Color,
+    val edgeContradicts: Color,
+    val labelText: Color,
+    val labelBg: Color,
+    val labelBorder: Color,
+    val clusterLabelText: Color,
+    val clusterLabelBg: Color,
+    val overlaySurface: Color,
+    val overlayContent: Color,
+    val overlayBorder: Color,
+    val selectionGlow: Color,
+    val starCore: Color,
+)
+
+/** 记忆星座两套视觉模式：星夜观星台（默认深空星图）与跟随明暗的纸质星图。 */
+data class MuseConstellationColors(
+    val observatory: MuseConstellationPalette,
+    val paper: MuseConstellationPalette,
+)
+
+val ObservatoryConstellationPalette = MuseConstellationPalette(
+    canvasBg = Color(0xFF0A0F1D),
+    canvasNebulaPrimary = Color(0xFF28427B),
+    canvasNebulaSecondary = Color(0xFF134E5E),
+    stardust = Color(0xFFD8E4FF),
+    skeletonEdge = Color(0xFF7B93C9),
+    identity = Color(0xFF60A5FA),
+    preference = Color(0xFFFBBF24),
+    relationship = Color(0xFFF472B6),
+    event = Color(0xFF2DD4BF),
+    goal = Color(0xFF4ADE80),
+    medical = Color(0xFFFB923C),
+    general = Color(0xFFCBD5E1),
+    edgeRelated = Color(0xFF7DD3FC),
+    edgeCauses = Color(0xFFFCD34D),
+    edgePartOf = Color(0xFF5EEAD4),
+    edgeContradicts = Color(0xFFF87171),
+    labelText = Color(0xFFF1F5F9),
+    labelBg = Color(0xDD131B2E),
+    labelBorder = Color(0x4D94A3B8),
+    clusterLabelText = Color(0xFFE2E8F0),
+    clusterLabelBg = Color(0xD91A243B),
+    overlaySurface = Color(0xE6141C2F),
+    overlayContent = Color(0xFFF8FAFC),
+    overlayBorder = Color(0x3D94A3B8),
+    selectionGlow = Color(0xFFFFFFFF),
+    starCore = Color(0xFFF8FAFC),
+)
+
+val LightPaperConstellationPalette = MuseConstellationPalette(
+    canvasBg = Color(0xFFF7F4EC),
+    canvasNebulaPrimary = Color(0xFF3B6FD8),
+    canvasNebulaSecondary = Color(0xFF0E7490),
+    stardust = Color(0xFF64748B),
+    skeletonEdge = Color(0xFF475569),
+    identity = Color(0xFF2563EB),
+    preference = Color(0xFFD97706),
+    relationship = Color(0xFFDB2777),
+    event = Color(0xFF0D9488),
+    goal = Color(0xFF16A34A),
+    medical = Color(0xFFEA580C),
+    general = Color(0xFF475569),
+    edgeRelated = Color(0xFF0284C7),
+    edgeCauses = Color(0xFFB45309),
+    edgePartOf = Color(0xFF0F766E),
+    edgeContradicts = Color(0xFFDC2626),
+    labelText = Color(0xFF1E293B),
+    labelBg = Color(0xEBFFFFFF),
+    labelBorder = Color(0x3364748B),
+    clusterLabelText = Color(0xFF0F172A),
+    clusterLabelBg = Color(0xF0FFFFFF),
+    overlaySurface = Color(0xEBFFFFFF),
+    overlayContent = Color(0xFF0F172A),
+    overlayBorder = Color(0x2E64748B),
+    selectionGlow = Color(0xFF1D4ED8),
+    starCore = Color(0xFFFFFFFF),
+)
+
+val DarkPaperConstellationPalette = MuseConstellationPalette(
+    canvasBg = Color(0xFF12151E),
+    canvasNebulaPrimary = Color(0xFF365494),
+    canvasNebulaSecondary = Color(0xFF165B6E),
+    stardust = Color(0xFFCBD5E1),
+    skeletonEdge = Color(0xFF64748B),
+    identity = Color(0xFF60A5FA),
+    preference = Color(0xFFFBBF24),
+    relationship = Color(0xFFF472B6),
+    event = Color(0xFF2DD4BF),
+    goal = Color(0xFF4ADE80),
+    medical = Color(0xFFFB923C),
+    general = Color(0xFFCBD5E1),
+    edgeRelated = Color(0xFF7DD3FC),
+    edgeCauses = Color(0xFFFCD34D),
+    edgePartOf = Color(0xFF5EEAD4),
+    edgeContradicts = Color(0xFFF87171),
+    labelText = Color(0xFFE2E8F0),
+    labelBg = Color(0xE01B202C),
+    labelBorder = Color(0x4794A3B8),
+    clusterLabelText = Color(0xFFF8FAFC),
+    clusterLabelBg = Color(0xE0212736),
+    overlaySurface = Color(0xEB1B202C),
+    overlayContent = Color(0xFFF8FAFC),
+    overlayBorder = Color(0x3394A3B8),
+    selectionGlow = Color(0xFF93C5FD),
+    starCore = Color(0xFFF8FAFC),
+)
+
+val LocalConstellationColors = compositionLocalOf {
+    MuseConstellationColors(
+        observatory = ObservatoryConstellationPalette,
+        paper = LightPaperConstellationPalette,
+    )
+}
+
+/** 便捷访问：`MaterialTheme.constellationColors.observatory`。 */
+@Suppress("UnusedReceiverParameter")
+val MaterialTheme.constellationColors: MuseConstellationColors
+    @Composable
+    @ReadOnlyComposable
+    get() = LocalConstellationColors.current
+
+// ── 对话语音条色彩令牌（深/浅双套，零硬编码） ────────────────────────────
+
+data class MuseVoiceBubbleColors(
+    val assistantBg: Color,
+    val assistantBorder: Color,
+    val assistantAccent: Color,
+    val assistantWaveActive: Color,
+    val assistantWaveInactive: Color,
+    val assistantText: Color,
+    val assistantSubtext: Color,
+    val userBg: Color,
+    val userBorder: Color,
+    val userAccent: Color,
+    val userWaveActive: Color,
+    val userWaveInactive: Color,
+    val userText: Color,
+    val userSubtext: Color,
+    val unreadDot: Color,
+    val transcriptBg: Color,
+    val transcriptBorder: Color,
+    val synthesizingBg: Color,
+    val controlBg: Color,
+    val controlBorder: Color,
+)
+
+val LightVoiceBubbleColors = MuseVoiceBubbleColors(
+    assistantBg = Color(0xFFF3F6FC),
+    assistantBorder = Color(0xFFDCE4F4),
+    assistantAccent = Color(0xFF1F6FEB),
+    assistantWaveActive = Color(0xFF1F6FEB),
+    assistantWaveInactive = Color(0x471F6FEB),
+    assistantText = Color(0xFF1A2233),
+    assistantSubtext = Color(0xFF5D6B82),
+    userBg = Color(0xFFDCF8C6),
+    userBorder = Color(0xFFBDE69F),
+    userAccent = Color(0xFF15803D),
+    userWaveActive = Color(0xFF15803D),
+    userWaveInactive = Color(0x4D15803D),
+    userText = Color(0xFF14331E),
+    userSubtext = Color(0xFF3E684B),
+    unreadDot = Color(0xFFEF4444),
+    transcriptBg = Color(0xFFF8FAFC),
+    transcriptBorder = Color(0xFFE2E8F0),
+    synthesizingBg = Color(0xFFF1F5F9),
+    controlBg = Color(0xFFF8FAFC),
+    controlBorder = Color(0xFFD8E0EC),
+)
+
+val DarkVoiceBubbleColors = MuseVoiceBubbleColors(
+    assistantBg = Color(0xFF1D2434),
+    assistantBorder = Color(0xFF2D384F),
+    assistantAccent = Color(0xFF60A5FA),
+    assistantWaveActive = Color(0xFF60A5FA),
+    assistantWaveInactive = Color(0x4D60A5FA),
+    assistantText = Color(0xFFF1F5F9),
+    assistantSubtext = Color(0xFF94A3B8),
+    userBg = Color(0xFF193C27),
+    userBorder = Color(0xFF27593B),
+    userAccent = Color(0xFF4ADE80),
+    userWaveActive = Color(0xFF4ADE80),
+    userWaveInactive = Color(0x4D4ADE80),
+    userText = Color(0xFFECFDF5),
+    userSubtext = Color(0xFF86EFAC),
+    unreadDot = Color(0xFFF87171),
+    transcriptBg = Color(0xFF181E2B),
+    transcriptBorder = Color(0xFF2B3548),
+    synthesizingBg = Color(0xFF1C2331),
+    controlBg = Color(0xFF1E2636),
+    controlBorder = Color(0xFF323E54),
+)
+
+val LocalVoiceBubbleColors = compositionLocalOf { LightVoiceBubbleColors }
+
+/** 便捷访问：`MaterialTheme.voiceBubbleColors.assistantBg`。 */
+@Suppress("UnusedReceiverParameter")
+val MaterialTheme.voiceBubbleColors: MuseVoiceBubbleColors
+    @Composable
+    @ReadOnlyComposable
+    get() = LocalVoiceBubbleColors.current

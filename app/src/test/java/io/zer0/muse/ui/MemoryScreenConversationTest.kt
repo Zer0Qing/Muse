@@ -7,6 +7,8 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import io.zer0.muse.R
+import io.zer0.muse.ui.memory.MemoryFactRow
+import io.zer0.muse.ui.memory.MemoryItem
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -14,8 +16,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.util.concurrent.atomic.AtomicReference
-import io.zer0.muse.ui.memory.MemoryItem
-import io.zer0.muse.ui.memory.MemoryFactRow
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [33])

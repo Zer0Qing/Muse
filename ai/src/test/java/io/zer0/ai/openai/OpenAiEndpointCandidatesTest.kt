@@ -67,6 +67,7 @@ class OpenAiEndpointCandidatesTest {
         )
         assertEquals(setOf("https://relay.example.com", "https://relay.example.com/v1"), probes.map { it.baseUrl }.toSet())
     }
+
     @Test
     fun `missing endpoint signals are narrow`() {
         assertTrue(OpenAiEndpointCandidates.looksLikeMissingEndpoint(404, null, null))

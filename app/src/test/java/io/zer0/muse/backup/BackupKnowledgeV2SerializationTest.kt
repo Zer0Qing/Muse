@@ -16,7 +16,10 @@ import org.junit.Test
  */
 class BackupKnowledgeV2SerializationTest {
 
-    private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
+    private val json = Json {
+        ignoreUnknownKeys = true
+        encodeDefaults = true
+    }
 
     private fun portable() = KnowledgePortableBackup(
         manifest = KnowledgeBackupManifest(

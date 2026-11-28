@@ -36,6 +36,9 @@ interface AssistantDao {
     @Query("SELECT * FROM assistants WHERE id = :id")
     suspend fun getById(id: String): AssistantEntity?
 
+    @Query("UPDATE assistants SET mcpServerIdsJson = :idsJson WHERE id = :id")
+    suspend fun updateMcpServerIds(id: String, idsJson: String)
+
     @Query("SELECT COUNT(*) FROM assistants")
     suspend fun count(): Int
 

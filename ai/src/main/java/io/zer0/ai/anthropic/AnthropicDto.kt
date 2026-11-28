@@ -34,16 +34,19 @@ internal data class AnthropicRequest(
     val max_tokens: Int,
     val temperature: Double? = null,
     val stream: Boolean = false,
-    /**
-     * Phase 8.1 (M11): thinking 配置(extended thinking)。
-     * null 表示不启用;非 null 时按 [io.zer0.ai.core.ReasoningLevel] 映射。
-     */
+    // Phase 8.1 (M11): thinking 配置(extended thinking)。null 表示不启用;
+    // 非 null 时按 [io.zer0.ai.core.ReasoningLevel] 映射。
     val thinking: AnthropicThinking? = null,
-    /**
-     * v1.80 (H-ANT2): 工具定义列表,启用 Anthropic 原生 function calling。
-     * null 表示不启用工具调用;非空时透传为 tools 数组。
-     */
+    // v1.80 (H-ANT2): 工具定义列表,启用 Anthropic 原生 function calling。
+    // null 表示不启用工具调用;非空时透传为 tools 数组。
     val tools: List<AnthropicTool>? = null,
+    @SerialName("tool_choice") val toolChoice: AnthropicToolChoice? = null,
+)
+
+@Serializable
+internal data class AnthropicToolChoice(
+    // "auto" / "any" / "none"
+    val type: String,
 )
 
 /**
@@ -61,6 +64,7 @@ internal data class AnthropicTool(
     val name: String,
     val description: String,
     @SerialName("input_schema") val inputSchema: JsonElement,
+    @SerialName("cache_control") val cacheControl: AnthropicCacheControl? = null,
 )
 
 /**
@@ -71,7 +75,7 @@ internal data class AnthropicTool(
 internal data class AnthropicSystemBlock(
     val type: String = "text",
     val text: String,
-    val cache_control: AnthropicCacheControl? = null,
+    @SerialName("cache_control") val cacheControl: AnthropicCacheControl? = null,
 )
 
 /**
@@ -81,7 +85,8 @@ internal data class AnthropicSystemBlock(
 @Serializable
 internal data class AnthropicCacheControl(
     val type: String = "ephemeral",
-    @SerialName("ttl") val ttl: String? = null, // "5m" / "1h",不传走默认 5m
+    // "5m" / "1h",不传走默认 5m
+    @SerialName("ttl") val ttl: String? = null,
 )
 
 /**
@@ -97,9 +102,10 @@ internal data class AnthropicThinking(
 
 @Serializable
 internal data class AnthropicMessage(
-    val role: String, // "user" / "assistant"
-    val content: JsonElement, // Phase 8.6: 纯文本 JsonPrimitive 或多模态 JsonArray
-    val cache_control: AnthropicCacheControl? = null,
+    // "user" / "assistant"
+    val role: String,
+    // Phase 8.6: 纯文本 JsonPrimitive 或多模态 JsonArray
+    val content: JsonElement,
 )
 
 @Serializable
@@ -116,11 +122,15 @@ internal data class AnthropicCompletionResponse(
  */
 @Serializable
 internal data class AnthropicContentBlock(
-    val type: String, // "text" / "thinking" / "tool_use" / "tool_result"
+    // "text" / "thinking" / "tool_use" / "tool_result"
+    val type: String,
     val text: String = "",
-    val id: String? = null, // tool_use 块的工具调用 id
-    val name: String? = null, // tool_use 块的函数名
-    val input: JsonElement? = null, // tool_use 块的输入参数
+    // tool_use 块的工具调用 id
+    val id: String? = null,
+    // tool_use 块的函数名
+    val name: String? = null,
+    // tool_use 块的输入参数
+    val input: JsonElement? = null,
 )
 
 // ── 流式事件 DTO ──
@@ -138,11 +148,16 @@ internal data class AnthropicContentBlock(
 internal data class AnthropicStreamEvent(
     val type: String,
     val delta: AnthropicDelta? = null,
-    val index: Int? = null, // content_block_start/stop 的 block 下标
-    val content_block: AnthropicContentBlock? = null, // content_block_start 的块信息
-    val message: AnthropicMessageStart? = null, // message_start 的消息体(含 usage)
-    val usage: AnthropicUsage? = null, // message_delta 的 usage
-    val error: AnthropicErrorDetail? = null, // error 事件的错误详情
+    // content_block_start/stop 的 block 下标
+    val index: Int? = null,
+    // content_block_start 的块信息
+    val content_block: AnthropicContentBlock? = null,
+    // message_start 的消息体(含 usage)
+    val message: AnthropicMessageStart? = null,
+    // message_delta 的 usage
+    val usage: AnthropicUsage? = null,
+    // error 事件的错误详情
+    val error: AnthropicErrorDetail? = null,
 )
 
 /**
@@ -179,9 +194,12 @@ internal data class AnthropicUsage(
 internal data class AnthropicDelta(
     val type: String? = null,
     val text: String? = null,
-    val thinking: String? = null, // thinking_delta 的思考内容
-    val partial_json: String? = null, // input_json_delta 的工具参数增量
-    val signature: String? = null, // signature_delta 的签名增量
+    // thinking_delta 的思考内容
+    val thinking: String? = null,
+    // input_json_delta 的工具参数增量
+    val partial_json: String? = null,
+    // signature_delta 的签名增量
+    val signature: String? = null,
     val stop_reason: String? = null,
 )
 
@@ -236,5 +254,6 @@ internal data class AnthropicModelInfo(
 internal fun AnthropicUsage.toUsageTokens(): io.zer0.ai.core.UsageTokens = io.zer0.ai.core.UsageTokens(
     promptTokens = input_tokens,
     completionTokens = output_tokens,
-    reasoningTokens = 0, // Anthropic 不单独计 reasoning tokens
+    // Anthropic 不单独计 reasoning tokens
+    reasoningTokens = 0,
 )

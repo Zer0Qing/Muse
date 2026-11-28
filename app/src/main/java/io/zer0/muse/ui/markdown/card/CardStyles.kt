@@ -34,6 +34,7 @@ html,body{overflow:visible;}
   max-width:var(--muse-measure,100%);
   margin:0 auto;
   padding:var(--muse-s3) var(--muse-s4) var(--muse-s4);
+  text-autospace:normal;
 }
 .m-safe-top{min-height:40px;}
 .m-narrow{padding-left:var(--muse-s3);padding-right:var(--muse-s3);}

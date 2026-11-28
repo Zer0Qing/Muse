@@ -39,12 +39,7 @@ import io.zer0.muse.ui.theme.MuseShapes
  * 安装进度来自 [RuntimeInstallStatus]，与前台服务同源。
  */
 @Composable
-fun RuntimeInstallBanner(
-    onInstall: () -> Unit,
-    onDismiss: () -> Unit,
-    modifier: Modifier = Modifier,
-    collapsed: Boolean = false,
-) {
+fun RuntimeInstallBanner(onInstall: () -> Unit, onDismiss: () -> Unit, modifier: Modifier = Modifier, collapsed: Boolean = false) {
     val context = LocalContext.current
     val progress by RuntimeInstallStatus.progress.collectAsStateWithLifecycle()
     val state by RuntimeInstallStatus.state.collectAsStateWithLifecycle()

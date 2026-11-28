@@ -6,16 +6,13 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 
 @Dao
-interface SessionSummaryDao {
+interface SessionSummaryDao : SessionSummaryListingDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: SessionSummaryEntity)
 
     @Query("SELECT * FROM session_summaries WHERE session_id = :sessionId")
     suspend fun get(sessionId: String): SessionSummaryEntity?
-
-    @Query("SELECT * FROM session_summaries WHERE summary != '' ORDER BY updated_at DESC")
-    suspend fun getAll(): List<SessionSummaryEntity>
 
     @Query(
         """
@@ -114,4 +111,9 @@ interface SessionSummaryDao {
      */
     @Query("UPDATE session_summaries SET space_id = :targetSpaceId WHERE space_id = :sourceSpaceId")
     suspend fun migrateSpace(sourceSpaceId: String, targetSpaceId: String): Int
+}
+
+interface SessionSummaryListingDao {
+    @Query("SELECT * FROM session_summaries WHERE summary != '' ORDER BY updated_at DESC")
+    suspend fun getAll(): List<SessionSummaryEntity>
 }

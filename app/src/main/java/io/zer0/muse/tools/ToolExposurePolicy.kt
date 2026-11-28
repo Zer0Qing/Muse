@@ -106,6 +106,7 @@ object ToolExposurePolicy {
         authorizedToolNames: Set<String> = emptySet(),
         loadedToolNames: Set<String> = emptySet(),
         skillToolNames: Set<String> = emptySet(),
+        alwaysIncludeToolNames: Set<String> = emptySet(),
     ): List<ToolDefinition> {
         return if (tools.size <= SIMPLE_TOOL_SUBSET_THRESHOLD) {
             tools
@@ -116,23 +117,19 @@ object ToolExposurePolicy {
             } else {
                 val matched = TOOL_FAMILIES.filter { family -> family.keywords.any { normalized.contains(it) } }
                 val familyAllowed = matched.flatMapTo(mutableSetOf()) { it.toolNames }
-                val dynamicAllowed = familyAllowed + stickyToolNames + authorizedToolNames + loadedToolNames
-                // 宽松兜底:明确动作请求且非简单短句 → OPTIONAL 长尾全放,避免多步任务中途缺工具
-                val optionalRelaxed = !isSimpleToolRequest(userText) && isDirectToolRequest(userText, tools)
+                val dynamicAllowed = familyAllowed + stickyToolNames + authorizedToolNames + loadedToolNames + alwaysIncludeToolNames
                 tools.filter { tool ->
+                    if (tool.name in alwaysIncludeToolNames) return@filter true
                     when (ToolCategories.categoryOf(tool.name)) {
                         // 未登记分类(MCP / 插件 / 技能等动态工具):
-                        //  - 技能:与 OPTIONAL 同口径收窄(此前无条件放行,导致每个已启用技能
-                        //    每轮都随请求发出,是本项目工具 schema 占位的最大来源);
+                        //  - 技能:与 OPTIONAL 同口径收窄,按家族命中/粘性/动态装载按需放行;
                         //  - 其余(MCP / 插件)保持既有可见性。
                         null ->
                             tool.name in ALWAYS_VISIBLE_SKILL_NAMES ||
                                 tool.name !in skillToolNames ||
-                                tool.name in dynamicAllowed ||
-                                optionalRelaxed
+                                tool.name in dynamicAllowed
                         ToolCategory.CORE, ToolCategory.STANDARD, ToolCategory.LEGACY -> true
-                        ToolCategory.OPTIONAL -> tool.name in dynamicAllowed || optionalRelaxed
-                        ToolCategory.GLOBAL -> tool.name in dynamicAllowed
+                        ToolCategory.OPTIONAL, ToolCategory.GLOBAL -> tool.name in dynamicAllowed
                     }
                 }
             }
@@ -217,7 +214,13 @@ object ToolExposurePolicy {
                     "自检", "运行时", "平台能力", "沙盒", "工具能不能用", "权限状态", "通道状态",
                     "runtime", "selfcheck", "platform", "permission",
                 ),
-                toolNames = setOf("runtime_selfcheck", "platform_selfcheck", "screen_permission_status", "screen_open_settings", "tool_status"),
+                toolNames = setOf(
+                    "runtime_selfcheck",
+                    "platform_selfcheck",
+                    "screen_permission_status",
+                    "screen_open_settings",
+                    "tool_status",
+                ),
             ),
             ToolFamily(
                 keywords = setOf("蓝牙", "wifi", "无线网", "网络状态", "bluetooth"),
@@ -401,7 +404,12 @@ object ToolExposurePolicy {
             ),
             ToolFamily(
                 keywords = setOf("助手管理", "创建助手", "人设", "删除助手", "助手列表", "assistant"),
-                toolNames = setOf("assistant_manage_list", "assistant_manage_create", "assistant_manage_update_persona", "assistant_manage_delete"),
+                toolNames = setOf(
+                    "assistant_manage_list",
+                    "assistant_manage_create",
+                    "assistant_manage_update_persona",
+                    "assistant_manage_delete",
+                ),
             ),
             ToolFamily(
                 keywords = setOf("群聊", "渠道", "表情包", "私聊", "channel", "sticker"),
@@ -578,8 +586,13 @@ object ToolExposurePolicy {
                 ),
             ),
             ToolFamily(
-                keywords = setOf("自动操作", "自动化", "自动执行", "自动打开", "虚拟屏", "多步操作", "agent 操作", "virtual screen", "automation workflow", "automate"),
-                toolNames = setOf("automation_workflow", "ui_agent", "virtual_screen", "virtual_screen_input"),
+                keywords = setOf(
+                    "自动操作", "自动化", "自动执行", "自动打开", "虚拟屏", "多步操作",
+                    "打开微信", "发微信", "去美团", "点外卖", "在淘宝", "去淘宝", "刷小红书",
+                    "操作手机", "手机上打开", "帮我在", "agent 操作",
+                    "virtual screen", "automation workflow", "automate",
+                ),
+                toolNames = setOf("automation_workflow", "ui_agent", "virtual_screen", "virtual_screen_input", "screen_read", "app_launch"),
             ),
             ToolFamily(
                 keywords = setOf("连接器", "oauth", "connector"),
@@ -616,6 +629,33 @@ object ToolExposurePolicy {
             "do not call any tools", "don't call any tools", "do not use tools", "without using tools",
             "no tool calls", "no tools",
         )
+
+    /** 判断用户输入是否明确表达网页联网检索意图（用于 Gemini AUTO 模式判定是否切换为原生搜索）。 */
+    fun shouldPreferNativeWebSearch(userText: String): Boolean {
+        val normalized = userText.trim().lowercase()
+        if (normalized.isBlank() || shouldDisableTools(normalized)) return false
+        return NATIVE_WEB_SEARCH_KEYWORDS.any { normalized.contains(it) }
+    }
+
+    private val NATIVE_WEB_SEARCH_KEYWORDS =
+        setOf(
+            "搜索",
+            "搜一下",
+            "查一下",
+            "查资料",
+            "联网",
+            "最新",
+            "新闻",
+            "网页",
+            "官网",
+            "百科",
+            "search",
+            "web",
+            "news",
+            "latest",
+            "google",
+        )
+
     private val EXPLICIT_TOOL_KEYWORDS =
         setOf(
             "调用",
@@ -625,10 +665,6 @@ object ToolExposurePolicy {
             "查资料",
             "查一下",
             "联网",
-            "最新",
-            "新闻",
-            "天气",
-            "记住",
             "保存到记忆",
             "设闹钟",
             "设置提醒",
@@ -636,7 +672,6 @@ object ToolExposurePolicy {
             "发短信",
             "发邮件",
             "打开应用",
-            "翻译",
             "画图",
             "生成图片",
             "回显",

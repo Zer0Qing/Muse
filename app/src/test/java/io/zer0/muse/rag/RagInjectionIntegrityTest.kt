@@ -180,11 +180,7 @@ class RagInjectionIntegrityTest {
         )
         // rerank 故意带回一条检索阶段不存在的 docId,模拟 provider 幻觉/越界返回。
         val rerank = object : RerankProvider {
-            override suspend fun rerank(
-                query: String,
-                candidates: List<RerankCandidate>,
-                topK: Int,
-            ): List<RerankResult> = listOf(
+            override suspend fun rerank(query: String, candidates: List<RerankCandidate>, topK: Int): List<RerankResult> = listOf(
                 RerankResult(
                     chunkId = "chunk-ghost-0",
                     docId = "doc-ghost",

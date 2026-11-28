@@ -36,8 +36,7 @@ class RuntimeStore(private val context: Context) {
 
     fun previousRevision(id: RuntimeId): String? = readPointer(id)?.previousRevision
 
-    fun operationFile(id: RuntimeId = RuntimeId.UBUNTU_NODE): File =
-        File(dirFor(id), "operation.json")
+    fun operationFile(id: RuntimeId = RuntimeId.UBUNTU_NODE): File = File(dirFor(id), "operation.json")
 
     fun state(id: RuntimeId): RuntimeState {
         val file = pointerFile(id)
@@ -75,12 +74,7 @@ class RuntimeStore(private val context: Context) {
         return inspectHealth(rootfs, native, revision)
     }
 
-    suspend fun markReady(
-        id: RuntimeId,
-        revision: String,
-        installedBytes: Long,
-        directoryRevision: String = revision,
-    ) {
+    suspend fun markReady(id: RuntimeId, revision: String, installedBytes: Long, directoryRevision: String = revision) {
         require(isSafeRevision(revision) && isSafeRevision(directoryRevision)) { "运行环境版本目录名非法" }
         val old = readPointer(id)
         val previousRevision = if (old != null && old.revision != revision) old.revision else old?.previousRevision
@@ -110,16 +104,15 @@ class RuntimeStore(private val context: Context) {
             ?: return Result.failure(IllegalStateException("没有可回滚的运行环境指针"))
         val targetRevision = revision ?: current.previousRevision
             ?: return Result.failure(IllegalStateException("没有可用的旧版本"))
-        if (targetRevision == current.revision || !isSafeRevision(targetRevision)) {
-            return Result.failure(IllegalArgumentException("回滚版本无效"))
-        }
+        val invalidTarget = targetRevision == current.revision || !isSafeRevision(targetRevision)
+        if (invalidTarget) return Result.failure(IllegalArgumentException("回滚版本无效"))
         val targetDirectoryRevision = if (targetRevision == current.previousRevision) {
             current.previousDirectoryRevision ?: targetRevision
         } else {
             targetRevision
         }
-        when (val health = healthAt(id, targetDirectoryRevision, targetRevision)) {
-            is RuntimeHealth.Broken -> return Result.failure(IllegalStateException("旧版本不可回滚：${health.reason}"))
+        return when (val health = healthAt(id, targetDirectoryRevision, targetRevision)) {
+            is RuntimeHealth.Broken -> Result.failure(IllegalStateException("旧版本不可回滚：${health.reason}"))
             is RuntimeHealth.Ready -> {
                 val bytes = if (targetRevision == current.previousRevision) {
                     current.previousInstalledBytes ?: directoryBytes(File(dirFor(id), targetDirectoryRevision))
@@ -135,9 +128,9 @@ class RuntimeStore(private val context: Context) {
                     previousDirectoryRevision = current.directoryRevision,
                 )
                 AtomicFileStore.writeText(pointerFile(id), AppJson.encodeToString(pointer))
+                Result.success(Unit)
             }
         }
-        return Result.success(Unit)
     }
 
     suspend fun uninstall(id: RuntimeId) = withContext(Dispatchers.IO) {
@@ -182,8 +175,7 @@ class RuntimeStore(private val context: Context) {
             }
     }
 
-    private fun directoryBytes(directory: File): Long =
-        directory.walkBottomUp().filter { it.isFile }.sumOf { it.length() }
+    private fun directoryBytes(directory: File): Long = directory.walkBottomUp().filter { it.isFile }.sumOf { it.length() }
 
     @Serializable
     private data class Pointer(
@@ -211,8 +203,7 @@ class RuntimeStore(private val context: Context) {
             "libandroid-shmem.so",
         )
 
-        fun isSafeRevision(revision: String): Boolean =
-            REVISION_PATTERN.matches(revision) && ".." !in revision
+        fun isSafeRevision(revision: String): Boolean = REVISION_PATTERN.matches(revision) && ".." !in revision
 
         fun inspectHealth(rootfs: File, nativeLibraryDir: File, revision: String): RuntimeHealth {
             if (!rootfs.isDirectory) {

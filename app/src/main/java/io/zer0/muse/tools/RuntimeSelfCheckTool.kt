@@ -3,8 +3,8 @@ package io.zer0.muse.tools
 import android.content.Context
 import io.zer0.common.AppJson
 import io.zer0.muse.runtime.MuseRuntime
-import io.zer0.muse.runtime.RuntimeBridge
 import io.zer0.muse.runtime.PythonRuntime
+import io.zer0.muse.runtime.RuntimeBridge
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
@@ -45,7 +45,7 @@ object RuntimeSelfCheckTool {
                 externalReady -> "外置运行环境（proot）"
                 node.isFile -> "包内二进制 (${node.length() / 1024 / 1024}MB)"
                 else -> "缺失 (${MuseRuntime.nativeLibDir(context)})"
-            }
+            },
         )
 
         val nodeV = runCatching { MuseRuntime.execNode(context, listOf("-v"), timeoutMs = 20_000) }.getOrNull()

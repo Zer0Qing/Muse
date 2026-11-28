@@ -2,7 +2,6 @@ package io.zer0.muse.ui.memory
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.memory.compile.MemoryCompiler
@@ -27,6 +26,8 @@ import io.zer0.muse.ui.theme.MuseDateFormats
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -34,7 +35,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.encodeToString
+import kotlinx.coroutines.withTimeoutOrNull
 import java.time.DayOfWeek
 import java.time.Duration
 import java.time.Instant
@@ -121,10 +122,8 @@ class MemoryViewModel(
      * 修复前:UI 恒用默认库 + scope 列,子助手分库的事实读不到、UI 新增/删除对 AI 无效。
      */
     /** 取某段正文（空白视为无内容）。 */
-    private fun sectionContent(
-        rows: List<io.zer0.memory.summary.ScopedCompiledSectionEntity>,
-        key: String,
-    ): String = rows.firstOrNull { it.sectionKey == key }?.content.orEmpty()
+    private fun sectionContent(rows: List<io.zer0.memory.summary.ScopedCompiledSectionEntity>, key: String): String =
+        rows.firstOrNull { it.sectionKey == key }?.content.orEmpty()
 
     /** 取某段来源信息（可能为 null：该段尚未编译过）。 */
     private fun sectionProvenance(
@@ -319,9 +318,8 @@ class MemoryViewModel(
     }
 
     /** Dream 按具体作用域读写编译分段；UI 默认在「全部」(null) 视图时对齐到主助手默认库("main")。 */
-    private fun dreamScopeKey(): MemoryScopeKey =
-        memoryScopeKey(_selectedScope.value?.takeIf { it.isNotBlank() } ?: "main")
-            ?: MemoryScopeKey("default", "main", _selectedSpaceId.value.ifBlank { "default" })
+    private fun dreamScopeKey(): MemoryScopeKey = memoryScopeKey(_selectedScope.value?.takeIf { it.isNotBlank() } ?: "main")
+        ?: MemoryScopeKey("default", "main", _selectedSpaceId.value.ifBlank { "default" })
 
     /** 刷新 Dream 状态（进入页面 / 操作后调用）。 */
     fun refreshDreamStatus() {
@@ -828,62 +826,84 @@ class MemoryViewModel(
             try {
                 val scope = _selectedScope.value
                 val spaceId = _selectedSpaceId.value
-                val facts = withContext(Dispatchers.IO) {
-                    // P0-4: 按 scope 路由到生产侧分库 —
-                    //  null(全部)= 默认库 + 各子助手分库并集;"main" = 默认库;"<id>" = facts_<id>.db
-                    when {
-                        scope == null -> loadFactsForAllScopes(spaceId)
-                        scope == "main" -> factStore.getByScopeAndSpace("main", spaceId)
-                        else -> factDbProvider.getFactStore(scope).getByScopeAndSpace(scope, spaceId)
+                val sectionScope = scope ?: "main"
+                val (
+                    facts,
+                    summaries,
+                    compiledRows,
+                    compiledMarkdown,
+                    pendingConflicts,
+                ) = coroutineScope {
+                    val factsDeferred = async(Dispatchers.IO) {
+                        withTimeoutOrNull(LOAD_SECTION_TIMEOUT_MS) {
+                            when {
+                                scope == null -> loadFactsForAllScopes(spaceId)
+                                scope == "main" -> factStore.getByScopeAndSpace("main", spaceId)
+                                else -> factDbProvider.getFactStore(scope).getByScopeAndSpace(scope, spaceId)
+                            }
+                        } ?: run {
+                            Logger.w("MemoryViewModel", "读取事实列表超时(${LOAD_SECTION_TIMEOUT_MS}ms)")
+                            emptyList()
+                        }
                     }
+                    val summariesDeferred = async(Dispatchers.IO) {
+                        withTimeoutOrNull(LOAD_SECTION_TIMEOUT_MS) {
+                            summaryManager.getAllSummaries().filter { summary ->
+                                summary.matchesConversationMemoryFilter(scope, spaceId)
+                            }
+                        } ?: run {
+                            Logger.w("MemoryViewModel", "读取会话摘要超时(${LOAD_SECTION_TIMEOUT_MS}ms)")
+                            emptyList()
+                        }
+                    }
+                    val compiledRowsDeferred = async(Dispatchers.IO) {
+                        withTimeoutOrNull(LOAD_SECTION_TIMEOUT_MS) {
+                            resultOf { memoryCompiler.readScopedSectionRows(sectionScope, spaceId) }
+                                .onError { msg, t -> Logger.w("MemoryViewModel", "readScopedSectionRows 失败: $msg", t) }
+                                .getOrNull().orEmpty()
+                        } ?: emptyList()
+                    }
+                    val compiledMarkdownDeferred = async(Dispatchers.IO) {
+                        withTimeoutOrNull(LOAD_SECTION_TIMEOUT_MS) {
+                            resultOf {
+                                memoryTicker.readCompiledMemoryMarkdown(
+                                    locale = "zh-CN",
+                                    scope = sectionScope,
+                                    spaceId = spaceId,
+                                    assistantId = if (sectionScope == "main") "default" else sectionScope,
+                                )
+                            }
+                                .onError { msg, t -> Logger.w("MemoryViewModel", "readCompiledMemoryMarkdown 失败: $msg", t) }
+                                .getOrNull() ?: ""
+                        } ?: ""
+                    }
+                    val pendingConflictsDeferred = async(Dispatchers.IO) {
+                        withTimeoutOrNull(LOAD_SECTION_TIMEOUT_MS) {
+                            val pendingStore = storeForScope(sectionScope)
+                            resultOf { pendingStore.listPendingContradictions(sectionScope, spaceId) }
+                                .onError { msg, t -> Logger.w("MemoryViewModel", "读待裁决矛盾失败: $msg", t) }
+                                .getOrNull() ?: emptyList()
+                        } ?: emptyList()
+                    }
+                    LoadedMemoryBundle(
+                        facts = factsDeferred.await(),
+                        summaries = summariesDeferred.await(),
+                        compiledRows = compiledRowsDeferred.await(),
+                        compiledMarkdown = compiledMarkdownDeferred.await(),
+                        pendingConflicts = pendingConflictsDeferred.await(),
+                    )
                 }
                 // F-7: 客户端过滤(重要程度 + 时间范围);统计仍基于全量 facts
                 val visibleFacts = filterFacts(facts)
-                val summaries = withContext(Dispatchers.IO) {
-                    summaryManager.getAllSummaries().filter { summary ->
-                        summary.matchesConversationMemoryFilter(scope, spaceId)
-                    }
-                }
                 val sessionsById = withContext(Dispatchers.IO) {
-                    sessionRepository.getSessionsByIds(summaries.map { it.sessionId }).associateBy { it.id }
-                }
-                // P2-33: 编译段此前读写钉死 main/default,切子助手 scope / 其他 space 后
-                // 「AI 对你的理解」编辑的是错误槽位(与注入读路径错位)。统一按当前
-                // scope(全部视图回退主助手)+ space 路由读。
-                val sectionScope = scope ?: "main"
-                // 读行级数据而不是 readSection：只有拿到 status / fingerprint 才能在页面上
-                // 区分「这段是当前记忆」还是「上次投影失败留下的旧内容」。
-                val compiledRows = withContext(Dispatchers.IO) {
-                    resultOf { memoryCompiler.readScopedSectionRows(sectionScope, spaceId) }
-                        .onError { msg, t -> Logger.w("MemoryViewModel", "readScopedSectionRows 失败: $msg", t) }
-                        .getOrNull().orEmpty()
+                    withTimeoutOrNull(LOAD_SECTION_TIMEOUT_MS) {
+                        sessionRepository.getSessionsByIds(summaries.map { it.sessionId }).associateBy { it.id }
+                    } ?: emptyMap()
                 }
                 val compileFacts = sectionContent(compiledRows, MemoryCompiler.Section.FACTS.key)
                 val compileToday = sectionContent(compiledRows, MemoryCompiler.Section.TODAY.key)
                 val compileWeek = sectionContent(compiledRows, MemoryCompiler.Section.WEEK.key)
-                val compileLongterm = sectionContent(compiledRows, MemoryCompiler.Section.LONGTERM.key)                // v0.51: 读取裁剪后的 compiledMarkdown(供"AI 对你的理解"卡片折叠展示)。
-                // 与 ChatService 注入 system prompt 同源,反映 AI 真正"看到"的记忆。
-                // P2-33: 同样按当前 scope/space 读取,避免展示主助手编译段。
-                val compiledMarkdown = withContext(Dispatchers.IO) {
-                    resultOf {
-                        memoryTicker.readCompiledMemoryMarkdown(
-                            locale = "zh-CN",
-                            scope = sectionScope,
-                            spaceId = spaceId,
-                            assistantId = if (sectionScope == "main") "default" else sectionScope,
-                        )
-                    }
-                        .onError { msg, t -> Logger.w("MemoryViewModel", "readCompiledMemoryMarkdown 失败: $msg", t) }
-                        .getOrNull() ?: ""
-                }
-                // v2.6.23(M2): 未裁决矛盾改读 facts 行上的 pending 标记(事实级、可裁决)。
-                // 旧 JSON 文本清单(只能"清除")不再读取;反思任务已改走 DB 落库。
-                val pendingConflicts = withContext(Dispatchers.IO) {
-                    val pendingStore = storeForScope(sectionScope)
-                    resultOf { pendingStore.listPendingContradictions(sectionScope, spaceId) }
-                        .onError { msg, t -> Logger.w("MemoryViewModel", "读待裁决矛盾失败: $msg", t) }
-                        .getOrNull() ?: emptyList()
-                }
+                val compileLongterm = sectionContent(compiledRows, MemoryCompiler.Section.LONGTERM.key)
                 // 每对矛盾在两行上各挂一次 pending;只从 id 小的一方生成一条展示项
                 val contradictions = pendingConflicts.mapNotNull { row ->
                     val otherId = row.conflictWithId ?: return@mapNotNull null
@@ -1868,5 +1888,14 @@ class MemoryViewModel(
 
     companion object {
         private val RAW_ERROR_CODE_REGEX = Regex("^[A-Z][A-Z0-9_]{3,}$")
+        private const val LOAD_SECTION_TIMEOUT_MS = 8_000L
     }
+
+    private data class LoadedMemoryBundle(
+        val facts: List<FactStore.Fact>,
+        val summaries: List<SessionSummaryManager.SummaryData>,
+        val compiledRows: List<io.zer0.memory.summary.ScopedCompiledSectionEntity>,
+        val compiledMarkdown: String,
+        val pendingConflicts: List<FactStore.Fact>,
+    )
 }

@@ -178,4 +178,29 @@ class FirstEventWatchdogTest {
             waitedMs >= DEFAULT_FIRST_EVENT_TIMEOUT_MS,
         )
     }
+
+    @Test
+    fun `withFirstEventWatchdog buffers more than 64 events without dropping under slow collector`() = runTest {
+        val totalDeltas = 150
+        val upstream = flow {
+            repeat(totalDeltas) { idx ->
+                emit(ChatStreamEvent.ContentDelta("c$idx "))
+            }
+            emit(ChatStreamEvent.Done("stop"))
+        }
+
+        val collected = mutableListOf<ChatStreamEvent>()
+        upstream
+            .withFirstEventWatchdog(timeoutMs = 5_000, fallback = {
+                ChatCompletion(text = "unexpected", finishReason = "stop")
+            })
+            .collect { event ->
+                delay(1)
+                collected += event
+            }
+
+        val deltas = collected.filterIsInstance<ChatStreamEvent.ContentDelta>()
+        assertEquals(totalDeltas, deltas.size)
+        assertTrue(collected.last() is ChatStreamEvent.Done)
+    }
 }

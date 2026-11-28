@@ -14,7 +14,6 @@ import okhttp3.Dns
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
-import io.zer0.muse.ui.chat.MessageBubble
 
 /**
  * P1-3b 拆域：Skill 文件/公共目录工具实现（从 SkillExecutor.kt 迁移）。

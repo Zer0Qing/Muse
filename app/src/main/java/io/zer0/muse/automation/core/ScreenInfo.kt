@@ -89,20 +89,42 @@ data class ScreenInfo(
             ?.first
     }
 
-    /** 生成给 AI 阅读的紧凑文本摘要。 */
+    /** 生成给 AI 阅读的紧凑文本摘要：交互节点按纵向视口均匀优先，避免底部栏与发送键被顶部节点挤掉。 */
     fun toSummary(maxNodes: Int = 40): String = buildString {
         appendLine("当前应用: ${packageName ?: "未知"}")
         if (!activityName.isNullOrBlank()) appendLine("界面: $activityName")
         appendLine("分辨率: ${screenWidth}x$screenHeight")
         appendLine("控件数: ${nodes.size}")
-        // 残缺要排在控件清单**之前**：模型读完前半截就可能已经决定点哪儿了，
-        // 提示放在末尾等于没放。
         incompleteReason?.let { appendLine("⚠ 本次读取不完整：$it") }
         appendLine("---")
-        nodes.take(maxNodes).forEachIndexed { i, n ->
+        val selected = selectPrioritizedNodes(maxNodes)
+        selected.forEachIndexed { i, n ->
             appendLine("[$i] ${n.toShortString()}")
         }
-        if (nodes.size > maxNodes) appendLine("... 还有 ${nodes.size - maxNodes} 个节点")
+        if (nodes.size > selected.size) appendLine("... 还有 ${nodes.size - selected.size} 个节点")
+    }
+
+    private fun selectPrioritizedNodes(maxNodes: Int): List<UiNode> {
+        if (nodes.size <= maxNodes) return nodes
+        val interactive = nodes.filter { it.isEnabled && (it.isClickable || it.isEditable || it.isScrollable) }
+        val nonInteractive = nodes.filter { !it.isEnabled || (!it.isClickable && !it.isEditable && !it.isScrollable) }
+        if (interactive.size <= maxNodes) {
+            return interactive + nonInteractive.take(maxNodes - interactive.size)
+        }
+        // 按上中下纵向均匀采样，确保底部 TabBar / 输入框不被裁掉
+        val h = screenHeight.takeIf { it > 0 } ?: 1
+        val topBand = interactive.filter { it.centerY < h / 3 }
+        val midBand = interactive.filter { it.centerY in (h / 3) until (h * 2 / 3) }
+        val bottomBand = interactive.filter { it.centerY >= h * 2 / 3 }.sortedByDescending { it.centerY }
+        val result = mutableListOf<UiNode>()
+        var idx = 0
+        while (result.size < maxNodes && (idx < topBand.size || idx < midBand.size || idx < bottomBand.size)) {
+            if (idx < topBand.size && result.size < maxNodes) result.add(topBand[idx])
+            if (idx < bottomBand.size && result.size < maxNodes) result.add(bottomBand[idx])
+            if (idx < midBand.size && result.size < maxNodes) result.add(midBand[idx])
+            idx++
+        }
+        return result
     }
 }
 
@@ -173,11 +195,13 @@ data class UiNode(
     val centerY: Int get() = (boundsTop + boundsBottom) / 2
 
     fun toShortString(): String {
+        val rawId = viewIdResourceName?.substringAfterLast('/')?.takeIf { it.isNotBlank() }
         val label = text?.take(30)
             ?: contentDescription?.take(30)
-            ?: viewIdResourceName?.substringAfterLast('/')
+            ?: rawId
             ?: className?.substringAfterLast('.')
             ?: "未命名"
+        val idSuffix = if (rawId != null && rawId != label) " #$rawId" else ""
         val tags = buildList {
             if (isClickable) add("可点")
             if (isEditable) add("可输入")
@@ -187,6 +211,6 @@ data class UiNode(
         }
         val tagStr = if (tags.isEmpty()) "" else " [${tags.joinToString(",")}]"
         val bounds = "($centerX,$centerY)"
-        return "$label$tagStr $bounds"
+        return "$label$idSuffix$tagStr $bounds"
     }
 }

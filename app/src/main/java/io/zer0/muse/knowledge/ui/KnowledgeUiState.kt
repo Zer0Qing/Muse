@@ -127,34 +127,33 @@ data class KnowledgeSettingsUiState(
 
 object KnowledgeSettingsUiMapper {
 
-    fun fromPolicy(policy: io.zer0.muse.knowledge.domain.ResolvedPolicy): KnowledgeSettingsUiState =
-        KnowledgeSettingsUiState(
-            ingestFields = listOf(
-                field("分块大小", policy.ingest.chunkSize.toString(), policy.sourceOf("ingest.chunkSize"), "影响新导入内容,旧内容需重处理"),
-                field("分块重叠", policy.ingest.chunkOverlap.toString(), policy.sourceOf("ingest.chunkOverlap"), "影响新导入内容"),
-                field("解析器", policy.ingest.parserType, io.zer0.muse.knowledge.domain.PolicyFieldSource.GLOBAL_DEFAULT, "影响新导入内容"),
+    fun fromPolicy(policy: io.zer0.muse.knowledge.domain.ResolvedPolicy): KnowledgeSettingsUiState = KnowledgeSettingsUiState(
+        ingestFields = listOf(
+            field("分块大小", policy.ingest.chunkSize.toString(), policy.sourceOf("ingest.chunkSize"), "影响新导入内容,旧内容需重处理"),
+            field("分块重叠", policy.ingest.chunkOverlap.toString(), policy.sourceOf("ingest.chunkOverlap"), "影响新导入内容"),
+            field("解析器", policy.ingest.parserType, io.zer0.muse.knowledge.domain.PolicyFieldSource.GLOBAL_DEFAULT, "影响新导入内容"),
+        ),
+        embeddingFields = listOf(
+            field("编码来源", policy.embedding.source, policy.sourceOf("embedding.model"), "变更需新建索引空间"),
+            field("模型", policy.embedding.model, policy.sourceOf("embedding.model"), "变更需重新编码"),
+            field(
+                "已验证维度",
+                policy.embedding.verifiedDimension?.toString() ?: "未验证",
+                io.zer0.muse.knowledge.domain.PolicyFieldSource.GLOBAL_DEFAULT,
+                "未验证维度不可发布",
             ),
-            embeddingFields = listOf(
-                field("编码来源", policy.embedding.source, policy.sourceOf("embedding.model"), "变更需新建索引空间"),
-                field("模型", policy.embedding.model, policy.sourceOf("embedding.model"), "变更需重新编码"),
-                field(
-                    "已验证维度",
-                    policy.embedding.verifiedDimension?.toString() ?: "未验证",
-                    io.zer0.muse.knowledge.domain.PolicyFieldSource.GLOBAL_DEFAULT,
-                    "未验证维度不可发布",
-                ),
+        ),
+        retrievalFields = listOf(
+            field("候选数 topK", policy.retrieval.topK.toString(), policy.sourceOf("retrieval.topK"), "只影响查询,不触发重编码"),
+            field("阈值", policy.retrieval.threshold.toString(), policy.sourceOf("retrieval.threshold"), "只影响查询"),
+            field(
+                "混合检索",
+                if (policy.retrieval.hybridEnabled) "开" else "关",
+                io.zer0.muse.knowledge.domain.PolicyFieldSource.GLOBAL_DEFAULT,
+                "只影响查询",
             ),
-            retrievalFields = listOf(
-                field("候选数 topK", policy.retrieval.topK.toString(), policy.sourceOf("retrieval.topK"), "只影响查询,不触发重编码"),
-                field("阈值", policy.retrieval.threshold.toString(), policy.sourceOf("retrieval.threshold"), "只影响查询"),
-                field(
-                    "混合检索",
-                    if (policy.retrieval.hybridEnabled) "开" else "关",
-                    io.zer0.muse.knowledge.domain.PolicyFieldSource.GLOBAL_DEFAULT,
-                    "只影响查询",
-                ),
-            ),
-        )
+        ),
+    )
 
     private fun field(
         label: String,

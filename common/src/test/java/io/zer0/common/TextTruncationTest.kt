@@ -70,7 +70,7 @@ class TextTruncationTest {
 
     @Test
     fun `切分不切断代理对`() {
-                listOf(3, 5, 7, 9, 11, 13).forEach { limit ->
+        listOf(3, 5, 7, 9, 11, 13).forEach { limit ->
             val head = TextTruncation.headTail(longText(limit * 8), limit)
             assertTrue("头尾截断都不该留下孤立代理：$limit", head.text.hasNoDanglingSurrogate())
             val t = TextTruncation.tail(longText(limit * 8), limit)

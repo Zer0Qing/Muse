@@ -10,12 +10,12 @@ import io.zer0.muse.session.WarmupHistory
 import io.zer0.muse.transformer.CompressionDiagnostics
 import io.zer0.muse.transformer.ContextCompressTransformer
 import io.zer0.muse.transformer.TransformContext
+import io.zer0.muse.ui.common.ManualCompressionPhase
 import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.runManualCompressionStages
 import io.zer0.muse.util.TokenEstimator
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import io.zer0.muse.ui.common.ManualCompressionPhase
-import io.zer0.muse.ui.common.runManualCompressionStages
 
 /**
  * v2.x 重构 S2: 从 ChatViewModel 提取的上下文压缩编排。
@@ -357,7 +357,7 @@ internal class ChatCompressionCoordinator(
      * 与自动压缩的区别只在"强制触发 + 强制兜底"：用户主动点了压缩，就不该因为
      * 收益不明显而什么都不做；字符预算仍按当前窗口推导，避免切出超窗的巨块。
      */
-    internal fun manualCompressContext(sessionId: String, keepRecent: Int): TransformContext = TransformContext(
+    internal fun manualCompressContext(sessionId: String, keepRecent: Int, systemTokens: Int = 0): TransformContext = TransformContext(
         sessionId = sessionId,
         modelId = host.stateStore.state.value.currentAssistant?.modelId,
         extras =
@@ -372,6 +372,7 @@ internal class ChatCompressionCoordinator(
                 // 交给预算公式按最小输出预留处理，仍比旧的比例法更贴近实际。
                 WarmupHistory.compressTokenBudgetFor(
                     contextMaxTokens = host.stateStore.state.value.contextMaxTokens,
+                    systemTokens = systemTokens,
                 ),
         ),
     )
@@ -402,7 +403,10 @@ internal class ChatCompressionCoordinator(
             val manualPreviousBoundaryId = manualExisting?.lastCoveredMessageId
             val manualPreviousTotalCovered = manualExisting?.totalCoveredCount ?: 0
             val manualTokensBefore = host.stateStore.state.value.contextTokenCount
-            val context = manualCompressContext(sessionId, effectiveKeepRecent)
+            val systemTokens = TokenEstimator.estimate(
+                currentMessages.takeWhile { it.role == io.zer0.ai.core.MessageRole.SYSTEM },
+            )
+            val context = manualCompressContext(sessionId, effectiveKeepRecent, systemTokens = systemTokens)
 
             val compressed = runManualCompressionStages(
                 updateMemoryFirst = updateMemoryFirst,

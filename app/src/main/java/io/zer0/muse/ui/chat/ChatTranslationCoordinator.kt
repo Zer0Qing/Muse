@@ -5,6 +5,7 @@ import io.zer0.ai.ChatService
 import io.zer0.ai.core.ChatRequestMode
 import io.zer0.ai.core.ChatStreamEvent
 import io.zer0.ai.core.MessageRole
+import io.zer0.ai.core.ProviderException
 import io.zer0.ai.core.ReasoningLevel
 import io.zer0.ai.core.UIMessage
 import io.zer0.common.AppDispatchers
@@ -63,33 +64,34 @@ internal class ChatTranslationCoordinator(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 // 协程取消必须重抛，避免破坏 stop()/switchSession() 语义。
                 throw e
-            } catch (t: Exception) {
-                Logger.e("ChatVM", "translate failed", t)
-                host.state.update {
-                    it.copy(
-                        errors = listOf(
-                            ChatError(
-                                type = ChatErrorType.UNKNOWN,
-                                message = host.appContext.getString(
-                                    R.string.err_chat_translate_failed,
-                                    t.message ?: "",
-                                ),
-                            ),
-                        ),
-                        isTranslating = false,
-                        translatingMessageId = null,
-                    )
-                }
+            } catch (t: ProviderException) {
+                reportTranslationFailure(t)
+            } catch (t: IllegalStateException) {
+                reportTranslationFailure(t)
             }
         }
     }
 
-    private suspend fun runTranslation(
-        target: UIMessage,
-        sourceText: String,
-        targetLanguage: String,
-        style: String,
-    ) {
+    private fun reportTranslationFailure(error: Throwable) {
+        Logger.e("ChatVM", "translate failed", error)
+        host.state.update {
+            it.copy(
+                errors = listOf(
+                    ChatError(
+                        type = ChatErrorType.UNKNOWN,
+                        message = host.appContext.getString(
+                            R.string.err_chat_translate_failed,
+                            error.message ?: "",
+                        ),
+                    ),
+                ),
+                isTranslating = false,
+                translatingMessageId = null,
+            )
+        }
+    }
+
+    private suspend fun runTranslation(target: UIMessage, sourceText: String, targetLanguage: String, style: String) {
         val systemPrompt = io.zer0.muse.ui.translate.TranslateViewModel.buildTranslationSystemPrompt(
             targetLanguage = targetLanguage,
             sourceLanguage = io.zer0.muse.ui.translate.TranslateViewModel.SOURCE_AUTO,

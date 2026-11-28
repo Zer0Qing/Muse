@@ -17,7 +17,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * P0-3 回归:工具风险等级三处台账一致性护栏。
@@ -167,6 +166,7 @@ class ToolRiskLedgerConsistencyTest {
             "list_packages", "logcat_tail", "input_inject",
             "workspace_write", "workspace_delete", "workspace_mkdir", "workspace_move",
             "pin_memory", "unpin_memory", "make_phone_call",
+            "save_memory",
         )
         for (name in highNames) {
             assertEquals("$name 必须解析为 HIGH", ToolRiskLevel.HIGH, ToolPermissionResolver.riskLevelFor(name))

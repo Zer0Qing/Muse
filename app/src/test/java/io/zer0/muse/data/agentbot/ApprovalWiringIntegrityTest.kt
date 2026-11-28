@@ -1,9 +1,9 @@
-package io.zer0.muse.data.agentbot;
+package io.zer0.muse.data.agentbot
 
-import org.junit.Assert.assertFalse;
-import org.junit.Assert.assertTrue;
-import org.junit.Test;
-import java.io.File;
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import java.io.File
 
 /**
  * 审批不能因为「界面传错参数」而永久卡住。
@@ -17,11 +17,11 @@ import java.io.File;
 class ApprovalWiringIntegrityTest {
 
     private val screen: String by lazy {
-        File("src/main/java/io/zer0/muse/ui/agentbot/AgentBotScreen.kt").readText();
+        File("src/main/java/io/zer0/muse/ui/agentbot/AgentBotScreen.kt").readText()
     }
 
     private val service: String by lazy {
-        File("src/main/java/io/zer0/muse/data/agentbot/ApprovalService.kt").readText();
+        File("src/main/java/io/zer0/muse/data/agentbot/ApprovalService.kt").readText()
     }
 
     @Test
@@ -29,35 +29,35 @@ class ApprovalWiringIntegrityTest {
         assertFalse(
             "不能传空串 —— 那会让每次批准都判 INVALIDATED",
             screen.contains("viewModel.approve(row.approvalId, \"\", \"\")"),
-        );
+        )
         assertTrue(
             "必须回传卡片上的 hash",
             screen.contains("row.argumentsHash"),
-        );
+        )
         assertTrue(
             "必须回传卡片上的资源版本",
             screen.contains("row.resourceVersion"),
-        );
+        )
     }
 
     @Test
     fun `early exit branches notify so the task can leave WAITING_APPROVAL`() {
         // 过期、参数漂移、资源漂移三条早退都必须回调。
-        val count = Regex("settleAndNotify\\(").findAll(service).count();
+        val count = Regex("settleAndNotify\\(").findAll(service).count()
         assertTrue(
             "三条早退分支 + 一处定义，至少 4 处引用，实际 " + count,
             count >= 4,
-        );
+        )
     }
 
     @Test
     fun `settle helper tolerates a failing callback`() {
-        val at = service.indexOf("private suspend fun settleAndNotify(");
-        assertTrue(at > 0);
-        val body = service.substring(at, minOf(at + 400, service.length));
+        val at = service.indexOf("private suspend fun settleAndNotify(")
+        assertTrue(at > 0)
+        val body = service.substring(at, minOf(at + 400, service.length))
         assertTrue(
             "回调失败不能让审批看起来失败 —— 它已经结算了",
             body.contains("catch (e: Exception)") && body.contains("catch (e: CancellationException)"),
-        );
+        )
     }
 }

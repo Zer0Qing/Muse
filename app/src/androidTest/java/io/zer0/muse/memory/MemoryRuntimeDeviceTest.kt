@@ -9,7 +9,6 @@ import io.zer0.memory.summary.MemoryDb
 import org.junit.Assert.assertNotNull
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.io.File
 
 /**
  * 设备上打开当前 schema 的 MemoryDb/FactDb，验证 v8/v21 迁移链和生产 Room 配置可承载。

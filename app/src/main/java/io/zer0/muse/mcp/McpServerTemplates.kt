@@ -52,7 +52,7 @@ object McpServerTemplates {
             summaryResId = R.string.audit_mcp_local_filesystem_summary,
             transportType = McpTransportType.STDIO,
             urlPlaceholder = "",
-            commandPlaceholder = "npx -y @modelcontextprotocol/server-filesystem /sdcard/Documents",
+            commandPlaceholder = "npx -y @modelcontextprotocol/server-filesystem .",
         ),
         McpServerTemplate(
             id = "local_memory",

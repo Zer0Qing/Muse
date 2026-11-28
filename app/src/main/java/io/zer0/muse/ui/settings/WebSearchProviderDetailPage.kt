@@ -16,7 +16,6 @@ import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.common.surface.switchItem
 import io.zer0.muse.ui.theme.MuseIconSizes
-import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.web.WebSearchConfig
 import io.zer0.muse.web.WebSearchProviderCatalog
 import kotlinx.coroutines.launch
@@ -31,10 +30,7 @@ import org.koin.core.qualifier.named
  * 避免用户在一张长页面里来回切换不同供应商的字段。
  */
 @Composable
-fun SettingsWebSearchProviderDetailPage(
-    providerKey: String,
-    onBack: () -> Unit,
-) {
+fun SettingsWebSearchProviderDetailPage(providerKey: String, onBack: () -> Unit) {
     val settings: SettingsRepository = koinInject()
     val webSearchClient: OkHttpClient = koinInject(qualifier = named("webSearch"))
     val scope = rememberCoroutineScope()

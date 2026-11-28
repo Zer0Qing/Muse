@@ -163,7 +163,8 @@
     <string name="settings_group_media">Voz y visión</string>
     <string name="settings_group_memory">Memoria y conocimiento</string>
     <string name="settings_group_tools">Herramientas y extensiones</string>
-    <string name="settings_group_connection">Canales y red</string>
+    <string name="settings_group_channels">Canales de mensajes</string>
+    <string name="settings_group_connection">Red</string>
     <string name="settings_group_automation">Automatización y segundo plano</string>
     <string name="settings_group_data_storage">Datos y copias de seguridad</string>
     <string name="settings_group_privacy_security">Privacidad y permisos</string>
@@ -299,6 +300,7 @@
     <string name="search_suggestion_idea">Ideas</string>
     <string name="search_no_result">No hay resultados coincidentes</string>
     <string name="search_try_other">Prueba otras palabras clave</string>
+    <string name="search_timeout_hint">La búsqueda agotó el tiempo. Prueba con una palabra más corta</string>
     <string name="search_section_sessions">Sesiones</string>
     <string name="search_section_messages">Mensajes</string>
     <string name="search_time_today">Hoy %1$s</string>
@@ -504,6 +506,7 @@
     <string name="provider_plugins_delete">Eliminar plugin</string>
     <string name="provider_plugins_convert">Convertir a proveedor</string>
     <string name="provider_plugins_import_failed">Error de importación: %1$s</string>
+    <string name="provider_plugins_import_failed_title">Archivo de plugin no reconocido</string>
     <string name="provider_plugins_import_success">Importación exitosa</string>
     <string name="provider_plugins_delete_confirm_named">¿Eliminar el plugin «%1$s»? Ya no estará disponible. Vuelve a importar el paquete para restaurarlo.</string>
     <string name="muse_plugins_publisher_fingerprint">Editor: %1$s · Huella de clave: %2$s</string>

@@ -60,6 +60,7 @@ object PiiEngine {
     private const val TITLES = "老师傅|老师|医生|护士|同志|同学|先生|女士|师傅|经理|主任|教授|老板|厂长|院长|校长|律师|教练|董事长|总裁|导师|顾问|会计|叔叔|阿姨|爷爷|奶奶|哥哥|姐姐"
     private val whitelist =
         setOf("明白", "理解", "问题", "目的", "方法", "消息", "方向", "标题", "开始", "结束", "安排", "设计", "开发", "实现", "更新", "修复", "完成", "取消", "确认", "可能", "可以", "应该", "因为", "所以", "如果", "然后", "但是", "什么", "怎么", "这样", "那样", "这个", "那个", "我们", "你们", "他们", "自己", "朋友", "家人", "名字", "生日", "喜欢", "讨厌", "工作", "学习", "生活", "记忆", "系统", "项目", "团队", "文化", "文章", "王国", "文明", "文学", "文字", "文采", "文法", "文献", "文稿", "文风", "文集", "文笔", "文言", "文雅", "方向感", "方法学", "方法论", "位置", "位址", "治疗", "治法", "治安", "治理", "治病", "程序", "过程", "程序化", "流程", "工程师", "工程", "路程", "旅行", "履行", "军事", "武器", "武装", "武术", "经济", "经营", "经理", "管理", "道理", "道德", "逻辑", "精神", "精华", "精致", "精彩", "精灵", "领袖", "领域", "领土", "灵活", "领导", "刘邦", "刘备", "文件", "任务", "任务书", "任何", "何处", "人事", "人物", "人类", "人才", "金钱", "金融", "金库", "金属", "石头", "石碑", "石油", "化石", "长征", "长江", "长城", "长跑", "劳动", "劳模", "安全", "安心", "安定", "安静", "消除", "消防", "消费", "消化", "南京", "南宁", "南通", "南方", "北上", "北京", "北方", "陈列", "杨柳", "杨树", "柳树", "权威", "权力", "权益", "权利", "魏国", "高峰", "高中", "高见", "高兴", "高雅", "高级", "高铁", "高压", "高低", "郭靖", "郭敬明", "邓丽君", "程序员", "程度", "陈设", "吴语", "吴侬软语", "余裕", "富有", "富裕", "方式", "关系", "关注", "关于", "关切", "关头", "士兵", "失业", "示威", "示范", "开放", "开关", "开设", "开水", "唐诗", "唐突", "处理", "处置", "处事", "到处", "处方", "旋律", "旅游", "旅途", "日常", "日子", "日出", "日期", "日用", "月亮", "月光", "月经", "周末", "周到", "忙碌", "明亮", "明朗", "明显", "明月", "明星", "明智", "名人", "名胜", "名言", "名著", "名望", "命名", "名册", "名次", "合格", "合理", "合作", "合计", "合适", "记得", "记录", "记事", "纪念", "纪律", "纪念日", "世纪", "世面", "世代", "事业", "事件", "事迹", "事实", "事物", "事情", "事项", "事宜", "值得", "直接", "直到", "职责", "职业", "职位", "职务", "今天", "天气", "温暖", "温和", "温柔", "高山", "高兴", "沉默", "深沉", "深刻", "深奥", "深思", "清楚", "清晰", "经典", "经过", "经营", "结果", "结论", "结束", "结合", "结婚", "紧张", "紧急", "严格要求", "严肃", "严格", "严重", "严冬", "主要", "主动", "主题", "重要", "重复", "重生", "重庆")
+
     // ── 共用模式（唯一一份字面量；`rules` 与日志脱敏都引用这里） ──────────────
     // `sk-` 后必须允许连字符：OpenAI 项目钥匙是 `sk-proj-…`、Anthropic 是 `sk-ant-…`，
     // 原来的 `sk-[a-z0-9_]{20,}` 会在第一个 `-` 处断掉（2026-11-04 由测试抓到并修）。
@@ -71,12 +72,17 @@ object PiiEngine {
         setOf(RegexOption.DOT_MATCHES_ALL),
     )
     private val ID_CARD = Regex(
-        "(?<!\\d)(?:[1-9]\\d{5}(?:19|20)\\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\\d|3[01])\\d{3}[0-9Xx]|[1-9]\\d{5}\\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\\d|3[01])\\d{3})(?!\\d)",
+        "(?<!\\d)(?:[1-9]\\d{5}(?:19|20)\\d{2}(?:0[1-9]|1[0-2])" +
+            "(?:0[1-9]|[12]\\d|3[01])\\d{3}[0-9Xx]|[1-9]\\d{5}\\d{2}" +
+            "(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\\d|3[01])\\d{3})(?!\\d)",
     )
     private val CREDIT_CARD = Regex("(?<!\\d)(?:\\d{4}[- ]?){3}\\d{4,7}(?!\\d)")
     private val EMAIL = Regex("(?i)(?<!\\w)[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,}(?!\\w)")
     private val PHONE = Regex("(?<!\\d)1[3-9](?:[ -]?\\d){9}(?!\\d)")
-    private val IPV4 = Regex("(?<!\\d)(?:(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)\\.){3}(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(?!\\d)")
+    private val IPV4 = Regex(
+        "(?<!\\d)(?:(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)\\.){3}" +
+            "(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(?!\\d)",
+    )
 
     // 传输形状的凭据（从 `Logger` 搬来；`Logger` 从此不再自带正则表）
     private val HEADER_CREDENTIAL = Regex("""(?i)\b(authorization|bearer|x-api-key)\s*[:\s]\s*[^\n,;]+""")
@@ -101,7 +107,10 @@ object PiiEngine {
      * 暴露为 `internal` 供单测断言,不参与脱敏逻辑本身。
      * 刻意不接 `Logger`:本文件是纯 Kotlin 规则表,不引入 Android 依赖。
      */
-    internal val ruleLoadErrors: List<String> get() { rules; return loadErrors.toList() }
+    internal val ruleLoadErrors: List<String> get() {
+        rules
+        return loadErrors.toList()
+    }
     private val loadErrors = mutableListOf<String>()
 
     /**
@@ -124,17 +133,16 @@ object PiiEngine {
      * 全崩,记忆自动保存 100% 失效且只显示一句「解密失败」,排查成本极高。
      * 教训:正则表是**配置数据**,一条写错不该让整个安全能力消失。
      */
-    private fun safeRule(label: String, pattern: String, protected: Boolean = false): Rule? =
-        try {
-            Rule(label, Regex(pattern), protected)
-        } catch (e: Exception) {
-            // 单条规则编译失败不应让整个脱敏器失效:记为诊断信息后跳过该条。
-            // 捕获 Exception 而非更具体的类型,是因为不同 JDK/ICU 实现抛出的
-            // 异常类型不一致(JVM 是 PatternSyntaxException,Android ICU 也可能
-            // 包成 IllegalArgumentException),统一兜住才能保证「一条错不拖垮全部」。
-            loadErrors += "$label: ${e.javaClass.simpleName}: ${e.message}"
-            null
-        }
+    private fun safeRule(label: String, pattern: String, protected: Boolean = false): Rule? = try {
+        Rule(label, Regex(pattern), protected)
+    } catch (e: IllegalArgumentException) {
+        // 单条规则编译失败不应让整个脱敏器失效:记为诊断信息后跳过该条。
+        // 捕获 Exception 而非更具体的类型,是因为不同 JDK/ICU 实现抛出的
+        // 异常类型不一致(JVM 是 PatternSyntaxException,Android ICU 也可能
+        // 包成 IllegalArgumentException),统一兜住才能保证「一条错不拖垮全部」。
+        loadErrors += "$label: ${e.javaClass.simpleName}: ${e.message}"
+        null
+    }
 
     private val rules by lazy {
         listOfNotNull(
@@ -160,11 +168,15 @@ object PiiEngine {
             // 改用 CJK 统一表意文字的基本区码点范围,Java 与 Android 均支持。
             safeRule(
                 "address",
-                "[\\u4e00-\\u9fa5]{2,12}(?:省|自治区|市|自治州|地区|盟)[\\u4e00-\\u9fa5]{2,12}(?:区|县|旗|市|镇|乡|街道|路|街|巷|弄|村)(?:\\d{1,6}号?)?(?:[\\u4e00-\\u9fa5\\d-]{0,20})?",
+                "[\\u4e00-\\u9fa5]{2,12}(?:省|自治区|市|自治州|地区|盟)" +
+                    "[\\u4e00-\\u9fa5]{2,12}(?:区|县|旗|市|镇|乡|街道|路|街|巷|弄|村)" +
+                    "(?:\\d{1,6}号?)?(?:[\\u4e00-\\u9fa5\\d-]{0,20})?",
             ),
             safeRule(
                 "name",
-                "(?:[$SURNAMES](?:$TITLES)|(?:叫|姓|名叫|叫作|称为|唤作|称作|称呼|姓名)\\s*[$SURNAMES][\\u4e00-\u9fa5]{1,2}(?![\\u4e00-\u9fa5]))",
+                "(?:[$SURNAMES](?:$TITLES)|" +
+                    "(?:叫|姓|名叫|叫作|称为|唤作|称作|称呼|姓名)\\s*" +
+                    "[$SURNAMES][\\u4e00-\\u9fa5]{1,2}(?![\\u4e00-\\u9fa5]))",
                 protected = true,
             ),
             safeRule("english_name", "\\b[A-Z][a-z]{1,12}\\s+[A-Z][a-z]{1,12}\\b", protected = true),
@@ -181,7 +193,9 @@ object PiiEngine {
         val detected = mutableListOf<String>()
         for (rule in rules) {
             if (!rule.regex.containsMatchIn(current)) continue
-            current = rule.regex.replace(current) { if (rule.protected && it.value in whitelist) it.value else "[REDACTED]" }
+            current = rule.regex.replace(current) {
+                if (rule.protected && it.value in whitelist) it.value else "[REDACTED]"
+            }
             if (rule.label !in detected) detected += rule.label
         }
         return ScrubResult(current, detected)
@@ -191,10 +205,15 @@ object PiiEngine {
         var current = text
         val map = linkedMapOf<String, String>()
         for (rule in rules) current = rule.regex.replace(current) {
-            if (rule.protected && it.value in whitelist) it.value else "[${rule.label.uppercase()}_${map.size + 1}]".also { token -> map[token] = it.value }
+            if (rule.protected && it.value in whitelist) {
+                it.value
+            } else {
+                "[${rule.label.uppercase()}_${map.size + 1}]".also { token -> map[token] = it.value }
+            }
         }
         return MaskResult(current, map)
     }
+
     /**
      * 日志用的脱敏（`Logger.sanitizePii` 直接调这里）。
      *

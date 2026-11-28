@@ -31,6 +31,7 @@ class ApprovalService(
      * 为 null 时跳过（纯 JVM 测试）。
      */
     private val onSettled: (suspend (taskId: String, approvalId: String, status: String) -> Unit)? = null,
+    private val selfApprovalPolicy: () -> Boolean = { false },
 ) {
 
     /**
@@ -68,11 +69,7 @@ class ApprovalService(
     ): Outcome = settle(approvalId, ApprovalStatus.APPROVED, currentArgumentsHash, currentResourceVersion, actor, "")
 
     /** 用户拒绝。明确拒绝不可自动改道执行相同副作用。 */
-    suspend fun deny(
-        approvalId: String,
-        reason: String = "",
-        actor: String = ACTOR_USER,
-    ): Outcome {
+    suspend fun deny(approvalId: String, reason: String = "", actor: String = ACTOR_USER): Outcome {
         // 拒绝不需要核对参数：拒绝的语义与参数无关。
         val current = repository.getApproval(approvalId)
             ?: return Outcome.Stale("审批不存在")
@@ -184,7 +181,7 @@ class ApprovalService(
                 settleAndNotify(approval.taskId, approval.approvalId, ApprovalStatus.EXPIRED)
             }
         }
-        if (count > 0) Logger.i("ApprovalService", "过期审批 ${count} 条")
+        if (count > 0) Logger.i("ApprovalService", "过期审批 $count 条")
         return count
     }
 
@@ -194,7 +191,7 @@ class ApprovalService(
      * 这个方法存在的意义是让调用方**显式**表达"我知道这里有个边界"，
      * 而不是在某处写一句 `settleApproval(APPROVED)` 就绕过去了。
      */
-    fun canBotSelfApprove(): Boolean = false
+    fun canBotSelfApprove(): Boolean = selfApprovalPolicy()
 
     /**
      * 结算已发生但不会进入正常路径时的统一收尾。
@@ -214,7 +211,7 @@ class ApprovalService(
             onSettled?.invoke(taskId, approvalId, status)
         } catch (e: CancellationException) {
             throw e
-        } catch (e: Exception) {
+        } catch (e: java.io.IOException) {
             Logger.w("ApprovalService", "审批已结算但任务复位失败: $taskId", e)
         }
     }

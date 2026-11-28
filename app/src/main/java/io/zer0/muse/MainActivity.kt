@@ -53,7 +53,6 @@ import io.zer0.muse.data.assistant.AssistantCardImportBridge
 import io.zer0.muse.data.session.MigrationProgressBus
 import io.zer0.muse.intent.ShareIntentHandler
 import io.zer0.muse.ui.chat.ChatViewModel
-import io.zer0.muse.ui.screen.MuseRoutes
 import io.zer0.muse.ui.common.animation.MuseFluidSharedHost
 import io.zer0.muse.ui.common.feedback.MuseToastHost
 import io.zer0.muse.ui.common.media.DesktopShortcuts
@@ -84,20 +83,19 @@ import io.zer0.muse.ui.onboarding.OnboardingScreen
 import io.zer0.muse.ui.quicknotes.QuickCaptureEdgeOverlay
 import io.zer0.muse.ui.quicknotes.QuickCaptureOverlayService
 import io.zer0.muse.ui.quicknotes.QuickNotesViewModel
+import io.zer0.muse.ui.screen.MuseRoutes
+import io.zer0.muse.ui.settings.SafeModeScreen
 import io.zer0.muse.ui.startup.MigrationProgressOverlay
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MuseTheme
 import io.zer0.muse.ui.theme.loadCustomFontFamily
+import io.zer0.muse.util.launchSafely
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 import org.koin.compose.koinInject
 import org.koin.core.context.GlobalContext
-import io.zer0.muse.ui.settings.SafeModeScreen
-import io.zer0.muse.ui.screen.HomeScreen
-import io.zer0.muse.ui.chat.ChatScreen
-import io.zer0.muse.util.launchSafely
 
 /**
  * 应用唯一 Activity。
@@ -247,9 +245,9 @@ class MainActivity : ComponentActivity() {
                         PackageManager.PERMISSION_GRANTED
                     ) {
                         notificationPermissionLauncher.launchSafely(
-                                android.Manifest.permission.POST_NOTIFICATIONS,
-                                this@MainActivity,
-                            )
+                            android.Manifest.permission.POST_NOTIFICATIONS,
+                            this@MainActivity,
+                        )
                     }
                 }
             }
@@ -623,12 +621,12 @@ private fun MuseNavGraph(
                                 sharedViewModel.startStreamingAsr()
                             } else if (io.zer0.muse.ui.speech.SpeechInput.isAvailable(context)) {
                                 val launched = systemSpeechLauncher.launchSafely(
-                                        io.zer0.muse.ui.speech.SpeechInput.createIntent(
-                                            context.getString(R.string.settings_asr_provider_system),
-                                        ),
-                                        context,
-                                        fallbackMessage = context.getString(R.string.asr_system_unavailable),
-                                    )
+                                    io.zer0.muse.ui.speech.SpeechInput.createIntent(
+                                        context.getString(R.string.settings_asr_provider_system),
+                                    ),
+                                    context,
+                                    fallbackMessage = context.getString(R.string.asr_system_unavailable),
+                                )
                                 if (!launched) {
                                     io.zer0.common.Logger.w("MainActivity", "系统语音识别调起失败")
                                 }
@@ -734,7 +732,7 @@ private fun MuseNavGraph(
                                 navController.navigate(SettingsDataRoute)
                             }
                             is ShareIntentHandler.ShareResult.OpenCloudBackup -> {
-                                navController.navigate(SettingsCloudBackupRoute)
+                                navController.navigate(SettingsCloudBackupRoute())
                             }
                             is ShareIntentHandler.ShareResult.OpenSettingsAbout -> {
                                 navController.navigate(SettingsAboutRoute)
@@ -826,7 +824,7 @@ private fun MuseNavGraph(
                             // "chat" 不必再跳:引导关掉后首页就是聊天入口。
                             "assistants" -> navController.navigate(io.zer0.muse.ui.navigation.AssistantsRoute)
                             "tools" -> navController.navigate(io.zer0.muse.ui.navigation.ToolsScreenRoute)
-                            "backup" -> navController.navigate(SettingsCloudBackupRoute)
+                            "backup" -> navController.navigate(SettingsCloudBackupRoute())
                             else -> Unit
                         }
                         pendingOnboardingRoute = null

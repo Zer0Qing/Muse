@@ -312,7 +312,6 @@ class BackupMergeImporterTest {
         put("data", json.encodeToJsonElement(serializer, value))
     }.toString()
 
-    private fun ndjson(vararg lines: String): Sequence<String> =
-        (sequenceOf("""{"type":"meta","version":4}""") + lines.asSequence())
-            .filter { it.isNotBlank() }
+    private fun ndjson(vararg lines: String): Sequence<String> = (sequenceOf("""{"type":"meta","version":4}""") + lines.asSequence())
+        .filter { it.isNotBlank() }
 }

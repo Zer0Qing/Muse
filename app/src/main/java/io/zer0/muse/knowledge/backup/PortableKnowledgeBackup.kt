@@ -308,12 +308,11 @@ class KnowledgePortableBackupService(
      *
      * 拆成逐项检查:每项只回答一件事,失败原因直接能指到具体字段。
      */
-    private fun validateBackup(backup: KnowledgePortableBackup): String? =
-        validateManifest(backup)
-            ?: validateUniqueKeys(backup)
-            ?: validateRevisionContent(backup)
-            ?: validateFolderClosure(backup)
-            ?: validateDocPointers(backup)
+    private fun validateBackup(backup: KnowledgePortableBackup): String? = validateManifest(backup)
+        ?: validateUniqueKeys(backup)
+        ?: validateRevisionContent(backup)
+        ?: validateFolderClosure(backup)
+        ?: validateDocPointers(backup)
 
     /** 格式版本不得高于本实现认识的版本。 */
     private fun validateManifest(backup: KnowledgePortableBackup): String? =
@@ -551,11 +550,9 @@ class KnowledgePortableBackupService(
         }
 
         /** 便携备份 → UTF-8 JSON 文本(后续文件/流式导出复用同一格式)。 */
-        fun encode(backup: KnowledgePortableBackup): String =
-            json.encodeToString(KnowledgePortableBackup.serializer(), backup)
+        fun encode(backup: KnowledgePortableBackup): String = json.encodeToString(KnowledgePortableBackup.serializer(), backup)
 
         /** JSON 文本 → 便携备份;格式错误抛出,调用方必须按失败处理(不静默恢复空数据)。 */
-        fun decode(text: String): KnowledgePortableBackup =
-            json.decodeFromString(KnowledgePortableBackup.serializer(), text)
+        fun decode(text: String): KnowledgePortableBackup = json.decodeFromString(KnowledgePortableBackup.serializer(), text)
     }
 }

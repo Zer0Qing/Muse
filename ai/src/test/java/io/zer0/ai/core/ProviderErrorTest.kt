@@ -23,6 +23,7 @@ class ProviderErrorTest {
         assertEquals(ProviderError.InsufficientQuota::class, error!!::class)
         assertFalse("余额不足不该重试", error.isRetryable)
     }
+
     @Test
     fun payloadTooLargeIsNonRetryableInvalidRequest() {
         val error = ProviderError.from(413, "request entity too large")

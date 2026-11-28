@@ -97,10 +97,12 @@ class KnowledgeRestoreFailureTest {
     fun `revision referencing missing doc is rejected`() = runBlocking {
         seed(sourceDb, "doc-1", "content")
         val backup = sourceService.export()
-        val orphan = backup.copy(revisions = backup.revisions + backup.revisions.first().copy(
-            revisionId = "rev-orphan",
-            docId = "doc-not-in-backup",
-        ))
+        val orphan = backup.copy(
+            revisions = backup.revisions + backup.revisions.first().copy(
+                revisionId = "rev-orphan",
+                docId = "doc-not-in-backup",
+            ),
+        )
         val report = targetService.restore(orphan)
         assertTrue(!report.success)
         assertTrue(report.failureReason!!.contains("不在备份"))

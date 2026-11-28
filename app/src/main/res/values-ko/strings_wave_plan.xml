@@ -41,8 +41,16 @@
     <string name="agent_follow_up_watcher_end_confirm_title">End this watcher?</string>
     <string name="agent_follow_up_watcher_last_checked">Last checked: %1$s</string>
     <string name="agent_follow_up_watcher_last_error">Check failed: %1$s</string>
+    <string name="agent_follow_up_watcher_remote_pending">원래 실행 환경과 동기화 대기 중</string>
+    <string name="agent_follow_up_watcher_remote_unknown">실행 환경을 알 수 없습니다. 후속 작업 상태를 확인하세요.</string>
+    <string name="agent_follow_up_watcher_notify_pending">알림이 아직 전송되지 않았습니다. 자동으로 다시 시도합니다.</string>
     <string name="agent_follow_up_watcher_last_result">Last result: %1$s</string>
     <string name="agent_follow_up_watcher_meta">%1$s · every %2$d min</string>
+    <string name="agent_watcher_confirm_schedule">%2$s · %1$d분마다 확인</string>
+    <string name="agent_watcher_confirm_notification">알림 대상: %1$s</string>
+    <string name="agent_watcher_confirm_notification_app">알림 대상: Muse 알림</string>
+    <string name="agent_watcher_confirm_show_script">스크립트 보기</string>
+    <string name="agent_watcher_confirm_hide_script">스크립트 숨기기</string>
     <string name="agent_follow_up_watcher_never_checked">Not checked yet</string>
     <string name="agent_follow_up_watcher_pause">Pause</string>
     <string name="agent_follow_up_watcher_resume">Resume</string>
@@ -63,7 +71,6 @@
     <string name="agent_hub_tab_about_you">About you</string>
     <string name="agent_hub_tab_follow_up">Follow-up</string>
     <string name="agent_hub_tab_spaces">Spaces</string>
-    <string name="agent_hub_voice_mode_cd">Voice call</string>
     <string name="agent_hub_voice_mode_hint">Talk with your assistant in real time</string>
     <string name="agent_reconnect_dismiss_cd">Dismiss this notice</string>
     <string name="agent_reconnect_fix">Fix it</string>
@@ -134,7 +141,7 @@
     <string name="agent_suggestion_pending_title">%1$d items need your approval</string>
     <string name="agent_suggestion_routine_prompt">Check the enabled automations and tell me about their latest run</string>
     <string name="agent_suggestion_routine_title">%1$d automations enabled</string>
-    <string name="agent_suggestion_strip_title">Guess what you want</string>
+    <string name="agent_suggestion_strip_title">다음 단계</string>
     <string name="agent_voice_list_separator">, </string>
     <string name="agent_voice_relay_artifacts">Artifacts: %1$s</string>
     <string name="agent_voice_relay_blockers">Unverified/blocked: %1$s</string>
@@ -169,6 +176,10 @@
     <string name="compute_node_existing_title">Connected computers</string>
     <string name="compute_node_field_daemon_port">Node port</string>
     <string name="compute_node_field_host">Server address</string>
+    <string name="compute_node_field_host_fingerprint">SSH 호스트 지문</string>
+    <string name="compute_node_host_fingerprint_hint">신뢰할 수 있는 출처에서 SHA256 지문을 확인하세요. 예: ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub -E sha256</string>
+    <string name="compute_node_ssh_fingerprint_repair_title">호스트 신원 확인 및 업데이트</string>
+    <string name="compute_node_ssh_repair">확인 후 복구</string>
     <string name="compute_node_field_name">Name (optional)</string>
     <string name="compute_node_field_password">Login password</string>
     <string name="compute_node_field_password_hint">Enter the server login password</string>

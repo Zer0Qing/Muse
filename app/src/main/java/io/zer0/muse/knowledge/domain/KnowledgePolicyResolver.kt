@@ -97,8 +97,7 @@ data class ResolvedPolicy(
     val retrieval: RetrievalPolicy,
     val fieldSources: Map<String, PolicyFieldSource>,
 ) {
-    fun sourceOf(field: String): PolicyFieldSource =
-        fieldSources[field] ?: PolicyFieldSource.BUILT_IN
+    fun sourceOf(field: String): PolicyFieldSource = fieldSources[field] ?: PolicyFieldSource.BUILT_IN
 }
 
 /**
@@ -170,8 +169,11 @@ object KnowledgePolicyResolver {
         sources["retrieval.topK"] = if (kb?.topKOverride != null) PolicyFieldSource.KB_OVERRIDE else PolicyFieldSource.GLOBAL_DEFAULT
         val threshold = kb?.thresholdOverride ?: global.threshold
         sources["retrieval.threshold"] =
-            if (kb?.thresholdOverride != null) PolicyFieldSource.KB_OVERRIDE
-            else PolicyFieldSource.GLOBAL_DEFAULT
+            if (kb?.thresholdOverride != null) {
+                PolicyFieldSource.KB_OVERRIDE
+            } else {
+                PolicyFieldSource.GLOBAL_DEFAULT
+            }
 
         val retrieval = RetrievalPolicy(
             topK = topK,

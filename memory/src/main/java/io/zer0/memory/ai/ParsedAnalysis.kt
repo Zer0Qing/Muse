@@ -32,11 +32,22 @@ data class ParsedAnalysis(
     val mergedEntities: List<ParsedMerge> = emptyList(),
     /** 用户画像 Markdown 更新(可选,覆盖式更新)。 */
     val profileMarkdown: String? = null,
+    /** 会话总结/记忆编译时判断值得写入主动牵挂账本的事项。 */
+    val proactiveThoughts: List<ParsedProactiveThought> = emptyList(),
+)
+
+/** 从记忆分析阶段产出的主动消息牵挂条目。 */
+@Serializable
+data class ParsedProactiveThought(
+    val seed: String = "",
+    val kind: String = "FOLLOW_UP",
+    val urgency: String = "WINDOW",
+    val dueHours: Float? = null,
+    val weight: Float = 0.65f,
 )
 
 /** 用户事实库只接受明确归属于 USER 的条目,避免主客体错位污染画像。 */
-internal fun ParsedAnalysis.userFactsOnly(): List<ParsedEntity> =
-    extractedEntities.filter { it.speaker.equals("USER", ignoreCase = true) }
+internal fun ParsedAnalysis.userFactsOnly(): List<ParsedEntity> = extractedEntities.filter { it.speaker.equals("USER", ignoreCase = true) }
 
 /**
  * 提取的实体(原子事实)。

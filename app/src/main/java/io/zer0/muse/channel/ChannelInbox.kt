@@ -49,6 +49,9 @@ object ChannelInbox {
         val eventId: String = "",
         /** 渠道临时回发凭据的 SecureKeyStore 密文;只在事件待处理期间落盘。 */
         val encryptedReplyContextToken: String = "",
+        val isGroup: Boolean = false,
+        val isMentioned: Boolean = false,
+        val senderDisplayName: String = "",
     )
 
     /** 单条入站消息(摘要 + 原始负载,供排查与后续路由使用)。 */
@@ -98,6 +101,9 @@ object ChannelInbox {
          * 它只表达**入队先后**，不表达调度优先级 —— 优先级仍由 dispatchState + 列表顺序决定。
          */
         val seq: Long = 0L,
+        val isGroup: Boolean = false,
+        val isMentioned: Boolean = false,
+        val senderDisplayName: String = "",
     )
 
     private const val MAX_ITEMS = 100
@@ -154,9 +160,18 @@ object ChannelInbox {
             dispatchId = UUID.randomUUID().toString(),
             dispatchState = DispatchState.PENDING,
             encryptedReplyContextToken = source.encryptedReplyContextToken,
+            isGroup = source.isGroup,
+            isMentioned = source.isMentioned,
+            senderDisplayName = source.senderDisplayName,
         )
         return journal.record(source, item)
     }
+
+    /** 将阻塞终态队列项重新入队等待派发。 */
+    fun retryBlocked(dispatchId: String): Boolean = journal.retryBlocked(dispatchId)
+
+    /** 忽略阻塞终态队列项（不再重试）。 */
+    fun dismissBlocked(dispatchId: String): Boolean = journal.dismissBlocked(dispatchId)
 
     /** 清空已处理历史;未完成队列项会保留,避免清理操作丢失自动回复。 */
     fun clear() = journal.clear()
@@ -451,6 +466,49 @@ internal class ChannelInboxJournal(
                 dispatchErrorCode = "",
             )
         }
+    }
+
+    /** 把人工复核终态(BLOCKED)的派发重新放回 PENDING，供 UI「一键重试」使用。 */
+    fun retryBlocked(dispatchId: String): Boolean {
+        val updated = synchronized(this) {
+            val current = messages.value
+            val index = current.indexOfFirst {
+                it.dispatchId == dispatchId && it.dispatchState == ChannelInbox.DispatchState.BLOCKED
+            }
+            if (index < 0) return false
+            val target = current[index].copy(
+                dispatchState = ChannelInbox.DispatchState.PENDING,
+                retryAtMillis = 0L,
+                dispatchErrorCode = "",
+            )
+            check(persistItem(target)) { "Channel inbox could not persist blocked retry" }
+            val next = current.toMutableList().also { it[index] = target }
+            messages.value = next
+            true
+        }
+        if (updated) notifyPendingListener()
+        return updated
+    }
+
+    /** 忽略不再处理的 BLOCKED 队列项。 */
+    @Synchronized
+    fun dismissBlocked(dispatchId: String): Boolean {
+        val current = messages.value
+        val index = current.indexOfFirst {
+            it.dispatchId == dispatchId && it.dispatchState == ChannelInbox.DispatchState.BLOCKED
+        }
+        if (index < 0) return false
+        val target = current[index].copy(
+            dispatchState = ChannelInbox.DispatchState.IGNORED,
+            retryAtMillis = 0L,
+            preparedReply = "",
+            encryptedReplyContextToken = "",
+            encryptedAgentCheckpoint = "",
+            dispatchErrorCode = "",
+        )
+        check(persistItem(target)) { "Channel inbox could not persist blocked dismissal" }
+        messages.value = current.toMutableList().also { it[index] = target }
+        return true
     }
 
     @Synchronized

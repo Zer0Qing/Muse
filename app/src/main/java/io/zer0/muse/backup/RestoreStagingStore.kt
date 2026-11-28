@@ -4,9 +4,11 @@ import android.content.Context
 import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import io.zer0.muse.data.AtomicFileStore
+import io.zer0.muse.data.SecureKeyStore
+import io.zer0.muse.data.computenode.RemoteComputeNodeEntity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.json.Json
+import kotlinx.serialization.Serializable
 import java.io.BufferedWriter
 import java.io.File
 import java.io.FileOutputStream
@@ -39,6 +41,38 @@ class RestoreStagingStore(context: Context) {
     fun readTarget(entry: RestoreJournal.Entry): BackupService.Backup? = read(fileFor(entry.stagingFileName))
 
     fun readRecoveryPoint(entry: RestoreJournal.Entry): BackupService.Backup? = read(fileFor(entry.recoveryFileName))
+
+    @Serializable
+    internal data class RecoveryCredentials(
+        val rawProviders: String? = null,
+        val nodes: List<RemoteComputeNodeEntity> = emptyList(),
+    )
+
+    internal suspend fun writeRecoveryCredentials(entry: RestoreJournal.Entry, credentials: RecoveryCredentials) {
+        val data = if (credentials == RecoveryCredentials()) {
+            EMPTY_CREDENTIALS
+        } else {
+            SecureKeyStore.encrypt(json.encodeToString(RecoveryCredentials.serializer(), credentials))
+        }
+        withContext(Dispatchers.IO) {
+            directory.mkdirs()
+            AtomicFileStore.writeText(credentialsFile(entry), data)
+        }
+    }
+
+    internal suspend fun readRecoveryCredentials(entry: RestoreJournal.Entry): RecoveryCredentials? = withContext(Dispatchers.IO) {
+        val file = credentialsFile(entry)
+        if (!file.isFile) return@withContext null
+        val data = file.readText()
+        if (data == EMPTY_CREDENTIALS) {
+            RecoveryCredentials()
+        } else {
+            val plain = checkNotNull(SecureKeyStore.decryptOrNull(data)) { "Cannot decrypt local recovery credentials" }
+            json.decodeFromString(RecoveryCredentials.serializer(), plain)
+        }
+    }
+
+    private fun credentialsFile(entry: RestoreJournal.Entry): File = fileFor("${entry.recoveryFileName}.credentials")
 
     /**
      * 将大体量 NDJSON 恢复点流式写入磁盘，不把正文拼成一个 JSON 字符串。
@@ -74,7 +108,7 @@ class RestoreStagingStore(context: Context) {
 
     /** 完成或放弃恢复后清除私有恢复副本；删除失败只记日志，不暴露文件内容。 */
     fun cleanup(entry: RestoreJournal.Entry) {
-        listOf(entry.stagingFileName, entry.recoveryFileName)
+        listOf(entry.stagingFileName, entry.recoveryFileName, credentialsFile(entry).name)
             .filter(String::isNotBlank)
             .forEach { name ->
                 val file = fileFor(name)
@@ -125,5 +159,6 @@ class RestoreStagingStore(context: Context) {
     private companion object {
         const val TAG = "RestoreStagingStore"
         const val DIRECTORY_NAME = "restore-staging"
+        const val EMPTY_CREDENTIALS = "empty"
     }
 }

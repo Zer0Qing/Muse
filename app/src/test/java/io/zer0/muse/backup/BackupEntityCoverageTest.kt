@@ -83,6 +83,9 @@ class BackupEntityCoverageTest {
         "io.zer0.muse.proactive.SessionProactivePreferenceEntity" to "sessionProactivePreferences",
         // v2.7.x(E2): 术语表 —— 用户确认过的既定说法，不可从历史重新推导
         "io.zer0.muse.data.terms.SessionTermEntity" to "sessionTerms",
+        // Media Studio：生成记录与资产行（提示词、收藏标记是用户资产）。
+        "io.zer0.muse.data.media.MediaGenTaskEntity" to "mediaGenTasks",
+        "io.zer0.muse.data.media.MediaGenAssetEntity" to "mediaGenAssets",
         "ConversationCommandReceiptEntity" to "conversationCommandReceipts",
         "ConversationSelectionEntity" to "conversationSelections",
         "ConversationDisplaySlotEntity" to "conversationDisplaySlots",

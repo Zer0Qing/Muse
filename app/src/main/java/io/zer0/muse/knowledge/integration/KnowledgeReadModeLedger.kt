@@ -101,8 +101,7 @@ class KnowledgeReadModeLedger(
     }
 
     /** 目标模式是否比来源更保守(LEGACY < SHADOW < ACTIVE)。 */
-    private fun isDowngrade(from: KnowledgeReadMode, to: KnowledgeReadMode): Boolean =
-        rank(to) < rank(from)
+    private fun isDowngrade(from: KnowledgeReadMode, to: KnowledgeReadMode): Boolean = rank(to) < rank(from)
 
     private fun rank(mode: KnowledgeReadMode): Int = when (mode) {
         KnowledgeReadMode.LEGACY -> 0

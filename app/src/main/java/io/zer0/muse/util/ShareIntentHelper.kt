@@ -114,11 +114,7 @@ object ShareIntentHelper {
  * 安全触发系统 ActivityResultLauncher：在阉割了文件选择器/语音识别/拍照 Activity 的 ROM 上
  * 捕获 ActivityNotFoundException / SecurityException 并弹轻提示，不让页面直接闪退。
  */
-fun <I> ActivityResultLauncher<I>.launchSafely(
-    input: I,
-    context: Context,
-    fallbackMessage: String? = null,
-): Boolean = runCatching {
+fun <I> ActivityResultLauncher<I>.launchSafely(input: I, context: Context, fallbackMessage: String? = null): Boolean = runCatching {
     launch(input)
     true
 }.onFailure { error ->

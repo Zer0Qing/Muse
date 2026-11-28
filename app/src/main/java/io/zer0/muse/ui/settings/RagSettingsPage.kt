@@ -850,10 +850,7 @@ private fun CardGroupScope.selectionOptionItem(
  * 主动解析一次当前实际生效的 embedding 后端，让状态卡不必等第一次检索。
  */
 @Suppress("TooGenericExceptionCaught")
-private suspend fun resolveActiveBackendQuietly(
-    embeddingService: io.zer0.muse.rag.EmbeddingService,
-    config: RagConfig,
-) {
+private suspend fun resolveActiveBackendQuietly(embeddingService: io.zer0.muse.rag.EmbeddingService, config: RagConfig) {
     if (embeddingService.activeBackend.value != null) return
     try {
         embeddingService.getProvider(config)

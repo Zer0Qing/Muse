@@ -53,8 +53,7 @@ class KnowledgeVectorPublishTest {
     private fun chunks(vararg texts: String): List<LocatedChunk> =
         texts.mapIndexed { i, t -> LocatedChunk(text = t, locator = "p1s${i + 1}", kind = "paragraph") }
 
-    private fun hashOf(texts: List<String>): String =
-        KnowledgeContentStore.hashOf(texts.joinToString("").toByteArray())
+    private fun hashOf(texts: List<String>): String = KnowledgeContentStore.hashOf(texts.joinToString("").toByteArray())
 
     private suspend fun seedDoc(docId: String, revisionId: String) {
         db.knowledgeV2Dao().insertDoc(

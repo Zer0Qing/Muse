@@ -33,6 +33,7 @@ import io.zer0.muse.ui.common.museAnimateItem
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.common.surface.CardGroupScope
+import io.zer0.muse.ui.common.surface.navigationItem
 import io.zer0.muse.ui.settings.SettingsSubPageScaffold
 import io.zer0.muse.ui.theme.MuseAlpha
 import io.zer0.muse.ui.theme.MuseIconSizes
@@ -63,7 +64,7 @@ import org.koin.compose.koinInject
  *     本页不做全局开关(避免与 per-Assistant 机制冲突),只做展示与说明。
  */
 @Composable
-fun ToolsScreen(onBack: () -> Unit) {
+fun ToolsScreen(onBack: () -> Unit, onOpenMediaStudio: (() -> Unit)? = null, onOpenArtifactCenter: (() -> Unit)? = null) {
     val toolRegistry: ToolRegistry = koinInject()
     // ToolRegistry 支持 MCP/插件动态注册；订阅 revision，避免页面首次为空后永久不刷新。
     val registryRevision by toolRegistry.revision.collectAsStateWithLifecycle()
@@ -80,6 +81,48 @@ fun ToolsScreen(onBack: () -> Unit) {
         title = stringResource(R.string.tools_screen_title),
         onBack = onBack,
     ) {
+        if (onOpenMediaStudio != null || onOpenArtifactCenter != null) {
+            item(key = "tools_media_studio") {
+                Box(museAnimateItem()) {
+                    CardGroup(
+                        title = { Text(text = stringResource(R.string.media_studio_title)) },
+                    ) {
+                        if (onOpenMediaStudio != null) {
+                            navigationItem(
+                                key = "open_media_studio",
+                                title = stringResource(R.string.media_studio_title),
+                                subtitle = stringResource(R.string.media_studio_tools_subtitle),
+                                leadingContent = {
+                                    Icon(
+                                        imageVector = MuseIcons.wand,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(MuseIconSizes.iconMedium),
+                                    )
+                                },
+                                onClick = onOpenMediaStudio,
+                            )
+                        }
+                        if (onOpenArtifactCenter != null) {
+                            navigationItem(
+                                key = "open_artifact_center",
+                                title = stringResource(R.string.artifact_center_title),
+                                subtitle = stringResource(R.string.artifact_center_subtitle),
+                                leadingContent = {
+                                    Icon(
+                                        imageVector = MuseIcons.fileText,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(MuseIconSizes.iconMedium),
+                                    )
+                                },
+                                onClick = onOpenArtifactCenter,
+                            )
+                        }
+                    }
+                }
+            }
+        }
         // ── 按分类分组展示 ─────────────────────────────────────────────
         if (tools.isEmpty()) {
             // v2.x: 动效补齐 — 空态入场(令牌 animateItem)
@@ -105,7 +148,7 @@ fun ToolsScreen(onBack: () -> Unit) {
                         },
                     ) {
                         toolsInCategory.forEach { tool ->
-                            ToolRow(
+                            toolRow(
                                 tool = tool,
                                 onClick = { detailTarget = tool },
                             )
@@ -128,7 +171,7 @@ fun ToolsScreen(onBack: () -> Unit) {
                     },
                 ) {
                     PluginManifest.BUILT_IN.forEach { plugin ->
-                        PluginRow(plugin = plugin)
+                        pluginRow(plugin = plugin)
                     }
                 }
             }
@@ -147,7 +190,7 @@ fun ToolsScreen(onBack: () -> Unit) {
 /**
  * 单条工具行 — 图标 + name + description + 风险等级徽章。
  */
-private fun CardGroupScope.ToolRow(tool: ToolRegistry.ToolDef, onClick: () -> Unit) {
+private fun CardGroupScope.toolRow(tool: ToolRegistry.ToolDef, onClick: () -> Unit) {
     item(
         key = tool.name,
         onClick = onClick,
@@ -393,7 +436,7 @@ private fun categoryLabel(category: String): String = when (category) {
  * 只读展示(不带开关):插件的实际启用由代码内部决定,这里仅向用户透出能力边界。
  * trust=full-access 用红色徽章高亮,sandboxed 用中性色,让用户一眼识别高风险插件。
  */
-private fun CardGroupScope.PluginRow(plugin: PluginManifest) {
+private fun CardGroupScope.pluginRow(plugin: PluginManifest) {
     item(key = plugin.id) {
         Row(
             modifier = Modifier.fillMaxWidth(),

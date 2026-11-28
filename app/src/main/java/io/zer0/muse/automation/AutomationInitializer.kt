@@ -123,25 +123,50 @@ object AutomationInitializer {
             // 把"截图 / 注入点击 / 销毁"三个动作暴露给界面（预览与触摸接管用）。
             // 只暴露动作、不暴露整条构造链：界面不需要知道虚拟屏服务是怎么起来的。
             if (virtualDisplayClient != null && virtualDisplayManager != null) {
+                suspend fun execValidatedInput(displayId: Int, action: String, args: Map<String, String>): Boolean {
+                    val command = io.zer0.muse.automation.vdisplay.VirtualDisplayInputCommand.build(
+                        displayId,
+                        action,
+                        args,
+                    ) ?: return false
+                    // 注入命令同样过白名单校验：界面触发的输入不因为"是用户点的"就少一道闸。
+                    val check = io.zer0.muse.automation.core.DeviceCommandPolicy.validate(command.shellCommand)
+                    return if (check is io.zer0.muse.automation.core.DeviceCommandPolicy.Check.Invalid) {
+                        false
+                    } else {
+                        virtualDisplayManager.exec(command.shellCommand).exitCode == 0
+                    }
+                }
                 io.zer0.muse.automation.AutomationRuntime.install(
                     screenshot = { displayId -> virtualDisplayClient.screenshot(displayId) },
                     tap = { displayId, x, y ->
-                        val command = io.zer0.muse.automation.vdisplay.VirtualDisplayInputCommand.build(
-                            displayId,
-                            "tap",
-                            mapOf("x" to x.toString(), "y" to y.toString()),
-                        ) ?: return@install false
-                        // 注入命令同样过白名单校验：界面触发的输入不因为"是用户点的"就少一道闸。
-                        val check = io.zer0.muse.automation.core.DeviceCommandPolicy.validate(command.shellCommand)
-                        if (check is io.zer0.muse.automation.core.DeviceCommandPolicy.Check.Invalid) {
-                            false
-                        } else {
-                            virtualDisplayManager.exec(command.shellCommand).exitCode == 0
-                        }
+                        execValidatedInput(displayId, "tap", mapOf("x" to x.toString(), "y" to y.toString()))
                     },
                     destroy = { displayId -> virtualDisplayClient.destroy(displayId) },
                     // "交回主屏"：launchApp 本来就作用在默认显示屏上
                     launchOnMain = { packageName -> mgr.launchApp(packageName) },
+                    swipe = { displayId, x1, y1, x2, y2 ->
+                        execValidatedInput(
+                            displayId,
+                            "swipe",
+                            mapOf(
+                                "x1" to x1.toString(),
+                                "y1" to y1.toString(),
+                                "x2" to x2.toString(),
+                                "y2" to y2.toString(),
+                            ),
+                        )
+                    },
+                    keyEvent = { displayId, key ->
+                        execValidatedInput(displayId, "key", mapOf("key" to key))
+                    },
+                    inputText = { displayId, text ->
+                        if (io.zer0.muse.automation.vdisplay.VirtualDisplayInputCommand.textRejectionReason(text) != null) {
+                            false
+                        } else {
+                            execValidatedInput(displayId, "text", mapOf("text" to text))
+                        }
+                    },
                 )
             }
             val nodeScriptExecutor: suspend (String, Long) -> io.zer0.muse.tools.script.SkillEngineResult = { code, timeoutMs ->

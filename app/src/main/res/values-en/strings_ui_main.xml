@@ -172,7 +172,8 @@
     <string name="settings_group_media">Voice and Vision</string>
     <string name="settings_group_memory">Memory and Knowledge</string>
     <string name="settings_group_tools">Tools and Extensions</string>
-    <string name="settings_group_connection">Channels and Network</string>
+    <string name="settings_group_channels">Channels</string>
+    <string name="settings_group_connection">Network</string>
     <string name="settings_group_automation">Automation and Background</string>
     <string name="settings_group_data_storage">Data and Backup</string>
     <string name="settings_group_privacy_security">Privacy and Permissions</string>
@@ -392,6 +393,7 @@
     <string name="search_suggestion_idea">Ideas</string>
     <string name="search_no_result">No matching results</string>
     <string name="search_try_other">Try other keywords</string>
+    <string name="search_timeout_hint">The search timed out. Try a shorter word</string>
     <string name="search_section_sessions">Sessions</string>
     <string name="search_section_messages">Messages</string>
     <string name="search_time_today">Today %1$s</string>
@@ -599,6 +601,7 @@
     <string name="provider_plugins_delete">Delete Plugin</string>
     <string name="provider_plugins_convert">Convert to Provider</string>
     <string name="provider_plugins_import_failed">Import failed: %1$s</string>
+    <string name="provider_plugins_import_failed_title">Plugin file not recognized</string>
     <string name="provider_plugins_import_success">Import success</string>
     <string name="provider_plugins_delete_confirm_named">Delete plugin \"%1$s\"? It will no longer be available. Re-import the package to restore it.</string>
     <string name="muse_plugins_publisher_fingerprint">Publisher: %1$s · Key fingerprint: %2$s</string>

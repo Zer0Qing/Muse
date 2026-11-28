@@ -30,25 +30,11 @@ object ToolCategories {
             "get_weather",
             "web_search",
             "web_fetch",
-            "get_network_info",
-            "get_foreground_app",
-            "clipboard_read",
-            // 自检 / 核心记忆读写 / 卡片 / 读文件
-            "tool_status",
+            // 核心记忆读写 / 读文件 / 知识库检索
             "save_memory",
             "search_memory",
             "search_conversation",
-            "recall_experience",
-            "record_experience",
-            "show_card",
-            "update_card_data",
             "read_file",
-            "read_user_file",
-            // 状态自查 / 通知 / 任务组织 / 音色目录
-            "current_status",
-            "notify",
-            "todo_write",
-            "list_cloned_voices",
             // 知识库按需检索三件套（knowledge_search 为内置技能始终可用）：
             // 自动注入默认关闭后，模型必须在每轮稳定看到目录与全文读取入口，自行决定何时检索引用。
             "knowledge_list_docs",
@@ -155,6 +141,7 @@ object ToolCategories {
             "speak_text",
             // 文件 / 链接 / 文档(此前注册了但未登记分类)
             // v2.6.7: SAF 读用户设备文件（需用户点选）
+            "read_user_file",
             "create_download",
             "parse_link",
             "parse_pdf",
@@ -163,9 +150,14 @@ object ToolCategories {
             "generate_video",
             "generate_qr_code",
             "send_voice",
+            "list_cloned_voices",
             // 渲染与卡片辅助
+            "show_card",
+            "update_card_data",
             "render_data",
             // 记忆 / 经验
+            "recall_experience",
+            "record_experience",
             "pin_memory",
             "unpin_memory",
             "delete_memory",
@@ -173,6 +165,14 @@ object ToolCategories {
             "memory_config_set",
             // v2.6.7: 用户偏好学习（沉淀硬约束）
             "remember_preference",
+            // 剪贴板 / 前台 / 状态自查 / 通知 / 任务组织
+            "clipboard_read",
+            "get_foreground_app",
+            "get_network_info",
+            "tool_status",
+            "current_status",
+            "notify",
+            "todo_write",
             // 子 agent / 团队 / 群聊
             "subagent_task",
             "subagent_run",

@@ -25,22 +25,20 @@ internal object LocalOneShotTranscriber {
         }
     }.getOrNull()
 
-    private suspend fun transcribeSuspend(context: Context, wavBytes: ByteArray): String? =
-        withContext(Dispatchers.Default) {
-            val parsed = parseWavPcm(wavBytes) ?: run {
-                Logger.w(TAG, "WAV 解析失败（非 16-bit PCM），本地引擎跳过")
-                return@withContext null
-            }
-            val (pcm, sampleRate) = parsed
-            if (pcm.size < SenseVoiceController.DEFAULT_SAMPLE_RATE / 5) { // 200 ms
-                return@withContext null
-            }
-            SenseVoiceEngine.ensureLoaded(LocalModelStore.modelDir(context))
-            val vocab = LocalModelStore.loadTokens(context)
-            val ids = SenseVoiceEngine.recognize(pcm, sampleRate, withItn = true)
-            SenseVoiceTokens.decode(ids.toList(), vocab).trim().takeIf { it.isNotEmpty() }
+    private suspend fun transcribeSuspend(context: Context, wavBytes: ByteArray): String? = withContext(Dispatchers.Default) {
+        val parsed = parseWavPcm(wavBytes) ?: run {
+            Logger.w(TAG, "WAV 解析失败（非 16-bit PCM），本地引擎跳过")
+            return@withContext null
         }
+        val (pcm, sampleRate) = parsed
+        if (pcm.size < SenseVoiceController.DEFAULT_SAMPLE_RATE / 5) { // 200 ms
+            return@withContext null
+        }
+        SenseVoiceEngine.ensureLoaded(LocalModelStore.modelDir(context))
+        val vocab = LocalModelStore.loadTokens(context)
+        val ids = SenseVoiceEngine.recognize(pcm, sampleRate, withItn = true)
+        SenseVoiceTokens.decode(ids.toList(), vocab).trim().takeIf { it.isNotEmpty() }
+    }
 
-    private fun appContextOrNull(): Context? =
-        LocalModelStoreBridge.contextOrNull()
+    private fun appContextOrNull(): Context? = LocalModelStoreBridge.contextOrNull()
 }

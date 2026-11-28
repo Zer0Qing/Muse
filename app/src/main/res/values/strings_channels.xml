@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ===== 渠道中心主舞台（Hero & Tabs & 空态） ===== -->
+    <string name="channel_hub_hero_online">%1$d 个渠道在线</string>
+    <string name="channel_hub_hero_idle">渠道未启用</string>
+    <string name="channel_hub_hero_empty">尚未接入消息渠道</string>
+    <string name="channel_hub_hero_issue">%1$d 个渠道连接异常</string>
+    <string name="channel_hub_hero_sub_active">最近收到消息：%1$s</string>
+    <string name="channel_hub_hero_sub_ready">已配置 %1$d 个渠道，凭据仅存本机</string>
+    <string name="channel_hub_hero_sub_empty">接入微信、飞书、Telegram 等工具，随时在外部软件与助手对话</string>
+    <string name="channel_hub_add_action">接入渠道</string>
+    <string name="channel_hub_keep_alive_banner">后台未开启常驻保护，息屏后可能断连 · 去设置</string>
+    <string name="channel_hub_tab_channels">渠道</string>
+    <string name="channel_hub_tab_messages">消息</string>
+
+    <!-- 平台简介与能力标签 -->
+    <string name="channel_platform_desc_weclaw">微信扫码即连，免开发者账号，支持图文回复</string>
+    <string name="channel_platform_desc_telegram">只需 1 个 Bot Token，支持主动发消息与大文件</string>
+    <string name="channel_platform_desc_feishu">WebSocket 长连接免公网，适合工作群与协作</string>
+    <string name="channel_platform_desc_dingtalk">企业 Stream 长连接，无需公网域名即可收发</string>
+    <string name="channel_platform_desc_qq">QQ 官方机器人，支持频道外单聊与群聊 @ 触发</string>
+    <string name="channel_badge_recommended">推荐 · 扫码即用</string>
+    <string name="channel_badge_quick">1 分钟接入</string>
+    <string name="channel_badge_no_public_ip">长连接免公网</string>
+    <string name="channel_badge_proactive">支持主动发消息</string>
+    <string name="channel_badge_media">支持图片与文件</string>
+
+    <!-- 实时连接状态 -->
+    <string name="channel_status_connected">在线</string>
+    <string name="channel_status_connecting">连接中</string>
+    <string name="channel_status_reconnecting">重连中</string>
+    <string name="channel_status_auth_error">凭据失效</string>
+    <string name="channel_status_error">连接异常</string>
+    <string name="channel_status_stopped">已停用</string>
+    <string name="channel_home_badge_online">%1$d 在线</string>
+    <string name="channel_home_badge_issue">异常</string>
+
+    <!-- 渠道卡片与收件箱 -->
+    <string name="channel_empty_title">把 Muse 接到你常用的聊天软件</string>
+    <string name="channel_empty_subtitle">点任意平台即可开始，3 步完成配对。凭据仅在本机加密保存。</string>
+    <string name="channel_card_chats_count">%1$d 个会话</string>
+    <string name="channel_card_open_chats">进入对话</string>
+    <string name="channel_card_edit_config">编辑配置</string>
+    <string name="channel_card_send_test">发送测试消息</string>
+    <string name="channel_card_reconnect">立即重连</string>
+    <string name="channel_card_reconnecting_toast">正在重连 %1$s…</string>
+    <string name="channel_card_test_sent">测试消息已发送</string>
+    <string name="channel_card_test_failed">发送失败：%1$s</string>
+    <string name="channel_card_more_cd">更多渠道操作</string>
+    <string name="channel_card_blocked_alert">有 %1$d 条消息回复失败，已暂停等待处理</string>
+    <string name="channel_card_retry_now">重试</string>
+    <string name="channel_card_fix_config">检查凭据</string>
+    <string name="channel_card_ignore">忽略</string>
+    <string name="channel_retry_enqueued">已重新加入发送队列</string>
+    <string name="channel_dismiss_done">已忽略该异常记录</string>
+
+    <!-- 统一收件箱筛选与状态 -->
+    <string name="channel_inbox_filter_all">全部</string>
+    <string name="channel_inbox_filter_issues">待处理</string>
+    <string name="channel_inbox_unified_empty">暂无外部消息记录</string>
+    <string name="channel_inbox_unified_empty_desc">渠道连通后，外部联系人发来的消息会实时汇总在这里，可随时查看或接管回复。</string>
+    <string name="channel_badge_ai_auto">AI 托管</string>
+    <string name="channel_badge_manual_paused">人工接管中</string>
+    <string name="channel_badge_blocked">回复失败</string>
+    <string name="channel_badge_pending">处理中</string>
+    <string name="channel_badge_ignored">未回复</string>
+    <string name="channel_time_just_now">刚刚</string>
+    <string name="channel_time_minutes_ago">%1$d 分钟前</string>
+    <string name="channel_time_hours_ago">%1$d 小时前</string>
+    <string name="channel_time_days_ago">%1$d 天前</string>
+
+    <!-- 三步引导式接入向导 -->
+    <string name="channel_wizard_title">接入消息渠道</string>
+    <string name="channel_wizard_step_label">第 %1$d 步 · 共 3 步</string>
+    <string name="channel_wizard_step1_title">选择聊天平台</string>
+    <string name="channel_wizard_step2_title">配置核心凭据</string>
+    <string name="channel_wizard_step3_title">连通校验与账号认领</string>
+    <string name="channel_wizard_guide_toggle">接入步骤指引</string>
+    <string name="channel_wizard_open_portal">打开开放平台</string>
+    <string name="channel_wizard_copy_chip">复制 %1$s</string>
+    <string name="channel_wizard_copied">已复制：%1$s</string>
+    <string name="channel_wizard_advanced_toggle">高级选项（回调 / 区域 / 自定义网关）</string>
+    <string name="channel_wizard_next">下一步</string>
+    <string name="channel_wizard_prev">上一步</string>
+    <string name="channel_wizard_finish">完成</string>
+    <string name="channel_wizard_skip_claim">稍后再设，先完成</string>
+    <string name="channel_wizard_qr_cd">微信绑定二维码</string>
+    <string name="channel_wizard_qr_save">保存到相册</string>
+    <string name="channel_wizard_qr_share">分享二维码</string>
+    <string name="channel_wizard_qr_saved">二维码已保存到相册</string>
+    <string name="channel_wizard_qr_save_failed">保存失败：%1$s</string>
+    <string name="channel_wizard_qr_share_title">分享微信绑定二维码</string>
+    <string name="channel_wizard_qr_auto_saved">扫码确认后将自动保存并启用</string>
+    <string name="channel_wizard_check_auth">校验机器人身份</string>
+    <string name="channel_wizard_check_auth_running">正在向平台验证凭据…</string>
+    <string name="channel_wizard_check_connect">建立消息接收连接</string>
+    <string name="channel_wizard_check_connect_waiting">正在等待长连接就绪…</string>
+    <string name="channel_wizard_check_connect_ok">接收通道已连通</string>
+    <string name="channel_wizard_check_claim">发送消息认领你的账号</string>
+    <string name="channel_wizard_claim_waiting">现在去对应聊天软件给机器人发一句「你好」，这里会自动识别你的账号。</string>
+    <string name="channel_wizard_claim_detected">收到来自「%1$s」的消息</string>
+    <string name="channel_wizard_claim_confirm">设为默认目标，并仅允许我对话</string>
+    <string name="channel_wizard_claim_done">已锁定为你本人，并回发欢迎消息</string>
+    <string name="channel_wizard_welcome_reply">已连通！之后随时在这里跟我对话，发送 /help 可查看可用指令。</string>
+
+    <!-- 三页签编辑抽屉与群聊触发 -->
+    <string name="channel_config_tab_reply">回复规则</string>
+    <string name="channel_config_tab_policy">访问名单</string>
+    <string name="channel_config_tab_creds">连接凭据</string>
+    <string name="channel_group_trigger_label">群聊触发方式</string>
+    <string name="channel_group_trigger_all">群内所有消息</string>
+    <string name="channel_group_trigger_mention">仅 @ 机器人时回复</string>
+    <string name="channel_group_trigger_keyword">包含关键词时回复</string>
+    <string name="channel_group_trigger_hint">私聊不受此限制；群聊默认按所选条件响应，避免刷屏。</string>
+    <string name="channel_group_keywords_label">触发关键词（逗号分隔）</string>
+    <string name="channel_group_keywords_hint">例如：助手, 总结, @Muse</string>
+    <string name="channel_policy_pick_recent">从最近联系人快速选择</string>
+    <string name="channel_policy_no_recent">暂时还没有联系人记录，收到消息后可直接在这里勾选。</string>
+
+    <!-- 人工接管对话台 -->
+    <string name="channel_chat_takeover_auto">AI 托管</string>
+    <string name="channel_chat_takeover_paused">人工接管</string>
+    <string name="channel_chat_takeover_banner">AI 已暂停自动回复此对话，由你手动发送</string>
+    <string name="channel_chat_takeover_resume">恢复自动</string>
+    <string name="channel_chat_weclaw_inbound_hint">微信机制要求对方先发消息后才可被动回复</string>
+    <string name="channel_chat_input_placeholder">输入要发给对方的消息…</string>
+    <string name="channel_chat_pick_image_cd">选择图片发送</string>
+    <string name="channel_chat_send_cd">发送消息</string>
+    <string name="channel_chat_contact_settings_cd">联系人与对话设置</string>
+    <string name="channel_chat_source_auto">AI 自动回复</string>
+    <string name="channel_chat_source_manual">我手动发送</string>
+    <string name="channel_chat_source_command">指令回报</string>
+    <string name="channel_chat_preview_image_cd">查看发送或收到的图片</string>
+    <string name="channel_chat_contact_sheet_title">联系人与策略设置</string>
+    <string name="channel_chat_alias_label">备注名称</string>
+    <string name="channel_chat_alias_hint">留空则显示平台原始昵称或 ID</string>
+    <string name="channel_chat_save_alias">保存备注</string>
+    <string name="channel_chat_alias_saved">备注已更新</string>
+    <string name="channel_chat_allow_contact">只允许/加入白名单</string>
+    <string name="channel_chat_mute_contact">拉黑静音此联系人</string>
+    <string name="channel_chat_policy_updated">已更新访问策略</string>
+    <string name="channel_chat_assistant_override">本会话专属助手</string>
+    <string name="channel_chat_assistant_follow_channel">跟随渠道默认设置</string>
+    <string name="channel_chat_summary_section">对话滚动摘要</string>
+    <string name="channel_chat_copy_msg">已复制消息内容</string>
+</resources>

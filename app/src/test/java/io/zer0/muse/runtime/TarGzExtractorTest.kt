@@ -113,8 +113,7 @@ class TarGzExtractorTest {
         val linkName: String = "",
     )
 
-    private fun entry(name: String, type: Char, content: String = "", linkName: String = "") =
-        Entry(name, type, content, linkName)
+    private fun entry(name: String, type: Char, content: String = "", linkName: String = "") = Entry(name, type, content, linkName)
 
     /** 构造一条 pax 扩展头（type 'x'），记录长路径。 */
     private fun paxEntry(path: String): Entry {
@@ -152,15 +151,15 @@ class TarGzExtractorTest {
             System.arraycopy(bytes, 0, h, offset, minOf(bytes.size, 512 - offset))
         }
         put(0, name)
-        put(100, octal(0b111_101_101, 8))   // mode 0755
-        put(108, octal(0, 8))               // uid
-        put(116, octal(0, 8))               // gid
+        put(100, octal(0b111_101_101, 8)) // mode 0755
+        put(108, octal(0, 8)) // uid
+        put(116, octal(0, 8)) // gid
         put(124, octal(size, 12))
-        put(136, octal(0, 12))              // mtime
-        put(148, "        ")                // 校验和先填空格
+        put(136, octal(0, 12)) // mtime
+        put(148, "        ") // 校验和先填空格
         h[156] = type.code.toByte()
         put(157, linkName)
-        put(257, "ustar")                   // POSIX magic
+        put(257, "ustar") // POSIX magic
         put(263, "00")
         // 校验和：所有字节相加
         val sum = h.sumOf { (it.toInt() and 0xff) }
@@ -168,6 +167,5 @@ class TarGzExtractorTest {
         return h
     }
 
-    private fun octal(value: Long, width: Int): String =
-        value.toString(8).padStart(width - 1, '0') + "\u0000"
+    private fun octal(value: Long, width: Int): String = value.toString(8).padStart(width - 1, '0') + "\u0000"
 }

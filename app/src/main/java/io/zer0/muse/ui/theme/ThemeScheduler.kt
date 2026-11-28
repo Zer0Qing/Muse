@@ -59,7 +59,8 @@ enum class ThemeReconcileReason(val wireValue: String) {
     TIME_CHANGED("time_changed"),
     TIME_ZONE_CHANGED("time_zone_changed"),
     BOOT_COMPLETED("boot_completed"),
-    PACKAGE_REPLACED("package_replaced");
+    PACKAGE_REPLACED("package_replaced"),
+    ;
 
     companion object {
         fun fromWire(value: String?): ThemeReconcileReason = entries.firstOrNull { it.wireValue == value } ?: WORKER
@@ -77,10 +78,7 @@ class ThemeScheduler(
     private val _decisionFlow = MutableStateFlow<ThemeDecision?>(null)
     val decisionFlow: StateFlow<ThemeDecision?> = _decisionFlow.asStateFlow()
 
-    suspend fun reconcile(
-        reason: ThemeReconcileReason,
-        appendCatchUp: Boolean = false,
-    ): ThemeDecision {
+    suspend fun reconcile(reason: ThemeReconcileReason, appendCatchUp: Boolean = false): ThemeDecision {
         refreshSolarCacheIfNeeded()
         val snapshot = settings.read()
         val now = clock()
@@ -157,11 +155,7 @@ class ThemeScheduler(
         private const val TAG = "ThemeScheduler"
         const val CATCH_UP_WORK_NAME = "muse_theme_reconcile"
 
-        fun create(
-            context: Context,
-            settings: SettingsRepository,
-            systemIsDark: (() -> Boolean)? = null,
-        ): ThemeScheduler {
+        fun create(context: Context, settings: SettingsRepository, systemIsDark: (() -> Boolean)? = null): ThemeScheduler {
             val appContext = context.applicationContext
             val settingsAdapter = object : ThemeScheduleStore {
                 override suspend fun read(): ThemeSettingsSnapshot = ThemeSettingsSnapshot(

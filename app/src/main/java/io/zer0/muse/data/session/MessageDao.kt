@@ -5,7 +5,6 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
-import io.zer0.muse.ui.screen.FavoritesScreen
 
 /** 角色消息计数(统计面板用)。 */
 data class RoleCount(
@@ -477,6 +476,10 @@ interface MessageDao {
             "ORDER BY m.createdAt DESC LIMIT 1",
     )
     suspend fun getLastAssistantMessageForAssistant(assistantId: String): MessageEntity?
+
+    /** Returns true if a non-deleted message with [messageId] exists in [sessionId]. */
+    @Query("SELECT EXISTS(SELECT 1 FROM messages WHERE sessionId = :sessionId AND id = :messageId AND deletedAt IS NULL)")
+    suspend fun existsInSession(sessionId: String, messageId: String): Boolean
 }
 
 /** Phase 10.3: FTS rebuild 用的轻量投影。 */

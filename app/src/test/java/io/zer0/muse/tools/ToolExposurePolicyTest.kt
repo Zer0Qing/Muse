@@ -133,13 +133,13 @@ class ToolExposurePolicyTest {
     }
 
     @Test
-    fun `complex direct request relaxes optional but not global`() {
+    fun `complex direct request keeps optional and global narrowed unless matched`() {
         val filtered = ToolExposurePolicy.filterToolsForRequest(
             "帮我执行一下：分析这份数据,然后整理成笔记发给团队",
             manyTools,
         )
         val names = filtered.map { it.name }.toSet()
-        assertTrue("明确动作请求应放开可选工具", "echo" in names)
+        assertFalse("无关可选工具不应全量放开", "echo" in names)
         assertFalse("全局工具仍需命中或授权", "workspace_write" in names)
     }
 
@@ -350,6 +350,9 @@ class ToolExposurePolicyTest {
             "subagent_task", "subagent_run", "render_data", "send_voice",
             "delete_memory", "pin_memory", "unpin_memory", "screen_permission_status",
             "runtime_selfcheck", "platform_selfcheck", "get_device_info", "get_battery_info",
+            "show_card", "update_card_data", "list_cloned_voices", "clipboard_read",
+            "get_foreground_app", "get_network_info", "tool_status", "current_status",
+            "notify", "todo_write", "read_user_file", "record_experience", "recall_experience",
         )
         demoted.forEach { name ->
             assertTrue("$name 应归类为 OPTIONAL", ToolCategories.categoryOf(name) == ToolCategory.OPTIONAL)
@@ -359,6 +362,12 @@ class ToolExposurePolicyTest {
         demoted.forEach { name ->
             assertFalse("闲聊时降级工具 $name 不应常驻暴露", name in idle)
         }
+        val clipboardExposed = ToolExposurePolicy.filterToolsForRequest("帮我看看剪贴板内容", pool).map { it.name }.toSet()
+        assertTrue("剪贴板关键词应暴露 clipboard_read", "clipboard_read" in clipboardExposed)
+        val cardExposed = ToolExposurePolicy.filterToolsForRequest("画一个柱状图卡片", pool).map { it.name }.toSet()
+        assertTrue("图表卡片关键词应暴露 show_card", "show_card" in cardExposed)
+        assertTrue(ToolExposurePolicy.shouldPreferNativeWebSearch("帮我搜索一下今天的新闻"))
+        assertFalse(ToolExposurePolicy.shouldPreferNativeWebSearch("你好呀"))
         assertTrue("find_tools 属 CORE 应恒可见", "find_tools" in idle)
 
         val voiceHit = ToolExposurePolicy.filterToolsForRequest("把这段话发语音说给我听", pool).map { it.name }.toSet()

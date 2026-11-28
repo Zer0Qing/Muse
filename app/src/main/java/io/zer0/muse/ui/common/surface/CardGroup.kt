@@ -171,11 +171,7 @@ inline fun CardGroup(
 
 @PublishedApi
 @Composable
-internal fun CardGroupContainer(
-    modifier: Modifier,
-    title: (@Composable () -> Unit)?,
-    entries: List<CardGroupEntry>,
-) {
+internal fun CardGroupContainer(modifier: Modifier, title: (@Composable () -> Unit)?, entries: List<CardGroupEntry>) {
     Column(modifier = modifier) {
         // 标题在卡片外部,不被卡片 clip 影响
         if (title != null) {

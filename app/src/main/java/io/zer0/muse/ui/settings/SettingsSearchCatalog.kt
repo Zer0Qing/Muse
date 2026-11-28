@@ -5,8 +5,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import io.zer0.muse.R
 import io.zer0.muse.ui.navigation.ComponentGalleryRoute
 import io.zer0.muse.ui.navigation.ConnectorSettingsRoute
+import io.zer0.muse.ui.navigation.KeepAliveSettingsRoute
 import io.zer0.muse.ui.navigation.PluginManageRoute
-import io.zer0.muse.ui.navigation.SettingsAgentRoute
 import io.zer0.muse.ui.navigation.SettingsAppearanceRoute
 import io.zer0.muse.ui.navigation.SettingsChatRoute
 import io.zer0.muse.ui.navigation.SettingsCloudBackupRoute
@@ -14,10 +14,12 @@ import io.zer0.muse.ui.navigation.SettingsMcpRoute
 import io.zer0.muse.ui.navigation.SettingsMediaRoute
 import io.zer0.muse.ui.navigation.SettingsMemoryConfigRoute
 import io.zer0.muse.ui.navigation.SettingsModelRoute
+import io.zer0.muse.ui.navigation.SettingsMultiAgentRoute
 import io.zer0.muse.ui.navigation.SettingsProxyRoute
 import io.zer0.muse.ui.navigation.SettingsRagRoute
 import io.zer0.muse.ui.navigation.SettingsTaskRoutingRoute
 import io.zer0.muse.ui.navigation.SettingsWebSearchRoute
+import io.zer0.muse.ui.navigation.StickerSettingsRoute
 import io.zer0.muse.ui.navigation.TerminalRoute
 
 /**
@@ -131,6 +133,12 @@ internal object SettingsSearchExtras {
             listOf("定时切换", "自动切换", "深色模式", "dingshiqiehuan", "zidongqiehuan", "shensemoshi", "dsqh", "zdqh", "ssms"),
         ),
         record(
+            R.string.settings_home_layout_title,
+            SettingsGroupKind.GENERAL,
+            SettingsEntryAction.Navigate(SettingsAppearanceRoute),
+            listOf("首页布局", "首页样式", "极简抽屉", "经典三页", "抽屉", "shouyebuju", "chouti", "sybj", "ct"),
+        ),
+        record(
             R.string.settings_screen_entry_tts_playback,
             SettingsGroupKind.MEDIA,
             SettingsEntryAction.Navigate(SettingsMediaRoute),
@@ -171,7 +179,7 @@ internal object SettingsSearchExtras {
         ),
         record(
             R.string.settings_memory_custom_compress_prompt,
-            SettingsGroupKind.MEMORY,
+            SettingsGroupKind.MODELS,
             SettingsEntryAction.Navigate(SettingsTaskRoutingRoute),
             listOf("压缩", "压缩提示词", "上下文压缩", "自定义提示词", "yasuo", "yasuotishici", "shangwen", "ystc", "ys"),
         ),
@@ -219,8 +227,8 @@ internal object SettingsSearchExtras {
         ),
         record(
             R.string.settings_memory_keep_awake,
-            SettingsGroupKind.ASSISTANTS,
-            SettingsEntryAction.Navigate(SettingsAgentRoute),
+            SettingsGroupKind.AUTOMATION,
+            SettingsEntryAction.Navigate(KeepAliveSettingsRoute),
             listOf(
                 "保持唤醒", "唤醒", "wakelock", "不休眠", "常亮", "keep awake", "baochihuanxing",
                 "huanxing", "buxiumian", "changliang", "bchx", "hx", "bxm", "cl",
@@ -228,8 +236,8 @@ internal object SettingsSearchExtras {
         ),
         record(
             R.string.settings_agent_boot_section,
-            SettingsGroupKind.ASSISTANTS,
-            SettingsEntryAction.Navigate(SettingsAgentRoute),
+            SettingsGroupKind.AUTOMATION,
+            SettingsEntryAction.Navigate(KeepAliveSettingsRoute),
             listOf(
                 "开机自启", "自启", "自启动", "开机", "boot", "auto launch", "BootReceiver",
                 "kaijiziqi", "ziqi", "zidong", "kaiji", "kjzq", "zq", "zdd", "kj",
@@ -238,7 +246,7 @@ internal object SettingsSearchExtras {
         record(
             R.string.settings_screen_entry_collab,
             SettingsGroupKind.ASSISTANTS,
-            SettingsEntryAction.Navigate(SettingsAgentRoute),
+            SettingsEntryAction.Navigate(SettingsMultiAgentRoute),
             listOf("协作", "多助手", "团队", "xiezhuo", "duozhushou", "tuandui", "xz", "dzs", "td"),
         ),
         record(
@@ -280,7 +288,7 @@ internal object SettingsSearchExtras {
         record(
             R.string.settings_backup_cloud_title,
             SettingsGroupKind.DATA_STORAGE,
-            SettingsEntryAction.Navigate(SettingsCloudBackupRoute),
+            SettingsEntryAction.Navigate(SettingsCloudBackupRoute()),
             listOf("云备份", "备份", "S3", "WebDAV", "yunbeifen", "beifen", "ybf", "bf"),
         ),
         record(
@@ -301,7 +309,7 @@ internal object SettingsSearchExtras {
         record(
             R.string.settings_chat_sticker_section,
             SettingsGroupKind.GENERAL,
-            SettingsEntryAction.Navigate(SettingsChatRoute),
+            SettingsEntryAction.Navigate(StickerSettingsRoute),
             listOf(
                 "表情包", "表情", "贴纸", "表情包库", "sticker", "emoji", "biaoqingbao",
                 "biaoqing", "tiezhi", "biaoqingbaoku", "bq", "tq", "bqbk",

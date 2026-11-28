@@ -391,14 +391,19 @@ fun inferFromMessage(message: String, throwable: Throwable?): ProviderError? {
     // SSE 断流时 okhttp 给的是 IOException，旧顺序会把「HTTP 402 余额不足」判成网络错误，
     // 于是 UI 说"网络异常"并白白重试三次（用户实测）。
     return when {
+        // 429 / 限流必须排在 quota 之前：免费模型的 429 响应体常写成
+        // 「used up today's text quota ... rate_limit_exceeded」，先匹配 quota 会把它
+        // 判成余额不足（InsufficientQuota），UI 再映射成「API Key 无效」，
+        // 用户照着换密钥也修不好。限流是可以等一会儿再试的状态，语义完全不同。
+        msg.contains("429") || msg.contains("rate limit") || msg.contains("rate_limit") ||
+            msg.contains("ratelimit") || msg.contains("too many requests") ->
+            ProviderError.RateLimit(displayMessage = safeMessage, cause = throwable)
         msg.contains("402") || msg.contains("insufficient") || msg.contains("quota") ||
             msg.contains("balance") ->
             ProviderError.InsufficientQuota(httpCode = 402, displayMessage = safeMessage, cause = throwable)
         msg.contains("401") || msg.contains("403") ||
             msg.contains("api key") || msg.contains("unauthorized") ->
             ProviderError.AuthError(displayMessage = safeMessage, cause = throwable)
-        msg.contains("429") || msg.contains("rate limit") ->
-            ProviderError.RateLimit(displayMessage = safeMessage, cause = throwable)
         msg.contains("500") || msg.contains("502") || msg.contains("503") ||
             msg.contains("504") || msg.contains("529") || msg.contains("overloaded") ->
             ProviderError.ServerError(httpCode = 529, displayMessage = safeMessage, cause = throwable)

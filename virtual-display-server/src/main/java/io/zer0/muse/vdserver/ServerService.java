@@ -27,7 +27,7 @@ import java.util.concurrent.TimeUnit;
  */
 public final class ServerService extends IVirtualDisplayService.Stub {
 
-    private static final long IDLE_TIMEOUT_MS = 15_000L;
+    private static final long IDLE_TIMEOUT_MS = 120_000L;
     private static final long IDLE_SCAN_INTERVAL_MS = 5_000L;
     private static final long PUBLISH_INTERVAL_MS = 5_000L;
     private static final long SCREENSHOT_TIMEOUT_MS = 1_000L;
@@ -197,14 +197,22 @@ public final class ServerService extends IVirtualDisplayService.Stub {
                 }
             }
             if (image == null) {
-                return null;
+                byte[] cached = state.lastFrameJpeg;
+                if (cached == null) return null;
+                synchronized (this) {
+                    if (!displays.containsKey(id)) return null;
+                }
+                return cached;
             }
             byte[] jpeg = imageToJpeg(image);
             // 锁已释放，但显示可能在此期间被销毁：检查一次，避免向已死屏返回帧。
             synchronized (this) {
                 if (!displays.containsKey(id)) return null;
             }
-            return jpeg;
+            if (jpeg != null) {
+                state.lastFrameJpeg = jpeg;
+            }
+            return jpeg != null ? jpeg : state.lastFrameJpeg;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return null;
@@ -271,6 +279,7 @@ public final class ServerService extends IVirtualDisplayService.Stub {
         final int dpi;
         final VirtualDisplay virtualDisplay;
         final ImageReader imageReader;
+        volatile byte[] lastFrameJpeg;
 
         DisplayState(int id, int width, int height, int dpi, VirtualDisplay virtualDisplay, ImageReader imageReader) {
             this.id = id;

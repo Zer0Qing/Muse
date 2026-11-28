@@ -3,7 +3,6 @@ package io.zer0.muse.ui.chat
 import android.content.Context
 import android.net.Uri
 import io.zer0.ai.ChatService
-import io.zer0.ai.core.ChatStreamEvent
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.Model
 import io.zer0.ai.core.ProviderConfig
@@ -12,7 +11,6 @@ import io.zer0.ai.core.UIMessage
 import io.zer0.ai.image.ImageService
 import io.zer0.common.AppDispatchers
 import io.zer0.common.Logger
-import io.zer0.common.resultOf
 import io.zer0.muse.R
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.session.SessionRepository
@@ -23,6 +21,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import java.io.IOException
 import kotlin.uuid.Uuid
 
 /**
@@ -43,68 +42,73 @@ private typealias VideoHandler = io.zer0.muse.ui.chat.VideoAttachmentHandler
 internal fun resolveImageCapableModel(provider: ProviderConfig?, requested: Model?): Model? = requested?.takeIf { it.supportsImageOutput() }
     ?: provider?.models?.firstOrNull { it.supportsImageOutput() }
 
-internal suspend fun readImageContentBase64(
-    uri: Uri,
-    context: Context,
-    onFailure: (Throwable) -> Unit = {},
-): String = withContext(AppDispatchers.io) {
-    try {
-        val resolver = context.contentResolver
-        val bitmap = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-            val source = android.graphics.ImageDecoder.createSource(resolver, uri)
-            android.graphics.ImageDecoder.decodeBitmap(
-                source,
-                object : android.graphics.ImageDecoder.OnHeaderDecodedListener {
-                    override fun onHeaderDecoded(
-                        decoder: android.graphics.ImageDecoder,
-                        info: android.graphics.ImageDecoder.ImageInfo,
-                        src: android.graphics.ImageDecoder.Source,
-                    ) {
-                        var sample = 1
-                        while (info.size.width / sample > IMAGE_INPUT_SCALE_TARGET ||
-                            info.size.height / sample > IMAGE_INPUT_SCALE_TARGET
-                        ) {
-                            sample *= 2
-                        }
-                        decoder.setTargetSampleSize(sample)
-                    }
-                },
-            )
-        } else {
-            @Suppress("DEPRECATION")
-            val bounds = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
-            resolver.openInputStream(uri)?.use { input ->
-                android.graphics.BitmapFactory.decodeStream(input, null, bounds)
-            }
-            var sample = 1
-            while (bounds.outWidth / sample > IMAGE_INPUT_SCALE_TARGET ||
-                bounds.outHeight / sample > IMAGE_INPUT_SCALE_TARGET
-            ) {
-                sample *= 2
-            }
-            val options = android.graphics.BitmapFactory.Options().apply { inSampleSize = sample }
-            resolver.openInputStream(uri)?.use { input ->
-                android.graphics.BitmapFactory.decodeStream(input, null, options)
-            }
-        } ?: return@withContext ""
-
+internal suspend fun readImageContentBase64(uri: Uri, context: Context, onFailure: (Throwable) -> Unit = {}): String =
+    withContext(AppDispatchers.io) {
         try {
-            val bytes = java.io.ByteArrayOutputStream().use { output ->
-                bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, IMAGE_INPUT_JPEG_QUALITY, output)
-                output.toByteArray()
+            val resolver = context.contentResolver
+            val bitmap = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                val source = android.graphics.ImageDecoder.createSource(resolver, uri)
+                android.graphics.ImageDecoder.decodeBitmap(
+                    source,
+                    object : android.graphics.ImageDecoder.OnHeaderDecodedListener {
+                        override fun onHeaderDecoded(
+                            decoder: android.graphics.ImageDecoder,
+                            info: android.graphics.ImageDecoder.ImageInfo,
+                            src: android.graphics.ImageDecoder.Source,
+                        ) {
+                            var sample = 1
+                            while (info.size.width / sample > IMAGE_INPUT_SCALE_TARGET ||
+                                info.size.height / sample > IMAGE_INPUT_SCALE_TARGET
+                            ) {
+                                sample *= 2
+                            }
+                            decoder.setTargetSampleSize(sample)
+                        }
+                    },
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                val bounds = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                resolver.openInputStream(uri)?.use { input ->
+                    android.graphics.BitmapFactory.decodeStream(input, null, bounds)
+                }
+                var sample = 1
+                while (bounds.outWidth / sample > IMAGE_INPUT_SCALE_TARGET ||
+                    bounds.outHeight / sample > IMAGE_INPUT_SCALE_TARGET
+                ) {
+                    sample *= 2
+                }
+                val options = android.graphics.BitmapFactory.Options().apply { inSampleSize = sample }
+                resolver.openInputStream(uri)?.use { input ->
+                    android.graphics.BitmapFactory.decodeStream(input, null, options)
+                }
+            } ?: return@withContext ""
+
+            try {
+                val bytes = java.io.ByteArrayOutputStream().use { output ->
+                    bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, IMAGE_INPUT_JPEG_QUALITY, output)
+                    output.toByteArray()
+                }
+                android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
+            } finally {
+                bitmap.recycle()
             }
-            android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
-        } finally {
-            bitmap.recycle()
+        } catch (error: kotlinx.coroutines.CancellationException) {
+            throw error
+        } catch (error: IOException) {
+            Logger.w("ImageGenCoordinator", "图片读取失败: ${error.message}", error)
+            onFailure(error)
+            ""
+        } catch (error: SecurityException) {
+            Logger.w("ImageGenCoordinator", "图片读取失败: ${error.message}", error)
+            onFailure(error)
+            ""
+        } catch (error: IllegalArgumentException) {
+            Logger.w("ImageGenCoordinator", "图片读取失败: ${error.message}", error)
+            onFailure(error)
+            ""
         }
-    } catch (error: kotlinx.coroutines.CancellationException) {
-        throw error
-    } catch (error: Exception) {
-        Logger.w("ImageGenCoordinator", "图片读取失败: ${error.message}", error)
-        onFailure(error)
-        ""
     }
-}
 
 private const val IMAGE_INPUT_SCALE_TARGET = 1024
 private const val IMAGE_INPUT_JPEG_QUALITY = 85
@@ -130,8 +134,9 @@ class ImageGenCoordinator(
     private val settings: SettingsRepository,
     private val sessionRepository: SessionRepository,
     private val ocrManager: OcrManager,
-    private val chatService: ChatService,
+    @Suppress("UNUSED_PARAMETER") private val chatService: ChatService,
     private val appContext: Context,
+    private val mediaGenerationManager: io.zer0.muse.data.media.MediaGenerationManager? = null,
 ) {
 
     private val tag = "ChatVM"
@@ -261,6 +266,14 @@ class ImageGenCoordinator(
         }
     }
 
+    /** Cancel any active Draw Mode image generation job and clear loading flag. */
+    fun cancelImageGeneration() {
+        imageJob?.cancel()
+        imageJob = null
+        currentMediaTaskId = null
+        accessor.update { it.copy(isGeneratingImage = false) }
+    }
+
     /**
      * P5-G + Phase 10.2: 生成图片。
      *
@@ -276,6 +289,7 @@ class ImageGenCoordinator(
         prompt: String,
         sessionId: String,
         addError: (ChatErrorType, String) -> Unit,
+        @Suppress("UNUSED_PARAMETER")
         updateAssistant: (
             id: Uuid,
             content: String,
@@ -395,36 +409,9 @@ class ImageGenCoordinator(
                     return@launch
                 }
 
-                // v1.0.18: Gemini 走 streamChat 多模态;其余(OpenAI / Agnes / 中转站)统一走
-                // ImageService → ImageProviderRegistry,由 registry 按配置自动选择适配器。
-                when (config.type) {
-                    ProviderType.GEMINI -> {
-                        if (!model.supportsImageOutput()) {
-                            if (currentMediaTaskId == mediaTaskId) {
-                                accessor.update {
-                                    it.copy(
-                                        errors =
-                                        listOf(
-                                            ChatError(
-                                                type = ChatErrorType.UNKNOWN,
-                                                message =
-                                                appContext.getString(
-                                                    R.string.err_image_gen_model_no_output,
-                                                ),
-                                            ),
-                                        ),
-                                        isGeneratingImage = false,
-                                    )
-                                }
-                            }
-                            return@launch
-                        }
-                        generateImageViaGemini(prompt, sessionId, assistantMsg.id, config, model, addError, updateAssistant)
-                    }
-                    else -> {
-                        generateImageViaOpenAi(prompt, sessionId, assistantMsg.id, config, model, addError)
-                    }
-                }
+                // All image providers (OpenAI / Gemini / Agnes / custom compatible endpoints) route
+                // through ImageService -> ImageProviderRegistry and record local assets cleanly.
+                generateImageViaService(prompt, sessionId, assistantMsg.id, config, model, addError)
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (t: Exception) {
@@ -449,8 +436,7 @@ class ImageGenCoordinator(
                     }
                 }
             } finally {
-                // 9.1 修复: 任何路径下都重置 isGeneratingImage,避免 Gemini 返回空图片列表等
-                // 错误路径早返回时 loading 卡死(成功/失败/取消均会触发 finally)
+                // 9.1 修复: 任何路径下都重置 isGeneratingImage,避免错误路径早返回时 loading 卡死
                 // F-09: 仅当前任务可重置 — 旧任务 finally 不得覆盖新任务的 isGeneratingImage
                 if (currentMediaTaskId == mediaTaskId) {
                     accessor.update { it.copy(isGeneratingImage = false) }
@@ -459,8 +445,8 @@ class ImageGenCoordinator(
         }
     }
 
-    /** Phase 10.2: OpenAI 兼容绘图(走 ImageService 独立端点)。 */
-    private suspend fun generateImageViaOpenAi(
+    /** Unified image generation path via ImageService + local Media Studio persistence. */
+    private suspend fun generateImageViaService(
         prompt: String,
         sessionId: String,
         assistantId: Uuid,
@@ -468,13 +454,12 @@ class ImageGenCoordinator(
         model: Model,
         addError: (ChatErrorType, String) -> Unit,
     ) {
-        // v1.136: 把 UI 选中的绘图模型 ID 传入 ImageService,避免 model 为空导致自定义端点 404
-        val urls = imageService.generate(
+        val rawUrls = imageService.generate(
             prompt,
             accessor.snapshot.imageGenParams.copy(model = model.id),
             providerConfig,
         )
-        if (urls.isEmpty()) {
+        if (rawUrls.isEmpty()) {
             accessor.update {
                 it.copy(
                     errors = listOf(
@@ -485,6 +470,13 @@ class ImageGenCoordinator(
             }
             return
         }
+        val urls = mediaGenerationManager?.recordExternalImageResult(
+            prompt = prompt,
+            providerId = providerConfig.id,
+            modelId = model.id,
+            rawSources = rawUrls,
+            source = io.zer0.muse.data.media.MediaGenTaskEntity.SOURCE_CHAT,
+        )?.takeIf { it.isNotEmpty() } ?: rawUrls
         val md = urls.joinToString("\n\n") { "![]($it)" }
         accessor.updateMessages { messages ->
             messages.map { msg ->
@@ -506,119 +498,7 @@ class ImageGenCoordinator(
             try {
                 sessionRepository.upsertMessage(sessionId, finalAssistant)
             } catch (e: Exception) {
-                Logger.e(tag, "generateImageViaOpenAi upsertMessage failed", e)
-                addError(
-                    ChatErrorType.UNKNOWN,
-                    appContext.getString(R.string.err_image_gen_save_failed, e.message ?: appContext.getString(R.string.err_chat_unknown)),
-                )
-            }
-        }
-    }
-
-    /** Phase 10.2: Gemini 绘图(走 streamChat 多模态路径,收集 ImageDelta base64)。 */
-    private suspend fun generateImageViaGemini(
-        prompt: String,
-        sessionId: String,
-        assistantId: Uuid,
-        providerConfig: ProviderConfig,
-        model: Model,
-        addError: (ChatErrorType, String) -> Unit,
-        updateAssistant: (
-            id: Uuid,
-            content: String,
-            reasoning: String?,
-            imageBase64List: List<String>?,
-            imageUrls: List<String>?,
-            isStreaming: Boolean,
-        ) -> Unit,
-    ) {
-        val drawMessages = listOf(
-            UIMessage(role = MessageRole.USER, content = "请生成一张图片: $prompt"),
-        )
-        val flow = chatService.streamChat(
-            messages = drawMessages,
-            model = model,
-            tools = null,
-            temperature = null,
-            maxTokens = null,
-            providerConfig = providerConfig,
-        )
-        val textBuilder = StringBuilder()
-        val imageBase64List = mutableListOf<String>()
-        val imageMimeTypes = mutableListOf<String>()
-        flow.collect { event ->
-            when (event) {
-                is ChatStreamEvent.ContentDelta -> {
-                    textBuilder.append(event.delta)
-                    updateAssistant(assistantId, textBuilder.toString(), null, null, null, true)
-                }
-                is ChatStreamEvent.ImageDelta -> {
-                    imageBase64List.add(event.imageBase64)
-                    imageMimeTypes.add(event.mimeType.ifBlank { "image/png" })
-                    val mime = event.mimeType.ifBlank { "image/png" }
-                    val dataUri = "data:$mime;base64,${event.imageBase64}"
-                    val currentMsg = accessor.messagesSnapshot.firstOrNull { it.id == assistantId }
-                    val currentUrls = currentMsg?.imageUrls ?: emptyList()
-                    updateAssistant(
-                        assistantId,
-                        textBuilder.toString(),
-                        null,
-                        imageBase64List.toList(),
-                        currentUrls + dataUri,
-                        true,
-                    )
-                }
-                is ChatStreamEvent.Error -> {
-                    throw event.throwable ?: RuntimeException(event.message)
-                }
-                else -> {}
-            }
-        }
-        if (imageBase64List.isEmpty()) {
-            accessor.updateMessages { messages ->
-                messages.map { msg ->
-                    if (msg.id == assistantId) msg.copy(content = textBuilder.toString()) else msg
-                }
-            }
-            accessor.update {
-                it.copy(
-                    errors = listOf(
-                        ChatError(type = ChatErrorType.UNKNOWN, message = appContext.getString(R.string.err_image_gen_no_image)),
-                    ),
-                    isGeneratingImage = false,
-                )
-            }
-            val finalAssistant = accessor.messagesSnapshot.firstOrNull { it.id == assistantId }
-            if (finalAssistant != null) {
-                sessionRepository.upsertMessage(sessionId, finalAssistant)
-            }
-            return
-        }
-        val mdImages = imageBase64List.mapIndexed { idx, b64 ->
-            val mime = imageMimeTypes.getOrNull(idx) ?: "image/png"
-            "![](data:$mime;base64,$b64)"
-        }.joinToString("\n\n")
-        val finalContent = when {
-            textBuilder.isNotBlank() && mdImages.isNotBlank() -> "${textBuilder}\n\n$mdImages"
-            mdImages.isNotBlank() -> mdImages
-            else -> textBuilder.toString()
-        }
-        accessor.updateMessages { messages ->
-            messages.map { msg ->
-                if (msg.id == assistantId) msg.copy(content = finalContent) else msg
-            }
-        }
-        accessor.update {
-            it.copy(
-                isGeneratingImage = false,
-            )
-        }
-        val finalAssistant = accessor.messagesSnapshot.firstOrNull { it.id == assistantId }
-        if (finalAssistant != null) {
-            try {
-                sessionRepository.upsertMessage(sessionId, finalAssistant)
-            } catch (e: Exception) {
-                Logger.e(tag, "generateImageViaGemini upsertMessage failed", e)
+                Logger.e(tag, "generateImageViaService upsertMessage failed", e)
                 addError(
                     ChatErrorType.UNKNOWN,
                     appContext.getString(R.string.err_image_gen_save_failed, e.message ?: appContext.getString(R.string.err_chat_unknown)),

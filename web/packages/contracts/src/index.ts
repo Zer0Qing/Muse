@@ -7,6 +7,7 @@ export type ChatStreamEvent =
   | { type: "usage_delta"; promptTokens: number; completionTokens: number; reasoningTokens: number; cachedTokens: number }
   | { type: "citation_delta"; urls: string[] }
   | { type: "fallback_notice"; message: string }
+  | { type: "tool_approval_required"; approvalId: string; toolCallId: string; toolName: string; serverName: string; purpose: string; argumentsJson: string }
   | { type: "done"; finishReason?: string }
   | { type: "stream_interrupted"; message: string }
   | { type: "error"; message: string };

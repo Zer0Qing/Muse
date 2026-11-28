@@ -60,6 +60,7 @@ object BotEventKind {
     const val TASK_ACCEPTED = "TaskAccepted"
     const val TASK_PROGRESSED = "TaskProgressed"
     const val TASK_RESULT_READY = "TaskResultReady"
+
     /**
      * 审核已明确允许发布，可以对外说话了。
      *
@@ -75,6 +76,7 @@ object BotEventKind {
     const val RESOURCE_CHANGED = "ResourceChanged"
     const val TASK_STEERED = "TaskSteered"
     const val STEP_UPDATED = "StepUpdated"
+    const val COMPUTE_EXEC_OWNER = "ComputeExecOwner"
 
     val all: Set<String> = setOf(
         USER_INPUT_RECEIVED,
@@ -90,5 +92,6 @@ object BotEventKind {
         RESOURCE_CHANGED,
         TASK_STEERED,
         STEP_UPDATED,
+        COMPUTE_EXEC_OWNER,
     )
 }

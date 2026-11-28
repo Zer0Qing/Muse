@@ -4,6 +4,7 @@ import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.ToolCall
 import io.zer0.ai.core.ToolCallInfo
 import io.zer0.ai.core.UIMessage
+import io.zer0.muse.ui.chat.imageGenPromptsByMessage
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -11,7 +12,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import io.zer0.muse.ui.chat.imageGenPromptsByMessage
 
 /**
  * 图片作品条提示词的预计算。

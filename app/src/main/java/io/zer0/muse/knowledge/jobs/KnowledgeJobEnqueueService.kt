@@ -51,12 +51,7 @@ class KnowledgeJobEnqueueService(
      * 把一批文档登记为一次重建作业。
      * @param docIds 目标文档;空集返回空结果,不扩成「全部库」(范围不扩域)。
      */
-    suspend fun enqueueReindex(
-        ownerType: String,
-        ownerId: String,
-        docIds: Collection<String>,
-        datasetEpoch: Long = 0L,
-    ): EnqueueResult {
+    suspend fun enqueueReindex(ownerType: String, ownerId: String, docIds: Collection<String>, datasetEpoch: Long = 0L): EnqueueResult {
         if (docIds.isEmpty()) {
             return EnqueueResult(jobId = "", itemIds = emptyList(), emptyReason = "空文档集:不扩成全部")
         }
@@ -100,16 +95,13 @@ class KnowledgeJobEnqueueService(
      * 附件清理入队:把某会话的附件文档登记为清理作业项(删除语义,执行时由 JobRunner
      * 的 CLEANUP 阶段落地)。与重建共用同一账本,便于统一状态展示。
      */
-    suspend fun enqueueAttachmentCleanup(
-        sessionId: String,
-        docIds: Collection<String>,
-        datasetEpoch: Long = 0L,
-    ): EnqueueResult = enqueueReindex(
-        ownerType = "SessionAttachment",
-        ownerId = sessionId,
-        docIds = docIds,
-        datasetEpoch = datasetEpoch,
-    )
+    suspend fun enqueueAttachmentCleanup(sessionId: String, docIds: Collection<String>, datasetEpoch: Long = 0L): EnqueueResult =
+        enqueueReindex(
+            ownerType = "SessionAttachment",
+            ownerId = sessionId,
+            docIds = docIds,
+            datasetEpoch = datasetEpoch,
+        )
 
     /** 修正「空全部参数」语义:调用方传入「全部 KB」时用显式全量列表;空列表是空结果而非全部。 */
     suspend fun expandAllKbDocIds(allDocIds: Collection<String>): Collection<String> = allDocIds

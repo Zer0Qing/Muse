@@ -12,6 +12,7 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.test.core.app.ApplicationProvider
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.feedback.MUSE_DIALOG_SCRIM_TAG
+import io.zer0.muse.ui.memory.FactEditDialog
 import org.junit.Assert.assertFalse
 import org.junit.Rule
 import org.junit.Test
@@ -19,7 +20,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.util.concurrent.atomic.AtomicBoolean
-import io.zer0.muse.ui.memory.FactEditDialog
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [33])

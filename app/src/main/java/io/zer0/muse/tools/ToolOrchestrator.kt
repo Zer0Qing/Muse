@@ -2,13 +2,9 @@ package io.zer0.muse.tools
 
 import android.content.Context
 import io.zer0.ai.core.MessageRole
-import io.zer0.ai.core.Model
-import io.zer0.ai.core.ProviderConfig
-import io.zer0.ai.core.ReasoningLevel
 import io.zer0.ai.core.ToolCall
 import io.zer0.ai.core.ToolCallInfo
 import io.zer0.ai.core.ToolCallSanitizer
-import io.zer0.ai.core.ToolDefinition
 import io.zer0.ai.core.UIMessage
 import io.zer0.common.AppJson
 import io.zer0.common.Logger
@@ -16,24 +12,24 @@ import io.zer0.common.Perf
 import io.zer0.common.TextTruncation
 import io.zer0.common.resultOf
 import io.zer0.muse.R
-import io.zer0.muse.runtime.RuntimeMissing
 import io.zer0.muse.chat.PendingToolCallStore
 import io.zer0.muse.data.ExperimentsConfig
-import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.data.audit.AuditLogger
 import io.zer0.muse.data.session.SessionRepository
 import io.zer0.muse.data.session.ToolRoundEntity
-import io.zer0.muse.data.skill.SkillEntity
 import io.zer0.muse.data.skill.SkillRepository
+import io.zer0.muse.runtime.RuntimeMissing
 import io.zer0.muse.ui.chat.ChatErrorType
 import io.zer0.muse.ui.chat.ChatStateAccessor
 import io.zer0.muse.ui.chat.ChatTaskCardCoordinator
+import io.zer0.muse.ui.chat.STICKER_PATH_PATTERN
+import io.zer0.muse.ui.chat.ToolCallRecord
+import io.zer0.muse.ui.chat.extractStickerPaths
 import io.zer0.muse.ui.taskcard.TaskCardData
 import io.zer0.muse.ui.taskcard.TaskCardPhase
 import io.zer0.muse.ui.taskcard.TaskStepStatus
 import io.zer0.muse.util.TokenEstimator
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.async
@@ -57,12 +53,6 @@ import kotlinx.serialization.json.put
 import java.io.File
 import kotlin.coroutines.coroutineContext
 import kotlin.uuid.Uuid
-import io.zer0.muse.ui.chat.ToolCallRecord
-import io.zer0.muse.ui.chat.ToolCallCard
-import io.zer0.muse.ui.chat.STICKER_PATH_PATTERN
-import io.zer0.muse.ui.chat.extractStickerPaths
-import io.zer0.muse.ui.chat.MessageBubble
-import io.zer0.muse.ui.chat.ChatViewModel
 
 class ToolOrchestrator(
     private val toolRegistry: ToolRegistry,
@@ -192,6 +182,8 @@ class ToolOrchestrator(
          * 那句话就成了假话；谁产图谁写字。
          */
         val screenshotCaption: String? = null,
+        /** Pre-allocated toolDisplay UIMessage id so show_card binds to the rendered bubble id. */
+        val displayMessageId: Uuid = Uuid.random(),
     )
 
     /**
@@ -243,6 +235,7 @@ class ToolOrchestrator(
         // 每轮都要按"当前历史"算一次 token 占用（给内联输出预算用）。历史每轮只多两条，
         // 共用一份按实例的计数缓存后，第 2 轮起只算新增的那两条，不再整份重跑 BPE。
         val loopTokenCache = io.zer0.muse.util.MessageTokenCache()
+        val lastShownCardIdRef = java.util.concurrent.atomic.AtomicReference<String?>(null)
 
         while ((hasToolCalls || forceFinalResponse) && round < execPolicy.maxRounds) {
             round++
@@ -591,11 +584,18 @@ class ToolOrchestrator(
                                 it.copy(toolProgressMessage = context.getString(R.string.tool_running, tc.name))
                             }
                             try {
+                                val preAllocatedDisplayId = Uuid.random()
+                                val lastShownCardId = lastShownCardIdRef.get()
                                 val result =
                                     executeSingleToolCall(
                                         params, taskCardId, tc, idx, host, taskCardCoordinator, execPolicy,
                                         stateLock, approvalLock, inlineOutputBudgetTokens,
+                                        displayMessageId = preAllocatedDisplayId,
+                                        lastShownCardId = lastShownCardId,
                                     ).copy(executionId = executionId ?: "")
+                                if (tc.name == "show_card" && result.isSuccess) {
+                                    lastShownCardIdRef.set(preAllocatedDisplayId.toString())
+                                }
                                 persistToolRoundIncrementally(params, round, stepStartedAt, result)
                                 executionId?.let { id -> executionRegistry?.finish(id) }
                                 result
@@ -823,6 +823,7 @@ class ToolOrchestrator(
 
                         val toolDisplay =
                             UIMessage(
+                                id = result.displayMessageId,
                                 role = MessageRole.ASSISTANT,
                                 // v2.5.2 fix: 工具展示消息挂到所属助手消息上（父关联），
                                 // 否则删除该轮助手消息时级联删除（按 parent 查找）找不到工具卡，
@@ -1317,6 +1318,8 @@ class ToolOrchestrator(
         /** Phase 3: 只读并发轮的审批提示写锁(审批挂起期间不持有 stateLock)。 */
         approvalLock: Mutex?,
         inlineOutputBudgetTokens: Int?,
+        displayMessageId: Uuid = Uuid.random(),
+        lastShownCardId: String? = null,
     ): ToolExecResult {
         if (!params.allowToolExecution) {
             val finishedAt = System.currentTimeMillis()
@@ -1432,6 +1435,19 @@ class ToolOrchestrator(
         )
         if (preflight is ToolChannelPreflight.Result.Blocked) {
             Logger.w(TAG, "预检拦截 ${tc.name}: ${preflight.message.take(60)}")
+            withTurnLock(stateLock) {
+                taskCardCoordinator.updateTaskCardStep(taskCardId, idx) { s ->
+                    s.copy(
+                        status = TaskStepStatus.FAILED,
+                        result = preflight.message,
+                        finishedAt = System.currentTimeMillis(),
+                    )
+                }
+                PendingToolCallStore.updateState(tc.id, PendingToolCallStore.ABORTED, "channel_preflight_blocked")
+                host.onToolFinish(tc.id, tc.name, false, System.currentTimeMillis() - toolStartAt)
+            }
+            cleanupPendingToolCall(tc.id)
+            return ToolExecResult(idx, tc, preflight.message, false, status = ToolExecStatus.FAILED)
         }
 
         // 工具审批检查(v1.0.53: 传完整 args 供参数化权限判定)
@@ -1664,11 +1680,23 @@ class ToolOrchestrator(
                                 }.getOrDefault(emptyMap())
                             BrowserAutomationTool.executeFromArgs(tc.name, argsMap, sessionBm)
                         } else {
-                            if (params.toolExecutionContext != null) {
+                            val baseContext = params.toolExecutionContext ?: if (tc.name == "show_card" || tc.name == "update_card_data") {
+                                ToolExecutionContext(scope = "chat", spaceId = "", sessionId = params.sessionId)
+                            } else {
+                                null
+                            }
+                            if (baseContext != null) {
+                                val effectiveMessageId =
+                                    when (tc.name) {
+                                        "show_card" -> displayMessageId.toString()
+                                        "update_card_data" -> lastShownCardId ?: baseContext.messageId
+                                        else -> baseContext.messageId
+                                    }
                                 // 进度回调是**每次调用**的上下文（要绑 taskCardId + idx），
                                 // 宿主只能给出会话级字段，所以在这里 copy 一份补上。
                                 // 与 skill 分支写的是同一块 progressText，用户看到的是同一个入口。
-                                val callContext = params.toolExecutionContext.copy(
+                                val callContext = baseContext.copy(
+                                    messageId = effectiveMessageId,
                                     onProgress = { msg ->
                                         taskCardCoordinator.updateTaskCardStep(taskCardId, idx) { s ->
                                             s.copy(progressText = msg)
@@ -1822,6 +1850,7 @@ class ToolOrchestrator(
             // status to render the terminal state and to record a terminationReason.
             status = execStatus,
             durationMs = executionFinishedAt - toolStartAt,
+            displayMessageId = displayMessageId,
         )
     }
 
@@ -2257,4 +2286,3 @@ private val STICKER_PATH_PATTERN =
 
 private fun extractStickerPaths(text: String): List<String> =
     STICKER_PATH_PATTERN.findAll(text).map { it.groupValues[1] }.distinct().toList()
-

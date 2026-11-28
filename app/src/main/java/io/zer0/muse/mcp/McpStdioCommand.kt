@@ -26,25 +26,45 @@ object McpStdioCommand {
 
     private const val GUEST_NODE = "/usr/local/bin/node"
 
-    /** 空白分词，支持双引号包裹（保留引号内空格）。 */
     fun tokenize(commandLine: String): List<String> {
         val tokens = mutableListOf<String>()
-        val sb = StringBuilder()
+        val token = StringBuilder()
         var inQuote = false
-        for (ch in commandLine.trim()) {
+        var started = false
+        var index = 0
+        while (index < commandLine.length) {
+            val ch = commandLine[index++]
             when {
-                ch == '"' -> inQuote = !inQuote
+                ch == '"' -> {
+                    inQuote = !inQuote
+                    started = true
+                }
+                inQuote && ch == '\\' && commandLine.getOrNull(index) in listOf('"', '\\') ->
+                    token.append(commandLine[index++])
                 ch.isWhitespace() && !inQuote -> {
-                    if (sb.isNotEmpty()) {
-                        tokens.add(sb.toString())
-                        sb.clear()
+                    if (started) {
+                        tokens += token.toString()
+                        token.clear()
+                        started = false
                     }
                 }
-                else -> sb.append(ch)
+                else -> {
+                    token.append(ch)
+                    started = true
+                }
             }
         }
-        if (sb.isNotEmpty()) tokens.add(sb.toString())
+        if (inQuote) return emptyList()
+        if (started) tokens += token.toString()
         return tokens
+    }
+
+    fun join(command: String, args: List<String>): String = (listOf(command) + args).joinToString(" ") { part ->
+        if (part.isNotEmpty() && part.none { it.isWhitespace() || it == '"' }) {
+            part
+        } else {
+            "\"" + part.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
+        }
     }
 
     /**

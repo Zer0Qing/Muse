@@ -32,8 +32,7 @@ class MemorySpaceDeleteContractTest {
 
     private fun viewModelSource() = source("src/main/java/io/zer0/muse/ui/memory/MemorySpaceViewModel.kt")
 
-    private fun strings(qualifier: String) =
-        source("src/main/res/$qualifier/strings_audit_memory_groups.xml")
+    private fun strings(qualifier: String) = source("src/main/res/$qualifier/strings_audit_memory_groups.xml")
 
     @Test
     fun `删除确认必须传入后果说明`() {

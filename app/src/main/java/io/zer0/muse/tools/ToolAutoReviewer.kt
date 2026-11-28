@@ -87,12 +87,7 @@ object ToolAutoReviewer {
         ToolApprovalState.Pending
     }
 
-    private fun decide(
-        toolName: String,
-        args: Map<String, Any?>,
-        risk: ToolRiskLevel?,
-        workspaceRoot: String?,
-    ): Decision {
+    private fun decide(toolName: String, args: Map<String, Any?>, risk: ToolRiskLevel?, workspaceRoot: String?): Decision {
         val normalized = toolName.trim().lowercase()
         if (normalized.isEmpty()) {
             return requireApproval("invalid-tool", "工具名为空，无法复核")
@@ -141,18 +136,16 @@ object ToolAutoReviewer {
 
     private fun allow(ruleId: String, reason: String): Decision = Decision(Outcome.ALLOW, ruleId, reason)
 
-    private fun requireApproval(ruleId: String, reason: String): Decision =
-        Decision(Outcome.REQUIRE_APPROVAL, ruleId, reason)
+    private fun requireApproval(ruleId: String, reason: String): Decision = Decision(Outcome.REQUIRE_APPROVAL, ruleId, reason)
 
     /** 把工具参数里的命令文本拼起来；只用于命令执行类工具的边界扫描。 */
     private fun commandText(args: Map<String, Any?>): String =
         COMMAND_ARG_KEYS.mapNotNull { key -> args[key]?.toString() }.joinToString("\n")
 
     /** 收集路径类参数；空串表示根目录，交给具体工具处理。 */
-    private fun pathArguments(args: Map<String, Any?>): List<String> =
-        PATH_ARG_KEYS.mapNotNull { key ->
-            args[key]?.toString()?.takeIf { it.isNotBlank() }
-        }
+    private fun pathArguments(args: Map<String, Any?>): List<String> = PATH_ARG_KEYS.mapNotNull { key ->
+        args[key]?.toString()?.takeIf { it.isNotBlank() }
+    }
 
     /**
      * 判断路径是否落在工作区内。
@@ -179,11 +172,10 @@ object ToolAutoReviewer {
     }
 
     /** 绝对路径包含 POSIX 根、Windows 驱动器、UNC 与用户主目录简写。 */
-    private fun isAbsolutePath(path: String): Boolean =
-        path.startsWith("/") ||
-            path.startsWith("\\") ||
-            path.startsWith("~") ||
-            WINDOWS_DRIVE_PATH.containsMatchIn(path)
+    private fun isAbsolutePath(path: String): Boolean = path.startsWith("/") ||
+        path.startsWith("\\") ||
+        path.startsWith("~") ||
+        WINDOWS_DRIVE_PATH.containsMatchIn(path)
 
     /**
      * 去掉 `挂载标识:` 前缀。
@@ -237,7 +229,8 @@ object ToolAutoReviewer {
     private val DESTRUCTIVE_TOOL_NAME = Regex("(^|_)(delete|remove|erase|wipe|clear|reset|uninstall|destroy|format)(_|$)")
 
     /** 外发/分享/提交类工具名。 */
-    private val EXTERNAL_SEND_TOOL_NAME = Regex("(^|_)(send|share|upload|post|publish|email|sms|call|reply|relay|webhook|submit|invite)(_|$)")
+    private val EXTERNAL_SEND_TOOL_NAME =
+        Regex("(^|_)(send|share|upload|post|publish|email|sms|call|reply|relay|webhook|submit|invite)(_|$)")
 
     /** 资金类工具名。 */
     private val FINANCIAL_TOOL_NAME = Regex(
@@ -261,7 +254,8 @@ object ToolAutoReviewer {
     private val SYSTEM_PACKAGE_COMMAND = Regex("(?i)\\b(apt|apt-get|dpkg|rpm|yum|dnf|pacman|sudo|su)\\b")
 
     /** 破坏性命令。 */
-    private val DESTRUCTIVE_COMMAND = Regex("(?i)\\b(rm|rmdir|shred|mkfs|dd|shutdown|reboot|poweroff|kill|pkill|chmod|chown|mount|umount)\\b")
+    private val DESTRUCTIVE_COMMAND =
+        Regex("(?i)\\b(rm|rmdir|shred|mkfs|dd|shutdown|reboot|poweroff|kill|pkill|chmod|chown|mount|umount)\\b")
 
     private val COMMAND_ARG_KEYS = listOf("command", "cmd", "code", "script", "source")
 

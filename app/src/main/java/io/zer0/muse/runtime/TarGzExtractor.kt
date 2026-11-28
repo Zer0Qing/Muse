@@ -1,8 +1,8 @@
 package io.zer0.muse.runtime
 
 import io.zer0.common.Logger
-import java.io.File
 import java.io.EOFException
+import java.io.File
 import java.io.IOException
 import java.io.InputStream
 import java.util.zip.GZIPInputStream
@@ -36,122 +36,27 @@ object TarGzExtractor {
                 val header = ByteArray(HEADER_SIZE)
                 var longName: String? = null
                 var longLink: String? = null
-                while (true) {
+                var done = false
+                while (!done) {
                     if (!readFully(gz, header, HEADER_SIZE)) {
-                        if (endBlocks >= REQUIRED_END_BLOCKS) break
-                        throw EOFException("tar 归档在结束块之前被截断")
-                    }
-                    if (header.all { it == 0.toByte() }) {
+                        check(endBlocks >= REQUIRED_END_BLOCKS) { "tar 归档在结束块之前被截断" }
+                        done = true
+                    } else if (header.all { it == 0.toByte() }) {
                         endBlocks++
-                        if (endBlocks >= REQUIRED_END_BLOCKS) break
-                        continue
+                        done = endBlocks >= REQUIRED_END_BLOCKS
+                    } else {
+                        check(endBlocks == 0) { "tar 结束块后仍出现成员" }
+                        validateChecksum(header)
+                        val state = processMember(
+                            MemberInput(gz, root, header),
+                            MemberPending(longName, longLink, written),
+                            LinkFailures(skippedLinks, failedLinks),
+                            onProgress,
+                        )
+                        longName = state.longName
+                        longLink = state.longLink
+                        written = state.written
                     }
-                    if (endBlocks > 0) throw IOException("tar 结束块后仍出现成员")
-                    validateChecksum(header)
-
-                    val magic = String(header, 257, 6, Charsets.US_ASCII).trim('\u0000', ' ')
-                    if (magic != "ustar") {
-                        // 非 POSIX tar（极少见）——宁可失败，也不要解出半个环境
-                        val head = header.take(16).joinToString(" ") { (it.toInt() and 0xff).toString(16).padStart(2, '0') }
-                        throw IllegalStateException("不是有效的 tar 包（magic=$magic, head=$head）")
-                    }
-
-                    val nameRaw = readString(header, 0, 100)
-                    val prefix = readString(header, 345, 155)
-                    var name = if (prefix.isNotEmpty()) "$prefix/$nameRaw" else nameRaw
-                    val mode = readOctal(header, 100, 8)
-                    val size = readOctal(header, 124, 12).toLong()
-                    var payload = size
-                    val type = header[156].toInt().toChar()
-                    val linkNameRaw = readString(header, 157, 100)
-
-                    when (type) {
-                        'x', 'g' -> {
-                            val data = readExactly(gz, payload)
-                            skipPadding(gz, payload)
-                            val attributes = parsePax(data)
-                            if (type == 'x') {
-                                attributes.path?.let { longName = it }
-                                attributes.linkPath?.let { longLink = it }
-                            }
-                            continue
-                        }
-                        'L' -> {
-                            longName = String(readExactly(gz, payload), Charsets.UTF_8).trimEnd('\u0000')
-                            skipPadding(gz, payload)
-                            continue
-                        }
-                        'K' -> {
-                            longLink = String(readExactly(gz, payload), Charsets.UTF_8).trimEnd('\u0000')
-                            skipPadding(gz, payload)
-                            continue
-                        }
-                    }
-
-                    if (longName != null) {
-                        name = longName
-                        longName = null
-                    }
-                    val target = resolveInside(root, name, "包内路径越界")
-
-                    when (type) {
-                        '5' -> target.mkdirs()
-                        '2' -> {
-                            val link = longLink ?: linkNameRaw
-                            longLink = null
-                            val linkTarget = resolveLinkTarget(root, target.parentFile, link)
-                                // 真越界（相对路径逃出 rootfs、绝对路径含 .. 出根）是恶意/损坏包，
-                                // 必须整包失败——安全边界不能松。
-                                ?: throw IOException("符号链接目标越界: $link")
-                            target.parentFile?.mkdirs()
-                            removeExistingTarget(target)
-                            runCatching { java.nio.file.Files.createSymbolicLink(target.toPath(), linkTarget) }
-                                .onFailure { e ->
-                                    // 合法目标但建不了（权限、文件系统不支持）：降级跳过。
-                                    // rootfs 里的绝对链接多为 /etc/alternatives 与 systemd timer，
-                                    // 缺了不影响 node 运行，能否可用交给安装后的自检。
-                                    Logger.w(TAG, "符号链接创建失败，已跳过: $name -> $link (${e.message})")
-                                    skippedLinks += "$name -> $link (${e.message})"
-                                }
-                            payload = 0
-                        }
-                        '1' -> {
-                            // 硬链接：我们的包用 --hard-dereference 生成，理论上不会出现；
-                            // 真遇到就退回复制内容，语义接近且不会失败。
-                            val link = longLink ?: linkNameRaw
-                            longLink = null
-                            // 越界仍然整包失败（与符号链接一致），只有「合法但源缺失」才跳过。
-                            val source = resolveInside(root, link, "硬链接目标越界")
-                            target.parentFile?.mkdirs()
-                            removeExistingTarget(target)
-                            if (source.isFile) {
-                                source.copyTo(target, overwrite = true)
-                            } else {
-                                // 包本身不完整（源就不在），不是环境问题，必须整包失败。
-                                Logger.w(TAG, "硬链接源不存在: $name -> $link")
-                                failedLinks += "$name -> $link (硬链接源缺失)"
-                            }
-                            payload = 0
-                        }
-                        '0', '\u0000', '7' -> {
-                            target.parentFile?.mkdirs()
-                            removeExistingTarget(target)
-                            target.outputStream().use { out ->
-                                copyExactly(gz, out, payload) { written += it }
-                            }
-                            applyMode(target, mode)
-                            // 注意：不要把 payload 置 0 —— 文件内容后面还有块对齐填充，
-                            // 留给下面的 skipPadding 按原始 size 算。置 0 会让后续块错位，
-                            // 下一个「头」落在零填充上，报 magic 为空。
-                        }
-                        else -> {
-                            // 设备节点、FIFO 等在 Android 上没有意义，跳过内容
-                        }
-                    }
-
-                    // 跳过剩余的块对齐填充
-                    skipPadding(gz, payload)
-                    onProgress(written)
                 }
             }
         }
@@ -173,11 +78,139 @@ object TarGzExtractor {
         return written
     }
 
-    private fun applyMode(file: File, mode: Int) {
-        val exec = (mode and 0b001_000_000) != 0 || (mode and 0b000_001_000) != 0
-        file.setReadable(true, false)
-        file.setWritable(true, true)
-        file.setExecutable(exec, false)
+    private data class MemberInput(val input: InputStream, val root: File, val header: ByteArray)
+
+    private data class MemberPending(val longName: String?, val longLink: String?, val written: Long)
+
+    private data class LinkFailures(val skipped: MutableList<String>, val failed: MutableList<String>)
+
+    private data class HeaderFields(
+        val name: String,
+        val mode: Int,
+        val payload: Long,
+        val type: Char,
+        val linkName: String,
+    )
+
+    private data class MemberState(val longName: String?, val longLink: String?, val written: Long)
+
+    private fun processMember(
+        member: MemberInput,
+        pending: MemberPending,
+        failures: LinkFailures,
+        onProgress: (Long) -> Unit,
+    ): MemberState {
+        val magic = String(member.header, 257, 6, Charsets.US_ASCII).trim('\u0000', ' ')
+        val head = member.header.take(16).joinToString(" ") { (it.toInt() and 0xff).toString(16).padStart(2, '0') }
+        check(magic == "ustar") { "不是有效的 tar 包（magic=$magic, head=$head）" }
+        val nameRaw = readTarString(member.header, 0, 100)
+        val prefix = readTarString(member.header, 345, 155)
+        val headerName = if (prefix.isNotEmpty()) "$prefix/$nameRaw" else nameRaw
+        val fields = HeaderFields(
+            name = headerName,
+            mode = readTarOctal(member.header, 100, 8),
+            payload = readTarOctal(member.header, 124, 12).toLong(),
+            type = member.header[156].toInt().toChar(),
+            linkName = readTarString(member.header, 157, 100),
+        )
+        return when (fields.type) {
+            'x', 'g' -> processPax(member.input, fields.payload, fields.type, pending.longName, pending.longLink, pending.written)
+            'L' -> processLongName(member.input, fields.payload, pending.longLink, pending.written)
+            'K' -> processLongLink(member.input, fields.payload, pending.longName, pending.written)
+            else -> processRegularMember(
+                member,
+                pending,
+                fields,
+                failures,
+                onProgress,
+            )
+        }
+    }
+
+    private fun processPax(
+        input: InputStream,
+        payload: Long,
+        type: Char,
+        pendingName: String?,
+        pendingLink: String?,
+        writtenBefore: Long,
+    ): MemberState {
+        val attributes = parsePax(readExactly(input, payload))
+        skipPadding(input, payload)
+        return if (type == 'x') {
+            MemberState(attributes.path ?: pendingName, attributes.linkPath ?: pendingLink, writtenBefore)
+        } else {
+            MemberState(pendingName, pendingLink, writtenBefore)
+        }
+    }
+
+    private fun processLongName(input: InputStream, payload: Long, pendingLink: String?, writtenBefore: Long): MemberState {
+        val name = String(readExactly(input, payload), Charsets.UTF_8).trimEnd('\u0000')
+        skipPadding(input, payload)
+        return MemberState(name, pendingLink, writtenBefore)
+    }
+
+    private fun processLongLink(input: InputStream, payload: Long, pendingName: String?, writtenBefore: Long): MemberState {
+        val link = String(readExactly(input, payload), Charsets.UTF_8).trimEnd('\u0000')
+        skipPadding(input, payload)
+        return MemberState(pendingName, link, writtenBefore)
+    }
+
+    private fun processRegularMember(
+        member: MemberInput,
+        pending: MemberPending,
+        fields: HeaderFields,
+        failures: LinkFailures,
+        onProgress: (Long) -> Unit,
+    ): MemberState {
+        val name = pending.longName ?: fields.name
+        val target = resolveInside(member.root, name, "包内路径越界")
+        val link = pending.longLink ?: fields.linkName
+        var written = pending.written
+        when (fields.type) {
+            '5' -> target.mkdirs()
+            '2' -> createSymbolicLink(member.root, target, name, link, failures.skipped)
+            '1' -> createHardLink(member.root, target, name, link, failures.failed)
+            '0', '\u0000', '7' -> {
+                target.parentFile?.mkdirs()
+                removeTarTarget(target)
+                target.outputStream().use { out -> copyExactly(member.input, out, fields.payload) { written += it } }
+                applyTarMode(target, fields.mode)
+            }
+        }
+        skipPadding(member.input, fields.payload)
+        onProgress(written)
+        return MemberState(null, null, written)
+    }
+
+    private fun createSymbolicLink(
+        root: File,
+        target: File,
+        name: String,
+        link: String,
+        skippedLinks: MutableList<String>,
+    ) {
+        val linkTarget = resolveLinkTarget(root, target.parentFile, link)
+            ?: throw IOException("符号链接目标越界: $link")
+        target.parentFile?.mkdirs()
+        removeTarTarget(target)
+        runCatching { java.nio.file.Files.createSymbolicLink(target.toPath(), linkTarget) }
+            .onFailure { error ->
+                Logger.w(TAG, "符号链接创建失败，已跳过: $name -> $link (${error.message})")
+                skippedLinks += "$name -> $link (${error.message})"
+            }
+    }
+
+    private fun createHardLink(root: File, target: File, name: String, link: String, failedLinks: MutableList<String>) {
+        val source = resolveInside(root, link, "硬链接目标越界")
+        target.parentFile?.mkdirs()
+        removeTarTarget(target)
+        if (source.isFile) {
+            source.copyTo(target, overwrite = true)
+        } else {
+            Logger.w(TAG, "硬链接源不存在: $name -> $link")
+            failedLinks += "$name -> $link (硬链接源缺失)"
+        }
     }
 
     private data class PaxAttributes(val path: String? = null, val linkPath: String? = null)
@@ -189,12 +222,12 @@ object TarGzExtractor {
         while (index < data.size) {
             var space = index
             while (space < data.size && data[space] != ' '.code.toByte()) space++
-            if (space == data.size) throw IOException("pax 记录缺少长度分隔符")
+            require(space < data.size) { "pax 记录缺少长度分隔符" }
             val lengthText = String(data, index, space - index, Charsets.US_ASCII)
-            val length = lengthText.toIntOrNull() ?: throw IOException("pax 记录长度非法")
+            val length = requireNotNull(lengthText.toIntOrNull()) { "pax 记录长度非法" }
             val end = index + length
-            if (length <= space - index + 2 || end > data.size) throw EOFException("pax 记录长度越界或被截断")
-            if (data[end - 1] != '\n'.code.toByte()) throw IOException("pax 记录缺少换行结束符")
+            require(length > space - index + 2 && end <= data.size) { "pax 记录长度越界或被截断" }
+            require(data[end - 1] == '\n'.code.toByte()) { "pax 记录缺少换行结束符" }
             val valueStart = space + 1
             val record = String(data, valueStart, end - valueStart - 1, Charsets.UTF_8)
             when {
@@ -254,7 +287,7 @@ object TarGzExtractor {
     }
 
     private fun validateChecksum(header: ByteArray) {
-        val expected = readOctal(header, CHECKSUM_OFFSET, CHECKSUM_LENGTH).toLong()
+        val expected = readTarOctal(header, CHECKSUM_OFFSET, CHECKSUM_LENGTH).toLong()
         var actual = 0L
         header.forEachIndexed { index, byte ->
             actual += if (index in CHECKSUM_OFFSET until CHECKSUM_OFFSET + CHECKSUM_LENGTH) {
@@ -327,29 +360,6 @@ object TarGzExtractor {
         return if (inside) java.nio.file.Paths.get(link) else null
     }
 
-    private fun removeExistingTarget(target: File) {
-        val exists = target.exists() || java.nio.file.Files.isSymbolicLink(target.toPath())
-        if (exists && !target.delete()) throw IOException("无法替换归档目标: ${target.name}")
-    }
-
-    private fun readString(bytes: ByteArray, offset: Int, length: Int): String {
-        var end = offset
-        while (end < offset + length && bytes[end] != 0.toByte()) end++
-        return String(bytes, offset, end - offset, Charsets.UTF_8)
-    }
-
-    private fun readOctal(bytes: ByteArray, offset: Int, length: Int): Int {
-        var value = 0
-        for (i in offset until offset + length) {
-            val b = bytes[i].toInt() and 0xff
-            if (b == 0 || b == ' '.code) {
-                if (value != 0) break else continue
-            }
-            if (b < '0'.code || b > '7'.code) continue
-            value = value * 8 + (b - '0'.code)
-        }
-        return value
-    }
 
     private const val HEADER_SIZE = 512
     private const val CHECKSUM_OFFSET = 148

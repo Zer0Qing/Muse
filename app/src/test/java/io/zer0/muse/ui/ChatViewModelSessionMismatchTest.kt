@@ -41,6 +41,7 @@ import io.zer0.muse.tools.SessionPermissionStore
 import io.zer0.muse.tools.SkillExecutor
 import io.zer0.muse.tools.ToolRegistry
 import io.zer0.muse.transformer.SystemPromptAssembler
+import io.zer0.muse.ui.chat.ChatViewModel
 import io.zer0.muse.ui.speech.TtsManager
 import io.zer0.muse.vision.VisionBridge
 import io.zer0.muse.vision.VisionProgress
@@ -70,7 +71,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * ChatViewModel session mismatch 回滚逻辑单元测试(H1 修复点)。

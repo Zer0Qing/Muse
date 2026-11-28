@@ -29,14 +29,12 @@ import io.zer0.muse.data.prompttemplate.PromptTemplate
 import io.zer0.muse.data.routing.UtilityModelBinding
 import io.zer0.muse.rag.RagConfig
 import io.zer0.muse.tools.SessionPermissionMode
-import io.zer0.muse.ui.theme.CustomTheme
 import io.zer0.muse.ui.theme.BaseThemeMode
+import io.zer0.muse.ui.theme.CustomTheme
 import io.zer0.muse.ui.theme.SolarSchedule
 import io.zer0.muse.ui.theme.ThemeDecision
 import io.zer0.muse.ui.theme.ThemeDecisionCalculator
 import io.zer0.muse.ui.theme.toSolarScheduleOrNull
-import java.time.Instant
-import java.time.ZoneId
 import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import io.zer0.muse.web.WebSearchConfig
 import io.zer0.muse.web.WebServerConfig
@@ -58,12 +56,9 @@ import kotlinx.serialization.KSerializer
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
+import java.time.Instant
+import java.time.ZoneId
 import java.util.concurrent.atomic.AtomicBoolean
-import io.zer0.muse.ui.memory.MemoryViewModel
-import io.zer0.muse.ui.memory.SessionMemoryCache
-import io.zer0.muse.ui.chat.InputBar
-import io.zer0.muse.ui.chat.ChatUiState
-import io.zer0.muse.ui.chat.ChatViewModel
 
 /** 最近一次成功生成的每日助手总结,供首页问候语复用。 */
 data class DailySummarySnapshot(
@@ -496,6 +491,7 @@ class SettingsRepository(
 
     /** v1.95: 启动默认页(0=任务, 1=Agent, 2=群聊)。 */
     val defaultHomePageFlow: Flow<Int> get() = appearance.defaultHomePageFlow
+    val homeLayoutModeFlow: Flow<HomeLayoutMode> get() = appearance.homeLayoutModeFlow
     val onboardingShownFlow: Flow<Boolean> get() = appearance.onboardingShownFlow
 
     // v1.95: 系统语音识别首次提示是否已展示(仅首次使用时弹提示,后续直接调起 Intent)
@@ -1784,6 +1780,9 @@ class SettingsRepository(
     /** v1.95: 保存启动默认页(0=任务, 1=Agent, 2=群聊)。 */
     suspend fun saveDefaultHomePage(page: Int) = appearance.saveDefaultHomePage(page)
 
+    /** 保存首页布局形态（classic=经典三页 / drawer=极简抽屉）。 */
+    suspend fun saveHomeLayoutMode(mode: HomeLayoutMode) = appearance.saveHomeLayoutMode(mode)
+
     // v1.135: 调用 WebSearchConfig.encrypted() 统一加密 apiKey + apiKeys
     suspend fun saveWebSearchConfig(config: WebSearchConfig) {
         store.edit {
@@ -2871,8 +2870,9 @@ class SettingsRepository(
      * 敏感 key(PIN/MCP token/云备份凭据/代理密码等)被跳过,因为加密依赖设备级
      * SecureKeyStore,跨设备解密会失败。用户在恢复后需重新输入这些敏感配置。
      *
-     * [includeSecrets] 为 true 时额外导出供应商配置，且**必须解密后再写出**：
-     * 盘上的 `providers_json` 里 apiKey 是 `enc_v1:` 密文，靠本机 Keystore 才能解开。
+     * 供应商结构始终导出；默认移除凭据，[includeSecrets] 为 true 时才保留凭据，
+     * 且 **必须解密后再写出**：盘上的 `providers_json` 里 apiKey 是 `enc_v1:` 密文，
+     * 靠本机 Keystore 才能解开。
      * 直接把密文塞进备份，换机后 [decodeProviders] 解不开 → 供应商列表整体消失，
      * 用户看到的就是"勾了包含密钥却什么也没有"。这里逐条解密后重新序列化，
      * 才让"包含密钥"真正可用（代价：备份文件里是明文，UI 必须警示）。
@@ -2881,19 +2881,22 @@ class SettingsRepository(
         val prefs = store.data.first()
         val result = mutableMapOf<String, String>()
         // 安全的 string 类型 key
-        val safeStringKeys = if (includeSecrets) {
-            // v2.6.0: 用户显式勾选「包含供应商密钥」时，白名单扩展到 providers_json（
-            // 内含各供应商 apiKey/oauth token）—— 明文进入备份文件，导出前 UI 必须警示。
-            SettingsSnapshotPolicy.safeStringKeys + SettingsSnapshotPolicy.secretStringKeys
-        } else {
-            SettingsSnapshotPolicy.safeStringKeys
-        }
+        val safeStringKeys = SettingsSnapshotPolicy.safeStringKeys
         val safeBooleanKeys = SettingsSnapshotPolicy.safeBooleanKeys
         val safeIntKeys = SettingsSnapshotPolicy.safeIntKeys
         val safeLongKeys = SettingsSnapshotPolicy.safeLongKeys
         val safeStringSetKeys = SettingsSnapshotPolicy.safeStringSetKeys
         for (name in safeStringKeys) {
             prefs[stringPreferencesKey(name)]?.let { result[name] = it }
+        }
+        prefs.asMap().forEach { (key, value) ->
+            if (value !is String) return@forEach
+            if (!key.name.startsWith(KEY_CHAT_BACKGROUND_ASSISTANT_PREFIX) &&
+                !key.name.startsWith(KEY_CHAT_BACKGROUND_SESSION_PREFIX)
+            ) {
+                return@forEach
+            }
+            if (SettingsSnapshotPolicy.isSafeKey(key.name)) result[key.name] = value
         }
         for (name in safeBooleanKeys) {
             prefs[booleanPreferencesKey(name)]?.let { result["bool:$name"] = it.toString() }
@@ -2911,34 +2914,33 @@ class SettingsRepository(
                 result[SettingsSnapshotPolicy.STRING_SET_PREFIX + name] = encodeStringSet(set)
             }
         }
-        // 供应商配置必须解密后再写进备份：盘上是 enc_v1 密文，绑定本机 Keystore。
-        // 不解密就导出，等于把一串换机后打不开的密文当成"密钥"给用户。
-        if (includeSecrets) {
-            val providersKey = KEY_PROVIDERS.name
-            result[providersKey]?.let { raw ->
-                result[providersKey] = decryptProvidersForExport(raw)
+        // 供应商结构始终进入快照；默认清除凭据，显式选择后才解密并保留密钥。
+        prefs[KEY_PROVIDERS]?.let { raw ->
+            val providers = ProviderBackupPolicy.decode(raw)
+            if (providers == null) {
+                Logger.w("SettingsRepository", "供应商配置解析失败;备份将省略该组配置")
+            } else {
+                val exported = if (includeSecrets) {
+                    providers.map { it.copy(apiKey = SecureKeyStore.decrypt(it.apiKey)) }
+                } else {
+                    providers.map(ProviderBackupPolicy::redact)
+                }
+                result[KEY_PROVIDERS.name] = AppJson.encodeToString(
+                    ListSerializer(ProviderConfig.serializer()),
+                    exported,
+                )
+                result[SettingsSnapshotPolicy.PROVIDER_SECRETS_INCLUDED_KEY] = includeSecrets.toString()
             }
         }
-        return result
-    }
-
-    /**
-     * 把 `providers_json` 逐条解密后重新序列化。
-     *
-     * 解析失败时原样返回：宁可导出"已知不可用"的原文，也不要因为一条坏配置
-     * 让整份备份的供应商配置消失。解密失败的单条 apiKey 会变成空串，
-     * 恢复后用户重填即可，其余字段（地址/模型/能力）仍然保留。
-     */
-    private suspend fun decryptProvidersForExport(raw: String): String {
-        val decoded = resultOf {
-            AppJson.decodeFromString(ListSerializer(ProviderConfig.serializer()), raw)
-        }.onError { msg, t ->
-            Logger.w("SettingsRepository", "导出供应商配置解析失败，保留原文: ${t?.message ?: msg}", t)
-        }.getOrNull() ?: return raw
-        val decrypted = decoded.map { config ->
-            config.copy(apiKey = SecureKeyStore.decrypt(config.apiKey))
+        val mcpServers = mcpServersFlow.first()
+        if (mcpServers.isNotEmpty()) {
+            result[SettingsSnapshotPolicy.MCP_SERVERS_KEY] = AppJson.encodeToString(
+                ListSerializer(io.zer0.muse.mcp.McpServerConfig.serializer()),
+                mcpServers.map(SettingsSnapshotPolicy::portableMcpConfig),
+            )
+            result[SettingsSnapshotPolicy.MCP_CREDENTIALS_OMITTED_KEY] = "true"
         }
-        return AppJson.encodeToString(ListSerializer(ProviderConfig.serializer()), decrypted)
+        return result
     }
 
     /**
@@ -2952,6 +2954,14 @@ class SettingsRepository(
      */
     suspend fun restoreSettingsSnapshot(snapshot: Map<String, String>, includeSecrets: Boolean = false) {
         if (snapshot.isEmpty()) return
+        val providersRaw = snapshot[KEY_PROVIDERS.name]
+        val portableMcpRaw = snapshot[SettingsSnapshotPolicy.MCP_SERVERS_KEY]
+        val providersIncludeSecrets = when (snapshot[SettingsSnapshotPolicy.PROVIDER_SECRETS_INCLUDED_KEY]) {
+            "true" -> includeSecrets
+            "false" -> false
+            null -> includeSecrets && providersRaw != null
+            else -> false
+        }
         // B-22: 恢复侧二次过滤安全键。
         // 导出侧(exportSettingsSnapshot)已按 SettingsSnapshotPolicy 白名单导出,
         // 但恢复数据本身可能来自外部伪造/篡改的备份(直接注入任意 DataStore key,
@@ -2961,10 +2971,114 @@ class SettingsRepository(
         val safeFilter: (String) -> Boolean =
             if (includeSecrets) SettingsSnapshotPolicy::isSafeKeyWithSecrets else SettingsSnapshotPolicy::isSafeKey
         val safe = snapshot.filterKeys(safeFilter)
-        if (safe.isEmpty()) return
+            .filterKeys {
+                it != KEY_PROVIDERS.name &&
+                    it != SettingsSnapshotPolicy.PROVIDER_SECRETS_INCLUDED_KEY &&
+                    it != SettingsSnapshotPolicy.MCP_SERVERS_KEY
+            }
+        val encodedProviders = providersRaw?.let { raw ->
+            prepareProvidersForRestore(raw, providersIncludeSecrets)
+        }
+        val restoredMcp = portableMcpRaw?.let { raw ->
+            resultOf {
+                AppJson.decodeFromString(
+                    ListSerializer(io.zer0.muse.mcp.McpServerConfig.serializer()),
+                    raw,
+                )
+            }.onError { message, error ->
+                Logger.w("SettingsRepository", "备份中的 MCP 配置解析失败;保留设备现有配置: $message", error)
+            }.getOrNull()?.let { imported ->
+                val local = mcpServersFlow.first()
+                val localById = local.associateBy { it.id }
+                val restoredById = imported.associate { incoming ->
+                    val portable = SettingsSnapshotPolicy.portableMcpConfig(incoming)
+                    val existing = localById[incoming.id]
+                    incoming.id to when {
+                        existing == null -> portable
+                        incoming.transportType == io.zer0.muse.mcp.McpTransportType.STDIO &&
+                            existing.transportType == io.zer0.muse.mcp.McpTransportType.STDIO ->
+                            portable.copy(
+                                command = existing.command,
+                                enabled = existing.enabled,
+                                headers = existing.headers,
+                                authToken = existing.authToken,
+                                feishuAuth = existing.feishuAuth,
+                                environment = existing.environment,
+                            )
+                        SettingsSnapshotPolicy.sameMcpConnectionIdentity(existing, incoming) ->
+                            portable.copy(
+                                headers = existing.headers,
+                                authToken = existing.authToken,
+                                feishuAuth = existing.feishuAuth,
+                                environment = existing.environment,
+                            )
+                        else -> portable
+                    }
+                }
+                local.map { current -> restoredById[current.id] ?: current } +
+                    imported.filter { it.id !in localById }.map { restoredById.getValue(it.id) }
+            }
+        }
+        val replacedMcpConnectionIds = if (restoredMcp == null) {
+            emptySet()
+        } else {
+            val incomingById = AppJson.decodeFromString(
+                ListSerializer(io.zer0.muse.mcp.McpServerConfig.serializer()),
+                portableMcpRaw.orEmpty(),
+            ).associateBy { it.id }
+            mcpServersFlow.first().filter { current ->
+                val incoming = incomingById[current.id] ?: return@filter false
+                current.transportType != incoming.transportType ||
+                    current.url != incoming.url ||
+                    current.oauthConfig.clientId != incoming.oauthConfig.clientId ||
+                    current.oauthConfig.authorizationEndpoint != incoming.oauthConfig.authorizationEndpoint ||
+                    current.oauthConfig.tokenEndpoint != incoming.oauthConfig.tokenEndpoint ||
+                    current.oauthConfig.resource != incoming.oauthConfig.resource
+            }.map { it.id }.toSet()
+        }
+        val encodedMcpServers = restoredMcp?.let { servers ->
+            AppJson.encodeToString(
+                ListSerializer(io.zer0.muse.mcp.McpServerConfig.serializer()),
+                servers.map { it.encrypted() },
+            )
+        }
+        if (safe.isEmpty() && encodedProviders == null && encodedMcpServers == null) return
         store.edit { prefs ->
+            if (encodedProviders != null) prefs[KEY_PROVIDERS] = encodedProviders
+            if (encodedMcpServers != null) prefs[KEY_MCP_SERVERS] = encodedMcpServers
+            replacedMcpConnectionIds.forEach { serverId ->
+                prefs.remove(stringPreferencesKey("mcp_token_$serverId"))
+            }
             for ((rawKey, value) in safe) prefs.writeSnapshotEntry(rawKey, value)
         }
+    }
+
+    internal suspend fun rawProvidersForLocalRecovery(): String? = store.data.first()[KEY_PROVIDERS]
+
+    internal suspend fun restoreLocalProviders(raw: String?) {
+        store.edit { prefs ->
+            if (raw == null) prefs.remove(KEY_PROVIDERS) else prefs[KEY_PROVIDERS] = raw
+        }
+    }
+
+    private suspend fun prepareProvidersForRestore(raw: String, includeSecrets: Boolean): String? {
+        val imported = ProviderBackupPolicy.decode(raw)
+        if (imported == null) {
+            Logger.w("SettingsRepository", "备份中的供应商配置解析失败;保留设备现有配置")
+            return null
+        }
+        val restored = if (includeSecrets) {
+            imported
+        } else {
+            val localRaw = store.data.first()[KEY_PROVIDERS]
+            val local = localRaw?.let { decodeProviders(it) }.orEmpty()
+            imported.map { incoming ->
+                val redacted = ProviderBackupPolicy.redact(incoming)
+                val sameIdLocal = local.firstOrNull { it.id == incoming.id }
+                if (sameIdLocal == null) redacted else ProviderBackupPolicy.mergeLocalCredentials(redacted, sameIdLocal)
+            }
+        }
+        return encodeProviders(restored)
     }
 
     /**

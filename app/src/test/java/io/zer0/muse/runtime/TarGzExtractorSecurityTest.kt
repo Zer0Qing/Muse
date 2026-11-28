@@ -191,6 +191,5 @@ class TarGzExtractorSecurityTest {
         return "$length ".toByteArray(Charsets.US_ASCII) + record
     }
 
-    private fun octal(value: Int, width: Int): String =
-        value.toString(8).padStart(width - 1, '0') + "\u0000"
+    private fun octal(value: Int, width: Int): String = value.toString(8).padStart(width - 1, '0') + "\u0000"
 }

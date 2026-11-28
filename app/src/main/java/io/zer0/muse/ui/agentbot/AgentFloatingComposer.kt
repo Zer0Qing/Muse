@@ -35,7 +35,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -62,7 +61,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import io.zer0.ai.core.ReasoningLevel
@@ -88,10 +86,10 @@ import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.common.surface.MuseIsland
 import io.zer0.muse.ui.theme.GlassIsland
 import io.zer0.muse.ui.theme.LocalLiquidGlass
-import io.zer0.muse.ui.theme.MuseButtonSize
 import io.zer0.muse.ui.theme.MuseActionColors
 import io.zer0.muse.ui.theme.MuseAlpha
 import io.zer0.muse.ui.theme.MuseAnimation
+import io.zer0.muse.ui.theme.MuseButtonSize
 import io.zer0.muse.ui.theme.MuseHaptics
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMotion
@@ -121,7 +119,6 @@ fun AgentFloatingComposer(
     onPickGalleryImage: (Uri) -> Unit,
     onRemoveImage: (String) -> Unit,
     onVoiceInput: () -> Unit = {},
-    onOpenVoiceMode: (() -> Unit)? = null,
     onOpenWorkbench: () -> Unit,
     onStartTeach: () -> Unit,
     onOpenModel: (() -> Unit)?,
@@ -376,18 +373,6 @@ fun AgentFloatingComposer(
                         showToolSheet = true
                     },
                 )
-
-                if (onOpenVoiceMode != null) {
-                    MuseTactileButton(
-                        icon = MuseIcons.phone,
-                        contentDescription = stringResource(R.string.agent_hub_voice_mode_cd),
-                        tint = islandContentColor.copy(alpha = MuseAlpha.disabledContent),
-                        onClick = {
-                            MuseHaptics.light(hapticFeedback)
-                            onOpenVoiceMode()
-                        },
-                    )
-                }
 
                 MuseTextField(
                     value = composer.text,

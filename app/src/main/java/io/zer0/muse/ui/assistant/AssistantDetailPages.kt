@@ -8,6 +8,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -55,7 +56,6 @@ import io.zer0.common.resultOf
 import io.zer0.memory.fact.FactDbProvider
 import io.zer0.memory.fact.FactStore
 import io.zer0.memory.pin.PinnedMemoryStore
-import io.zer0.muse.ui.theme.MuseCornerRadius
 import io.zer0.muse.R
 import io.zer0.muse.data.ChatPreferences
 import io.zer0.muse.data.SettingsRepository
@@ -64,6 +64,8 @@ import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.data.assistant.AvatarStorage
 import io.zer0.muse.data.assistant.CharacterCardExporter
+import io.zer0.muse.data.assistant.VoiceReplyFrequency
+import io.zer0.muse.data.assistant.VoiceReplyPolicyStore
 import io.zer0.muse.data.lorebook.LorebookRepository
 import io.zer0.muse.data.promptinjection.PromptInjectionRepository
 import io.zer0.muse.data.quickmsg.QuickMessageRepository
@@ -76,6 +78,7 @@ import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
+import io.zer0.muse.ui.common.form.MuseChip
 import io.zer0.muse.ui.common.form.MuseDropdown
 import io.zer0.muse.ui.common.form.MuseSlider
 import io.zer0.muse.ui.common.form.MuseSwitch
@@ -86,12 +89,17 @@ import io.zer0.muse.ui.common.media.AssistantAvatar
 import io.zer0.muse.ui.common.museAnimateItem
 import io.zer0.muse.ui.common.settings.ChevronRight
 import io.zer0.muse.ui.common.settings.ConfirmDeleteDialog
+import io.zer0.muse.ui.common.settings.SettingsSwitchRow
 import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.common.surface.CardGroupScope
 import io.zer0.muse.ui.common.surface.MuseListItem
 import io.zer0.muse.ui.settings.SettingsSubPageScaffold
+import io.zer0.muse.ui.theme.MuseCornerRadius
 import io.zer0.muse.ui.theme.MuseIconSizes
+import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.MuseSpacing
+import io.zer0.muse.util.launchSafely
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -102,8 +110,6 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 import java.io.File
-import io.zer0.muse.ui.chat.ChatViewModel
-import io.zer0.muse.util.launchSafely
 
 // ──────────────────────────────────────────────────────────────────────────────
 // 即时保存 helper: 不用 ViewModel,直接读 AssistantRepository
@@ -254,7 +260,9 @@ fun AssistantDetailPage(
         exportPngTarget = null
         if (uri != null && target != null) {
             scope.launch {
-                val avatar = loadAvatarBitmap(target)
+                val avatar = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    loadAvatarBitmap(target)
+                }
                 CharacterCardExporter.exportToPng(context, target, avatar, uri)
                     .onSuccess { MuseToast.show(toastExported) }
                     .onFailure { MuseToast.show(toastExportFailed.format(it.message ?: ""), 3500) }
@@ -1188,6 +1196,78 @@ fun AssistantPromptPage(assistantId: String, onBack: () -> Unit) {
                 )
             }
         }
+        item(key = "assistant_voice_reply") {
+            AssistantVoiceReplyCard(
+                assistantId = a.id,
+                modifier = museAnimateItem(),
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun AssistantVoiceReplyCard(assistantId: String, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val voiceStore = remember { VoiceReplyPolicyStore.of(context) }
+    val snapshot by voiceStore.snapshot.collectAsStateWithLifecycle(initialValue = emptyMap())
+    val autoBarSnapshot by voiceStore.autoVoiceBarSnapshot.collectAsStateWithLifecycle(initialValue = emptyMap())
+    val scope = rememberCoroutineScope()
+
+    val overrideFreq = snapshot[assistantId]?.let { VoiceReplyFrequency.fromName(it) }
+    val autoVoiceBar = autoBarSnapshot[assistantId] ?: (autoBarSnapshot[VoiceReplyPolicyStore.GLOBAL_KEY] == true)
+    val freqLabels = mapOf(
+        VoiceReplyFrequency.NEVER to stringResource(R.string.voice_reply_never),
+        VoiceReplyFrequency.RARELY to stringResource(R.string.voice_reply_rarely),
+        VoiceReplyFrequency.OFTEN to stringResource(R.string.voice_reply_often),
+        VoiceReplyFrequency.ALWAYS to stringResource(R.string.voice_reply_always),
+    )
+
+    CardGroup(
+        title = { Text(stringResource(R.string.voice_reply_assistant_section)) },
+        modifier = modifier,
+    ) {
+        content(key = "assistant_voice_freq") {
+            Column(Modifier.padding(MusePaddings.cardInner)) {
+                Text(
+                    text = stringResource(R.string.voice_reply_assistant_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                FlowRow(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = MuseSpacing.sm),
+                    horizontalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
+                ) {
+                    MuseChip(
+                        label = stringResource(R.string.voice_reply_follow_global),
+                        selected = overrideFreq == null,
+                        onClick = {
+                            if (overrideFreq != null) scope.launch { voiceStore.clearOverride(assistantId) }
+                        },
+                    )
+                    VoiceReplyFrequency.entries.forEach { level ->
+                        MuseChip(
+                            label = freqLabels.getValue(level),
+                            selected = overrideFreq == level,
+                            onClick = {
+                                if (overrideFreq != level) scope.launch { voiceStore.set(assistantId, level) }
+                            },
+                        )
+                    }
+                }
+            }
+        }
+        content(key = "assistant_voice_auto_bar") {
+            SettingsSwitchRow(
+                icon = MuseIcons.microphone,
+                title = stringResource(R.string.voice_reply_auto_bar_title),
+                subtitle = stringResource(R.string.voice_reply_auto_bar_desc),
+                checked = autoVoiceBar,
+                onCheckedChange = { enabled -> scope.launch { voiceStore.setAutoVoiceBar(assistantId, enabled) } },
+            )
+        }
     }
 }
 
@@ -1363,38 +1443,38 @@ fun AssistantExtensionsPage(assistantId: String, onBack: () -> Unit) {
         }
         item {
             CardGroup(modifier = museAnimateItem()) {
-                ExtensionRow(
+                extensionRow(
                     type = ExtensionType.QUICK_MESSAGE,
                     count = repo.parseQuickMessageIds(a).size,
                     onClick = { activeType = ExtensionType.QUICK_MESSAGE },
                 )
-                ExtensionRow(
+                extensionRow(
                     type = ExtensionType.LOREBOOK,
                     count = repo.parseLorebookIds(a).size,
                     onClick = { activeType = ExtensionType.LOREBOOK },
                 )
-                ExtensionRow(
+                extensionRow(
                     type = ExtensionType.MODE_INJECTION,
                     count = repo.parseModeInjectionIds(a).size,
                     onClick = { activeType = ExtensionType.MODE_INJECTION },
                 )
-                ExtensionRow(
+                extensionRow(
                     type = ExtensionType.SKILL,
                     count = repo.parseSkillIds(a).size,
                     onClick = { activeType = ExtensionType.SKILL },
                 )
-                ExtensionRow(
+                extensionRow(
                     type = ExtensionType.MCP_SERVER,
                     count = repo.parseMcpServerIds(a).size,
                     onClick = { activeType = ExtensionType.MCP_SERVER },
                 )
-                ExtensionRow(
+                extensionRow(
                     type = ExtensionType.TOOL,
                     count = repo.parseToolIds(a).size,
                     onClick = { activeType = ExtensionType.TOOL },
                 )
                 // v1.133/v2.4.6: 知识库/文件夹绑定(作用域条目数)
-                ExtensionRow(
+                extensionRow(
                     type = ExtensionType.KNOWLEDGE_BASE,
                     count = repo.parseKnowledgeFolderScopes(a).size
                         .takeIf { it > 0 }
@@ -1564,7 +1644,7 @@ fun AssistantExtensionsPage(assistantId: String, onBack: () -> Unit) {
     }
 }
 
-private fun CardGroupScope.ExtensionRow(type: ExtensionType, count: Int, onClick: () -> Unit) {
+private fun CardGroupScope.extensionRow(type: ExtensionType, count: Int, onClick: () -> Unit) {
     item(
         onClick = onClick,
         headlineContent = { Text(type.titleText()) },

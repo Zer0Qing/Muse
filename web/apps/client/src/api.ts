@@ -25,6 +25,33 @@ export interface StoredProviderConfig extends ProviderConfig {
   readonly hasSecret: boolean;
 }
 
+export interface McpServerRecord {
+  readonly id: string;
+  readonly name: string;
+  readonly url: string;
+  readonly transport: "streamable_http";
+  readonly enabled: boolean;
+  readonly status: "disabled" | "connecting" | "connected" | "failed" | "needs_auth";
+}
+
+export interface McpToolRecord {
+  readonly name: string;
+  readonly serverId: string;
+  readonly serverName: string;
+  readonly originalName: string;
+  readonly description: string;
+  readonly parametersJsonSchema: string;
+}
+
+export interface McpApprovalRequest {
+  readonly approvalId: string;
+  readonly toolCallId: string;
+  readonly toolName: string;
+  readonly serverName: string;
+  readonly purpose: string;
+  readonly argumentsJson: string;
+}
+
 export interface AssistantRecord {
   readonly id: string;
   readonly accountId: string;
@@ -96,6 +123,27 @@ export async function listProviders(session: ClientSession): Promise<StoredProvi
 export async function saveProvider(session: ClientSession, provider: ProviderConfig, apiKey: string): Promise<StoredProviderConfig> {
   const result = await apiJson<{ provider: StoredProviderConfig }>("/api/v1/providers", { method: "POST", headers: { "x-muse-provider-key": apiKey }, body: JSON.stringify(provider) }, session);
   return result.provider;
+}
+
+export async function listMcpServers(session: ClientSession): Promise<{ servers: McpServerRecord[]; tools: McpToolRecord[] }> {
+  return apiJson("/api/v1/mcp/servers", {}, session);
+}
+
+export async function createMcpServer(session: ClientSession, input: { id: string; name: string; url: string }): Promise<McpServerRecord> {
+  const result = await apiJson<{ server: McpServerRecord }>("/api/v1/mcp/servers", { method: "POST", body: JSON.stringify({ ...input, transport: "streamable_http" }) }, session);
+  return result.server;
+}
+
+export async function connectMcpServer(session: ClientSession, serverId: string): Promise<{ server: McpServerRecord; tools: McpToolRecord[] }> {
+  return apiJson(`/api/v1/mcp/servers/${encodeURIComponent(serverId)}/connect`, { method: "POST", body: "{}" }, session);
+}
+
+export async function deleteMcpServer(session: ClientSession, serverId: string): Promise<void> {
+  await apiJson(`/api/v1/mcp/servers/${encodeURIComponent(serverId)}`, { method: "DELETE" }, session);
+}
+
+export async function resolveMcpApproval(session: ClientSession, approvalId: string, decision: "approved" | "denied"): Promise<void> {
+  await apiJson(`/api/v1/mcp/approvals/${encodeURIComponent(approvalId)}/resolve`, { method: "POST", body: JSON.stringify({ decision }) }, session);
 }
 
 export async function listAssistants(session: ClientSession): Promise<AssistantRecord[]> {

@@ -129,10 +129,7 @@ private fun parseHistoricalToolArguments(arguments: String): JsonObject? = runCa
     AppJson.decodeFromString(JsonObject.serializer(), arguments)
 }.getOrNull()
 
-private fun parseHistoricalPlanSteps(
-    value: JsonElement?,
-    defaultStepTitle: (Int) -> String,
-): List<AgentPlanStep> {
+private fun parseHistoricalPlanSteps(value: JsonElement?, defaultStepTitle: (Int) -> String): List<AgentPlanStep> {
     val array = when (value) {
         is JsonArray -> value
         is JsonPrimitive -> runCatching {

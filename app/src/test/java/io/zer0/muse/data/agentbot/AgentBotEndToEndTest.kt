@@ -40,10 +40,10 @@ class AgentBotEndToEndTest {
 
     @Before
     fun setUp() {
-        val context: Context = ApplicationProvider.getApplicationContext();
+        val context: Context = ApplicationProvider.getApplicationContext()
         db = Room.inMemoryDatabaseBuilder(context, MuseDb::class.java)
             .allowMainThreadQueries()
-            .build();
+            .build()
         repo = AgentBotRepository(
             taskDao = db.botTaskDao(),
             runDao = db.taskRunDao(),
@@ -53,31 +53,31 @@ class AgentBotEndToEndTest {
             publicationDao = db.publicationOutboxDao(),
             bindingDao = db.botBindingDao(),
             database = db,
-        );
+        )
         sessions = SessionRepository(
             sessionDao = db.sessionDao(),
             messageDao = db.messageDao(),
             database = db,
             context = context,
             messageImageStore = io.zer0.muse.data.session.MessageImageStore(File(context.cacheDir, "img")),
-        );
-        workspace = File(System.getProperty("java.io.tmpdir"), "e2e-ws-" + System.nanoTime());
-        workspace.mkdirs();
-        wsIO = WorkspaceArtifactIO(workspace);
-        staging = StagedArtifactStore(File(workspace, ".staging"));
+        )
+        workspace = File(System.getProperty("java.io.tmpdir"), "e2e-ws-" + System.nanoTime())
+        workspace.mkdirs()
+        wsIO = WorkspaceArtifactIO(workspace)
+        staging = StagedArtifactStore(File(workspace, ".staging"))
         applier = BotResultApplier(
             repository = repo,
             staging = staging,
             reviewer = BotReviewWorker(),
             readTarget = { ref -> wsIO.read(ref) },
             writeTarget = { ref, content -> wsIO.write(ref, content) },
-        );
+        )
     }
 
     @After
     fun tearDown() {
-        db.close();
-        workspace.deleteRecursively();
+        db.close()
+        workspace.deleteRecursively()
     }
 
     /** 假模型：第一次返回"接单 + 派工"，第二次返回纯对话。 */
@@ -87,12 +87,12 @@ class AgentBotEndToEndTest {
             val result = completions[minOf(index, completions.lastIndex)]
             index++
             result
-        };
+        }
     }
 
     @Test
     fun `dispatch from the bot becomes a queued task`() = runTest {
-        val sessionId = sessions.createAgentSession("default");
+        val sessionId = sessions.createAgentSession("default")
         val coordinator = ForegroundCoordinator(
             modelCaller = modelReturning(
                 ChatCompletion(
@@ -109,7 +109,7 @@ class AgentBotEndToEndTest {
             ),
             publication = PublicationService(db, repo, sessions),
             governor = BotResourceGovernor(),
-        );
+        )
 
         val turn = coordinator.runTurn(
             botId = "bot-1",
@@ -117,18 +117,18 @@ class AgentBotEndToEndTest {
             history = emptyList(),
             userText = "帮我把 notes.md 的错字改掉",
             requestRevision = 1L,
-        );
+        )
 
-        assertNotNull(turn);
-        assertEquals("我来处理", turn!!.say);
-        assertTrue("模型派了工，回合要反映出来", turn.shouldDispatch);
-        assertEquals("notes.md", turn.resourceScope);
+        assertNotNull(turn)
+        assertEquals("我来处理", turn!!.say)
+        assertTrue("模型派了工，回合要反映出来", turn.shouldDispatch)
+        assertEquals("notes.md", turn.resourceScope)
     }
 
     @Test
     fun `bot reply reaches the public message table`() = runTest {
-        val sessionId = sessions.createAgentSession("default");
-        val publication = PublicationService(db, repo, sessions);
+        val sessionId = sessions.createAgentSession("default")
+        val publication = PublicationService(db, repo, sessions)
         val coordinator = ForegroundCoordinator(
             modelCaller = modelReturning(
                 ChatCompletion(
@@ -140,12 +140,12 @@ class AgentBotEndToEndTest {
             ),
             publication = publication,
             governor = BotResourceGovernor(),
-        );
+        )
 
-        coordinator.runTurn("bot-1", sessionId, emptyList(), "帮我看下", 1L);
+        coordinator.runTurn("bot-1", sessionId, emptyList(), "帮我看下", 1L)
 
-        val messages = db.messageDao().getRecentBySession(sessionId, 10);
-        assertTrue("主 Bot 的话必须经发布通道落到公共消息", messages.any { it.content == "好的，我看下" });
+        val messages = db.messageDao().getRecentBySession(sessionId, 10)
+        assertTrue("主 Bot 的话必须经发布通道落到公共消息", messages.any { it.content == "好的，我看下" })
     }
 
     @Test
@@ -181,27 +181,27 @@ class AgentBotEndToEndTest {
 
     @Test
     fun `no bot_say means no message and the turn says so`() = runTest {
-        val sessionId = sessions.createAgentSession("default");
+        val sessionId = sessions.createAgentSession("default")
         val coordinator = ForegroundCoordinator(
             modelCaller = modelReturning(ChatCompletion(text = "我只说了话但没用工具")),
             publication = PublicationService(db, repo, sessions),
             governor = BotResourceGovernor(),
-        );
+        )
 
-        val turn = coordinator.runTurn("bot-1", sessionId, emptyList(), "在吗", 1L);
+        val turn = coordinator.runTurn("bot-1", sessionId, emptyList(), "在吗", 1L)
 
-        assertNotNull(turn);
-        assertTrue("没调 bot_say 时必须明确报错，不能拿正文兜底", turn!!.missingBotSay);
-        val messages = db.messageDao().getRecentBySession(sessionId, 10);
+        assertNotNull(turn)
+        assertTrue("没调 bot_say 时必须明确报错，不能拿正文兜底", turn!!.missingBotSay)
+        val messages = db.messageDao().getRecentBySession(sessionId, 10)
         assertFalse(
             "模型正文不得进入公共消息",
             messages.any { it.content == "我只说了话但没用工具" },
-        );
+        )
     }
 
     @Test
     fun `staged result is applied to the workspace file`() = runTest {
-        wsIO.write("notes.md", "原内容");
+        wsIO.write("notes.md", "原内容")
         val task = repo.createTask(
             botId = "bot-1",
             originSessionId = "s1",
@@ -209,15 +209,15 @@ class AgentBotEndToEndTest {
             goal = "改错字",
             acceptanceCriteria = "只改错字",
             resourceScope = "notes.md",
-        );
-        val run = repo.openRun(task.taskId)!!;
-        repo.transition(task.taskId, BotTaskStatusMachine.Event.START);
-        repo.transition(task.taskId, BotTaskStatusMachine.Event.EXECUTE_DONE);
+        )
+        val run = repo.openRun(task.taskId)!!
+        repo.transition(task.taskId, BotTaskStatusMachine.Event.START)
+        repo.transition(task.taskId, BotTaskStatusMachine.Event.EXECUTE_DONE)
         repo.closeRun(run.runId, TaskRunStatus.COMPLETED)
-        val baseHash = StagedArtifactStore.hashOf("原内容");
+        val baseHash = StagedArtifactStore.hashOf("原内容")
         val stagedId = staging.stage(
             StagedArtifactStore.Candidate("notes.md", "改好的内容", baseHash, run.taskRevision),
-        );
+        )
 
         val outcome = applier.process(
             task = task,
@@ -225,9 +225,9 @@ class AgentBotEndToEndTest {
             payloadRef = "改完了\n" + BotResultApplier.STAGED_MARKER + stagedId + "]",
             expectedBaseHash = baseHash,
             criteria = "只改错字",
-        );
+        )
 
-        assertTrue("审核通过后必须真的写进工作区", outcome.applied);
-        assertEquals("改好的内容", wsIO.read("notes.md"));
+        assertTrue("审核通过后必须真的写进工作区", outcome.applied)
+        assertEquals("改好的内容", wsIO.read("notes.md"))
     }
 }

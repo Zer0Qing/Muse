@@ -1,10 +1,13 @@
 package io.zer0.muse.ui.settings
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -17,32 +20,49 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import io.zer0.muse.ui.theme.MuseCornerRadius
 import io.zer0.muse.R
 import io.zer0.muse.data.proactive.PendingThoughtEntity
 import io.zer0.muse.data.proactive.ProactiveIntensity
 import io.zer0.muse.data.proactive.ThoughtKind
+import io.zer0.muse.data.proactive.ThoughtSource
+import io.zer0.muse.data.proactive.ThoughtStatus
+import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseBottomSheet
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
+import io.zer0.muse.ui.common.form.MuseChip
+import io.zer0.muse.ui.common.form.MuseTactileButton
+import io.zer0.muse.ui.common.form.MuseTextField
+import io.zer0.muse.ui.common.icons.MuseIcons
+import io.zer0.muse.ui.theme.MuseCornerRadius
+import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.MuseSpacing
 
 /**
- * 牵挂账本面板。
+ * 牵挂账本面板（用户可见、可管理）。
  *
- * 这块 UI 是新设计的兑现方式：用户能看见「它凭什么找我」，
- * 也能看见「它什么时候闭嘴」。
- *
- * 特意不展示 fitness 分数、阈值、intimacy 这些内部参数 ——
- * 那些是给日志看的，不是给用户看的。用户要看的是「它在惦记什么」
- * 和「今天还能不能被打扰」。
+ * 除展示待发送牵挂与今日额度外，支持：
+ *  - 标记已完成 / 移除误记牵挂；
+ *  - 手动「记一条」主动提醒或关心；
+ *  - 查看历史已送达/过期/放弃记录。
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ProactiveLedgerSheet(
     state: LedgerUiState,
@@ -51,18 +71,50 @@ fun ProactiveLedgerSheet(
     onCooldown: () -> Unit,
     onClearCooldown: () -> Unit,
     onDismiss: () -> Unit,
+    onCompleteThought: (String) -> Unit = {},
+    onDropThought: (String) -> Unit = {},
+    onAddThought: (seed: String, kind: ThoughtKind, triggerAt: Long?) -> Unit = { _, _, _ -> },
 ) {
+    var activeTab by rememberSaveable { mutableIntStateOf(0) }
+    var showAddDialog by rememberSaveable { mutableStateOf(false) }
+
+    if (showAddDialog) {
+        AddThoughtDialog(
+            onDismiss = { showAddDialog = false },
+            onConfirm = { seed, kind, triggerAt ->
+                onAddThought(seed, kind, triggerAt)
+                showAddDialog = false
+            },
+        )
+    }
+
     MuseBottomSheet(onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(max = 460.dp),
+                .heightIn(max = 540.dp),
         ) {
-            Text(
-                text = stringResource(R.string.settings_proactive_v2_ledger),
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    text = stringResource(R.string.settings_proactive_v2_ledger),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                MuseCapsuleButton(
+                    text = stringResource(R.string.proactive_ledger_add_btn),
+                    onClick = { showAddDialog = true },
+                    variant = IosCapsuleButtonVariant.Secondary,
+                    size = io.zer0.muse.ui.theme.MuseButtonSize.Compact,
+                    fillWidth = false,
+                )
+            }
             Spacer(Modifier.size(MusePaddings.contentGap))
 
             // ── 主动等级 ──
@@ -75,18 +127,19 @@ fun ProactiveLedgerSheet(
                     text = stringResource(R.string.settings_proactive_v2_intensity),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
                 )
-                // 试过「黏人」想回默认时不该自己一格一格往回点，而且今天已经花掉的
-                // 额度也得跟着回满 —— 这是用户要的「重置」。
-                io.zer0.muse.ui.common.form.MuseCapsuleButton(
+                MuseCapsuleButton(
                     text = stringResource(R.string.settings_proactive_v2_reset),
                     onClick = onResetIntensity,
-                    variant = io.zer0.muse.ui.common.form.IosCapsuleButtonVariant.Text,
+                    variant = IosCapsuleButtonVariant.Text,
                     size = io.zer0.muse.ui.theme.MuseButtonSize.Compact,
                     fillWidth = false,
                 )
             }
-            Spacer(Modifier.size(6.dp))
+            Spacer(Modifier.size(MuseSpacing.xs))
             IntensityRow(current = state.intensity, onSelect = onIntensityChange)
             Spacer(Modifier.size(MusePaddings.contentGap))
 
@@ -96,7 +149,6 @@ fun ProactiveLedgerSheet(
             Text(
                 text = when {
                     state.cooldownUntil > state.now -> stringResource(R.string.settings_proactive_v2_cooldown_sub)
-                    // 黏人档的额度是 Int.MAX_VALUE，直接渲染会变成「今天还能说 2147483647 次」
                     unlimited -> stringResource(R.string.settings_proactive_v2_budget_unlimited)
                     else -> stringResource(R.string.settings_proactive_v2_budget, remainingTimes)
                 },
@@ -105,23 +157,49 @@ fun ProactiveLedgerSheet(
             )
             Spacer(Modifier.size(MusePaddings.contentGap))
 
-            // ── 账本列表 ──
-            if (state.thoughts.isEmpty()) {
+            // ── 双页签切换：待发送 / 历史与记录 ──
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
+            ) {
+                MuseChip(
+                    label = stringResource(R.string.proactive_ledger_tab_open, state.thoughts.size),
+                    selected = activeTab == 0,
+                    onClick = { activeTab = 0 },
+                )
+                MuseChip(
+                    label = stringResource(R.string.proactive_ledger_tab_history, state.historyThoughts.size),
+                    selected = activeTab == 1,
+                    onClick = { activeTab = 1 },
+                )
+            }
+            Spacer(Modifier.size(MusePaddings.contentGap))
+
+            val displayed = if (activeTab == 0) state.thoughts else state.historyThoughts
+            if (displayed.isEmpty()) {
                 Text(
-                    text = stringResource(R.string.settings_proactive_v2_empty),
+                    text = stringResource(
+                        if (activeTab == 0) R.string.settings_proactive_v2_empty else R.string.proactive_ledger_history_empty,
+                    ),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(vertical = 12.dp),
+                    modifier = Modifier.padding(vertical = MuseSpacing.md),
                 )
             } else {
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f, fill = false),
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                    verticalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
                 ) {
-                    items(state.thoughts, key = { it.id }) { thought ->
-                        ThoughtRow(thought = thought, now = state.now)
+                    items(displayed, key = { it.id }) { thought ->
+                        ThoughtCardRow(
+                            thought = thought,
+                            now = state.now,
+                            isOpenTab = activeTab == 0,
+                            onComplete = { onCompleteThought(thought.id) },
+                            onDrop = { onDropThought(thought.id) },
+                        )
                     }
                 }
             }
@@ -129,25 +207,22 @@ fun ProactiveLedgerSheet(
             Spacer(Modifier.size(MusePaddings.contentGap))
 
             // ── 冷却开关 ──
-            // 冷却中时这里必须变成「恢复」：只给单向入口的话，点错了就只能等七天。
             val coolingDown = state.cooldownUntil > state.now
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .heightIn(min = MuseIconSizes.touchTarget)
                     .background(
                         MaterialTheme.colorScheme.surfaceVariant,
                         RoundedCornerShape(MuseCornerRadius.BUTTON.dp),
-                    ).clickable(onClick = if (coolingDown) onClearCooldown else onCooldown)
-                    .padding(vertical = 12.dp),
+                    )
+                    .clickable(onClick = if (coolingDown) onClearCooldown else onCooldown)
+                    .padding(vertical = MuseSpacing.md),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = stringResource(
-                        if (coolingDown) {
-                            R.string.settings_proactive_v2_resume
-                        } else {
-                            R.string.settings_proactive_v2_cooldown
-                        },
+                        if (coolingDown) R.string.settings_proactive_v2_resume else R.string.settings_proactive_v2_cooldown,
                     ),
                     style = MaterialTheme.typography.bodyMedium,
                     color = if (coolingDown) {
@@ -161,19 +236,18 @@ fun ProactiveLedgerSheet(
     }
 }
 
-/** 面板的全部展示状态。打包成一个类型，是为了让调用处只用一个参数就能对齐。 */
+/** 面板的全部展示状态。新增字段均带默认值以保持已有调用兼容。 */
 data class LedgerUiState(
     val thoughts: List<PendingThoughtEntity>,
     val intensity: ProactiveIntensity,
     val remainingBudget: Float,
     val cooldownUntil: Long,
     val now: Long,
+    val historyThoughts: List<PendingThoughtEntity> = emptyList(),
 )
 
 /**
- * 填充比例：第 [index] 档占轨道的多少。整条轨道代表"额度全部用完"，
- * 所以是 `(index + 1) / count` 而不是 `index / (count - 1)` —— 最左一档也该有可见的填充，
- * 否则用户会以为"安静"= 一格都没有（等于关掉），语义就糊了。
+ * 填充比例：第 [index] 档占轨道的多少。
  */
 internal fun intensityFillFraction(index: Int, count: Int): Float {
     if (count <= 0) return 0f
@@ -181,10 +255,7 @@ internal fun intensityFillFraction(index: Int, count: Int): Float {
 }
 
 /**
- * 把手中心落在哪：第 [index] 档那一格的**中点**，不是右边界。
- *
- * 用右边界的话最右档的把手会贴边被裁，最左档则跑到起点外面 ——
- * 参照平台是把把手停在格子中间，读起来才像"当前在这格"。
+ * 把手中心落点比例。
  */
 internal fun intensityHandleFraction(index: Int, count: Int): Float {
     if (count <= 0) return 0f
@@ -192,30 +263,18 @@ internal fun intensityHandleFraction(index: Int, count: Int): Float {
 }
 
 /**
- * 主动程度选择器（整改计划 第 4 条差异①）。
- *
- * 参照形态是一条**连续轨道 + 已填充段 + 带当前档位名的把手**，而不是一排各自独立的按钮：
- * 五档是同一根"热情度"刻度上的位置，用分离按钮表达会读成五个互不相干的开关。
- *
- * 实现上刻意**不用 Material3 的 `Slider`**：
- *  - `check_component_convergence` 禁止业务页直接写裸 M3 `Slider`（必须先有 Muse 封装）；
- *  - M3 Slider 的把手只能拖动、不能"点某档直达"，而这里五档是离散选择，点才是主交互。
- * 所以是自建轨道 + 五个 `weight(1f)`、高 56dp 的点击格（点击区 ≥48dp，满足 touch target 门禁）。
+ * 主动程度选择器。保留 5 个等宽点击格（每格均独立呈现名称，点击热区 >= 48dp）。
  */
-// internal 而非 private：本仓测试需要单独驱动它（结构重复、把手错位这类缺陷
-// 只有在真实渲染下才看得见；页面级测试见 `ProactiveIntensityRowTest`）。
 @Composable
 internal fun IntensityRow(current: ProactiveIntensity, onSelect: (ProactiveIntensity) -> Unit) {
     val levels = ProactiveIntensity.entries
     val selectedIndex = levels.indexOf(current).coerceAtLeast(0)
 
-    // 轨道 + 把手 + 点击格叠在同一块里：把手要压在轨道上，只能同层定位。
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(56.dp),
     ) {
-        // 轨道底：一整条 surfaceVariant（先偏移位置再设高度，避免 padding 吃掉 6dp 轨道高度）
         Box(
             modifier = Modifier
                 .align(Alignment.TopStart)
@@ -227,7 +286,6 @@ internal fun IntensityRow(current: ProactiveIntensity, onSelect: (ProactiveInten
                     RoundedCornerShape(3.dp),
                 ),
         )
-        // 已填充段：primary，长度由纯函数算出（可测）
         Box(
             modifier = Modifier
                 .align(Alignment.TopStart)
@@ -239,7 +297,6 @@ internal fun IntensityRow(current: ProactiveIntensity, onSelect: (ProactiveInten
                     RoundedCornerShape(3.dp),
                 ),
         )
-        // 五个等宽点击格：档位名只在选中格上显示（就是参照里那颗把手）
         Row(modifier = Modifier.fillMaxWidth()) {
             levels.forEachIndexed { index, level ->
                 val selected = index == selectedIndex
@@ -251,31 +308,29 @@ internal fun IntensityRow(current: ProactiveIntensity, onSelect: (ProactiveInten
                     contentAlignment = Alignment.Center,
                 ) {
                     if (selected) {
-                        // 把手胶囊：档位名写在里面，用户不用猜"这一格是什么"
                         Box(
                             modifier = Modifier
                                 .background(
                                     MaterialTheme.colorScheme.primaryContainer,
                                     RoundedCornerShape(MuseCornerRadius.SEMI_LARGE.dp),
-                                ).padding(horizontal = 10.dp, vertical = 4.dp),
+                                )
+                                .padding(horizontal = MuseSpacing.sm, vertical = MuseSpacing.xs),
                         ) {
                             Text(
                                 text = stringResource(level.labelRes()),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
                             )
                         }
                     } else {
-                        // 其余档位**照样要显示名字**：我第一版只画了一个刻度点，测试
-                        // `ProactiveIntensityRowTest` 当场抓到文字总数从 5 掉到 1 ——
-                        // 四个档位变成"不知道是什么的东西"，可发现性直接倒退。
-                        // 保留轨道与填充的隐喻，但每格都得说清自己是什么档。
                         Text(
                             text = stringResource(level.labelRes()),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
-                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                            overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.padding(top = 12.dp),
                         )
                     }
@@ -285,43 +340,207 @@ internal fun IntensityRow(current: ProactiveIntensity, onSelect: (ProactiveInten
     }
 }
 
-/** 单条牵挂。左侧性质标签，右侧事由与时间感。 */
 @Composable
-private fun ThoughtRow(thought: PendingThoughtEntity, now: Long) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 6.dp),
-        verticalAlignment = Alignment.Top,
+private fun ThoughtCardRow(thought: PendingThoughtEntity, now: Long, isOpenTab: Boolean, onComplete: () -> Unit, onDrop: () -> Unit) {
+    Surface(
+        shape = MuseShapes.small,
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        modifier = Modifier.fillMaxWidth(),
     ) {
-        Box(
+        Row(
             modifier = Modifier
-                .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(MuseCornerRadius.BUBBLE_TAIL.dp))
-                .padding(horizontal = 6.dp, vertical = 2.dp),
+                .fillMaxWidth()
+                .padding(MusePaddings.cardInner),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = stringResource(thought.kindEnum().labelRes()),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        Spacer(Modifier.width(8.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = thought.seed,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                text = describeAge(thought, now),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(MuseSpacing.xs),
+                ) {
+                    BadgePill(
+                        label = stringResource(thought.kindEnum().labelRes()),
+                        accent = true,
+                    )
+                    BadgePill(
+                        label = stringResource(thought.sourceEnum().labelRes()),
+                        accent = false,
+                    )
+                    if (!isOpenTab) {
+                        BadgePill(
+                            label = stringResource(thought.statusEnum().labelRes()),
+                            accent = false,
+                        )
+                    } else if (thought.surfaceCount > 0) {
+                        BadgePill(
+                            label = stringResource(R.string.proactive_ledger_surfaced_count, thought.surfaceCount),
+                            accent = false,
+                        )
+                    }
+                    thought.triggerAt?.let { scheduledAt ->
+                        val formatted = remember(scheduledAt) {
+                            java.text.SimpleDateFormat("MM-dd HH:mm", java.util.Locale.getDefault())
+                                .format(java.util.Date(scheduledAt))
+                        }
+                        val isDue = scheduledAt <= now
+                        BadgePill(
+                            label = if (isDue) {
+                                stringResource(R.string.proactive_ledger_scheduled_due, formatted)
+                            } else {
+                                stringResource(R.string.proactive_ledger_scheduled_at, formatted)
+                            },
+                            accent = isDue,
+                        )
+                    }
+                }
+                Spacer(Modifier.size(MuseSpacing.xs))
+                Text(
+                    text = thought.seed,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Spacer(Modifier.size(MuseSpacing.xxs))
+                Text(
+                    text = describeAge(thought, now),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (isOpenTab) {
+                Spacer(Modifier.width(MuseSpacing.xs))
+                MuseTactileButton(
+                    icon = MuseIcons.check,
+                    onClick = onComplete,
+                    contentDescription = stringResource(R.string.proactive_ledger_mark_done),
+                    tint = MaterialTheme.colorScheme.primary,
+                    size = MuseIconSizes.touchTarget,
+                    iconSize = MuseIconSizes.iconSmall,
+                )
+                MuseTactileButton(
+                    icon = MuseIcons.trash,
+                    onClick = onDrop,
+                    contentDescription = stringResource(R.string.proactive_ledger_delete),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    size = MuseIconSizes.touchTarget,
+                    iconSize = MuseIconSizes.iconSmall,
+                )
+            }
         }
     }
 }
 
-/** 事由的时间感。用户看「三天前想起」比看时间戳有感觉。 */
+@Composable
+private fun BadgePill(label: String, accent: Boolean) {
+    Box(
+        modifier = Modifier
+            .background(
+                color = if (accent) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+                shape = RoundedCornerShape(MuseCornerRadius.BUBBLE_TAIL.dp),
+            )
+            .padding(horizontal = MuseSpacing.xs, vertical = MuseSpacing.xxs),
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = if (accent) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            softWrap = false,
+        )
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun AddThoughtDialog(onDismiss: () -> Unit, onConfirm: (seed: String, kind: ThoughtKind, triggerAt: Long?) -> Unit) {
+    var seed by rememberSaveable { mutableStateOf("") }
+    var selectedKind by rememberSaveable { mutableStateOf(ThoughtKind.REMINDER) }
+    var selectedScheduleIndex by rememberSaveable { mutableIntStateOf(0) }
+    val selectableKinds = listOf(ThoughtKind.REMINDER, ThoughtKind.FOLLOW_UP, ThoughtKind.CARE, ThoughtKind.SHARE)
+    val scheduleLabels = listOf(
+        R.string.proactive_ledger_schedule_none,
+        R.string.proactive_ledger_schedule_30m,
+        R.string.proactive_ledger_schedule_2h,
+        R.string.proactive_ledger_schedule_tomorrow_morning,
+    )
+
+    MuseDialog(
+        onDismissRequest = onDismiss,
+        title = stringResource(R.string.proactive_ledger_add_title),
+        content = {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                MuseTextField(
+                    value = seed,
+                    onValueChange = { seed = it },
+                    label = { Text(stringResource(R.string.proactive_ledger_add_seed_label)) },
+                    placeholder = { Text(stringResource(R.string.proactive_ledger_add_seed_hint)) },
+                    maxLines = 3,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.size(MuseSpacing.md))
+                Text(
+                    text = stringResource(R.string.proactive_ledger_add_kind_label),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.size(MuseSpacing.xs))
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
+                ) {
+                    selectableKinds.forEach { kind ->
+                        MuseChip(
+                            label = stringResource(kind.labelRes()),
+                            selected = kind == selectedKind,
+                            onClick = { selectedKind = kind },
+                        )
+                    }
+                }
+                Spacer(Modifier.size(MuseSpacing.md))
+                Text(
+                    text = stringResource(R.string.proactive_ledger_add_schedule_label),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.size(MuseSpacing.xs))
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
+                ) {
+                    scheduleLabels.forEachIndexed { idx, labelRes ->
+                        MuseChip(
+                            label = stringResource(labelRes),
+                            selected = idx == selectedScheduleIndex,
+                            onClick = { selectedScheduleIndex = idx },
+                        )
+                    }
+                }
+            }
+        },
+        confirmText = stringResource(R.string.common_save),
+        onConfirm = {
+            val trimmed = seed.trim()
+            if (trimmed.isNotEmpty()) {
+                val now = System.currentTimeMillis()
+                val triggerAt = when (selectedScheduleIndex) {
+                    1 -> now + 30L * 60_000L
+                    2 -> now + 2L * 3_600_000L
+                    3 -> java.util.Calendar.getInstance().apply {
+                        timeInMillis = now
+                        add(java.util.Calendar.DAY_OF_YEAR, 1)
+                        set(java.util.Calendar.HOUR_OF_DAY, 9)
+                        set(java.util.Calendar.MINUTE, 0)
+                        set(java.util.Calendar.SECOND, 0)
+                        set(java.util.Calendar.MILLISECOND, 0)
+                    }.timeInMillis
+                    else -> null
+                }
+                onConfirm(trimmed, selectedKind, triggerAt)
+            }
+        },
+        dismissText = stringResource(R.string.common_cancel),
+        onDismiss = onDismiss,
+    )
+}
+
 @Composable
 private fun describeAge(thought: PendingThoughtEntity, now: Long): String {
     val hours = (now - thought.createdAt).coerceAtLeast(0L) / 3_600_000L
@@ -346,4 +565,18 @@ private fun ThoughtKind.labelRes(): Int = when (this) {
     ThoughtKind.CARE -> R.string.proactive_kind_care
     ThoughtKind.SHARE -> R.string.common_share
     ThoughtKind.MILESTONE -> R.string.proactive_kind_milestone
+}
+
+private fun ThoughtSource.labelRes(): Int = when (this) {
+    ThoughtSource.CONVERSATION -> R.string.proactive_ledger_source_conversation
+    ThoughtSource.MEMORY -> R.string.proactive_ledger_source_memory
+    ThoughtSource.MILESTONE -> R.string.proactive_ledger_source_milestone
+    ThoughtSource.USER_DEFINED -> R.string.proactive_ledger_source_manual
+}
+
+private fun ThoughtStatus.labelRes(): Int = when (this) {
+    ThoughtStatus.OPEN -> R.string.proactive_ledger_status_open
+    ThoughtStatus.DONE -> R.string.proactive_ledger_status_done
+    ThoughtStatus.EXPIRED -> R.string.proactive_ledger_status_expired
+    ThoughtStatus.DROPPED -> R.string.proactive_ledger_status_dropped
 }

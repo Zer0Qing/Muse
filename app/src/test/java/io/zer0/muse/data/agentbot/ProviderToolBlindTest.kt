@@ -1,8 +1,8 @@
-package io.zer0.muse.data.agentbot;
+package io.zer0.muse.data.agentbot
 
-import org.junit.Assert.assertTrue;
-import org.junit.Test;
-import java.io.File;
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import java.io.File
 
 /**
  * F4：Provider 不支持工具调用时必须明确告知，不能静默退化。
@@ -20,15 +20,15 @@ import java.io.File;
 class ProviderToolBlindTest {
 
     private val coordinator: String by lazy {
-        File("src/main/java/io/zer0/muse/data/agentbot/ForegroundCoordinator.kt").readText();
+        File("src/main/java/io/zer0/muse/data/agentbot/ForegroundCoordinator.kt").readText()
     }
 
     private val vm: String by lazy {
-        File("src/main/java/io/zer0/muse/ui/agentbot/AgentBotViewModel.kt").readText();
+        File("src/main/java/io/zer0/muse/ui/agentbot/AgentBotViewModel.kt").readText()
     }
 
     private val screen: String by lazy {
-        File("src/main/java/io/zer0/muse/ui/agentbot/AgentBotScreen.kt").readText();
+        File("src/main/java/io/zer0/muse/ui/agentbot/AgentBotScreen.kt").readText()
     }
 
     @Test
@@ -36,23 +36,23 @@ class ProviderToolBlindTest {
         assertTrue(
             "Turn 必须能表达「这个 Provider 不发 tool_calls」",
             coordinator.contains("val providerToolBlind: Boolean = false"),
-        );
+        )
     }
 
     @Test
     fun `detection requires two text-only responses`() {
         // 一次没配合是"模型这次偷懒"，两次都没有才是"Provider 不支持"。
-        val at = coordinator.indexOf("var providerLooksToolBlind = false");
-        assertTrue("必须有探测变量", at > 0);
+        val at = coordinator.indexOf("var providerLooksToolBlind = false")
+        assertTrue("必须有探测变量", at > 0)
         // 窗口要够宽：探测块里有 finishReason 判据 + 补救调用 + 赋值。
         // 用 1200 会在"补救也失败才判定"那行之前截断。
-        val end = coordinator.indexOf("providerToolBlind = true)", at);
-        val body = coordinator.substring(at, if (end > at) end + 30 else coordinator.length);
-        assertTrue("要看首轮有没有正文", body.contains("completion.text.isNotBlank()"));
-        assertTrue("要做一次补救", body.contains("retryWithBotSay("));
-        assertTrue("补救也失败才判定", body.contains("providerLooksToolBlind = true"));
+        val end = coordinator.indexOf("providerToolBlind = true)", at)
+        val body = coordinator.substring(at, if (end > at) end + 30 else coordinator.length)
+        assertTrue("要看首轮有没有正文", body.contains("completion.text.isNotBlank()"))
+        assertTrue("要做一次补救", body.contains("retryWithBotSay("))
+        assertTrue("补救也失败才判定", body.contains("providerLooksToolBlind = true"))
         // 判据不止"有正文"：还要确认 Provider 把这次请求当成普通补全处理了。
-        assertTrue("需要 finishReason 门控", body.contains("askedForTools"));
+        assertTrue("需要 finishReason 门控", body.contains("askedForTools"))
     }
 
     @Test
@@ -65,30 +65,31 @@ class ProviderToolBlindTest {
         //
         // 用户该看到的是"这个 Provider 不支持工具调用"这条明确错误，
         // 而不是一段没经审核的模型正文。
-        val at = coordinator.indexOf("providerLooksToolBlind = true");
-        assertTrue(at > 0);
-        val body = coordinator.substring(at, minOf(at + 700, coordinator.length));
+        val at = coordinator.indexOf("providerLooksToolBlind = true")
+        assertTrue(at > 0)
+        val body = coordinator.substring(at, minOf(at + 700, coordinator.length))
         assertTrue(
             "不能把正文放进 say —— 那违反 V15 的「正文不经 bot_say 不可见」",
             !body.contains("say = completion.text"),
-        );
+        )
     }
 
     @Test
     fun `the flag reaches the ui as a specific error`() {
-        assertTrue("VM 必须处理这个标记", vm.contains("turn.providerToolBlind"));
-        assertTrue("要有专门的错误类型", vm.contains("AgentBotError.PROVIDER_TOOL_BLIND"));
-        assertTrue("界面要有文案", screen.contains("AgentBotError.PROVIDER_TOOL_BLIND"));
+        assertTrue("VM 必须处理这个标记", vm.contains("turn.providerToolBlind"))
+        assertTrue("要有专门的错误类型", vm.contains("AgentBotError.PROVIDER_TOOL_BLIND"))
+        assertTrue("界面要有文案", screen.contains("AgentBotError.PROVIDER_TOOL_BLIND"))
     }
 
     @Test
     fun `the message tells the user what to do`() {
         // 只说"不支持"没用，要告诉用户"换个供应商"。
-        val at = screen.indexOf("AgentBotError.PROVIDER_TOOL_BLIND");
-        assertTrue(at > 0);
-        val around = screen.substring(at, minOf(at + 200, screen.length));
-        assertTrue("要指向具体文案资源", around.contains("agent_bot_error_tool_blind"));
+        val at = screen.indexOf("AgentBotError.PROVIDER_TOOL_BLIND")
+        assertTrue(at > 0)
+        val around = screen.substring(at, minOf(at + 200, screen.length))
+        assertTrue("要指向具体文案资源", around.contains("agent_bot_error_tool_blind"))
     }
+
     @Test
     fun `detection also requires the provider to have answered with stop`() {
         // 上一版只看"两次都返回纯文本"，会把"模型这次不肯用工具"
@@ -96,12 +97,13 @@ class ProviderToolBlindTest {
         //
         // 补充判据：finishReason 为 stop 或缺失，说明这次请求被当成
         // 普通补全处理了。支持工具的 Provider 在 required 下不会这样。
-        val at = coordinator.indexOf("val askedForTools =");
-        assertTrue("必须有 finishReason 判据", at > 0);
-        val body = coordinator.substring(at, minOf(at + 400, coordinator.length));
-        assertTrue("要检查 finishReason", body.contains("finishReason"));
-        assertTrue("并且用于门控探测", coordinator.contains("gotText && !askedForTools"));
+        val at = coordinator.indexOf("val askedForTools =")
+        assertTrue("必须有 finishReason 判据", at > 0)
+        val body = coordinator.substring(at, minOf(at + 400, coordinator.length))
+        assertTrue("要检查 finishReason", body.contains("finishReason"))
+        assertTrue("并且用于门控探测", coordinator.contains("gotText && !askedForTools"))
     }
+
     @Test
     fun `the wording is hedged not absolute`() {
         // 判据是启发式的：两次纯文本 + finishReason 为 stop。
@@ -109,17 +111,17 @@ class ProviderToolBlindTest {
         //
         // 所以文案不能说"不支持"，只能说"可能不支持" ——
         // 否则错误信息会把责任推给 Provider，用户换一圈供应商也解决不了。
-        val text = File("src/main/res/values/strings_ui_misc.xml").readText();
-        val m = Regex("<string name=\"agent_bot_error_tool_blind\">([^<]*)</string>").find(text);
-        assertTrue("文案必须存在", m != null);
-        val wording = m!!.groupValues[1];
+        val text = File("src/main/res/values/strings_ui_misc.xml").readText()
+        val m = Regex("<string name=\"agent_bot_error_tool_blind\">([^<]*)</string>").find(text)
+        assertTrue("文案必须存在", m != null)
+        val wording = m!!.groupValues[1]
         assertTrue(
             "必须用不确定语气（可能/或许），不能断言「不支持」：" + wording,
             wording.contains("可能"),
-        );
+        )
         assertTrue(
             "要给出下一步（换供应商 或 直接说怎么做）：" + wording,
             wording.contains("供应商") || wording.contains("告诉我"),
-        );
+        )
     }
 }

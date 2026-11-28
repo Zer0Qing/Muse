@@ -2,7 +2,6 @@ package io.zer0.muse.ui
 
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * AUD-UI-F3: 前台从数据库刷新会话(refreshDisplayedSessionFromDatabase)

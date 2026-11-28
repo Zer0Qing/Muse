@@ -1,5 +1,6 @@
 package io.zer0.muse.data.agentbot
 
+import io.zer0.common.Logger
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -7,9 +8,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.update
-import android.content.Context
-import io.zer0.common.Logger
-import io.zer0.muse.ui.chat.ChatUiState
 
 /**
  * 中枢页面向用户显示的错误。
@@ -35,6 +33,18 @@ enum class AgentBotError {
 
     /** 消息落盘失败。内容已留在输入框。 */
     SAVE_FAILED,
+
+    /**
+     * 服务端限流（HTTP 429 / rate_limit_exceeded）。
+     *
+     * 与 [SAVE_FAILED] 严格分开：限流时消息其实已经落盘，只是这一轮没有回复。
+     * 以前一律报「消息没能保存，请重试」，用户会反复重发同一句话，
+     * 既解决不了限流，也把会话刷成一堆重复消息。
+     */
+    RATE_LIMITED,
+
+    /** 模型侧返回了与落盘无关的失败（鉴权、服务端错误、网络等）。 */
+    PROVIDER_FAILED,
 
     /** 这一步已经被结算过（双击 / 并发）。 */
     ALREADY_DECIDED,
@@ -76,7 +86,6 @@ enum class AgentBotError {
  * 与 [AgentBotError] 同理由：状态层只给语义，文案在 UI 侧解析。
  */
 enum class AgentBotPrompt {
-    /** 需要用户决定怎么继续。 */
     /**
      * 审批已通过，等用户确认是否重跑整件事。
      *
@@ -111,6 +120,14 @@ enum class AgentBotPrompt {
  * 四个域各自订阅，任务进度变化不会让输入框重组。
  */
 class AgentBotUiState {
+
+    data class ForegroundMcpApproval(
+        val requestId: String,
+        val serverId: String,
+        val toolName: String,
+        val purpose: String,
+        val argumentsJson: String,
+    )
 
     /** 输入区。用户敲字只动这里。 */
     data class Composer(
@@ -327,6 +344,9 @@ class AgentBotUiState {
     private val _streaming = MutableStateFlow(StreamingBubble())
     val streaming: StateFlow<StreamingBubble> = _streaming.asStateFlow()
 
+    private val _foregroundMcpApproval = MutableStateFlow<ForegroundMcpApproval?>(null)
+    val foregroundMcpApproval: StateFlow<ForegroundMcpApproval?> = _foregroundMcpApproval.asStateFlow()
+
     // ── 写入口（全部是值语义，StateFlow 可合并）────────────────────────
 
     fun setComposerText(text: String) = _composer.update { it.copy(text = text) }
@@ -381,6 +401,7 @@ class AgentBotUiState {
     fun replacePublished(messages: List<PublishedMessage>) = _transcript.update { messages }
 
     fun setTaskBoard(board: TaskBoard) = _taskBoard.update { board }
+    fun setForegroundMcpApproval(request: ForegroundMcpApproval?) = _foregroundMcpApproval.update { request }
 
     fun setTyping(typing: Boolean) = _busy.update { it.copy(typing = typing) }
 
@@ -482,10 +503,7 @@ class StagedCandidatesUnavailableException(
  * @param retryToken 本次尝试的 token，由重试入口递增。
  * @param previous 重试开始时已知的上一次成功投影；跨重试也要保住内容。
  */
-fun Flow<AgentBotProjection>.asScopeStates(
-    retryToken: Long,
-    previous: AgentBotProjection? = null,
-): Flow<AgentBotScopeState> = flow {
+fun Flow<AgentBotProjection>.asScopeStates(retryToken: Long, previous: AgentBotProjection? = null): Flow<AgentBotScopeState> = flow {
     emit(AgentBotScopeState.Loading)
     var lastContent = previous
     try {
@@ -502,7 +520,7 @@ fun Flow<AgentBotProjection>.asScopeStates(
     } catch (cause: CancellationException) {
         // 作用域切换 / 页面销毁是正常取消，不能当成读取失败上报。
         throw cause
-    } catch (cause: Exception) {
+    } catch (cause: java.io.IOException) {
         Logger.e("AgentBotScope", "页面投影读取失败，保留上次内容: ${cause.message}", cause)
         emit(
             AgentBotScopeState.Error(

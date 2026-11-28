@@ -16,6 +16,7 @@
     <string name="translate_page_speak_result">翻訳を話す</string>
     <string name="translate_page_use_as_input">入力として使用する</string>
     <string name="translate_page_send_to_chat_session">チャットに送信</string>
+    <string name="translate_page_still_translating">翻訳中です。完了後に送信できます</string>
     <string name="translate_page_more">もっと</string>
     <string name="translate_page_style_label">翻訳スタイル</string>
     <string name="translate_page_tts_not_ready">TTS の準備ができていません。後でもう一度試してください。</string>

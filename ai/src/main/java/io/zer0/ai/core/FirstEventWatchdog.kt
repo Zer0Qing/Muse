@@ -1,9 +1,11 @@
 package io.zer0.ai.core
 
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicBoolean
@@ -66,21 +68,21 @@ fun Flow<ChatStreamEvent>.withFirstEventWatchdog(
         if (abortCheck() || !fallbackStarted.compareAndSet(false, true)) return
         finished.set(true)
         if (cancelUpstream) upstreamJob.cancel()
-        trySend(ChatStreamEvent.FallbackNotice(notice))
+        send(ChatStreamEvent.FallbackNotice(notice))
         try {
             val completion = fallback()
             completion.reasoningContent?.takeIf { it.isNotBlank() }?.let {
-                trySend(ChatStreamEvent.ReasoningDelta(it))
+                send(ChatStreamEvent.ReasoningDelta(it))
             }
             // v1.0.90 (S-6): 已收到过流式内容时,回退的完整文本不再追加 —
-            // 此前无条件 trySend(ContentDelta(completion.text)),若流式已输出部分内容
+            // 此前无条件 send(ContentDelta(completion.text)),若流式已输出部分内容
             // (如 GLM-4-9B 等模型流式行为异常,先输出片段),完整文本与之拼接,
             // 消息变成"片段 + 完整回复"(用户反馈的严重重叠)。
             // 此时只保留已显示内容,发 FallbackNotice 提示(UI 可提示用户重试)。
             if (completion.text.isNotBlank() && !meaningfulEventReceived.get()) {
-                trySend(ChatStreamEvent.ContentDelta(completion.text))
+                send(ChatStreamEvent.ContentDelta(completion.text))
             } else if (completion.text.isNotBlank()) {
-                trySend(
+                send(
                     ChatStreamEvent.Error(
                         "流式已输出内容但未完成,已保留当前内容(可重试生成)",
                         null,
@@ -88,10 +90,10 @@ fun Flow<ChatStreamEvent>.withFirstEventWatchdog(
                 )
             }
             if (completion.citationUrls.isNotEmpty()) {
-                trySend(ChatStreamEvent.CitationDelta(completion.citationUrls))
+                send(ChatStreamEvent.CitationDelta(completion.citationUrls))
             }
             completion.toolCalls?.forEachIndexed { index, tc ->
-                trySend(
+                send(
                     ChatStreamEvent.ToolCallDelta(
                         index = index,
                         id = tc.id,
@@ -100,12 +102,12 @@ fun Flow<ChatStreamEvent>.withFirstEventWatchdog(
                     ),
                 )
             }
-            trySend(ChatStreamEvent.Done(completion.finishReason))
+            send(ChatStreamEvent.Done(completion.finishReason))
         } catch (cancelled: kotlinx.coroutines.CancellationException) {
             close(cancelled)
             throw cancelled
         } catch (t: Throwable) {
-            trySend(ChatStreamEvent.Error(t.message ?: "非流式回退失败", t))
+            send(ChatStreamEvent.Error(t.message ?: "非流式回退失败", t))
         } finally {
             close()
         }
@@ -124,18 +126,18 @@ fun Flow<ChatStreamEvent>.withFirstEventWatchdog(
                 when (event) {
                     is ChatStreamEvent.ContentDelta -> {
                         if (event.delta.isNotEmpty()) meaningfulEventReceived.set(true)
-                        trySend(event)
+                        send(event)
                     }
                     is ChatStreamEvent.ReasoningDelta -> {
                         if (event.delta.isNotEmpty()) meaningfulEventReceived.set(true)
-                        trySend(event)
+                        send(event)
                     }
                     is ChatStreamEvent.ImageDelta,
                     is ChatStreamEvent.ToolCallDelta,
                     is ChatStreamEvent.CitationDelta,
                     -> {
                         meaningfulEventReceived.set(true)
-                        trySend(event)
+                        send(event)
                     }
                     is ChatStreamEvent.Done -> {
                         // 部分 OpenAI 兼容中转会建立 SSE 后只返回一个空 Done。
@@ -143,7 +145,7 @@ fun Flow<ChatStreamEvent>.withFirstEventWatchdog(
                         if (!meaningfulEventReceived.get()) {
                             emitFallback("流式响应为空，正在切换请求方式", cancelUpstream = false)
                         } else {
-                            trySend(event)
+                            send(event)
                             finished.set(true)
                             close()
                         }
@@ -153,7 +155,7 @@ fun Flow<ChatStreamEvent>.withFirstEventWatchdog(
                     is ChatStreamEvent.FallbackNotice,
                     is ChatStreamEvent.UsageDelta,
                     -> {
-                        trySend(event)
+                        send(event)
                         if (event is ChatStreamEvent.Error ||
                             event is ChatStreamEvent.StreamInterrupted
                         ) {
@@ -178,7 +180,7 @@ fun Flow<ChatStreamEvent>.withFirstEventWatchdog(
             }
             if (!finished.get()) {
                 finished.set(true)
-                trySend(ChatStreamEvent.Error(t.message ?: "流式请求失败", t))
+                send(ChatStreamEvent.Error(t.message ?: "流式请求失败", t))
                 close()
             }
         }
@@ -196,4 +198,4 @@ fun Flow<ChatStreamEvent>.withFirstEventWatchdog(
         upstreamJob.cancel()
         watchdogJob.cancel()
     }
-}
+}.buffer(Channel.UNLIMITED)

@@ -1,16 +1,9 @@
-package io.zer0.muse.ui;
+package io.zer0.muse.ui
 
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
-import io.zer0.muse.ui.chat.ChatStreamState
-import io.zer0.muse.ui.chat.ChatToolsState
-import io.zer0.muse.ui.chat.ChatInputState
-import io.zer0.muse.ui.chat.ChatSessionState
-import io.zer0.muse.ui.chat.ChatAgentState
-import io.zer0.muse.ui.chat.ChatUiState
-import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * BLK-8 结论的代码锚点。
@@ -41,11 +34,11 @@ class ChatUiStateValueSemanticsTest {
                 "StateFlow 去重会走深比较，80 处 update 每次多一次 O(n) 开销。" +
                 "若确实要改，先重新评估并更新 §16.85。",
             source.contains("data class ChatUiState("),
-        );
+        )
         assertTrue(
             "ChatUiState 必须存在",
             source.contains("class ChatUiState("),
-        );
+        )
     }
 
     @Test
@@ -53,39 +46,45 @@ class ChatUiStateValueSemanticsTest {
         // 它们是深比较代价的来源。改成普通 class 会消除这个代价，
         // 但也意味着嵌套层的值变更不再能触发重组 —— 那是另一个方向的问题。
         listOf(
-            "ChatStreamState", "ChatToolsState", "ChatInputState",
-            "ChatSessionState", "ChatAgentState",
+            "ChatStreamState",
+            "ChatToolsState",
+            "ChatInputState",
+            "ChatSessionState",
+            "ChatAgentState",
         ).forEach { name ->
             assertTrue(
                 name + " 应当保持 data class；若被改掉，请重新评估 BLK-8 的代价分析",
                 source.contains("data class " + name + "("),
-            );
-        };
+            )
+        }
     }
 
     @Test
     fun `copy overload still has the documented arity`() {
-        // 123 个参数是评估里的关键数字之一。它变了说明状态结构变了，
-        // 结论需要重看。
-        val at = source.indexOf("fun copy(");
-        assertTrue("copy() 必须存在", at > 0);
-        var depth = 0;
-        var end = -1;
-        var i = at + "fun copy".length;
+        // 状态参数数量变化时需要重新核对字段结构与兼容访问器。
+        val at = source.indexOf("fun copy(")
+        assertTrue("copy() 必须存在", at > 0)
+        var depth = 0
+        var end = -1
+        var i = at + "fun copy".length
         while (i < source.length) {
-            val ch = source[i];
-            if (ch == '(') depth++;
-            else if (ch == ')') {
-                depth--;
-                if (depth == 0) { end = i; break };
-            };
-            i++;
-        };
-        assertTrue("找不到 copy() 的结束括号", end > at);
-        val params = Regex("(?m)^\\s+\\w+:").findAll(source.substring(at, end + 1)).count();
+            val ch = source[i]
+            if (ch == '(') {
+                depth++
+            } else if (ch == ')') {
+                depth--
+                if (depth == 0) {
+                    end = i
+                    break
+                }
+            }
+            i++
+        }
+        assertTrue("找不到 copy() 的结束括号", end > at)
+        val params = Regex("(?m)^\\s+\\w+:").findAll(source.substring(at, end + 1)).count()
         assertTrue(
-            "copy() 参数从 123 变成了 " + params + "，状态结构已变，请重看 §16.85",
-            params == 123,
-        );
+            "copy() 的参数数应与当前显式状态字段数量一致，实际为 $params",
+            params == 125,
+        )
     }
 }

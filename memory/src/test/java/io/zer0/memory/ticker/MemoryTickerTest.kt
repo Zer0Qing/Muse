@@ -618,8 +618,7 @@ class MemoryTickerTest {
     // ──────────────────────────────────────────────
 
     /** 独立 scope 里还活着的子 job 数，用来断言「到底有几个计时 job 在跑」。 */
-    private fun activeChildren(scope: CoroutineScope): Int =
-        scope.coroutineContext[Job]?.children?.count { it.isActive } ?: 0
+    private fun activeChildren(scope: CoroutineScope): Int = scope.coroutineContext[Job]?.children?.count { it.isActive } ?: 0
 
     /** 真实时间轮询（runBlocking 内 delay 是真等待）。 */
     private suspend fun awaitTrue(timeoutMs: Long = 10_000, condition: () -> Boolean) {
@@ -665,6 +664,7 @@ private class FakeSessionSummaryDao : SessionSummaryDao {
     override suspend fun markProcessed(sessionId: String, now: String) {}
     override suspend fun deleteAll() {}
     override suspend fun deleteById(sessionId: String) {}
+
     // 助手被删除时要清掉它名下的摘要；空数据 fake 里没有可删的行。
     override suspend fun deleteByAssistant(assistantId: String): Int = 0
     override suspend fun assistantIdsForSpace(spaceId: String): List<String> = emptyList()

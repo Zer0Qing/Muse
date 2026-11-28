@@ -44,6 +44,7 @@ import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.muse.R
 import io.zer0.muse.data.knowledge.KnowledgeDocEntity
+import io.zer0.muse.ui.assistant.ModelSwitchSheet
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
@@ -67,7 +68,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import io.zer0.muse.ui.assistant.ModelSwitchSheet
 
 /** v1.25: 委托给助手 Sheet 的两种触发模式。 */
 internal sealed class DelegateSheetMode {
@@ -155,8 +155,9 @@ internal fun ChatSheetHost(
                             )
                         }
                         items(
-                            templates.filter { it.category == category },
+                            items = templates.filter { it.category == category },
                             key = { it.id },
+                            contentType = { "prompt_template" },
                         ) { template ->
                             Surface(
                                 onClick = {
@@ -769,6 +770,7 @@ private fun ToolCallHistorySheet(records: List<ToolCallRecord>, agentPlan: Agent
             items(
                 items = plan.steps,
                 key = { step -> "tool_plan_${step.id}" },
+                contentType = { "tool_plan_step" },
             ) { step ->
                 Row(
                     modifier = Modifier
@@ -848,6 +850,7 @@ private fun ToolCallHistorySheet(records: List<ToolCallRecord>, agentPlan: Agent
             itemsIndexed(
                 items = runs,
                 key = { idx, run -> "tool_run_${run.firstOrNull()?.turnId?.takeIf { it.isNotEmpty() } ?: idx}" },
+                contentType = { _, _ -> "tool_run_trace" },
             ) { idx, run ->
                 ToolRunTraceItem(index = idx + 1, records = run)
                 Spacer(Modifier.height(MusePaddings.labelVerticalGap))
@@ -855,7 +858,7 @@ private fun ToolCallHistorySheet(records: List<ToolCallRecord>, agentPlan: Agent
         }
 
         if (summaries.isNotEmpty()) {
-            item(key = "tool_history_title") {
+            item(key = "tool_history_title", contentType = "section_title") {
                 Text(
                     text = stringResource(R.string.chat_tool_calls_title),
                     style = MaterialTheme.typography.titleMedium,
@@ -866,6 +869,7 @@ private fun ToolCallHistorySheet(records: List<ToolCallRecord>, agentPlan: Agent
             items(
                 items = summaries,
                 key = { summary -> "tool_summary_${summary.toolName}" },
+                contentType = { "tool_summary" },
             ) { summary ->
                 ToolTraceSummaryItem(summary)
                 if (summary != summaries.last()) {

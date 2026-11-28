@@ -2,7 +2,6 @@ package io.zer0.muse.ui
 
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * AUD-UI-F4: switchAgentAssistant 的会话引用计数切换不得误释放仍在使用的会话。

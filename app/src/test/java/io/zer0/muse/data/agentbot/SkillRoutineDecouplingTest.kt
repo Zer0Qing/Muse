@@ -11,6 +11,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -146,7 +147,7 @@ class SkillRoutineDecouplingTest {
         assertTrue(outcome.isSilentArchive)
         assertFalse(outcome.shouldNotifyMainConversation)
         assertTrue(outcome.changeSummary.isBlank())
-        assertEquals(RoutineRunStatus.ARCHIVED, db.botRoutineDao().getById(routine.routineId)?.lastRunStatus)
+        assertEquals(BotTaskStatus.SUCCEEDED, db.botRoutineDao().getById(routine.routineId)?.lastRunStatus)
         val archived = engine.archivedRuns.value.single()
         assertTrue(archived.silent)
         assertEquals(task.taskId, archived.taskId)
@@ -210,6 +211,134 @@ class SkillRoutineDecouplingTest {
         assertEquals("新增一场下午三点的评审会", outcome.changeSummary)
     }
 
+    @Test
+    fun `manual routine run includes current enabled prompt skill and terminal status is persisted`() = runTest {
+        val source = newTask()
+        val bundle = requireNotNull(engine.saveTaskAsSkillAndRoutine(source, title = "技能例行"))
+        val refreshedSkill = bundle.skill.copy(
+            implementationKotlin = io.zer0.muse.tools.SkillImporter.encodePromptText("先检查状态，再执行签到"),
+        )
+        db.skillDao().upsert(refreshedSkill)
+
+        val queued = requireNotNull(engine.runNow(bundle.routine, "session-a"))
+
+        assertTrue(queued.goal.contains("先检查状态，再执行签到"))
+        assertTrue(queued.requestMessageId.startsWith("routine-task:${bundle.routine.routineId}:"))
+        repository.transition(queued.taskId, BotTaskStatusMachine.Event.START)
+        repository.transition(queued.taskId, BotTaskStatusMachine.Event.MARK_UNKNOWN)
+        assertEquals(BotTaskStatus.UNKNOWN, db.botRoutineDao().getById(bundle.routine.routineId)?.lastRunStatus)
+    }
+
+    @Test
+    fun `scheduled routine enters the same skill backed agent task queue`() = runTest {
+        val routine = engine.createOrUpdate(
+            botId = "bot-a",
+            title = "Cron routine",
+            goalPrompt = "检查签到",
+            triggerType = RoutineTriggerType.CRON,
+            triggerExpr = "0 8 * * *",
+            originSessionId = "session-a",
+        )
+        val skill = io.zer0.muse.data.skill.SkillEntity(
+            id = "routine-skill",
+            name = "签到技能",
+            description = "",
+            parametersJson = io.zer0.muse.tools.SkillImporter.EMPTY_PARAMETERS_JSON,
+            requiredJson = "[]",
+            implementationKotlin = io.zer0.muse.tools.SkillImporter.encodePromptText("先确认签到状态"),
+            enabled = true,
+            category = "user",
+            createdAt = clock,
+            updatedAt = clock,
+        )
+        db.skillDao().upsert(skill)
+        val linked = routine.copy(skillId = skill.id)
+        repository.upsertRoutine(linked)
+
+        val scheduled = requireNotNull(db.scheduledTaskDao().getById("routine:${routine.routineId}"))
+        val queued = engine.runScheduled(routine.routineId, "session-a", scheduled.nextRunAt)
+        val retried = engine.runScheduled(routine.routineId, "session-a", scheduled.nextRunAt)
+
+        assertTrue(queued.goal.contains("先确认签到状态"))
+        assertEquals(BotTaskStatus.QUEUED, queued.status)
+        assertTrue(queued.requestMessageId.startsWith("routine-task:${routine.routineId}:"))
+        assertEquals("routine:${routine.routineId}", db.scheduledTaskDao().getById("routine:${routine.routineId}")?.id)
+        assertEquals(queued.taskId, retried.taskId)
+        assertEquals(1, repository.listTasks("bot-a").count { it.requestMessageId.startsWith("routine-task:") })
+        assertEquals(1, db.botRoutineDao().getById(routine.routineId)?.runCount)
+        repository.transition(queued.taskId, BotTaskStatusMachine.Event.START)
+        repository.transition(queued.taskId, BotTaskStatusMachine.Event.MARK_UNKNOWN)
+        val retriedAfterTerminal = engine.runScheduled(routine.routineId, "session-a", scheduled.nextRunAt)
+        assertEquals(queued.taskId, retriedAfterTerminal.taskId)
+        assertEquals(1, repository.listTasks("bot-a").count { it.requestMessageId.startsWith("routine-task:") })
+        assertEquals(BotTaskStatus.UNKNOWN, db.botRoutineDao().getById(routine.routineId)?.lastRunStatus)
+    }
+
+    @Test
+    fun `missing bound skill is reported and routine is not queued`() = runTest {
+        val routine = engine.createOrUpdate(
+            botId = "bot-a",
+            title = "已失效技能",
+            goalPrompt = "执行任务",
+            skillId = "deleted-skill",
+        )
+
+        assertNull(engine.runNow(routine, "session-a"))
+
+        assertEquals(RoutineRunStatus.SKILL_UNAVAILABLE, db.botRoutineDao().getById(routine.routineId)?.lastRunStatus)
+        assertTrue(repository.listTasks("bot-a").isEmpty())
+    }
+
+    @Test
+    fun `review commit settles the routine terminal status without incrementing run count twice`() = runTest {
+        val routine = engine.createOrUpdate(
+            botId = "bot-a",
+            title = "检查例行",
+            goalPrompt = "检查状态",
+        )
+        val queued = requireNotNull(engine.runNow(routine, "session-a"))
+        val run = requireNotNull(repository.claimAndOpenRun(queued.taskId)).second
+        assertTrue(repository.finishExecution(queued.taskId, run.runId, run.taskRevision, "review payload"))
+        val review = ReviewDecision(
+            disposition = ReviewDisposition.ACCEPT,
+            publicationAllowed = true,
+            finalState = BotTaskStatus.SUCCEEDED,
+            userVisibleSummary = "检查完成",
+            publicationKey = PublicationService.publicationKeyFor(queued.taskId, run.runId, run.taskRevision),
+            taskRevision = run.taskRevision,
+        )
+
+        repository.commitReview(
+            taskId = queued.taskId,
+            runId = run.runId,
+            taskRevision = run.taskRevision,
+            transition = BotTaskStatusMachine.Event.REVIEW_ACCEPT,
+            reviewPayload = review.encode(),
+        )
+
+        val stored = requireNotNull(db.botRoutineDao().getById(routine.routineId))
+        assertEquals(BotTaskStatus.SUCCEEDED, stored.lastRunStatus)
+        assertEquals(1, stored.runCount)
+    }
+
+    @Test
+    fun `cron routine rejects invalid expression without fallback schedule`() = runTest {
+        org.junit.Assert.assertThrows(IllegalArgumentException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                engine.createOrUpdate(
+                    botId = "bot-a",
+                    title = "无效定时",
+                    goalPrompt = "执行任务",
+                    triggerType = RoutineTriggerType.CRON,
+                    triggerExpr = "not cron",
+                )
+            }
+        }
+
+        assertTrue(db.botRoutineDao().getAll().isEmpty())
+        assertTrue(db.scheduledTaskDao().getAll().isEmpty())
+    }
+
     private suspend fun newTask(): BotTaskEntity = repository.createTask(
         botId = "bot-a",
         originSessionId = "session-a",
@@ -219,14 +348,9 @@ class SkillRoutineDecouplingTest {
     )
 
     private suspend fun startRun(task: BotTaskEntity): TaskRunEntity =
-        repository.openRun(task.taskId)!!  // 新任务的首轮 run 必能创建，仓储仅在任务不存在时返回 null
+        repository.openRun(task.taskId)!! // 新任务的首轮 run 必能创建，仓储仅在任务不存在时返回 null
 
-    private suspend fun recordStep(
-        runId: String,
-        index: Int,
-        label: String,
-        sideEffect: String,
-    ) {
+    private suspend fun recordStep(runId: String, index: Int, label: String, sideEffect: String) {
         val step = repository.recordStep(
             runId = runId,
             stepIndex = index,

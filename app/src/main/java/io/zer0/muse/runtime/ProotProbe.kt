@@ -11,89 +11,88 @@ internal class ProotProbe(private val context: Context) {
 
     suspend fun nodeVersion(rootfsDir: File): String? = healthCheck(rootfsDir).nodeVersion
 
-    suspend fun healthCheck(rootfsDir: File, revision: String? = null): RuntimeHealthCheck =
-        withContext(Dispatchers.IO) {
-            val nativeDir = File(context.applicationInfo.nativeLibraryDir)
-            val requiredNativeFiles = listOf(
-                "libmuse_proot.so",
-                "libmuse_proot_loader.so",
-                "libtalloc.so",
-                "libandroid-shmem.so",
-            )
-            val missingNative = requiredNativeFiles
-                .map { File(nativeDir, it) }
-                .filterNot(File::isFile)
-                .map { it.name }
-            if (missingNative.isNotEmpty()) {
-                return@withContext RuntimeHealthCheck(
-                    revision = revision,
-                    healthy = false,
-                    missingPaths = missingNative,
-                    stderrTail = "缺少 native runtime 文件: ${missingNative.joinToString()}",
-                    failureKind = RuntimeFailureKind.ABI,
-                )
-            }
-
-            val requiredRootfsPaths = listOf(
-                "usr/local/bin/node",
-                "usr/local/lib/node_modules/npm/bin/npm-cli.js",
-                "usr/bin",
-                "tmp",
-            )
-            val missingRootfs = requiredRootfsPaths
-                .map { File(rootfsDir, it) }
-                .filterNot(File::exists)
-                .map { it.relativeTo(rootfsDir).invariantSeparatorsPath }
-            if (missingRootfs.isNotEmpty()) {
-                return@withContext RuntimeHealthCheck(
-                    revision = revision,
-                    healthy = false,
-                    missingPaths = missingRootfs,
-                    stderrTail = "rootfs 缺少关键路径: ${missingRootfs.joinToString()}",
-                    failureKind = RuntimeFailureKind.BROKEN,
-                )
-            }
-
-            val node = runProbe(rootfsDir, nativeDir, listOf("/usr/local/bin/node", "-v"))
-            if (node.timedOut) {
-                return@withContext RuntimeHealthCheck(
-                    revision = revision,
-                    healthy = false,
-                    stderrTail = tail(node.stderr),
-                    failureKind = RuntimeFailureKind.STALLED,
-                )
-            }
-            val nodeVersion = node.stdout.trim()
-            if (node.exitCode != 0 || !nodeVersion.startsWith("v")) {
-                return@withContext RuntimeHealthCheck(
-                    revision = revision,
-                    healthy = false,
-                    stderrTail = tail(node.stderr),
-                    failureKind = RuntimeFailureKind.SELF_CHECK,
-                )
-            }
-
-            val npm = runProbe(
-                rootfsDir,
-                nativeDir,
-                listOf("/usr/local/bin/node", "/usr/local/lib/node_modules/npm/bin/npm-cli.js", "--version"),
-            )
-            if (npm.timedOut || npm.exitCode != 0 || npm.stdout.trim().isEmpty()) {
-                return@withContext RuntimeHealthCheck(
-                    revision = revision,
-                    healthy = false,
-                    nodeVersion = nodeVersion,
-                    stderrTail = tail(npm.stderr),
-                    failureKind = if (npm.timedOut) RuntimeFailureKind.STALLED else RuntimeFailureKind.SELF_CHECK,
-                )
-            }
-            RuntimeHealthCheck(
+    suspend fun healthCheck(rootfsDir: File, revision: String? = null): RuntimeHealthCheck = withContext(Dispatchers.IO) {
+        val nativeDir = File(context.applicationInfo.nativeLibraryDir)
+        val requiredNativeFiles = listOf(
+            "libmuse_proot.so",
+            "libmuse_proot_loader.so",
+            "libtalloc.so",
+            "libandroid-shmem.so",
+        )
+        val missingNative = requiredNativeFiles
+            .map { File(nativeDir, it) }
+            .filterNot(File::isFile)
+            .map { it.name }
+        if (missingNative.isNotEmpty()) {
+            return@withContext RuntimeHealthCheck(
                 revision = revision,
-                healthy = true,
-                nodeVersion = nodeVersion,
-                npmVersion = npm.stdout.trim(),
+                healthy = false,
+                missingPaths = missingNative,
+                stderrTail = "缺少 native runtime 文件: ${missingNative.joinToString()}",
+                failureKind = RuntimeFailureKind.ABI,
             )
         }
+
+        val requiredRootfsPaths = listOf(
+            "usr/local/bin/node",
+            "usr/local/lib/node_modules/npm/bin/npm-cli.js",
+            "usr/bin",
+            "tmp",
+        )
+        val missingRootfs = requiredRootfsPaths
+            .map { File(rootfsDir, it) }
+            .filterNot(File::exists)
+            .map { it.relativeTo(rootfsDir).invariantSeparatorsPath }
+        if (missingRootfs.isNotEmpty()) {
+            return@withContext RuntimeHealthCheck(
+                revision = revision,
+                healthy = false,
+                missingPaths = missingRootfs,
+                stderrTail = "rootfs 缺少关键路径: ${missingRootfs.joinToString()}",
+                failureKind = RuntimeFailureKind.BROKEN,
+            )
+        }
+
+        val node = runProbe(rootfsDir, nativeDir, listOf("/usr/local/bin/node", "-v"))
+        if (node.timedOut) {
+            return@withContext RuntimeHealthCheck(
+                revision = revision,
+                healthy = false,
+                stderrTail = tail(node.stderr),
+                failureKind = RuntimeFailureKind.STALLED,
+            )
+        }
+        val nodeVersion = node.stdout.trim()
+        if (node.exitCode != 0 || !nodeVersion.startsWith("v")) {
+            return@withContext RuntimeHealthCheck(
+                revision = revision,
+                healthy = false,
+                stderrTail = tail(node.stderr),
+                failureKind = RuntimeFailureKind.SELF_CHECK,
+            )
+        }
+
+        val npm = runProbe(
+            rootfsDir,
+            nativeDir,
+            listOf("/usr/local/bin/node", "/usr/local/lib/node_modules/npm/bin/npm-cli.js", "--version"),
+        )
+        if (npm.timedOut || npm.exitCode != 0 || npm.stdout.trim().isEmpty()) {
+            return@withContext RuntimeHealthCheck(
+                revision = revision,
+                healthy = false,
+                nodeVersion = nodeVersion,
+                stderrTail = tail(npm.stderr),
+                failureKind = if (npm.timedOut) RuntimeFailureKind.STALLED else RuntimeFailureKind.SELF_CHECK,
+            )
+        }
+        RuntimeHealthCheck(
+            revision = revision,
+            healthy = true,
+            nodeVersion = nodeVersion,
+            npmVersion = npm.stdout.trim(),
+        )
+    }
 
     private fun runProbe(rootfsDir: File, nativeDir: File, argv: List<String>): ProbeResult {
         val proot = File(nativeDir, "libmuse_proot.so")
@@ -106,7 +105,7 @@ internal class ProotProbe(private val context: Context) {
             addAll(listOf("-w", "/"))
             addAll(argv)
         }
-        return try {
+        return runCatching {
             val process = ProcessBuilder(command).apply {
                 environment().apply {
                     put("PROOT_LOADER", loader.absolutePath)
@@ -120,10 +119,16 @@ internal class ProotProbe(private val context: Context) {
             val stderr = StringBuilder()
             val stdoutThread = Thread {
                 process.inputStream.bufferedReader().use { stdout.append(it.readText()) }
-            }.apply { isDaemon = true; name = "runtime-probe-stdout" }
+            }.apply {
+                isDaemon = true
+                name = "runtime-probe-stdout"
+            }
             val stderrThread = Thread {
                 process.errorStream.bufferedReader().use { stderr.append(it.readText()) }
-            }.apply { isDaemon = true; name = "runtime-probe-stderr" }
+            }.apply {
+                isDaemon = true
+                name = "runtime-probe-stderr"
+            }
             stdoutThread.start()
             stderrThread.start()
             val finished = process.waitFor(SELF_CHECK_TIMEOUT_MS, TimeUnit.MILLISECONDS)
@@ -139,7 +144,7 @@ internal class ProotProbe(private val context: Context) {
                 stderr = stderr.toString(),
                 timedOut = !finished,
             )
-        } catch (error: Exception) {
+        }.getOrElse { error ->
             Logger.e(TAG, "运行环境自检启动失败: ${error.message}", error)
             ProbeResult(-1, "", error.message ?: error.javaClass.simpleName, timedOut = false)
         }

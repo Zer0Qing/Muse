@@ -42,15 +42,17 @@ object ToolChannelPreflight {
         data class Blocked(val missing: Set<ToolRequirements.Channel>, val message: String) : Result
     }
 
-    /** 受「允许屏幕自动化」总闸管辖的工具（与 AutomationTools 注册的名字对齐）。 */
+    /** 受「允许屏幕自动化」总闸管辖的工具（含全部屏幕操作、Shell 注入及历史兼容名）。 */
     private val AUTOMATION_TOOLS: Set<String> = setOf(
         "screen_read", "screen_current_app", "screen_back", "screen_home", "screen_tap",
         "screen_tap_text", "screen_swipe", "screen_pinch", "screen_swipe_path", "screen_input",
         "screen_open_notifications", "screen_wait",
-        // screen_permission_status / screen_open_settings 故意不在此列：它们是修复手段，
-        // 总闸关着时正需要它们（否则模型既查不到状态、也打不开设置页，彻底死路）。
+        // screen_permission_status / screen_open_settings 故意不在此列：它们是修复手段
         "ui_agent", "automation_workflow",
         "virtual_screen", "virtual_screen_input",
+        "device_shell", "input_inject", "am_start",
+        "ui_get_page_info", "ui_click", "ui_long_press", "ui_swipe", "ui_set_text",
+        "ui_screenshot", "ui_back", "ui_home", "ui_global_action", "ui_get_current_app",
     )
 
     /**
@@ -175,7 +177,7 @@ object ToolChannelPreflight {
 
     /** 该通道缺位时模型可用的替代手段（写具体工具名，别说空话）。 */
     private fun ToolRequirements.Channel.alternatives(): List<String> = when (this) {
-        ToolRequirements.Channel.ACCESSIBILITY -> listOf("ui_screenshot（若 Shell 可用）", "shell 系工具（若已授权）")
+        ToolRequirements.Channel.ACCESSIBILITY -> listOf("screen_read / virtual_screen（若 Shell 可用）", "shell 系工具（若已授权）")
         ToolRequirements.Channel.SHELL -> listOf("无障碍系工具（若已开启）")
         ToolRequirements.Channel.ROOT -> listOf("Shell / 无障碍系工具（若已就绪）")
         ToolRequirements.Channel.USAGE_STATS -> listOf("current_status（查看前台应用的应用内替代）")

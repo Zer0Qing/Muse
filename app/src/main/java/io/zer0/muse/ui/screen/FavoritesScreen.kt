@@ -2,6 +2,10 @@
 
 package io.zer0.muse.ui.screen
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.content.Intent
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
@@ -16,37 +20,43 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.UIMessage
 import io.zer0.muse.R
-import io.zer0.muse.ui.common.feedback.MuseDialog
+import io.zer0.muse.ui.artifact.ArtifactRenderMode
+import io.zer0.muse.ui.artifact.FullScreenDocumentReader
+import io.zer0.muse.ui.artifact.ReaderExtraAction
+import io.zer0.muse.ui.chat.ChatUiState
+import io.zer0.muse.ui.chat.ChatViewModel
+import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseChip
 import io.zer0.muse.ui.common.form.MuseFormDialog
 import io.zer0.muse.ui.common.form.MuseIconContainer
+import io.zer0.muse.ui.common.form.MuseSearchField
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
@@ -55,21 +65,22 @@ import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.state.MuseErrorStateBox
 import io.zer0.muse.ui.common.state.MuseSpinner
+import io.zer0.muse.ui.common.surface.MuseDialogWindowEffect
 import io.zer0.muse.ui.common.surface.MuseSurface
 import io.zer0.muse.ui.markdown.MarkdownPreviewTruncation
 import io.zer0.muse.ui.markdown.MarkdownText
+import io.zer0.muse.ui.theme.MuseBorderWidth
 import io.zer0.muse.ui.theme.MuseButtonSize
 import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.MuseIconSizes
-import io.zer0.muse.ui.theme.MuseSpacing
+import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.MuseSpacing
+import io.zer0.muse.util.ShareIntentHelper
 import org.koin.androidx.compose.koinViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import io.zer0.muse.ui.settings.SettingsScreen
-import io.zer0.muse.ui.chat.ChatUiState
-import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * Phase 8.3: 跨会话收藏夹页。
@@ -86,29 +97,34 @@ import io.zer0.muse.ui.chat.ChatViewModel
  * 存量 `__group_*__` 值读取时映射成本地化文案(见 [favoriteTagLabel]),不单独建迁移。
  */
 @Composable
-fun FavoritesScreen(onBack: () -> Unit, viewModel: ChatViewModel = koinViewModel()) {
+fun FavoritesScreen(onBack: () -> Unit, viewModel: ChatViewModel = koinViewModel(), onOpenSession: ((String) -> Unit)? = null) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val staleFavoriteIds by viewModel.staleFavoriteIds.collectAsStateWithLifecycle()
     val dateFormat = remember { SimpleDateFormat(MuseDateFormats.DATE_TIME_FULL, Locale.getDefault()) }
 
-    // v1.104 U7: 长按/点分组按钮时弹"设置分组"对话框的目标消息
     var tagEditTarget by remember { mutableStateOf<UIMessage?>(null) }
-
-    // v2.6.2（用户反馈）: 点击卡片 → 全屏原文预览（此前 onClick 被分组对话框占用，
-    // 用户“没法点开看完整原文”）。
     var fullTextTarget by remember { mutableStateOf<UIMessage?>(null) }
+    var searchQuery by rememberSaveable { mutableStateOf("") }
 
-    // 12: 文件管理器式多选 —— 选中一批后可批量取消收藏 / 批量设置分组。
     var selectionMode by remember { mutableStateOf(false) }
     var selectedIds by remember { mutableStateOf(setOf<kotlin.uuid.Uuid>()) }
     var batchGroupTarget by remember { mutableStateOf(false) }
 
-    // 当前 filter 下显示的收藏列表(本地过滤,不影响 state.favoriteMessages 全量)
-    val visibleFavorites = remember(state.favoriteMessages, state.favoriteTagFilter) {
-        when (state.favoriteTagFilter) {
+    val visibleFavorites = remember(state.favoriteMessages, state.favoriteTagFilter, searchQuery) {
+        val byTag = when (state.favoriteTagFilter) {
             null -> state.favoriteMessages
             ChatViewModel.FAVORITE_TAG_UNGROUPED -> state.favoriteMessages.filter { it.favoriteTag == null }
             else -> state.favoriteMessages.filter { it.favoriteTag == state.favoriteTagFilter }
+        }
+        val q = searchQuery.trim()
+        if (q.isBlank()) {
+            byTag
+        } else {
+            byTag.filter { msg ->
+                msg.content.contains(q, ignoreCase = true) ||
+                    msg.favoriteTag?.contains(q, ignoreCase = true) == true ||
+                    msg.modelId?.contains(q, ignoreCase = true) == true
+            }
         }
     }
 
@@ -149,6 +165,12 @@ fun FavoritesScreen(onBack: () -> Unit, viewModel: ChatViewModel = koinViewModel
             // 而预设 chip 行不存在,导致 token 直接裸在自定义 tag 行里。现在分组只有一条入口:
             // 卡片上的"设置分组"按钮 → 用户自己输入的分组名。
             if (state.favoriteMessages.isNotEmpty()) {
+                MuseSearchField(
+                    query = searchQuery,
+                    onQueryChange = { searchQuery = it },
+                    placeholder = stringResource(R.string.favorites_search_placeholder),
+                    modifier = Modifier.padding(horizontal = MusePaddings.screen, vertical = MuseSpacing.xs),
+                )
                 val tagCounts = remember(state.favoriteMessages) {
                     state.favoriteMessages.groupBy { it.favoriteTag }.mapValues { it.value.size }
                 }
@@ -199,9 +221,30 @@ fun FavoritesScreen(onBack: () -> Unit, viewModel: ChatViewModel = koinViewModel
         )
     }
 
-    // v2.6.2（用户反馈）: 全屏原文预览 —— 点击收藏卡片打开，可滚动看完整内容。
     fullTextTarget?.let { msg ->
-        FavoriteFullTextDialog(message = msg, dateFormat = dateFormat, onDismiss = { fullTextTarget = null })
+        var sourceSessionId by remember(msg.id) { mutableStateOf<String?>(null) }
+        LaunchedEffect(msg.id, onOpenSession) {
+            sourceSessionId = if (onOpenSession != null) {
+                viewModel.resolveFavoriteSourceSessionId(msg.id.toString())
+            } else {
+                null
+            }
+        }
+        FavoriteFullTextDialog(
+            message = msg,
+            dateFormat = dateFormat,
+            onDismiss = { fullTextTarget = null },
+            onUnfavorite = {
+                viewModel.toggleFavorite(msg.id)
+                fullTextTarget = null
+            },
+            onOpenSession = sourceSessionId?.let { sid ->
+                {
+                    fullTextTarget = null
+                    onOpenSession?.invoke(sid)
+                }
+            },
+        )
     }
 
     // 12: 批量分组 —— 对选中的整批写同一个 tag（空输入=移到未分组），复用单条分组对话框。
@@ -305,8 +348,8 @@ private fun FavoritesListArea(
     } else {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(horizontal = MusePaddings.screen, vertical = MuseSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(MuseSpacing.md),
         ) {
             items(visibleFavorites, key = { it.id }) { msg ->
                 Box(modifier = museAnimateItem()) {
@@ -390,8 +433,8 @@ private fun FavoriteTagFilterRow(
     onFilterChange: (String?) -> Unit,
 ) {
     LazyRow(
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(horizontal = MusePaddings.screen, vertical = MuseSpacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
     ) {
         item(key = "all") {
             MuseChip(
@@ -494,7 +537,7 @@ private fun FavoriteCard(
         modifier = Modifier
             .fillMaxWidth()
             .then(
-                if (selected) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, MuseShapes.medium) else Modifier,
+                if (selected) Modifier.border(MuseBorderWidth.thick, MaterialTheme.colorScheme.primary, MuseShapes.medium) else Modifier,
             )
             .combinedClickable(
                 onClick = onClick,
@@ -503,8 +546,7 @@ private fun FavoriteCard(
         shape = MuseShapes.medium,
         color = MaterialTheme.colorScheme.surfaceVariant,
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
-            // 顶部行: 角色标签 + 模型 + 时间 + 取消收藏按钮
+        Column(modifier = Modifier.padding(MusePaddings.cardInner)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -512,7 +554,7 @@ private fun FavoriteCard(
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
                 ) {
                     Text(
                         text = roleLabel,
@@ -520,11 +562,11 @@ private fun FavoriteCard(
                         color = roleColor,
                         modifier = Modifier
                             .border(
-                                width = 1.dp,
+                                width = MuseBorderWidth.thin,
                                 color = roleColor,
                                 shape = MuseShapes.extraSmall,
                             )
-                            .padding(horizontal = 6.dp, vertical = 2.dp),
+                            .padding(horizontal = MuseSpacing.smTight, vertical = MuseSpacing.xxs),
                     )
                     message.modelId?.takeIf { it.isNotBlank() }?.let { model ->
                         Text(
@@ -549,7 +591,7 @@ private fun FavoriteCard(
                 }
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(MuseSpacing.xs),
                 ) {
                     // LAYOUT-01: 尾部元信息槽（时间 + 收藏按钮）按内容宽度排布，只限行不取宽，
                     // 否则内层 Row 会吃掉外层行宽、把左侧角色/模型标签挤成竖排。
@@ -580,11 +622,7 @@ private fun FavoriteCard(
                     )
                 }
             }
-            Spacer(Modifier.height(8.dp))
-            // 内容预览: 结构感知截断到约 280 字(§11-9)。
-            // v2.6.8: 先走展示出口再截断 —— 否则卡片消息的预览里会冒出 cardId/JSON。
-            // 先用 take(280) 硬切会切断代码围栏 / 成对强调符 / [N] 引用,
-            // 未闭合围栏会让省略号之后的全部内容渲染成代码块。
+            Spacer(Modifier.height(MuseSpacing.sm))
             val body = io.zer0.muse.transformer.InternalMarkupSanitizer.displayContent(message.content)
             val preview = remember(body) { MarkdownPreviewTruncation.preview(body) }
             MarkdownText(
@@ -592,12 +630,10 @@ private fun FavoriteCard(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.fillMaxWidth(),
-                // Phase 8.4: UrlCitation — 收藏夹预览也支持 [N] 引用点击
                 citationUrls = message.citationUrls,
             )
-            // v1.104 U7: 卡片底部显示分组标签(若有)
             message.favoriteTag?.takeIf { it.isNotBlank() }?.let { tag ->
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(MuseSpacing.sm))
                 Text(
                     text = stringResource(R.string.favorites_tag_label, favoriteTagLabel(tag)),
                     style = MaterialTheme.typography.labelSmall,
@@ -609,61 +645,80 @@ private fun FavoriteCard(
 }
 
 /**
- * v2.6.2（用户反馈）: 收藏原文全屏预览。
- *
- * 点击收藏卡片打开，滚动展示完整正文（不截断），复用聊天页同款 MarkdownText 渲染。
+ * 收藏原文全屏阅读器 —— 替代原有限高弹窗，支持富卡片全屏预览、复制、分享与跳回原对话。
  */
 @Composable
-private fun FavoriteFullTextDialog(message: UIMessage, dateFormat: SimpleDateFormat, onDismiss: () -> Unit) {
+private fun FavoriteFullTextDialog(
+    message: UIMessage,
+    dateFormat: SimpleDateFormat,
+    onDismiss: () -> Unit,
+    onUnfavorite: () -> Unit,
+    onOpenSession: (() -> Unit)? = null,
+) {
+    val context = LocalContext.current
+    var previewHtml by remember(message.id) { mutableStateOf<String?>(null) }
+
     val roleLabel = when (message.role) {
         MessageRole.USER -> stringResource(R.string.favorites_role_user)
         MessageRole.ASSISTANT -> "AI"
         MessageRole.SYSTEM -> stringResource(R.string.favorites_role_system)
         MessageRole.TOOL -> stringResource(R.string.favorites_role_tool)
     }
-    MuseDialog(
-        onDismissRequest = onDismiss,
+    val timeText = remember(message.createdAt) { dateFormat.format(Date(message.createdAt)) }
+    val subtitle = remember(message.modelId, timeText) {
+        listOfNotNull(message.modelId?.takeIf { it.isNotBlank() }, timeText).joinToString(" · ")
+    }
+    val displayBody = remember(message.content) {
+        io.zer0.muse.transformer.InternalMarkupSanitizer.displayContent(message.content)
+    }
+
+    previewHtml?.let { html ->
+        Dialog(
+            onDismissRequest = { previewHtml = null },
+            properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
+        ) {
+            MuseDialogWindowEffect(forceFullScreen = true)
+            HtmlPreviewScreen(
+                html = html,
+                title = roleLabel,
+                onBack = { previewHtml = null },
+            )
+        }
+        return
+    }
+
+    FullScreenDocumentReader(
         title = roleLabel,
-        dismissText = stringResource(R.string.common_close),
+        subtitle = subtitle,
+        content = displayBody,
+        mode = ArtifactRenderMode.Markdown,
+        citationUrls = message.citationUrls,
         onDismiss = onDismiss,
-        content = {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    message.modelId?.takeIf { it.isNotBlank() }?.let { model ->
-                        Text(
-                            text = model,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.outline,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                    Text(
-                        text = dateFormat.format(Date(message.createdAt)),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.outline,
-                    )
-                }
-                Spacer(Modifier.height(12.dp))
-                // 完整正文，可滚动（不截断）
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 480.dp)
-                        .verticalScroll(rememberScrollState()),
-                ) {
-                    MarkdownText(
-                        text = io.zer0.muse.transformer.InternalMarkupSanitizer.displayContent(message.content),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.fillMaxWidth(),
-                        citationUrls = message.citationUrls,
-                    )
-                }
-            }
+        onCopy = { copied ->
+            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            clipboard.setPrimaryClip(ClipData.newPlainText(roleLabel, copied))
+            MuseToast.show(context.getString(R.string.chat_copied_toast))
         },
+        onShare = {
+            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_SUBJECT, roleLabel)
+                putExtra(Intent.EXTRA_TEXT, displayBody)
+            }
+            ShareIntentHelper.startChooserSafely(
+                context = context,
+                shareIntent = shareIntent,
+                chooserTitle = context.getString(R.string.common_share),
+            )
+        },
+        onOpenSession = onOpenSession,
+        onHtmlPreview = { previewHtml = it },
+        extraActions = listOf(
+            ReaderExtraAction(
+                label = stringResource(R.string.favorites_unfavorite_action),
+                icon = MuseIcons.star,
+                onClick = onUnfavorite,
+            ),
+        ),
     )
 }

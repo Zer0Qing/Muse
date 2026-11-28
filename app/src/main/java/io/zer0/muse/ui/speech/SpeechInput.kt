@@ -5,7 +5,6 @@ import android.content.Intent
 import android.os.Bundle
 import android.speech.RecognizerIntent
 import java.util.Locale
-import io.zer0.muse.ui.chat.ChatScreen
 
 /**
  * Phase 5-D: 语音输入 helper(system Intent fallback)。

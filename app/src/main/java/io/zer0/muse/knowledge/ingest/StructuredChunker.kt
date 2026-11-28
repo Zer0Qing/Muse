@@ -35,7 +35,8 @@ class StructuredChunker(
         require(chunkOverlap >= 0 && chunkOverlap < chunkSize) { "overlap 必须在 [0, chunkSize)" }
     }
 
-    fun chunkFromBlocks(blocks: List<ParsedBlock>): List<LocatedChunk> {        if (blocks.isEmpty()) return emptyList()
+    fun chunkFromBlocks(blocks: List<ParsedBlock>): List<LocatedChunk> {
+        if (blocks.isEmpty()) return emptyList()
 
         // 1. 归并:连续同 kind block → (全文字素, 每字素的 locator) 段
         val segments = mutableListOf<Segment>()

@@ -69,23 +69,48 @@ class AgentGoalEngine(
             Logger.w(TAG, "upsert goal ignored: goal not found: " + safeGoalId)
             return null
         }
+        if (existing != null &&
+            (
+                (botId.isNotBlank() && existing.botId != botId.trim()) ||
+                    (originSessionId.isNotBlank() && existing.originSessionId != originSessionId.trim())
+                )
+        ) {
+            Logger.w(TAG, "upsert goal rejected: ownership scope mismatch: " + safeGoalId)
+            return null
+        }
         val finalTitle = title.trim().ifBlank { existing?.title.orEmpty() }
         if (finalTitle.isBlank()) {
             Logger.w(TAG, "upsert goal rejected: blank title")
             return null
         }
-        val ts = clock()
-        val normalizedMilestones = milestones?.let { normalizeMilestones(it) }
+        val input = GoalInput(
+            safeGoalId = safeGoalId,
+            botId = botId,
+            originSessionId = originSessionId,
+            title = finalTitle,
+            description = description,
+            milestones = milestones,
+            progress = progress,
+            status = status,
+            dueAt = dueAt,
+        )
+        val entity = buildGoalEntity(input, existing)
+        persistGoal(entity, existing, safeGoalId)
+    }
+
+    private fun buildGoalEntity(input: GoalInput, existing: AgentGoalEntity?): AgentGoalEntity {
+        val ts = existing?.let { maxOf(clock(), it.updatedAt + 1L) } ?: clock()
+        val normalizedMilestones = input.milestones?.let { normalizeMilestones(it) }
         val finalMilestones = normalizedMilestones
             ?: existing?.let { parseMilestones(it.milestonesJson) }
             ?: emptyList()
         val computedProgress = when {
-            progress != null -> progress
+            input.progress != null -> input.progress
             normalizedMilestones != null -> computeProgress(finalMilestones)
             existing != null -> existing.progress
             else -> 0
         }
-        val requestedStatus = status.trim().uppercase()
+        val requestedStatus = input.status.trim().uppercase()
         val explicitStatus = AgentGoalStatus.isValid(requestedStatus)
         val baseStatus = when {
             explicitStatus -> requestedStatus
@@ -94,23 +119,50 @@ class AgentGoalEngine(
         }
         val finalStatus = when {
             explicitStatus -> baseStatus
-            milestones != null -> statusAfterMilestoneChange(baseStatus, finalMilestones)
+            input.milestones != null -> statusAfterMilestoneChange(baseStatus, finalMilestones)
             else -> baseStatus
         }
-        val entity = AgentGoalEntity(
-            goalId = existing?.goalId ?: safeGoalId.ifBlank { UUID.randomUUID().toString() },
-            botId = botId.trim().ifBlank { existing?.botId.orEmpty() },
-            originSessionId = originSessionId.trim().ifBlank { existing?.originSessionId.orEmpty() },
-            title = finalTitle,
-            description = description?.trim() ?: existing?.description.orEmpty(),
+        return AgentGoalEntity(
+            goalId = existing?.goalId ?: input.safeGoalId.ifBlank { UUID.randomUUID().toString() },
+            botId = input.botId.trim().ifBlank { existing?.botId.orEmpty() },
+            originSessionId = input.originSessionId.trim().ifBlank { existing?.originSessionId.orEmpty() },
+            title = input.title,
+            description = input.description?.trim() ?: existing?.description.orEmpty(),
             milestonesJson = encodeMilestones(finalMilestones),
             progress = computedProgress.coerceIn(0, 100),
             status = finalStatus,
-            dueAt = dueAt ?: existing?.dueAt ?: 0L,
+            dueAt = input.dueAt ?: existing?.dueAt ?: 0L,
             createdAt = existing?.createdAt ?: ts,
             updatedAt = ts,
         )
-        dao.upsert(entity)
+    }
+
+    private suspend fun persistGoal(
+        entity: AgentGoalEntity,
+        existing: AgentGoalEntity?,
+        safeGoalId: String,
+    ): AgentGoalEntity? {
+        if (existing == null) {
+            dao.upsert(entity)
+        } else {
+            val updated = dao.updateScoped(
+                goalId = existing.goalId,
+                botId = existing.botId,
+                sessionId = existing.originSessionId,
+                expectedUpdatedAt = existing.updatedAt,
+                title = entity.title,
+                description = entity.description,
+                milestonesJson = entity.milestonesJson,
+                progress = entity.progress,
+                status = entity.status,
+                dueAt = entity.dueAt,
+                updatedAt = entity.updatedAt,
+            )
+            if (updated <= 0) {
+                Logger.w(TAG, "upsert goal rejected: scope changed during update: " + safeGoalId)
+                return null
+            }
+        }
         return dao.getById(entity.goalId) ?: entity
     }
 
@@ -126,46 +178,73 @@ class AgentGoalEngine(
         title: String = "",
         done: Boolean? = null,
         remove: Boolean = false,
+        expectedBotId: String = "",
+        expectedSessionId: String = "",
     ): AgentGoalEntity? {
         val safeGoalId = goalId.trim()
-        if (safeGoalId.isBlank()) return null
-        val goal = dao.getById(safeGoalId) ?: return null
-        val milestones = parseMilestones(goal.milestonesJson).toMutableList()
+        val goal = safeGoalId.takeIf { it.isNotBlank() }?.let { dao.getById(it) }
+        val scopeMatches = goal?.let { current ->
+            (expectedBotId.isBlank() || current.botId == expectedBotId) &&
+                (expectedSessionId.isBlank() || current.originSessionId == expectedSessionId)
+        } == true
+        val changedMilestones = if (goal == null || !scopeMatches) {
+            if (goal != null) Logger.w(TAG, "update milestone rejected: ownership scope mismatch: " + safeGoalId)
+            null
+        } else {
+            applyMilestoneChange(
+                current = parseMilestones(goal.milestonesJson),
+                milestoneId = milestoneId,
+                title = title,
+                done = done,
+                remove = remove,
+            )
+        }
+        if (goal == null || !scopeMatches) return null
+        if (changedMilestones == null) return goal
+        val normalized = normalizeMilestones(changedMilestones)
+        val ts = maxOf(clock(), goal.updatedAt + 1L)
+        val progress = computeProgress(normalized)
+        val nextStatus = statusAfterMilestoneChange(goal.status, normalized)
+        val changed = dao.updateMilestonesAndStatus(
+            goalId = goal.goalId,
+            expectedUpdatedAt = goal.updatedAt,
+            botId = expectedBotId,
+            sessionId = expectedSessionId,
+            milestonesJson = encodeMilestones(normalized),
+            progress = progress,
+            status = nextStatus,
+            updatedAt = ts,
+        )
+        return if (changed > 0) dao.getById(goal.goalId) else null
+    }
+
+    private fun applyMilestoneChange(
+        current: List<AgentGoalMilestone>,
+        milestoneId: String,
+        title: String,
+        done: Boolean?,
+        remove: Boolean,
+    ): List<AgentGoalMilestone>? {
+        val milestones = current.toMutableList()
         val safeMilestoneId = milestoneId.trim()
         val safeTitle = title.trim()
-        val index = if (safeMilestoneId.isBlank()) {
-            -1
-        } else {
-            milestones.indexOfFirst { it.id == safeMilestoneId }
-        }
+        val index = safeMilestoneId.takeIf { it.isNotBlank() }
+            ?.let { id -> milestones.indexOfFirst { it.id == id } }
+            ?: -1
         when {
             remove && index >= 0 -> milestones.removeAt(index)
-            remove && safeMilestoneId.isBlank() && safeTitle.isNotBlank() -> {
-                milestones.removeAll { it.title == safeTitle }
-            }
+            remove && safeMilestoneId.isBlank() && safeTitle.isNotBlank() -> milestones.removeAll { it.title == safeTitle }
             index >= 0 -> {
-                val current = milestones[index]
-                milestones[index] = current.copy(
-                    title = safeTitle.ifBlank { current.title },
-                    done = done ?: current.done,
+                val existing = milestones[index]
+                milestones[index] = existing.copy(
+                    title = safeTitle.ifBlank { existing.title },
+                    done = done ?: existing.done,
                 )
             }
             safeTitle.isNotBlank() -> milestones += AgentGoalMilestone(title = safeTitle, done = done ?: false)
-            else -> {
-                Logger.w(TAG, "update milestone ignored: no matching milestone and blank title")
-                return goal
-            }
+            else -> return null
         }
-        val normalized = normalizeMilestones(milestones)
-        val ts = clock()
-        val progress = computeProgress(normalized)
-        val nextStatus = statusAfterMilestoneChange(goal.status, normalized)
-        val changed = dao.updateMilestones(goal.goalId, encodeMilestones(normalized), progress, ts)
-        if (changed <= 0) return null
-        if (nextStatus != goal.status) {
-            dao.setStatus(goal.goalId, nextStatus, ts)
-        }
-        return dao.getById(goal.goalId)
+        return milestones
     }
 
     /** 显式设置状态；非法值或目标不存在时返回 false。 */
@@ -252,16 +331,25 @@ class AgentGoalEngine(
     fun encodeMilestones(milestones: List<AgentGoalMilestone>): String =
         json.encodeToString(milestoneListSerializer, normalizeMilestones(milestones))
 
-    private fun statusAfterMilestoneChange(
-        currentStatus: String,
-        milestones: List<AgentGoalMilestone>,
-    ): String {
+    private fun statusAfterMilestoneChange(currentStatus: String, milestones: List<AgentGoalMilestone>): String {
         if (currentStatus == AgentGoalStatus.ABANDONED) return AgentGoalStatus.ABANDONED
         val baseline = if (AgentGoalStatus.isValid(currentStatus)) currentStatus else AgentGoalStatus.ACTIVE
         if (milestones.isNotEmpty() && milestones.all { it.done }) return AgentGoalStatus.ACHIEVED
         if (baseline == AgentGoalStatus.ACHIEVED) return AgentGoalStatus.ACTIVE
         return baseline
     }
+
+    private data class GoalInput(
+        val safeGoalId: String,
+        val botId: String,
+        val originSessionId: String,
+        val title: String,
+        val description: String?,
+        val milestones: List<AgentGoalMilestone>?,
+        val progress: Int?,
+        val status: String,
+        val dueAt: Long?,
+    )
 
     private companion object {
         private const val TAG = "AgentGoalEngine"

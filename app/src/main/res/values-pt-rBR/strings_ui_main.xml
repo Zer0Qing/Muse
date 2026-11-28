@@ -163,7 +163,8 @@
     <string name="settings_group_media">Voz e visão</string>
     <string name="settings_group_memory">Memória e conhecimento</string>
     <string name="settings_group_tools">Ferramentas e extensões</string>
-    <string name="settings_group_connection">Canais e rede</string>
+    <string name="settings_group_channels">Canais de mensagens</string>
+    <string name="settings_group_connection">Rede</string>
     <string name="settings_group_automation">Automação e segundo plano</string>
     <string name="settings_group_data_storage">Dados e backup</string>
     <string name="settings_group_privacy_security">Privacidade e permissões</string>
@@ -299,6 +300,7 @@
     <string name="search_suggestion_idea">Ideias</string>
     <string name="search_no_result">Nenhum resultado correspondente</string>
     <string name="search_try_other">Experimente outras palavras-chave</string>
+    <string name="search_timeout_hint">A busca expirou. Tente uma palavra mais curta</string>
     <string name="search_section_sessions">Sessões</string>
     <string name="search_section_messages">Mensagens</string>
     <string name="search_time_today">Hoje %1$s</string>
@@ -504,6 +506,7 @@
     <string name="provider_plugins_delete">Excluir plug-in</string>
     <string name="provider_plugins_convert">Converter em provedor</string>
     <string name="provider_plugins_import_failed">Falha na importação: %1$s</string>
+    <string name="provider_plugins_import_failed_title">Arquivo de plugin não reconhecido</string>
     <string name="provider_plugins_import_success">Sucesso na importação</string>
     <string name="provider_plugins_delete_confirm_named">Excluir o plugin «%1$s»? Ele não ficará mais disponível. Reimporte o pacote para restaurá-lo.</string>
     <string name="muse_plugins_publisher_fingerprint">Editor: %1$s · Impressão da chave: %2$s</string>

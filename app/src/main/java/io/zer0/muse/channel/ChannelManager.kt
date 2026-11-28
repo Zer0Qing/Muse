@@ -57,13 +57,15 @@ class ChannelManager(context: Context) {
         }
     }
 
-    /** 删除配置。 */
+    /** 删除配置并清理运行时状态与联系人元数据。 */
     suspend fun remove(id: String) {
         mutex.withLock {
             val updated = _channels.value.filterNot { it.id == id }
             store.save(updated)
             _channels.value = updated
         }
+        ChannelRuntimeRegistry.remove(id)
+        ChannelContactMetaStore.removeForChannel(id)
     }
 
     /**
@@ -117,21 +119,140 @@ class ChannelManager(context: Context) {
     }
 
     /**
-     * v2.0.1: 凭证检测 — 按平台调用一次只读接口验证凭据可用;返回可展示的成功信息。
-     * 微信(iLink)无可独立检测的凭据(扫码绑定即验证)。
+     * 人工接管回发（文本或本地图片）：走同一出站策略与发送管线，成功后同步记入会话台账与防回声账本。
      */
-    suspend fun validate(config: ChannelConfig): Result<String> = withContext(Dispatchers.IO) {
+    suspend fun sendManualReply(channelId: String, targetId: String, text: String, localImagePath: String = ""): ChannelSendResult {
+        val cleanedText = text.trim()
+        if (cleanedText.isBlank() && localImagePath.isBlank()) {
+            return ChannelSendResult(false, "发送内容为空")
+        }
+        val config = _channels.value.firstOrNull { it.id == channelId }
+            ?: return ChannelSendResult(false, "渠道不存在: $channelId")
+        val target = targetId.trim().ifBlank { config.targetId.trim() }
+        if (target.isBlank() && !config.platform.capabilities.requiresRecentInbound) {
+            return ChannelSendResult(false, "未指定发送目标")
+        }
+        if (target.isNotEmpty() && !ChannelPolicy.allows(config, target)) {
+            return ChannelSendResult(false, ChannelPolicy.blockReason(config, target))
+        }
+
+        if (localImagePath.isNotBlank()) {
+            val mediaResult = sendLocalImage(config, target, localImagePath)
+            if (!mediaResult.ok) return mediaResult
+        }
+        if (cleanedText.isNotBlank()) {
+            val textResult = sendText(channelId, cleanedText, targetOverride = target.ifBlank { null })
+            if (!textResult.ok) return textResult
+            ChannelRelayLedger.recordSent(channelId, cleanedText, System.currentTimeMillis())
+        }
+
+        val compactBase64 = if (localImagePath.isNotBlank()) {
+            withContext(Dispatchers.IO) {
+                runCatching { ChannelMediaUtils.toCompactImageBase64(File(localImagePath).readBytes()) }
+                    .getOrNull()
+                    .orEmpty()
+            }
+        } else {
+            ""
+        }
+        if (target.isNotBlank()) {
+            ChannelConversationStore.appendTurn(
+                channelId = channelId,
+                from = target,
+                turn = ChannelConversationStore.Turn(
+                    role = "assistant",
+                    text = cleanedText,
+                    mediaKind = if (localImagePath.isNotBlank()) "image" else "",
+                    mediaBase64 = compactBase64,
+                    mediaPath = localImagePath,
+                    source = "manual",
+                ),
+            )
+        }
+        return ChannelSendResult(true, "已发送")
+    }
+
+    private suspend fun sendLocalImage(config: ChannelConfig, target: String, localImagePath: String): ChannelSendResult {
+        val file = File(localImagePath)
+        if (!file.exists()) return ChannelSendResult(false, "图片文件不存在")
+        val inputModes = config.platform.capabilities.mediaCapabilities.inputModes
+        val outbound: OutboundMedia = when {
+            MediaInputMode.LOCAL_FILE in inputModes -> OutboundMedia.LocalFile(
+                kind = MediaKind.IMAGE,
+                path = file.absolutePath,
+                fileName = file.name,
+                mimeType = "image/jpeg",
+            )
+            MediaInputMode.BUFFER in inputModes -> OutboundMedia.Bytes(
+                kind = MediaKind.IMAGE,
+                bytes = withContext(Dispatchers.IO) { file.readBytes() },
+                fileName = file.name,
+                mimeType = "image/jpeg",
+            )
+            else -> return ChannelSendResult(false, "${config.platform.name} 暂不支持从本机发送图片")
+        }
+        return MediaSender.send(config, outbound, targetOverride = target.ifBlank { null }).fold(
+            onSuccess = { ChannelSendResult(true, "图片已发送") },
+            onFailure = { error -> ChannelSendResult(false, error.message ?: "图片发送失败") },
+        )
+    }
+
+    /**
+     * 结构化凭证校验：返回识别到的机器人展示名与可读摘要，不再泄露开发术语。
+     */
+    suspend fun validateStructured(config: ChannelConfig): ChannelValidationResult = withContext(Dispatchers.IO) {
         when (config.platform) {
-            ChannelPlatform.FEISHU -> runCatching { FeishuChannelSender().fetchToken(config) }
-                .mapCatching { "tenant_access_token 获取成功" }
-            ChannelPlatform.QQ -> QqClient.fetchAccessToken(config.appId.trim(), config.appSecret.trim())
-                .map { "access_token 获取成功" }
+            ChannelPlatform.FEISHU -> runCatching { FeishuChannelSender().fetchToken(config) }.fold(
+                onSuccess = {
+                    ChannelValidationResult(ok = true, botName = config.name, summary = "凭证有效，可建立飞书连接")
+                },
+                onFailure = { e ->
+                    ChannelValidationResult(ok = false, errorDetail = e.message ?: "飞书凭据校验失败")
+                },
+            )
+            ChannelPlatform.QQ -> QqClient.fetchAccessToken(config.appId.trim(), config.appSecret.trim()).fold(
+                onSuccess = {
+                    ChannelValidationResult(ok = true, botName = config.name, summary = "凭证有效，可连接 QQ 机器人")
+                },
+                onFailure = { e ->
+                    ChannelValidationResult(ok = false, errorDetail = e.message ?: "QQ 凭据校验失败")
+                },
+            )
             ChannelPlatform.DINGTALK ->
                 DingtalkClient
                     .fetchAccessToken(config.appId.trim(), config.appSecret.trim(), config.dingtalkApiBase)
-                    .map { "access_token 获取成功" }
-            ChannelPlatform.TELEGRAM -> TelegramClient.getMe(config.appSecret.trim())
-            ChannelPlatform.WECLAW -> Result.success("微信渠道由扫码绑定完成,无需单独检测")
+                    .fold(
+                        onSuccess = {
+                            ChannelValidationResult(ok = true, botName = config.name, summary = "凭证有效，可接入钉钉应用")
+                        },
+                        onFailure = { e ->
+                            ChannelValidationResult(ok = false, errorDetail = e.message ?: "钉钉凭据校验失败")
+                        },
+                    )
+            ChannelPlatform.TELEGRAM -> TelegramClient.getMe(config.appSecret.trim()).fold(
+                onSuccess = { botHandle ->
+                    ChannelValidationResult(ok = true, botName = botHandle, summary = "已识别机器人 $botHandle")
+                },
+                onFailure = { e ->
+                    ChannelValidationResult(ok = false, errorDetail = e.message ?: "Bot Token 校验失败")
+                },
+            )
+            ChannelPlatform.WECLAW -> ChannelValidationResult(
+                ok = config.appSecret.isNotBlank(),
+                botName = config.name,
+                summary = if (config.appSecret.isNotBlank()) "微信扫码凭据就绪" else "请先扫码绑定微信",
+                errorDetail = if (config.appSecret.isBlank()) "尚未完成微信扫码绑定" else "",
+            )
+        }
+    }
+
+    /** 兼容旧调用方：委托给 [validateStructured]。 */
+    suspend fun validate(config: ChannelConfig): Result<String> {
+        val structured = validateStructured(config)
+        return if (structured.ok) {
+            Result.success(structured.summary.ifBlank { structured.botName })
+        } else {
+            Result.failure(IllegalStateException(structured.errorDetail.ifBlank { "校验失败" }))
         }
     }
 

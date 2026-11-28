@@ -87,7 +87,7 @@ class PluginUiRendererTest {
             }
         }
 
-        val entry = composeTestRule.onNodeWithText("界面未能渲染", substring = true)
+        val entry = composeTestRule.onNodeWithText("界面没能渲染", substring = true)
         entry.assertExists("解析失败时入口不该消失")
         entry.performClick()
         composeTestRule.onNodeWithText("sparkline", substring = true).assertExists("拒绝原因应能在弹窗里看到")

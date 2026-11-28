@@ -15,14 +15,14 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
-import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Call
 import okhttp3.Callback
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
-import okhttp3.Response
-import kotlin.coroutines.resumeWithException
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
+import kotlin.coroutines.resumeWithException
 
 /**
  * v1.54: 云端 Embedding Provider(OpenAI 兼容接口)。
@@ -140,20 +140,20 @@ class OpenAIEmbeddingProvider(
         }
         val successResponse = response ?: throw (lastError ?: RuntimeException("Embedding API 无可用地址"))
         successResponse.use { resp ->
-        val raw = resp.body?.string()
-            ?: throw RuntimeException("Embedding API returned empty body")
-        val json = AppJson.parseToJsonElement(raw).jsonObject
-        val dataArray = json["data"]?.jsonArray
-            ?: throw RuntimeException("Embedding API response missing data field: ${raw.take(200)}")
-        // 按 index 排序确保顺序与输入一致
-        val sorted = dataArray.sortedBy { it.jsonObject["index"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 0 }
-        val result = sorted.map { item ->
-            val embArray = item.jsonObject["embedding"]?.jsonArray
-                ?: throw RuntimeException("Embedding response item missing embedding field")
-            FloatArray(embArray.size) { i -> embArray[i].jsonPrimitive.floatOrNull ?: 0f }
-        }
-        if (result.isNotEmpty()) cachedDimension = result[0].size
-        result
+            val raw = resp.body?.string()
+                ?: throw RuntimeException("Embedding API returned empty body")
+            val json = AppJson.parseToJsonElement(raw).jsonObject
+            val dataArray = json["data"]?.jsonArray
+                ?: throw RuntimeException("Embedding API response missing data field: ${raw.take(200)}")
+            // 按 index 排序确保顺序与输入一致
+            val sorted = dataArray.sortedBy { it.jsonObject["index"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 0 }
+            val result = sorted.map { item ->
+                val embArray = item.jsonObject["embedding"]?.jsonArray
+                    ?: throw RuntimeException("Embedding response item missing embedding field")
+                FloatArray(embArray.size) { i -> embArray[i].jsonPrimitive.floatOrNull ?: 0f }
+            }
+            if (result.isNotEmpty()) cachedDimension = result[0].size
+            result
         }
     }
 
@@ -219,4 +219,5 @@ class OpenAIEmbeddingProvider(
         cont.invokeOnCancellation {
             runCatching { cancel() }
         }
-    }}
+    }
+}

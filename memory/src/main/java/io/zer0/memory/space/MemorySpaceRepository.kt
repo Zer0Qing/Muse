@@ -128,10 +128,9 @@ class MemorySpaceRepository(
      * 更新 Space 描述。
      */
     /** 按显示名找空间（去首尾空白、忽略大小写）；[excludeId] 用于改名时放过自己。 */
-    private suspend fun findByName(name: String, excludeId: String?): MemorySpaceEntity? =
-        spaceDao.listAll().firstOrNull { space ->
-            space.id != excludeId && space.name.trim().equals(name, ignoreCase = true)
-        }
+    private suspend fun findByName(name: String, excludeId: String?): MemorySpaceEntity? = spaceDao.listAll().firstOrNull { space ->
+        space.id != excludeId && space.name.trim().equals(name, ignoreCase = true)
+    }
 
     suspend fun updateDescription(id: String, description: String): Boolean = withContext(Dispatchers.IO) {
         val existing = spaceDao.getById(id) ?: return@withContext false

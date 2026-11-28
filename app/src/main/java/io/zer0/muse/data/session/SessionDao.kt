@@ -209,9 +209,10 @@ interface SessionDao {
      */
     @Query(
         "SELECT folderId AS folderId, COUNT(*) AS count FROM sessions " +
-            "WHERE folderId IS NOT NULL AND deletedAt IS NULL GROUP BY folderId"
+            "WHERE folderId IS NOT NULL AND deletedAt IS NULL GROUP BY folderId",
     )
     suspend fun countActiveSessionsByFolder(): List<FolderSessionCount>
+
     @Query("DELETE FROM sessions WHERE id = :id")
     suspend fun deleteById(id: String)
 

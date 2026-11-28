@@ -8,9 +8,8 @@ import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.memory.fact.FactEntity
 import io.zer0.muse.R
-import kotlinx.coroutines.withTimeoutOrNull
 import io.zer0.muse.ui.common.GreetingHelper
-import io.zer0.muse.ui.chat.ChatListScreen
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * 问候语个性化提醒生成器 — 让 LLM 根据记忆里的近期事项自行组织提醒文案。
@@ -32,7 +31,7 @@ class GreetingHintGenerator(
     private val tag = "GreetingHintGenerator"
 
     /** LLM 生成超时(UI 场景不能久等,失败快速回退)。 */
-    private val LLM_TIMEOUT_MS = 8000L
+    private val llmTimeoutMs = 8000L
 
     /** 生成结果最大长度(UI 单行预算)。 */
     private val maxHintLength = GreetingHelper.PERSONALIZED_HINT_MAX_LENGTH
@@ -47,7 +46,7 @@ class GreetingHintGenerator(
         if (fallback == null) return null
 
         val llmHint = resultOf {
-            withTimeoutOrNull(LLM_TIMEOUT_MS) {
+            withTimeoutOrNull(llmTimeoutMs) {
                 chatService.completeText(
                     messages = buildPrompt(events, resources),
                     temperature = 0.8f,

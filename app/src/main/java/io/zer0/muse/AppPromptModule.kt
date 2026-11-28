@@ -80,6 +80,7 @@ val appPromptModule = module {
             toolConfigStore = get(),
             // 35: 每助手用户面具库，命中时在全局画像前注入
             userPersonaStore = get(),
+            profileShardRepository = getOrNull(),
         )
     }
 }

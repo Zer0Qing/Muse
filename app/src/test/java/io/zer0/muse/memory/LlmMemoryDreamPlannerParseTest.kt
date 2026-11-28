@@ -1,7 +1,7 @@
 package io.zer0.muse.memory
 
-import io.zer0.ai.ChatService
 import io.mockk.mockk
+import io.zer0.ai.ChatService
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test

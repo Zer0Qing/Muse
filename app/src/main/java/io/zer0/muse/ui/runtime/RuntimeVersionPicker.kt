@@ -138,11 +138,7 @@ fun RuntimeVersionPicker(
 }
 
 @Composable
-fun RuntimeCustomUrlDialog(
-    version: RuntimeVersion,
-    onDismiss: () -> Unit,
-    onInstall: (url: String, sha256: String?) -> Unit,
-) {
+fun RuntimeCustomUrlDialog(version: RuntimeVersion, onDismiss: () -> Unit, onInstall: (url: String, sha256: String?) -> Unit) {
     var url by remember(version.revision) { mutableStateOf("") }
     var sha256 by remember(version.revision) { mutableStateOf("") }
 

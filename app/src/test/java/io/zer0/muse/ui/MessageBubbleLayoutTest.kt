@@ -1,9 +1,9 @@
 package io.zer0.muse.ui
 
-import org.junit.Assert.assertEquals
-import org.junit.Test
 import io.zer0.muse.ui.chat.MessageBubbleRole
 import io.zer0.muse.ui.chat.messageBubbleLayout
+import org.junit.Assert.assertEquals
+import org.junit.Test
 
 class MessageBubbleLayoutTest {
 

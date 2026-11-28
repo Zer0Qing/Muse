@@ -54,11 +54,11 @@ object AutonomousAccessibilityApproval {
     }
 
     fun actionFor(toolName: String): AutomationAction? = when (toolName) {
-        "screen_read", "screen_current_app" -> AutomationAction.READ_SCREEN
-        "screen_screenshot" -> AutomationAction.READ_SCREEN
-        "screen_tap", "screen_tap_text" -> AutomationAction.CLICK
-        "screen_swipe", "screen_swipe_path" -> AutomationAction.SCROLL
+        "screen_read", "screen_current_app", "screen_wait", "screen_screenshot" -> AutomationAction.READ_SCREEN
+        "screen_tap", "screen_tap_text", "screen_back", "screen_home" -> AutomationAction.CLICK
+        "screen_swipe", "screen_swipe_path", "screen_pinch" -> AutomationAction.SCROLL
         "screen_input" -> AutomationAction.INPUT
+        "ui_agent", "automation_workflow" -> AutomationAction.CLICK
         else -> null
     }
 }

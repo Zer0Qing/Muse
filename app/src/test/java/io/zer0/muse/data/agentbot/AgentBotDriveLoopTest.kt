@@ -28,17 +28,17 @@ class AgentBotDriveLoopTest {
 
     @Test
     fun `scheduler exposes a start loop`() {
-        assertTrue("必须有启动入口，否则 tick 永远不会被调", scheduler.contains("fun start("));
-        assertTrue(scheduler.contains("fun stop("));
+        assertTrue("必须有启动入口，否则 tick 永远不会被调", scheduler.contains("fun start("))
+        assertTrue(scheduler.contains("fun stop("))
     }
 
     @Test
     fun `the loop calls tick and sweep and approval expiry`() {
-        val startAt = scheduler.indexOf("fun start(");
-        val body = scheduler.substring(startAt, minOf(startAt + 1600, scheduler.length));
-        assertTrue("循环里要领任务", body.contains("tick()"));
-        assertTrue("循环里要巡检超时", body.contains("sweepOverdue()"));
-        assertTrue("循环里要扫过期审批", body.contains("expireApprovals()"));
+        val startAt = scheduler.indexOf("fun start(")
+        val body = scheduler.substring(startAt, minOf(startAt + 1600, scheduler.length))
+        assertTrue("循环里要领任务", body.contains("tick()"))
+        assertTrue("循环里要巡检超时", body.contains("sweepOverdue()"))
+        assertTrue("循环里要扫过期审批", body.contains("expireApprovals()"))
     }
 
     @Test
@@ -51,11 +51,11 @@ class AgentBotDriveLoopTest {
 
     @Test
     fun `a failing round does not kill the loop`() {
-        val startAt = scheduler.indexOf("fun start(");
-        val body = scheduler.substring(startAt, minOf(startAt + 1600, scheduler.length));
+        val startAt = scheduler.indexOf("fun start(")
+        val body = scheduler.substring(startAt, minOf(startAt + 1600, scheduler.length))
         // 三处都必须是 runCatching 包住 —— 单次失败不能让整个循环退出。
-        val guarded = Regex("runCatching \\{").findAll(body).count();
-        assertTrue("每一轮都要能扛住单次异常，实际只包了 " + guarded + " 处", guarded >= 3);
+        val guarded = Regex("runCatching \\{").findAll(body).count()
+        assertTrue("每一轮都要能扛住单次异常，实际只包了 " + guarded + " 处", guarded >= 3)
     }
 
     @Test
@@ -67,32 +67,43 @@ class AgentBotDriveLoopTest {
     }
 
     @Test
-    fun `allowance list is a state flow so revoke refreshes the screen`() {
-        assertTrue(
-            "必须是 StateFlow，普通字段不会触发重组",
-            viewModel.contains("val allowedTools: kotlinx.coroutines.flow.StateFlow"),
-        )
-        assertFalse(
-            "旧的普通字段写法已废弃",
-            viewModel.contains("fun allowedToolsThisConversation()"),
-        )
+    fun `conversation wide tool allowance list is absent from the screen model`() {
+        assertFalse(viewModel.contains("val allowedTools: kotlinx.coroutines.flow.StateFlow"))
+        assertFalse(viewModel.contains("fun revokeAllowance("))
     }
 
     @Test
-    fun `revoking an allowance refreshes the list immediately`() {
-        val revokeAt = viewModel.indexOf("fun revokeAllowance(");
-        assertTrue(revokeAt > 0);
-        val body = viewModel.substring(revokeAt, minOf(revokeAt + 700, viewModel.length));
-        assertTrue("收回后要立刻重读，不能等下次进页面", body.contains("refreshAllowances()"));
+    fun `tool permission flow uses individual approval decisions`() {
+        assertTrue(viewModel.contains("approvals.approve("))
+        assertFalse(viewModel.contains("allowances.grant("))
     }
 
     @Test
-    fun `binding a conversation loads its allowance list`() {
-        val bindAt = viewModel.indexOf("fun bind(");
-        assertTrue(bindAt > 0);
+    fun `binding a conversation does not load stale tool allowances`() {
+        val bindAt = viewModel.indexOf("fun bind(")
+        assertTrue(bindAt > 0)
         val bindEnd = Regex("\\R    \\}\\R").find(viewModel, bindAt)?.range?.first
             ?: error("找不到 bind 函数结尾")
-        val body = viewModel.substring(bindAt, bindEnd);
-        assertTrue(body.contains("refreshAllowances()"));
+        val body = viewModel.substring(bindAt, bindEnd)
+        assertFalse(body.contains("refreshAllowances()"))
+    }
+
+    @Test
+    fun `foreground cleanup and draft callbacks are bound to captured identities`() {
+        assertTrue(viewModel.contains("activeForegroundTurnIdentity == identity"))
+        assertTrue(
+            Regex("if\\s*\\(isCurrentScope\\(\\)\\)\\s*\\{\\s*ui\\.setTyping\\(false\\)\\s*ui\\.clearStreaming\\(\\)")
+                .containsMatchIn(viewModel),
+        )
+        assertTrue(viewModel.contains("scopeGenerationAtStart"))
+        assertTrue(viewModel.contains("draftGenerationAtStart"))
+        assertTrue(viewModel.contains("isCurrentComposerDraft("))
+    }
+
+    @Test
+    fun `accepted request revision prevents an older suspended submission from replacing a newer turn`() {
+        assertTrue(viewModel.contains("acceptedRevisionByScope"))
+        assertTrue(viewModel.contains("accepted.requestRevision < latest"))
+        assertTrue(viewModel.contains("if (!isCurrentScope || !isNewestAccepted) return@launch"))
     }
 }

@@ -37,7 +37,6 @@ import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import kotlinx.coroutines.launch
-import io.zer0.muse.ui.screen.ArchivedChatsScreen
 
 /**
  * 已归档群聊列表页。

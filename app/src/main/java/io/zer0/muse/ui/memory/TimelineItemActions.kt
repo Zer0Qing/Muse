@@ -21,7 +21,6 @@ import io.zer0.muse.ui.common.form.MuseActionSheetRow
 import io.zer0.muse.ui.common.form.MuseBottomSheet
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.settings.ConfirmDeleteDialog
-import io.zer0.muse.ui.memory.MemoryItem
 
 /**
  * 时间轴卡片长按后的动作面板与删除二次确认。

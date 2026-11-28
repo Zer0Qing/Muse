@@ -186,4 +186,148 @@ class AgentStreamCoordinatorTest {
         assertTrue(outcome.requestSuperseded)
         assertEquals("", outcome.publishedMessageId)
     }
+
+    @Test
+    fun `foreground MCP approval allows only the displayed call arguments`() = runBlocking {
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val sessionId = sessions.createAgentSession("bot-approval")
+        val calls = mutableListOf<Map<String, String>>()
+        val registry = io.zer0.muse.tools.ToolRegistry(context)
+        registry.register(
+            io.zer0.muse.tools.ToolRegistry.ToolDef(
+                name = "mcp_server-1__lookup",
+                description = "[MCP server=server-1 tool=lookup] Search records",
+                parameters = mapOf("query" to "Search query"),
+                category = "mcp",
+                riskLevel = io.zer0.muse.tools.ToolRiskLevel.NORMAL,
+            ),
+        ) { args ->
+            calls += args
+            "found"
+        }
+        val configStore = io.zer0.muse.tools.ToolConfigStore(context).also {
+            it.setPolicy("mcp_server-1__lookup", io.zer0.muse.tools.ToolApprovalPolicy.ASK_EVERY_TIME)
+        }
+        var streamCount = 0
+        val coordinator = AgentStreamCoordinator(
+            streamingClient = { messages, _, _, _, _ ->
+                if (streamCount++ == 0) {
+                    flowOf(
+                        ChatStreamEvent.ToolCallDelta(
+                            index = 0,
+                            id = "call-exact",
+                            name = "mcp_server-1__lookup",
+                            argumentsDelta = """{"query":"exact value"}""",
+                        ),
+                        ChatStreamEvent.Done("tool_calls"),
+                    )
+                } else {
+                    assertTrue(messages.any { it.role == io.zer0.ai.core.MessageRole.TOOL && it.content.contains("found") })
+                    flowOf(ChatStreamEvent.ContentDelta("已完成"), ChatStreamEvent.Done("stop"))
+                }
+            },
+            publication = publication,
+            governor = BotResourceGovernor(),
+            dependencies = AgentStreamCoordinatorDependencies(
+                toolRegistry = registry,
+                toolConfigStore = configStore,
+            ),
+        )
+        val approvalRequests = mutableListOf<AgentStreamCoordinator.ForegroundMcpApproval>()
+
+        coordinator.runStreamingTurn(
+            identity = AgentTurnIdentity("bot-approval", sessionId, "approval-request", 1L),
+            systemPrompt = "",
+            history = emptyList(),
+            userText = "Search for this",
+            assistant = io.zer0.muse.data.assistant.AssistantEntity(
+                id = "bot-approval",
+                name = "Approval",
+                mcpServerIdsJson = """["server-1"]""",
+            ),
+            currentRequestRevision = { 1L },
+            onMcpApproval = { request ->
+                approvalRequests += request
+                true
+            },
+        )
+
+        assertEquals(1, approvalRequests.size)
+        assertEquals("server-1", approvalRequests.single().serverId)
+        assertEquals("lookup", approvalRequests.single().toolName)
+        assertEquals("""{"query":"exact value"}""", approvalRequests.single().argumentsJson)
+        assertEquals(listOf(mapOf("query" to "exact value")), calls)
+    }
+
+    @Test
+    fun `foreground MCP rejection and timeout never invoke the tool`() = runBlocking {
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val sessionId = sessions.createAgentSession("bot-denial")
+        var invocationCount = 0
+        val registry = io.zer0.muse.tools.ToolRegistry(context)
+        registry.register(
+            io.zer0.muse.tools.ToolRegistry.ToolDef(
+                name = "mcp_server-2__mutate",
+                description = "[MCP server=server-2 tool=mutate] Change a record",
+                parameters = emptyMap(),
+                category = "mcp",
+                riskLevel = io.zer0.muse.tools.ToolRiskLevel.NORMAL,
+            ),
+        ) {
+            invocationCount++
+            "changed"
+        }
+        val configStore = io.zer0.muse.tools.ToolConfigStore(context).also {
+            it.setPolicy("mcp_server-2__mutate", io.zer0.muse.tools.ToolApprovalPolicy.ASK_EVERY_TIME)
+        }
+
+        suspend fun runCall(timeoutMs: Long, callback: suspend (AgentStreamCoordinator.ForegroundMcpApproval) -> Boolean) {
+            val coordinator = AgentStreamCoordinator(
+                streamingClient = { _, _, _, _, _ ->
+                    flowOf(
+                        ChatStreamEvent.ToolCallDelta(
+                            index = 0,
+                            id = "call-denied",
+                            name = "mcp_server-2__mutate",
+                            argumentsDelta = "{}",
+                        ),
+                        ChatStreamEvent.Done("tool_calls"),
+                    )
+                },
+                publication = publication,
+                governor = BotResourceGovernor(),
+                dependencies = AgentStreamCoordinatorDependencies(
+                    toolRegistry = registry,
+                    toolConfigStore = configStore,
+                    foregroundMcpApprovalTimeoutMs = timeoutMs,
+                ),
+            )
+            coordinator.runStreamingTurn(
+                identity = AgentTurnIdentity("bot-denial", sessionId, "approval-denial-${System.nanoTime()}", 1L),
+                systemPrompt = "",
+                history = emptyList(),
+                userText = "Change this",
+                assistant = io.zer0.muse.data.assistant.AssistantEntity(
+                    id = "bot-denial",
+                    name = "Denial",
+                    mcpServerIdsJson = """["server-2"]""",
+                ),
+                currentRequestRevision = { 1L },
+                onMcpApproval = callback,
+            )
+        }
+
+        var approvalCount = 0
+        runCall(timeoutMs = 1_000) {
+            approvalCount++
+            false
+        }
+        runCall(timeoutMs = 50) {
+            approvalCount++
+            kotlinx.coroutines.awaitCancellation()
+        }
+
+        assertEquals(2, approvalCount)
+        assertEquals(0, invocationCount)
+    }
 }

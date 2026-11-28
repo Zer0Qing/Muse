@@ -35,7 +35,7 @@ class BotSayContractTest {
 
     @Test
     fun `missing bot_say is surfaced instead of silently ending`() {
-        assertTrue(coordinator.contains("missingBotSay"));
+        assertTrue(coordinator.contains("missingBotSay"))
         assertTrue(
             "既没说话也没派工时，调用方必须知道",
             coordinator.contains("missingBotSay = say.isBlank() && goal.isBlank()"),
@@ -44,9 +44,9 @@ class BotSayContractTest {
 
     @Test
     fun `a single retry is attempted before giving up`() {
-        assertTrue(coordinator.contains("retryWithBotSay("));
+        assertTrue(coordinator.contains("retryWithBotSay("))
         // 补救只能一次：数调用点的次数。
-        val retryCalls = Regex("retryWithBotSay\\(").findAll(coordinator).count();
+        val retryCalls = Regex("retryWithBotSay\\(").findAll(coordinator).count()
         assertTrue(
             "补救函数定义 + 一处调用，不能循环重试（实际 " + retryCalls + " 处）",
             retryCalls == 2,
@@ -63,13 +63,13 @@ class BotSayContractTest {
 
     @Test
     fun `view model reports the failure to the user`() {
-        assertTrue(viewModel.contains("turn.missingBotSay"));
-        assertTrue(viewModel.contains("AgentBotError.MISSING_BOT_SAY"));
+        assertTrue(viewModel.contains("turn.missingBotSay"))
+        assertTrue(viewModel.contains("AgentBotError.MISSING_BOT_SAY"))
     }
 
     @Test
     fun `keepalive treats a query failure as still busy`() {
-        val service = File("src/main/java/io/zer0/muse/data/agentbot/AgentBotKeepAliveService.kt").readText();
+        val service = File("src/main/java/io/zer0/muse/data/agentbot/AgentBotKeepAliveService.kt").readText()
         assertTrue(
             "读失败按还在忙处理，宁可多保活也不能在任务跑到一半时退出",
             service.contains("getOrDefault(true)"),

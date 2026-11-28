@@ -26,12 +26,11 @@ fun <T : Any> NavHostController.navigateSingleTop(route: T) {
  * 防空栈安全回退扩展：仅在存在上一级回退项时执行 `popBackStack()`，
  * 防止快速连点顶部返回按钮把根页面（HomeRoute）误弹出栈。
  */
-fun NavHostController.popBackStackSafe(): Boolean =
-    if (previousBackStackEntry != null) {
-        popBackStack()
-    } else {
-        false
-    }
+fun NavHostController.popBackStackSafe(): Boolean = if (previousBackStackEntry != null) {
+    popBackStack()
+} else {
+    false
+}
 
 /**
  * 导航过渡动画 helper — 全站统一收敛到干脆、单轴的水平 push / pop 推滑。

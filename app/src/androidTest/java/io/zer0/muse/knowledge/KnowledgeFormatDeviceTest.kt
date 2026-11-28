@@ -3,8 +3,8 @@ package io.zer0.muse.knowledge
 import android.content.Context
 import android.net.Uri
 import androidx.test.core.app.ApplicationProvider
-import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
 import io.zer0.muse.doc.DocumentParser
 import io.zer0.muse.knowledge.ingest.DocumentParserAdapter
 import io.zer0.muse.knowledge.ingest.ParseCoverage

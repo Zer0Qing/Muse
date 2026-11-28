@@ -83,15 +83,17 @@ class ProactiveBacklogPublisher(
                     throw PublishAbort(BacklogPublishResult.ClaimLost)
                 }
             }
-            if (appendedId == null) BacklogPublishResult.TargetUnavailable
-            else BacklogPublishResult.Published(appendedId, outcomeId)
+            if (appendedId == null) {
+                BacklogPublishResult.TargetUnavailable
+            } else {
+                BacklogPublishResult.Published(appendedId, outcomeId)
+            }
         } catch (abort: PublishAbort) {
             abort.result
         }
     }
 
-    private fun stableUuid(key: String): String =
-        UUID.nameUUIDFromBytes("muse-proactive:$key".toByteArray(Charsets.UTF_8)).toString()
+    private fun stableUuid(key: String): String = UUID.nameUUIDFromBytes("muse-proactive:$key".toByteArray(Charsets.UTF_8)).toString()
 
     private class PublishAbort(val result: BacklogPublishResult) : RuntimeException()
 }

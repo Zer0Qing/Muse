@@ -1,7 +1,6 @@
 package io.zer0.muse.knowledge.retrieval
 
 import io.zer0.muse.data.knowledge.KnowledgeJobDao
-import io.zer0.muse.data.knowledge.KnowledgeVectorRow
 import kotlin.math.sqrt
 
 /**
@@ -21,11 +20,7 @@ class V2DenseRetriever(
     private val oversample: Int = 4,
 ) : DenseRetriever {
 
-    override suspend fun search(
-        request: KnowledgeSearchRequest,
-        activeGenerationIds: List<String>,
-        limit: Int,
-    ): DenseRecall {
+    override suspend fun search(request: KnowledgeSearchRequest, activeGenerationIds: List<String>, limit: Int): DenseRecall {
         if (activeGenerationIds.isEmpty()) return DenseRecall(hits = emptyList())
 
         val queryVector = request.queryVector

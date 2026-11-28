@@ -2,8 +2,8 @@ package io.zer0.muse.knowledge
 
 import io.zer0.muse.knowledge.ingest.DocumentParserAdapter
 import io.zer0.muse.knowledge.ingest.KnowledgeParserRegistry
-import io.zer0.muse.knowledge.ingest.ParseCoverage
 import io.zer0.muse.knowledge.ingest.OcrRequirement
+import io.zer0.muse.knowledge.ingest.ParseCoverage
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -33,8 +33,12 @@ class KnowledgeFormatRoutingTest {
     @Test
     fun `unknown formats explicitly rejected never txt-fallback`() {
         listOf(
-            "a.exe", "b.bin", "c.dat", "d.pdf.exe",
-            "noext", "",
+            "a.exe",
+            "b.bin",
+            "c.dat",
+            "d.pdf.exe",
+            "noext",
+            "",
         ).forEach { name ->
             assertFalse("未知/无扩展名格式必须拒绝: '$name'", KnowledgeParserRegistry.isSupportedFormat(name))
         }

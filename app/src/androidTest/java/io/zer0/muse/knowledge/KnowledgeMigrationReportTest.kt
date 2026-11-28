@@ -27,9 +27,8 @@ class KnowledgeMigrationReportTest {
     @get:Rule
     val helper = MigrationTestHelper(instrumentation, MuseDb::class.java)
 
-    private fun sha256(text: String): String =
-        MessageDigest.getInstance("SHA-256").digest(text.toByteArray())
-            .joinToString("") { "%02x".format(it) }
+    private fun sha256(text: String): String = MessageDigest.getInstance("SHA-256").digest(text.toByteArray())
+        .joinToString("") { "%02x".format(it) }
 
     @Test
     fun migrate125To130ProducesVerifiableReport() {
@@ -142,10 +141,9 @@ class KnowledgeMigrationReportTest {
         context.deleteDatabase(dbName)
     }
 
-    private fun count(db: androidx.sqlite.db.SupportSQLiteDatabase, sql: String): Int =
-        db.query("SELECT COUNT(*) FROM $sql").use { c ->
-            if (c.moveToFirst()) c.getInt(0) else 0
-        }
+    private fun count(db: androidx.sqlite.db.SupportSQLiteDatabase, sql: String): Int = db.query("SELECT COUNT(*) FROM $sql").use { c ->
+        if (c.moveToFirst()) c.getInt(0) else 0
+    }
 
     private fun queryString(db: androidx.sqlite.db.SupportSQLiteDatabase, sql: String): String =
         db.query(sql).use { c -> if (c.moveToFirst()) c.getString(0) else "" }

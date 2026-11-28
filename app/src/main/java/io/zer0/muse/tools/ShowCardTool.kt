@@ -1,5 +1,4 @@
 package io.zer0.muse.tools
-import io.zer0.muse.ui.chat.parseShowCardArgs
 
 /**
  * show_card 工具。
@@ -31,29 +30,22 @@ object ShowCardTool {
 
     fun toolDef() = ToolRegistry.ToolDef(
         name = "show_card",
-        description = "展示可视化/交互式 HTML 或 SVG 卡片，在沙箱 WebView 内联渲染（适用于对比、图表、仪表盘、流程图、参数调节工具）。" +
-            "【片段约束】只给内容片段，禁止 DOCTYPE/<html>/<head>/<body>、禁止外链资源、禁止只有 <style> 没有内容结构；" +
-            "竖屏窄屏优先（flex/grid/百分比，触控热区≥44px），右上角 100×40 留空给宿主控件。" +
-            "【样式词汇（宿主已注入，直接用类名与变量，勿写字面色或整段自定义 CSS）】" +
-            "外框 <div class=\"m-shell\">；布局 .m-stack/.m-split/.m-flow/.m-panel/.m-section/.m-footer；" +
-            "文字 .m-eyebrow/.m-title/.m-lead/.m-heading/.m-copy/.m-caption/.m-label；" +
-            "数据 .m-metrics>.m-metric>(.m-metric-value+.m-metric-label)、.m-table-region>.m-table、.m-kv；" +
-            "点缀 .m-badge(.m-badge--good/--warn/--danger)/.m-highlight/.m-disclosure；" +
-            "控件 .m-button(.m-button--quiet)/.m-input/.m-textarea/.m-field/.m-check/.m-range/.m-select/.m-tabs>.m-tab；" +
-            "媒体 .m-banner/.m-media-frame。" +
-            "CSS 变量：--muse-fg/--muted/--faint、--muse-surface/-2/-3、--muse-border/--card-line-soft、" +
-            "--muse-accent/--accent-soft、--muse-good/--warn/--danger、--muse-d1..--muse-d6、--muse-s1..--muse-s6、--muse-radius-sm/-lg。" +
-            "【图表】勿手画 SVG 数据图，用 var c = window.MuseCharts.render(el, {kind:'line'|'area'|'column'|'stacked'|'bar'|'pie'|'donut', labels:[...], series:[{id,label,values}], unit})（最多 6 系列，勿用 NaN，重绘前调 c.destroy()）。" +
-            "【交互与脚本】优先声明式 data-m-invoke=\"文字\"（可配 data-m-state='{\"k\":v}'）；" +
-            "复杂逻辑写在 <script> 中用 addEventListener 绑定，禁止内联 JS 事件属性（如 onclick=\"...\"）。" +
-            "渲染可提交控件前先调 var cap = window.muse.capabilities()，仅 cap.emit==='available' 时启用提交，否则降级静态展示。" +
-            "必须由用户点击触发 window.muse.send(summary, state)（严禁自动发送），状态会以 <card_state> 附在用户消息后返回。" +
-            "【身份与数据更新】卡片内通过只读 window.muse.cardId 读自身身份、window.muse.getData()/getJSON() 读绑定数据，" +
-            "需动态刷新时注册 window.muse.data.onChange(fn)。成功时返回绑定消息的 card_id，后续可用 update_card_data(card_id, data_json) 更新（更新当前消息上的卡片可省略 card_id）。" +
-            "【高度契约】简单内容用 height=\"auto\"（默认）；多行看板/表格传固定 dp 如 \"520\"（并给根容器 max-height:100%;overflow:auto）；固定比例传 \"16:9\"（不写 px）。",
+        description = "在沙箱 WebView 展示交互式 HTML/SVG 卡片（对比、图表、仪表盘、表单）。" +
+            "【规范】仅传内容片段，禁 DOCTYPE/html/head/body 与外链，竖屏优先，右上角 100×40 留空。" +
+            "外框 <div class=\"m-shell\">，用宿主 .m-*（.m-stack/.m-split/.m-panel/.m-metrics/.m-table/.m-badge/.m-button/.m-input）" +
+            "与 --muse-*（--muse-fg/--muted/--surface/--border/--accent/--good/--warn/--danger）。" +
+            "【图表/交互】勿手绘 SVG 图，用 window.MuseCharts.render(el,{kind,labels,series,unit})。" +
+            "优先 data-m-invoke；脚本用 addEventListener（禁 onclick），先查 window.muse.capabilities().emit==='available' " +
+            "再触发 window.muse.send(summary,state)（仅用户点击触发）。" +
+            "【卡内静默多轮互动】凡涉及五子棋/象棋/卡牌/猜词/刷题等需与 AI 连续回合互动的卡片，先查 capabilities().ask==='available'，" +
+            "用 await window.muse.ask({prompt,state,responseFormat:'json'}) 在后台静默向助手请求下一步动作与短评，并用 window.muse.saveState(state) 持久化进度，" +
+            "严禁每一步都用 window.muse.send 往聊天记录刷屏；仅在一局结束或用户主动点分享/提交时才用 send(summary,state) 发简短战报。" +
+            "【数据/高度】用 window.muse.cardId / getJSON() / data.onChange(fn)；后续 update_card_data(card_id,data_json) 更新。" +
+            "height 支持 \"auto\"（默认）、固定 dp（如 \"520\"）或比例（\"16:9\"）。",
         parameters = mapOf(
             "title" to "Required. Short snake_case identifier (e.g. 'q4_revenue_chart').",
-            "code" to "Required. HTML or SVG fragment rooted in <div class=\"m-shell\"> using host .m-* classes and --muse-* CSS variables; no inline JS handlers (onclick etc.).",
+            "code" to "Required. HTML or SVG fragment rooted in <div class=\"m-shell\"> using host .m-* classes and " +
+                "--muse-* CSS variables; no inline JS handlers (onclick etc.).",
             "data" to "Optional. JSON bound to this card; read via window.muse.getData() / window.muse.getJSON().",
             "height" to "Optional. Card height: \"auto\" (fit content, default), " +
                 "\"520\" or \"520dp\" (fixed dp, content scrolls inside), or \"16:9\" (aspect ratio). " +

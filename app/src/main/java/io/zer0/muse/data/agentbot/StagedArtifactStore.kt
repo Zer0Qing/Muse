@@ -254,6 +254,7 @@ class StagedArtifactStore(
         val stagedId: String,
         val candidate: Candidate,
     )
+
     /** 丢弃暂存条目。 */
     fun discard(stagedId: String) {
         runCatching { java.io.File(stagingDir, stagedId).delete() }
@@ -268,9 +269,9 @@ class StagedArtifactStore(
 
     private fun encode(candidate: Candidate): String = buildString {
         appendLine(FORMAT_V3)
-        appendLine(candidate.targetRef);
-        appendLine(candidate.baseHash);
-        appendLine(candidate.taskRevision.toString());
+        appendLine(candidate.targetRef)
+        appendLine(candidate.baseHash)
+        appendLine(candidate.taskRevision.toString())
         appendLine(candidate.sourceRunId)
         appendLine(candidate.verificationState)
         appendLine(candidate.contentHash)
@@ -282,7 +283,7 @@ class StagedArtifactStore(
                 ?.let(java.util.Base64.getEncoder()::encodeToString)
                 .orEmpty(),
         )
-        append(candidate.content);
+        append(candidate.content)
     }
 
     private fun decode(raw: String): Candidate? {

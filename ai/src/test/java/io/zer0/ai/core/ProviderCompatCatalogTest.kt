@@ -1,12 +1,12 @@
 package io.zer0.ai.core
 
+import io.zer0.common.Logger
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import io.zer0.ai.registry.ModelRegistry as RuntimeModelRegistry
-import io.zer0.common.Logger
 
 /**
  * 兼容性派生优先级:[目录] > [硬编码表] > [默认值]。

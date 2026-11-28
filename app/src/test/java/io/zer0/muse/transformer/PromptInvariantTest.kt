@@ -22,8 +22,7 @@ class PromptInvariantTest {
         File("app/$relativeUnderApp"),
     ).firstOrNull { it.exists() }
 
-    private fun readAsset(name: String): String? =
-        locate("src/main/assets/prompt_templates/$name")?.readText()
+    private fun readAsset(name: String): String? = locate("src/main/assets/prompt_templates/$name")?.readText()
 
     @Test
     fun `invariant list is not empty`() {

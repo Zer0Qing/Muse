@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
 import io.zer0.muse.data.promptinjection.PromptInjectionEntity
+import io.zer0.muse.ui.chat.ChatViewModel
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseActionSheetRow
@@ -57,8 +58,9 @@ import io.zer0.muse.ui.common.surface.MuseSurface
 import io.zer0.muse.ui.common.surface.museBottomBarInsets
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseShapes
+import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
-import io.zer0.muse.ui.chat.ChatViewModel
+import org.koin.compose.koinInject
 
 /**
  * Phase 8.5: PromptInjection(模式注入)管理页。
@@ -78,16 +80,19 @@ fun PromptInjectionScreen(onBack: () -> Unit, viewModel: ChatViewModel = koinVie
     var deleteTarget by remember { mutableStateOf<PromptInjectionEntity?>(null) }
 
     val newDefaultName = stringResource(R.string.prompt_injection_new_default_name)
+    val ioScope = androidx.compose.runtime.rememberCoroutineScope()
+    val injectionRepo: io.zer0.muse.data.promptinjection.PromptInjectionRepository = koinInject()
+    val saveFailedText = stringResource(R.string.common_save_failed)
     // 新建动作只在一处定义：FAB 与空态按钮共用，避免两处各写一份实体构造。
     val onCreate: () -> Unit = {
         val now = System.currentTimeMillis()
         editing = PromptInjectionEntity(
-                        id = "pinj-$now",
-                        name = newDefaultName,
-                        mode = "default",
-                        createdAt = now,
-                        updatedAt = now,
-                    )
+            id = "pinj-$now",
+            name = newDefaultName,
+            mode = "default",
+            createdAt = now,
+            updatedAt = now,
+        )
         isNew = true
     }
     // i18n: 预提取字符串资源,避免在 onClick 等非 Composable lambda 内调用 stringResource
@@ -109,9 +114,20 @@ fun PromptInjectionScreen(onBack: () -> Unit, viewModel: ChatViewModel = koinVie
                 isNew = false
             },
             onSave = { saved ->
-                viewModel.savePromptInjection(saved)
                 editing = null
                 isNew = false
+                // 与世界书同因：静默写盘 + 只读快照列表 = “保存后列表仍为空”。
+                // 先落盘，成功再刷新；失败当场说出来。
+                ioScope.launch {
+                    val ok = runCatching {
+                        injectionRepo.upsert(saved.copy(updatedAt = System.currentTimeMillis()))
+                    }.isSuccess
+                    if (ok) {
+                        viewModel.refreshPromptInjections()
+                    } else {
+                        io.zer0.muse.ui.common.feedback.MuseToast.show(saveFailedText)
+                    }
+                }
             },
             promptInjectionModeMap = promptInjectionModeMap,
         )

@@ -16,6 +16,7 @@
     <string name="translate_page_speak_result">Speak translation</string>
     <string name="translate_page_use_as_input">Use as input</string>
     <string name="translate_page_send_to_chat_session">Send to chat</string>
+    <string name="translate_page_still_translating">Still translating — send when it finishes</string>
     <string name="translate_page_more">More</string>
     <string name="translate_page_style_label">Translation style</string>
     <string name="translate_page_tts_not_ready">TTS is not ready, please try again later</string>

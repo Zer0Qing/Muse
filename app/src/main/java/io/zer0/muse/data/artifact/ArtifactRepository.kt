@@ -12,6 +12,8 @@ class ArtifactRepository(
 
     suspend fun delete(id: String) = dao.deleteById(id)
 
+    suspend fun rename(id: String, title: String) = dao.updateTitle(id = id, title = title, updatedAt = System.currentTimeMillis())
+
     fun observeBySession(sessionId: String): Flow<List<ArtifactEntity>> = dao.observeBySession(sessionId)
 
     suspend fun getByMessage(messageId: String): List<ArtifactEntity> = dao.getByMessage(messageId)

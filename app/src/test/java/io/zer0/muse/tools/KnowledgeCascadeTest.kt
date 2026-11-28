@@ -3,6 +3,8 @@ package io.zer0.muse.tools
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import io.mockk.coEvery
+import io.mockk.mockk
 import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.data.knowledge.KnowledgeBaseEntity
@@ -12,8 +14,6 @@ import io.zer0.muse.data.session.MuseDb
 import io.zer0.muse.rag.KnowledgeFolderBrowser
 import io.zer0.muse.rag.RagConfig
 import io.zer0.muse.rag.RagService
-import io.mockk.coEvery
-import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -51,6 +51,12 @@ class KnowledgeCascadeTest {
         val ragService = mockk<RagService>(relaxed = true)
         coEvery { ragService.deleteDocument(any()) } coAnswers {
             db.knowledgeDocDao().delete(firstArg())
+            Unit
+        }
+        coEvery { ragService.deleteDocuments(any()) } coAnswers {
+            firstArg<Collection<String>>().forEach { id ->
+                db.knowledgeDocDao().delete(id)
+            }
             Unit
         }
         cascade = KnowledgeCascade(
@@ -100,11 +106,7 @@ class KnowledgeCascadeTest {
         )
     }
 
-    private suspend fun seedAssistant(
-        id: String,
-        kbIds: List<String>,
-        scopes: List<Pair<String, String>>,
-    ) {
+    private suspend fun seedAssistant(id: String, kbIds: List<String>, scopes: List<Pair<String, String>>) {
         db.assistantDao().upsert(
             AssistantEntity(
                 id = id,

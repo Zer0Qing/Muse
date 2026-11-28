@@ -34,7 +34,7 @@ class AgentBotKeepAliveTest {
             "Android 14+ 要求显式声明前台服务类型",
             manifest.contains("foregroundServiceType=\"dataSync\""),
         )
-        assertTrue("不得对外暴露", manifest.contains("android:exported=\"false\""));
+        assertTrue("不得对外暴露", manifest.contains("android:exported=\"false\""))
     }
 
     @Test
@@ -55,9 +55,9 @@ class AgentBotKeepAliveTest {
 
     @Test
     fun `foreground starts in onCreate not in onStartCommand`() {
-        val onCreateAt = service.indexOf("override fun onCreate()");
-        val startCmdAt = service.indexOf("override fun onStartCommand(");
-        val fgAt = service.indexOf("startForegroundCompat(buildNotification(");
+        val onCreateAt = service.indexOf("override fun onCreate()")
+        val startCmdAt = service.indexOf("override fun onStartCommand(")
+        val fgAt = service.indexOf("startForegroundCompat(buildNotification(")
         assertTrue(
             "服务创建即进前台，晚于 5 秒会触发 ForegroundServiceDidNotStartInTimeException",
             fgAt in onCreateAt until startCmdAt,
@@ -78,15 +78,15 @@ class AgentBotKeepAliveTest {
             "空转的前台服务会被系统判滥用，用户也会看到不消失的通知",
             service.contains("EMPTY_STATE_GRACE_MS"),
         )
-        assertTrue(service.contains("stopService()"));
+        assertTrue(service.contains("stopService()"))
     }
 
     @Test
     fun `scheduler raises keepalive when it claims work`() {
-        val tickAt = scheduler.indexOf("suspend fun tick()");
-        assertTrue(tickAt > 0);
+        val tickAt = scheduler.indexOf("suspend fun tick()")
+        assertTrue(tickAt > 0)
         // 窗口要覆盖整个 tick 方法体（恢复窗口守卫让它变长了）。
-        val body = scheduler.substring(tickAt, minOf(tickAt + 3000, scheduler.length));
+        val body = scheduler.substring(tickAt, minOf(tickAt + 3000, scheduler.length))
         assertTrue(
             "领到任务要拉前台，否则锁屏后 Doze 会冻住任务",
             body.contains("keepAlive(ctx)"),

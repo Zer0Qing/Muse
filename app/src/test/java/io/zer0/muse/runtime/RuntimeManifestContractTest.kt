@@ -95,7 +95,10 @@ class RuntimeManifestContractTest {
 
     private companion object {
         const val SHA = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-        const val ARM_URLS = """["https://gh-proxy.com/https://github.com/Zer0Qing/Muse/releases/download/runtime-r1/rootfs-arm64-v8a.tar.gz","https://ghproxy.net/https://github.com/Zer0Qing/Muse/releases/download/runtime-r1/rootfs-arm64-v8a.tar.gz","https://github.com/Zer0Qing/Muse/releases/download/runtime-r1/rootfs-arm64-v8a.tar.gz"]"""
+        const val ARM_URLS = """["https://gh-proxy.com/https://github.com/Zer0Qing/Muse/releases/download/runtime-r1/""" +
+            """rootfs-arm64-v8a.tar.gz","https://ghproxy.net/https://github.com/Zer0Qing/Muse/releases/download/runtime-r1/""" +
+            """rootfs-arm64-v8a.tar.gz","https://github.com/Zer0Qing/Muse/releases/download/runtime-r1/""" +
+            """rootfs-arm64-v8a.tar.gz"]"""
         val ARM_SOURCE_URLS = listOf(
             "https://gh-proxy.com/https://github.com/Zer0Qing/Muse/releases/download/runtime-r1/rootfs-arm64-v8a.tar.gz",
             "https://ghproxy.net/https://github.com/Zer0Qing/Muse/releases/download/runtime-r1/rootfs-arm64-v8a.tar.gz",

@@ -40,30 +40,13 @@ object RollingSummaryPrompt {
         val formatRequirements = RollingSummaryFormat.buildFormatRequirements(locale)
 
         if (!isZh) {
-            val optionalBlocks = buildList {
-                if (identityAndPersonality.isNotBlank()) {
-                    add("## Identity And Personality\n${identityAndPersonality.trim()}")
-                }
-                if (userProfile.isNotBlank()) {
-                    add("## User Settings\n${userProfile.trim()}")
-                }
-                if (existingMemory.isNotBlank()) {
-                    add(
-                        "## Existing Long-Term Memory\n" +
-                            "This is what you knew before this conversation began. Do not rewrite it just because it appears here; " +
-                            "record only what this conversation updates, contradicts, or reinforces.\n\n" +
-                            existingMemory.trim(),
-                    )
-                }
-                if (roster.isNotBlank()) {
-                    add(
-                        "## Roster\n" +
-                            "The roster helps you understand the names and collaboration context of other agents " +
-                            "appearing in the conversation; do not treat the roster itself as new memory.\n\n" +
-                            roster.trim(),
-                    )
-                }
-            }
+            val optionalBlocks = buildOptionalBlocks(
+                isZh = false,
+                identityAndPersonality = identityAndPersonality,
+                userProfile = userProfile,
+                existingMemory = existingMemory,
+                roster = roster,
+            )
             val backgroundSection = if (optionalBlocks.isEmpty()) "" else "\n\n" + optionalBlocks.joinToString("\n\n")
 
             return """
@@ -98,29 +81,13 @@ Record what happened in this session chronologically with YYYY-MM-DD HH:MM times
             """.trimIndent()
         }
 
-        val optionalBlocks = buildList {
-            if (identityAndPersonality.isNotBlank()) {
-                add("## 你的身份与人格\n${identityAndPersonality.trim()}")
-            }
-            if (userProfile.isNotBlank()) {
-                add("## 用户设定\n${userProfile.trim()}")
-            }
-            if (existingMemory.isNotBlank()) {
-                add(
-                    "## 你已有的长期记忆\n" +
-                        "这是你在本次对话开始前已经知道的。不要因为它出现在这里就重复写入；" +
-                        "只有本次对话更新、反驳或强化它时才记录变化。\n\n" +
-                        existingMemory.trim(),
-                )
-            }
-            if (roster.isNotBlank()) {
-                add(
-                    "## 花名册\n" +
-                        "花名册用于理解对话中出现的其他 Agent 名字和协作语境，不要把花名册本身当作新增记忆。\n\n" +
-                        roster.trim(),
-                )
-            }
-        }
+        val optionalBlocks = buildOptionalBlocks(
+            isZh = true,
+            identityAndPersonality = identityAndPersonality,
+            userProfile = userProfile,
+            existingMemory = existingMemory,
+            roster = roster,
+        )
         val introLine = if (optionalBlocks.isNotEmpty()) {
             "下面是你在本次对话开始前已经拥有的设定和记忆。它们是背景，不是新增事实。请从自己的视角审视本次对话，判断哪些新信息值得进入长期记忆。"
         } else {
@@ -158,5 +125,51 @@ $formatRequirements
 5. 助手的长篇输出：只记录产出了什么，不摘录内容
 6. 宁短勿长：摘要长度与对话的实际信息密度成正比，闲聊几句只需一两行
         """.trimIndent()
+    }
+
+    private fun buildOptionalBlocks(
+        isZh: Boolean,
+        identityAndPersonality: String,
+        userProfile: String,
+        existingMemory: String,
+        roster: String,
+    ): List<String> = buildList {
+        if (isZh) {
+            if (identityAndPersonality.isNotBlank()) add("## 你的身份与人格\n${identityAndPersonality.trim()}")
+            if (userProfile.isNotBlank()) add("## 用户设定\n${userProfile.trim()}")
+            if (existingMemory.isNotBlank()) {
+                add(
+                    "## 你已有的长期记忆\n" +
+                        "这是你在本次对话开始前已经知道的。不要因为它出现在这里就重复写入；" +
+                        "只有本次对话更新、反驳或强化它时才记录变化。\n\n" + existingMemory.trim(),
+                )
+            }
+            if (roster.isNotBlank()) {
+                add(
+                    "## 花名册\n" +
+                        "花名册用于理解对话中出现的其他 Agent 名字和协作语境，不要把花名册本身当作新增记忆。\n\n" +
+                        roster.trim(),
+                )
+            }
+        } else {
+            if (identityAndPersonality.isNotBlank()) {
+                add("## Identity And Personality\n${identityAndPersonality.trim()}")
+            }
+            if (userProfile.isNotBlank()) add("## User Settings\n${userProfile.trim()}")
+            if (existingMemory.isNotBlank()) {
+                add(
+                    "## Existing Long-Term Memory\n" +
+                        "This is what you knew before this conversation began. Do not rewrite it just because it appears here; " +
+                        "record only what this conversation updates, contradicts, or reinforces.\n\n" + existingMemory.trim(),
+                )
+            }
+            if (roster.isNotBlank()) {
+                add(
+                    "## Roster\n" +
+                        "The roster helps you understand the names and collaboration context of other agents " +
+                        "appearing in the conversation; do not treat the roster itself as new memory.\n\n" + roster.trim(),
+                )
+            }
+        }
     }
 }

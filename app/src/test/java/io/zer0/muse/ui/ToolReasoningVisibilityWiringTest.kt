@@ -5,11 +5,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.nio.file.Files
 import java.nio.file.Path
-import io.zer0.muse.ui.chat.ToolRunCard
-import io.zer0.muse.ui.chat.ProcessTally
-import io.zer0.muse.ui.chat.ProcessStepState
-import io.zer0.muse.ui.chat.MessageBubble
-import io.zer0.muse.ui.chat.ChatScreen
 
 class ToolReasoningVisibilityWiringTest {
 

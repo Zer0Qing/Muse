@@ -557,6 +557,7 @@
     <string name="backup_import_error_version">Версия резервной копии слишком новая или слишком старая.</string>
     <string name="backup_import_error_missing">Файл резервной копии не найден. Возможно, он перемещен или удален.</string>
     <string name="backup_import_error_space">Недостаточно места. Освободите место и повторите попытку.</string>
+    <string name="backup_import_error_empty">Файл резервной копии пуст (0 байт), импортировать нечего. Проверьте, не был ли экспорт прерван, или возьмите другую копию.</string>
     <string name="backup_import_error_unknown">Резервная копия повреждена. Предыдущее состояние восстановлено.</string>
     <string name="onboarding_connect_error_unauthorized">Ключ API недействителен или истек. Введите его снова.</string>
     <string name="onboarding_connect_error_forbidden">Доступ запрещен. Проверьте, разрешена ли этому ключу выбранная модель.</string>

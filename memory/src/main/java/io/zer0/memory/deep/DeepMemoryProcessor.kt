@@ -36,6 +36,57 @@ internal fun filterAssistantAttributedMemoryEntries(summary: String): String = s
     .filterNot { ASSISTANT_ATTRIBUTED_LINE_REGEX.matches(it) }
     .joinToString("\n")
 
+private data class SessionExtractionSession(
+    val summary: SessionSummaryManager.SummaryData,
+    val summaryManager: SessionSummaryManager,
+    val model: Model?,
+    val locale: String,
+    val config: MemoryConfig,
+    val fence: io.zer0.memory.runtime.MemoryWriteFence?,
+)
+
+private data class SessionExtractionStorage(
+    val factStore: FactStore,
+    val memoryScope: String,
+    val gateScope: io.zer0.memory.runtime.MemoryScopeKey,
+    val tombstones: List<String>,
+)
+
+private data class SessionExtractionPrompts(
+    val effectiveSnapshot: String,
+    val effectiveSummary: String,
+    val systemPrompt: String,
+    val userContent: String,
+)
+
+private data class SessionExtractionContext(
+    val session: SessionExtractionSession,
+    val storage: SessionExtractionStorage,
+    val prompts: SessionExtractionPrompts,
+) {
+    val summary get() = session.summary
+    val summaryManager get() = session.summaryManager
+    val model get() = session.model
+    val locale get() = session.locale
+    val config get() = session.config
+    val fence get() = session.fence
+    val factStore get() = storage.factStore
+    val memoryScope get() = storage.memoryScope
+    val gateScope get() = storage.gateScope
+    val tombstones get() = storage.tombstones
+    val effectiveSnapshot get() = prompts.effectiveSnapshot
+    val effectiveSummary get() = prompts.effectiveSummary
+    val systemPrompt get() = prompts.systemPrompt
+    val userContent get() = prompts.userContent
+}
+
+private sealed interface ExtractionAttempt {
+    data class Success(val factsAdded: Int) : ExtractionAttempt
+    data class Failed(val error: Exception) : ExtractionAttempt
+    data object Done : ExtractionAttempt
+    data object Blocked : ExtractionAttempt
+}
+
 /**
  * 深度记忆处理器。
  *
@@ -209,198 +260,219 @@ class DeepMemoryProcessor(
         config: MemoryConfig = MemoryConfig(),
         fence: io.zer0.memory.runtime.MemoryWriteFence? = null,
     ): Int {
-        // 连续 daily 失败达上限,标记为已处理不再重试(避免反复浪费 LLM 调用)
         if (maybeSkipExhaustedSession(summary, summaryManager)) return 0
-
-        val summaryText = summary.summary
-        val prevSnapshot = summary.snapshot
-
-        // v0.22: 按 summary.assistantId 获取对应 Assistant 的独立 FactStore
         val factStore = factDbProvider.getFactStore(summary.assistantId)
-
-        // 审查修复 (2.0 A-11): 墓碑过滤 — 用户删除的事实不得从 dirty session 摘要
-        // 重新抽回 facts 表(S-04 墓碑此前只作用于 compileFacts/compileToday,
-        // deepMemory 的输入摘要与 LLM 输出均未过滤,已删内容会"复活")。
-        val memoryScope = if (summary.assistantId.isBlank() || summary.assistantId == "default") "main" else summary.assistantId
-        // 闸键按摘要归属构造:闸本身是进程级的,但别用占位键掩盖真实的 owner/scope/space。
+        val memoryScope = summary.assistantId
+            .takeIf { it.isNotBlank() && it != "default" }
+            ?: "main"
         val gateScope = io.zer0.memory.runtime.MemoryScopeKey(
             assistantId = summary.assistantId.ifBlank { "default" },
             scope = memoryScope,
             spaceId = summary.spaceId.ifBlank { "default" },
         )
-        val tombstones = resultOf { factStore.getTombstones(memoryScope, summary.spaceId) }.getOrNull() ?: emptyList()
+        val tombstones = resultOf { factStore.getTombstones(memoryScope, summary.spaceId) }.getOrNull().orEmpty()
         val effectiveSummary = filterAssistantAttributedMemoryEntries(
-            FactStore.filterTombstonedLines(summaryText, tombstones),
+            FactStore.filterTombstonedLines(summary.summary, tombstones),
         )
         val effectiveSnapshot = filterAssistantAttributedMemoryEntries(
-            FactStore.filterTombstonedLines(prevSnapshot, tombstones),
+            FactStore.filterTombstonedLines(summary.snapshot, tombstones),
         )
         if (effectiveSummary == effectiveSnapshot) {
             summaryManager.markProcessed(summary.sessionId)
             return 0
         }
-
-        // 构建 LLM 输入
         val isZh = locale.startsWith("zh")
-        val hasPrevious = prevSnapshot.isNotBlank()
-        val systemPrompt = FactExtractionPrompt.buildSystemPrompt(locale, hasPrevious)
-        val userContent = buildExtractionUserContent(
-            isZh = isZh,
-            hasPrevious = hasPrevious,
-            timeContextText = renderTimeContext(summary, isZh),
-            effectiveSnapshot = effectiveSnapshot,
-            effectiveSummary = effectiveSummary,
+        val hasPrevious = summary.snapshot.isNotBlank()
+        val context = SessionExtractionContext(
+            session = SessionExtractionSession(
+                summary = summary,
+                summaryManager = summaryManager,
+                model = model,
+                locale = locale,
+                config = config,
+                fence = fence,
+            ),
+            storage = SessionExtractionStorage(
+                factStore = factStore,
+                memoryScope = memoryScope,
+                gateScope = gateScope,
+                tombstones = tombstones,
+            ),
+            prompts = SessionExtractionPrompts(
+                effectiveSnapshot = effectiveSnapshot,
+                effectiveSummary = effectiveSummary,
+                systemPrompt = FactExtractionPrompt.buildSystemPrompt(locale, hasPrevious),
+                userContent = buildExtractionUserContent(
+                    isZh = isZh,
+                    hasPrevious = hasPrevious,
+                    timeContextText = renderTimeContext(summary, isZh),
+                    effectiveSnapshot = effectiveSnapshot,
+                    effectiveSummary = effectiveSummary,
+                ),
+            ),
         )
+        return runFactExtraction(context)
+    }
 
-        // 调 LLM(带重试)
+    private suspend fun runFactExtraction(context: SessionExtractionContext): Int {
         var lastError: Exception? = null
         repeat(MAX_RETRIES) { attempt ->
-            try {
-                val rawResult = llmClient.callText(
-                    systemPrompt = systemPrompt,
-                    userContent = userContent,
-                    model = model,
-                    temperature = 0.3f,
-                    maxTokens = FACT_EXTRACTION_MAX_TOKENS,
-                )
-                // 模型返回后、任何写库动作前按入口栅栏复核:恢复窗口可能已在调用期间开合完毕。
-                // 此时不 markProcessed、不记成功,直接返回 0 —— session 保持 dirty,下轮重抽。
-                if (writeGate?.blocksWrite(gateScope, fence) == true) {
-                    Logger.d(
+            when (val result = runFactExtractionAttempt(context)) {
+                is ExtractionAttempt.Success -> return result.factsAdded
+                ExtractionAttempt.Done, ExtractionAttempt.Blocked -> return 0
+                is ExtractionAttempt.Failed -> {
+                    lastError = result.error
+                    Logger.w(
                         "DeepMemoryProcessor",
-                        "恢复窗口内跳过事实落库(session=${summary.sessionId.take(8)}…),保留 dirty 待重试",
+                        "fact extraction attempt ${attempt + 1}/$MAX_RETRIES failed for " +
+                            "${context.summary.sessionId.take(8)}…: ${result.error.message}",
                     )
-                    return 0
-                }
-                val facts = parseFactExtractionResult(rawResult, summary, locale)
-                // v1.0.51: 解析失败(null)→ 不 markProcessed,抛异常走重试,避免永久跳过丢事实
-                if (facts == null) {
-                    throw RuntimeException("fact extraction 解析失败(rawLen=${rawResult.length})")
-                }
-                // v2.x: 示例泄漏防护 — 照抄提示词示例且摘要未提及的事实直接丢弃(示例被当记忆入库的用户反馈)
-                val guardInputText = "$effectiveSnapshot\n$effectiveSummary"
-                val guardedFacts = facts.filterNot {
-                    PromptExampleGuard.isUngroundedExample(it.fact, guardInputText)
-                }
-                if (guardedFacts.isEmpty()) {
-                    // LLM 合法判定无事实 → markProcessed,下次不再处理
-                    Logger.d(
-                        "DeepMemoryProcessor",
-                        "fact extraction returned empty (rawLen=${rawResult.length}, session=${summary.sessionId.take(8)}…)",
-                    )
-                    failureCounts.remove(summary.sessionId)
-                    summaryManager.markProcessed(summary.sessionId)
-                    return 0
-                }
-                // B-19: scope 口径与 autoSave 对齐 — 主助手("default"/空)归 "main",
-                // 子助手用 assistantId。此前 addBatch 不传 scope 恒落 "main",
-                // 子助手会话的深层事实串进主助手记忆(查询漏一半数据)。
-                val scope = memoryScope
-                // A-11: LLM 抽取输出按墓碑过滤 — 命中墓碑的事实直接丢弃,不再写回 facts 表
-                val filteredFacts = if (tombstones.isEmpty()) {
-                    guardedFacts
-                } else {
-                    guardedFacts.filter { f -> tombstones.none { t -> FactStore.matchesTombstone(f.fact, t) } }
-                }
-                if (filteredFacts.isEmpty()) {
-                    // 抽取结果全部命中墓碑:视为无可写事实,标记已处理避免每轮重抽
-                    val tombstoneSkipMsg = "fact extraction 全部命中墓碑(session=${summary.sessionId.take(8)}…),跳过写入"
-                    Logger.d("DeepMemoryProcessor", tombstoneSkipMsg)
-                    failureCounts.remove(summary.sessionId)
-                    summaryManager.markProcessed(summary.sessionId)
-                    return 0
-                }
-                // D6 第 2 期: 原子性校验 — 提取 prompt 已要求“一条一断言”,这里做兜底：
-                // 含连接词串联的多个断言的条目保守拆开(不改 schema,拆分失败原样保留)。
-                val atomicity = FactAtomicityValidator.enforce(filteredFacts)
-                if (atomicity.splitCount > 0) {
-                    Logger.i(
-                        "DeepMemoryProcessor",
-                        "原子性校验: 拆分 ${atomicity.splitCount} 条多断言事实(+${atomicity.addedCount} 条, " +
-                            "session=${summary.sessionId.take(8)}…)",
-                    )
-                }
-                // 摘要携带空间归属，深度提取不能再落入 default。
-                val generationId = buildGenerationId(
-                    sessionId = summary.sessionId,
-                    revision = summary.summaryRevision,
-                    fingerprint = summary.sourceFingerprint,
-                )
-                factStore.stageSessionFacts(
-                    generationId = generationId,
-                    sessionId = summary.sessionId,
-                    sourceRevision = summary.summaryRevision,
-                    facts = atomicity.facts,
-                    scope = scope,
-                    spaceId = summary.spaceId,
-                )
-                // 提取期间摘要 revision/fingerprint 不能变，否则旧 generation 不能发布。
-                if (!summaryManager.isRevisionCurrent(summary.sessionId, summary.summaryRevision)) {
-                    factStore.orphanProjection(generationId)
-                    failureCounts[summary.sessionId] = (failureCounts[summary.sessionId] ?: 0) + 1
-                    throw IllegalStateException("session summary changed during fact extraction")
-                }
-                // 发布前再判一次:stage 已写入,被挡时把它孤立掉,不让半份投影留在库里可见。
-                if (writeGate?.blocksWrite(gateScope, fence) == true) {
-                    factStore.orphanProjection(generationId)
-                    Logger.d(
-                        "DeepMemoryProcessor",
-                        "恢复窗口内跳过事实发布(session=${summary.sessionId.take(8)}…),已孤立 generation",
-                    )
-                    return 0
-                }
-                val published = factStore.publishSessionFacts(generationId, summary.sessionId, summary.summaryRevision)
-                if (published !is io.zer0.memory.fact.ProjectionPublishResult.Published) {
-                    factStore.orphanProjection(generationId)
-                    failureCounts[summary.sessionId] = (failureCounts[summary.sessionId] ?: 0) + 1
-                    throw IllegalStateException("fact projection publish rejected: $published")
-                }
-                // 发布成功后 markProcessedIfCurrent 再防一道 CAS：仍是旧并发路径时保持 dirty。
-                val marked = summaryManager.markProcessedIfCurrent(summary.sessionId, summary.summaryRevision)
-                if (!marked) {
-                    factStore.orphanProjection(generationId)
-                    failureCounts[summary.sessionId] = (failureCounts[summary.sessionId] ?: 0) + 1
-                    throw IllegalStateException("summary revision advanced before markProcessedIfCurrent")
-                }
-                // v0.32: 接入 MemoryConfig —— 每个脏 session 处理完后顺手跑一次衰减,
-                // 让 decayPerDay / forgetSpeed / compileThreshold / baseImportance 真正生效。
-                // 单 session 的 fact 增量很小,applyDecay 的开销可忽略;失败也不阻塞主流程。
-                // v1.78 (H4): 包装 suspend 调用必须用 resultOf,避免吞 CancellationException
-                resultOf {
-                    factStore.applyDecay(config, scope = scope, spaceId = summary.spaceId)
-                }.onError { msg, t ->
-                    Logger.w("DeepMemoryProcessor", "applyDecay failed for ${summary.sessionId.take(8)}…: $msg", t)
-                }
-                failureCounts.remove(summary.sessionId)
-                return atomicity.facts.size
-            } catch (e: CancellationException) {
-                // v1.78 (H5): 必须重抛,否则协程取消信号丢失,repeat 循环继续重试无法退出
-                throw e
-            } catch (e: Exception) {
-                lastError = e
-                Logger.w(
-                    "DeepMemoryProcessor",
-                    "fact extraction attempt ${attempt + 1}/$MAX_RETRIES failed for ${summary.sessionId.take(8)}…: ${e.message}",
-                )
-                // v1.78 (M6): 指数退避,避免 LLM 限流时立即重试加剧限流
-                if (attempt < MAX_RETRIES - 1) {
-                    delay(1000L * (1L shl attempt)) // 1s, 2s, 4s
                 }
             }
+            if (attempt < MAX_RETRIES - 1) delay(1000L * (1L shl attempt))
         }
-
-        // v1.78 (M5): 重试耗尽时不调 markProcessed —— 否则该 session 会被永久跳过,
-        // 真正的失败被掩盖。改为仅记录失败日志,让下次 daily pipeline 重新拾取重试。
-        // 递增连续失败计数,达 MAX_DAILY_FAILURES 后下次 daily 跳过该 session。
-        failureCounts[summary.sessionId] = (failureCounts[summary.sessionId] ?: 0) + 1
+        val sessionId = context.summary.sessionId
+        failureCounts[sessionId] = (failureCounts[sessionId] ?: 0) + 1
         Logger.w(
             "DeepMemoryProcessor",
-            "fact extraction 重试耗尽(${MAX_RETRIES}次),session=${summary.sessionId.take(8)}…," +
-                "连续 daily 失败 ${failureCounts[summary.sessionId]}/$MAX_DAILY_FAILURES," +
+            "fact extraction 重试耗尽(${MAX_RETRIES}次),session=${sessionId.take(8)}…," +
+                "连续 daily 失败 ${failureCounts[sessionId]}/$MAX_DAILY_FAILURES," +
                 "下次 daily pipeline 将重试: ${lastError?.message}",
             lastError,
         )
-        throw lastError ?: RuntimeException("fact extraction failed after $MAX_RETRIES retries")
+        throw checkNotNull(lastError) { "fact extraction failed after $MAX_RETRIES retries" }
+    }
+
+    private suspend fun runFactExtractionAttempt(context: SessionExtractionContext): ExtractionAttempt {
+        val callResult = try {
+            Result.success(
+                llmClient.callText(
+                    systemPrompt = context.systemPrompt,
+                    userContent = context.userContent,
+                    model = context.model,
+                    temperature = 0.3f,
+                    maxTokens = FACT_EXTRACTION_MAX_TOKENS,
+                ),
+            )
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (error: java.io.IOException) {
+            Result.failure<String>(error)
+        } catch (error: IllegalStateException) {
+            Result.failure<String>(error)
+        } catch (error: IllegalArgumentException) {
+            Result.failure<String>(error)
+        }
+        val parseResult = callResult.mapCatching { raw ->
+            parseFactExtractionResult(raw, context.summary, context.locale)
+        }
+        val facts = parseResult.getOrNull()
+        val guardedFacts = facts?.filterNot {
+            PromptExampleGuard.isUngroundedExample(
+                it.fact,
+                "${context.effectiveSnapshot}\n${context.effectiveSummary}",
+            )
+        }
+        val filteredFacts = guardedFacts?.filter { fact ->
+            context.tombstones.none { tombstone -> FactStore.matchesTombstone(fact.fact, tombstone) }
+        }
+        return when {
+            writeGate?.blocksWrite(context.gateScope, context.fence) == true -> {
+                Logger.d(
+                    "DeepMemoryProcessor",
+                    "恢复窗口内跳过事实落库(session=${context.summary.sessionId.take(8)}…),保留 dirty 待重试",
+                )
+                ExtractionAttempt.Blocked
+            }
+            callResult.isFailure -> ExtractionAttempt.Failed(callResult.exceptionOrNull().toException())
+            parseResult.isFailure -> ExtractionAttempt.Failed(parseResult.exceptionOrNull().toException())
+            facts == null -> ExtractionAttempt.Failed(
+                IllegalStateException("fact extraction 解析失败"),
+            )
+            guardedFacts.isNullOrEmpty() -> markEmptyExtraction(context)
+            filteredFacts.isNullOrEmpty() -> markTombstoneFilteredExtraction(context)
+            else -> publishExtractedFacts(context, filteredFacts)
+        }
+    }
+
+    private suspend fun markEmptyExtraction(context: SessionExtractionContext): ExtractionAttempt {
+        Logger.d("DeepMemoryProcessor", "fact extraction returned empty (session=${context.summary.sessionId.take(8)}…)")
+        failureCounts.remove(context.summary.sessionId)
+        context.summaryManager.markProcessed(context.summary.sessionId)
+        return ExtractionAttempt.Done
+    }
+
+    private suspend fun markTombstoneFilteredExtraction(context: SessionExtractionContext): ExtractionAttempt {
+        Logger.d(
+            "DeepMemoryProcessor",
+            "fact extraction 全部命中墓碑(session=${context.summary.sessionId.take(8)}…),跳过写入",
+        )
+        failureCounts.remove(context.summary.sessionId)
+        context.summaryManager.markProcessed(context.summary.sessionId)
+        return ExtractionAttempt.Done
+    }
+
+    private suspend fun publishExtractedFacts(context: SessionExtractionContext, facts: List<FactStore.Fact>): ExtractionAttempt {
+        val atomicity = FactAtomicityValidator.enforce(facts)
+        if (atomicity.splitCount > 0) {
+            Logger.i(
+                "DeepMemoryProcessor",
+                "原子性校验: 拆分 ${atomicity.splitCount} 条多断言事实(+${atomicity.addedCount} 条, " +
+                    "session=${context.summary.sessionId.take(8)}…)",
+            )
+        }
+        val summary = context.summary
+        val generationId = buildGenerationId(summary.sessionId, summary.summaryRevision, summary.sourceFingerprint)
+        context.factStore.stageSessionFacts(
+            generationId = generationId,
+            sessionId = summary.sessionId,
+            sourceRevision = summary.summaryRevision,
+            facts = atomicity.facts,
+            scope = context.memoryScope,
+            spaceId = summary.spaceId,
+        )
+        if (!context.summaryManager.isRevisionCurrent(summary.sessionId, summary.summaryRevision)) {
+            context.factStore.orphanProjection(generationId)
+            incrementFailure(summary.sessionId)
+            return ExtractionAttempt.Failed(IllegalStateException("session summary changed during fact extraction"))
+        }
+        if (writeGate?.blocksWrite(context.gateScope, context.fence) == true) {
+            context.factStore.orphanProjection(generationId)
+            Logger.d(
+                "DeepMemoryProcessor",
+                "恢复窗口内跳过事实发布(session=${summary.sessionId.take(8)}…),已孤立 generation",
+            )
+            return ExtractionAttempt.Blocked
+        }
+        val published = context.factStore.publishSessionFacts(generationId, summary.sessionId, summary.summaryRevision)
+        if (published !is io.zer0.memory.fact.ProjectionPublishResult.Published) {
+            context.factStore.orphanProjection(generationId)
+            incrementFailure(summary.sessionId)
+            return ExtractionAttempt.Failed(IllegalStateException("fact projection publish rejected: $published"))
+        }
+        return if (!context.summaryManager.markProcessedIfCurrent(summary.sessionId, summary.summaryRevision)) {
+            context.factStore.orphanProjection(generationId)
+            incrementFailure(summary.sessionId)
+            ExtractionAttempt.Failed(IllegalStateException("summary revision advanced before markProcessedIfCurrent"))
+        } else {
+            resultOf {
+                context.factStore.applyDecay(context.config, scope = context.memoryScope, spaceId = summary.spaceId)
+            }.onError { msg, t ->
+                Logger.w("DeepMemoryProcessor", "applyDecay failed for ${summary.sessionId.take(8)}…: $msg", t)
+            }
+            failureCounts.remove(summary.sessionId)
+            ExtractionAttempt.Success(atomicity.facts.size)
+        }
+    }
+
+    private fun incrementFailure(sessionId: String) {
+        failureCounts[sessionId] = (failureCounts[sessionId] ?: 0) + 1
+    }
+
+    private fun Throwable?.toException(): Exception = when (this) {
+        is Exception -> this
+        null -> IllegalStateException("unknown fact extraction failure")
+        else -> IllegalStateException(message ?: javaClass.simpleName)
     }
 
     /** 构建事实抽取 LLM 输入(按语言/是否有上次快照)。 */

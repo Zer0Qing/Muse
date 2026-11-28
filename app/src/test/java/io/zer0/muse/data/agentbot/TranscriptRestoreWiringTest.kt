@@ -20,62 +20,62 @@ class TranscriptRestoreWiringTest {
     }
 
     private fun reloadBody(): String {
-        val at = vm.indexOf("fun reloadTranscript(");
-        require(at > 0) { "找不到 reloadTranscript" };
-        return vm.substring(at, minOf(at + 1200, vm.length));
+        val at = vm.indexOf("fun reloadTranscript(")
+        require(at > 0) { "找不到 reloadTranscript" }
+        return vm.substring(at, minOf(at + 1200, vm.length))
     }
 
     @Test
     fun `binding a conversation rebuilds the transcript`() {
-        val bindAt = vm.indexOf("fun bind(");
-        assertTrue("bind 必须存在", bindAt > 0);
+        val bindAt = vm.indexOf("fun bind(")
+        assertTrue("bind 必须存在", bindAt > 0)
         val bindEnd = Regex("\\R    \\}\\R").find(vm, bindAt)?.range?.first
             ?: error("找不到 bind 函数结尾")
-        val body = vm.substring(bindAt, bindEnd);
+        val body = vm.substring(bindAt, bindEnd)
         assertTrue(
             "绑定会话时必须重建对话流，否则重启后是空白",
             body.contains("reloadTranscript()"),
-        );
+        )
     }
 
     @Test
     fun `reload delegates reading and merging to the restorer`() {
-        val body = reloadBody();
-        assertTrue("读库交给 restorer", body.contains("restorer.read("));
-        assertTrue("合并交给 restorer", body.contains("restorer.merge("));
+        val body = reloadBody()
+        assertTrue("读库交给 restorer", body.contains("restorer.read("))
+        assertTrue("合并交给 restorer", body.contains("restorer.merge("))
         assertTrue(
             "重建要替换而不是追加，否则会重复",
             body.contains("replacePublished("),
-        );
+        )
     }
 
     @Test
     fun `reload is skipped when there is no session`() {
-        val body = reloadBody();
+        val body = reloadBody()
         assertTrue(
             "没有会话时不该查库",
             body.contains("if (currentSessionId.isBlank()) return"),
-        );
+        )
     }
 
     @Test
     fun `reload drops results when the session changed mid read`() {
-        val body = reloadBody();
-        val guards = Regex("currentSessionId != sessionAtStart").findAll(body).count();
-        assertTrue("首屏与补齐两段都要检查，实际 " + guards + " 处", guards >= 2);
+        val body = reloadBody()
+        val guards = Regex("currentSessionId != sessionAtStart").findAll(body).count()
+        assertTrue("首屏与补齐两段都要检查，实际 " + guards + " 处", guards >= 2)
     }
 
     @Test
     fun `transcript pages can load earlier messages`() {
-        val display = Regex("TRANSCRIPT_DISPLAY_LIMIT = (\\d+)").find(vm)?.groupValues?.get(1)?.toIntOrNull();
-        val page = Regex("TRANSCRIPT_PAGE_SIZE = (\\d+)").find(vm)?.groupValues?.get(1)?.toIntOrNull();
-        assertTrue("显示页与分页量都必须存在", display != null && page != null);
+        val display = Regex("TRANSCRIPT_DISPLAY_LIMIT = (\\d+)").find(vm)?.groupValues?.get(1)?.toIntOrNull()
+        val page = Regex("TRANSCRIPT_PAGE_SIZE = (\\d+)").find(vm)?.groupValues?.get(1)?.toIntOrNull()
+        assertTrue("显示页与分页量都必须存在", display != null && page != null)
         assertTrue(
             "单次对话投影必须有限",
             display!! <= 100,
-        );
-        assertTrue("较早消息使用 SessionRepository 的序列分页", vm.contains("restorer.readOlder(sessionAtStart"));
-        assertTrue("旧消息加载后合并而非覆盖最新尾部", vm.contains("restorer.merge(page.messages, ui.transcript.value)"));
-        assertTrue("分页按钮由可继续加载状态驱动", vm.contains("hasOlderTranscript"));
+        )
+        assertTrue("较早消息使用 SessionRepository 的序列分页", vm.contains("restorer.readOlder(sessionAtStart"))
+        assertTrue("旧消息加载后合并而非覆盖最新尾部", vm.contains("restorer.merge(page.messages, ui.transcript.value)"))
+        assertTrue("分页按钮由可继续加载状态驱动", vm.contains("hasOlderTranscript"))
     }
 }

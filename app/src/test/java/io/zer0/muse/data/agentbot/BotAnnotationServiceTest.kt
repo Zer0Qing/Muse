@@ -41,7 +41,7 @@ class BotAnnotationServiceTest {
 
     @After
     fun tearDown() {
-        db.close();
+        db.close()
     }
 
     @Test

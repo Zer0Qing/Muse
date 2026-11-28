@@ -2,14 +2,13 @@ package io.zer0.muse.ui
 
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.UIMessage
+import io.zer0.muse.ui.chat.isBodylessMessageShell
+import io.zer0.muse.ui.chat.messageBubbleNeedsBodyInteraction
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.nio.file.Files
 import java.nio.file.Path
-import io.zer0.muse.ui.chat.isBodylessMessageShell
-import io.zer0.muse.ui.chat.messageBubbleNeedsBodyInteraction
-import io.zer0.muse.ui.chat.MessageBubble
 
 class MessageBubbleShellTest {
     @Test

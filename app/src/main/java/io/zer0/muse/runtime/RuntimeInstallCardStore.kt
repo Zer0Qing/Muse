@@ -71,11 +71,7 @@ object RuntimeInstallCardStore {
      * 纯函数：把上报的进度折叠成卡片状态。
      * 优先级 ready > error > 进行中阶段 > 未开始 —— 装成之后不该再显示"失败"。
      */
-    internal fun stateOf(
-        progress: RuntimeInstaller.Progress?,
-        error: String?,
-        ready: Boolean,
-    ): RuntimeInstallCardState = when {
+    internal fun stateOf(progress: RuntimeInstaller.Progress?, error: String?, ready: Boolean): RuntimeInstallCardState = when {
         ready -> RuntimeInstallCardState.READY
         error != null -> RuntimeInstallCardState.FAILED
         progress is RuntimeInstaller.Progress.Downloading -> RuntimeInstallCardState.DOWNLOADING

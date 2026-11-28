@@ -17,7 +17,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
 import kotlin.math.abs
-import io.zer0.muse.ui.chat.InputBar
 
 /**
  * Web 端设计令牌与 Android 端 Kotlin 常量的漂移检测。

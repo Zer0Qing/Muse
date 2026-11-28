@@ -12,8 +12,9 @@ import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import io.zer0.common.Logger
 import io.zer0.muse.R
-import io.zer0.muse.feature.FeatureFlags
 import io.zer0.muse.data.agentbot.BotTaskScheduler
+import io.zer0.muse.feature.FeatureFlags
+import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -21,9 +22,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import io.zer0.muse.util.GlobalCoroutineExceptionHandler
-import java.io.File
 import org.koin.core.context.GlobalContext
+import java.io.File
 
 /**
  * 运行环境安装的前台服务。
@@ -75,44 +75,11 @@ class RuntimeInstallService : Service() {
                     maybeUpdateNotification(p)
                 }
             }
-            val result = when (intent?.action) {
-                ACTION_INSTALL_REVISION -> {
-                    val revision = intent?.getStringExtra(EXTRA_REVISION)
-                    if (revision.isNullOrBlank()) {
-                        Result.failure(IllegalArgumentException("没有选择运行环境版本"))
-                    } else {
-                        manager.installSelected(id, revision)
-                    }
-                }
-                ACTION_INSTALL_LOCAL -> {
-                    val revision = intent?.getStringExtra(EXTRA_REVISION)
-                    val archivePath = intent?.getStringExtra(EXTRA_ARCHIVE_PATH)
-                    val archive = archivePath?.let(::validatedLocalArchive)
-                    if (revision.isNullOrBlank() || archive == null) {
-                        Result.failure(IllegalArgumentException("本地运行环境归档不可用"))
-                    } else {
-                        manager.installFromArchive(id, revision, archive)
-                    }
-                }
-                ACTION_INSTALL_CUSTOM -> {
-                    val revision = intent?.getStringExtra(EXTRA_REVISION)
-                    val url = intent?.getStringExtra(EXTRA_CUSTOM_URL)
-                    val sha = intent?.getStringExtra(EXTRA_CUSTOM_SHA256)
-                    if (revision.isNullOrBlank() || url.isNullOrBlank()) {
-                        Result.failure(IllegalArgumentException("自定义运行环境来源不完整"))
-                    } else {
-                        manager.installCustomUrl(id, revision, url, sha)
-                    }
-                }
-                ACTION_REPAIR -> manager.repair(id)
-                ACTION_RESUME -> manager.resume(id)
-                null -> manager.resume(id).let { resumed -> if (resumed.isSuccess) resumed else manager.install(id) }
-                else -> manager.install(id)
-            }
+            val result = installForIntent(manager, intent, id)
             if (result.isSuccess && FeatureFlags.AGENT_BOT) {
-                try {
+                runCatching {
                     GlobalContext.getOrNull()?.get<BotTaskScheduler>()?.resumeRuntimeMissingTasks()
-                } catch (error: Exception) {
+                }.onFailure { error ->
                     Logger.w(TAG, "运行环境就绪后的任务续跑失败: ${error.message}", error)
                 }
             }
@@ -131,6 +98,39 @@ class RuntimeInstallService : Service() {
             stopSelf()
         }
         return START_STICKY
+    }
+
+    private suspend fun installForIntent(manager: RuntimeManager, intent: Intent?, id: RuntimeId): Result<Unit> {
+        return when (intent?.action) {
+            ACTION_INSTALL_REVISION -> {
+                val revision = intent.getStringExtra(EXTRA_REVISION)
+                revision?.takeIf(String::isNotBlank)?.let(manager::installSelected)
+                    ?: Result.failure(IllegalArgumentException("没有选择运行环境版本"))
+            }
+            ACTION_INSTALL_LOCAL -> {
+                val revision = intent.getStringExtra(EXTRA_REVISION)
+                val archive = intent.getStringExtra(EXTRA_ARCHIVE_PATH)?.let(::validatedLocalArchive)
+                if (revision.isNullOrBlank() || archive == null) {
+                    Result.failure(IllegalArgumentException("本地运行环境归档不可用"))
+                } else {
+                    manager.installFromArchive(id, revision, archive)
+                }
+            }
+            ACTION_INSTALL_CUSTOM -> {
+                val revision = intent.getStringExtra(EXTRA_REVISION)
+                val url = intent.getStringExtra(EXTRA_CUSTOM_URL)
+                val sha = intent.getStringExtra(EXTRA_CUSTOM_SHA256)
+                if (revision.isNullOrBlank() || url.isNullOrBlank()) {
+                    Result.failure(IllegalArgumentException("自定义运行环境来源不完整"))
+                } else {
+                    manager.installCustomUrl(id, revision, url, sha)
+                }
+            }
+            ACTION_REPAIR -> manager.repair(id)
+            ACTION_RESUME -> manager.resume(id)
+            null -> manager.resume(id).let { resumed -> if (resumed.isSuccess) resumed else manager.install(id) }
+            else -> manager.install(id)
+        }
     }
 
     override fun onDestroy() {
@@ -263,19 +263,25 @@ class RuntimeInstallService : Service() {
 
         /** 从任意位置发起安装。 */
         fun start(context: Context, id: RuntimeId = RuntimeId.UBUNTU_NODE) {
-            startService(context, Intent(context, RuntimeInstallService::class.java).apply {
-                action = ACTION_START
-                putExtra(EXTRA_RUNTIME_ID, id.manifestKey)
-            })
+            startService(
+                context,
+                Intent(context, RuntimeInstallService::class.java).apply {
+                    action = ACTION_START
+                    putExtra(EXTRA_RUNTIME_ID, id.manifestKey)
+                },
+            )
         }
 
         fun startSelected(context: Context, revision: String, id: RuntimeId = RuntimeId.UBUNTU_NODE) {
             require(RuntimeStore.isSafeRevision(revision)) { "运行环境版本目录名非法" }
-            startService(context, Intent(context, RuntimeInstallService::class.java).apply {
-                action = ACTION_INSTALL_REVISION
-                putExtra(EXTRA_RUNTIME_ID, id.manifestKey)
-                putExtra(EXTRA_REVISION, revision)
-            })
+            startService(
+                context,
+                Intent(context, RuntimeInstallService::class.java).apply {
+                    action = ACTION_INSTALL_REVISION
+                    putExtra(EXTRA_RUNTIME_ID, id.manifestKey)
+                    putExtra(EXTRA_REVISION, revision)
+                },
+            )
         }
 
         fun startLocal(context: Context, revision: String, archiveFile: File, id: RuntimeId = RuntimeId.UBUNTU_NODE) {
@@ -285,37 +291,49 @@ class RuntimeInstallService : Service() {
             require(source.isFile && source.path.startsWith(destination.path + File.separator)) {
                 "本地运行环境归档必须位于应用私有导入目录"
             }
-            startService(context, Intent(context, RuntimeInstallService::class.java).apply {
-                action = ACTION_INSTALL_LOCAL
-                putExtra(EXTRA_RUNTIME_ID, id.manifestKey)
-                putExtra(EXTRA_REVISION, revision)
-                putExtra(EXTRA_ARCHIVE_PATH, source.absolutePath)
-            })
+            startService(
+                context,
+                Intent(context, RuntimeInstallService::class.java).apply {
+                    action = ACTION_INSTALL_LOCAL
+                    putExtra(EXTRA_RUNTIME_ID, id.manifestKey)
+                    putExtra(EXTRA_REVISION, revision)
+                    putExtra(EXTRA_ARCHIVE_PATH, source.absolutePath)
+                },
+            )
         }
 
         fun startRepair(context: Context, id: RuntimeId = RuntimeId.UBUNTU_NODE) {
-            startService(context, Intent(context, RuntimeInstallService::class.java).apply {
-                action = ACTION_REPAIR
-                putExtra(EXTRA_RUNTIME_ID, id.manifestKey)
-            })
+            startService(
+                context,
+                Intent(context, RuntimeInstallService::class.java).apply {
+                    action = ACTION_REPAIR
+                    putExtra(EXTRA_RUNTIME_ID, id.manifestKey)
+                },
+            )
         }
 
         fun startResume(context: Context, id: RuntimeId = RuntimeId.UBUNTU_NODE) {
-            startService(context, Intent(context, RuntimeInstallService::class.java).apply {
-                action = ACTION_RESUME
-                putExtra(EXTRA_RUNTIME_ID, id.manifestKey)
-            })
+            startService(
+                context,
+                Intent(context, RuntimeInstallService::class.java).apply {
+                    action = ACTION_RESUME
+                    putExtra(EXTRA_RUNTIME_ID, id.manifestKey)
+                },
+            )
         }
 
         fun startCustomUrl(context: Context, revision: String, url: String, sha256: String?) {
             require(RuntimeStore.isSafeRevision(revision)) { "运行环境版本目录名非法" }
-            startService(context, Intent(context, RuntimeInstallService::class.java).apply {
-                action = ACTION_INSTALL_CUSTOM
-                putExtra(EXTRA_RUNTIME_ID, RuntimeId.UBUNTU_NODE.manifestKey)
-                putExtra(EXTRA_REVISION, revision)
-                putExtra(EXTRA_CUSTOM_URL, url)
-                putExtra(EXTRA_CUSTOM_SHA256, sha256)
-            })
+            startService(
+                context,
+                Intent(context, RuntimeInstallService::class.java).apply {
+                    action = ACTION_INSTALL_CUSTOM
+                    putExtra(EXTRA_RUNTIME_ID, RuntimeId.UBUNTU_NODE.manifestKey)
+                    putExtra(EXTRA_REVISION, revision)
+                    putExtra(EXTRA_CUSTOM_URL, url)
+                    putExtra(EXTRA_CUSTOM_SHA256, sha256)
+                },
+            )
         }
 
         fun cancel(context: Context) {

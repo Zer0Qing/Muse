@@ -72,10 +72,10 @@ object ToolRequirements {
     /** 不需要任何设备通道 —— 应用内工具（记忆/卡片/会话/知识库等）。 */
     private val NONE = Requirement()
 
-    /** 屏幕操作：无障碍或 Shell 任一可用即可。 */
+    /** 屏幕操作：无障碍、Shell 或 Root 任一可用即可。 */
     private val SCREEN = Requirement(
-        anyOf = setOf(Channel.ACCESSIBILITY, Channel.SHELL),
-        note = "需要无障碍服务，或 Shizuku/ADB；也可以在设置→无障碍里开启 Muse 服务",
+        anyOf = setOf(Channel.ACCESSIBILITY, Channel.SHELL, Channel.ROOT),
+        note = "需要无障碍服务、Shizuku/ADB 或 Root；也可以在设置→无障碍里开启 Muse 服务",
     )
 
     /** Shell 级操作：必须是 Shell 或 Root。 */
@@ -86,22 +86,25 @@ object ToolRequirements {
 
     /** 映射表：工具名 → 依赖。未列出的视为 [NONE]。 */
     private val TABLE: Map<String, Requirement> = buildMap {
-        // ── 屏幕操作（无障碍 / Shell 任一）──
+        // ── 屏幕操作（无障碍 / Shell / Root 任一）──
         listOf(
             "screen_read", "screen_tap", "screen_tap_text", "screen_swipe", "screen_swipe_path",
             "screen_pinch", "screen_wait", "screen_back", "screen_home", "screen_current_app",
             "screen_input", "screen_open_notifications",
-            "ui_agent", "input_inject", "virtual_screen", "virtual_screen_input",
-            "automation_workflow",
+            "ui_agent", "automation_workflow",
         ).forEach { put(it, SCREEN) }
 
-        // ── Shell 级 ──
+        // ── Shell / Root 专享 ──
         listOf(
-            "device_shell", "am_start", "app_force_stop", "app_clear_data", "app_uninstall",
+            "device_shell", "am_start", "input_inject", "virtual_screen", "virtual_screen_input",
+            "settings_get", "settings_put",
+            "app_force_stop", "app_clear_data", "app_uninstall",
             "list_packages", "list_installed_apps", "network_toggle", "toggle_wifi",
             "toggle_bluetooth", "logcat_tail", "set_brightness", "set_volume",
-            "open_system_setting", "app_settings",
+            "open_system_setting",
         ).forEach { put(it, SHELL_ONLY) }
+
+        put("app_settings", NONE)
 
         // ── 单项运行时权限 ──
         put("screen_time", Requirement(anyOf = setOf(Channel.USAGE_STATS), note = "需要「使用情况访问」权限"))

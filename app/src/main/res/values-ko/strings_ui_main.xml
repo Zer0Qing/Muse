@@ -163,7 +163,8 @@
     <string name="settings_group_media">음성 및 비전</string>
     <string name="settings_group_memory">기억 및 지식</string>
     <string name="settings_group_tools">도구 및 확장</string>
-    <string name="settings_group_connection">채널 및 네트워크</string>
+    <string name="settings_group_channels">메시지 채널</string>
+    <string name="settings_group_connection">네트워크</string>
     <string name="settings_group_automation">자동화 및 백그라운드</string>
     <string name="settings_group_data_storage">데이터 및 백업</string>
     <string name="settings_group_privacy_security">개인정보 및 권한</string>
@@ -299,6 +300,7 @@
     <string name="search_suggestion_idea">아이디어</string>
     <string name="search_no_result">일치하는 결과가 없습니다</string>
     <string name="search_try_other">다른 키워드로 시도해 보세요</string>
+    <string name="search_timeout_hint">검색 시간이 초과되었습니다. 더 짧은 단어로 시도해 보세요</string>
     <string name="search_section_sessions">세션</string>
     <string name="search_section_messages">메시지</string>
     <string name="search_time_today">오늘 %1$s</string>
@@ -504,6 +506,7 @@
     <string name="provider_plugins_delete">플러그인 삭제</string>
     <string name="provider_plugins_convert">공급자로 변환</string>
     <string name="provider_plugins_import_failed">가져오기 실패: %1$s</string>
+    <string name="provider_plugins_import_failed_title">플러그인 파일을 인식할 수 없습니다</string>
     <string name="provider_plugins_import_success">가져오기 성공</string>
     <string name="provider_plugins_delete_confirm_named">플러그인 «%1$s»을(를) 삭제할까요? 삭제 후에는 사용할 수 없습니다. 복원하려면 플러그인 패키지를 다시 가져오세요.</string>
     <string name="muse_plugins_publisher_fingerprint">게시자: %1$s · 키 지문: %2$s</string>

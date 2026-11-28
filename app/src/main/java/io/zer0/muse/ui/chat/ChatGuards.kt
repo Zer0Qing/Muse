@@ -3,10 +3,10 @@ package io.zer0.muse.ui.chat
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.Model
 import io.zer0.ai.core.UIMessage
+import io.zer0.muse.chat.InternalPromptMarkers
 import io.zer0.muse.context.ContextBudget
 import io.zer0.muse.context.ContextSection
 import io.zer0.muse.data.session.MessageMarkers
-import io.zer0.muse.chat.InternalPromptMarkers
 
 /**
  * 对话发送/续传/重生成的纯判定函数。
@@ -14,14 +14,6 @@ import io.zer0.muse.chat.InternalPromptMarkers
  * 这些函数没有任何状态依赖，只吃参数吐结果，所以从 [ChatViewModel] 里整块切出来：
  * 它们各自有独立单测，放在 ViewModel 文件里会被 5000+ 行的上下文淹没。
  */
-/**
- * v1.131: 剥离 @文档名 标记的正则 — 文件级常量,避免每次 [buildWebSearchQuery] 调用都新建。
- *
- * 用于在 web 搜索前清理 user query 中的 @mention(知识库引用语义),
- * 防止其污染搜索关键词。
- */
-private val KNOWLEDGE_MENTION_REGEX = Regex("@[^\\s@]+")
-
 /** R-TEST-06: 发送守卫纯逻辑（防空消息/流式中/Agent 会话创建重入）。 */
 internal fun canStartGeneration(text: String, images: List<String>, isStreaming: Boolean, isCreatingAgentSession: Boolean): Boolean =
     (text.isNotBlank() || images.isNotEmpty()) && !isStreaming && !isCreatingAgentSession

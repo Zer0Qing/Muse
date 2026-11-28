@@ -7,7 +7,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -18,7 +21,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import coil.compose.SubcomposeAsyncImage
+import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import io.zer0.muse.R
 import io.zer0.muse.data.assistant.AssistantEntity
@@ -58,32 +61,18 @@ fun AssistantAvatar(
     when {
         // ① 图片头像(可能是 content:// URI 或文件路径)
         assistant.hasImageAvatar() -> {
-            // v0.36 性能优化:缓存 ImageRequest,避免每次重组都重建 Coil 请求对象。
             val model = remember(assistant.avatarImageUrl, avatarSizePx) {
                 assistantAvatarImageRequest(ctx, assistant.avatarImageUrl, avatarSizePx)
             }
-            // M-AA1: 用 SubcomposeAsyncImage 替代 AsyncImage,通过 error slot 处理加载失败。
-            // 旧实现加载失败时显示空白 surfaceVariant 背景;现在 fallback 到首字母,
-            // 保证头像始终有可辨识内容(联系人头像加载失败回退首字母)。
-            SubcomposeAsyncImage(
-                model = model,
-                contentDescription = assistant.name,
-                modifier = modifier
-                    .size(avatarSize)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                contentScale = ContentScale.Crop,
-                loading = {
-                    Box(
-                        modifier = Modifier
-                            .size(avatarSize)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceVariant),
-                    )
-                },
-                error = {
-                    // 用户显式设置过图片但文件失效时,优先回退 Emoji/首字母,
-                    // 而不是只显示主题色块,避免“头像消失”的观感。
+            var loadFailed by remember(assistant.avatarImageUrl) { mutableStateOf(false) }
+            if (loadFailed) {
+                Box(
+                    modifier = modifier
+                        .size(avatarSize)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    contentAlignment = Alignment.Center,
+                ) {
                     if (assistant.avatarEmoji.isNotBlank()) {
                         Text(
                             text = assistant.avatarEmoji,
@@ -96,8 +85,19 @@ fun AssistantAvatar(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                },
-            )
+                }
+            } else {
+                AsyncImage(
+                    model = model,
+                    contentDescription = assistant.name,
+                    onError = { loadFailed = true },
+                    modifier = modifier
+                        .size(avatarSize)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    contentScale = ContentScale.Crop,
+                )
+            }
         }
         // ② Emoji 头像
         assistant.avatarEmoji.isNotBlank() -> {

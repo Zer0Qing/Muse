@@ -272,6 +272,37 @@ class MuseNodeClientTest {
         assertTrue(socketRequest.path?.startsWith("/exec/run-1") == true)
     }
 
+    @Test
+    fun remoteRuntimeRecordsOwnerBeforeStartingExecWithRequestRunId() {
+        server.enqueue(MockResponse().setResponseCode(200).setBody("""{"ok":true,"runId":"run-owner"}"""))
+        server.enqueue(
+            MockResponse().withWebSocketUpgrade(object : WebSocketListener() {
+                override fun onOpen(webSocket: WebSocket, response: Response) {
+                    webSocket.send("""{"type":"exit","exitCode":0,"ts":1}""")
+                    webSocket.close(1000, "done")
+                }
+            }),
+        )
+        val router = ComputeTargetRouter(nodeProvider = { listOf(node()) })
+        val runtime = RemoteComputeRuntime(router, client)
+        var recorded: Pair<String, String>? = null
+
+        val outcome = runBlocking {
+            runtime.execute(
+                target = ComputeTarget.RemoteNode("node-test"),
+                request = ExecRequest(kind = ExecKind.SHELL, command = "echo done", runId = "run-owner"),
+                onRemoteExecStarted = { nodeId, runId ->
+                    assertEquals(0, server.requestCount)
+                    recorded = nodeId to runId
+                },
+            )
+        }
+
+        assertEquals(0, outcome.exitCode)
+        assertEquals("node-test" to "run-owner", recorded)
+        assertEquals("/exec", server.takeRequest(2, TimeUnit.SECONDS)?.path)
+    }
+
     private fun node(): RemoteComputeNodeEntity = RemoteComputeNodeEntity(
         nodeId = "node-test",
         name = "test-node",

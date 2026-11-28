@@ -141,11 +141,49 @@
     <string name="settings_theme_custom_color_l">明度</string>
     <string name="settings_default_home_page_title">启动默认页</string>
     <string name="settings_default_home_page_desc">选择应用启动时显示的页面</string>
+    <!-- 首页布局双形态选择与预览 -->
+    <string name="settings_home_layout_title">首页布局</string>
+    <string name="settings_home_layout_classic">经典三页</string>
+    <string name="settings_home_layout_classic_desc">顶部任务、Agent、群聊三页切换，保留原有习惯</string>
+    <string name="settings_home_layout_drawer">极简抽屉</string>
+    <string name="settings_home_layout_drawer_desc">打开就是对话。会话和工具都在侧边抽屉里。</string>
+    <string name="settings_home_layout_preview">首页预览</string>
+    <string name="settings_home_layout_preview_note">切换后返回首页立即生效，两种布局共用全部会话、助手与数据</string>
+    <string name="settings_home_layout_preview_current">当前使用</string>
+    <string name="settings_home_layout_preview_classic_bar">任务 · Agent · 群聊</string>
+    <string name="settings_home_layout_preview_drawer_chat">直接开始对话…</string>
+    <string name="settings_home_layout_preview_drawer_search">搜索会话与资源</string>
+    <string name="home_drawer_open_cd">打开侧边导航</string>
+    <string name="home_drawer_close_cd">关闭侧边导航</string>
+    <string name="home_drawer_navigation_title">对话</string>
+    <string name="home_drawer_no_matches">没有匹配的对话或文件夹</string>
+    <string name="home_drawer_no_conversations">还没有对话</string>
+    <string name="home_drawer_search_placeholder">搜索对话、文件夹…</string>
+    <string name="home_drawer_global_search">全局搜索</string>
+    <string name="home_drawer_mode_agent">主助手</string>
+    <string name="home_drawer_mode_groups">群聊</string>
+    <string name="home_drawer_mode_new_task">新对话</string>
+    <string name="home_drawer_hub_title">资源与工具</string>
+    <string name="home_drawer_hub_knowledge">知识库</string>
+    <string name="home_drawer_hub_artifacts">产物库</string>
+    <string name="home_drawer_hub_schedules">定时任务</string>
+    <string name="home_drawer_hub_notes">快速记录</string>
+    <string name="home_drawer_hub_translate">翻译</string>
+    <string name="home_drawer_hub_workspace">工作区</string>
+    <string name="home_drawer_hub_assistants">助手</string>
+    <string name="home_drawer_hub_archived">归档</string>
+    <string name="home_drawer_section_pinned">置顶</string>
+    <string name="home_drawer_section_folders">文件夹</string>
+    <string name="home_drawer_section_recent">最近对话</string>
+    <string name="home_drawer_empty_search">没有匹配的对话</string>
+    <string name="home_drawer_empty_recent">还没有普通对话</string>
+    <string name="home_drawer_settings">设置</string>
+    <string name="home_drawer_switch_model_cd">切换模型</string>
 
     <!-- 设置二级页 / 关于 -->
-    <string name="settings_task_routing_title">辅助模型</string>
+    <string name="settings_task_routing_title">默认与辅助模型</string>
     <!-- v2.x: 辅助模型区块(小工具/大工具/视觉) -->
-    <string name="settings_task_routing_aux_section">辅助模型</string>
+    <string name="settings_task_routing_aux_section">默认与辅助模型</string>
     <string name="settings_task_routing_vision_unset">未设置（点击配置）</string>
     <string name="settings_task_routing_aux_models_label">辅助模型</string>
     <string name="settings_task_routing_main_models_label">主对话模型</string>
@@ -683,6 +721,7 @@
     <string name="settings_session_terms_scope_assistant">助手级</string>
     <string name="settings_session_terms_scope_confirmed">已确认</string>
     <string name="settings_session_terms_scope_candidate">待确认</string>
+    <string name="settings_session_terms_scope_pending">已收录</string>
     <string name="kb_doc_version">版本 %1$d</string>
     <string name="kb_doc_edit">编辑正文</string>
     <string name="kb_doc_source">来源</string>
@@ -705,4 +744,11 @@
     <string name="settings_about_memory_low_heap">低内存设备</string>
     <string name="settings_about_memory_normal_heap">largeHeap 已启用</string>
     <string name="settings_theme_custom_import_failed_with_reason">导入失败：%1$s</string>
+    <string name="settings_agent_tool_model_subtitle">标题生成、轻量分类等短任务</string>
+    <string name="settings_agent_subagent_model_subtitle">上下文压缩、记忆提取、子代理等任务</string>
+    <string name="settings_media_gen_models_title">生图与生视频模型</string>
+    <string name="settings_agent_background_redirect_hint">后台调度、唤醒锁、开机自启与保活引导</string>
+    <string name="settings_keep_alive_guide_subtitle">电池优化豁免与厂商自启动白名单步骤</string>
+    <string name="onboarding_home_layout_intro">先选一种首页布局。之后也可以在外观设置中更改。</string>
+    <string name="onboarding_home_layout_save_failed">首页布局没能保存，请重试。</string>
 </resources>

@@ -22,6 +22,9 @@ interface ArtifactDao {
     @Query("DELETE FROM artifacts WHERE id = :id")
     suspend fun deleteById(id: String)
 
+    @Query("UPDATE artifacts SET title = :title, updatedAt = :updatedAt WHERE id = :id")
+    suspend fun updateTitle(id: String, title: String, updatedAt: Long)
+
     @Query("SELECT * FROM artifacts WHERE sessionId = :sessionId ORDER BY createdAt DESC")
     fun observeBySession(sessionId: String): Flow<List<ArtifactEntity>>
 

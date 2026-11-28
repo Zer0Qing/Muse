@@ -181,6 +181,10 @@
     <string name="chat_loading_thinking">思考中</string>
     <string name="chat_tool_params">参数</string>
     <string name="chat_tool_result">结果</string>
+    <string name="chat_mcp_image_result">图片附件 · %1$s · %2$s</string>
+    <string name="chat_mcp_image_preview_unavailable">未提供预览图</string>
+    <string name="chat_mcp_audio_result">音频附件 · %1$s · %2$s</string>
+    <string name="chat_mcp_audio_playback_unavailable">当前不支持播放</string>
     <string name="chat_tool_result_expand">展开全文（%1$d 字符）</string>
     <string name="chat_tool_result_collapse">收起全文</string>
     <string name="chat_tool_hidden_records">已隐藏较早的 %1$d 条记录</string>
@@ -574,6 +578,7 @@
     <string name="backup_import_error_version">备份版本过新或过旧，当前应用无法读取</string>
     <string name="backup_import_error_missing">找不到备份文件，可能已被移动或删除</string>
     <string name="backup_import_error_space">存储空间不足，请清理后重试</string>
+    <string name="backup_import_error_empty">备份文件是空的（0 字节），没有任何内容可导入。请确认导出时是否被中断，或换一份备份再试</string>
     <string name="backup_import_error_unknown">备份文件异常，已回滚到导入前的状态</string>
     <string name="onboarding_connect_error_unauthorized">API Key 无效或已过期，请重新填写</string>
     <string name="onboarding_connect_error_forbidden">没有访问权限，请确认该密钥已开通此模型</string>

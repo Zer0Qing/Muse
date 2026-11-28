@@ -5,7 +5,6 @@ package io.zer0.muse.backup
 import android.content.Context
 import android.net.Uri
 import androidx.room.withTransaction
-import io.zer0.common.AppJson
 import io.zer0.memory.fact.FactDb
 import io.zer0.memory.fact.FactEntity
 import io.zer0.memory.summary.CompiledSectionEntity
@@ -17,6 +16,7 @@ import io.zer0.memory.summary.ContextCheckpointEntity
 import io.zer0.muse.R
 import io.zer0.muse.data.SecureKeyStore
 import io.zer0.muse.data.SettingsRepository
+import io.zer0.muse.data.SettingsSnapshotPolicy
 import io.zer0.muse.data.computenode.RemoteComputeNodeEntity
 import io.zer0.muse.data.session.MuseDb
 import io.zer0.muse.data.stats.AutoBackupLogDao
@@ -73,10 +73,10 @@ import java.io.BufferedWriter
 import java.io.BufferedInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.InputStream
 import java.io.OutputStream
 import java.io.OutputStreamWriter
 import java.security.MessageDigest
-import java.util.Base64
 import java.util.UUID
 import java.util.zip.ZipInputStream
 
@@ -294,6 +294,15 @@ class BackupService(
          * 线格式用 [CardEntityRecord]，与 Room 实体解耦，理由见该类的说明。
          */
         val cardEntities: List<CardEntityRecord> = emptyList(),
+        /**
+         * Media Studio 生成记录与资产行，换机不丢收藏与提示词。
+         *
+         * 只带行不带文件本体：图片/视频文件走 [BackupBinaryFiles] 的 `media_studio/` 前缀，
+         * 受单文件与目录容量上限约束。文件被裁掉时 [io.zer0.muse.data.media.MediaGenAssetEntity.remoteUrl]
+         * 仍是原始远程地址，行还在就能重新取回。
+         */
+        val mediaGenTasks: List<io.zer0.muse.data.media.MediaGenTaskEntity> = emptyList(),
+        val mediaGenAssets: List<io.zer0.muse.data.media.MediaGenAssetEntity> = emptyList(),
         // ── v3 新增: DataStore 设置快照 ──
         val settingsSnapshot: Map<String, String> = emptyMap(),
         // ── v4 新增: 文件型存储快照(文件名 → 内容)──
@@ -340,6 +349,7 @@ class BackupService(
         remoteComputeNodes.isNotEmpty() ||
         groupChatMemories.isNotEmpty() ||
         cardEntities.isNotEmpty() ||
+        mediaGenTasks.isNotEmpty() || mediaGenAssets.isNotEmpty() ||
         settingsSnapshot.isNotEmpty() || fileStores.isNotEmpty() || binaryFiles.isNotEmpty() ||
         knowledgeV2Portable?.docs?.isNotEmpty() == true
 
@@ -390,32 +400,15 @@ class BackupService(
                 ?: error(context.getString(R.string.backup_cannot_read, uri))
             rawInput.use { input ->
                 val buffered = BufferedInputStream(input)
-                buffered.mark(4)
-                val magic = ByteArray(4)
-                var read = 0
-                while (read < magic.size) {
-                    val chunk = buffered.read(magic, read, magic.size - read)
-                    if (chunk < 0) break
-                    if (chunk == 0) continue
-                    read += chunk
-                }
-                buffered.reset()
-                if (read == 4 && BackupCrypto.isEncrypted(magic)) {
-                    // F-28: 加密本地备份(MENC magic)——整读解密后走统一解析。
-                    // B-8: 优先使用用户输入的密码,便于找回忘密码前的旧加密备份。
+                val header = readBackupHeader(buffered)
+                if (BackupCrypto.isEncrypted(header)) {
                     val password = backupPassword?.takeIf { it.isNotEmpty() }
                         ?: settings.cloudBackupConfigFlow.first().backupPassword
                     require(password.isNotEmpty()) {
                         context.getString(R.string.backup_encrypted_need_password)
                     }
-                    val rest = buffered.readBytes()
-                    check(rest.size.toLong() <= singleJsonMaxBytes) {
-                        singleJsonTooLargeConfiguredMessage(rest.size.toLong())
-                    }
-                    val decrypted = BackupCrypto.decrypt(magic + rest, password)
-                    val text = decrypted.toString(Charsets.UTF_8)
-                    importReader(context, java.io.BufferedReader(java.io.StringReader(text)), mode)
-                } else if (read == 4 && magic[0] == 'P'.code.toByte() && magic[1] == 'K'.code.toByte()) {
+                    importReader(context, decryptBackup(buffered, header, password).bufferedReader(Charsets.UTF_8), mode)
+                } else if (header.size >= 4 && header[0] == 'P'.code.toByte() && header[1] == 'K'.code.toByte()) {
                     // 兼容旧版/文件管理器导出的 ZIP 备份,选取首个 JSON 或 NDJSON 备份条目。
                     ZipInputStream(buffered).use { zip ->
                         var entry = zip.nextEntry
@@ -434,6 +427,38 @@ class BackupService(
         }
         runAfterRestoreRecovery()
         imported
+    }
+
+    private fun readBackupHeader(input: BufferedInputStream): ByteArray {
+        val header = ByteArray(5)
+        input.mark(header.size)
+        var read = 0
+        while (read < header.size) {
+            val count = input.read(header, read, header.size - read)
+            if (count < 0) break
+            read += count
+        }
+        input.reset()
+        return header.copyOf(read)
+    }
+
+    private fun decryptBackup(input: BufferedInputStream, header: ByteArray, password: String): InputStream {
+        val version = header.getOrNull(4)?.toInt()
+        if (version == FramedBackupCrypto.VERSION) {
+            java.io.DataInputStream(input).readFully(ByteArray(header.size))
+            return FramedBackupCrypto.decryptingStream(input, password)
+        }
+        require(version == 1) { "Unsupported encrypted backup version" }
+        val bytes = ByteArrayOutputStream()
+        val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+        while (true) {
+            val count = input.read(buffer)
+            if (count < 0) break
+            val total = bytes.size().toLong() + count
+            check(total <= singleJsonMaxBytes) { singleJsonTooLargeConfiguredMessage(total) }
+            bytes.write(buffer, 0, count)
+        }
+        return BackupCrypto.decrypt(bytes.toByteArray(), password).inputStream()
     }
 
     /** 识别本地备份 ZIP 中可能承载全量数据的 JSON/NDJSON 文件。 */
@@ -456,11 +481,7 @@ class BackupService(
      * [mode] 只影响 NDJSON 正文（当前导出格式）；单 JSON 旧备份一律按覆盖处理，
      * 因为它没有可安全重映射的引用关系，强行合并会产生悬空外键。
      */
-    private suspend fun importReader(
-        context: Context,
-        reader: java.io.BufferedReader,
-        mode: BackupImportMode,
-    ): Pair<Int, Int> {
+    private suspend fun importReader(context: Context, reader: java.io.BufferedReader, mode: BackupImportMode): Pair<Int, Int> {
         reader.use { source ->
             val firstLine = generateSequence { source.readLine() }
                 .firstOrNull { !it.isNullOrBlank() }
@@ -499,6 +520,22 @@ class BackupService(
             if (!backup.hasAnyData()) {
                 error("空备份文件,已拒绝导入")
             }
+            lastImportSummary = BackupImportSummary(
+                mode = BackupImportMode.OVERWRITE,
+                sessions = backup.sessions.size,
+                messages = backup.messages.size,
+                assistants = backup.assistants.size,
+                knowledgeDocs = backup.knowledgeDocs.size,
+                scheduledTasks = backup.scheduledTasks.size,
+                quickNotes = backup.quickNotes.size,
+                groupChats = backup.groupChats.size,
+                providersIncluded = backup.settingsSnapshot.containsKey(KEY_PROVIDERS_SETTING),
+                mcpServersIncluded = countPortableMcpServers(backup.settingsSnapshot),
+                mcpCredentialsOmitted = backup.settingsSnapshot[
+                    SettingsSnapshotPolicy.MCP_CREDENTIALS_OMITTED_KEY,
+                ] == "true",
+                settingsKeys = backup.settingsSnapshot.size,
+            )
             val imported = applyBackup(backup)
             warmUpRoomAfterImport()
             return imported
@@ -552,19 +589,40 @@ class BackupService(
      *
      * @return 导出的会话数 + 消息数
      */
-    suspend fun exportStreaming(context: Context, uri: Uri, includeSecrets: Boolean = false): Pair<Int, Int> = withContext(Dispatchers.IO) {
-        // P0-1: 密码失效(Keystore 丢失)时拒绝降级为明文导出,与云上传走同一判定
-        requireBackupPasswordAvailable(context)
-        val summary = context.contentResolver.openOutputStream(uri)?.use { os: OutputStream ->
-            BufferedWriter(OutputStreamWriter(os, Charsets.UTF_8)).use { writer ->
-                val wrote = writeNdJson(writer, includeSecrets)
-                writer.flush()
-                Logger.i("BackupService", "流式导出完成: ${wrote.sessions} 会话, ${wrote.messages} 消息")
-                wrote
-            }
-        } ?: error(context.getString(R.string.backup_cannot_write, uri))
-        summary.sessions to summary.messages
+    suspend fun exportStreaming(context: Context, uri: Uri, includeSecrets: Boolean = false): Pair<Int, Int> {
+        val report = exportStreamingWithReport(context, uri, includeSecrets)
+        return report.sessions to report.messages
     }
+
+    /** 本地 SAF 导出结果；跳过统计不暴露具体路径或资产内容。 */
+    data class ExportReport(
+        val sessions: Int,
+        val messages: Int,
+        val skippedBinaryFiles: Int,
+        val skippedBinaryBytes: Long,
+    )
+
+    /**
+     * 本地明文 NDJSON 导出，并返回可能被容量/读取限制跳过的私有文件聚合统计。
+     * 云端密码仅保护云备份，不影响此处的用户明文确认导出。
+     */
+    suspend fun exportStreamingWithReport(context: Context, uri: Uri, includeSecrets: Boolean = false): ExportReport =
+        withContext(Dispatchers.IO) {
+            val result = context.contentResolver.openOutputStream(uri, "wt")?.use { os: OutputStream ->
+                BufferedWriter(OutputStreamWriter(os, Charsets.UTF_8)).use { writer ->
+                    val wrote = writeNdJson(writer, includeSecrets)
+                    writer.flush()
+                    Logger.i("BackupService", "流式导出完成: ${wrote.sessions} 会话, ${wrote.messages} 消息")
+                    wrote
+                }
+            } ?: error(context.getString(R.string.backup_cannot_write, uri))
+            ExportReport(
+                sessions = result.sessions,
+                messages = result.messages,
+                skippedBinaryFiles = result.skippedBinaryFiles.skippedFiles,
+                skippedBinaryBytes = result.skippedBinaryFiles.skippedBytes,
+            )
+        }
 
     /**
      * B-25: NDJSON 全量数据拉取 + 逐行写入的公共实现。
@@ -648,6 +706,9 @@ class BackupService(
                 // v2.6.8: 卡片实体（NDJSON 导出，与单 JSON 同一定序）。
                 // v2.6.9: 走 DAO 全量查询，不再手写列清单（见 CardEntityBackup.kt）。
                 cardEntities = db.cardEntityDao().getAll().map { it.toRecord() }.inDockOrder(),
+                // Media Studio：与卡片同一定序（DAO 全量查询按 createdAt 升序）。
+                mediaGenTasks = db.mediaGenDao().getAllTasks(),
+                mediaGenAssets = db.mediaGenDao().getAllAssets(),
                 // R9: 知识库 V2 便携备份，与上述表同一事务快照。
                 knowledgeV2Portable = io.zer0.muse.knowledge.backup.KnowledgePortableBackupService(
                     v2Dao = db.knowledgeV2Dao(),
@@ -716,24 +777,26 @@ class BackupService(
         val botRoutines = muse.botRoutines
         val agentWatchers = muse.agentWatchers
         val agentGoals = muse.agentGoals
-        val remoteComputeNodes = sanitizeRemoteComputeNodesForExport(muse.remoteComputeNodes, includeSecrets)
+        // 供应商密钥开关仅覆盖供应商配置，节点备份只含连接配置。
+        val remoteComputeNodes = sanitizeRemoteComputeNodesForExport(muse.remoteComputeNodes, includeSecrets = false)
         val sessionTerms = muse.sessionTerms
         val groupChatMemories = muse.groupChatMemories
         // v2.6.8: 卡片实体。
         val cardEntities = muse.cardEntities
+        // Media Studio 生成记录与资产行（文件本体走 binaryFiles）。
+        val mediaGenTasks = muse.mediaGenTasks
+        val mediaGenAssets = muse.mediaGenAssets
         val knowledgeV2Portable = muse.knowledgeV2Portable
         // P0-10: 子助手分库(facts_<id>.db)
         val scopedFactIds = listScopedFactDbIds()
         val settingsSnapshot = settings.exportSettingsSnapshot(includeSecrets)
         val fileStores = readFileStores()
-        // v4.1: 目录型文件快照(笔记附件/头像)。在写 meta 前读完,保证 meta 声明的条数
-        // 与实际写出的 binaryFile 行数一致(导入侧 B-34 对账依赖此一致)。
-        val binaryFiles = withContext(Dispatchers.IO) { BackupBinaryFiles.read(context.filesDir) }
+        val binaryFiles = withContext(Dispatchers.IO) { BackupBinaryFiles.listForStreaming(context.filesDir) }
 
         // Step 2: 写 meta 行
         val meta = buildJsonObject {
             put("type", "meta")
-            put("version", 5)
+            put("version", NDJSON_BACKUP_VERSION)
             put("exportedAt", System.currentTimeMillis())
             put("sessions", sessions.size)
             put("messages", allMessages.size)
@@ -800,10 +863,12 @@ class BackupService(
             put("assistantRelationships", assistantRelationships.size)
             put("groupChatMemories", groupChatMemories.size)
             put("cardEntities", cardEntities.size)
+            put("mediaGenTasks", mediaGenTasks.size)
+            put("mediaGenAssets", mediaGenAssets.size)
             // settings 是一条可选记录，用 0/1 表示是否实际写出。
             put("settings", if (settingsSnapshot.isEmpty()) 0 else 1)
             put("fileStores", fileStores.size)
-            put("binaryFiles", binaryFiles.items.size)
+            put("binaryFiles", binaryFiles.size)
             // R9: 知识库 V2 便携备份作为单条记录写出(0/1)。
             put("knowledgeV2Portable", if (knowledgeV2Portable.docs.isEmpty()) 0 else 1)
         }
@@ -821,15 +886,8 @@ class BackupService(
             writer.newLine()
         }
 
-        // Step 2.6: v4.1 目录型文件(笔记附件/头像),每文件一行 Base64
-        binaryFiles.items.forEach { entry ->
-            val line = buildJsonObject {
-                put("type", "binaryFile")
-                put("path", entry.path)
-                put("content", Base64.getEncoder().encodeToString(entry.bytes))
-            }
-            writer.write(line.toString())
-            writer.newLine()
+        withContext(Dispatchers.IO) {
+            binaryFiles.forEach { (path, file) -> BackupStreamFiles.write(writer, path, file) }
         }
 
         // Step 3: 写 sessions
@@ -980,6 +1038,19 @@ class BackupService(
         writeTypedLines(writer, "groupChatMemory", groupChatMemories, GroupChatMemoryEntity.serializer())
         // v2.6.8: 卡片实体。停靠卡离开消息流后只存在这张表里，漏写就是换机丢卡。
         writeTypedLines(writer, "cardEntity", cardEntities, CardEntityRecord.serializer())
+        // Media Studio：行必须写出，否则 meta 声明的计数与实际行数不符，导入对账会整体回滚。
+        writeTypedLines(
+            writer,
+            "mediaGenTask",
+            mediaGenTasks,
+            io.zer0.muse.data.media.MediaGenTaskEntity.serializer(),
+        )
+        writeTypedLines(
+            writer,
+            "mediaGenAsset",
+            mediaGenAssets,
+            io.zer0.muse.data.media.MediaGenAssetEntity.serializer(),
+        )
         // v2.6.7 fix (AUDIT F1): 会话待办与角色关系此前只进了 meta 计数与清空路径，
         // 没有写数据行 —— 恢复时 deleteAll 之后无分支回填，备份出来等于白备。
         writeTypedLines(
@@ -1090,6 +1161,7 @@ class BackupService(
             messages = messageCount,
             facts = facts.size,
             groupChatMessages = groupChatMessages.size,
+            skippedBinaryFiles = BackupBinaryFiles.SkipStats(),
         )
     }
 
@@ -1120,6 +1192,7 @@ class BackupService(
         val messages: Int,
         val facts: Int,
         val groupChatMessages: Int,
+        val skippedBinaryFiles: BackupBinaryFiles.SkipStats,
     )
 
     /**
@@ -1193,6 +1266,9 @@ class BackupService(
         val sessionTerms: List<io.zer0.muse.data.terms.SessionTermEntity>,
         /** v2.6.8: 卡片实体（`card_entities`）—— 停靠卡离开消息流后唯一的存身处。 */
         val cardEntities: List<CardEntityRecord>,
+        /** Media Studio 生成任务与资产行（与其它表同一 MuseDb 事务内读取）。 */
+        val mediaGenTasks: List<io.zer0.muse.data.media.MediaGenTaskEntity>,
+        val mediaGenAssets: List<io.zer0.muse.data.media.MediaGenAssetEntity>,
         val groupChatMemories: List<GroupChatMemoryEntity>,
         /** R9: 知识库 V2 便携备份快照(与其它表同一 MuseDb 事务内读取)。 */
         val knowledgeV2Portable: io.zer0.muse.knowledge.backup.KnowledgePortableBackup,
@@ -1209,57 +1285,212 @@ class BackupService(
      *
      * @return 导入的会话数 + 消息数
      */
-    private suspend fun applyNdJsonStreaming(lines: Sequence<String>, allowEmptyBackup: Boolean = false): Pair<Int, Int> {
+    private suspend fun applyNdJsonStreaming(lines: Sequence<String>, allowEmptyBackup: Boolean = false): Pair<Int, Int> =
+        BackupStreamFiles.Staging(context.cacheDir, context.filesDir).use { stagedFiles ->
+            applyNdJsonRecords(lines, allowEmptyBackup, stagedFiles)
+        }
+
+    private class NdJsonRestoreBuffers {
+        val summary = mutableListOf<SessionSummaryEntity>()
+        val contextCheckpoint = mutableListOf<ContextCheckpointEntity>()
+        val daily = mutableListOf<DailyStateEntity>()
+        val compiled = mutableListOf<CompiledSectionEntity>()
+        val scopedCompiled = mutableListOf<ScopedCompiledSectionEntity>()
+        val facts = mutableListOf<FactEntity>()
+        val scopedFacts = LinkedHashMap<String, MutableList<FactEntity>>()
+        val fileStores = mutableMapOf<String, String>()
+        val binaryFiles = BackupBinaryFiles.Buffer()
+        var settings: Map<String, String> = emptyMap()
+    }
+
+    private suspend fun restoreNdJsonMuseDb(
+        remaining: Sequence<String>,
+        expectedCounts: Map<String, Int>,
+        actualCounts: MutableMap<String, Int>,
+        typeToMetaKey: Map<String, String>,
+        stagedFiles: BackupStreamFiles.Staging,
+        buffers: NdJsonRestoreBuffers,
+        importer: NdJsonMuseImporter,
+    ) {
+        db.withTransaction {
+            importer.clearAllTables()
+            remaining.forEachIndexed { index, line ->
+                processNdJsonLine(
+                    line = line,
+                    index = index,
+                    typeToMetaKey = typeToMetaKey,
+                    actualCounts = actualCounts,
+                    stagedFiles = stagedFiles,
+                    buffers = buffers,
+                    importer = importer,
+                )
+            }
+            stagedFiles.requireComplete()
+            expectedCounts.forEach { (key, expected) ->
+                check((actualCounts[key] ?: 0) == expected) {
+                    "备份记录数不一致: $key 声明 $expected, 实际 ${actualCounts[key] ?: 0}"
+                }
+            }
+            importer.logSkippedMiniPhoneSummary()
+            importer.flushAllRemaining()
+            verifyInsertedCounts(expectedCounts, skippedSessionCount = importer.skippedMiniPhoneSessions)
+        }
+    }
+
+    private suspend fun processNdJsonLine(
+        line: String,
+        index: Int,
+        typeToMetaKey: Map<String, String>,
+        actualCounts: MutableMap<String, Int>,
+        stagedFiles: BackupStreamFiles.Staging,
+        buffers: NdJsonRestoreBuffers,
+        importer: NdJsonMuseImporter,
+    ) {
+        if (line.isBlank()) return
+        val obj = resultOf { json.decodeFromString(JsonObject.serializer(), line) }
+            .onError { msg, t ->
+                Logger.w("BackupService", "第 ${index + 1} 行 JSON 解析失败,跳过: ${t?.message ?: msg}", t)
+            }
+            .getOrNull() ?: return
+        val type = obj["type"]?.let { (it as? JsonPrimitive)?.content } ?: return
+        stagedFiles.read(type, obj)
+        updateNdJsonCounts(type, obj, typeToMetaKey, actualCounts)
+        when (type) {
+            BackupStreamFiles.START, BackupStreamFiles.CHUNK, BackupStreamFiles.END, "meta" -> Unit
+            "fileStore" -> addFileStoreRecord(obj, buffers.fileStores)
+            "binaryFile" -> addBinaryFileRecord(obj, buffers.binaryFiles)
+            "summary" -> obj["data"]?.let {
+                buffers.summary.add(json.decodeFromJsonElement(SessionSummaryEntity.serializer(), it))
+            }
+            "contextCheckpoint" -> obj["data"]?.let {
+                buffers.contextCheckpoint.add(json.decodeFromJsonElement(ContextCheckpointEntity.serializer(), it))
+            }
+            "dailyState" -> obj["data"]?.let {
+                buffers.daily.add(json.decodeFromJsonElement(DailyStateEntity.serializer(), it))
+            }
+            "compiledSection" -> obj["data"]?.let {
+                buffers.compiled.add(json.decodeFromJsonElement(CompiledSectionEntity.serializer(), it))
+            }
+            "scopedCompiledSection" -> obj["data"]?.let {
+                buffers.scopedCompiled.add(json.decodeFromJsonElement(ScopedCompiledSectionEntity.serializer(), it))
+            }
+            "fact" -> obj["data"]?.let {
+                buffers.facts.add(json.decodeFromJsonElement(FactEntity.serializer(), it))
+            }
+            "scopedFact" -> addScopedFacts(obj, buffers.scopedFacts)
+            "settings" -> updateSettingsSnapshot(obj, buffers)
+            else -> importer.ingestRecord(type, obj)
+        }
+    }
+
+    private fun updateNdJsonCounts(
+        type: String,
+        obj: JsonObject,
+        typeToMetaKey: Map<String, String>,
+        actualCounts: MutableMap<String, Int>,
+    ) {
+        if (type == "meta" || type !in typeToMetaKey) return
+        if (type != "fileStore" && type != "binaryFile" && type != BackupStreamFiles.START) {
+            require(obj["data"] != null) { "备份记录缺少 data: $type" }
+        }
+        val key = typeToMetaKey.getValue(type)
+        actualCounts[key] = (actualCounts[key] ?: 0) + 1
+    }
+
+    private fun addFileStoreRecord(obj: JsonObject, stores: MutableMap<String, String>) {
+        val name = obj["name"]?.let { (it as? JsonPrimitive)?.content }
+        val content = obj["content"]?.let { (it as? JsonPrimitive)?.content }
+        if (!name.isNullOrBlank() && content != null) stores[name] = content
+    }
+
+    private fun addBinaryFileRecord(obj: JsonObject, files: BackupBinaryFiles.Buffer) {
+        val path = obj["path"]?.let { (it as? JsonPrimitive)?.content }
+        val content = obj["content"]?.let { (it as? JsonPrimitive)?.content }
+        if (!path.isNullOrBlank() && content != null) files.offer(path, content)
+    }
+
+    private fun addScopedFacts(obj: JsonObject, scopedFacts: LinkedHashMap<String, MutableList<FactEntity>>) {
+        val scope = (obj["scope"] as? JsonPrimitive)?.contentOrNull ?: return
+        val facts = obj["data"]?.let {
+            json.decodeFromJsonElement(ListSerializer(FactEntity.serializer()), it)
+        } ?: return
+        scopedFacts.getOrPut(scope) { mutableListOf() }.addAll(facts)
+    }
+
+    private fun updateSettingsSnapshot(obj: JsonObject, buffers: NdJsonRestoreBuffers) {
+        obj["data"]?.let {
+            buffers.settings = json.decodeFromJsonElement(
+                MapSerializer(String.serializer(), String.serializer()),
+                it,
+            )
+            lastImportSummary = lastImportSummary?.copy(
+                settingsKeys = buffers.settings.size,
+                providersIncluded = buffers.settings.containsKey(KEY_PROVIDERS_SETTING),
+                mcpServersIncluded = countPortableMcpServers(buffers.settings),
+                mcpCredentialsOmitted = buffers.settings[
+                    SettingsSnapshotPolicy.MCP_CREDENTIALS_OMITTED_KEY,
+                ] == "true",
+            )
+        }
+    }
+
+    private fun parseNdJsonMeta(
+        firstLine: String?,
+        allowEmptyBackup: Boolean,
+        typeToMetaKey: Map<String, String>,
+    ): MutableMap<String, Int> {
+        if (firstLine.isNullOrBlank()) {
+            throw IllegalArgumentException("备份文件为空,已拒绝导入")
+        }
+        val expectedCounts = mutableMapOf<String, Int>()
+        resultOf {
+            val obj = json.decodeFromString(JsonObject.serializer(), firstLine)
+            val type = obj["type"]?.let { (it as? JsonPrimitive)?.content }
+            require(type == "meta") { "NDJSON 备份缺少 meta 首行,已拒绝导入" }
+            typeToMetaKey.values.distinct().forEach { key ->
+                obj[key]?.let { value ->
+                    val count = (value as? JsonPrimitive)?.contentOrNull?.toIntOrNull()
+                        ?: error("备份 meta 计数非法: $key")
+                    require(count >= 0) { "备份 meta 计数不能为负数: $key" }
+                    expectedCounts[key] = count
+                }
+            }
+            if (!allowEmptyBackup && (expectedCounts.isEmpty() || expectedCounts.values.sum() == 0)) {
+                throw IllegalArgumentException("空备份文件(meta 无任何数据),已拒绝导入")
+            }
+            lastImportSummary = BackupImportSummary(
+                mode = BackupImportMode.OVERWRITE,
+                sessions = expectedCounts["sessions"] ?: 0,
+                messages = expectedCounts["messages"] ?: 0,
+                assistants = expectedCounts["assistants"] ?: 0,
+                knowledgeDocs = expectedCounts["knowledgeDocs"] ?: 0,
+                scheduledTasks = expectedCounts["scheduledTasks"] ?: 0,
+                quickNotes = expectedCounts["quickNotes"] ?: 0,
+                groupChats = expectedCounts["groupChats"] ?: 0,
+                settingsKeys = 0,
+                providersIncluded = false,
+            )
+        }.onError { msg, t ->
+            throw IllegalArgumentException(t?.message ?: msg)
+        }
+        return expectedCounts
+    }
+
+    private suspend fun applyNdJsonRecords(
+        lines: Sequence<String>,
+        allowEmptyBackup: Boolean,
+        stagedFiles: BackupStreamFiles.Staging,
+    ): Pair<Int, Int> {
         lastImportSummary = null
         // v1.0.74 fix: 空备份保护 — 云端路径有"0 会话 0 消息拒绝恢复",本地路径没有,
         // 误选空/损坏文件会先清空全部表。先读 meta 行校验再决定是否继续。
         val lineIter = lines.iterator()
         val firstLine = if (lineIter.hasNext()) lineIter.next() else null
         val typeToMetaKey = ndjsonTypeToMetaKey
-        val expectedCounts = mutableMapOf<String, Int>()
         val actualCounts = mutableMapOf<String, Int>()
-        if (!firstLine.isNullOrBlank()) {
-            resultOf {
-                val obj = json.decodeFromString(JsonObject.serializer(), firstLine)
-                val type = obj["type"]?.let { (it as? JsonPrimitive)?.content }
-                require(type == "meta") { "NDJSON 备份缺少 meta 首行,已拒绝导入" }
-                // B-21/B-34: meta 既用于空备份守卫，也用于完整性对账。
-                // 当前生成器声明所有类型计数；旧版本缺失的计数字段保留兼容，
-                // 但只对实际声明的字段做严格校验。
-                typeToMetaKey.values.distinct().forEach { key ->
-                    obj[key]?.let { value ->
-                        val count = (value as? JsonPrimitive)?.contentOrNull?.toIntOrNull()
-                            ?: error("备份 meta 计数非法: $key")
-                        require(count >= 0) { "备份 meta 计数不能为负数: $key" }
-                        expectedCounts[key] = count
-                    }
-                }
-                if (!allowEmptyBackup && (expectedCounts.isEmpty() || expectedCounts.values.sum() == 0)) {
-                    throw IllegalArgumentException("空备份文件(meta 无任何数据),已拒绝导入")
-                }
-                // 把 meta 声明拍成摘要快照：导入结束后用户要看到的"备份里到底有什么"，
-                // 只能从这里取，库里行数在覆盖模式下相等、合并模式下只会有对话部分。
-                lastImportSummary = BackupImportSummary(
-                    mode = BackupImportMode.OVERWRITE,
-                    sessions = expectedCounts["sessions"] ?: 0,
-                    messages = expectedCounts["messages"] ?: 0,
-                    assistants = expectedCounts["assistants"] ?: 0,
-                    knowledgeDocs = expectedCounts["knowledgeDocs"] ?: 0,
-                    scheduledTasks = expectedCounts["scheduledTasks"] ?: 0,
-                    quickNotes = expectedCounts["quickNotes"] ?: 0,
-                    groupChats = expectedCounts["groupChats"] ?: 0,
-                    settingsKeys = 0,
-                    // 供应商是否随备份带来：meta 不记这个，只能等设置行实际出现时再补。
-                    providersIncluded = false,
-                )
-            }.onError { msg, t ->
-                // meta 解析失败或空备份:抛给调用方,不清空任何表
-                throw IllegalArgumentException(t?.message ?: msg)
-            }
-        } else {
-            throw IllegalArgumentException("备份文件为空,已拒绝导入")
-        }
-        val remaining = sequenceOf(firstLine).plus(lineIter.asSequence())
+        val expectedCounts = parseNdJsonMeta(firstLine, allowEmptyBackup, typeToMetaKey)
+        val firstLineValue = firstLine ?: error("备份文件为空,已拒绝导入")
+        val remaining = sequenceOf(firstLineValue).plus(lineIter.asSequence())
 
         // 审计修复 (0.5): 清空 + 全部 MuseDb 插入包进同一个事务。
         // 原实现清空是独立事务、插入是分批独立事务,解析中途异常/取消会留下半空库
@@ -1268,132 +1499,19 @@ class BackupService(
         // C-10: memoryDb / factDb 为独立数据库,无法与 MuseDb 跨库原子,
         // 故只在 MuseDb 事务成功后再于各自独立事务内统一"清空 + 插入",
         // 消除在 MuseDb 事务内提前提交 memory/fact 造成的跨库半状态及早前重复 flush。
-        // v4: 文件型存储(渠道/连接器/批注/收件箱/插件),声明在 try 外供尾部写入
-        val fileStoreBuf = mutableMapOf<String, String>()
-        // v4.1: 目录型文件(笔记附件/头像),同样在 try 外,尾部与文件型存储一同写入。
-        // Buffer 在累积阶段就做白名单与容量裁剪,避免恶意备份先吃内存再校验。
-        val binaryFileBuf = BackupBinaryFiles.Buffer()
+        val restoreBuffers = NdJsonRestoreBuffers()
         val backlogRestoreAt = System.currentTimeMillis()
         val museImporter = NdJsonMuseImporter(backlogRestoreAt)
         try {
-            // buffer 声明在事务外(尾部 memory/fact 事务块也要访问)
-            val summaryBuf = mutableListOf<SessionSummaryEntity>()
-            val contextCheckpointBuf = mutableListOf<ContextCheckpointEntity>()
-            val dailyBuf = mutableListOf<DailyStateEntity>()
-            val compiledBuf = mutableListOf<CompiledSectionEntity>()
-            val scopedCompiledBuf = mutableListOf<ScopedCompiledSectionEntity>()
-            val factBuf = mutableListOf<FactEntity>()
-            // P0-10: 子助手分库 — scope → facts(跨库,独立于 MuseDb 事务)
-            val scopedFactBuf = LinkedHashMap<String, MutableList<FactEntity>>()
-            var settingsSnapshot: Map<String, String> = emptyMap()
-
-            db.withTransaction {
-                // 1. 先清空所有表
-                museImporter.clearAllTables()
-
-                // 2. 逐行解析 + 分批插入(仍在 db.withTransaction 事务内,任一失败整体回滚)
-                remaining.forEachIndexed { idx, line ->
-                    if (line.isBlank()) return@forEachIndexed
-                    // 只把单行格式错误视为可跳过;数据库插入/事务异常必须继续向外抛出,
-                    // 这样外层 MuseDb 事务才能真正回滚,不会出现“导入成功但数据半缺失”。
-                    val obj = resultOf { json.decodeFromString(JsonObject.serializer(), line) }
-                        .onError { msg, t ->
-                            Logger.w("BackupService", "第 ${idx + 1} 行 JSON 解析失败,跳过: ${t?.message ?: msg}", t)
-                        }
-                        .getOrNull()
-                        ?: return@forEachIndexed
-                    val type = obj["type"]?.let { (it as? JsonPrimitive)?.content }
-                        ?: return@forEachIndexed
-                    if (type != "meta" && type in typeToMetaKey) {
-                        // fileStore/binaryFile 使用 name/content 或 path/content 结构，不属于实体型 data 记录。
-                        if (type != "fileStore" && type != "binaryFile") {
-                            require(obj["data"] != null) { "备份记录缺少 data: $type" }
-                        }
-                        val key = typeToMetaKey.getValue(type)
-                        actualCounts[key] = (actualCounts[key] ?: 0) + 1
-                    }
-                    when (type) {
-                        "meta" -> { /* version/exportedAt 元信息,流式插入不需要 */ }
-                        "fileStore" -> {
-                            val name = obj["name"]?.let { (it as? JsonPrimitive)?.content }
-                            val content = obj["content"]?.let { (it as? JsonPrimitive)?.content }
-                            if (!name.isNullOrBlank() && content != null) fileStoreBuf[name] = content
-                        }
-                        "binaryFile" -> {
-                            // v4.1: 白名单前缀与容量上限在 Buffer 内裁剪，非法路径直接跳过并记日志。
-                            val path = obj["path"]?.let { (it as? JsonPrimitive)?.content }
-                            val content = obj["content"]?.let { (it as? JsonPrimitive)?.content }
-                            if (!path.isNullOrBlank() && content != null) binaryFileBuf.offer(path, content)
-                        }
-                        "summary" -> obj["data"]?.let {
-                            summaryBuf.add(json.decodeFromJsonElement(SessionSummaryEntity.serializer(), it))
-                            // C-10: memory/fact 缓冲只在 MuseDb 事务成功后于各自独立事务内统一提交,
-                            // 不再在 MuseDb 事务内循环中提前 flush(旧实现会在 MuseDb 回滚时留下已提交的 memory 半状态)。
-                        }
-                        "contextCheckpoint" -> obj["data"]?.let {
-                            contextCheckpointBuf.add(
-                                json.decodeFromJsonElement(ContextCheckpointEntity.serializer(), it),
-                            )
-                        }
-                        "dailyState" -> obj["data"]?.let {
-                            dailyBuf.add(json.decodeFromJsonElement(DailyStateEntity.serializer(), it))
-                        }
-                        "compiledSection" -> obj["data"]?.let {
-                            compiledBuf.add(json.decodeFromJsonElement(CompiledSectionEntity.serializer(), it))
-                        }
-                        "scopedCompiledSection" -> obj["data"]?.let {
-                            scopedCompiledBuf.add(json.decodeFromJsonElement(ScopedCompiledSectionEntity.serializer(), it))
-                        }
-                        "fact" -> obj["data"]?.let {
-                            factBuf.add(json.decodeFromJsonElement(FactEntity.serializer(), it))
-                        }
-                        "scopedFact" -> {
-                            val scope = (obj["scope"] as? JsonPrimitive)?.contentOrNull ?: return@forEachIndexed
-                            val facts = obj["data"]?.let {
-                                json.decodeFromJsonElement(
-                                    ListSerializer(FactEntity.serializer()),
-                                    it,
-                                )
-                            } ?: return@forEachIndexed
-                            scopedFactBuf.getOrPut(scope) { mutableListOf() }.addAll(facts)
-                        }
-                        "settings" -> obj["data"]?.let {
-                            settingsSnapshot = json.decodeFromJsonElement(
-                                MapSerializer(
-                                    String.serializer(),
-                                    String.serializer(),
-                                ),
-                                it,
-                            )
-                            lastImportSummary = lastImportSummary?.copy(
-                                settingsKeys = settingsSnapshot.size,
-                                providersIncluded = settingsSnapshot.containsKey(KEY_PROVIDERS_SETTING),
-                            )
-                        }
-                        else -> museImporter.ingestRecord(type, obj)
-                    }
-                }
-
-                // B-34: 在 MuseDb 事务提交前核对 meta 声明计数，截断或丢行的备份整体回滚。
-                expectedCounts.forEach { (key, expected) ->
-                    val actual = actualCounts[key] ?: 0
-                    check(actual == expected) {
-                        "备份记录数不一致: $key 声明 $expected, 实际 $actual"
-                    }
-                }
-                museImporter.logSkippedMiniPhoneSummary()
-
-                // 3. flush 剩余 buffer(C-10: memory/fact 缓冲这里不再 flush,
-                // 统一在 MuseDb 事务成功后的独立事务内一次性 deleteAll + 插入)。
-                museImporter.flushAllRemaining()
-
-                // v2.6.0 (AUD-DATA-B34): 入库后对账 —— B-34 原先只核对“解析行数”，
-                // 而解析成功不等于落库成功（缓冲 flush 的 upsert 可能因约束冲突等丢记录）。
-                // 这里对可计数的核心表再核一次真实行数，缺口即整体回滚，
-                // 避免“导入成功但数据半缺失”被静默放行。
-                val skippedMiniPhoneSessions = museImporter.skippedMiniPhoneSessions
-                verifyInsertedCounts(expectedCounts, skippedSessionCount = skippedMiniPhoneSessions)
-            } // 审计 0.5: MuseDb 大事务闭合(失败整体回滚,含清空)
+            restoreNdJsonMuseDb(
+                remaining = remaining,
+                expectedCounts = expectedCounts,
+                actualCounts = actualCounts,
+                typeToMetaKey = typeToMetaKey,
+                stagedFiles = stagedFiles,
+                buffers = restoreBuffers,
+                importer = museImporter,
+            )
 
             // C-10: memory/fact 依赖独立数据库,无法与 MuseDb 跨库原子。
             // 只在 MuseDb 事务成功(走到这里)后,各自在单一事务内"先清空旧数据再插入新数据",
@@ -1407,27 +1525,24 @@ class BackupService(
                 memoryDb.dailyStateDao().deleteAll()
                 memoryDb.compiledSectionDao().deleteAll()
                 memoryDb.scopedCompiledSectionDao().deleteAll()
-                summaryBuf.forEach { memoryDb.sessionSummaryDao().upsert(it) }
-                contextCheckpointBuf.forEach { memoryDb.contextCheckpointDao().upsert(it) }
-                dailyBuf.forEach { memoryDb.dailyStateDao().upsert(it) }
-                compiledBuf.forEach { memoryDb.compiledSectionDao().upsert(it) }
-                scopedCompiledBuf.forEach { memoryDb.scopedCompiledSectionDao().upsert(it) }
+                restoreBuffers.summary.forEach { memoryDb.sessionSummaryDao().upsert(it) }
+                restoreBuffers.contextCheckpoint.forEach { memoryDb.contextCheckpointDao().upsert(it) }
+                restoreBuffers.daily.forEach { memoryDb.dailyStateDao().upsert(it) }
+                restoreBuffers.compiled.forEach { memoryDb.compiledSectionDao().upsert(it) }
+                restoreBuffers.scopedCompiled.forEach { memoryDb.scopedCompiledSectionDao().upsert(it) }
             }
             factDb.withTransaction {
                 factDb.factDao().deleteAll()
-                if (factBuf.isNotEmpty()) {
-                    factDb.factDao().insertAll(factBuf.map { it.copy(id = 0) })
+                if (restoreBuffers.facts.isNotEmpty()) {
+                    factDb.factDao().insertAll(restoreBuffers.facts.map { it.copy(id = 0) })
                 }
             }
-            // P0-10: 恢复子助手分库(独立库,逐库清空+写入)
-            scopedFactBuf.forEach { (scope, facts) ->
-                writeScopedFacts(scope, facts)
-            }
+            replaceScopedFacts(restoreBuffers.scopedFacts)
             // 恢复设置快照
-            if (settingsSnapshot.isNotEmpty()) {
+            if (restoreBuffers.settings.isNotEmpty()) {
                 settings.restoreSettingsSnapshot(
-                    settingsSnapshot,
-                    includeSecrets = settingsSnapshot.containsKey("providers_json"),
+                    rewritePrivateSettingReferences(restoreBuffers.settings),
+                    includeSecrets = SettingsSnapshotPolicy.providerSecretsIncluded(restoreBuffers.settings),
                 )
             }
         } catch (e: kotlin.coroutines.cancellation.CancellationException) {
@@ -1444,20 +1559,21 @@ class BackupService(
         invalidateRagAfterRestore()
 
         // v4: 恢复文件型存储(白名单内,单个失败不阻塞)
-        if (fileStoreBuf.isNotEmpty()) writeFileStores(fileStoreBuf)
+        if (restoreBuffers.fileStores.isNotEmpty()) writeFileStores(restoreBuffers.fileStores)
         // v4.1: 恢复目录型文件(白名单 + 容量上限;写失败向上传播触发回滚)
-        if (binaryFileBuf.stats.skippedFiles > 0) {
+        if (restoreBuffers.binaryFiles.stats.skippedFiles > 0) {
             Logger.w(
                 "BackupService",
-                "NDJSON 导入跳过了 ${binaryFileBuf.stats.skippedFiles} 个目录文件" +
-                    "(${binaryFileBuf.stats.skippedBytes} 字节),恢复后的附件/头像可能不完整",
+                "NDJSON 导入跳过了 ${restoreBuffers.binaryFiles.stats.skippedFiles} 个目录文件" +
+                    "(${restoreBuffers.binaryFiles.stats.skippedBytes} 字节),恢复后的附件/头像可能不完整",
             )
         }
-        if (binaryFileBuf.toMap().isNotEmpty()) writeBinaryFiles(binaryFileBuf.toMap())
+        if (restoreBuffers.binaryFiles.toMap().isNotEmpty()) writeBinaryFiles(restoreBuffers.binaryFiles.toMap())
+        withContext(Dispatchers.IO) { stagedFiles.publish() }
 
         // 跳过项如实记账：用户看到附件变少时，这里能说清是"备份里没有"还是"被容量上限裁掉"。
         lastImportSummary = lastImportSummary?.copy(
-            skippedFiles = binaryFileBuf.stats.skippedFiles,
+            skippedFiles = restoreBuffers.binaryFiles.stats.skippedFiles,
             skippedMiniPhoneSessions = museImporter.skippedMiniPhoneSessions,
             skippedMiniPhoneMessages = museImporter.skippedMiniPhoneMessages,
         )
@@ -1478,6 +1594,7 @@ class BackupService(
         var knowledgeV2PortableBuf: io.zer0.muse.knowledge.backup.KnowledgePortableBackup? = null
         val sessionBuf = mutableListOf<SessionEntity>()
         val messageBuf = mutableListOf<MessageEntity>()
+
         // 旧小手机已下线:备份里残留的 isMiniPhone 会话不再作为普通会话恢复。
         // 过滤发生在写入前(不写库再删),其消息与其余外键子表也一并跳过,避免悬空外键。
         val skippedMiniPhoneSessionIds = mutableSetOf<String>()
@@ -1485,6 +1602,7 @@ class BackupService(
         val skippedMiniPhoneTurnIds = mutableSetOf<String>()
         var skippedMiniPhoneSessions = 0
         var skippedMiniPhoneMessages = 0
+
         // v3: 扩展表 buffer
         val assistantBuf = mutableListOf<AssistantEntity>()
         val lorebookBuf = mutableListOf<LorebookEntity>()
@@ -1502,6 +1620,7 @@ class BackupService(
         val experienceBuf = mutableListOf<ExperienceEntity>()
         val milestoneBuf = mutableListOf<MilestoneEntity>()
         val agentMsgBuf = mutableListOf<AgentMessageEntity>()
+
         // P0-10: 此前缺失的实体
         val quickNoteBuf = mutableListOf<io.zer0.muse.data.quicknote.QuickNoteEntity>()
         val worldBookBuf = mutableListOf<io.zer0.muse.worldbook.WorldBookEntryEntity>()
@@ -1511,6 +1630,7 @@ class BackupService(
         val messageOutboxBuf = mutableListOf<MessageOutboxEntity>()
         val translateHistoryBuf = mutableListOf<TranslateHistoryEntity>()
         val knowledgeBaseBuf = mutableListOf<KnowledgeBaseEntity>()
+
         // AUD-20261011-NDJSON-FOLDERS: 知识库文件夹此前只有导出行、没有恢复分支,
         // 清空阶段 deleteAll 后无法回填(每次 NDJSON 恢复清空全部文件夹)。
         val knowledgeFolderBuf = mutableListOf<io.zer0.muse.data.knowledge.KnowledgeFolderEntity>()
@@ -1524,8 +1644,10 @@ class BackupService(
         val conversationDisplaySlotBuf =
             mutableListOf<io.zer0.muse.data.conversation.ConversationDisplaySlotEntity>()
         val groupChatMemoryBuf = mutableListOf<GroupChatMemoryEntity>()
+
         // v2.6.7 fix (AUDIT F1): 待办与角色关系的恢复缓冲区。
         val sessionTodoBuf = mutableListOf<io.zer0.muse.data.todo.SessionTodoEntity>()
+
         // v2.6.9: 主动消息三表恢复缓冲。
         val pendingThoughtBuf = mutableListOf<io.zer0.muse.data.proactive.PendingThoughtEntity>()
         val sessionTermBuf = mutableListOf<io.zer0.muse.data.terms.SessionTermEntity>()
@@ -1535,6 +1657,7 @@ class BackupService(
             mutableListOf<io.zer0.muse.proactive.SessionProactivePreferenceEntity>()
         val assistantRelationshipBuf =
             mutableListOf<io.zer0.muse.data.relationship.AssistantRelationshipEntity>()
+
         // v2.6.8: 卡片实体恢复缓冲。
         val cardEntityBuf = mutableListOf<CardEntityRecord>()
 
@@ -1580,6 +1703,9 @@ class BackupService(
             db.agentGoalDao().deleteAll()
             db.agentWatcherDao().deleteAll()
             db.remoteComputeNodeDao().deleteAll()
+            // Media Studio 两张表也要清空：只导不恢复等于白备，只恢复不清空会与旧行混合。
+            db.mediaGenDao().deleteAllAssets()
+            db.mediaGenDao().deleteAllTasks()
             db.botMessageCardDao().deleteAll()
             db.botAnnotationDao().deleteAll()
             db.publicationOutboxDao().deleteAll()
@@ -1657,9 +1783,7 @@ class BackupService(
                     } else {
                         // v2.x 导入预热:恢复的会话首轮以全量历史构建上下文一次
                         sessionBuf.add(session.copy(warmupPending = true))
-                        if (sessionBuf.size >= IMPORT_BATCH) {
-                            flushSessionsIfNeeded()
-                        }
+                        if (sessionBuf.size >= IMPORT_BATCH) flushSessionsIfNeeded()
                     }
                 }
                 "message" -> obj["data"]?.let {
@@ -1669,14 +1793,32 @@ class BackupService(
                         skippedMiniPhoneMessages += 1
                         return@let
                     }
-                    messageBuf.add(message)
-                    if (messageBuf.size >= IMPORT_BATCH) {
-                        flushMessagesIfNeeded()
-                    }
+                    messageBuf.add(rebaseMessageAssets(message))
+                    if (messageBuf.size >= IMPORT_BATCH) flushMessagesIfNeeded()
                 }
-                // v3: 扩展表类型
+                else -> return ingestPrimaryExtension(type, obj)
+            }
+            return true
+        }
+
+        private suspend fun ingestPrimaryExtension(type: String, obj: JsonObject): Boolean {
+            if (ingestPrimaryBase(type, obj)) return true
+            return ingestPrimaryKnowledge(type, obj)
+        }
+
+        private suspend fun ingestPrimaryBase(type: String, obj: JsonObject): Boolean {
+            when (type) {
                 "assistant" -> obj["data"]?.let {
-                    assistantBuf.add(json.decodeFromJsonElement(AssistantEntity.serializer(), it))
+                    val assistant = json.decodeFromJsonElement(AssistantEntity.serializer(), it)
+                    assistantBuf.add(
+                        assistant.copy(
+                            avatarImageUrl = BackupBinaryFiles.rebasePrivateFileReference(
+                                assistant.avatarImageUrl,
+                                context.filesDir,
+                                context.packageName,
+                            ),
+                        ),
+                    )
                     if (assistantBuf.size >= IMPORT_BATCH) {
                         flushBatch(
                             assistantBuf,
@@ -1702,7 +1844,7 @@ class BackupService(
                 "artifact" -> obj["data"]?.let {
                     val artifact = json.decodeFromJsonElement(ArtifactEntity.serializer(), it)
                     if (artifact.sessionId in skippedMiniPhoneSessionIds) return@let
-                    artifactBuf.add(artifact)
+                    artifactBuf.add(artifact.copy(content = rebasePrivatePath(artifact.content)))
                     if (artifactBuf.size >= IMPORT_BATCH) {
                         flushSessionsIfNeeded()
                         flushBatch(artifactBuf) { batch ->
@@ -1747,7 +1889,7 @@ class BackupService(
                     }
                 }
                 "groupChatMessage" -> obj["data"]?.let {
-                    groupChatMsgBuf.add(json.decodeFromJsonElement(GroupChatMessageEntity.serializer(), it))
+                    groupChatMsgBuf.add(rebaseGroupMessageAssets(json.decodeFromJsonElement(GroupChatMessageEntity.serializer(), it)))
                     if (groupChatMsgBuf.size >= IMPORT_BATCH) {
                         flushBatch(groupChatMsgBuf) { batch ->
                             db.withTransaction {
@@ -1756,6 +1898,13 @@ class BackupService(
                         }
                     }
                 }
+                else -> return false
+            }
+            return true
+        }
+
+        private suspend fun ingestPrimaryKnowledge(type: String, obj: JsonObject): Boolean {
+            when (type) {
                 "scheduledTask" -> obj["data"]?.let {
                     schedTaskBuf.add(json.decodeFromJsonElement(ScheduledTaskEntity.serializer(), it))
                     if (schedTaskBuf.size >= IMPORT_BATCH) {
@@ -1833,11 +1982,20 @@ class BackupService(
                 else -> return false
             }
             return true
+                else -> return false
+            }
+            return true
         }
 
         private suspend fun ingestExtendedRecord(type: String, obj: JsonObject) {
+            if (ingestExtendedConversation(type, obj)) return
+            if (ingestExtendedKnowledge(type, obj)) return
+            if (ingestExtendedProactive(type, obj)) return
+            ingestExtendedTail(type, obj)
+        }
+
+        private suspend fun ingestExtendedConversation(type: String, obj: JsonObject): Boolean {
             when (type) {
-                // P0-10: 此前缺失的实体
                 "quickNote" -> obj["data"]?.let {
                     quickNoteBuf.add(json.decodeFromJsonElement(io.zer0.muse.data.quicknote.QuickNoteEntity.serializer(), it))
                     if (quickNoteBuf.size >= IMPORT_BATCH) {
@@ -1912,6 +2070,13 @@ class BackupService(
                         }
                     }
                 }
+                else -> return false
+            }
+            return true
+        }
+
+        private suspend fun ingestExtendedKnowledge(type: String, obj: JsonObject): Boolean {
+            when (type) {
                 "conversationDisplaySlot" -> obj["data"]?.let {
                     val slot = json.decodeFromJsonElement(
                         io.zer0.muse.data.conversation.ConversationDisplaySlotEntity.serializer(),
@@ -1989,6 +2154,13 @@ class BackupService(
                         }
                     }
                 }
+                else -> return false
+            }
+            return true
+        }
+
+        private suspend fun ingestExtendedProactive(type: String, obj: JsonObject): Boolean {
+            when (type) {
                 "subagentThread" -> obj["data"]?.let {
                     subagentThreadBuf.add(json.decodeFromJsonElement(SubagentThreadEntity.serializer(), it))
                     if (subagentThreadBuf.size >= IMPORT_BATCH) {
@@ -2064,6 +2236,13 @@ class BackupService(
                         }
                     }
                 }
+                else -> return false
+            }
+            return true
+        }
+
+        private suspend fun ingestExtendedTail(type: String, obj: JsonObject) {
+            when (type) {
                 "proactiveOutcome" -> obj["data"]?.let {
                     proactiveOutcomeBuf.add(
                         json.decodeFromJsonElement(
@@ -2187,6 +2366,12 @@ class BackupService(
         }
 
         private suspend fun flushExtendedRemaining() {
+            flushConversationTail()
+            flushStateTail()
+            flushProactiveTail()
+        }
+
+        private suspend fun flushConversationTail() {
             // P0-10: 此前缺失的实体
             flushBatch(quickNoteBuf) { batch -> db.withTransaction { batch.forEach { db.quickNoteDao().upsert(it) } } }
             flushBatch(worldBookBuf) { batch -> db.withTransaction { batch.forEach { db.worldBookDao().upsert(it) } } }
@@ -2203,6 +2388,9 @@ class BackupService(
             flushBatch(subagentThreadBuf) { batch -> db.withTransaction { batch.forEach { db.subagentThreadDao().upsert(it) } } }
             flushBatch(toolRoundBuf) { batch -> db.withTransaction { db.toolRoundDao().upsertAll(batch) } }
             flushBatch(sessionBranchHeadBuf) { batch -> db.withTransaction { batch.forEach { db.sessionBranchHeadDao().upsert(it) } } }
+        }
+
+        private suspend fun flushStateTail() {
             flushBatch(conversationCommandReceiptBuf) { batch ->
                 db.withTransaction { batch.forEach { db.conversationCommandReceiptDao().insert(it) } }
             }
@@ -2214,6 +2402,9 @@ class BackupService(
             }
             flushBatch(groupChatMemoryBuf) { batch -> db.withTransaction { batch.forEach { db.groupChatMemoryDao().insert(it) } } }
             // v2.6.7 fix (AUDIT F1): 尾部 flush 待办与角色关系。
+        }
+
+        private suspend fun flushProactiveTail() {
             flushBatch(sessionTodoBuf) { batch -> db.withTransaction { batch.forEach { db.sessionTodoDao().upsert(it) } } }
             // v2.6.9: 主动消息三表尾部 flush。
             // v2.7.x(E2): 术语尾部 flush —— 分批读到的尾巴必须落库，否则末批术语会丢。
@@ -2239,7 +2430,6 @@ class BackupService(
             flushBatch(cardEntityBuf) { batch ->
                 db.withTransaction { db.appendCardEntities(batch) }
             }
-
         }
 
         private suspend fun restoreKnowledgeV2Portable() {
@@ -2252,7 +2442,6 @@ class BackupService(
                 ).restore(portable)
                 check(report.success) { "知识库 V2 恢复失败: ${report.failureReason}" }
             }
-
         }
     }
 
@@ -2271,19 +2460,20 @@ class BackupService(
         var sawMeta = false
         var sawAnyRecord = false
         for (line in lines) {
-            if (line.isBlank()) continue
-            val obj = resultOf { json.decodeFromString(JsonObject.serializer(), line) }
-                .onError { msg, t ->
-                    Logger.w("BackupService", "合并导入跳过无法解析的行: ${t?.message ?: msg}", t)
+            if (line.isNotBlank()) {
+                val obj = resultOf { json.decodeFromString(JsonObject.serializer(), line) }
+                    .onError { msg, t ->
+                        Logger.w("BackupService", "合并导入跳过无法解析的行: ${t?.message ?: msg}", t)
+                    }
+                    .getOrNull()
+                val type = obj?.let { (it["type"] as? JsonPrimitive)?.contentOrNull }
+                if (type == "meta") {
+                    sawMeta = true
+                } else if (type != null) {
+                    sawAnyRecord = true
+                    importer.ingest(type, obj)
                 }
-                .getOrNull() ?: continue
-            val type = (obj["type"] as? JsonPrimitive)?.contentOrNull ?: continue
-            if (type == "meta") {
-                sawMeta = true
-                continue
             }
-            sawAnyRecord = true
-            importer.ingest(type, obj)
         }
         require(sawMeta || sawAnyRecord) { "备份文件为空,已拒绝导入" }
         val result = importer.commit()
@@ -2320,12 +2510,13 @@ class BackupService(
         val journalEntry = restoreJournal.begin(
             restoreId = "restore-${UUID.randomUUID()}",
             sourceHash = "ndjson-${UUID.randomUUID()}",
-            backupVersion = 4,
+            backupVersion = NDJSON_BACKUP_VERSION,
             recoveryFormat = RestoreJournal.RecoveryFormat.NDJSON,
         )
         var currentJournal = journalEntry
         return try {
             currentJournal = restoreJournal.advance(currentJournal, RestoreJournal.Phase.STAGING)
+            captureLocalRecoveryCredentials(currentJournal)
             restoreStagingStore.writeRecoveryNdJson(currentJournal) { writer ->
                 writeNdJson(writer)
             }
@@ -2347,14 +2538,25 @@ class BackupService(
             restoreStagingStore.cleanup(currentJournal)
             result
         } catch (e: kotlin.coroutines.cancellation.CancellationException) {
-            val rolledBack = rollbackNdJsonRestore(currentJournal, e)
-            if (!rolledBack) restoreJournal.fail(currentJournal, e)
+            handleNdJsonRestoreFailure(currentJournal, e)
             throw e
         } catch (e: Exception) {
-            val rolledBack = rollbackNdJsonRestore(currentJournal, e)
-            if (!rolledBack) restoreJournal.fail(currentJournal, e)
+            handleNdJsonRestoreFailure(currentJournal, e)
             throw e
         }
+    }
+
+    private fun discardUncommittedRestore(entry: RestoreJournal.Entry): Boolean {
+        if (entry.phase !in setOf(RestoreJournal.Phase.PREPARING, RestoreJournal.Phase.STAGING, RestoreJournal.Phase.VALIDATING)) {
+            return false
+        }
+        restoreJournal.complete(entry)
+        restoreStagingStore.cleanup(entry)
+        return true
+    }
+
+    private suspend fun handleNdJsonRestoreFailure(entry: RestoreJournal.Entry, error: Throwable) {
+        if (!discardUncommittedRestore(entry) && !rollbackNdJsonRestore(entry, error)) restoreJournal.fail(entry, error)
     }
 
     private suspend fun rollbackNdJsonRestore(entry: RestoreJournal.Entry, originalError: Throwable): Boolean =
@@ -2362,9 +2564,7 @@ class BackupService(
             try {
                 Logger.w("BackupService", "NDJSON 恢复失败,回滚持久化恢复点: ${originalError.message}", originalError)
                 var rollbackJournal = restoreJournal.advance(entry, RestoreJournal.Phase.ROLLING_BACK)
-                restoreStagingStore.readRecoveryNdJson(entry) { recoveryLines ->
-                    applyNdJsonStreaming(recoveryLines, allowEmptyBackup = true)
-                }
+                restoreNdJsonRecoveryPoint(entry)
                 rollbackJournal = restoreJournal.advance(
                     rollbackJournal,
                     RestoreJournal.Phase.REBUILDING,
@@ -2385,6 +2585,42 @@ class BackupService(
             }
         }
 
+    private suspend fun captureLocalRecoveryCredentials(entry: RestoreJournal.Entry) {
+        restoreStagingStore.writeRecoveryCredentials(
+            entry,
+            RestoreStagingStore.RecoveryCredentials(
+                rawProviders = settings.rawProvidersForLocalRecovery()?.takeUnless(String::isEmpty),
+                nodes = db.remoteComputeNodeDao().getAll().filter {
+                    it.encryptedCredential.isNotEmpty() || it.encryptedNodeToken.isNotEmpty()
+                },
+            ),
+        )
+    }
+
+    private suspend fun restoreLocalRecoveryCredentials(entry: RestoreJournal.Entry) {
+        val credentials = restoreStagingStore.readRecoveryCredentials(entry) ?: return
+        settings.restoreLocalProviders(credentials.rawProviders)
+        if (credentials.nodes.isNotEmpty()) db.remoteComputeNodeDao().upsertAll(credentials.nodes)
+    }
+
+    private suspend fun restoreNdJsonRecoveryPoint(entry: RestoreJournal.Entry) {
+        restoreStagingStore.readRecoveryNdJson(entry) { recoveryLines ->
+            try {
+                applyNdJsonStreaming(recoveryLines, allowEmptyBackup = true)
+            } finally {
+                restoreLocalRecoveryCredentials(entry)
+            }
+        }
+    }
+
+    private suspend fun applyJsonRecoveryPoint(entry: RestoreJournal.Entry, recovery: Backup) {
+        try {
+            applyBackupInternal(recovery)
+        } finally {
+            restoreLocalRecoveryCredentials(entry)
+        }
+    }
+
     /**
      * P0-10: 枚举磁盘上已存在的子助手分库文件 facts_<id>.db,返回 assistantId 列表。
      * 不含默认库 facts.db(其数据经 [factDb] 单独导出);-wal/-shm 附属文件一并排除。
@@ -2396,7 +2632,7 @@ class BackupService(
             f.isFile && f.name.startsWith(SCOPED_FACT_DB_PREFIX) && f.name.endsWith(".db")
         }?.mapNotNull { f ->
             f.name.removePrefix(SCOPED_FACT_DB_PREFIX).removeSuffix(".db")
-                .takeIf { it.isNotBlank() && it != "db" }
+                .takeIf { it.isNotBlank() && it != "db" && it != "default" }
         }?.distinct() ?: emptyList()
     }
 
@@ -2419,15 +2655,24 @@ class BackupService(
      * 先清空再插入(与默认库恢复语义一致),id 自增主键导入时重置为 0 由 DB 重新分配。
      */
     private suspend fun writeScopedFacts(assistantId: String, facts: List<FactEntity>) {
-        if (facts.isEmpty()) return
         val db = factDbProvider.getFactDb(assistantId)
         try {
             db.withTransaction {
                 db.factDao().deleteAll()
-                db.factDao().insertAll(facts.map { it.copy(id = 0) })
+                if (facts.isNotEmpty()) db.factDao().insertAll(facts.map { it.copy(id = 0) })
             }
         } finally {
             runCatching { factDbProvider.release(assistantId) }
+        }
+    }
+
+    private suspend fun replaceScopedFacts(facts: Map<String, List<FactEntity>>) {
+        val scopedIds = facts.keys.filterNot { it.isBlank() || it == "default" }
+        require(scopedIds.none { '/' in it || '\\' in it || '\u0000' in it || it == "." || it == ".." }) {
+            "Invalid assistant identifier in backup"
+        }
+        for (assistantId in (listScopedFactDbIds() + scopedIds).distinct()) {
+            writeScopedFacts(assistantId, facts[assistantId].orEmpty())
         }
     }
 
@@ -2441,11 +2686,25 @@ class BackupService(
     }
 
     private suspend fun restoreSupplementalMuseRecord(type: String, data: JsonElement, now: Long) {
+        if (restoreSupplementalCore(type, data, now)) return
+        restoreSupplementalBot(type, data, now)
+    }
+
+    private suspend fun restoreSupplementalCore(type: String, data: JsonElement, now: Long): Boolean {
         when (type) {
             "remoteComputeNode" -> {
                 val node = json.decodeFromJsonElement(RemoteComputeNodeEntity.serializer(), data)
                 db.remoteComputeNodeDao().upsert(encryptRemoteComputeNodesForRestore(listOf(node)).single())
             }
+            // Media Studio：行是无外键的独立用户资产，逐条 upsert 即可（表已在清空阶段 deleteAll）。
+            "mediaGenTask" -> db.mediaGenDao().upsertTask(
+                json.decodeFromJsonElement(io.zer0.muse.data.media.MediaGenTaskEntity.serializer(), data),
+            )
+            "mediaGenAsset" -> db.mediaGenDao().insertAssets(
+                listOf(
+                    rebaseMediaAsset(json.decodeFromJsonElement(io.zer0.muse.data.media.MediaGenAssetEntity.serializer(), data)),
+                ),
+            )
             "proactiveBacklogDispatch" -> {
                 val source = json.decodeFromJsonElement(
                     io.zer0.muse.data.proactive.ProactiveBacklogDispatchEntity.serializer(),
@@ -2476,6 +2735,13 @@ class BackupService(
                 )
                 db.proactiveBacklogScheduleDao().deferUntil(schedule.nextBacklogDispatchAt, now)
             }
+            else -> return false
+        }
+        return true
+    }
+
+    private suspend fun restoreSupplementalBot(type: String, data: JsonElement, now: Long) {
+        when (type) {
             "botBinding" -> db.botBindingDao().upsert(
                 json.decodeFromJsonElement(io.zer0.muse.data.agentbot.BotBindingEntity.serializer(), data),
             )
@@ -2531,7 +2797,21 @@ class BackupService(
         runCatching { io.zer0.muse.tools.TodoTool.clearAll() }
             .onFailure { Logger.w("BackupService", "导入后清理待办快照失败", it) }
     }
+    private fun countPortableMcpServers(snapshot: Map<String, String>): Int = snapshot[SettingsSnapshotPolicy.MCP_SERVERS_KEY]?.let { raw ->
+        runCatching {
+            json.decodeFromString(
+                ListSerializer(io.zer0.muse.mcp.McpServerConfig.serializer()),
+                raw,
+            ).size
+        }.getOrElse { error ->
+            Logger.w("BackupService", "备份中的 MCP 配置计数失败", error)
+            0
+        }
+    } ?: 0
+
     companion object {
+        private const val NDJSON_BACKUP_VERSION = 6
+
         /** 供应商配置在设置快照里的键名（与 [SettingsRepository] 的落盘键一致）。 */
         internal const val KEY_PROVIDERS_SETTING = "providers_json"
 
@@ -2587,6 +2867,9 @@ class BackupService(
         @JvmStatic
         internal fun isBackupPasswordUnavailable(config: CloudBackupConfig): Boolean =
             config.backupPasswordSet && config.backupPassword.isBlank()
+
+        internal fun requiresCloudBackupPassword(config: CloudBackupConfig, includeSecrets: Boolean): Boolean =
+            config.backupPassword.isBlank() && (config.backupPasswordSet || includeSecrets)
 
         /**
          * 问题7.3: 设备相关设置 key 集合,恢复 settingsSnapshot 时跳过这些 key。
@@ -2657,9 +2940,11 @@ class BackupService(
             // B-9/P0-1: 用户曾设置备份密码但 Keystore 解密失败(password 为空)时,
             // 拒绝降级为明文上传(与本地导出走同一判定 [isBackupPasswordUnavailable]),
             // 提示重新设置,避免敏感对话以明文落云端。
-            isBackupPasswordUnavailable(config) -> CloudBackupOutcome.PASSWORD_UNAVAILABLE
+            requiresCloudBackupPassword(config, includeSecrets) -> CloudBackupOutcome.PASSWORD_UNAVAILABLE
             else -> {
-                val write = writeBackupToCloud(config, includeSecrets)
+                val write = resultOf { writeBackupToCloud(config, includeSecrets) }
+                    .onError { message, error -> Logger.w("BackupService", "云备份无法完成: $message", error) }
+                    .getOrNull()
                 when {
                     write == null -> CloudBackupOutcome.WRITE_FAILED
                     !verifyCloudBackupWrite(config, write) -> CloudBackupOutcome.VERIFY_FAILED
@@ -2685,51 +2970,39 @@ class BackupService(
     }
 
     /** F-04: 一次云备份写入的规模信息(供读回校验与日志)。摘要针对上传密文。 */
-    private data class CloudWrite(val bytes: Long, val messages: Long, val sha256: String)
+    private data class CloudWrite(
+        val bytes: Long,
+        val messages: Long,
+        val sha256: String,
+    )
 
     /**
      * F-04: 写出 NDJSON(内存字节)并上传云端;失败记录 write_failed 日志。
      * @return 上传成功时的规模信息;null 表示写入/上传失败
      */
-    private suspend fun writeBackupToCloud(config: CloudBackupConfig, includeSecrets: Boolean = false): CloudWrite? {
-        // B-25: 复用 writeNdJson 流式产物 — 逐条序列化写入字节缓冲,不再 buildBackup + encodeToString
-        // (Backup 全量对象 + 巨串 + 字节数组三份内存驻留)。云端上传 API 需整份字节,
-        // 这里峰值仅一份 NDJSON 字节数组(明文或加密后),大幅降低万级消息的 OOM 风险。
-        val plaintext: ByteArray
-        val writeSummary: NdJsonExportSummary
-        ByteArrayOutputStream().use { baos ->
-            BufferedWriter(OutputStreamWriter(baos, Charsets.UTF_8)).use { writer ->
-                writeSummary = writeNdJson(writer, includeSecrets)
+    private suspend fun writeBackupToCloud(config: CloudBackupConfig, includeSecrets: Boolean): CloudWrite? = withCloudBackupFile { file ->
+        val summary = file.outputStream().use { output ->
+            val stream = if (config.backupPassword.isNotBlank()) {
+                FramedBackupCrypto.encryptingStream(output, config.backupPassword)
+            } else {
+                output
             }
-            plaintext = baos.toByteArray()
+            stream.bufferedWriter(Charsets.UTF_8).use { writer -> writeNdJson(writer, includeSecrets) }
         }
-        // v1.x 诊断: 记录导出规模,便于排查"备份不完整/恢复后数据丢失"类问题
-        Logger.i(
-            "BackupService",
-            "导出云端备份: ${writeSummary.sessions} 会话 / ${writeSummary.messages} 消息" +
-                " / ${writeSummary.facts} 记忆 / ${writeSummary.groupChatMessages} 群聊消息",
-        )
-        val data = if (config.backupPassword.isNotEmpty()) {
-            BackupCrypto.encrypt(plaintext, config.backupPassword)
-        } else {
-            plaintext
+        if (!cloudBackupService.uploadBackupWithLatest(config, file)) {
+            logCloudBackup("write_failed", file.length(), summary.messages.toLong(), "upload failed")
+            return@withCloudBackupFile null
         }
-        val uploaded = cloudBackupService.uploadBackupWithLatest(config, data)
-        if (!uploaded) {
-            Logger.w("BackupService", "云备份上传失败(写入阶段)")
-            logCloudBackup(
-                status = "write_failed",
-                size = data.size.toLong(),
-                messageCount = writeSummary.messages.toLong(),
-                error = "upload failed",
-            )
-            return null
+        CloudWrite(file.length(), summary.messages.toLong(), Hashing.sha256Hex(file))
+    }
+
+    private suspend fun <T> withCloudBackupFile(block: suspend (File) -> T): T = withContext(Dispatchers.IO) {
+        val file = File.createTempFile("muse-cloud-backup-", ".tmp", context.cacheDir)
+        try {
+            block(file)
+        } finally {
+            if (file.exists() && !file.delete()) Logger.w("BackupService", "Unable to remove temporary cloud backup")
         }
-        return CloudWrite(
-            bytes = data.size.toLong(),
-            messages = writeSummary.messages.toLong(),
-            sha256 = sha256Hex(data),
-        )
     }
 
     /**
@@ -2739,82 +3012,49 @@ class BackupService(
      * (见 [validateCloudReadBackNdjson]),避免"字节一致但解密后内容非法"被记为成功。
      * 校验结果(成功或 verify_failed,含明确失败原因)写入 auto_backup_log。
      */
-    private suspend fun verifyCloudBackupWrite(config: CloudBackupConfig, write: CloudWrite): Boolean {
-        val readBack = cloudBackupService.downloadLatestBackup(config)
-        val readBackHash = readBack?.let(::sha256Hex)
-        val byteVerified = readBack != null &&
-            readBack.size.toLong() == write.bytes &&
-            readBackHash == write.sha256
-        if (!byteVerified) {
-            Logger.w(
-                "BackupService",
-                "云备份读回校验失败(字节): 上传 ${write.bytes} bytes/hash=${write.sha256}, " +
-                    "读回 ${readBack?.size ?: -1} bytes/hash=${readBackHash ?: "-"}",
-            )
-            logCloudBackup(
-                status = "verify_failed",
-                size = write.bytes,
-                messageCount = write.messages,
-                error = "read-back mismatch: uploaded ${write.bytes}/${write.sha256}, " +
-                    "got ${readBack?.size ?: -1}/${readBackHash ?: "-"}",
-            )
-            return false
+    private suspend fun verifyCloudBackupWrite(config: CloudBackupConfig, write: CloudWrite): Boolean = withCloudBackupFile { readBack ->
+        val downloaded = cloudBackupService.downloadBackupTo(config, fileName = null, target = readBack)
+        val error = if (!downloaded || readBack.length() != write.bytes || Hashing.sha256Hex(readBack) != write.sha256) {
+            "read-back size or checksum mismatch"
+        } else {
+            resultOf {
+                readBack.inputStream().buffered().use { input ->
+                    openCloudBackup(input, config).bufferedReader(Charsets.UTF_8).use(::validateCloudReadBackReader)
+                }
+            }.onError { _, failure -> Logger.w("BackupService", "Cloud backup read-back could not be decoded", failure) }
+                .let { result -> result.getOrNull() ?: if (result.isSuccess) null else "read-back decode failed" }
         }
-        // Phase 3 (P1): 字节一致 ≠ 内容可恢复 — 解密后校验 NDJSON 结构/meta/行数
-        val contentError =
-            validateCloudReadBackNdjsonWithPolicy(
-                readBack,
-                config.backupPassword,
-                config.backupPasswordSet,
-            )
-        if (contentError != null) {
-            Logger.w("BackupService", "云备份读回校验失败(内容): $contentError")
-            logCloudBackup(
-                status = "verify_failed",
-                size = write.bytes,
-                messageCount = write.messages,
-                error = "read-back content invalid: $contentError",
-            )
-            return false
-        }
-        logCloudBackup(
-            status = "success",
-            size = write.bytes,
-            messageCount = write.messages,
-            error = "",
-        )
-        return true
+        logCloudBackup(if (error == null) "success" else "verify_failed", write.bytes, write.messages, error.orEmpty())
+        error == null
     }
 
     /**
      * Phase 8.9: 从云端下载最新备份并导入。
      * @return 导入的会话数 + 消息数;null 表示无备份或下载失败
      */
-    suspend fun importFromCloud(mode: BackupImportMode = BackupImportMode.OVERWRITE): Pair<Int, Int>? {
-        val config = settings.cloudBackupConfigFlow.first()
-        if (!config.isConfigured) return null
-        val data = cloudBackupService.downloadLatestBackup(config) ?: return null
-        val imported = withBackupImportWriteGate {
-            if (mode == BackupImportMode.MERGE) applyCloudBackupDataMerge(data) else applyCloudBackupData(config, data)
-        }
-        runAfterRestoreRecovery()
-        return imported
-    }
+    suspend fun importFromCloud(mode: BackupImportMode = BackupImportMode.OVERWRITE): Pair<Int, Int>? =
+        importCloudBackup(fileName = null, mode = mode)
 
     /**
      * v1.132: 从云端下载指定归档版本并导入(供 CloudBackupPage "按版本恢复"使用)。
      * @param fileName 归档文件名(如 muse-backup-20250719-153000.json)
      * @return 导入的会话数 + 消息数;null 表示无备份或下载失败
      */
-    suspend fun importFromCloudFile(fileName: String, mode: BackupImportMode = BackupImportMode.OVERWRITE): Pair<Int, Int>? {
+    suspend fun importFromCloudFile(fileName: String, mode: BackupImportMode = BackupImportMode.OVERWRITE): Pair<Int, Int>? =
+        importCloudBackup(fileName, mode)
+
+    private suspend fun importCloudBackup(fileName: String?, mode: BackupImportMode): Pair<Int, Int>? = withCloudBackupFile { file ->
         val config = settings.cloudBackupConfigFlow.first()
-        if (!config.isConfigured) return null
-        val data = cloudBackupService.downloadBackup(config, fileName) ?: return null
-        val imported = withBackupImportWriteGate {
-            if (mode == BackupImportMode.MERGE) applyCloudBackupDataMerge(data) else applyCloudBackupData(config, data)
-        }
-        runAfterRestoreRecovery()
-        return imported
+        if (!cloudBackupService.downloadBackupTo(config, fileName, file)) return@withCloudBackupFile null
+        val imported = resultOf {
+            withBackupImportWriteGate {
+                file.inputStream().buffered().use { input ->
+                    importReader(context, openCloudBackup(input, config).bufferedReader(Charsets.UTF_8), mode)
+                }
+            }
+        }.onError { _, error -> Logger.w("BackupService", "Cloud backup restore failed", error) }.getOrNull()
+        if (imported != null) runAfterRestoreRecovery()
+        imported
     }
 
     /**
@@ -3030,129 +3270,19 @@ class BackupService(
         }.getOrDefault(false)
     }
 
-    /**
-     * 叠加导入的云端入口：解密后交给 [applyNdJsonMerge]，不清空本机数据。
-     *
-     * 只支持 NDJSON 正文；旧单 JSON 云端备份明确拒绝合并（缺可重映射的引用关系）。
-     */
-    private suspend fun applyCloudBackupDataMerge(data: ByteArray): Pair<Int, Int>? {
-        val config = settings.cloudBackupConfigFlow.first()
-        val plaintext = if (BackupCrypto.isEncrypted(data)) {
-            if (config.backupPassword.isEmpty()) {
-                Logger.w("BackupService", "云端备份已加密但未设置备份密码,无法解密")
-                return null
-            }
-            resultOf { BackupCrypto.decrypt(data, config.backupPassword) }
-                .onError { _, t -> Logger.w("BackupService", "云端备份解密失败(密码错误?)", t) }
-                .getOrNull() ?: return null
+    private fun openCloudBackup(input: BufferedInputStream, config: CloudBackupConfig): InputStream {
+        val header = readBackupHeader(input)
+        require(!shouldRejectPlaintextCloudBackup(header, config.backupPasswordSet, config.backupPassword)) {
+            "Plaintext backup while cloud encryption is configured"
+        }
+        return if (BackupCrypto.isEncrypted(header)) {
+            require(config.backupPassword.isNotBlank()) { "Cloud backup password is required" }
+            decryptBackup(input, header, config.backupPassword)
         } else {
-            data
-        }
-        val rawReader = plaintext.inputStream().bufferedReader(Charsets.UTF_8)
-        val firstLine = generateSequence { rawReader.readLine() }
-            .firstOrNull { !it.isNullOrBlank() }
-            ?: run {
-                rawReader.close()
-                return null
-            }
-        val isNdJson = resultOf {
-            val obj = json.decodeFromString(JsonObject.serializer(), firstLine)
-            obj["type"]?.let { (it as? JsonPrimitive)?.content } == "meta"
-        }.getOrNull() ?: false
-        if (!isNdJson) {
-            rawReader.close()
-            Logger.w("BackupService", "云端备份不是 NDJSON,拒绝叠加导入")
-            return null
-        }
-        return rawReader.use { reader ->
-            val rest = sequence {
-                while (true) {
-                    val line = reader.readLine() ?: break
-                    yield(line)
-                }
-            }
-            resultOf { applyNdJsonMerge(sequenceOf(firstLine) + rest) }
-                .onError { _, t -> Logger.w("BackupService", "云端 NDJSON 叠加导入失败", t) }
-                .getOrNull()
+            input
         }
     }
 
-    /**
-     * v1.132: 把云端下载的(可能加密的)字节流解密、解析并导入到本地 DB。
-     * 抽出公共逻辑供 [importFromCloud] / [importFromCloudFile] 复用。
-     * @return 导入的会话数 + 消息数;null 表示解密/解析失败
-     */
-    private suspend fun applyCloudBackupData(config: CloudBackupConfig, data: ByteArray): Pair<Int, Int>? {
-        if (shouldRejectPlaintextCloudBackup(data, config.backupPasswordSet, config.backupPassword)) {
-            Logger.w("BackupService", "拒绝明文云备份: 当前设备已配置备份加密")
-            return null
-        }
-        val plaintext = if (BackupCrypto.isEncrypted(data)) {
-            if (config.backupPassword.isEmpty()) {
-                Logger.w("BackupService", "云端备份已加密但未设置备份密码,无法解密")
-                return null
-            }
-            resultOf { BackupCrypto.decrypt(data, config.backupPassword) }
-                .onError { msg, t ->
-                    Logger.w("BackupService", "云端备份解密失败(密码错误?)", t)
-                    return null
-                }
-                .getOrNull() ?: return null
-        } else {
-            data
-        }
-
-        // B-23: 不再整份 plaintext.toString + lineSequence(会把解密后明文翻倍驻留内存)。
-        // 改用 BufferedReader 逐行流式读取,仅在真正需要全量解析的单 JSON 分支才整读。
-        val rawReader = plaintext.inputStream().bufferedReader(Charsets.UTF_8)
-        val firstLine = generateSequence { rawReader.readLine() }
-            .firstOrNull { !it.isNullOrBlank() }
-            ?: run {
-                rawReader.close()
-                return null
-            }
-        val isNdJson = resultOf {
-            val obj = json.decodeFromString(JsonObject.serializer(), firstLine)
-            obj["type"]?.let { (it as? JsonPrimitive)?.content } == "meta"
-        }.getOrNull() ?: false
-
-        return if (isNdJson) {
-            // B-23: 首行已消费,继续从 reader 逐行流式导入,避免 NDJSON 整份字符串驻留。
-            rawReader.use { reader ->
-                val rest = sequence {
-                    while (true) {
-                        val line = reader.readLine() ?: break
-                        yield(line)
-                    }
-                }
-                resultOf { applyNdJsonStreamingWithImageCleanup(sequenceOf(firstLine) + rest) }
-                    .onError { _, t -> Logger.w("BackupService", "云端 NDJSON 流式导入失败", t) }
-                    .getOrNull()
-            }
-        } else {
-            rawReader.use { reader ->
-                // B-25: 云端正本已整份驻留内存(下载 + 解密),无法杜绝下载期 OOM;
-                // B-23: 单 JSON 路径必须整份 decode 到内存,因此保留体量上限拦截以防解析 OOM,
-                // 上限可经构造参数 [singleJsonMaxBytes] 调大以兼容更大合法备份(向后兼容默认 64MB)。
-                val backup = resultOf {
-                    json.decodeFromString(Backup.serializer(), readSingleJsonWithLimit(reader, firstLine))
-                }.onError { msg, t ->
-                    Logger.w("BackupService", "云端单 JSON 备份读取/解析失败,拒绝恢复: ${t?.message ?: msg}", t)
-                }.getOrNull() ?: return null
-                // v1.x 数据安全: 云端备份为空(0 会话 0 消息)时拒绝恢复,
-                // 避免"空备份覆盖本地数据"导致对话全部丢失(用户反馈 WebDAV 恢复后对话全没了)。
-                if (!backup.hasAnyData()) {
-                    Logger.w("BackupService", "云端备份为空,拒绝恢复以免覆盖本地数据")
-                    return null
-                }
-                applyBackup(backup)
-            }
-        }
-    }
-
-    /**
-     * Phase 8.9: 检查云端是否存在备份文件。
-     */
     suspend fun hasCloudBackup(): Boolean {
         val config = settings.cloudBackupConfigFlow.first()
         if (!config.isConfigured) return false
@@ -3230,6 +3360,9 @@ class BackupService(
         val sessionTerms: List<io.zer0.muse.data.terms.SessionTermEntity>,
         /** v2.6.8: 卡片实体。 */
         val cardEntities: List<CardEntityRecord>,
+        /** Media Studio 生成任务与资产行（用户资产，换机不丢收藏与提示词）。 */
+        val mediaGenTasks: List<io.zer0.muse.data.media.MediaGenTaskEntity>,
+        val mediaGenAssets: List<io.zer0.muse.data.media.MediaGenAssetEntity>,
         val groupChatMemories: List<GroupChatMemoryEntity>,
         /** R9: 知识库 V2 便携备份快照(与其它表同一 MuseDb 事务内读取)。 */
         val knowledgeV2Portable: io.zer0.muse.knowledge.backup.KnowledgePortableBackup,
@@ -3269,6 +3402,39 @@ class BackupService(
     private suspend fun writeBinaryFiles(files: Map<String, String>) = withContext(Dispatchers.IO) {
         BackupBinaryFiles.restore(files = files, filesDir = context.filesDir)
     }
+
+    private fun rebasePrivatePath(value: String): String =
+        BackupBinaryFiles.rebasePrivateFileReference(value, context.filesDir, context.packageName)
+
+    private fun rewritePrivateSettingReferences(snapshot: Map<String, String>): Map<String, String> =
+        snapshot.mapValues { (_, value) -> rebasePrivatePath(value) }
+
+    private fun rebaseImagePaths(encoded: String): String {
+        if (!encoded.contains("/data/")) return encoded
+        val serializer = ListSerializer(String.serializer())
+        val oldPaths = resultOf { json.decodeFromString(serializer, encoded) }
+            .onError { _, error -> Logger.w("BackupService", "Invalid image paths in a restored message", error) }
+            .getOrNull() ?: return encoded
+        val paths = oldPaths.map(::rebasePrivatePath)
+        return if (paths == oldPaths) encoded else json.encodeToString(serializer, paths)
+    }
+
+    private fun rebaseMessageAssets(message: MessageEntity): MessageEntity = message.copy(
+        imageUrlsJson = rebaseImagePaths(message.imageUrlsJson),
+        imageBase64Json = rebaseImagePaths(message.imageBase64Json),
+        voiceUri = message.voiceUri?.let(::rebasePrivatePath),
+        videoFileUri = message.videoFileUri?.let(::rebasePrivatePath),
+    )
+
+    private fun rebaseGroupMessageAssets(message: GroupChatMessageEntity): GroupChatMessageEntity = message.copy(
+        imageBase64Json = rebaseImagePaths(message.imageBase64Json),
+        videoFileUri = message.videoFileUri?.let(::rebasePrivatePath),
+    )
+
+    private fun rebaseMediaAsset(asset: io.zer0.muse.data.media.MediaGenAssetEntity) = asset.copy(
+        localPath = rebasePrivatePath(asset.localPath),
+        thumbnailPath = asset.thumbnailPath?.let(::rebasePrivatePath),
+    )
 
     private suspend fun snapshotBacklogForBackup(now: Long): RestoredBacklogSnapshot {
         val dispatches = db.proactiveBacklogDao().getAll()
@@ -3341,14 +3507,13 @@ class BackupService(
      * 导入云电脑节点：备份里的凭据是跨设备可迁移的明文，写库前必须换成本机 Keystore 密文。
      * encrypt 对空值与已带 enc_v1: 前缀的值幂等，重复导入不会二次加密。
      */
-    private suspend fun encryptRemoteComputeNodesForRestore(
-        nodes: List<RemoteComputeNodeEntity>,
-    ): List<RemoteComputeNodeEntity> = nodes.map { node ->
-        node.copy(
-            encryptedCredential = SecureKeyStore.encrypt(node.encryptedCredential),
-            encryptedNodeToken = SecureKeyStore.encrypt(node.encryptedNodeToken),
-        )
-    }
+    private suspend fun encryptRemoteComputeNodesForRestore(nodes: List<RemoteComputeNodeEntity>): List<RemoteComputeNodeEntity> =
+        nodes.map { node ->
+            node.copy(
+                encryptedCredential = SecureKeyStore.encrypt(node.encryptedCredential),
+                encryptedNodeToken = SecureKeyStore.encrypt(node.encryptedNodeToken),
+            )
+        }
 
     private suspend fun buildBackup(includeSecrets: Boolean = false): Backup {
         // B-23: MuseDb 读取包事务,避免与并发写交织产生 torn 快照(回滚 recovery point 一致性)。
@@ -3418,6 +3583,9 @@ class BackupService(
                 // v2.6.8 / v2.6.9: 卡片实体。走 DAO 全量查询（Room 生成的映射，
                 // 实体加列不会再静默丢字段）。导出即按停靠顺序定序。
                 cardEntities = db.cardEntityDao().getAll().map { it.toRecord() }.inDockOrder(),
+                // Media Studio：单 JSON 导出与回滚恢复点共用同一快照，漏传会在回滚时清空生成记录。
+                mediaGenTasks = db.mediaGenDao().getAllTasks(),
+                mediaGenAssets = db.mediaGenDao().getAllAssets(),
                 knowledgeV2Portable = io.zer0.muse.knowledge.backup.KnowledgePortableBackupService(
                     v2Dao = db.knowledgeV2Dao(),
                     folderDao = db.knowledgeFolderV2Dao(),
@@ -3493,6 +3661,9 @@ class BackupService(
         // v2.6.8: 卡片实体（停靠卡 / 悬浮卡）。buildBackup 同时是恢复失败回滚的 recovery point
         // 来源，漏传就会在回滚时清空用户全部卡片。
         val cardEntities = snap.cardEntities
+        // Media Studio 生成记录与资产行（单 JSON 导出与回滚恢复点共用）。
+        val mediaGenTasks = snap.mediaGenTasks
+        val mediaGenAssets = snap.mediaGenAssets
         val remoteComputeNodes = sanitizeRemoteComputeNodesForExport(snap.remoteComputeNodes, includeSecrets)
         // P0-10: 子助手分库(facts_<id>.db)
         val scopedFacts = listScopedFactDbIds().associateWith { id ->
@@ -3569,6 +3740,8 @@ class BackupService(
             sessionProactivePreferences = sessionProactivePreferences,
             groupChatMemories = groupChatMemories,
             cardEntities = cardEntities,
+            mediaGenTasks = mediaGenTasks,
+            mediaGenAssets = mediaGenAssets,
             settingsSnapshot = settingsSnapshot,
             fileStores = fileStores,
             binaryFiles = binaryFiles,
@@ -3602,6 +3775,7 @@ class BackupService(
         return try {
             currentJournal = restoreJournal.advance(currentJournal, RestoreJournal.Phase.STAGING)
             // 先持久化目标与导入前恢复点；这样跨库提交中途进程被杀后仍能回滚。
+            captureLocalRecoveryCredentials(currentJournal)
             val preImportSnapshot = buildBackup()
             restoreStagingStore.writeTarget(currentJournal, migrated)
             restoreStagingStore.writeRecoveryPoint(currentJournal, preImportSnapshot)
@@ -3636,12 +3810,14 @@ class BackupService(
             pruneRestoredMessageImages(imageFilesBeforeRestore)
             result
         } catch (e: kotlin.coroutines.cancellation.CancellationException) {
-            val rolledBack = rollbackAfterRestoreFailure(currentJournal, e)
-            if (!rolledBack) restoreJournal.fail(currentJournal, e)
+            if (!discardUncommittedRestore(currentJournal) && !rollbackAfterRestoreFailure(currentJournal, e)) {
+                restoreJournal.fail(currentJournal, e)
+            }
             throw e
         } catch (e: Exception) {
-            val rolledBack = rollbackAfterRestoreFailure(currentJournal, e)
-            if (!rolledBack) restoreJournal.fail(currentJournal, e)
+            if (!discardUncommittedRestore(currentJournal) && !rollbackAfterRestoreFailure(currentJournal, e)) {
+                restoreJournal.fail(currentJournal, e)
+            }
             throw e
         }
     }
@@ -3665,7 +3841,7 @@ class BackupService(
                 Logger.w("BackupService", "恢复失败,回滚到持久化 recovery point: ${originalError.message}", originalError)
                 val imageFilesBeforeRollback = messageImageStore.snapshotStoredFilePaths()
                 var rollbackJournal = restoreJournal.advance(entry, RestoreJournal.Phase.ROLLING_BACK)
-                applyBackupInternal(recovery)
+                applyJsonRecoveryPoint(entry, recovery)
                 sessionRepository.rebuildFtsIndex()
                 invalidateRagAfterRestore()
                 rollbackJournal = restoreJournal.advance(
@@ -3700,18 +3876,17 @@ class BackupService(
     suspend fun recoverIncompleteRestore(gateAlreadyHeld: Boolean = false): Boolean = withContext(Dispatchers.IO) {
         suspend fun restoreBody(): Boolean {
             val entry = restoreJournal.incompleteEntry() ?: return false
+            if (discardUncommittedRestore(entry)) return true
             var current = entry
             return try {
                 val imageFilesBeforeRollback = messageImageStore.snapshotStoredFilePaths()
                 current = restoreJournal.advance(current, RestoreJournal.Phase.ROLLING_BACK)
                 if (entry.recoveryFormat == RestoreJournal.RecoveryFormat.NDJSON) {
-                    restoreStagingStore.readRecoveryNdJson(entry) { recoveryLines ->
-                        applyNdJsonStreaming(recoveryLines, allowEmptyBackup = true)
-                    }
+                    restoreNdJsonRecoveryPoint(entry)
                 } else {
                     val recovery = restoreStagingStore.readRecoveryPoint(entry)
                         ?: error("恢复账本存在，但找不到持久化 recovery point")
-                    applyBackupInternal(recovery)
+                    applyJsonRecoveryPoint(entry, recovery)
                     sessionRepository.rebuildFtsIndex()
                     invalidateRagAfterRestore()
                 }
@@ -3841,7 +4016,7 @@ class BackupService(
                 if (!it.isMiniPhone) db.sessionDao().insert(it.copy(warmupPending = true))
             }
             backup.messages.forEach {
-                if (it.sessionId !in miniPhoneSessionIds) db.messageDao().upsert(it)
+                if (it.sessionId !in miniPhoneSessionIds) db.messageDao().upsert(rebaseMessageAssets(it))
             }
 
             // v3: 扩展表(在同一事务中清空 + 插入)
@@ -3885,6 +4060,9 @@ class BackupService(
             db.agentGoalDao().deleteAll()
             db.agentWatcherDao().deleteAll()
             db.remoteComputeNodeDao().deleteAll()
+            // Media Studio 两张表也要清空：只导不恢复等于白备，只恢复不清空会与旧行混合。
+            db.mediaGenDao().deleteAllAssets()
+            db.mediaGenDao().deleteAllTasks()
             db.botMessageCardDao().deleteAll()
             db.botAnnotationDao().deleteAll()
             db.publicationOutboxDao().deleteAll()
@@ -3904,15 +4082,27 @@ class BackupService(
             // 同在 MuseDb 事务内，失败跟随整体回滚。
             db.cardEntityDao().deleteAll()
 
-            backup.assistants.forEach { db.assistantDao().upsert(it) }
+            backup.assistants.forEach { assistant ->
+                db.assistantDao().upsert(
+                    assistant.copy(
+                        avatarImageUrl = BackupBinaryFiles.rebasePrivateFileReference(
+                            assistant.avatarImageUrl,
+                            context.filesDir,
+                            context.packageName,
+                        ),
+                    ),
+                )
+            }
             backup.lorebooks.forEach { db.lorebookDao().upsert(it) }
             backup.skills.forEach { db.skillDao().upsert(it) }
-            backup.artifacts.forEach { if (it.sessionId !in miniPhoneSessionIds) db.artifactDao().upsert(it) }
+            backup.artifacts.forEach {
+                if (it.sessionId !in miniPhoneSessionIds) db.artifactDao().upsert(it.copy(content = rebasePrivatePath(it.content)))
+            }
             backup.quickMessages.forEach { db.quickMessageDao().upsert(it) }
             backup.promptInjections.forEach { db.promptInjectionDao().upsert(it) }
             backup.folders.forEach { db.folderDao().insert(it) }
             backup.groupChats.forEach { db.groupChatDao().upsert(it) }
-            backup.groupChatMessages.forEach { db.groupChatMessageDao().upsert(it) }
+            backup.groupChatMessages.forEach { db.groupChatMessageDao().upsert(rebaseGroupMessageAssets(it)) }
             backup.scheduledTasks.forEach { db.scheduledTaskDao().upsert(it) }
             backup.scheduledTaskExecutions.forEach { db.scheduledTaskExecutionDao().insert(it) }
             backup.knowledgeDocs.forEach { db.knowledgeDocDao().upsert(it) }
@@ -3979,6 +4169,9 @@ class BackupService(
             if (backup.agentWatchers.isNotEmpty()) db.agentWatcherDao().upsertAll(backup.agentWatchers)
             if (backup.agentGoals.isNotEmpty()) db.agentGoalDao().upsertAll(backup.agentGoals)
             if (restoredRemoteComputeNodes.isNotEmpty()) db.remoteComputeNodeDao().upsertAll(restoredRemoteComputeNodes)
+            // Media Studio：清空阶段已 deleteAll，此处必须回填，否则导出内容被丢弃。
+            backup.mediaGenTasks.forEach { db.mediaGenDao().upsertTask(it) }
+            backup.mediaGenAssets.forEach { db.mediaGenDao().insertAssets(listOf(rebaseMediaAsset(it))) }
             // v2.7.x(E2): 只导出不恢复等于"备份了但没用"。
             backup.sessionTerms.forEach { db.sessionTermDao().upsert(it) }
             // v2.6.7: 角色关系此前只导出不恢复（既有缺口），换机后亲密度/关系标签全丢。
@@ -4028,9 +4221,7 @@ class BackupService(
         }
 
         // 3.5 P0-10: 恢复子助手分库(facts_<id>.db)— 逐库清空 + 写入
-        backup.scopedFacts.forEach { (scope, facts) ->
-            writeScopedFacts(scope, facts)
-        }
+        replaceScopedFacts(backup.scopedFacts)
 
         // 4. 恢复 DataStore 设置快照
         // 问题7.3: 过滤掉设备相关 key(theme_mode 跟随系统、dynamic_color 依赖设备 Material You 等),
@@ -4038,7 +4229,10 @@ class BackupService(
         if (backup.settingsSnapshot.isNotEmpty()) {
             val filtered = backup.settingsSnapshot.filterKeys { it !in DEVICE_SPECIFIC_KEYS }
             if (filtered.isNotEmpty()) {
-                settings.restoreSettingsSnapshot(filtered, includeSecrets = filtered.containsKey("providers_json"))
+                settings.restoreSettingsSnapshot(
+                    rewritePrivateSettingReferences(filtered),
+                    includeSecrets = SettingsSnapshotPolicy.providerSecretsIncluded(filtered),
+                )
             }
         }
 
@@ -4106,6 +4300,9 @@ class BackupService(
                     "agentWatchers" -> db.agentWatcherDao().getAll().size
                     "agentGoals" -> db.agentGoalDao().getAll().size
                     "cardEntities" -> db.cardEntityDao().count()
+                    // Media Studio 两表同样按 DAO 全量口径核对，与导出侧 getAllTasks/getAllAssets 一致。
+                    "mediaGenTasks" -> db.mediaGenDao().getAllTasks().size
+                    "mediaGenAssets" -> db.mediaGenDao().getAllAssets().size
                     else -> return@forEach
                 }
             }.onError { msg, t ->

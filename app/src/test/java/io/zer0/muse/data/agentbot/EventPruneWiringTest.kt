@@ -1,8 +1,8 @@
-package io.zer0.muse.data.agentbot;
+package io.zer0.muse.data.agentbot
 
-import org.junit.Assert.assertTrue;
-import org.junit.Test;
-import java.io.File;
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import java.io.File
 
 /**
  * 巡检必须真的清理已消费事件。
@@ -16,27 +16,27 @@ import java.io.File;
 class EventPruneWiringTest {
 
     private val scheduler: String by lazy {
-        File("src/main/java/io/zer0/muse/data/agentbot/BotTaskScheduler.kt").readText();
+        File("src/main/java/io/zer0/muse/data/agentbot/BotTaskScheduler.kt").readText()
     }
 
     @Test
     fun `drive loop prunes consumed events`() {
-        val at = scheduler.indexOf("fun start(intervalMs: Long");
-        assertTrue("start 必须存在", at > 0);
-        val end = scheduler.indexOf("fun stop(", at);
-        val body = scheduler.substring(at, if (end > at) end else scheduler.length);
+        val at = scheduler.indexOf("fun start(intervalMs: Long")
+        assertTrue("start 必须存在", at > 0)
+        val end = scheduler.indexOf("fun stop(", at)
+        val body = scheduler.substring(at, if (end > at) end else scheduler.length)
         assertTrue(
             "巡检循环必须清理事件，否则表会无界增长",
             body.contains("pruneEvents()"),
-        );
+        )
     }
 
     @Test
     fun `prune failure does not break the loop`() {
         // 清理失败不能中断巡检 —— 它只是清理，不是关键路径。
-        val at = scheduler.indexOf("repository.pruneEvents()");
-        assertTrue(at > 0);
-        val around = scheduler.substring(maxOf(0, at - 120), minOf(at + 200, scheduler.length));
-        assertTrue("要包在 runCatching 里", around.contains("runCatching"));
+        val at = scheduler.indexOf("repository.pruneEvents()")
+        assertTrue(at > 0)
+        val around = scheduler.substring(maxOf(0, at - 120), minOf(at + 200, scheduler.length))
+        assertTrue("要包在 runCatching 里", around.contains("runCatching"))
     }
 }

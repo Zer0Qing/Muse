@@ -58,6 +58,7 @@ object UIToolsSkill {
             required = emptySet(),
             category = "built-in",
             riskLevel = ToolRiskLevel.HIGH,
+            hiddenFromSchema = true,
         ),
         ToolRegistry.ToolDef(
             name = CLICK,
@@ -71,6 +72,7 @@ object UIToolsSkill {
             category = "built-in",
             parameterTypes = mapOf("x" to "integer", "y" to "integer"),
             riskLevel = ToolRiskLevel.HIGH,
+            hiddenFromSchema = true,
         ),
         ToolRegistry.ToolDef(
             name = LONG_PRESS,
@@ -83,6 +85,7 @@ object UIToolsSkill {
             category = "built-in",
             parameterTypes = mapOf("x" to "integer", "y" to "integer"),
             riskLevel = ToolRiskLevel.HIGH,
+            hiddenFromSchema = true,
         ),
         ToolRegistry.ToolDef(
             name = SWIPE,
@@ -105,6 +108,7 @@ object UIToolsSkill {
                 "duration" to "integer",
             ),
             riskLevel = ToolRiskLevel.HIGH,
+            hiddenFromSchema = true,
         ),
         ToolRegistry.ToolDef(
             name = SET_TEXT,
@@ -118,6 +122,7 @@ object UIToolsSkill {
             required = setOf("node_id", "text"),
             category = "built-in",
             riskLevel = ToolRiskLevel.HIGH,
+            hiddenFromSchema = true,
         ),
         ToolRegistry.ToolDef(
             name = SCREENSHOT,

@@ -26,7 +26,7 @@ class ForegroundPriorityTest {
 
     @Test
     fun `limiter reserves slots for foreground work`() {
-        assertTrue(limiter.contains("reservedForForeground"));
+        assertTrue(limiter.contains("reservedForForeground"))
         assertTrue(
             "后台路径必须存在，否则预留无从生效",
             limiter.contains("suspend fun <T> runAsBackground("),
@@ -43,7 +43,7 @@ class ForegroundPriorityTest {
 
     @Test
     fun `background path releases its own counter`() {
-        assertTrue(limiter.contains("backgroundActive.decrementAndGet()"));
+        assertTrue(limiter.contains("backgroundActive.decrementAndGet()"))
     }
 
     @Test
@@ -56,8 +56,8 @@ class ForegroundPriorityTest {
 
     @Test
     fun `runner dispatches to the background path only when asked`() {
-        assertTrue(runner.contains("if (params.background)"));
-        assertTrue(runner.contains("concurrencyLimiter.runAsBackground(work)"));
+        assertTrue(runner.contains("if (params.background)"))
+        assertTrue(runner.contains("concurrencyLimiter.runAsBackground(work)"))
     }
 
     @Test
@@ -70,6 +70,6 @@ class ForegroundPriorityTest {
 
     @Test
     fun `reserved slot is exactly one so background still makes progress`() {
-        assertTrue(limiter.contains("reservedForForeground: Int = 1"));
+        assertTrue(limiter.contains("reservedForForeground: Int = 1"))
     }
 }

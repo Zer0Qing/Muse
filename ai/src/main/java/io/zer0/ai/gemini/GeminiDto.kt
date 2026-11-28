@@ -32,13 +32,26 @@ internal data class GeminiRequest(
     val generationConfig: GeminiGenerationConfig? = null,
     /** H-GEM2: 工具定义列表,启用 function calling。 */
     val tools: List<GeminiTool>? = null,
+    val toolConfig: GeminiToolConfig? = null,
     /** H-GEM4: 安全阈值设置(可选,控制各风险类别的拦截等级)。 */
     val safetySettings: List<GeminiSafetySetting>? = null,
 )
 
 @Serializable
+internal data class GeminiToolConfig(
+    val functionCallingConfig: GeminiFunctionCallingConfig,
+)
+
+@Serializable
+internal data class GeminiFunctionCallingConfig(
+    // "AUTO" / "ANY" / "NONE"
+    val mode: String,
+)
+
+@Serializable
 internal data class GeminiContent(
-    val role: String, // "user" / "model"(Gemini 用 "model" 而非 "assistant")
+    // "user" / "model"(Gemini 用 "model" 而非 "assistant")
+    val role: String,
     val parts: List<GeminiPart>,
 )
 
@@ -57,6 +70,8 @@ internal data class GeminiContent(
 @Serializable
 internal data class GeminiPart(
     val text: String = "",
+    val thought: Boolean? = null,
+    val thoughtSignature: String? = null,
     val inlineData: GeminiInlineData? = null,
     /** V-GEM1: 引用 Files API 上传后的文件(视频/音频等大文件)。 */
     val fileData: GeminiFileData? = null,
@@ -70,7 +85,8 @@ internal data class GeminiPart(
 internal data class GeminiInlineData(
     // L-GEM9: mimeType 默认 image/png
     val mimeType: String = "image/png",
-    val data: String, // base64 编码(无 data: 前缀)
+    // base64 编码(无 data: 前缀)
+    val data: String,
 )
 
 /**
@@ -286,6 +302,7 @@ internal data class GeminiFileResource(
 internal fun GeminiUsageMetadata.toUsageTokens(): io.zer0.ai.core.UsageTokens = io.zer0.ai.core.UsageTokens(
     promptTokens = promptTokenCount,
     completionTokens = candidatesTokenCount,
-    reasoningTokens = 0, // Gemini 不单独计 reasoning tokens
+    // Gemini 不单独计 reasoning tokens
+    reasoningTokens = 0,
     cachedTokens = cachedContentTokenCount,
 )

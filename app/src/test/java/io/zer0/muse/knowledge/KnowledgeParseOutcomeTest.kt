@@ -2,8 +2,8 @@ package io.zer0.muse.knowledge
 
 import io.zer0.muse.knowledge.ingest.KnowledgeParserRegistry
 import io.zer0.muse.knowledge.ingest.ParseCoverage
-import io.zer0.muse.knowledge.ingest.ParsedBlock
 import io.zer0.muse.knowledge.ingest.ParseOutcome
+import io.zer0.muse.knowledge.ingest.ParsedBlock
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

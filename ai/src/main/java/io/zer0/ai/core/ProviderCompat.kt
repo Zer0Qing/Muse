@@ -299,11 +299,11 @@ object ProviderCompatRules {
                 ModelReasoningReplayResolver.declare(modelId)?.let { decl ->
                     compat = compat.copy(
                         reasoningReplayContract =
-                            ReasoningReplayContract(
-                                decl.carrier,
-                                decl.policy,
-                                decl.requiresNonEmptyReasoning,
-                            ),
+                        ReasoningReplayContract(
+                            decl.carrier,
+                            decl.policy,
+                            decl.requiresNonEmptyReasoning,
+                        ),
                     )
                 }
             }
@@ -478,11 +478,13 @@ object ProviderCompatRules {
             "api.x.ai", "cli-chat-proxy.grok.com" -> this // xAI Grok,默认全 true
             "api.perplexity.ai" -> this // v1.0.6: Perplexity,默认全 true
             "api.groq.com" -> copy(
-                supportsStore = false, // Groq 无 Assistants API
+                // Groq 无 Assistants API
+                supportsStore = false,
             )
             "api.together.xyz" -> this // v1.0.1 (P3): Together AI,默认全 true
             "api.mistral.ai" -> copy(
-                supportsStore = false, // Mistral 无 Assistants API
+                // Mistral 无 Assistants API
+                supportsStore = false,
             )
             "api.deepinfra.com" -> this // v1.0.1 (P3): DeepInfra,默认全 true
             "api.fireworks.ai" -> this // v1.0.1 (P3): Fireworks AI,默认全 true

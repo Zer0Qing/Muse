@@ -158,11 +158,7 @@ class JobRunner(
      * 终态提交 CAS:拒绝旧任务/被抢占/已终态的写入。
      * @return 最终有效结果(提交成功即本次结果,提交失败则以库中现状为准)。
      */
-    private suspend fun commitResult(
-        item: KnowledgeJobItemEntity,
-        holder: String,
-        result: JobStepResult,
-    ): JobStepResult {
+    private suspend fun commitResult(item: KnowledgeJobItemEntity, holder: String, result: JobStepResult): JobStepResult {
         // 取消优先:若执行期间收到取消意图,即使 execute 返回 Succeeded 也必须落 CANCELLED,
         // 不得让 Completed 覆盖取消(计划 R4 验收「取消无后续 Completed 回写」)。
         if (result !is JobStepResult.Failed) {
@@ -173,8 +169,11 @@ class JobRunner(
         }
         val (terminalState, stage, reason) = when (result) {
             is JobStepResult.Succeeded -> Triple(
-                if (result.warnings.isEmpty()) KnowledgeJobState.SUCCEEDED.name
-                else KnowledgeJobState.SUCCEEDED_WITH_WARNINGS.name,
+                if (result.warnings.isEmpty()) {
+                    KnowledgeJobState.SUCCEEDED.name
+                } else {
+                    KnowledgeJobState.SUCCEEDED_WITH_WARNINGS.name
+                },
                 KnowledgeJobStage.CLEANUP,
                 result.warnings.joinToString("; "),
             )
@@ -204,20 +203,20 @@ class JobRunner(
         if (committed == 0) {
             // CAS 失败:已终态/被抢占/fence 已变 -> 以库中现状为准,拒绝本次写入。
             val current = jobDao.getJobItem(item.jobItemId)
-            return if (current != null) terminalFromRecord(current)
-            else JobStepResult.Fenced(
-                jobItemId = item.jobItemId,
-                expected = JobFence(item.datasetEpoch, item.generationFence),
-                actual = null,
-            )
+            return if (current != null) {
+                terminalFromRecord(current)
+            } else {
+                JobStepResult.Fenced(
+                    jobItemId = item.jobItemId,
+                    expected = JobFence(item.datasetEpoch, item.generationFence),
+                    actual = null,
+                )
+            }
         }
         return result
     }
 
-    private suspend fun finalizeCancelled(
-        item: KnowledgeJobItemEntity,
-        holder: String,
-    ): JobStepResult {
+    private suspend fun finalizeCancelled(item: KnowledgeJobItemEntity, holder: String): JobStepResult {
         val committed = jobDao.commitTerminal(
             jobItemId = item.jobItemId,
             holder = holder,
@@ -228,8 +227,11 @@ class JobRunner(
             terminalStates = terminalStates,
             updatedAt = clock(),
         )
-        return if (committed == 1) JobStepResult.Cancelled(item.jobItemId)
-        else terminalFromRecord(jobDao.getJobItem(item.jobItemId) ?: item)
+        return if (committed == 1) {
+            JobStepResult.Cancelled(item.jobItemId)
+        } else {
+            terminalFromRecord(jobDao.getJobItem(item.jobItemId) ?: item)
+        }
     }
 
     private fun terminalFromRecord(item: KnowledgeJobItemEntity): JobStepResult = when (item.state) {
@@ -273,7 +275,6 @@ class JobRunner(
         }
 
         /** 查询是否已被请求取消(执行器应在阶段边界检查)。 */
-        suspend fun isCancelRequested(): Boolean =
-            jobDao.getJobItem(jobItemId)?.cancelRequested == 1
+        suspend fun isCancelRequested(): Boolean = jobDao.getJobItem(jobItemId)?.cancelRequested == 1
     }
 }

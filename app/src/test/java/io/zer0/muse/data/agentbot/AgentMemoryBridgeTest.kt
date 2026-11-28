@@ -1,6 +1,8 @@
 package io.zer0.muse.data.agentbot
 
 import io.zer0.memory.fact.FactStore
+import io.zer0.memory.runtime.DedupPinnedRequest
+import io.zer0.memory.runtime.DedupPinnedResult
 import io.zer0.memory.runtime.DeleteMemoryRequest
 import io.zer0.memory.runtime.DeleteMemoryResult
 import io.zer0.memory.runtime.FactPinResult
@@ -13,8 +15,6 @@ import io.zer0.memory.runtime.MemorySearchResult
 import io.zer0.memory.runtime.MemoryUseCases
 import io.zer0.memory.runtime.PinMemoryRequest
 import io.zer0.memory.runtime.PinMemoryResult
-import io.zer0.memory.runtime.DedupPinnedRequest
-import io.zer0.memory.runtime.DedupPinnedResult
 import io.zer0.memory.runtime.SaveMemoryRequest
 import io.zer0.memory.runtime.SaveMemoryResult
 import io.zer0.memory.runtime.UnpinMemoryRequest
@@ -114,7 +114,11 @@ class AgentMemoryBridgeTest {
     @Test
     fun `about you actions refuse read only rows and foreign scopes`() = runTest {
         val useCases = RecordingUseCases()
-        val bridge = AgentMemoryBridge(memoryUseCases = useCases)
+        val bridge = AgentMemoryBridge(
+            AgentMemoryBridgeDependencies(
+                runtime = AgentMemoryBridgeDependencies.Runtime(memoryUseCases = useCases),
+            ),
+        )
         val ownScope = bridge.writableScope("assistant-writer", "space-work")
         val otherSpace = bridge.writableScope("assistant-writer", "space-home")
         val row = AgentMemoryBridge.ScopedFactRow(
@@ -139,7 +143,11 @@ class AgentMemoryBridgeTest {
     @Test
     fun `pin toggle follows the use case contract`() = runTest {
         val useCases = RecordingUseCases(pinResult = FactPinResult.Changed(pinned = true))
-        val bridge = AgentMemoryBridge(memoryUseCases = useCases)
+        val bridge = AgentMemoryBridge(
+            AgentMemoryBridgeDependencies(
+                runtime = AgentMemoryBridgeDependencies.Runtime(memoryUseCases = useCases),
+            ),
+        )
         val scope = bridge.writableScope("default", "default")
         val row = AgentMemoryBridge.ScopedFactRow(
             scope = scope,
@@ -152,14 +160,22 @@ class AgentMemoryBridgeTest {
         assertEquals(listOf(scope to 3L), useCases.pinRequests)
 
         val missing = RecordingUseCases(pinResult = FactPinResult.Missing)
-        val missingResult = AgentMemoryBridge(memoryUseCases = missing).toggleAboutYouPin(row, scope)
+        val missingResult = AgentMemoryBridge(
+            AgentMemoryBridgeDependencies(
+                runtime = AgentMemoryBridgeDependencies.Runtime(memoryUseCases = missing),
+            ),
+        ).toggleAboutYouPin(row, scope)
         assertEquals(AgentMemoryBridge.AboutYouActionResult.Missing, missingResult)
     }
 
     @Test
     fun `foreground injection reads the current assistant and space with a bounded budget`() = runTest {
         val runtime = RecordingRuntime(facts = listOf(fact(id = 1, scope = "assistant-writer", spaceId = "space-work")))
-        val bridge = AgentMemoryBridge(memoryRuntime = runtime)
+        val bridge = AgentMemoryBridge(
+            AgentMemoryBridgeDependencies(
+                runtime = AgentMemoryBridgeDependencies.Runtime(memoryRuntime = runtime),
+            ),
+        )
 
         val injection = bridge.buildForegroundInjection(
             assistantId = "assistant-writer",
@@ -184,7 +200,11 @@ class AgentMemoryBridgeTest {
     @Test
     fun `background turns and disabled memory never inject`() = runTest {
         val runtime = RecordingRuntime()
-        val bridge = AgentMemoryBridge(memoryRuntime = runtime)
+        val bridge = AgentMemoryBridge(
+            AgentMemoryBridgeDependencies(
+                runtime = AgentMemoryBridgeDependencies.Runtime(memoryRuntime = runtime),
+            ),
+        )
 
         val background = bridge.buildForegroundInjection(
             assistantId = "assistant-writer",
@@ -204,8 +224,10 @@ class AgentMemoryBridgeTest {
         assertEquals("isolation", assistantOff.skippedReason)
 
         val settingsOff = AgentMemoryBridge(
-            memoryRuntime = runtime,
-            memoryEnabledProvider = { false },
+            AgentMemoryBridgeDependencies(
+                runtime = AgentMemoryBridgeDependencies.Runtime(memoryRuntime = runtime),
+                policy = AgentMemoryBridgeDependencies.Policy(memoryEnabledProvider = { false }),
+            ),
         ).buildForegroundInjection(
             assistantId = "assistant-writer",
             spaceId = "default",
@@ -220,7 +242,11 @@ class AgentMemoryBridgeTest {
     fun `refine context never becomes a memory query`() = runTest {
         val runtime = RecordingRuntime()
         val useCases = RecordingUseCases()
-        val bridge = AgentMemoryBridge(memoryRuntime = runtime, memoryUseCases = useCases)
+        val bridge = AgentMemoryBridge(
+            AgentMemoryBridgeDependencies(
+                runtime = AgentMemoryBridgeDependencies.Runtime(memoryRuntime = runtime, memoryUseCases = useCases),
+            ),
+        )
         val refineText = "把标题改短一点\n\n[entity-refine-context]\nentity_kind: space\ncurrent_json: {\"title\":\"旧标题\"}"
 
         assertEquals("把标题改短一点", bridge.memoryQuery(refineText))
@@ -242,7 +268,11 @@ class AgentMemoryBridgeTest {
                 fact(id = 2, content = "住在杭州", scope = "main"),
             ),
         )
-        val bridge = AgentMemoryBridge(memoryRuntime = runtime)
+        val bridge = AgentMemoryBridge(
+            AgentMemoryBridgeDependencies(
+                runtime = AgentMemoryBridgeDependencies.Runtime(memoryRuntime = runtime),
+            ),
+        )
 
         val optedIn = bridge.buildForegroundInjection(
             assistantId = "assistant-writer",
@@ -256,7 +286,11 @@ class AgentMemoryBridgeTest {
         assertTrue(optedIn.text.contains("住在杭州"))
 
         val isolatedRuntime = RecordingRuntime(facts = listOf(fact(id = 2, content = "住在杭州", scope = "main")))
-        AgentMemoryBridge(memoryRuntime = isolatedRuntime).buildForegroundInjection(
+        AgentMemoryBridge(
+            AgentMemoryBridgeDependencies(
+                runtime = AgentMemoryBridgeDependencies.Runtime(memoryRuntime = isolatedRuntime),
+            ),
+        ).buildForegroundInjection(
             assistantId = "assistant-writer",
             spaceId = "default",
             assistant = AssistantEntity(id = "assistant-writer", name = "Writer", useGlobalMemory = false),
@@ -270,12 +304,8 @@ class AgentMemoryBridgeTest {
         assertTrue(hostile.contains("<\u200B/agent_memory>"))
     }
 
-    private fun fact(
-        id: Long,
-        content: String = "记忆内容",
-        scope: String = "main",
-        spaceId: String = "default",
-    ) = FactStore.Fact(id = id, fact = content, scope = scope, spaceId = spaceId)
+    private fun fact(id: Long, content: String = "记忆内容", scope: String = "main", spaceId: String = "default") =
+        FactStore.Fact(id = id, fact = content, scope = scope, spaceId = spaceId)
 
     private class RecordingRuntime(
         private val facts: List<FactStore.Fact> = emptyList(),
@@ -305,8 +335,7 @@ class AgentMemoryBridgeTest {
             return MemorySearchResult.Empty
         }
 
-        override suspend fun save(request: SaveMemoryRequest): SaveMemoryResult =
-            SaveMemoryResult.Saved(1L)
+        override suspend fun save(request: SaveMemoryRequest): SaveMemoryResult = SaveMemoryResult.Saved(1L)
 
         override suspend fun delete(request: DeleteMemoryRequest): DeleteMemoryResult {
             deleteRequests += request
@@ -317,8 +346,7 @@ class AgentMemoryBridgeTest {
 
         override suspend fun unpin(request: UnpinMemoryRequest): UnpinMemoryResult = UnpinMemoryResult.Missing
 
-        override suspend fun dedupPinned(request: DedupPinnedRequest): DedupPinnedResult =
-            DedupPinnedResult.Removed(0)
+        override suspend fun dedupPinned(request: DedupPinnedRequest): DedupPinnedResult = DedupPinnedResult.Removed(0)
 
         override suspend fun toggleFactPinned(scope: MemoryScopeKey, factId: Long): FactPinResult {
             pinRequests += scope to factId

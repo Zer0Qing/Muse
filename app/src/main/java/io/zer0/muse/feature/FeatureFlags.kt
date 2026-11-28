@@ -62,7 +62,7 @@ object FeatureFlags {
      * 从"一问一答"变成"接单 + 后台执行 + 审核后汇报"。这种改变必须由用户
      * 在设备上显式打开，不能随升级悄悄生效。
      */
-    const val AGENT_BOT: Boolean = true  // 用户 2026-11-22 显式确认开启
+    const val AGENT_BOT: Boolean = true // 用户 2026-11-22 显式确认开启
 
     /**
      * 中枢是否在首页 Agent Tab 露出入口。

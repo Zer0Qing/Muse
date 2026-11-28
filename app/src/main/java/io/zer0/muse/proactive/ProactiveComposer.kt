@@ -54,7 +54,7 @@ class ProactiveComposer(
         private const val MAX_TOKENS = 400
 
         /** 补充线索条数。多给几条没什么意义，账本只是配菜。 */
-        private const val MAX_CANDIDATES = 3
+        internal const val MAX_CANDIDATES = 3
 
         /** 防重复提示里列出几条历史主动消息。 */
         private const val MAX_RECENT_PROACTIVE = 4

@@ -23,8 +23,7 @@ class CrashReporterDirectClientTest {
 
     /** 模拟共享 client 上的动态代理选择器：总是返回一个代理。 */
     private class AlwaysProxySelector : ProxySelector() {
-        override fun select(uri: URI?): List<Proxy> =
-            listOf(Proxy(Proxy.Type.HTTP, InetSocketAddress("127.0.0.1", 1080)))
+        override fun select(uri: URI?): List<Proxy> = listOf(Proxy(Proxy.Type.HTTP, InetSocketAddress("127.0.0.1", 1080)))
 
         override fun connectFailed(uri: URI?, sa: java.net.SocketAddress?, ioe: java.io.IOException?) = Unit
     }

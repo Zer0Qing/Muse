@@ -28,19 +28,16 @@ import org.junit.Test
 class ToolCallContinuationCandidateTest {
 
     /** 造一个"已命名、参数为空"的待补调用。 */
-    private fun namedPending(name: String = "search_memory"): ToolCallAccState =
-        ToolCallAccState().apply { this.name = name }
+    private fun namedPending(name: String = "search_memory"): ToolCallAccState = ToolCallAccState().apply { this.name = name }
 
     /** 造一个"已命名且已有参数"的调用（不再等待续片）。 */
-    private fun namedWithArgs(name: String = "search_memory"): ToolCallAccState =
-        ToolCallAccState().apply {
-            this.name = name
-            args.append("""{"query":"晏临"}""")
-        }
+    private fun namedWithArgs(name: String = "search_memory"): ToolCallAccState = ToolCallAccState().apply {
+        this.name = name
+        args.append("""{"query":"晏临"}""")
+    }
 
     /** 造一个"仅收到参数、名字未到"的调用。 */
-    private fun anonymousWithArgs(arguments: String): ToolCallAccState =
-        ToolCallAccState().apply { args.append(arguments) }
+    private fun anonymousWithArgs(arguments: String): ToolCallAccState = ToolCallAccState().apply { args.append(arguments) }
 
     @Test
     fun `single named call waiting for arguments is adopted`() {

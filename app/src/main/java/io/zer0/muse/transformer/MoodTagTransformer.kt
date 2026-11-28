@@ -4,8 +4,6 @@ import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.UIMessage
 import io.zer0.common.Logger
 import io.zer0.muse.util.MusePatterns
-import io.zer0.muse.ui.chat.ChatScreen
-import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * v0.30-b: MOOD 标签 Transformer(6 步工作流第 6 步 — MOOD→正文包装)。

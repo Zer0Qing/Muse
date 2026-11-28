@@ -40,12 +40,7 @@ object NodeLauncher {
      * @param workdir 工作目录（宿主路径）；为 null 时使用 rootfs 的 /
      * @param env 额外环境变量；值里的宿主 filesDir 路径同样会翻译
      */
-    fun prepareNode(
-        context: Context,
-        args: List<String>,
-        workdir: File? = null,
-        env: Map<String, String> = emptyMap(),
-    ): Launch {
+    fun prepareNode(context: Context, args: List<String>, workdir: File? = null, env: Map<String, String> = emptyMap()): Launch {
         val store = RuntimeStore(context)
         val proot = ProotRuntime(context, store)
         if (RuntimeBridge.isReady(context) && proot.isAvailable()) {
@@ -76,8 +71,7 @@ object NodeLauncher {
     }
 
     /** filesDir 在 guest 里的绑定参数。 */
-    fun bindFiles(context: Context): String =
-        "${context.filesDir.absolutePath}:${RuntimeBridge.GUEST_FILES}"
+    fun bindFiles(context: Context): String = "${context.filesDir.absolutePath}:${RuntimeBridge.GUEST_FILES}"
 
     private const val GUEST_NODE_BIN = "/usr/local/bin/node"
     private const val TAG = "NodeLauncher"

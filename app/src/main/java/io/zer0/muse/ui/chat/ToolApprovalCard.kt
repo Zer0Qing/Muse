@@ -470,6 +470,8 @@ fun ToolApprovalCard(
             }
 
             // 次级操作(折叠区):本会话允许 / 始终允许
+            var confirmAlwaysAllow by remember(toolName, argumentsPreview) { mutableStateOf(false) }
+            var lastDecisionMs by remember(toolName, argumentsPreview) { mutableStateOf(0L) }
             AnimatedVisibility(
                 visible = showMoreOptions,
                 enter = MuseMotion.expandFadeEnter(),
@@ -485,6 +487,9 @@ fun ToolApprovalCard(
                         MuseCapsuleButton(
                             text = stringResource(R.string.tool_approval_allow_this_session),
                             onClick = {
+                                val now = android.os.SystemClock.uptimeMillis()
+                                if (now - lastDecisionMs < 300L) return@MuseCapsuleButton
+                                lastDecisionMs = now
                                 // 把工具加入会话级临时允许缓存,并触发本次批准
                                 onAllowThisSession()
                                 onApprove()
@@ -495,13 +500,24 @@ fun ToolApprovalCard(
                         )
 
                         MuseCapsuleButton(
-                            text = stringResource(R.string.tool_approval_always_approve),
-                            onClick = {
-                                // 持久化 ALWAYS_ALLOW 策略,并触发本次批准
-                                onPersistPolicy(ToolApprovalPolicy.ALWAYS_ALLOW)
-                                onApprove()
+                            text = if (confirmAlwaysAllow) {
+                                stringResource(R.string.tool_approval_confirm_always)
+                            } else {
+                                stringResource(R.string.tool_approval_always_approve)
                             },
-                            variant = IosCapsuleButtonVariant.Secondary,
+                            onClick = {
+                                val now = android.os.SystemClock.uptimeMillis()
+                                if (now - lastDecisionMs < 300L) return@MuseCapsuleButton
+                                lastDecisionMs = now
+                                if (!confirmAlwaysAllow) {
+                                    confirmAlwaysAllow = true
+                                } else {
+                                    // 二次确认后才持久化 ALWAYS_ALLOW 策略,并触发本次批准
+                                    onPersistPolicy(ToolApprovalPolicy.ALWAYS_ALLOW)
+                                    onApprove()
+                                }
+                            },
+                            variant = if (confirmAlwaysAllow) IosCapsuleButtonVariant.Primary else IosCapsuleButtonVariant.Secondary,
                             leadingIcon = MuseIcons.shieldCheck,
                             fillWidth = false,
                         )
@@ -707,7 +723,7 @@ private fun ReferenceImageSection(referenceImageOverride: String?, isLoading: Bo
  * v1.x: 支持在审批卡片中选取本地参考图的工具名集合(与 ChatViewModel 中保持一致)。
  * 命名上仅在本文件内使用,故 private。
  */
-private val REFERENCE_IMAGE_TOOL_NAMES: Set<String> = setOf("generate_image")
+private val REFERENCE_IMAGE_TOOL_NAMES: Set<String> = setOf("generate_image", "generate_video")
 
 /**
  * 倒计时秒数从审批编排器的超时常量派生(ChatToolApprovalCoordinator.TOOL_APPROVAL_TIMEOUT_MS),

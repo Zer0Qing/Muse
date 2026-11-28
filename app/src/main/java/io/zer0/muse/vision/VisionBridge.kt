@@ -15,6 +15,7 @@ import io.zer0.ai.registry.ModelRegistry
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.muse.data.SettingsRepository
+import io.zer0.muse.ui.chat.ChatViewModel
 import io.zer0.muse.util.retryOnNetworkError
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -31,7 +32,6 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonPrimitive
-import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * 视觉分析异常。

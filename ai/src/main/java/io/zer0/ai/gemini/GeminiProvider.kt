@@ -6,7 +6,6 @@ import io.zer0.ai.core.ChatStreamEvent
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.Model
 import io.zer0.ai.core.ModelContextWindowRegistry
-import io.zer0.ai.core.ProviderCompat
 import io.zer0.ai.core.ProviderConfig
 import io.zer0.ai.core.ProviderError
 import io.zer0.ai.core.ProviderException
@@ -26,9 +25,11 @@ import io.zer0.common.resultOf
 import io.zer0.common.toMessage
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
@@ -53,11 +54,8 @@ import java.util.concurrent.atomic.AtomicReference
 import kotlin.random.Random
 
 /** A final usage-only Gemini frame is terminal only after visible content was emitted. */
-internal fun shouldCompleteUsageOnlyFrame(
-    hasEmittedContent: Boolean,
-    candidateCount: Int,
-    finished: Boolean,
-): Boolean = !finished && candidateCount == 0 && hasEmittedContent
+internal fun shouldCompleteUsageOnlyFrame(hasEmittedContent: Boolean, candidateCount: Int, finished: Boolean): Boolean =
+    !finished && candidateCount == 0 && hasEmittedContent
 
 /**
  * Google Gemini Provider(同时支持 generativelanguage API + Vertex AI)。
@@ -362,9 +360,20 @@ class GeminiProvider(
                             .distinct()
                         if (urls.isNotEmpty()) trySend(ChatStreamEvent.CitationDelta(urls))
                     }
-                    // Phase 8.6: 遍历 parts,文本 → ContentDelta,图片 → ImageDelta
+                    // Phase 8.6: 遍历 parts,文本 → ContentDelta,思考 → ReasoningDelta,图片 → ImageDelta
                     candidate.content?.parts?.forEach { part ->
-                        if (part.text.isNotEmpty()) {
+                        if (part.thought == true) {
+                            if (part.text.isNotEmpty() || !part.thoughtSignature.isNullOrBlank()) {
+                                anyDeltaSent.set(true)
+                                hasEmittedContent.set(true)
+                                trySend(
+                                    ChatStreamEvent.ReasoningDelta(
+                                        delta = part.text,
+                                        signature = part.thoughtSignature,
+                                    ),
+                                )
+                            }
+                        } else if (part.text.isNotEmpty()) {
                             // v1.0.1 (P1): 标记已发出内容,防止重连后重发
                             anyDeltaSent.set(true)
                             hasEmittedContent.set(true)
@@ -383,20 +392,27 @@ class GeminiProvider(
                             )
                         }
                         // H-GEM2: 解析 functionCall → ToolCallDelta
-                        // M-GEM3: 用递增 index 区分多个 functionCall(原固定 0 会合并为同一工具调用)
+                        // M-GEM3: 用递增 index 区分多个 functionCall,并用唯一 id 防止并行同名调用互相覆盖
                         val fc = part.functionCall
                         if (fc != null) {
+                            val callIdx = toolCallIndex.getAndIncrement()
+                            val callId = "gemini_${callIdx}_${fc.name}"
                             val argsJson = fc.args?.let { AppJson.encodeToString(it) } ?: "{}"
                             anyDeltaSent.set(true)
                             hasEmittedContent.set(true)
+                            if (!part.thoughtSignature.isNullOrBlank()) {
+                                trySend(ChatStreamEvent.ReasoningDelta(delta = "", signature = part.thoughtSignature))
+                            }
                             trySend(
                                 ChatStreamEvent.ToolCallDelta(
-                                    index = toolCallIndex.getAndIncrement(),
-                                    id = fc.name,
+                                    index = callIdx,
+                                    id = callId,
                                     name = fc.name,
                                     argumentsDelta = argsJson,
                                 ),
                             )
+                        } else if (part.thought != true && !part.thoughtSignature.isNullOrBlank()) {
+                            trySend(ChatStreamEvent.ReasoningDelta(delta = "", signature = part.thoughtSignature))
                         }
                     }
                     handleGeminiFinish(
@@ -505,7 +521,7 @@ class GeminiProvider(
             currentEventSource.get()?.cancel()
             currentCall.get()?.cancel()
         }
-    }.flowOn(Dispatchers.IO)
+    }.buffer(Channel.UNLIMITED).flowOn(Dispatchers.IO)
 
     override suspend fun completeText(request: ChatRequest): ChatCompletion = completeTextImpl(request, 0)
 
@@ -584,15 +600,19 @@ class GeminiProvider(
                     ?: throw ErrorCode.INVALID_RESPONSE.toProviderException("empty_candidates")
                 // H-GEM2: 收集 functionCall → toolCalls
                 // M-GEM6: 用 takeIf { it.isNotEmpty() } 确保无工具调用时返回 null(原返回空列表)
-                val toolCalls = candidate.content?.parts?.mapNotNull { it.functionCall }?.map { fc ->
+                val toolCalls = candidate.content?.parts?.mapIndexedNotNull { idx, part ->
+                    val fc = part.functionCall ?: return@mapIndexedNotNull null
                     ToolCall(
-                        id = fc.name,
+                        id = "gemini_${idx}_${fc.name}",
                         name = fc.name,
                         arguments = fc.args?.let { AppJson.encodeToString(it) } ?: "{}",
                     )
                 }?.takeIf { it.isNotEmpty() }
-                // Phase 8.6: 合并所有 text part(忽略图片 part,completeText 用于 memory 等后台任务)
-                val text = candidate.content?.parts?.joinToString("") { it.text } ?: ""
+                // Phase 8.6: 合并所有正文 text part(跳过思考与图片 part)
+                val text = candidate.content?.parts
+                    ?.filter { it.thought != true }
+                    ?.joinToString("") { it.text }
+                    ?: ""
                 // M-GEM4: 安全相关 finishReason 抛错
                 val reason = candidate.finishReason
                 if (reason in SAFETY_FINISH_REASONS) {
@@ -802,7 +822,19 @@ class GeminiProvider(
             .map { it.content }
             .filter { it.isNotBlank() }
         val system = systemParts.joinToString("\n\n").ifBlank { null }
-        val rest = messages
+        // 建立 toolCall.id → functionName 映射,确保唯一 id / 跨供应商 id 能准确还原 functionResponse.name
+        val callNamesById = buildMap {
+            messages.forEach { msg ->
+                if (msg.role == MessageRole.ASSISTANT) {
+                    msg.toolCalls.orEmpty().forEach { tc ->
+                        if (tc.id.isNotBlank() && tc.name.isNotBlank()) {
+                            put(tc.id, tc.name)
+                        }
+                    }
+                }
+            }
+        }
+        val mapped = messages
             .filter { it.role != MessageRole.SYSTEM }
             .map { msg ->
                 val geminiRole = when (msg.role) {
@@ -815,11 +847,17 @@ class GeminiProvider(
                     when {
                         // H-GEM3: ASSISTANT 携带 toolCalls → functionCall part
                         msg.role == MessageRole.ASSISTANT && !msg.toolCalls.isNullOrEmpty() -> {
-                            msg.toolCalls.forEach { tc ->
+                            val sig = msg.thinkingSignature?.takeIf { it.isNotBlank() }
+                            msg.toolCalls.forEachIndexed { idx, tc ->
                                 // L-GEM1: 用 resultOf 替代 runCatching,正确传播 CancellationException
                                 val args = resultOf { AppJson.parseToJsonElement(tc.arguments) }
                                     .getOrNull() ?: JsonNull
-                                add(GeminiPart(functionCall = GeminiFunctionCall(name = tc.name, args = args)))
+                                add(
+                                    GeminiPart(
+                                        functionCall = GeminiFunctionCall(name = tc.name, args = args),
+                                        thoughtSignature = if (idx == 0) sig else null,
+                                    ),
+                                )
                             }
                             // 文本(若有)
                             if (msg.content.isNotEmpty()) add(GeminiPart(text = msg.content))
@@ -830,9 +868,11 @@ class GeminiProvider(
                             val respJson = resultOf { AppJson.parseToJsonElement(msg.content) }
                                 .getOrNull()
                                 ?: JsonObject(mapOf("result" to JsonPrimitive(msg.content)))
-                            // M-GEM8: toolCallId 为空时用 fallback,避免 functionResponse.name 为空导致 Gemini 拒绝请求
-                            // (Gemini 要求 functionResponse.name 与前序 functionCall.name 匹配)
-                            val fnName = msg.toolCallId?.takeIf { it.isNotBlank() } ?: "unknown"
+                            // M-GEM8: 优先经 callNamesById 还原 functionCall.name,兜底取非空 toolCallId 或 "unknown"
+                            val fnName = msg.toolCallId
+                                ?.takeIf { it.isNotBlank() }
+                                ?.let { id -> callNamesById[id] ?: id }
+                                ?: "unknown"
                             add(
                                 GeminiPart(
                                     functionResponse = GeminiFunctionResponse(
@@ -844,7 +884,6 @@ class GeminiProvider(
                         }
                         else -> {
                             // 普通 USER/ASSISTANT:图片在前(若存在)+ 视频(若存在)+ 文本
-                            // 图片数量与单张体积不再设上限，上游接受度一直在变。
                             val validImages = msg.imageBase64List.filter { it.isNotEmpty() }
                             validImages.forEach { b64 ->
                                 add(
@@ -878,7 +917,17 @@ class GeminiProvider(
                 val finalParts = if (parts.isEmpty()) listOf(GeminiPart(text = msg.content)) else parts
                 GeminiContent(role = geminiRole, parts = finalParts)
             }
-        return system to rest
+        // 合并相邻同角色消息(如并行多个 TOOL 结果都映射为 user 角色)
+        val merged = ArrayList<GeminiContent>(mapped.size)
+        for (content in mapped) {
+            val last = merged.lastOrNull()
+            if (last != null && last.role == content.role) {
+                merged[merged.lastIndex] = last.copy(parts = last.parts + content.parts)
+            } else {
+                merged.add(content)
+            }
+        }
+        return system to merged
     }
 
     /**
@@ -996,18 +1045,8 @@ class GeminiProvider(
         }
         // Phase 8.6 + M-GEM12: responseModalities 统一大写
         val responseModalities = if (supportsImageOutput) listOf("TEXT", "IMAGE") else null
-        // H-GEM2: tools 透传(Gemini 用单个 tool 包裹 functionDeclarations 数组)
-        // H-COMPAT1: compat.supportsToolCalling=false 时强制不发 tools
-        //   (Gemini 默认 true,留此判断保持集中化派生,便于未来按 modelId 扩展)
-        val compat: ProviderCompat = config.resolvedCompat()
-        val geminiTools = when {
-            // Gemini generateContent 当前不允许 google_search 与普通 function tools 混用。
-            nativeWebSearch -> listOf(GeminiTool(googleSearch = GeminiGoogleSearch()))
-            compat.supportsToolCalling -> tools?.takeIf { it.isNotEmpty() }?.let {
-                listOf(GeminiTool(functionDeclarations = it.map { td -> td.toGeminiDeclaration() }))
-            }
-            else -> null
-        }
+        val geminiTools = buildGeminiTools(nativeWebSearch, tools)
+        val geminiToolConfig = buildGeminiToolConfig(nativeWebSearch, geminiTools, request.toolChoice)
         val payload = GeminiRequest(
             contents = contents,
             systemInstruction = system?.takeIf { it.isNotBlank() }
@@ -1019,8 +1058,27 @@ class GeminiProvider(
                 responseModalities = responseModalities,
             ),
             tools = geminiTools,
+            toolConfig = geminiToolConfig,
         )
         return AppJson.encodeToString(payload)
+    }
+
+    private fun buildGeminiTools(nativeWebSearch: Boolean, tools: List<ToolDefinition>?): List<GeminiTool>? {
+        if (nativeWebSearch) return listOf(GeminiTool(googleSearch = GeminiGoogleSearch()))
+        if (!config.resolvedCompat().supportsToolCalling) return null
+        return tools?.takeIf { it.isNotEmpty() }?.let {
+            listOf(GeminiTool(functionDeclarations = it.map { td -> td.toGeminiDeclaration() }))
+        }
+    }
+
+    private fun buildGeminiToolConfig(nativeWebSearch: Boolean, tools: List<GeminiTool>?, toolChoice: String?): GeminiToolConfig? {
+        if (nativeWebSearch || tools == null) return null
+        return when (toolChoice) {
+            "none" -> GeminiToolConfig(GeminiFunctionCallingConfig(mode = "NONE"))
+            "required" -> GeminiToolConfig(GeminiFunctionCallingConfig(mode = "ANY"))
+            "auto" -> GeminiToolConfig(GeminiFunctionCallingConfig(mode = "AUTO"))
+            else -> null
+        }
     }
 
     /** H-GEM2: ToolDefinition → GeminiFunctionDeclaration(parameters 解析为 JsonElement)。 */
@@ -1308,6 +1366,7 @@ class GeminiProvider(
         /** 已废弃：图片数量不再设上限（保留常量仅避免旧引用编译失败）。 */
         @Deprecated("图片数量不再限制")
         const val MAX_VISION_IMAGES = Int.MAX_VALUE
+
         /** 已废弃：单张图片体积不再设上限。 */
         @Deprecated("单张图片体积不再限制")
         const val MAX_IMAGE_BASE64_LEN = Int.MAX_VALUE

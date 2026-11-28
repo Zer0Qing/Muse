@@ -81,8 +81,7 @@ object MuseRuntime {
      *
      * 两个来源任一可用即可，避免「外置装好了但界面仍说未安装」。
      */
-    fun isReady(ctx: Context): Boolean =
-        RuntimeBridge.isReady(ctx) || (nodeBinary(ctx).isFile && npmCli(ctx).isFile)
+    fun isReady(ctx: Context): Boolean = RuntimeBridge.isReady(ctx) || (nodeBinary(ctx).isFile && npmCli(ctx).isFile)
 
     // ── 数据解压 ─────────────────────────────────────────────────
 

@@ -84,11 +84,9 @@ class AgentRoutineEngine(
     /** 最近 200 次例行运行的本地档案；不写主对话，也不参与提示词注入。 */
     val archivedRuns: StateFlow<List<RoutineRunArchiveEntry>> = _archivedRuns.asStateFlow()
 
-    fun observeByBot(botId: String): Flow<List<BotRoutineEntity>> =
-        repository.observeRoutines(botId)
+    fun observeByBot(botId: String): Flow<List<BotRoutineEntity>> = repository.observeRoutines(botId)
 
-    fun observeAll(): Flow<List<BotRoutineEntity>> =
-        repository.observeAllRoutines()
+    fun observeAll(): Flow<List<BotRoutineEntity>> = repository.observeAllRoutines()
 
     /** 从一条已完成的任务提炼并沉淀成可复用惯例。 */
     suspend fun saveFromTask(
@@ -148,7 +146,7 @@ class AgentRoutineEngine(
                 skillRepo.upsert(skill)
             } catch (e: CancellationException) {
                 throw e
-            } catch (e: Exception) {
+            } catch (e: java.io.IOException) {
                 Logger.w(TAG, "任务沉淀技能写入失败: ${e.message}", e)
                 return null
             }
@@ -191,18 +189,23 @@ class AgentRoutineEngine(
         sourceTaskId: String = "",
         skillId: String = "",
         originSessionId: String = "",
+        routineId: String = UUID.randomUUID().toString(),
     ): BotRoutineEntity {
         val normalizedTrigger = normalizeTrigger(triggerType)
+        if (normalizedTrigger == RoutineTriggerType.CRON) {
+            require(triggerExpr.isNotBlank() && CronExpression.parse(triggerExpr) != null) {
+                "Cron 表达式无效，请使用有效的五段式表达式"
+            }
+        }
         val ts = now()
-        val routineId = UUID.randomUUID().toString()
+        val existing = repository.getRoutine(routineId)
+        require(existing == null || existing.botId == botId) { "惯例归属与当前队友不匹配" }
         var linkedScheduleId = ""
         if (normalizedTrigger == RoutineTriggerType.CRON && scheduledTaskDao != null && triggerExpr.isNotBlank()) {
             linkedScheduleId = "routine:$routineId"
-            val nextRunAt = runCatching {
-                CronExpression.parse(triggerExpr)?.nextRunAfter(ts) ?: (ts + ONE_DAY_MS)
-            }.onFailure {
-                Logger.w(TAG, "解析惯例 Cron 表达式失败($triggerExpr): ${it.message}")
-            }.getOrDefault(ts + ONE_DAY_MS)
+            val nextRunAt = requireNotNull(CronExpression.parse(triggerExpr)).nextRunAfter(ts)
+            require(nextRunAt != CronExpression.NO_MATCH) { "Cron 表达式在未来 370 天内没有匹配时间" }
+            val previousSchedule = scheduledTaskDao.getById(linkedScheduleId)
             scheduledTaskDao.upsert(
                 ScheduledTaskEntity(
                     id = linkedScheduleId,
@@ -211,16 +214,17 @@ class AgentRoutineEngine(
                     assistantId = botId.ifBlank { "default" },
                     interval = "cron",
                     cronExpr = triggerExpr.trim(),
-                    enabled = true,
-                    nextRunAt = nextRunAt,
+                    enabled = existing?.enabled ?: true,
+                    nextRunAt = previousSchedule?.nextRunAt ?: nextRunAt,
+                    lastRunAt = previousSchedule?.lastRunAt ?: 0L,
                     dedicatedSessionId = originSessionId,
                     createdBy = "assistant",
-                    createdAt = ts,
+                    createdAt = previousSchedule?.createdAt ?: ts,
                     updatedAt = ts,
                 ),
             )
         }
-        val entity = BotRoutineEntity(
+        val entity = (existing ?: BotRoutineEntity(routineId = routineId)).copy(
             routineId = routineId,
             botId = botId,
             title = title.trim().ifBlank { goalPrompt.trim().take(MAX_TITLE_LENGTH) },
@@ -232,8 +236,8 @@ class AgentRoutineEngine(
             scheduledTaskId = linkedScheduleId,
             sourceTaskId = sourceTaskId,
             skillId = skillId,
-            enabled = true,
-            createdAt = ts,
+            enabled = existing?.enabled ?: true,
+            createdAt = existing?.createdAt ?: ts,
             updatedAt = ts,
         )
         repository.upsertRoutine(entity)
@@ -241,11 +245,16 @@ class AgentRoutineEngine(
     }
 
     /** 立即运行一条惯例：创建后台任务并 0ms 唤醒调度器。 */
-    suspend fun runNow(
-        routine: BotRoutineEntity,
-        originSessionId: String,
-    ): BotTaskEntity? {
+    suspend fun runNow(routine: BotRoutineEntity, originSessionId: String, scheduledAt: Long? = null): BotTaskEntity? {
         if (originSessionId.isBlank() || routine.goalPrompt.isBlank()) return null
+        val requestedRunAt = scheduledAt ?: now()
+        val runAt = if (scheduledAt == null) maxOf(requestedRunAt, routine.lastRunAt + 1L) else requestedRunAt
+        val skillInstructions = resolveSkillInstructions(routine) ?: if (routine.skillId.isNotBlank()) {
+            repository.recordRoutineExecution(routine.routineId, RoutineRunStatus.SKILL_UNAVAILABLE)
+            return null
+        } else {
+            ""
+        }
         val acceptance = if (routine.stepsSummary.isNotBlank()) {
             "按自动化步骤执行并清晰汇报结果：${routine.stepsSummary}"
         } else {
@@ -254,17 +263,56 @@ class AgentRoutineEngine(
         val task = repository.createTask(
             botId = routine.botId,
             originSessionId = originSessionId,
-            requestMessageId = "",
-            goal = routine.goalPrompt,
+            requestMessageId = "routine-task:${routine.routineId}:$runAt",
+            goal = buildRoutineTaskPrompt(routine, skillInstructions),
             acceptanceCriteria = acceptance,
             resourceScope = routine.resourceScope,
             priority = 1,
-            dedupeKey = "routine-run:${routine.routineId}:${now()}",
+            dedupeKey = scheduledAt?.let { "routine-schedule:${routine.routineId}:$it" }
+                ?: "routine-run:${routine.routineId}:${UUID.randomUUID()}",
         )
-        repository.recordRoutineExecution(routine.routineId, RoutineRunStatus.QUEUED)
+        repository.recordRoutineExecutionIfNewer(routine.routineId, runAt, RoutineRunStatus.QUEUED)
         scheduler.requestImmediateTick()
         return task
     }
+
+    /** Scheduled runs enter through the same task queue and approval path as manual runs. */
+    suspend fun runScheduled(routineId: String, originSessionId: String, scheduledAt: Long): BotTaskEntity {
+        val routine = repository.getRoutine(routineId) ?: error("绑定惯例不存在")
+        check(routine.enabled) { "绑定惯例已停用" }
+        check(originSessionId.isNotBlank()) { "定时惯例缺少来源会话" }
+        check(scheduledAt > 0L) { "定时任务缺少计划时刻" }
+        val taskLinkPrefix = "routine-task:$routineId:"
+        val pending = repository.listTasks(routine.botId)
+            .filter { it.requestMessageId.startsWith(taskLinkPrefix) && !BotTaskStatus.isTerminal(it.status) }
+            .maxByOrNull { it.createdAt }
+        if (pending != null) {
+            val pendingRunAt = pending.requestMessageId.substringAfterLast(':').toLongOrNull()
+            if (pendingRunAt != null) {
+                repository.recordRoutineExecutionIfNewer(routineId, pendingRunAt, RoutineRunStatus.QUEUED)
+            }
+            return pending
+        }
+        return runNow(routine, originSessionId, scheduledAt) ?: error("惯例绑定技能不可用")
+    }
+
+    private suspend fun resolveSkillInstructions(routine: BotRoutineEntity): String? {
+        if (routine.skillId.isBlank()) return ""
+        val skill = resolveSkillRepository()?.getById(routine.skillId) ?: return null
+        if (!skill.enabled) return null
+        return SkillImporter.decodePromptText(skill.implementationKotlin)
+            ?.trim()
+            ?.takeIf(String::isNotBlank)
+    }
+
+    private fun buildRoutineTaskPrompt(routine: BotRoutineEntity, skillInstructions: String): String = buildString {
+        appendLine("惯例目标：${routine.goalPrompt.trim()}")
+        if (skillInstructions.isNotBlank()) {
+            appendLine()
+            appendLine("绑定技能「${routine.skillId}」的执行指引：")
+            appendLine(skillInstructions)
+        }
+    }.trim()
 
     /**
      * 例行运行结束后的归档判定。
@@ -291,18 +339,20 @@ class AgentRoutineEngine(
         )
         repository.recordRoutineExecution(
             routineId = routine.routineId,
-            status = if (outcome.isSilentArchive) RoutineRunStatus.ARCHIVED else task.status,
+            status = task.status,
         )
         val summary = outcome.changeSummary.ifBlank { routine.title }
         _archivedRuns.update { current ->
-            (current + RoutineRunArchiveEntry(
-                routineId = routine.routineId,
-                taskId = task.taskId,
-                status = task.status,
-                summary = summary,
-                silent = outcome.isSilentArchive,
-                archivedAt = now(),
-            )).takeLast(MAX_ARCHIVE_ENTRIES)
+            (
+                current + RoutineRunArchiveEntry(
+                    routineId = routine.routineId,
+                    taskId = task.taskId,
+                    status = task.status,
+                    summary = summary,
+                    silent = outcome.isSilentArchive,
+                    archivedAt = now(),
+                )
+                ).takeLast(MAX_ARCHIVE_ENTRIES)
         }
         if (outcome.isSilentArchive) {
             Logger.d(TAG, "例行运行静默归档: routine=${routine.routineId} task=${task.taskId} status=${task.status}")
@@ -373,11 +423,7 @@ class AgentRoutineEngine(
      * 匹配通知或外部渠道事件触发器：命中已启用惯例时生成一条主动建议卡，
      * 不在后台静默替用户执行高危外部动作。
      */
-    suspend fun evaluateEventTrigger(
-        triggerType: String,
-        sourceLabel: String,
-        eventText: String,
-    ): List<BotRoutineEntity> {
+    suspend fun evaluateEventTrigger(triggerType: String, sourceLabel: String, eventText: String): List<BotRoutineEntity> {
         val candidates = repository.listEnabledRoutinesByTrigger(triggerType)
         if (candidates.isEmpty()) return emptyList()
         val haystack = "$sourceLabel $eventText".lowercase()
@@ -390,18 +436,16 @@ class AgentRoutineEngine(
         }
     }
 
-    private suspend fun loadTaskSteps(taskId: String): List<TaskStepEntity> =
-        runCatching { repository.listTaskSteps(taskId) }
-            .onFailure { Logger.w(TAG, "读取任务步骤失败($taskId): ${it.message}") }
-            .getOrDefault(emptyList())
+    private suspend fun loadTaskSteps(taskId: String): List<TaskStepEntity> = runCatching { repository.listTaskSteps(taskId) }
+        .onFailure { Logger.w(TAG, "读取任务步骤失败($taskId): ${it.message}") }
+        .getOrDefault(emptyList())
 
-    private fun summarizeSteps(steps: List<TaskStepEntity>): String =
-        steps
-            .map { it.displayLabel.ifBlank { it.toolName } }
-            .filter(String::isNotBlank)
-            .distinct()
-            .take(MAX_STEPS)
-            .joinToString(" → ")
+    private fun summarizeSteps(steps: List<TaskStepEntity>): String = steps
+        .map { it.displayLabel.ifBlank { it.toolName } }
+        .filter(String::isNotBlank)
+        .distinct()
+        .take(MAX_STEPS)
+        .joinToString(" → ")
 
     private fun buildTaskSkill(
         task: BotTaskEntity,
@@ -451,7 +495,7 @@ class AgentRoutineEngine(
         skillRepository?.let { return it }
         return try {
             org.koin.core.context.GlobalContext.getOrNull()?.get<SkillRepository>()
-        } catch (e: Exception) {
+        } catch (e: java.io.IOException) {
             Logger.w(TAG, "技能仓库解析失败: ${e.message}", e)
             null
         }
@@ -464,7 +508,6 @@ class AgentRoutineEngine(
 
     companion object {
         private const val TAG = "AgentRoutineEngine"
-        private const val ONE_DAY_MS = 24 * 3600_000L
         private const val MAX_TITLE_LENGTH = 40
         private const val MAX_DESCRIPTION_LENGTH = 160
         private const val MAX_STEPS = 8

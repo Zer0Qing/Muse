@@ -119,6 +119,12 @@ internal object MarkdownParseCache {
         return parsed
     }
 
+    /** Seeds the cache from incremental streaming output so stream completion stays O(1). */
+    fun put(messageId: String?, content: String, blocks: List<MarkdownBlock>) {
+        if (content.isEmpty() || content.length > MARKDOWN_CACHE_MAX_CHARS) return
+        cache.put(keyOf(messageId, content), blocks)
+    }
+
     /** 计算缓存 key;测试与调用方共用同一套算法,避免两边漂移。 */
     fun keyOf(messageId: String?, content: String): String = if (messageId.isNullOrBlank()) {
         "content#${content.hashCode()}"

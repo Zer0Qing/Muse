@@ -29,10 +29,7 @@ class DefaultKnowledgeJobProcessor(
     private val chunker: StructuredChunker = StructuredChunker(chunkSize = 500, chunkOverlap = 50),
 ) : KnowledgeJobProcessor {
 
-    override suspend fun process(
-        jobItem: KnowledgeJobItemEntity,
-        execution: JobRunner.JobExecution,
-    ): JobStepResult {
+    override suspend fun process(jobItem: KnowledgeJobItemEntity, execution: JobRunner.JobExecution): JobStepResult {
         val doc = v2Dao.getDoc(jobItem.docId)
             ?: return JobStepResult.Failed(
                 jobItemId = jobItem.jobItemId,

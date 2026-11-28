@@ -75,9 +75,9 @@ class StickerLibraryRepository(private val appContext: Context) {
     private val neutralDimension = 500 to 500
 
     // v1.117: 导入体积限制,防 ZIP 炸弹 / OOM(对齐 DocumentParser 的限制策略)
-    private val MAX_SINGLE_ENTRY_BYTES = 10L * 1024 * 1024 // 单个图片 10MB
-    private val MAX_TOTAL_IMPORT_BYTES = 200L * 1024 * 1024 // 累计 200MB
-    private val MAX_ENTRY_COUNT = 1000 // 最多 1000 个文件
+    private val maxSingleEntryBytes = 10L * 1024 * 1024 // 单个图片 10MB
+    private val maxTotalImportBytes = 200L * 1024 * 1024 // 累计 200MB
+    private val maxEntryCount = 1000 // 最多 1000 个文件
 
     // ── 公开 API ──────────────────────────────────────────────────────────
 
@@ -326,14 +326,14 @@ class StickerLibraryRepository(private val appContext: Context) {
                                             )
                                         }
                                         // v1.117: 数量限制
-                                        if (pendingEntries.size >= MAX_ENTRY_COUNT) {
-                                            error("压缩包内图片数量超过限制 $MAX_ENTRY_COUNT,已中止导入")
+                                        if (pendingEntries.size >= maxEntryCount) {
+                                            error("压缩包内图片数量超过限制 $maxEntryCount,已中止导入")
                                         }
                                         // v1.117: 带大小限制的读取,防 ZIP 炸弹单条目 OOM
-                                        val bytes = readZipEntryWithLimit(zis, MAX_SINGLE_ENTRY_BYTES, rawName)
+                                        val bytes = readZipEntryWithLimit(zis, maxSingleEntryBytes, rawName)
                                         totalBytes += bytes.size
-                                        if (totalBytes > MAX_TOTAL_IMPORT_BYTES) {
-                                            error("压缩包累计体积超过限制 ${MAX_TOTAL_IMPORT_BYTES / 1024 / 1024}MB,已中止导入")
+                                        if (totalBytes > maxTotalImportBytes) {
+                                            error("压缩包累计体积超过限制 ${maxTotalImportBytes / 1024 / 1024}MB,已中止导入")
                                         }
                                         // 立即写 staging 临时文件,bytes 可被 GC,内存峰值 = 单张图
                                         val stagingFile = File(stagingDir, "${pendingEntries.size}_$fileName")
@@ -635,7 +635,7 @@ class StickerLibraryRepository(private val appContext: Context) {
         val picked = mutableListOf<PendingEntry>()
         var ordinal = alreadyCollected
         for (cell in plan.cells) {
-            if (ordinal >= MAX_ENTRY_COUNT) break
+            if (ordinal >= maxEntryCount) break
             val name = "表情" + (ordinal + 1) + ".png"
             val staged = page.pngOf(cell)?.let { bytes ->
                 val file = File(stagingDir, ordinal.toString() + "_" + name)

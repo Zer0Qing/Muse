@@ -440,7 +440,11 @@ private class ChatViewModelVoiceConversationBridge(
 
     override val latestAssistantReply: StateFlow<String> = viewModel.messages
         .map { messages -> messages.lastOrNull { it.role == MessageRole.ASSISTANT }?.content.orEmpty() }
-        .stateIn(stateScope, SharingStarted.Eagerly, viewModel.messages.value.lastOrNull { it.role == MessageRole.ASSISTANT }?.content.orEmpty())
+        .stateIn(
+            stateScope,
+            SharingStarted.Eagerly,
+            viewModel.messages.value.lastOrNull { it.role == MessageRole.ASSISTANT }?.content.orEmpty(),
+        )
 
     override fun sendVoiceUtterance(text: String) {
         viewModel.updateInput(text)
@@ -999,11 +1003,7 @@ private fun ListeningWaveform(amplitudes: List<Float>) {
 
 /** 切换语音 Bottom Sheet 内容:列出系统 TTS 可用声音,点击即切换。 */
 @Composable
-private fun VoicePickerContent(
-    voices: List<Voice>,
-    currentVoiceName: String,
-    onSelect: (String) -> Unit,
-) {
+private fun VoicePickerContent(voices: List<Voice>, currentVoiceName: String, onSelect: (String) -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()

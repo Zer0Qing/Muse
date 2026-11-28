@@ -211,7 +211,8 @@
     <string name="settings_group_media">语音与视觉</string>
     <string name="settings_group_memory">记忆与知识</string>
     <string name="settings_group_tools">工具与扩展</string>
-    <string name="settings_group_connection">渠道与网络</string>
+    <string name="settings_group_channels">消息渠道</string>
+    <string name="settings_group_connection">网络</string>
     <string name="settings_group_automation">自动化与后台</string>
     <string name="settings_group_data_storage">数据与备份</string>
     <string name="settings_group_privacy_security">隐私与权限</string>
@@ -488,6 +489,7 @@
     <string name="search_suggestion_idea">灵感</string>
     <string name="search_no_result">未找到匹配结果</string>
     <string name="search_try_other">试试其他关键词</string>
+    <string name="search_timeout_hint">搜索超时了，换个更短的词再试</string>
     <string name="search_section_sessions">会话</string>
     <string name="search_section_messages">消息</string>
     <string name="search_time_today">今天 %1$s</string>
@@ -648,6 +650,7 @@
     <string name="provider_plugins_delete">删除插件</string>
     <string name="provider_plugins_convert">转为供应商</string>
     <string name="provider_plugins_import_failed">导入失败：%1$s</string>
+    <string name="provider_plugins_import_failed_title">插件文件无法识别</string>
     <string name="provider_plugins_import_success">导入成功</string>
     <string name="provider_plugins_delete_confirm_named">确认删除插件「%1$s」？删除后该插件不可用，如需恢复请重新导入插件包。</string>
     <string name="muse_plugins_review_failed">安全审查未通过：%1$s</string>

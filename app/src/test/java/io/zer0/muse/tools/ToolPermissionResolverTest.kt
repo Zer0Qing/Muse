@@ -152,6 +152,15 @@ class ToolPermissionResolverTest {
             ToolApprovalState.Pending,
             ToolPermissionResolver.resolve("workspace_delete", ToolRiskLevel.HIGH, SessionPermissionMode.ASK, null),
         )
+        assertEquals(
+            ToolApprovalState.Pending,
+            ToolPermissionResolver.resolve(
+                "save_memory",
+                ToolPermissionResolver.riskLevelFor("save_memory"),
+                SessionPermissionMode.ASK,
+                null,
+            ),
+        )
     }
 
     // ── P0-6: 断点恢复重审语义 ──
@@ -227,6 +236,14 @@ class ToolPermissionResolverTest {
             )
             assertTrue("ALWAYS_DENY 应在 $mode 下拒绝", result is ToolApprovalState.Denied)
         }
+        assertTrue(
+            ToolPermissionResolver.resolve(
+                "save_memory",
+                ToolPermissionResolver.riskLevelFor("save_memory"),
+                SessionPermissionMode.ASK,
+                ToolApprovalPolicy.ALWAYS_DENY,
+            ) is ToolApprovalState.Denied,
+        )
     }
 
     @Test
@@ -237,6 +254,15 @@ class ToolPermissionResolverTest {
                 "workspace_delete",
                 ToolRiskLevel.HIGH,
                 SessionPermissionMode.TRUSTED,
+                ToolApprovalPolicy.ALWAYS_ALLOW,
+            ),
+        )
+        assertEquals(
+            ToolApprovalState.Auto,
+            ToolPermissionResolver.resolve(
+                "save_memory",
+                ToolPermissionResolver.riskLevelFor("save_memory"),
+                SessionPermissionMode.ASK,
                 ToolApprovalPolicy.ALWAYS_ALLOW,
             ),
         )

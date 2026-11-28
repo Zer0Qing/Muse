@@ -75,8 +75,6 @@ object ToolTraceProjection {
         if (messages.isEmpty()) return messages
 
         val rounds = findCompletedRounds(messages)
-        if (rounds.isEmpty()) return messages
-
         val protectedRecentStarts =
             rounds
                 .takeLast(keepRecentRounds.coerceAtLeast(0))
@@ -87,21 +85,35 @@ object ToolTraceProjection {
                 .asSequence()
                 .filter { !it.hasFailure && it.startIndex !in protectedRecentStarts }
                 .associateBy { it.startIndex }
-        if (replacements.isEmpty()) return messages
 
-        val projected = ArrayList<UIMessage>(messages.size - replacements.size)
+        var changed = false
+        val projected = ArrayList<UIMessage>(messages.size)
         var index = 0
         while (index < messages.size) {
             val round = replacements[index]
-            if (round == null) {
-                projected += messages[index]
-                index++
-            } else {
+            if (round != null) {
                 projected += buildSummaryMessage(round)
                 index = round.endIndexExclusive
+                changed = true
+                continue
             }
+            val msg = messages[index]
+            // DB 重载的 toolCallInfo 消息（包含最近回合/失败回合）没有 toolCalls；
+            // Provider 不读取 toolCallInfo，必须投影为可读轨迹文本，避免发出 content="" 的空消息或丢结果。
+            val info = if (msg.role == MessageRole.ASSISTANT && msg.toolCalls.isNullOrEmpty()) msg.toolCallInfo else null
+            if (info != null && msg.content.isBlank()) {
+                val statusLabel = if (info.isSuccess) "成功(SUCCESS)" else "失败(FAILED)"
+                projected += msg.copy(
+                    content = "[历史工具调用: ${info.toolName} | 状态: $statusLabel | 结果: ${truncateResult(info.result)}]",
+                    toolCallInfo = null,
+                )
+                changed = true
+            } else {
+                projected += msg
+            }
+            index++
         }
-        return projected
+        return if (changed) projected else messages
     }
 
     private fun findCompletedRounds(messages: List<UIMessage>): List<CompletedRound> {
@@ -230,7 +242,7 @@ object ToolTraceProjection {
             }
         return UIMessage(
             id = round.source.id,
-            role = MessageRole.SYSTEM,
+            role = MessageRole.ASSISTANT,
             content = summary,
             createdAt = round.source.createdAt,
             seq = round.source.seq,

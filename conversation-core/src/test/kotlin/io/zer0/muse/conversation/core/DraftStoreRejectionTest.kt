@@ -26,8 +26,7 @@ class DraftStoreRejectionTest {
         selectionSetId = "selection-1",
     )
 
-    private fun start(sequence: Long, id: RunIdentity = identity) =
-        DraftEvent.Start(sequence, id, startedAt = 1L)
+    private fun start(sequence: Long, id: RunIdentity = identity) = DraftEvent.Start(sequence, id, startedAt = 1L)
 
     private fun metadata(sequence: Long, partId: String, kind: PartKind, text: String = "") =
         DraftEvent.SetMetadataPart(sequence, identity, partId, kind, text)

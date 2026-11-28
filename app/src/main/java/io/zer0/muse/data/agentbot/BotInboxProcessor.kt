@@ -72,7 +72,7 @@ class BotInboxProcessor(
             scannedThrough = maxOf(scannedThrough, event.sequence)
             val handled = try {
                 handler(event)
-            } catch (e: Exception) {
+            } catch (e: java.io.IOException) {
                 // 单条事件处理失败不能拖垮整轮：记日志、不消费、留待下一轮或人工介入。
                 Logger.w("BotInboxProcessor", "事件处理失败，保留待重试: ${event.eventId}", e)
                 false

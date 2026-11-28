@@ -139,6 +139,9 @@ internal class ChatGenerationController(
                     "compress_char_budget" to
                         WarmupHistory.compressTokenBudgetFor(
                             contextMaxTokens = accessor.snapshot.contextMaxTokens,
+                            systemTokens = io.zer0.muse.util.TokenEstimator.estimate(
+                                history.takeWhile { it.role == MessageRole.SYSTEM },
+                            ),
                         ),
                 ),
             )
@@ -153,6 +156,8 @@ internal class ChatGenerationController(
     // (persistCurrentAssistant / persistInterruptedAssistant / 收尾 upsertMessage)
     // 跳过,防止删除后"复活"。新流式 launchStream 启动时清除,允许删除后重新生成。
     private val sessionWritesSuppressed: MutableSet<String> =
+        java.util.Collections.newSetFromMap(java.util.concurrent.ConcurrentHashMap<String, Boolean>())
+    private val capturedSnapshotSessions: MutableSet<String> =
         java.util.Collections.newSetFromMap(java.util.concurrent.ConcurrentHashMap<String, Boolean>())
 
     /** 备份恢复替换数据库文件期间，聊天生成不得继续制造新写入。 */
@@ -826,6 +831,7 @@ internal class ChatGenerationController(
      * - 空快照/写入失败：静默跳过，不阻断生成。
      */
     private suspend fun captureConfigSnapshotIfAbsent(sessionId: String) {
+        if (sessionId in capturedSnapshotSessions) return
         val st = accessor.snapshot
         // 会话级覆盖优先（用户显式指定），无覆盖时回退全局当前选择。
         val modelId = deps.generationState.sessionModelOverrides[sessionId] ?: st.selectedModelId
@@ -837,6 +843,8 @@ internal class ChatGenerationController(
             )
         runCatching {
             deps.sessionRepository.saveConfigSnapshotIfAbsent(sessionId, snapshot)
+        }.onSuccess {
+            capturedSnapshotSessions.add(sessionId)
         }.onFailure { e -> Logger.w("ChatVM", "拍摄会话配置快照失败: ${e.message}", e) }
     }
 
@@ -950,6 +958,8 @@ internal class ChatGenerationController(
             append(prefs.replyInUserLanguageEnabled)
             append("|")
             append(prefs.profileSnapshotEnabled)
+            append("|")
+            append(prefs.aboutYouProfileEnabled)
             append("|")
             append(prefs.carryOverEnabled)
             append("|")
@@ -1099,6 +1109,8 @@ internal class ChatGenerationController(
                                 relevantMemoryExcludeLines = compiledMemoryExcludeLines,
                                 conversationRecallEnabled = conversationRecallActive,
                                 conversationRecallMaxTokens = deps.settings.memoryConfigCache.tokenBudget.coerceAtMost(1600),
+                                memoryEnabled = effectiveMemoryEnabled,
+                                ignoreMemory = sessionIgnoreMem,
                             ),
                         )
                     }.onError { msg, throwable ->
@@ -1185,7 +1197,9 @@ internal class ChatGenerationController(
                                 .getOrDefault(ragConfig)
                         } ?: ragConfig
                     val lastUser = rawHistory.lastOrNull { it.role == MessageRole.USER }
-                    val ragQuery = lastUser?.content?.takeIf { it.isNotBlank() }
+                    val ragQuery = lastUser?.content
+                        ?.let { io.zer0.muse.rag.HybridSearchService.sanitizeQueryForRag(it) }
+                        ?.takeIf { it.isNotBlank() }
                     if (ragQuery != null) {
                         val mentionDocIds =
                             resultOf { deps.ragService.resolveMentionToDocIds(ragQuery) }
@@ -1591,12 +1605,8 @@ internal class ChatGenerationController(
                         ?.let(deps.assistantRepository::parseMcpServerIds)
                         ?.toSet()
                         .orEmpty()
-                if (mcpServerIds.isNotEmpty()) {
-                    val ready = deps.mcpRegistry?.awaitToolsForServers(mcpServerIds) ?: true
-                    if (!ready) {
-                        Logger.w("ChatVM", "MCP tools not ready before stream: $mcpServerIds")
-                    }
-                }
+                val unavailable = deps.mcpRegistry?.unavailableForTurn(mcpServerIds).orEmpty()
+                deps.updateMcpNotice(unavailable)
                 // v2.6.x: 静态提示词不可用（构建抛错 / 结果为空）时**中止本轮**，
                 // 而不是带着空提示词继续生成。空提示词下的回复会丢掉人格/工具说明/记忆，
                 // 用户却收到一条“正常回复”，比直接报错误导得多。
@@ -1809,6 +1819,10 @@ internal class ChatGenerationController(
         val sessionId = state.sessionId
         val sessionTitle = state.sessionTitle
         val streamStartedAt = state.streamStartedAt
+        val rawProactiveSourceText =
+            deps.stateStore.messages.value
+                .firstOrNull { it.id == state.currentAssistantId }?.content
+                ?: state.builder.toString()
         // v2.x 导入预热:首轮成功完成响应后清除标记(全量历史只补一次;幂等)
         if (!restoreBlocksChatWrites("finalizeClearWarmup")) {
             resultOf { deps.sessionRepository.clearWarmupPending(sessionId) }
@@ -2013,6 +2027,13 @@ internal class ChatGenerationController(
         // 因为 Glance 的 provideGlance 不会自己重跑。
         runCatching { io.zer0.muse.widget.MuseWidgetRefresher.refreshAll(deps.appContext) }
             .onFailure { Logger.w("ChatVM", "刷新桌面小组件失败: ${it.message}") }
+        deps.onAutoVoiceBar(generationAssistantId, sessionId, state.currentAssistantId)
+        deps.onProactiveThoughtsExtracted(
+            generationAssistantId,
+            sessionId,
+            state.currentAssistantId,
+            rawProactiveSourceText,
+        )
     }
 
     companion object {

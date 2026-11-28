@@ -6,13 +6,13 @@ import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
 import io.zer0.muse.ui.chat.ChatViewModel
 import io.zer0.muse.ui.knowledge.KnowledgeScreen
-import io.zer0.muse.ui.speech.VoiceCloningPage
-import io.zer0.muse.ui.stats.StatsScreen
-import io.zer0.muse.ui.assistant.VideoGenerationPage
+import io.zer0.muse.ui.media.MediaStudioScreen
 import io.zer0.muse.ui.screen.CoverManagerScreen
 import io.zer0.muse.ui.screen.DataManagementScreen
-import io.zer0.muse.ui.screen.ToolsScreen
 import io.zer0.muse.ui.screen.NotificationListenerScreen
+import io.zer0.muse.ui.screen.ToolsScreen
+import io.zer0.muse.ui.speech.VoiceCloningPage
+import io.zer0.muse.ui.stats.StatsScreen
 
 /**
  * 工具域 NavGraph — 包含 AI 工具管理、浏览器自动化、视频生成、语音克隆、
@@ -30,16 +30,19 @@ fun NavGraphBuilder.toolsNavGraph(navController: NavHostController, sharedViewMo
     ) {
         ToolsScreen(
             onBack = { navController.popBackStackSafe() },
+            onOpenMediaStudio = { navController.navigateSingleTop(MediaStudioRoute) },
+            onOpenArtifactCenter = { navController.navigateSingleTop(ArtifactCenterRoute) },
         )
     }
     // P2-6: 浏览器自动化演示页 — 全屏 WebView + 顶部地址栏 + 底部操作栏
-    // P2-8: 视频生成页 — 从设置 → 工具 → 视频生成 进入
-    composable<VideoGenerationRoute>(
+    // M4: 统一创作工坊（生图 / 生视频 / 作品库）
+    composable<MediaStudioRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
-        VideoGenerationPage(
+        MediaStudioScreen(
             onBack = { navController.popBackStackSafe() },
+            onOpenMediaSettings = { navController.navigateSingleTop(SettingsMediaGenRoute) },
         )
     }
     // P2-9: 语音克隆页 — 从设置 → 媒体 → 语音克隆 进入
@@ -83,6 +86,9 @@ fun NavGraphBuilder.toolsNavGraph(navController: NavHostController, sharedViewMo
             onBack = { navController.popBackStackSafe() },
             onOpenConversations = { channelId ->
                 navController.navigateSingleTop(ChannelConversationsRoute(channelId))
+            },
+            onOpenChat = { channelId, from ->
+                navController.navigateSingleTop(ChannelChatRoute(channelId, from))
             },
         )
     }

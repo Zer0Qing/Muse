@@ -162,11 +162,9 @@ interface KnowledgeTransactionRunner {
         }
 
         /** Room 事务:块内所有 DAO 调用共用同一事务,异常即整体回滚。 */
-        fun room(db: androidx.room.RoomDatabase): KnowledgeTransactionRunner =
-            object : KnowledgeTransactionRunner {
-                override suspend fun <T> run(block: suspend () -> T): T =
-                    db.withTransaction { block() }
-            }
+        fun room(db: androidx.room.RoomDatabase): KnowledgeTransactionRunner = object : KnowledgeTransactionRunner {
+            override suspend fun <T> run(block: suspend () -> T): T = db.withTransaction { block() }
+        }
     }
 }
 
@@ -291,12 +289,7 @@ interface KnowledgeJobDao {
         "UPDATE knowledge_v2_job_items SET state = :queuedState, lease_holder = '', lease_expires_at = 0, " +
             "updated_at = :updatedAt WHERE jobItemId = :jobItemId AND state = :failedState",
     )
-    suspend fun requeueFailedItem(
-        jobItemId: String,
-        failedState: String,
-        queuedState: String,
-        updatedAt: Long,
-    ): Int
+    suspend fun requeueFailedItem(jobItemId: String, failedState: String, queuedState: String, updatedAt: Long): Int
 
     @Query("DELETE FROM knowledge_v2_job_items WHERE jobId = :jobId")
     suspend fun deleteJobItems(jobId: String)
@@ -418,11 +411,7 @@ interface KnowledgeJobDao {
             "WHERE l.generationId IN (:generationIds) AND l.lexical_text LIKE '%' || :term || '%' ESCAPE '\\' " +
             "LIMIT :limit",
     )
-    suspend fun searchLexicalRows(
-        generationIds: List<String>,
-        term: String,
-        limit: Int,
-    ): List<KnowledgeLexicalRow>
+    suspend fun searchLexicalRows(generationIds: List<String>, term: String, limit: Int): List<KnowledgeLexicalRow>
 
     // ---------- 活动代指针 ----------
 

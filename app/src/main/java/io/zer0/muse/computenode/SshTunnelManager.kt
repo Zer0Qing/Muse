@@ -41,10 +41,7 @@ class SshTunnelManager(
      * 同一 nodeId 已存在活动隧道时直接复用；上次以 [SshTunnelState.Failed] 结束时
      * 会重新建立（用户修正凭据后无需先手动 close）。
      */
-    suspend fun ensureTunnel(
-        node: RemoteComputeNodeEntity,
-        remotePort: Int = node.daemonPort,
-    ): StateFlow<SshTunnelState> {
+    suspend fun ensureTunnel(node: RemoteComputeNodeEntity, remotePort: Int = node.daemonPort): StateFlow<SshTunnelState> {
         val existing = tunnels[node.nodeId]
         if (existing != null && existing.remotePort == remotePort &&
             existing.state.value !is SshTunnelState.Failed
@@ -56,11 +53,7 @@ class SshTunnelManager(
     }
 
     /** 用已解析的连接参数建立隧道，适合扫码配对后直接调用。 */
-    fun ensureTunnel(
-        nodeId: String,
-        spec: SshConnectionSpec,
-        remotePort: Int,
-    ): StateFlow<SshTunnelState> = start(nodeId, spec, remotePort)
+    fun ensureTunnel(nodeId: String, spec: SshConnectionSpec, remotePort: Int): StateFlow<SshTunnelState> = start(nodeId, spec, remotePort)
 
     /** 等待隧道可用并返回本地端口；超时或认证失败会抛出异常。 */
     suspend fun awaitLocalPort(
@@ -98,11 +91,7 @@ class SshTunnelManager(
 
     override fun close() = closeAll()
 
-    private fun start(
-        nodeId: String,
-        spec: SshConnectionSpec,
-        remotePort: Int,
-    ): StateFlow<SshTunnelState> = synchronized(lock) {
+    private fun start(nodeId: String, spec: SshConnectionSpec, remotePort: Int): StateFlow<SshTunnelState> = synchronized(lock) {
         val existing = tunnels[nodeId]
         if (existing != null) {
             if (existing.remotePort == remotePort &&
@@ -126,8 +115,7 @@ class SshTunnelManager(
 
     private suspend fun runLoop(handle: TunnelHandle) {
         var attempt = 0
-        while (currentCoroutineContext().isActive) {
-            if (tunnels[handle.nodeId] !== handle) return
+        while (currentCoroutineContext().isActive && tunnels[handle.nodeId] === handle) {
             if (attempt > 0) {
                 val delayMs = backoffDelayMs(attempt)
                 handle.state.value = SshTunnelState.Reconnecting(
@@ -137,7 +125,7 @@ class SshTunnelManager(
                 )
                 delay(delayMs)
             }
-            if (!currentCoroutineContext().isActive) return
+            if (!currentCoroutineContext().isActive) break
             var session: Session? = null
             try {
                 handle.state.value = SshTunnelState.Connecting
@@ -152,17 +140,26 @@ class SshTunnelManager(
                 while (currentCoroutineContext().isActive && session.isConnected) {
                     delay(HEALTH_CHECK_INTERVAL_MS)
                 }
-                if (!currentCoroutineContext().isActive) return
+                if (!currentCoroutineContext().isActive) break
                 throw JSchException("SSH session closed")
             } catch (e: CancellationException) {
                 throw e
-            } catch (e: Exception) {
+            } catch (e: JSchException) {
                 val reason = sshFailureReason(e)
                 handle.lastFailure = reason
                 Logger.w(TAG, "tunnel " + handle.nodeId + " interrupted: " + reason)
                 if (isFatalAuthFailure(e)) {
                     handle.state.value = SshTunnelState.Failed(reason)
-                    return
+                    break
+                }
+                attempt += 1
+            } catch (e: IllegalStateException) {
+                val reason = sshFailureReason(e)
+                handle.lastFailure = reason
+                Logger.w(TAG, "tunnel " + handle.nodeId + " interrupted: " + reason)
+                if (isFatalAuthFailure(e)) {
+                    handle.state.value = SshTunnelState.Failed(reason)
+                    break
                 }
                 attempt += 1
             } finally {
@@ -185,7 +182,9 @@ class SshTunnelManager(
             message.contains("auth reject") ||
             message.contains("userauth") ||
             message.contains("invalid privatekey") ||
-            message.contains("invalid private key")
+            message.contains("invalid private key") ||
+            message.contains("host key") ||
+            message.contains("hostkey")
     }
 
     private class TunnelHandle(

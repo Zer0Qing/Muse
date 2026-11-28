@@ -139,236 +139,236 @@ internal fun WebSearchProviderTypeSection(
                     .padding(MusePaddings.cardInner),
                 verticalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
             ) {
-            if (meta.needsKey) {
-                Text(
-                    stringResource(R.string.settings_web_search_key_pool_label),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    stringResource(R.string.settings_web_search_key_pool_hint),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                MuseTextField(
-                    value = keyDraft,
-                    onValueChange = {
-                        keyDraft = it
-                        keyEdited = true
-                    },
-                    placeholder = { Text(stringResource(R.string.settings_web_search_key_pool_hint)) },
-                    minLines = 2,
-                    maxLines = 6,
-                    modifier = Modifier.fillMaxWidth().padding(top = MusePaddings.tightGap),
-                )
-                // 输入框默认不回填已保存 Key（防一开屏就泄露），所以必须另给指示行，
-                // 否则用户看不出自己到底配没配过。只报个数，不回显任何 Key 字符。
-                val savedCount = WebSearchKeyFieldState.savedCount(savedPool)
-                if (savedCount > 0) {
+                if (meta.needsKey) {
                     Text(
-                        stringResource(R.string.settings_provider_keys_count, savedCount),
+                        stringResource(R.string.settings_web_search_key_pool_label),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        stringResource(R.string.settings_web_search_key_pool_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    MuseTextField(
+                        value = keyDraft,
+                        onValueChange = {
+                            keyDraft = it
+                            keyEdited = true
+                        },
+                        placeholder = { Text(stringResource(R.string.settings_web_search_key_pool_hint)) },
+                        minLines = 2,
+                        maxLines = 6,
+                        modifier = Modifier.fillMaxWidth().padding(top = MusePaddings.tightGap),
+                    )
+                    // 输入框默认不回填已保存 Key（防一开屏就泄露），所以必须另给指示行，
+                    // 否则用户看不出自己到底配没配过。只报个数，不回显任何 Key 字符。
+                    val savedCount = WebSearchKeyFieldState.savedCount(savedPool)
+                    if (savedCount > 0) {
+                        Text(
+                            stringResource(R.string.settings_provider_keys_count, savedCount),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = MusePaddings.tightGap),
+                        )
+                    }
+                    // 逐条展示已保存的 Key：掩码行 + 每行删除按钮。完整 Key 永不出现在语义树，
+                    // 删除即时落库（走与保存按钮同一套 entries+compat 双写），不用先点保存才生效。
+                    savedPool.forEachIndexed { index, key ->
+                        if (key.isBlank()) return@forEachIndexed
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = MusePaddings.tightGap),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = WebSearchKeyFieldState.masked(key),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f),
+                            )
+                            MuseTactileButton(
+                                icon = MuseIcons.trash,
+                                onClick = {
+                                    val remaining = WebSearchKeyFieldState.removeAt(savedPool, index)
+                                    val entry = WebSearchProviderEntry(
+                                        id = existing?.id ?: selectedType,
+                                        type = selectedType,
+                                        customUrl = if (meta.supportsCustomUrl) urlDraft.trim() else storedCustomUrl,
+                                        apiKeys = remaining,
+                                        model = existing?.model.orEmpty(),
+                                        enabled = existing?.enabled ?: true,
+                                    )
+                                    val entries = config.providerEntries.filter { it.type != selectedType } + entry
+                                    val compatKeys = config.apiKeys.toMutableMap().apply {
+                                        if (remaining.isEmpty()) remove(selectedType) else put(selectedType, remaining.first())
+                                    }
+                                    scope.launch {
+                                        settings.saveWebSearchConfig(
+                                            config.copy(providerEntries = entries, apiKeys = compatKeys),
+                                        )
+                                        // 草稿态同步失效：被删的可能正是草稿里那把，留着会凭空复活。
+                                        keyDraft = ""
+                                        keyEdited = false
+                                    }
+                                },
+                                contentDescription = stringResource(R.string.settings_provider_remove_key),
+                                size = MuseIconSizes.touchTarget,
+                                iconSize = MuseIconSizes.iconSmall,
+                                tint = MaterialTheme.colorScheme.error,
+                            )
+                        }
+                    }
+                }
+                if (meta.supportsCustomUrl) {
+                    Spacer(Modifier.height(MusePaddings.contentGap))
+                    Text(
+                        stringResource(R.string.settings_web_search_custom_url_optional),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    MuseTextField(
+                        value = urlDraft,
+                        onValueChange = { urlDraft = it },
+                        placeholder = { Text(stringResource(R.string.settings_web_search_custom_url_hint)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth().padding(top = MusePaddings.tightGap),
+                    )
+                    Text(
+                        stringResource(R.string.settings_web_search_custom_url_hint),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    if (meta.needsInstanceUrl && urlDraft.isBlank()) {
+                        Text(
+                            stringResource(R.string.settings_web_search_instance_url_required),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                } else if (defaultUrl.isNotBlank()) {
+                    Spacer(Modifier.height(MusePaddings.contentGap))
+                    Text(
+                        stringResource(R.string.settings_web_search_endpoint_label),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        defaultUrl,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = MusePaddings.tightGap),
+                    )
+                    Text(
+                        stringResource(R.string.settings_web_search_endpoint_managed),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = MusePaddings.tightGap),
                     )
                 }
-                // 逐条展示已保存的 Key：掩码行 + 每行删除按钮。完整 Key 永不出现在语义树，
-                // 删除即时落库（走与保存按钮同一套 entries+compat 双写），不用先点保存才生效。
-                savedPool.forEachIndexed { index, key ->
-                    if (key.isBlank()) return@forEachIndexed
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = MusePaddings.tightGap),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            text = WebSearchKeyFieldState.masked(key),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f),
-                        )
-                        MuseTactileButton(
-                            icon = MuseIcons.trash,
-                            onClick = {
-                                val remaining = WebSearchKeyFieldState.removeAt(savedPool, index)
-                                val entry = WebSearchProviderEntry(
-                                    id = existing?.id ?: selectedType,
-                                    type = selectedType,
-                                    customUrl = if (meta.supportsCustomUrl) urlDraft.trim() else storedCustomUrl,
-                                    apiKeys = remaining,
-                                    model = existing?.model.orEmpty(),
-                                    enabled = existing?.enabled ?: true,
-                                )
-                                val entries = config.providerEntries.filter { it.type != selectedType } + entry
-                                val compatKeys = config.apiKeys.toMutableMap().apply {
-                                    if (remaining.isEmpty()) remove(selectedType) else put(selectedType, remaining.first())
-                                }
-                                scope.launch {
-                                    settings.saveWebSearchConfig(
-                                        config.copy(providerEntries = entries, apiKeys = compatKeys),
-                                    )
-                                    // 草稿态同步失效：被删的可能正是草稿里那把，留着会凭空复活。
-                                    keyDraft = ""
-                                    keyEdited = false
-                                }
-                            },
-                            contentDescription = stringResource(R.string.settings_provider_remove_key),
-                            size = MuseIconSizes.touchTarget,
-                            iconSize = MuseIconSizes.iconSmall,
-                            tint = MaterialTheme.colorScheme.error,
-                        )
-                    }
-                }
-            }
-            if (meta.supportsCustomUrl) {
-                Spacer(Modifier.height(MusePaddings.contentGap))
-                Text(
-                    stringResource(R.string.settings_web_search_custom_url_optional),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                MuseTextField(
-                    value = urlDraft,
-                    onValueChange = { urlDraft = it },
-                    placeholder = { Text(stringResource(R.string.settings_web_search_custom_url_hint)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth().padding(top = MusePaddings.tightGap),
-                )
-                Text(
-                    stringResource(R.string.settings_web_search_custom_url_hint),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                if (meta.needsInstanceUrl && urlDraft.isBlank()) {
+                if (meta.needsModel) {
+                    Spacer(Modifier.height(MusePaddings.contentGap))
                     Text(
-                        stringResource(R.string.settings_web_search_instance_url_required),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.error,
+                        stringResource(R.string.settings_web_search_model_optional),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    MuseTextField(
+                        value = modelDraft,
+                        onValueChange = { modelDraft = it },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth().padding(top = MusePaddings.tightGap),
                     )
                 }
-            } else if (defaultUrl.isNotBlank()) {
-                Spacer(Modifier.height(MusePaddings.contentGap))
-                Text(
-                    stringResource(R.string.settings_web_search_endpoint_label),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    defaultUrl,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = MusePaddings.tightGap),
-                )
-                Text(
-                    stringResource(R.string.settings_web_search_endpoint_managed),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = MusePaddings.tightGap),
-                )
-            }
-            if (meta.needsModel) {
-                Spacer(Modifier.height(MusePaddings.contentGap))
-                Text(
-                    stringResource(R.string.settings_web_search_model_optional),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                MuseTextField(
-                    value = modelDraft,
-                    onValueChange = { modelDraft = it },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth().padding(top = MusePaddings.tightGap),
-                )
-            }
-            verifyText?.let { text ->
-                Spacer(Modifier.height(MusePaddings.tightGap))
-                Text(
-                    text = text,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Spacer(Modifier.height(MusePaddings.contentGap))
-            // 测试连接：真发一次最小请求；失败给可操作原因，不把上游原始报文整段直出。
-            MuseCapsuleButton(
-                text = if (testing) {
-                    stringResource(R.string.settings_web_search_testing)
-                } else {
-                    stringResource(R.string.settings_web_search_key_verify)
-                },
-                enabled = !testing,
-                onClick = {
-                    if (testing) return@MuseCapsuleButton
-                    testing = true
-                    verifyText = null
-                    val draftKeys = WebSearchKeyFieldState.poolToSave(savedPool, keyDraft, keyEdited)
-                    val testKey = draftKeys.firstOrNull().orEmpty()
-                    scope.launch {
-                        val outcome = probeSearchProvider(
-                            client = webSearchClient,
-                            cfg = config.copy(
-                                providerEntries = listOf(
-                                    WebSearchProviderEntry(
-                                        id = selectedType,
-                                        type = selectedType,
-                                        customUrl = if (meta.supportsCustomUrl) urlDraft.trim() else storedCustomUrl,
-                                        apiKeys = draftKeys,
-                                    ),
-                                ) + config.providerEntries.filter { it.type != selectedType },
-                            ),
-                            providerKey = selectedType,
-                            apiKeyDraft = testKey,
-                        )
-                        status = if (outcome.ok) ProviderFormStatus.CONNECTED else ProviderFormStatus.FAILED
-                        verifyText = when {
-                            outcome.ok -> context.getString(R.string.settings_web_search_key_verify_ok, outcome.results)
-                            outcome.detail != null -> context.getString(
-                                R.string.settings_web_search_key_verify_failed,
-                                outcome.detail,
-                            )
-                            else -> context.getString(R.string.settings_web_search_key_verify_empty)
-                        }
-                        testing = false
-                    }
-                },
-            )
-            Spacer(Modifier.height(MusePaddings.tightGap))
-            // 保存只写 providerEntries（新真源），同时把首把 Key 同步回旧 apiKeys 映射，
-            // 让旧的「测试连接」/兼容读取路径与这里保持一致，不产生双源分叉。
-            MuseCapsuleButton(
-                text = stringResource(R.string.settings_web_search_save_api_key),
-                onClick = {
-                    if (meta.needsInstanceUrl && urlDraft.isBlank()) {
-                        verifyText = context.getString(R.string.settings_web_search_instance_url_required)
-                        return@MuseCapsuleButton
-                    }
-                    val keys = WebSearchKeyFieldState.poolToSave(savedPool, keyDraft, keyEdited)
-                    val entry = WebSearchProviderEntry(
-                        id = existing?.id ?: selectedType,
-                        type = selectedType,
-                        customUrl = if (meta.supportsCustomUrl) urlDraft.trim() else storedCustomUrl,
-                        apiKeys = keys,
-                        model = modelDraft.trim(),
-                        enabled = existing?.enabled ?: true,
+                verifyText?.let { text ->
+                    Spacer(Modifier.height(MusePaddings.tightGap))
+                    Text(
+                        text = text,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    val entries = config.providerEntries.filter { it.type != selectedType } + entry
-                    val compatKeys = config.apiKeys.toMutableMap().apply {
-                        if (keys.isEmpty()) remove(selectedType) else put(selectedType, keys.first())
-                    }
-                    scope.launch {
-                        settings.saveWebSearchConfig(
-                            config.copy(providerEntries = entries, apiKeys = compatKeys),
+                }
+                Spacer(Modifier.height(MusePaddings.contentGap))
+                // 测试连接：真发一次最小请求；失败给可操作原因，不把上游原始报文整段直出。
+                MuseCapsuleButton(
+                    text = if (testing) {
+                        stringResource(R.string.settings_web_search_testing)
+                    } else {
+                        stringResource(R.string.settings_web_search_key_verify)
+                    },
+                    enabled = !testing,
+                    onClick = {
+                        if (testing) return@MuseCapsuleButton
+                        testing = true
+                        verifyText = null
+                        val draftKeys = WebSearchKeyFieldState.poolToSave(savedPool, keyDraft, keyEdited)
+                        val testKey = draftKeys.firstOrNull().orEmpty()
+                        scope.launch {
+                            val outcome = probeSearchProvider(
+                                client = webSearchClient,
+                                cfg = config.copy(
+                                    providerEntries = listOf(
+                                        WebSearchProviderEntry(
+                                            id = selectedType,
+                                            type = selectedType,
+                                            customUrl = if (meta.supportsCustomUrl) urlDraft.trim() else storedCustomUrl,
+                                            apiKeys = draftKeys,
+                                        ),
+                                    ) + config.providerEntries.filter { it.type != selectedType },
+                                ),
+                                providerKey = selectedType,
+                                apiKeyDraft = testKey,
+                            )
+                            status = if (outcome.ok) ProviderFormStatus.CONNECTED else ProviderFormStatus.FAILED
+                            verifyText = when {
+                                outcome.ok -> context.getString(R.string.settings_web_search_key_verify_ok, outcome.results)
+                                outcome.detail != null -> context.getString(
+                                    R.string.settings_web_search_key_verify_failed,
+                                    outcome.detail,
+                                )
+                                else -> context.getString(R.string.settings_web_search_key_verify_empty)
+                            }
+                            testing = false
+                        }
+                    },
+                )
+                Spacer(Modifier.height(MusePaddings.tightGap))
+                // 保存只写 providerEntries（新真源），同时把首把 Key 同步回旧 apiKeys 映射，
+                // 让旧的「测试连接」/兼容读取路径与这里保持一致，不产生双源分叉。
+                MuseCapsuleButton(
+                    text = stringResource(R.string.settings_web_search_save_api_key),
+                    onClick = {
+                        if (meta.needsInstanceUrl && urlDraft.isBlank()) {
+                            verifyText = context.getString(R.string.settings_web_search_instance_url_required)
+                            return@MuseCapsuleButton
+                        }
+                        val keys = WebSearchKeyFieldState.poolToSave(savedPool, keyDraft, keyEdited)
+                        val entry = WebSearchProviderEntry(
+                            id = existing?.id ?: selectedType,
+                            type = selectedType,
+                            customUrl = if (meta.supportsCustomUrl) urlDraft.trim() else storedCustomUrl,
+                            apiKeys = keys,
+                            model = modelDraft.trim(),
+                            enabled = existing?.enabled ?: true,
                         )
-                        keyDraft = ""
-                        keyEdited = false
-                        status = ProviderFormStatus.UNTESTED
-                        MuseToast.show(savedText)
-                    }
-                },
-            )
+                        val entries = config.providerEntries.filter { it.type != selectedType } + entry
+                        val compatKeys = config.apiKeys.toMutableMap().apply {
+                            if (keys.isEmpty()) remove(selectedType) else put(selectedType, keys.first())
+                        }
+                        scope.launch {
+                            settings.saveWebSearchConfig(
+                                config.copy(providerEntries = entries, apiKeys = compatKeys),
+                            )
+                            keyDraft = ""
+                            keyEdited = false
+                            status = ProviderFormStatus.UNTESTED
+                            MuseToast.show(savedText)
+                        }
+                    },
+                )
             }
         }
     }

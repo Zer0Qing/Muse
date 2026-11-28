@@ -1,5 +1,6 @@
 package io.zer0.muse.knowledge
 
+import io.zer0.muse.knowledge.domain.KnowledgeScope
 import io.zer0.muse.knowledge.domain.RetrievalPolicy
 import io.zer0.muse.knowledge.retrieval.EvidenceCandidate
 import io.zer0.muse.knowledge.retrieval.KnowledgeEntryType
@@ -10,7 +11,6 @@ import io.zer0.muse.knowledge.retrieval.LexicalRecall
 import io.zer0.muse.knowledge.retrieval.LexicalRetriever
 import io.zer0.muse.knowledge.retrieval.RerankProvider
 import io.zer0.muse.knowledge.retrieval.RetrievalOutcome
-import io.zer0.muse.knowledge.domain.KnowledgeScope
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -42,11 +42,8 @@ class KnowledgeRerankFailureTest {
 
     private fun retriever(rerank: RerankProvider) = KnowledgeRetriever(
         lexicalRetriever = object : LexicalRetriever {
-            override suspend fun search(
-                request: KnowledgeSearchRequest,
-                activeGenerationIds: List<String>,
-                limit: Int,
-            ): LexicalRecall = LexicalRecall(hits = hits(5))
+            override suspend fun search(request: KnowledgeSearchRequest, activeGenerationIds: List<String>, limit: Int): LexicalRecall =
+                LexicalRecall(hits = hits(5))
         },
         rerankProvider = rerank,
         generationResolver = { listOf("gen-1") },
@@ -65,11 +62,8 @@ class KnowledgeRerankFailureTest {
     @Test
     fun `timeout exception keeps original order and finalK`() = runBlocking {
         val failing = object : RerankProvider {
-            override suspend fun rerank(
-                query: String,
-                candidates: List<EvidenceCandidate>,
-                topK: Int,
-            ): List<EvidenceCandidate>? = throw IOException("timeout after 1000ms")
+            override suspend fun rerank(query: String, candidates: List<EvidenceCandidate>, topK: Int): List<EvidenceCandidate>? =
+                throw IOException("timeout after 1000ms")
         }
         val outcome = retriever(failing).search(request())
         assertTrue(outcome is RetrievalOutcome.Partial)
@@ -81,11 +75,7 @@ class KnowledgeRerankFailureTest {
     @Test
     fun `cancelled rerank returns null and keeps original order`() = runBlocking {
         val cancelled = object : RerankProvider {
-            override suspend fun rerank(
-                query: String,
-                candidates: List<EvidenceCandidate>,
-                topK: Int,
-            ): List<EvidenceCandidate>? = null
+            override suspend fun rerank(query: String, candidates: List<EvidenceCandidate>, topK: Int): List<EvidenceCandidate>? = null
         }
         val outcome = retriever(cancelled).search(request())
         assertTrue(outcome is RetrievalOutcome.Partial)
@@ -95,11 +85,8 @@ class KnowledgeRerankFailureTest {
     @Test
     fun `rerank returning more than finalK is truncated`() = runBlocking {
         val overReturning = object : RerankProvider {
-            override suspend fun rerank(
-                query: String,
-                candidates: List<EvidenceCandidate>,
-                topK: Int,
-            ): List<EvidenceCandidate> = candidates + candidates // 重复 10 条
+            override suspend fun rerank(query: String, candidates: List<EvidenceCandidate>, topK: Int): List<EvidenceCandidate> =
+                candidates + candidates // 重复 10 条
         }
         val outcome = retriever(overReturning).search(request())
         val candidates = when (outcome) {

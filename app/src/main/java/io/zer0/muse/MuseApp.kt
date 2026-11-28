@@ -11,6 +11,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import coil.ImageLoader
@@ -47,15 +48,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
-import kotlin.coroutines.coroutineContext
-import io.zer0.muse.ui.debug.DebugScreen
 
 /**
  * 应用入口。初始化 Koin,装载全部模块,启动 memory ticker。
@@ -85,6 +83,7 @@ class MuseApp : Application(), ImageLoaderFactory {
 
     /** 默认知识库兜底（文档挂在 kb_id="default" 下但库里没有该行时补建）。 */
     private val knowledgeDefaultKbEnsurer: io.zer0.muse.data.knowledge.KnowledgeDefaultKbEnsurer by inject()
+
     /** 经验库统一数据源：旧表一次性导入。 */
     private val experienceLegacyImporter: io.zer0.muse.data.experience.ExperienceLegacyImporter by inject()
     private val notificationManager: MuseNotificationManager by inject()
@@ -199,6 +198,9 @@ class MuseApp : Application(), ImageLoaderFactory {
         io.zer0.muse.data.SettingsStoreContextHolder.applicationContext = applicationContext
         // 本地离线语音:给 asr 包注入 Application Context,小手机的整段转写据此判断模型是否就绪
         io.zer0.muse.asr.local.LocalModelStoreBridge.init(applicationContext)
+        // 工具调用断点续传的落盘位置。不初始化的话所有读写都静默跳过,
+        // 日志里只剩一串 "fileRef 未初始化",重启后也恢复不出中断的调用。
+        io.zer0.muse.chat.PendingToolCallStore.init(applicationContext)
         // Phase 11.3: 文件日志(便于真机验证后回捞,cacheDir 卸载自动清理)
         Logger.initFileLog(this)
         // v2.6.23(S4): 主线程卡顿计数(诊断卡数据源)。Printer 只做时间戳差值,
@@ -274,18 +276,7 @@ class MuseApp : Application(), ImageLoaderFactory {
                     repo.save(sessionId, list)
                 }
             }.onFailure { Logger.w("MuseApp", "待办持久化注入失败，退化为纯内存: ${it.message}") }
-            // v1.0.80: 初始化 UI 自动化模块(三层权限: 无障碍/Shell/Root)
-            try {
-                val toolRegistry =
-                    org.koin.java.KoinJavaComponent.get<io.zer0.muse.tools.ToolRegistry>(
-                        io.zer0.muse.tools.ToolRegistry::class.java,
-                    )
-                io.zer0.muse.automation.AutomationInitializer.initialize(this, toolRegistry)
-            } catch (e: Exception) {
-                Logger.w("MuseApp", "AutomationInitializer failed: ${e.message}")
-            }
-            // MCP server 连接与工具注册独立于设置页生命周期,后台和主聊天都能直接使用。
-            mcpRegistry.startAll()
+            // 断点续传与核心路由依赖：同步保留。AutomationInitializer / MCP 启动等非首帧工作延后到 IO。
             // 快速记录系统悬浮窗默认关闭:清理旧版本可能遗留的默认开启状态。
             appScope.launch {
                 try {
@@ -316,58 +307,26 @@ class MuseApp : Application(), ImageLoaderFactory {
                     Logger.w("MuseApp", "RAG embedding 来源迁移失败: ${e.message}", e)
                 }
             }
-            // ANR 检测 + 性能监控(在 startKoin 之后、服务初始化之前启动)
-            // AnrWatcher:独立守护线程检测主线程无响应(5s+),ANR 时采集线程堆栈/内存/Perf 记录写入 crash 目录。
-            //   开关 settings.enableAnrDetection(默认 true);自身不阻塞主线程(独立线程 + 弱引用 Handler)。
-            io.zer0.muse.crash.AnrWatcher(this, settings, auditLogger).start()
-            // 断点续传(工具中断恢复):初始化 pending tool calls 持久化文件路径。
-            // 必须 Early-init,确保 ChatViewModel 启动时 fileRef 已就绪。
-            io.zer0.muse.chat.PendingToolCallStore.init(this)
-            // P2-11: 注入 SecureCredentialStore 到 OAuthManager 单例,
-            // 登录成功后 OAuth token 会加密写入独立 SP(与普通 API Key 物理隔离)
-            io.zer0.muse.auth.OAuthManager.init(io.zer0.muse.auth.SecureCredentialStore(this))
-            // v2.6.0: 装配全局代理提供者 —— token 交换/刷新必须与用户配置的代理一致。
-            // 否则代理用户会遇到“浏览器授权成功但应用 token 交换失败”(直连被地区拒绝)。
-            io.zer0.muse.auth.OAuthManager.installProxyConfigProvider {
-                settings.proxyConfigCache
-            }
-            // v2.6.9（用户反馈）: 把代理同步到全局 ProxyProvider。
-            //
-            // 背景：全仓 28 处 OkHttpClient 构造点里只有 3 处应用了代理，
-            // 导致用户配了代理后 MCP / 渠道 / ASR / 云端解析 / 插件市场仍然直连——
-            // 表现就是“有的功能能上网、有的不能”。
-            //
-            // 这里启动时先同步一次，并持续订阅配置变化（用户改代理后无需重启
-            // 新建的 client 就会走新代理；已建好的 client 仍需重启，已在设置页说明）。
-            io.zer0.ai.core.ProxyProvider.set(settings.proxyConfigCache.toProxyDescriptor())
-            appScope.launch {
-                settings.proxyConfigFlow.collect { cfg ->
-                    io.zer0.ai.core.ProxyProvider.set(cfg.toProxyDescriptor())
-                }
-            }
-            // v2.6.2（Codex 登录修复）: 存量 Codex 供应商自愈 —— 旧版因 account-id
-            // 解析路径错误，已登录用户的 provider 里从未写入 ChatGPT-Account-ID 头，
-            // 导致所有 Codex 推理请求 403。这里从加密存储的 id_token 现解析并补写，
-            // 让老用户无需重新登录即可恢复。幂等，无 OAuth 时静默跳过。
-            appScope.launch {
-                resultOf { settings.healCodexAccountHeadersIfNeeded() }
-                    .onError { msg, t -> Logger.w("MuseApp", "Codex 账号头自愈失败: $msg", t) }
-                    .onSuccess { n -> if (n > 0) Logger.i("MuseApp", "Codex 账号头自愈完成: 修复 $n 个供应商") }
-            }
             // Phase 8.10: 创建通知渠道(幂等,Android 8.0+ 必需)
             notificationManager.ensureChannels()
-            // 通知监听服务可能尚未被系统绑定;先恢复本地通知历史,让通知工具和设置页
-            // 在冷启动后也能读取到上一轮已采集的数据。
-            io.zer0.muse.notification.MuseNotificationListenerService.initialize(this)
-            // 启动 memory ticker(每小时 daily check,主触发仍是 ChatViewModel.notifyTurn)
-            memoryTicker.start()
-            // v2.6.2（用户反馈）: 启动通知 → 记忆后台梳理调度。
-            // 默认关（notificationMemoryEnabledFlow=false），未开启时调度器空转不调 LLM。
-            resultOf { notificationMemoryScheduler.start() }
-                .onError { msg, t -> Logger.w("MuseApp", "notificationMemoryScheduler.start 失败: $msg", t) }
-            // v2.6.2（记忆审计）: 启动记忆辅助数据清理调度（群聊记忆 / Agent 私信）
-            resultOf { memoryHousekeepingScheduler.start() }
-                .onError { msg, t -> Logger.w("MuseApp", "memoryHousekeepingScheduler.start 失败: $msg", t) }
+            // 非首帧初始化任务（ANR 监控 / MCP 连接 / 通知监听 / 记忆调度）全部异步到 IO，缩短冷启动阻塞。
+            appScope.launch(Dispatchers.IO) {
+                resultOf { io.zer0.muse.crash.AnrWatcher(this@MuseApp, settings, auditLogger).start() }
+                    .onError { msg, t -> Logger.w("MuseApp", "AnrWatcher 启动失败: $msg", t) }
+                resultOf { mcpRegistry.startAll() }
+                    .onError { msg, t -> Logger.w("MuseApp", "mcpRegistry.startAll 失败: $msg", t) }
+                resultOf { io.zer0.muse.notification.MuseNotificationListenerService.initialize(this@MuseApp) }
+                    .onError { msg, t -> Logger.w("MuseApp", "通知监听历史恢复失败: $msg", t) }
+                resultOf { memoryTicker.start() }
+                    .onError { msg, t -> Logger.w("MuseApp", "memoryTicker.start 失败: $msg", t) }
+                // v2.6.2（用户反馈）: 启动通知 → 记忆后台梳理调度。
+                // 默认关（notificationMemoryEnabledFlow=false），未开启时调度器空转不调 LLM。
+                resultOf { notificationMemoryScheduler.start() }
+                    .onError { msg, t -> Logger.w("MuseApp", "notificationMemoryScheduler.start 失败: $msg", t) }
+                // v2.6.2（记忆审计）: 启动记忆辅助数据清理调度（群聊记忆 / Agent 私信）
+                resultOf { memoryHousekeepingScheduler.start() }
+                    .onError { msg, t -> Logger.w("MuseApp", "memoryHousekeepingScheduler.start 失败: $msg", t) }
+            }
             // v1.0.51: 存量记忆迁移 — 升级后首次启动补跑历史 session 的 rollingSummary
             // 三道守卫保证幂等:DataStore 标志位 + AtomicBoolean + 记忆开关
             // 通过 backfillProgressFlow 实时报告进度,MemoryScreen 顶部显示进度条
@@ -521,6 +480,7 @@ class MuseApp : Application(), ImageLoaderFactory {
                                     ) { it.onAppBackground() }
                                 }
                                     .onError { msg, t -> Logger.w("MuseApp", "AppLifecycleHook.onAppBackground 失败: $msg", t) }
+                                resumePatrolTriggered.set(false)
                             }
                         }
                         Lifecycle.Event.ON_START -> {
@@ -666,9 +626,13 @@ class MuseApp : Application(), ImageLoaderFactory {
                 // v2.x（诊断导出项目 A）: 生成链路轨迹记录仪初始化（纯观察者，异常内部吞）
                 resultOf { io.zer0.muse.diagnostic.GenerationTrace.init(applicationContext) }
                     .onError { msg, t -> Logger.w("MuseApp", "GenerationTrace init 失败: $msg", t) }
-                // v2.x Agent 化: 注册设备能力档案 Hook —— 把三层控制通道的真实可用性 +
-                // 操作决策规程注入 system prompt,让模型第一步就选对通道,而不是靠试错。
+                // v2.x Agent 化: 异步初始化自动化模块，再注册设备能力档案 Hook。
                 resultOf {
+                    val toolRegistry =
+                        org.koin.java.KoinJavaComponent.get<io.zer0.muse.tools.ToolRegistry>(
+                            io.zer0.muse.tools.ToolRegistry::class.java,
+                        )
+                    io.zer0.muse.automation.AutomationInitializer.initialize(applicationContext, toolRegistry)
                     if (io.zer0.muse.automation.AutomationInitializer.isInitialized) {
                         hookRegistry.register(
                             io.zer0.muse.automation.capability.DeviceCapabilityHook(
@@ -790,7 +754,10 @@ class MuseApp : Application(), ImageLoaderFactory {
                 }
             }.onError { msg, t -> Logger.w("MuseApp", "恢复常驻保活失败: $msg", t) }
             // v2.0: 渠道自动回复监听(webhook 入站 → 自动跑一轮 → 回发到来源)
-            resultOf { channelAutoReply.start() }
+            resultOf {
+                io.zer0.muse.channel.ChannelContactMetaStore.attach(applicationContext)
+                channelAutoReply.start()
+            }
                 .onError { msg, t -> Logger.w("MuseApp", "ChannelAutoReply 启动失败", t) }
             // v2.0: ClawBot 长轮询接收 — 只存在启用中的 WECLAW 渠道时才起接收循环。
             // 判定要读 ChannelManager 的持久化配置(启动时为空的 StateFlow),所以放在
@@ -887,7 +854,11 @@ class MuseApp : Application(), ImageLoaderFactory {
                     PeriodicWorkRequestBuilder<io.zer0.muse.proactive.ProactiveWorker>(
                         15,
                         TimeUnit.MINUTES,
-                    ).setConstraints(Constraints.Builder().build()).build()
+                    ).setConstraints(
+                        Constraints.Builder()
+                            .setRequiredNetworkType(NetworkType.CONNECTED)
+                            .build(),
+                    ).build()
                 WorkManager.getInstance(this).enqueueUniquePeriodicWork(
                     io.zer0.muse.proactive.ProactiveWorker.UNIQUE_WORK_NAME,
                     ExistingPeriodicWorkPolicy.KEEP,
@@ -1144,10 +1115,15 @@ class MuseApp : Application(), ImageLoaderFactory {
                 val now = System.currentTimeMillis()
                 proactiveBacklogRepository.releaseExpiredClaims(now)
                 proactiveNotificationRecovery.recover(now)
-                assistantRepository.getAll().forEach { assistant ->
-                    proactiveBacklogRepository.reconcile(now, assistant.id, "")
+                val cfg = settings.proactiveMessageConfigFlow.first()
+                if (cfg.enabled) {
+                    val activeAssistantId = cfg.agentId.takeIf { it.isNotBlank() }
+                        ?: assistantRepository.getAll().firstOrNull()?.id.orEmpty()
+                    if (activeAssistantId.isNotBlank()) {
+                        proactiveBacklogRepository.reconcile(now, activeAssistantId, "")
+                    }
+                    proactiveBacklogWorkScheduler.enqueueIfNeeded()
                 }
-                proactiveBacklogWorkScheduler.enqueueIfNeeded()
             } catch (cancelled: kotlinx.coroutines.CancellationException) {
                 throw cancelled
             } catch (error: Exception) {

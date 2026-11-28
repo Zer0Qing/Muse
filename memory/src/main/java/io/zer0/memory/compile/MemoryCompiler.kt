@@ -194,8 +194,6 @@ class MemoryCompiler(
         fingerprint: String?,
         now: String,
         target: MemoryCompileTarget? = null,
-        sourceFingerprint: String = "",
-        status: String = "READY",
         fence: io.zer0.memory.runtime.MemoryWriteFence? = null,
     ): Boolean {
         if (writeBlocked(fence, target)) {
@@ -1027,8 +1025,6 @@ class MemoryCompiler(
                 fingerprint = null,
                 now = Instant.now().toString(),
                 target = resolvedTarget,
-                sourceFingerprint = source.joinToString("|") { it.fact },
-                status = "READY",
             )
             Logger.i("MemoryCompiler", "FACTS 段确定性投影: ${projected.lines().size} 条 / ${projected.length} 字符")
             1

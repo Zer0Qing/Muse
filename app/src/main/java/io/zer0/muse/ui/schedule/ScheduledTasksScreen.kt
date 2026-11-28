@@ -1732,10 +1732,7 @@ private fun WakeEntryRow(entry: WakeWorkEntry) {
             overflow = TextOverflow.Ellipsis,
         )
         Text(
-            text = stringResource(
-                R.string.wake_diagnostics_next_run,
-                formatWakeTime(entry.nextRunAtMillis) ?: stringResource(R.string.wake_diagnostics_next_run_none),
-            ),
+            text = wakeNextRunLabel(entry),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -1823,6 +1820,32 @@ private fun wakeStateColor(state: WakeState, colors: MuseStatusColors): Color = 
 /** 面板里给用户看的本地时间;快照里的时间由 [BackgroundWakeDiagnostics.formatSnapshot] 固定格式输出。 */
 private fun formatWakeTime(millis: Long?): String? = millis?.let { at ->
     MuseDateFormats.format(MuseDateFormats.DATE_TIME_FULL, at)
+}
+
+/**
+ * 「下次运行」那一行。
+ *
+ * WorkManager 在任务被推迟（约束未满足、Doze、应用待机）时会把 `nextScheduleTimeMillis`
+ * 一直冻在原定的那个时刻，于是界面会把几个小时前的时间当成「下次运行」显示出来。
+ * 过去的时间必须换个说法：已经到点了，正在等系统把它捞起来。
+ */
+@Composable
+private fun wakeNextRunLabel(entry: WakeWorkEntry): String {
+    val at = entry.nextRunAtMillis
+        ?: return stringResource(R.string.wake_diagnostics_next_run, stringResource(R.string.wake_diagnostics_next_run_none))
+    val formatted = formatWakeTime(at) ?: return stringResource(R.string.wake_diagnostics_next_run, at.toString())
+    // 60s 容差：刚好到点的那一瞬间不算「已过期」，避免文案在两行之间抖动。
+    val overdue = entry.state == WakeState.ENQUEUED && at < System.currentTimeMillis() - 60_000L
+    return if (overdue) {
+        val template = if (entry.constrained) {
+            R.string.wake_diagnostics_next_run_overdue_constrained
+        } else {
+            R.string.wake_diagnostics_next_run_overdue
+        }
+        stringResource(template, formatted)
+    } else {
+        stringResource(R.string.wake_diagnostics_next_run, formatted)
+    }
 }
 
 private fun copyWakeSnapshot(context: Context, report: WakeDiagnostics) {

@@ -32,7 +32,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
 import java.util.UUID
-import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * 角色的旁路文本生成端口。
@@ -183,11 +182,7 @@ internal class MiniPhoneTextComposer(
         generate(assistant, sceneMaterial(brief), MAX_TOKENS_SCENE)?.let(::cleanOutput)
 
     /** 私信/通话素材：把模块交来的对话拼成「人格系统提示 + 注入段 + 最近几轮」。 */
-    suspend fun buildConversation(
-        assistant: AssistantEntity,
-        history: List<MpChatTurn>,
-        isVoiceCall: Boolean = false,
-    ): List<UIMessage> {
+    suspend fun buildConversation(assistant: AssistantEntity, history: List<MpChatTurn>, isVoiceCall: Boolean = false): List<UIMessage> {
         // 系统提示不是角色说过的话,图片/语音行没有文本 —— 两者都不进上下文
         val turns = history
             .filter { it.sender != MpActorType.SYSTEM && it.content.isNotBlank() }

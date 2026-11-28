@@ -1,9 +1,12 @@
 package io.zer0.muse.ui.common
 
+import android.content.Context
+import android.content.res.Configuration
 import android.content.res.Resources
 import io.zer0.common.Logger
 import io.zer0.memory.fact.FactEntity
 import io.zer0.muse.R
+import io.zer0.muse.util.AppLocales
 import java.time.LocalDate
 import java.time.LocalTime
 
@@ -17,6 +20,8 @@ object GreetingHelper {
     /** 按文本是否含 CJK 字符返回对应的单行个性化提醒上限。 */
     internal fun personalizedHintMaxLengthFor(text: String): Int =
         if (containsCjk(text)) PERSONALIZED_HINT_MAX_LENGTH else PERSONALIZED_HINT_MAX_LENGTH_LATIN
+
+    internal fun hintCachePrefix(date: LocalDate, languageTag: String): String = "$date|$languageTag|"
 
     /** 文本是否包含中日韩表意/假名/谚文字符。 */
     internal fun containsCjk(text: String): Boolean = text.any { ch ->
@@ -368,6 +373,20 @@ object GreetingHelper {
         val age = java.time.temporal.ChronoUnit.DAYS.between(date, today)
         if (age !in 0..1) return null
         return normalizeGreetingText(summary, DAILY_SUMMARY_DISPLAY_SAFETY_LIMIT)
+    }
+
+    internal fun getDrawerSummaryHint(context: Context, summary: String?, summaryDate: String?, today: LocalDate): String? {
+        val hint = getDailySummaryHint(summary, summaryDate, today) ?: return null
+        // 摘要可能在应用切换语言之前生成，按所有支持语言识别默认文案。
+        val fallback = AppLocales.Language.entries.any { language ->
+            val locale = AppLocales.parse(language.code) ?: return@any false
+            val configuration = Configuration(context.resources.configuration).apply { setLocale(locale) }
+            val localized = context.createConfigurationContext(configuration).resources
+            hint == localized.getString(R.string.daily_summary_light_fallback) ||
+                hint == localized.getString(R.string.daily_summary_rest_fallback) ||
+                hint == localized.getString(R.string.daily_summary_none_fallback)
+        }
+        return hint.takeUnless { fallback }
     }
 
     /**

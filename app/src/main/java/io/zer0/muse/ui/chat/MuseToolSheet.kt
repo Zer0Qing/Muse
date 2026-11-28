@@ -43,8 +43,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import io.zer0.muse.ui.common.feedback.MuseToast
-import io.zer0.muse.util.launchSafely
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -69,6 +67,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import io.zer0.common.Logger
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseBottomSheet
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
@@ -82,6 +81,7 @@ import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.MuseSpringTier
 import io.zer0.muse.ui.theme.bodyMediumStrong
 import io.zer0.muse.ui.theme.pill
+import io.zer0.muse.util.launchSafely
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -731,8 +731,8 @@ private fun ToolListRow(
                 },
             )
             // 原为 listRowVertical(14dp)，与 cardInner 的垂直 12dp 差 2dp，肉眼无差别，
-                // 统一到 cardInner 的垂直值，少一个只此一处使用的令牌。
-                .padding(vertical = 12.dp),
+            // 统一到 cardInner 的垂直值，少一个只此一处使用的令牌。
+            .padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(MusePaddings.screen),
     ) {

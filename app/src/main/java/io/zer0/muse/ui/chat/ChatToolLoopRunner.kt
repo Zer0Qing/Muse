@@ -36,9 +36,12 @@ import io.zer0.muse.transformer.CompressionPolicy
 import io.zer0.muse.transformer.ContextBudget
 import io.zer0.muse.transformer.TransformContext
 import io.zer0.muse.ui.artifact.RichCardArtifacts
+import io.zer0.muse.ui.chat.render.mergeFinalAssistantMedia
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.util.ErrorMessages
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
@@ -53,7 +56,6 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import io.zer0.muse.ui.chat.render.mergeFinalAssistantMedia
 
 /**
  * v2.6.15: 本轮 assistant 消息的产出模型戳。
@@ -535,13 +537,25 @@ internal class ChatToolLoopRunner(
                             params.forceFinalResponse || disableTools -> "none"
                             params.round == 1 &&
                                 !params.forceMainModel &&
+                                roundReasoningLevel == ReasoningLevel.OFF &&
                                 ToolExposurePolicy.shouldRequireTool(latestUserText, tools) -> "required"
                             else -> null
                         }
-                    // ToolOrchestrator 原生请求失败后会把这一字段降为 false，
-                    // 下一次同轮请求才会真正切到用户 API / Bing HTTP / 百度 HTTP。
+                    // OpenAI Responses 的 web_search_preview 可与 function tools 共存;
+                    // Gemini 的 google_search 不能与 functionDeclarations 混用,AUTO 模式下仅在有搜索意图时切换。
+                    val isOpenAiResponsesRound =
+                        roundProviderConfig?.type == ProviderType.OPENAI_RESPONSES ||
+                            (roundProviderConfig?.resolvedSpecific() as? ProviderSpecificConfig.OpenAI)
+                                ?.useResponseApi == true
                     val nativeSearchForRound =
-                        params.nativeWebSearch && params.round == 1 && !params.forceFinalResponse
+                        params.nativeWebSearch &&
+                            params.round == 1 &&
+                            !params.forceFinalResponse &&
+                            (
+                                roundProviderConfig?.type != ProviderType.GEMINI ||
+                                    searchConfig.mode == io.zer0.muse.web.WebSearchMode.NATIVE ||
+                                    ToolExposurePolicy.shouldPreferNativeWebSearch(latestUserText)
+                                )
                     val streamToUi =
                         host.stateStore.state.value.chatPreferences.streamResponse &&
                             (assistant?.streamOutput ?: true)
@@ -566,6 +580,18 @@ internal class ChatToolLoopRunner(
                         // 技能在 ToolCategories 里无分类,与 OPTIONAL 同口径收窄(见 filterToolsForRequest);
                         // 未收窄前每个已启用技能每轮都发,是工具 schema 占位的最大来源。
                         val skillToolNames = state.skillMap.keys
+                        val voiceFreq = runCatching {
+                            val agentId = assistant?.id ?: "default"
+                            io.zer0.muse.data.assistant.VoiceReplyPolicyStore.of(host.appContext).frequencyFor(agentId)
+                        }.getOrDefault(io.zer0.muse.data.assistant.VoiceReplyFrequency.RARELY)
+                        val voiceAlwaysTools = if (
+                            voiceFreq == io.zer0.muse.data.assistant.VoiceReplyFrequency.OFTEN ||
+                            voiceFreq == io.zer0.muse.data.assistant.VoiceReplyFrequency.ALWAYS
+                        ) {
+                            setOf("send_voice", "list_cloned_voices")
+                        } else {
+                            emptySet()
+                        }
                         val requestTools =
                             ToolExposurePolicy
                                 .filterToolsForRequest(
@@ -575,8 +601,13 @@ internal class ChatToolLoopRunner(
                                     authorizedToolNames,
                                     loadedToolNames,
                                     skillToolNames,
+                                    voiceAlwaysTools,
                                 )
-                                .takeUnless { disableTools || nativeSearchForRound || params.forceFinalResponse }
+                                .takeUnless {
+                                    disableTools ||
+                                        (nativeSearchForRound && !isOpenAiResponsesRound) ||
+                                        params.forceFinalResponse
+                                }
                                 ?: emptyList()
                         val resumeText =
                             params.builder.toString()
@@ -656,6 +687,10 @@ internal class ChatToolLoopRunner(
                     val citationUrls = linkedSetOf<String>()
                     val toolCallAccumulator = mutableMapOf<Int, Triple<String?, String?, StringBuilder>>()
                     var streamError: String? = null
+                    // 与 streamError 同源保留原始异常：错误分类必须能拿到它。
+                    // 只传 message 会让分类退回字符串推断，而限流响应体里的 "quota"
+                    // 会把 429 误判成余额/密钥问题。
+                    var streamErrorThrowable: Throwable? = null
                     var doneFinishReason: String? = null
                     // v1.0.15: StreamInterrupted 标志 — 已收部分内容后网络中断,
                     //   等待 NetworkMonitor 网络恢复事件后重试(非固定 delay),避免盲重试立即失败
@@ -689,47 +724,63 @@ internal class ChatToolLoopRunner(
                         }
                     }
 
+                    var midStreamPersistJob: Job? = null
+                    var midStreamTokenJob: Job? = null
+
                     // P2-2: reasoning-only 流(无 ContentDelta)也必须周期性落盘。
                     // 统一增量入口 — ContentDelta 与 ReasoningDelta 都经此节流持久化,
                     // 避免"只有思考内容"的流被强杀后仅剩空 checkpoint。
-                    suspend fun throttledPersist() {
+                    suspend fun throttledPersist(backgroundScope: CoroutineScope? = null) {
                         val now = System.currentTimeMillis()
                         if (params.builder.length - lastPersistChars < PERSIST_CHAR_THRESHOLD &&
                             now - lastPersistAt < PERSIST_TIME_THRESHOLD_MS
                         ) {
                             return
                         }
+                        if (backgroundScope != null && midStreamPersistJob?.isActive == true) {
+                            return
+                        }
                         lastPersistChars = params.builder.length
                         lastPersistAt = now
-                        host.chatGenerationManager.touch(sessionId)
+                        val unmaskedContent = unmaskPii(params.builder.toString())
+                        val unmaskedReasoning = unmaskPii(params.reasoningBuilder.toString()).ifBlank { null }
                         val persistMsg =
                             host.stateStore.messages.value
                                 .firstOrNull { it.id == params.currentAssistantId }
                                 ?.copy(
-                                    content = unmaskPii(params.builder.toString()),
-                                    reasoning = unmaskPii(params.reasoningBuilder.toString()).ifBlank { null },
+                                    content = unmaskedContent,
+                                    reasoning = unmaskedReasoning,
                                     thinkingSignature = thinkingSignature,
                                     thinkingEncryptedContent = thinkingEncryptedContent,
                                 )
                                 ?: UIMessage(
                                     id = params.currentAssistantId,
                                     role = MessageRole.ASSISTANT,
-                                    content = unmaskPii(params.builder.toString()),
-                                    reasoning = unmaskPii(params.reasoningBuilder.toString()).ifBlank { null },
+                                    content = unmaskedContent,
+                                    reasoning = unmaskedReasoning,
                                     thinkingSignature = thinkingSignature,
                                     thinkingEncryptedContent = thinkingEncryptedContent,
                                 )
-                        // B-1: 会话已删除则跳过周期性落盘与检查点,防止删后"复活"。
-                        if (!host.generationController.isSessionWritesSuppressed(sessionId)) {
-                            host.persistCurrentAssistant(sessionId, params.currentAssistantId, persistMsg)
-                            host.persistCheckpointAndReleaseOutbox(
-                                state = state,
-                                sessionId = sessionId,
-                                userMessageId = checkpointUserMessageId,
-                                assistantMessageId = params.currentAssistantId.toString(),
-                                content = unmaskPii(params.builder.toString()),
-                                createdAt = checkpointCreatedAt,
-                            )
+                        suspend fun executePersist() {
+                            host.chatGenerationManager.touch(sessionId)
+                            // B-1: 会话已删除则跳过周期性落盘与检查点,防止删后"复活"。
+                            if (!host.generationController.isSessionWritesSuppressed(sessionId)) {
+                                host.persistCurrentAssistant(sessionId, params.currentAssistantId, persistMsg)
+                                host.persistCheckpointAndReleaseOutbox(
+                                    state = state,
+                                    sessionId = sessionId,
+                                    userMessageId = checkpointUserMessageId,
+                                    assistantMessageId = params.currentAssistantId.toString(),
+                                    content = unmaskedContent,
+                                    createdAt = checkpointCreatedAt,
+                                )
+                            }
+                        }
+                        if (backgroundScope != null) {
+                            midStreamPersistJob = backgroundScope.launch(Dispatchers.IO) { executePersist() }
+                        } else {
+                            midStreamPersistJob?.join()
+                            executePersist()
                         }
                     }
 
@@ -880,7 +931,8 @@ internal class ChatToolLoopRunner(
                                                         streamState = it.streamState.copy(
                                                             phase = ChatStreamPhase.STREAMING,
                                                             isThinkingActive = false,
-                                                            reasoningDurationMs = state.reasoningDurationMs ?: it.streamState.reasoningDurationMs,
+                                                            reasoningDurationMs = state.reasoningDurationMs
+                                                                ?: it.streamState.reasoningDurationMs,
                                                         ),
                                                     )
                                                 }
@@ -890,7 +942,8 @@ internal class ChatToolLoopRunner(
                                                         streamState = it.streamState.copy(
                                                             phase = ChatStreamPhase.STREAMING,
                                                             isThinkingActive = false,
-                                                            reasoningDurationMs = state.reasoningDurationMs ?: it.streamState.reasoningDurationMs,
+                                                            reasoningDurationMs = state.reasoningDurationMs
+                                                                ?: it.streamState.reasoningDurationMs,
                                                         ),
                                                     )
                                                 }
@@ -946,10 +999,14 @@ internal class ChatToolLoopRunner(
                                             if (params.builder.length - lastTokenUpdateChars >= 400 || now - lastTokenUpdateAt >= 1500) {
                                                 lastTokenUpdateChars = params.builder.length
                                                 lastTokenUpdateAt = now
-                                                host.updateContextTokenCount()
+                                                if (midStreamTokenJob?.isActive != true) {
+                                                    midStreamTokenJob = this@coroutineScope.launch(Dispatchers.Default) {
+                                                        host.updateContextTokenCount()
+                                                    }
+                                                }
                                             }
                                             // P2-2: reasoning-only 也走统一节流落盘(见 throttledPersist)
-                                            throttledPersist()
+                                            throttledPersist(backgroundScope = this@coroutineScope)
                                         }
                                         is ChatStreamEvent.ReasoningDelta -> {
                                             // v1.0.3: 首 token 立即刷新 UI(ReasoningDelta 也算首 token)
@@ -988,9 +1045,10 @@ internal class ChatToolLoopRunner(
                                             // toString + 脱敏 + 整表替换，属于纯浪费。
                                             val contentGrew = params.builder.length != lastUiUpdateChars
                                             val reasoningGrew = reasoningCharsSinceUi > 0
+                                            val reasoningInterval = host.streamFlushIntervalMs(params.reasoningBuilder.length)
                                             if (streamToUi && (contentGrew || reasoningGrew) && (
-                                                    isFirstToken || reasoningCharsSinceUi >= STREAM_UI_CHAR_THRESHOLD ||
-                                                        (timeSinceUi >= STREAM_UI_TIME_THRESHOLD_MS && reasoningGrew)
+                                                    isFirstToken ||
+                                                        (timeSinceUi >= reasoningInterval && reasoningGrew)
                                                     )
                                             ) {
                                                 val flushStartedAt = System.nanoTime()
@@ -1023,7 +1081,7 @@ internal class ChatToolLoopRunner(
                                                 lastReasoningUiUpdateChars = params.reasoningBuilder.length
                                             }
                                             // P2-2: reasoning-only 流(无 ContentDelta)也按节流周期落盘
-                                            throttledPersist()
+                                            throttledPersist(backgroundScope = this@coroutineScope)
                                         }
                                         is ChatStreamEvent.ImageDelta -> {
                                             imageAccumulator.add(event.imageBase64)
@@ -1046,14 +1104,22 @@ internal class ChatToolLoopRunner(
                                                         .coerceAtLeast(0L)
                                             }
                                             // F-10: 工具调用阶段开始
-                                            host.stateStore.state.update {
-                                                it.copy(
-                                                    streamState = it.streamState.copy(
-                                                        phase = ChatStreamPhase.TOOLING,
-                                                        isThinkingActive = false,
-                                                        reasoningDurationMs = state.reasoningDurationMs ?: it.streamState.reasoningDurationMs,
-                                                    ),
-                                                )
+                                            val curStream = host.stateStore.state.value.streamState
+                                            val nextReasoningDuration = state.reasoningDurationMs ?: curStream.reasoningDurationMs
+                                            if (curStream.phase != ChatStreamPhase.TOOLING ||
+                                                curStream.isThinkingActive ||
+                                                curStream.reasoningDurationMs != nextReasoningDuration
+                                            ) {
+                                                host.stateStore.state.update {
+                                                    it.copy(
+                                                        streamState = it.streamState.copy(
+                                                            phase = ChatStreamPhase.TOOLING,
+                                                            isThinkingActive = false,
+                                                            reasoningDurationMs = state.reasoningDurationMs
+                                                                ?: it.streamState.reasoningDurationMs,
+                                                        ),
+                                                    )
+                                                }
                                             }
                                             val acc =
                                                 toolCallAccumulator.getOrPut(event.index) {
@@ -1128,6 +1194,7 @@ internal class ChatToolLoopRunner(
                                         }
                                         is ChatStreamEvent.Error -> {
                                             streamError = event.message
+                                            streamErrorThrowable = event.throwable
                                             Logger.e("ChatVM", "stream error", event.throwable)
                                             if (experiments.debugMode) {
                                                 Logger.d(
@@ -1142,6 +1209,7 @@ internal class ChatToolLoopRunner(
                                         is ChatStreamEvent.StreamInterrupted -> {
                                             // v1.0.15: 已收部分内容后连接中断,保留内容并等待网络恢复后重试(非固定 delay)
                                             streamError = event.message
+                                            streamErrorThrowable = event.throwable
                                             streamInterrupted = true
                                             streamInterruptedThrowable = event.throwable
                                             Logger.w("ChatVM", "stream interrupted (partial content kept)", event.throwable)
@@ -1160,6 +1228,8 @@ internal class ChatToolLoopRunner(
                             } while (retryWithoutToolChoice)
                         } finally {
                             pendingFlushJob.cancelAndJoin()
+                            midStreamTokenJob?.cancel()
+                            midStreamPersistJob?.join()
                         }
                     }
 
@@ -1241,7 +1311,7 @@ internal class ChatToolLoopRunner(
                     }
 
                     if (streamError != null) {
-                        val retryType = host.classifyErrorType(streamError)
+                        val retryType = host.classifyErrorType(streamError, streamErrorThrowable)
                         // v1.0.1 (P4): 用 params.retryCount 替代外层 streamRetryCount,每轮独立
                         // v1.0.17: StreamInterrupted 智能续传 — 已收部分内容 + 网络错误时,
                         //   等待网络恢复(最多 30s)后用 preservePartialContent=true 重试,
@@ -1289,7 +1359,7 @@ internal class ChatToolLoopRunner(
                             }
                         }
                         if (!streamInterrupted &&
-                            (retryType == ChatErrorType.NETWORK || retryType == ChatErrorType.RATE_LIMIT) &&
+                            (retryType == ChatErrorType.NETWORK || retryType == ChatErrorType.RateLimit) &&
                             params.retryCount < MAX_STREAM_RETRIES
                         ) {
                             val newRetryCount = params.retryCount + 1
@@ -1371,7 +1441,7 @@ internal class ChatToolLoopRunner(
                     }
 
                     streamError?.let {
-                        val type = host.classifyErrorType(it)
+                        val type = host.classifyErrorType(it, streamErrorThrowable)
                         val displayMsg = ErrorMessages.resolve(host.appContext, it)
                         // 工具循环出口统一负责向 UI 上报错误，避免同一错误出现两张卡片。
                         host.updateAssistant(
@@ -1826,6 +1896,7 @@ internal class ChatToolLoopRunner(
                     sessionId = sessionId,
                     messageId = state.currentAssistantId.toString(),
                     content = withCitations.content,
+                    context = host.appContext,
                 )
             val withArtifacts =
                 if (artifacts.isNotEmpty()) {
@@ -1843,7 +1914,16 @@ internal class ChatToolLoopRunner(
                 sessionId = sessionId,
                 messageId = state.currentAssistantId.toString(),
                 content = withArtifacts.content,
+                context = host.appContext,
             ).forEach { host.artifactRepository.upsert(it) }
+            // 长文交付物：模型直接写成多级标题的报告时，上面两条通道都收不到，
+            // 产物库就会一直是空的。这里只入库、不改正文。
+            io.zer0.muse.ui.artifact.LongFormArtifacts.extract(
+                sessionId = sessionId,
+                messageId = state.currentAssistantId.toString(),
+                content = withArtifacts.content,
+                context = host.appContext,
+            )?.let { host.artifactRepository.upsert(it) }
             host.stateStore.messages.value =
                 host.stateStore.messages.value.map { msg ->
                     if (msg.id == withArtifacts.id) withArtifacts else msg
@@ -1945,6 +2025,9 @@ internal class ChatToolLoopRunner(
                     "compress_char_budget" to
                         WarmupHistory.compressTokenBudgetFor(
                             contextMaxTokens = host.stateStore.state.value.contextMaxTokens,
+                            systemTokens = io.zer0.muse.util.TokenEstimator.estimate(
+                                history.takeWhile { it.role == MessageRole.SYSTEM },
+                            ),
                         ),
                 ),
             )
@@ -1968,8 +2051,8 @@ internal class ChatToolLoopRunner(
         const val STREAM_SLICE_MAX = 240
         const val STREAM_UI_CHAR_THRESHOLD = 12
         const val STREAM_UI_TIME_THRESHOLD_MS = 60L
-        const val PERSIST_CHAR_THRESHOLD = 400
-        const val PERSIST_TIME_THRESHOLD_MS = 1_500L
+        const val PERSIST_CHAR_THRESHOLD = 1_500
+        const val PERSIST_TIME_THRESHOLD_MS = 3_000L
         const val AUTO_COMPRESS_MIN_RESERVE_TOKENS = 16_384
         const val AUTO_COMPRESS_RESERVE_RATIO = 0.1
         const val COMPRESSION_SAFETY_TAIL_MESSAGES = 10

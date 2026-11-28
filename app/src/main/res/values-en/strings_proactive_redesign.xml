@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="proactive_status_card_title">Runtime Status &amp; Diagnostics</string>
+    <string name="proactive_status_ok">Healthy</string>
+    <string name="proactive_status_paused_master">Proactive messaging is off</string>
+    <string name="proactive_status_paused_bg">Background scheduling is disabled</string>
+    <string name="proactive_status_blocked_notif">Notifications blocked: %1$s</string>
+    <string name="proactive_status_cooldown">In cooldown — paused temporarily</string>
+    <string name="proactive_status_quiet">Quiet hours active</string>
+    <string name="proactive_status_summary">Today left: %1$s · Ledger: %2$d · Interval: %3$s</string>
+    <string name="proactive_status_last_patrol">Last check: %1$s</string>
+    <string name="proactive_status_last_patrol_none">Last check: none yet</string>
+    <string name="proactive_status_test_now">Test Now</string>
+    <string name="proactive_status_test_result_title">Test Patrol Result</string>
+    <string name="proactive_interval_title">Patrol &amp; Send Interval</string>
+    <string name="proactive_interval_hint">Minimum gap between proactive messages; even in Clingy mode, background frequency follows system constraints.</string>
+    <string name="proactive_prob_title">Trigger Tendency</string>
+    <string name="proactive_prob_hint" formatted="false">Probability gate once the model finds something worth saying (10%–100%).</string>
+    <string name="proactive_directives_entry">Directives &amp; Boundaries</string>
+    <string name="proactive_directives_entry_sub">Configure what this assistant should or should never bring up</string>
+    <string name="proactive_ledger_tab_open">Pending (%1$d)</string>
+    <string name="proactive_ledger_tab_history">History (%1$d)</string>
+    <string name="proactive_ledger_add_btn">Add</string>
+    <string name="proactive_ledger_add_title">Add Proactive Thought</string>
+    <string name="proactive_ledger_add_seed_label">Note something the assistant should follow up on later</string>
+    <string name="proactive_ledger_add_seed_hint">e.g. Remind me about dentist at 3pm tomorrow</string>
+    <string name="proactive_ledger_add_kind_label">Category</string>
+    <string name="proactive_ledger_mark_done">Done</string>
+    <string name="proactive_ledger_delete">Remove</string>
+    <string name="proactive_ledger_history_empty">No completed or expired items yet</string>
+    <string name="proactive_ledger_source_conversation">Chat</string>
+    <string name="proactive_ledger_source_memory">Memory Summary</string>
+    <string name="proactive_ledger_source_milestone">Milestone</string>
+    <string name="proactive_ledger_source_manual">Manual</string>
+    <string name="proactive_ledger_status_done">Done</string>
+    <string name="proactive_ledger_status_expired">Expired</string>
+    <string name="proactive_ledger_status_dropped">Dropped</string>
+    <string name="proactive_ledger_status_open">Pending</string>
+    <string name="proactive_ledger_surfaced_count">Mentioned %1$d×</string>
+    <string name="proactive_ledger_added_toast">Added to proactive ledger</string>
+    <string name="proactive_ledger_add_schedule_label">Reminder time (optional)</string>
+    <string name="proactive_ledger_schedule_none">No timer</string>
+    <string name="proactive_ledger_schedule_30m">In 30 min</string>
+    <string name="proactive_ledger_schedule_2h">In 2 hrs</string>
+    <string name="proactive_ledger_schedule_tomorrow_morning">Tomorrow 09:00</string>
+    <string name="proactive_ledger_scheduled_at">At %1$s</string>
+    <string name="proactive_ledger_scheduled_due">Due · %1$s</string>
+</resources>

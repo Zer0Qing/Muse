@@ -22,6 +22,13 @@ internal object ToolCallVisuals {
 
     /** 折叠态一句话摘要。I18N-01: 传入 res 走资源(zh+en 已入 strings_tools,其余语言分批)。 */
     fun summaryFor(toolName: String, arguments: String, result: String, isSuccess: Boolean, res: Resources? = null): String {
+        mcpToolLabel(toolName)?.let { label ->
+            return if (isSuccess) {
+                res?.getString(R.string.mcp_trace_summary, label) ?: label
+            } else {
+                res?.getString(R.string.tool_summary_failed, label) ?: label
+            }
+        }
         // v2.0.1: 失败时用「操作名 + 失败」语义 — 不再复用成功动词
         // （用户反馈：审批超时的工具卡仍写着“写入了工作区 xxx”）。
         if (!isSuccess) {
@@ -47,6 +54,7 @@ internal object ToolCallVisuals {
 
     /** 展开态工具标签(原来直接显示英文 toolName)。I18N-01: 同 [summaryFor]。 */
     fun labelFor(toolName: String, res: Resources? = null): String {
+        mcpToolLabel(toolName)?.let { return it }
         val localized = res?.let { r -> labelIds[toolName]?.let { id -> r.getString(id) } }
         return localized ?: labels[toolName] ?: prettify(toolName)
     }
@@ -617,6 +625,12 @@ internal object ToolCallVisuals {
         "terminal_exec" to R.string.tool_label_terminal_exec,
         "termux_exec" to R.string.tool_label_termux_exec,
     )
+
+    private fun mcpToolLabel(name: String): String? {
+        if (!name.startsWith("mcp_") || "__" !in name) return null
+        val server = name.removePrefix("mcp_").substringBefore("__")
+        return name.substringAfter("__") + " · " + server
+    }
 
     private fun prettify(name: String): String = name.split('_').joinToString(" ") { it.replaceFirstChar { c -> c.uppercase() } }
 }

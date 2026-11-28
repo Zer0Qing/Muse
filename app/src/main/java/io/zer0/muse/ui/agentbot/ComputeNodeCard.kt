@@ -56,6 +56,7 @@ import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.ui.theme.semiLarge
 import io.zer0.muse.ui.theme.statusColors
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonPrimitive
@@ -350,7 +351,7 @@ private fun parsePacks(raw: String): List<String> {
     if (raw.isBlank()) return emptyList()
     val array = try {
         Json.parseToJsonElement(raw) as? JsonArray
-    } catch (e: Exception) {
+    } catch (e: SerializationException) {
         Logger.w("ComputeNodeCard", "云端电脑能力包记录无法解析: " + e.javaClass.simpleName)
         null
     } ?: return emptyList()
@@ -361,12 +362,7 @@ private fun parsePacks(raw: String): List<String> {
  * 远程终端面板。只负责输入与输出展示，命令执行由 ViewModel 的 MuseNodeClient 链路完成。
  */
 @Composable
-fun ComputeNodeTerminalSheet(
-    state: ComputeRemoteTerminalUiState,
-    onDismiss: () -> Unit,
-    onRun: (String) -> Unit,
-    onClear: () -> Unit,
-) {
+fun ComputeNodeTerminalSheet(state: ComputeRemoteTerminalUiState, onDismiss: () -> Unit, onRun: (String) -> Unit, onClear: () -> Unit) {
     var command by rememberSaveable { mutableStateOf("") }
     val scrollState = rememberScrollState()
 
@@ -610,8 +606,7 @@ fun ComputeNodeFilesSheet(
     }
 }
 
-private fun joinRemotePath(base: String, name: String): String =
-    if (base.isEmpty()) name else base + "/" + name
+private fun joinRemotePath(base: String, name: String): String = if (base.isEmpty()) name else base + "/" + name
 
 private const val PACK_CORE = "core"
 private const val PACK_BROWSER = "browser"

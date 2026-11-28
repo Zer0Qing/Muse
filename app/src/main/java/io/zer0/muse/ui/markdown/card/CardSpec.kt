@@ -99,6 +99,10 @@ internal data class CardHost(
      * `window.muse.getData()` 取值，与轮询读的是同一条路径，行为一致。
      */
     val pushToken: CardPushToken? = null,
+    /** 卡内静默 AI 请求处理器（不进聊天流，返回 JSON）。 */
+    val onSilentAsk: (suspend (cardId: String?, payloadJson: String) -> String)? = null,
+    /** 卡内状态静默落盘处理器。 */
+    val onSaveState: ((cardId: String, stateJson: String) -> Unit)? = null,
 )
 
 /**

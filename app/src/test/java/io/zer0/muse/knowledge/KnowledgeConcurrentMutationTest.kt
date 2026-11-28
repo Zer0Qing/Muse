@@ -3,10 +3,14 @@ package io.zer0.muse.knowledge
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import io.zer0.muse.data.knowledge.IndexGenerationState
 import io.zer0.muse.data.knowledge.KnowledgeV2DocEntity
 import io.zer0.muse.data.session.MuseDb
 import io.zer0.muse.knowledge.domain.JobStepResult
+import io.zer0.muse.knowledge.domain.KnowledgeAvailability
+import io.zer0.muse.knowledge.domain.KnowledgeJobStage
 import io.zer0.muse.knowledge.index.GenerationPublisher
+import io.zer0.muse.knowledge.ingest.LocatedChunk
 import io.zer0.muse.knowledge.jobs.JobRunner
 import io.zer0.muse.knowledge.jobs.KnowledgeJobEnqueueService
 import io.zer0.muse.knowledge.storage.KnowledgeContentStore
@@ -15,16 +19,12 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import io.zer0.muse.data.knowledge.IndexGenerationState
-import io.zer0.muse.knowledge.domain.KnowledgeAvailability
-import io.zer0.muse.knowledge.domain.KnowledgeJobStage
-import io.zer0.muse.knowledge.ingest.LocatedChunk
-import org.junit.Assert.assertTrue
 
 /**
  * R4 步骤 1/7(计划 R4:「阶段故障注入:Acquire/Parse/Chunk/Lexical/Validate/Publish 前后分别中断,
@@ -62,8 +62,7 @@ class KnowledgeConcurrentMutationTest {
     private fun chunks(vararg texts: String): List<LocatedChunk> =
         texts.mapIndexed { i, t -> LocatedChunk(text = t, locator = "p1s${i + 1}", kind = "paragraph") }
 
-    private fun hashOf(texts: List<String>): String =
-        KnowledgeContentStore.hashOf(texts.joinToString("").toByteArray())
+    private fun hashOf(texts: List<String>): String = KnowledgeContentStore.hashOf(texts.joinToString("").toByteArray())
 
     private suspend fun seedDoc(docId: String, revisionId: String) {
         db.knowledgeV2Dao().insertDoc(

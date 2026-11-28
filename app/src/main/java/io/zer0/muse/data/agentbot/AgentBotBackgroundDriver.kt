@@ -2,9 +2,9 @@ package io.zer0.muse.data.agentbot
 
 import android.content.Context
 import io.zer0.common.Logger
+import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.notification.MuseNotificationManager
 import io.zer0.muse.notification.MuseNotificationTarget
-import io.zer0.muse.data.SettingsRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay

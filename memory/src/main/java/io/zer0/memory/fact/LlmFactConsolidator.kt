@@ -49,49 +49,48 @@ class LlmFactConsolidator(
         spaceId: String,
         maxGroups: Int = DEFAULT_MAX_GROUPS,
         fence: io.zer0.memory.runtime.MemoryWriteFence? = null,
-    ): Int =
-        withContext(Dispatchers.IO) {
-            val groups = resultOf { store.findSimilarGroups(scope, spaceId, maxGroups) }
-                .onError { msg, t -> Logger.w(TAG, "查找相似记忆簇失败: ${t?.message ?: msg}") }
-                .getOrNull() ?: return@withContext 0
+    ): Int = withContext(Dispatchers.IO) {
+        val groups = resultOf { store.findSimilarGroups(scope, spaceId, maxGroups) }
+            .onError { msg, t -> Logger.w(TAG, "查找相似记忆簇失败: ${t?.message ?: msg}") }
+            .getOrNull() ?: return@withContext 0
 
-            var mergedCount = 0
-            for (group in groups) {
-                if (group.size < 2) continue
-                // 置顶记忆保护: 含置顶条目的簇不参与自动合并
-                if (group.any { it.pinnedAt != null }) continue
-                val mergedText = mergeGroupWithLlm(group) ?: continue
-                // 合并会删成员:模型返回后、落库前按入口栅栏复核。恢复窗口内跳过,
-                // 宁可这轮少合并,也不能拿旧库算出的结果去删现在的事实。
-                if (writeGate?.blocksWrite(gateScope(store, scope, spaceId), fence) == true) {
-                    Logger.d(TAG, "恢复窗口内跳过合并(scope=$scope, spaceId=$spaceId)")
-                    continue
-                }
-                // 保留重要度最高的一条作为 keeper
-                val keeper = group.maxByOrNull { it.importance } ?: group.first()
-                // v2.6.2（记忆审计）: 改为 FactStore.mergeIntoKeeper 原子合并 —— keeper 更新与
-                // 其余成员删除在同一 Room 事务内完成。旧流程“先逐条删、再 update keeper”不在同一
-                // 事务:部分删除成功而 keeper 更新失败时原始事实已经丢失,“回写”只是新增一条,
-                // 不会恢复被删事实的原字段/置顶/标签/链接/修订。
-                // 另一注意事项:不调 update() 的内部自动去重,避免与簇内删除叠加成“双删清空”。
-                val removableIds = group.filter { it.id != keeper.id }.map { it.id }
-                val removed = resultOf {
-                    store.mergeIntoKeeper(
-                        keeperId = keeper.id,
-                        mergedContent = mergedText,
-                        removableIds = removableIds,
-                        scope = scope,
-                        spaceId = spaceId,
-                    )
-                }.onError { msg, t -> Logger.w(TAG, "原子合并记忆失败: ${t?.message ?: msg}") }
-                    .getOrNull()
-                if (removed != null && removed >= 0) mergedCount++
+        var mergedCount = 0
+        for (group in groups) {
+            if (group.size < 2) continue
+            // 置顶记忆保护: 含置顶条目的簇不参与自动合并
+            if (group.any { it.pinnedAt != null }) continue
+            val mergedText = mergeGroupWithLlm(group) ?: continue
+            // 合并会删成员:模型返回后、落库前按入口栅栏复核。恢复窗口内跳过,
+            // 宁可这轮少合并,也不能拿旧库算出的结果去删现在的事实。
+            if (writeGate?.blocksWrite(gateScope(store, scope, spaceId), fence) == true) {
+                Logger.d(TAG, "恢复窗口内跳过合并(scope=$scope, spaceId=$spaceId)")
+                continue
             }
-            if (mergedCount > 0) {
-                Logger.i(TAG, "LLM 记忆整合: 合并 $mergedCount 组重复记忆 (scope=$scope)")
-            }
-            mergedCount
+            // 保留重要度最高的一条作为 keeper
+            val keeper = group.maxByOrNull { it.importance } ?: group.first()
+            // v2.6.2（记忆审计）: 改为 FactStore.mergeIntoKeeper 原子合并 —— keeper 更新与
+            // 其余成员删除在同一 Room 事务内完成。旧流程“先逐条删、再 update keeper”不在同一
+            // 事务:部分删除成功而 keeper 更新失败时原始事实已经丢失,“回写”只是新增一条,
+            // 不会恢复被删事实的原字段/置顶/标签/链接/修订。
+            // 另一注意事项:不调 update() 的内部自动去重,避免与簇内删除叠加成“双删清空”。
+            val removableIds = group.filter { it.id != keeper.id }.map { it.id }
+            val removed = resultOf {
+                store.mergeIntoKeeper(
+                    keeperId = keeper.id,
+                    mergedContent = mergedText,
+                    removableIds = removableIds,
+                    scope = scope,
+                    spaceId = spaceId,
+                )
+            }.onError { msg, t -> Logger.w(TAG, "原子合并记忆失败: ${t?.message ?: msg}") }
+                .getOrNull()
+            if (removed != null && removed >= 0) mergedCount++
         }
+        if (mergedCount > 0) {
+            Logger.i(TAG, "LLM 记忆整合: 合并 $mergedCount 组重复记忆 (scope=$scope)")
+        }
+        mergedCount
+    }
 
     /**
      * 遍历库内全部 scope+space 组合执行整合(每日流水线用)。

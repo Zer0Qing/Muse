@@ -66,8 +66,7 @@ class MemoryToolScopeTest {
             return UnpinMemoryResult.Removed
         }
 
-        override suspend fun dedupPinned(request: DedupPinnedRequest): DedupPinnedResult =
-            DedupPinnedResult.Removed(count = 0)
+        override suspend fun dedupPinned(request: DedupPinnedRequest): DedupPinnedResult = DedupPinnedResult.Removed(count = 0)
 
         override suspend fun toggleFactPinned(scope: MemoryScopeKey, factId: Long): FactPinResult {
             factPins += scope to factId

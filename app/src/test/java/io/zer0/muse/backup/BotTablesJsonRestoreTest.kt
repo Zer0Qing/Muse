@@ -1,8 +1,8 @@
-package io.zer0.muse.backup;
+package io.zer0.muse.backup
 
-import org.junit.Assert.assertTrue;
-import org.junit.Test;
-import java.io.File;
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import java.io.File
 
 /**
  * 单 JSON 恢复路径必须覆盖中枢八表。
@@ -17,19 +17,19 @@ import java.io.File;
 class BotTablesJsonRestoreTest {
 
     private val source: String by lazy {
-        File("src/main/java/io/zer0/muse/backup/BackupService.kt").readText();
+        File("src/main/java/io/zer0/muse/backup/BackupService.kt").readText()
     }
 
     private fun applyInternalBody(): String {
-        val at = source.indexOf("private suspend fun applyBackupInternal(");
-        require(at > 0) { "找不到 applyBackupInternal" };
-        val end = source.indexOf("        // 2. 导入 memory 数据", at);
-        return source.substring(at, if (end > at) end else source.length);
+        val at = source.indexOf("private suspend fun applyBackupInternal(")
+        require(at > 0) { "找不到 applyBackupInternal" }
+        val end = source.indexOf("        // 2. 导入 memory 数据", at)
+        return source.substring(at, if (end > at) end else source.length)
     }
 
     @Test
     fun `all eight bot tables are cleared before restore`() {
-        val body = applyInternalBody();
+        val body = applyInternalBody()
         listOf(
             "botAnnotationDao().deleteAll()",
             "publicationOutboxDao().deleteAll()",
@@ -40,13 +40,13 @@ class BotTablesJsonRestoreTest {
             "botTaskDao().deleteAll()",
             "botBindingDao().deleteAll()",
         ).forEach { call ->
-            assertTrue("缺清空：" + call + " —— 恢复会把新数据叠在旧数据上", body.contains(call));
-        };
+            assertTrue("缺清空：" + call + " —— 恢复会把新数据叠在旧数据上", body.contains(call))
+        }
     }
 
     @Test
     fun `all eight bot tables are written back`() {
-        val body = applyInternalBody();
+        val body = applyInternalBody()
         listOf(
             "backup.botBindings.forEach { db.botBindingDao().upsert(it) }",
             "backup.botTasks.forEach { db.botTaskDao().upsert(normalizeBotTaskForRestore(it, restoreAt)) }",
@@ -57,8 +57,8 @@ class BotTablesJsonRestoreTest {
             "db.publicationOutboxDao().upsertAll(backup.botPublications)",
             "db.botAnnotationDao().upsertAll(backup.botAnnotations)",
         ).forEach { call ->
-            assertTrue("缺写回：" + call + " —— 导出了但导不回", body.contains(call));
-        };
+            assertTrue("缺写回：" + call + " —— 导出了但导不回", body.contains(call))
+        }
     }
 
     @Test

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="chat_voice_transcript_show">Transcript</string>
+    <string name="chat_voice_transcript_hide">Hide text</string>
+    <string name="chat_voice_synthesizing">Generating voice…</string>
+    <string name="chat_voice_unread_cd">Unplayed voice message</string>
+    <string name="chat_voice_speed_cd">Playback speed</string>
+    <string name="chat_voice_earpiece_cd">Switch to earpiece</string>
+    <string name="chat_voice_speaker_cd">Switch to speaker</string>
+    <string name="chat_voice_earpiece_label">Earpiece</string>
+    <string name="chat_voice_speaker_label">Speaker</string>
+    <string name="chat_voice_convert_action">Voice bar</string>
+    <string name="chat_voice_converting_toast">Generating voice bar…</string>
+    <string name="chat_voice_ready_toast">Voice bar ready — tap to play</string>
+    <string name="chat_voice_synth_failed_toast">Voice synthesis failed; check TTS settings</string>
+    <string name="voice_reply_auto_bar_title">Auto voice bar on replies</string>
+    <string name="voice_reply_auto_bar_desc">Automatically synthesize a voice bar after assistant replies; tap to play by default.</string>
+    <string name="voice_reply_assistant_section">Voice Replies</string>
+    <string name="voice_reply_follow_global">Follow global</string>
+    <string name="voice_reply_assistant_hint">Override voice bar frequency and auto-generation for this assistant.</string>
+</resources>

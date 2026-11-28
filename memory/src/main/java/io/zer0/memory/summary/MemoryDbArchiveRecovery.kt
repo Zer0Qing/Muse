@@ -192,64 +192,64 @@ class MemoryDbArchiveRecovery(
                 Snapshot(
                     storedVersion = source.version,
                     sessionSummaries = readTable(source, "session_summaries") { cursor ->
-                    val sessionId = cursor.string("session_id")
-                    if (sessionId.isBlank()) {
-                        null
-                    } else {
-                        SessionSummaryEntity(
-                            sessionId = sessionId,
-                            createdAt = cursor.string("created_at", EPOCH),
-                            updatedAt = cursor.string("updated_at", EPOCH),
-                            summary = cursor.string("summary"),
-                            messageCount = cursor.int("message_count"),
-                            sourceTimeRange = cursor.nullableString("source_time_range"),
-                            snapshot = cursor.string("snapshot"),
-                            snapshotAt = cursor.nullableString("snapshot_at"),
-                            assistantId = cursor.string("assistant_id"),
-                            spaceId = cursor.string("space_id", "default"),
-                        )
-                    }
+                        val sessionId = cursor.string("session_id")
+                        if (sessionId.isBlank()) {
+                            null
+                        } else {
+                            SessionSummaryEntity(
+                                sessionId = sessionId,
+                                createdAt = cursor.string("created_at", EPOCH),
+                                updatedAt = cursor.string("updated_at", EPOCH),
+                                summary = cursor.string("summary"),
+                                messageCount = cursor.int("message_count"),
+                                sourceTimeRange = cursor.nullableString("source_time_range"),
+                                snapshot = cursor.string("snapshot"),
+                                snapshotAt = cursor.nullableString("snapshot_at"),
+                                assistantId = cursor.string("assistant_id"),
+                                spaceId = cursor.string("space_id", "default"),
+                            )
+                        }
                     },
                     dailyStates = readTable(source, "daily_state") { cursor ->
-                    val key = cursor.string("key", "default")
-                    DailyStateEntity(
-                        key = key.ifBlank { "default" },
-                        schemaVersion = cursor.int("schema_version", 2),
-                        logicalDate = cursor.string("logical_date", "1970-01-01"),
-                        resetAt = cursor.nullableString("reset_at"),
-                        factsMode = cursor.string("facts_mode", "legacy"),
-                        completedSteps = cursor.string("completed_steps", "{}"),
-                        dailyCompletedAt = cursor.nullableString("daily_completed_at"),
-                        updatedAt = cursor.string("updated_at", EPOCH),
-                    )
+                        val key = cursor.string("key", "default")
+                        DailyStateEntity(
+                            key = key.ifBlank { "default" },
+                            schemaVersion = cursor.int("schema_version", 2),
+                            logicalDate = cursor.string("logical_date", "1970-01-01"),
+                            resetAt = cursor.nullableString("reset_at"),
+                            factsMode = cursor.string("facts_mode", "legacy"),
+                            completedSteps = cursor.string("completed_steps", "{}"),
+                            dailyCompletedAt = cursor.nullableString("daily_completed_at"),
+                            updatedAt = cursor.string("updated_at", EPOCH),
+                        )
                     },
                     compiledSections = readTable(source, "compiled_sections") { cursor ->
-                    val key = cursor.string("section_key")
-                    if (key.isBlank()) {
-                        null
-                    } else {
-                        CompiledSectionEntity(
-                            sectionKey = key,
-                            content = cursor.string("content"),
-                            fingerprint = cursor.nullableString("fingerprint"),
-                            updatedAt = cursor.string("updated_at", EPOCH),
-                        )
-                    }
+                        val key = cursor.string("section_key")
+                        if (key.isBlank()) {
+                            null
+                        } else {
+                            CompiledSectionEntity(
+                                sectionKey = key,
+                                content = cursor.string("content"),
+                                fingerprint = cursor.nullableString("fingerprint"),
+                                updatedAt = cursor.string("updated_at", EPOCH),
+                            )
+                        }
                     },
                     scopedCompiledSections = readTable(source, "compiled_sections_scoped") { cursor ->
-                    val key = cursor.string("section_key")
-                    if (key.isBlank()) {
-                        null
-                    } else {
-                        ScopedCompiledSectionEntity(
-                            sectionKey = key,
-                            scope = cursor.string("scope", "main"),
-                            spaceId = cursor.string("space_id", "default"),
-                            content = cursor.string("content"),
-                            fingerprint = cursor.nullableString("fingerprint"),
-                            updatedAt = cursor.string("updated_at", EPOCH),
-                        )
-                    }
+                        val key = cursor.string("section_key")
+                        if (key.isBlank()) {
+                            null
+                        } else {
+                            ScopedCompiledSectionEntity(
+                                sectionKey = key,
+                                scope = cursor.string("scope", "main"),
+                                spaceId = cursor.string("space_id", "default"),
+                                content = cursor.string("content"),
+                                fingerprint = cursor.nullableString("fingerprint"),
+                                updatedAt = cursor.string("updated_at", EPOCH),
+                            )
+                        }
                     },
                 )
             }
@@ -259,11 +259,7 @@ class MemoryDbArchiveRecovery(
         }
     }
 
-    private fun <T> readTable(
-        database: SQLiteDatabase,
-        table: String,
-        mapper: (Cursor) -> T?,
-    ): List<T> {
+    private fun <T> readTable(database: SQLiteDatabase, table: String, mapper: (Cursor) -> T?): List<T> {
         if (!hasTable(database, table)) return emptyList()
         return database.rawQuery("SELECT * FROM `$table`", null).use { cursor ->
             buildList {
@@ -274,11 +270,10 @@ class MemoryDbArchiveRecovery(
         }
     }
 
-    private fun hasTable(database: SQLiteDatabase, table: String): Boolean =
-        database.rawQuery(
-            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ? LIMIT 1",
-            arrayOf(table),
-        ).use { it.moveToFirst() }
+    private fun hasTable(database: SQLiteDatabase, table: String): Boolean = database.rawQuery(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ? LIMIT 1",
+        arrayOf(table),
+    ).use { it.moveToFirst() }
 
     private fun Cursor.string(column: String, default: String = ""): String {
         val index = getColumnIndex(column)
@@ -295,8 +290,7 @@ class MemoryDbArchiveRecovery(
         return if (index < 0 || isNull(index)) default else getInt(index)
     }
 
-    private fun Snapshot.totalRows(): Int =
-        sessionSummaries.size + dailyStates.size + compiledSections.size + scopedCompiledSections.size
+    private fun Snapshot.totalRows(): Int = sessionSummaries.size + dailyStates.size + compiledSections.size + scopedCompiledSections.size
 
     private companion object {
         const val TAG = "MemoryDbArchiveRecovery"

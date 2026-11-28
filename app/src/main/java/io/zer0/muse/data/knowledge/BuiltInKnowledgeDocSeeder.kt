@@ -103,7 +103,7 @@ class BuiltInKnowledgeDocSeeder(
         val provider = ragConfigProvider ?: return@withLock
         val config = resultOf { provider() }.getOrNull() ?: return@withLock
         val docs = resultOf { dao.getInternalDocs() }.getOrNull().orEmpty()
-        val pending = docs.filter { doc -> needsIndexing(doc, config) }
+        val pending = docs.filter { doc -> doc.fileType == "devdoc" && needsIndexing(doc, config) }
         if (pending.isEmpty()) {
             indexed = true
             return@withLock

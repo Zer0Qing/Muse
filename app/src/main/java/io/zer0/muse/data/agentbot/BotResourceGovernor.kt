@@ -1,7 +1,5 @@
 package io.zer0.muse.data.agentbot
 
-import io.zer0.common.Logger
-
 /**
  * 后台任务的资源配额与排队策略。
  *

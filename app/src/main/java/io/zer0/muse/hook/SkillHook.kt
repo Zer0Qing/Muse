@@ -85,6 +85,7 @@ data class PromptContext(
     val sessionId: String?,
     val locale: String,
     val forSubagent: Boolean,
+    val userInput: String = "",
 )
 
 /**

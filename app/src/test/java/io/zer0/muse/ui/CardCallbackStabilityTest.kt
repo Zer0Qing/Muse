@@ -6,6 +6,7 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.test.junit4.createComposeRule
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertSame
@@ -17,8 +18,6 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.nio.file.Files
 import java.nio.file.Path
-import io.zer0.muse.ui.chat.MessageBubble
-import io.zer0.muse.ui.chat.ChatScreen
 
 /**
  * 卡片回调的实例稳定性。
@@ -115,7 +114,7 @@ class CardCallbackStabilityTest {
 
         assertTrue(
             "WebViewClient 必须 remember 一次，否则下游以它为 key 的 remember 恒失效",
-            runtime.contains("val webViewClient = remember { RichContentWebViewClient() }"),
+            runtime.contains("val webViewClient = remember { RichContentWebViewClient"),
         )
         assertTrue(runtime.contains("webViewClient = webViewClient,"))
         assertFalse(
@@ -128,10 +127,13 @@ class CardCallbackStabilityTest {
     fun `rich content card keeps its data reader across recompositions`() {
         val rich = readSource("markdown/RichContentCard.kt")
 
-        assertTrue(
-            "读数据回调也进卡片桥的 remember key，必须按依赖缓存",
-            rich.contains("remember(store, inlineCardData) { { id: String -> store?.get(id) ?: inlineCardData } }"),
+        assertEquals(
+            "HTML 和 SVG 都应复用同一个读取回调，同时读取最新内联数据",
+            2,
+            Regex("remember\\(store\\) \\{ \\{ id: String -> store\\?\\.get\\(id\\) \\?: inlineDataState\\.value \\} \\}")
+                .findAll(rich).count(),
         )
+        assertTrue(rich.contains("rememberUpdatedState(inlineCardData)"))
         assertFalse(
             "旧写法每帧新建 lambda，桥跟着重建",
             rich.contains("readData = { id -> store?.get(id) ?: inlineCardData },"),

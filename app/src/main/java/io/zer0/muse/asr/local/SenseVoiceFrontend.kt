@@ -24,6 +24,7 @@ internal object SenseVoiceFrontend {
     private const val FRAME_SHIFT_MS = 10.0
     private const val NUM_MEL_BINS = 80
     private const val LOW_FREQ = 20.0
+
     /** 负值表示相对 Nyquist 的偏移（8000 - 400 = 7600 Hz）。 */
     private const val HIGH_FREQ_OFFSET = -400.0
     private const val PREEMPH = 0.97
@@ -171,8 +172,7 @@ internal object SenseVoiceFrontend {
     private fun melScaleInv(m: Double): Double = 700.0 * (exp(m / 1127.0) - 1.0)
 
     /** Povey 窗：(0.5 - 0.5·cos(2πn/(N-1)))^0.85。 */
-    private fun povey(n: Int, frameLen: Int): Double =
-        (0.5 - 0.5 * cos(2.0 * PI * n / (frameLen - 1))).pow(0.85)
+    private fun povey(n: Int, frameLen: Int): Double = (0.5 - 0.5 * cos(2.0 * PI * n / (frameLen - 1))).pow(0.85)
 
     /** 反射取样（对称反射，kaldi snip_edges=false 的补齐行为）。 */
     private fun sampleAt(pcm: ShortArray, index: Int): Double {

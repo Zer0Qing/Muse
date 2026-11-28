@@ -125,13 +125,18 @@ class SettingsSearchIndexTest {
             records.single { it.titleRes == R.string.settings_screen_appearance_label }.group,
         )
         assertEquals(
-            "代理应挂在「渠道与网络」下",
+            "代理应挂在「网络」下",
             SettingsGroupKind.CONNECTION,
             records.single { it.titleRes == R.string.proxy_title }.group,
         )
         assertEquals(
-            "分享与安全应挂在「隐私与权限」下",
-            SettingsGroupKind.PRIVACY_SECURITY,
+            "消息渠道应挂在独立一级分类「消息渠道」下",
+            SettingsGroupKind.CHANNELS,
+            records.single { it.titleRes == R.string.channel_page_title }.group,
+        )
+        assertEquals(
+            "分享模板已迁入「通用与外观」下",
+            SettingsGroupKind.GENERAL,
             records.single { it.titleRes == R.string.common_share }.group,
         )
         assertEquals(
@@ -182,6 +187,51 @@ class SettingsSearchIndexTest {
         val chatRecords = records.filter { it.group == chatGroup }
 
         assertTrue("按「${groupTitles.getValue(chatGroup)}」搜应当列出该分类的全部条目", hits.containsAll(chatRecords))
+    }
+
+    @Test
+    fun `keep alive, collab, sticker, media models, and skills deep links resolve cleanly`() {
+        val keepAwake = records.single { it.titleRes == R.string.settings_memory_keep_awake }
+        assertEquals(SettingsGroupKind.AUTOMATION, keepAwake.group)
+        assertEquals(
+            SettingsEntryAction.Navigate(io.zer0.muse.ui.navigation.KeepAliveSettingsRoute),
+            keepAwake.action,
+        )
+
+        val boot = records.single { it.titleRes == R.string.settings_agent_boot_section }
+        assertEquals(SettingsGroupKind.AUTOMATION, boot.group)
+        assertEquals(
+            SettingsEntryAction.Navigate(io.zer0.muse.ui.navigation.KeepAliveSettingsRoute),
+            boot.action,
+        )
+
+        val collab = records.single { it.titleRes == R.string.settings_screen_entry_collab }
+        assertEquals(SettingsGroupKind.ASSISTANTS, collab.group)
+        assertEquals(
+            SettingsEntryAction.Navigate(io.zer0.muse.ui.navigation.SettingsMultiAgentRoute),
+            collab.action,
+        )
+
+        val sticker = records.single { it.titleRes == R.string.settings_chat_sticker_section }
+        assertEquals(SettingsGroupKind.GENERAL, sticker.group)
+        assertEquals(
+            SettingsEntryAction.Navigate(io.zer0.muse.ui.navigation.StickerSettingsRoute),
+            sticker.action,
+        )
+
+        val mediaGen = records.single { it.titleRes == R.string.settings_media_gen_models_title }
+        assertEquals(SettingsGroupKind.MEDIA, mediaGen.group)
+        assertEquals(
+            SettingsEntryAction.Navigate(io.zer0.muse.ui.navigation.SettingsMediaGenRoute),
+            mediaGen.action,
+        )
+
+        val skills = records.single { it.titleRes == R.string.settings_assistant_skills }
+        assertEquals(SettingsGroupKind.TOOLS, skills.group)
+        assertEquals(
+            SettingsEntryAction.Navigate(io.zer0.muse.ui.navigation.SkillsRoute),
+            skills.action,
+        )
     }
 
     private fun search(query: String): List<SettingsSearchRecord> = filterSettingsSearch(

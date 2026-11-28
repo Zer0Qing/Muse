@@ -9,7 +9,7 @@ import io.zer0.muse.R
  *
  * 职责:
  *  - 在 app 模块(common 模块无 Android 依赖)桥接 [ErrorMessage] 与 [R.string]
- *  - 支持带参数的错误(如 [ErrorMessage.ApiError.RATE_LIMIT] 的 retryAfter)
+ *  - 支持带参数的错误(如 [ErrorMessage.ApiError.RateLimit] 的 retryAfter)
  *  - 默认 locale 缺失时回退到 [ErrorMessage.defaultMessage](英文兜底)
  *
  * 调用方:
@@ -26,13 +26,13 @@ fun ErrorMessage.toLocalizedString(context: Context): String = when (this) {
     // ── 网络错误 ──
     ErrorMessage.NetworkError.TIMEOUT ->
         context.getString(R.string.error_network_timeout)
-    ErrorMessage.NetworkError.NO_CONNECTION ->
+    ErrorMessage.NetworkError.NoConnection ->
         context.getString(R.string.error_network_no_connection)
-    ErrorMessage.NetworkError.DNS_FAILED ->
+    ErrorMessage.NetworkError.DnsFailed ->
         context.getString(R.string.error_network_dns_failed)
 
     // ── 鉴权错误 ──
-    ErrorMessage.AuthError.INVALID_KEY ->
+    ErrorMessage.AuthError.InvalidKey ->
         context.getString(R.string.error_auth_invalid_key)
     ErrorMessage.AuthError.EXPIRED ->
         context.getString(R.string.error_auth_expired)
@@ -40,7 +40,7 @@ fun ErrorMessage.toLocalizedString(context: Context): String = when (this) {
         context.getString(R.string.error_auth_unauthorized)
 
     // ── API 服务错误 ──
-    is ErrorMessage.ApiError.RATE_LIMIT -> {
+    is ErrorMessage.ApiError.RateLimit -> {
         // 带 retryAfter 时格式化为"请 N 秒后重试",否则用无参变体
         val seconds = this.retryAfter
         if (seconds != null && seconds > 0) {
@@ -49,25 +49,25 @@ fun ErrorMessage.toLocalizedString(context: Context): String = when (this) {
             context.getString(R.string.error_api_rate_limit_nodelay)
         }
     }
-    ErrorMessage.ApiError.SERVER_ERROR ->
+    ErrorMessage.ApiError.ServerError ->
         context.getString(R.string.error_api_server_error)
-    ErrorMessage.ApiError.MODEL_NOT_FOUND ->
+    ErrorMessage.ApiError.ModelNotFound ->
         context.getString(R.string.error_api_model_not_found)
-    ErrorMessage.ApiError.CONTEXT_LENGTH ->
+    ErrorMessage.ApiError.ContextLength ->
         context.getString(R.string.error_api_context_length)
 
     // ── 存储错误 ──
-    ErrorMessage.StorageError.DB_FULL ->
+    ErrorMessage.StorageError.DbFull ->
         context.getString(R.string.error_storage_db_full)
-    ErrorMessage.StorageError.IO_ERROR ->
+    ErrorMessage.StorageError.IoError ->
         context.getString(R.string.error_storage_io_error)
-    ErrorMessage.StorageError.MIGRATION_FAILED ->
+    ErrorMessage.StorageError.MigrationFailed ->
         context.getString(R.string.error_storage_migration_failed)
 
     // ── 校验错误 ──
-    ErrorMessage.ValidationError.EMPTY_INPUT ->
+    ErrorMessage.ValidationError.EmptyInput ->
         context.getString(R.string.error_validation_empty_input)
-    ErrorMessage.ValidationError.INVALID_FORMAT ->
+    ErrorMessage.ValidationError.InvalidFormat ->
         context.getString(R.string.error_validation_invalid_format)
 
     // ── 通用兜底 ──

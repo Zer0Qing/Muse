@@ -220,6 +220,7 @@
     <string name="agent_bot_error_binding_unreadable">Не удалось прочитать сохранённую беседу этого помощника, поэтому сообщение не отправлено. Повторите позже</string>
     <string name="agent_bot_error_no_session">Пока нет доступного разговора</string>
     <string name="agent_bot_error_save_failed">Сообщение не сохранилось. Попробуйте ещё раз</string>
+    <string name="agent_bot_error_provider_failed">Сервис модели вернул ошибку, поэтому в этом ходе нет ответа</string>
     <string name="agent_bot_error_already_decided">Этот шаг уже решён</string>
     <string name="agent_bot_error_approval_expired">Время этого шага истекло, нужно начать заново</string>
     <string name="agent_bot_error_approval_stale">Детали изменились, прежнее одобрение больше не действует</string>

@@ -61,10 +61,11 @@ class McpStdioTransport(
         val argv = when (resolved) {
             is McpStdioCommand.Result.Ok -> resolved.argv
             is McpStdioCommand.Result.Error -> {
-                Logger.w(TAG, "[${config.name}] 命令解析失败: ${resolved.message}")
+                Logger.w(TAG, "[${config.id}] MCP launch command was rejected")
                 return@withContext false
             }
         }
+        val environment = config.environment.filterKeys(::isMcpEnvironmentName)
         val workdir = File(MuseRuntime.runtimeDir(context), "mcp/${config.id}").apply { mkdirs() }
         runCatching {
             val pb = if (useExternal) {
@@ -72,6 +73,7 @@ class McpStdioTransport(
                     id = RuntimeId.UBUNTU_NODE,
                     argv = argv,
                     binds = listOf("${context.filesDir.absolutePath}:${RuntimeBridge.GUEST_FILES}"),
+                    env = environment,
                     workdirGuest = RuntimeBridge.toGuestPath(context, workdir.absolutePath),
                 ) ?: return@withContext false
             } else {
@@ -79,6 +81,7 @@ class McpStdioTransport(
                     directory(workdir)
                     environment().clear()
                     environment().putAll(MuseRuntime.buildEnv(context))
+                    environment().putAll(environment)
                 }
             }
             val p = pb.start()
@@ -90,7 +93,7 @@ class McpStdioTransport(
             Logger.i(TAG, "[${config.name}] stdio 进程已启动: ${argv.firstOrNull()}")
             true
         }.getOrElse {
-            Logger.e(TAG, "[${config.name}] stdio 启动失败: ${it.message}", it)
+            Logger.w(TAG, "[${config.id}] MCP process start failed (${it.javaClass.simpleName})")
             stop()
             false
         }
@@ -177,3 +180,8 @@ class McpStdioTransport(
         private const val TAG = "McpStdioTransport"
     }
 }
+private val MCP_ENV_NAME = Regex("[A-Za-z_][A-Za-z0-9_]*")
+
+internal fun isMcpEnvironmentName(name: String): Boolean =
+    MCP_ENV_NAME.matches(name) && !name.startsWith("PROOT_") && !name.startsWith("LD_") &&
+        name != "HOME" && name != "PATH"

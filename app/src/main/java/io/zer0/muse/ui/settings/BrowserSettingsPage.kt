@@ -92,11 +92,7 @@ fun BrowserSettingsPage(onBack: () -> Unit) {
 }
 
 @OptIn(ExperimentalLayoutApi::class)
-private fun LazyListScope.browserSearchSection(
-    store: BrowserSettingsStore,
-    engine: BrowserSearchEngine,
-    scope: CoroutineScope,
-) {
+private fun LazyListScope.browserSearchSection(store: BrowserSettingsStore, engine: BrowserSearchEngine, scope: CoroutineScope) {
     item(key = "browser_search") {
         CardGroup(title = { Text(stringResource(R.string.settings_browser_search_title)) }) {
             content(key = "browser_search_body") {
@@ -127,11 +123,7 @@ private fun LazyListScope.browserSearchSection(
     }
 }
 
-private fun LazyListScope.browserCookiesSection(
-    acceptCookies: Boolean,
-    onToggleCookies: (Boolean) -> Unit,
-    onRequestClear: () -> Unit,
-) {
+private fun LazyListScope.browserCookiesSection(acceptCookies: Boolean, onToggleCookies: (Boolean) -> Unit, onRequestClear: () -> Unit) {
     item(key = "browser_cookies") {
         CardGroup(
             title = { Text(stringResource(R.string.settings_browser_cookies_title)) },

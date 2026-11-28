@@ -3,7 +3,6 @@ package io.zer0.muse.data.assistant
 import android.net.Uri
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import io.zer0.muse.ui.assistant.AssistantScreen
 
 /**
  * v2.x: 外部角色包导入桥。

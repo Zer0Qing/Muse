@@ -25,7 +25,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -33,9 +32,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -53,6 +50,9 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -60,23 +60,31 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
+import coil.compose.AsyncImage
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
+import io.github.fletchmckee.liquid.liquefiable
+import io.github.fletchmckee.liquid.rememberLiquidState
 import io.zer0.ai.core.ProviderConfig
 import io.zer0.common.Logger
 import io.zer0.muse.R
 import io.zer0.muse.data.agentbot.AgentBotError
 import io.zer0.muse.data.agentbot.AgentBotScopeState
 import io.zer0.muse.data.agentbot.AgentBotUiState
-import io.zer0.muse.data.agentbot.AgentStreamCoordinator
 import io.zer0.muse.data.agentbot.AgentSuggestion
 import io.zer0.muse.data.agentbot.AgentWatcherEngine
+import io.zer0.muse.data.agentbot.BotCardKind
 import io.zer0.muse.data.agentbot.BotCardStatus
 import io.zer0.muse.data.agentbot.ReconnectActionKind
 import io.zer0.muse.data.agentbot.ReconnectCardPayload
-import io.zer0.muse.data.agentbot.BotCardKind
+import io.zer0.muse.data.computenode.ComputeNodeMode
+import io.zer0.muse.data.computenode.RemoteComputeNodeEntity
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
@@ -85,9 +93,9 @@ import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.settings.ConfirmDeleteDialog
 import io.zer0.muse.ui.common.state.MuseIndeterminateProgressBar
+import io.zer0.muse.ui.common.surface.MuseListItem
 import io.zer0.muse.ui.markdown.MarkdownText
 import io.zer0.muse.ui.speech.SpeechInput
-import io.zer0.muse.ui.speech.VoiceConversationMode
 import io.zer0.muse.ui.theme.MuseBorderWidth
 import io.zer0.muse.ui.theme.MuseButtonSize
 import io.zer0.muse.ui.theme.MuseElevation
@@ -96,18 +104,7 @@ import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.MuseSpacing
 import io.zer0.muse.ui.theme.pill
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
-import io.zer0.muse.ui.common.surface.MuseListItem
 import io.zer0.muse.util.launchSafely
-import com.kyant.backdrop.backdrops.layerBackdrop
-import com.kyant.backdrop.backdrops.rememberLayerBackdrop
-import io.github.fletchmckee.liquid.liquefiable
-import io.github.fletchmckee.liquid.rememberLiquidState
-import coil.compose.AsyncImage
-import androidx.compose.ui.layout.ContentScale
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
@@ -135,11 +132,14 @@ fun AgentBotScreen(
     onOpenModel: (() -> Unit)? = null,
     onOpenProviderSettings: (() -> Unit)? = null,
     onOpenRuntimeInstall: (() -> Unit)? = null,
+    onOpenMcpConnections: (() -> Unit)? = null,
     onOpenTask: ((String) -> Unit)? = null,
     onOpenArtifact: ((String) -> Unit)? = null,
+    onOpenArtifactCenter: (() -> Unit)? = null,
     onSwitchAssistant: ((String) -> Unit)? = null,
     onOpenGroupChats: (() -> Unit)? = null,
     topOverlayInset: Dp = MuseSpacing.xxs,
+    showFloatingHeader: Boolean = true,
     externalWorkbenchTab: AgentWorkbenchTab? = null,
     onExternalWorkbenchTabConsumed: () -> Unit = {},
 ) {
@@ -147,6 +147,7 @@ fun AgentBotScreen(
     val transcript by viewModel.transcript.collectAsStateWithLifecycle()
     val busy by viewModel.busy.collectAsStateWithLifecycle()
     val streaming by viewModel.streaming.collectAsStateWithLifecycle()
+    val foregroundMcpApproval by viewModel.foregroundMcpApproval.collectAsStateWithLifecycle()
     val scopeState by viewModel.scopeState.collectAsStateWithLifecycle()
     val suggestions by viewModel.suggestions.collectAsStateWithLifecycle()
     val aboutYouProfile by viewModel.aboutYouProfile.collectAsStateWithLifecycle()
@@ -156,7 +157,6 @@ fun AgentBotScreen(
     val computeNodeSetup by viewModel.computeNodeSetup.collectAsStateWithLifecycle()
     val computeTerminal by viewModel.computeTerminal.collectAsStateWithLifecycle()
     val computeFiles by viewModel.computeFiles.collectAsStateWithLifecycle()
-    val allowedTools by viewModel.allowedTools.collectAsStateWithLifecycle()
     val hasOlderTranscript by viewModel.hasOlderTranscript.collectAsStateWithLifecycle()
     val loadingOlderTranscript by viewModel.loadingOlderTranscript.collectAsStateWithLifecycle()
     val taskDetails by viewModel.taskDetails.collectAsStateWithLifecycle()
@@ -169,6 +169,8 @@ fun AgentBotScreen(
     val routines by viewModel.routinesFlow.collectAsStateWithLifecycle(initialValue = emptyList())
     val watchers by viewModel.watchersFlow.collectAsStateWithLifecycle(initialValue = emptyList())
     val goals by viewModel.goalsFlow.collectAsStateWithLifecycle(initialValue = emptyList())
+    val spaces by viewModel.spacesFlow.collectAsStateWithLifecycle(initialValue = emptyList())
+    val refreshingSpaceIds by viewModel.refreshingSpaceIds.collectAsStateWithLifecycle()
     val teachState by viewModel.teachState.collectAsStateWithLifecycle()
     val assistants by viewModel.assistantsFlow.collectAsStateWithLifecycle(initialValue = emptyList())
     val channels by viewModel.channelsFlow.collectAsStateWithLifecycle()
@@ -255,10 +257,9 @@ fun AgentBotScreen(
     var deleteTarget by remember { mutableStateOf<AgentBotUiState.PublishedMessage?>(null) }
     var workbenchTab by rememberSaveable { mutableStateOf<AgentWorkbenchTab?>(null) }
     var showComputeNodeSetup by rememberSaveable { mutableStateOf(false) }
+    var sshRepairTarget by remember { mutableStateOf<RemoteComputeNodeEntity?>(null) }
     var showKnowledgePicker by rememberSaveable { mutableStateOf(false) }
-    var showVoiceMode by rememberSaveable { mutableStateOf(false) }
     var viewerMedia by remember { mutableStateOf<Pair<List<String>, Int>?>(null) }
-    val voiceBridge = remember(viewModel) { viewModel.createVoiceBridge() }
 
     val openComputerForTask: (String) -> Unit = { taskId ->
         val browser = remoteBrowser
@@ -422,7 +423,6 @@ fun AgentBotScreen(
     val latestRunningNote = inProgressTasks.firstOrNull()?.note.orEmpty()
         .ifBlank { inProgressTasks.firstOrNull()?.goal.orEmpty() }
     val presenceState = when {
-        showVoiceMode -> AgentPresenceState.VOICE
         pendingApprovals.isNotEmpty() -> AgentPresenceState.NEEDS_ATTENTION
         inProgressTasks.isNotEmpty() || needsActionTasks.isNotEmpty() -> AgentPresenceState.WORKING
         else -> AgentPresenceState.IDLE
@@ -509,130 +509,132 @@ fun AgentBotScreen(
                 io.zer0.muse.ui.theme.LocalLayerBackdrop provides null,
                 io.zer0.muse.ui.theme.LocalWaterGlassState provides null,
                 io.zer0.muse.ui.theme.LocalInsideBackdropRecorder provides
-                    (pageLayerBackdrop != null || pageWaterState != null ||
-                        io.zer0.muse.ui.theme.LocalInsideBackdropRecorder.current),
+                    (
+                        pageLayerBackdrop != null || pageWaterState != null ||
+                            io.zer0.muse.ui.theme.LocalInsideBackdropRecorder.current
+                        ),
             ) {
-            if (!chatBackground.isNullOrBlank()) {
-                AsyncImage(
-                    model = chatBackground,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            } else {
-                chatGradient?.let { gradient ->
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                androidx.compose.ui.graphics.Brush.linearGradient(
-                                    colors = listOf(
-                                        Color(gradient.startColorArgb.toInt()),
-                                        Color(gradient.endColorArgb.toInt()),
+                if (!chatBackground.isNullOrBlank()) {
+                    AsyncImage(
+                        model = chatBackground,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                } else {
+                    chatGradient?.let { gradient ->
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    androidx.compose.ui.graphics.Brush.linearGradient(
+                                        colors = listOf(
+                                            Color(gradient.startColorArgb.toInt()),
+                                            Color(gradient.endColorArgb.toInt()),
+                                        ),
                                     ),
                                 ),
+                        )
+                    }
+                }
+
+                if (isWelcomeEmpty) {
+                    AgentWelcomeCanvas(
+                        hasConfiguredModel = modelName.isNotBlank() && providers.any { it.enabled },
+                        suggestions = suggestions,
+                        onSendSuggestion = viewModel::sendQuickPrompt,
+                        onDismissSuggestion = viewModel::dismissSuggestion,
+                        onOpenProviderSettings = onOpenProviderSettings,
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .padding(
+                                top = topOverlayInset + topOverlayPadding,
+                                bottom = bottomOverlayPadding,
                             ),
                     )
-                }
-            }
-
-            if (isWelcomeEmpty) {
-                AgentWelcomeCanvas(
-                    hasConfiguredModel = modelName.isNotBlank() && providers.any { it.enabled },
-                    suggestions = suggestions,
-                    onSendSuggestion = viewModel::sendQuickPrompt,
-                    onDismissSuggestion = viewModel::dismissSuggestion,
-                    onOpenProviderSettings = onOpenProviderSettings,
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .padding(
-                            top = topOverlayInset + topOverlayPadding,
-                            bottom = bottomOverlayPadding,
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        state = transcriptListState,
+                        contentPadding = PaddingValues(
+                            start = if (chatPreferences.bubbleFullWidth) MuseSpacing.sm else MusePaddings.screen,
+                            end = if (chatPreferences.bubbleFullWidth) MuseSpacing.sm else MusePaddings.screen,
+                            top = topOverlayInset + topOverlayPadding + MusePaddings.contentGap,
+                            bottom = bottomOverlayPadding + MusePaddings.contentGap,
                         ),
-                )
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    state = transcriptListState,
-                    contentPadding = PaddingValues(
-                        start = if (chatPreferences.bubbleFullWidth) MuseSpacing.sm else MusePaddings.screen,
-                        end = if (chatPreferences.bubbleFullWidth) MuseSpacing.sm else MusePaddings.screen,
-                        top = topOverlayInset + topOverlayPadding + MusePaddings.contentGap,
-                        bottom = bottomOverlayPadding + MusePaddings.contentGap,
-                    ),
-                    verticalArrangement = Arrangement.spacedBy(MusePaddings.auxGap),
-                ) {
-                    if (hasOlderTranscript) {
-                        item(key = "load-older") {
-                            Box(
-                                modifier = Modifier.fillMaxWidth(),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                MuseCapsuleButton(
-                                    text = stringResource(R.string.agent_screen_load_older),
-                                    onClick = viewModel::loadOlderTranscript,
-                                    loading = loadingOlderTranscript,
-                                    variant = IosCapsuleButtonVariant.Text,
-                                    fillWidth = false,
-                                    size = MuseButtonSize.Compact,
-                                )
+                        verticalArrangement = Arrangement.spacedBy(MusePaddings.auxGap),
+                    ) {
+                        if (hasOlderTranscript) {
+                            item(key = "load-older") {
+                                Box(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    MuseCapsuleButton(
+                                        text = stringResource(R.string.agent_screen_load_older),
+                                        onClick = viewModel::loadOlderTranscript,
+                                        loading = loadingOlderTranscript,
+                                        variant = IosCapsuleButtonVariant.Text,
+                                        fillWidth = false,
+                                        size = MuseButtonSize.Compact,
+                                    )
+                                }
                             }
                         }
-                    }
 
-                    // 主动简报 / 建议行动卡
-                    items(cueCards, key = { "cue:${it.cardId}" }) { cue ->
-                        AgentCueBriefingCard(
-                            card = cue,
-                            onSelectAction = viewModel::selectChoiceOption,
-                            onDismiss = viewModel::dismissCard,
-                        )
-                    }
-
-                    // 可修复故障（断连 / 权限 / 运行环境 / 云端节点）重连卡
-                    items(reconnectCards, key = { "reconnect:${it.cardId}" }) { card ->
-                        val payload = remember(card.payloadJson) { ReconnectCardPayload.decode(card.payloadJson) }
-                        AgentReconnectCard(
-                            card = card,
-                            onFix = { handleFixReconnect(payload?.action) },
-                            onResume = { viewModel.retryReconnect(card.cardId, card.taskId) },
-                            onDismiss = viewModel::dismissCard,
-                        )
-                    }
-
-                    // 对话气泡 + 锚定动态任务卡 + 锚定后续建议卡
-                    items(transcript, key = { it.messageId }) { message ->
-                        Column(verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap)) {
-                            AgentMessageBubble(
-                                message = message,
-                                reactions = annotationsByMsg[message.messageId].orEmpty(),
-                                chatPreferences = chatPreferences,
-                                modelLabel = visibleModel,
-                                onCopy = {
-                                    val cleanCopy = io.zer0.muse.transformer.InternalMarkupSanitizer.displayContent(message.text)
-                                    clipboard?.setPrimaryClip(ClipData.newPlainText(null, cleanCopy))
-                                    MuseToast.show(copiedToastText)
-                                },
-                                onRetry = { viewModel.retryMessage(message.messageId) },
-                                onDelete = { deleteTarget = message },
-                                onReact = { emoji -> viewModel.reactToMessage(message.messageId, emoji) },
-                                onRemoveReaction = viewModel::removeAnnotation,
-                                onQuote = {
-                                    viewModel.setQuotedMessage(message)
-                                },
-                                onEdit = {
-                                    viewModel.startEditingMessage(message)
-                                },
-                                onSaveAsRoutine = {
-                                    val title = message.text.lineSequence().firstOrNull().orEmpty().take(24)
-                                        .ifBlank { resolvedName }
-                                    viewModel.createRoutine(title = title, goalPrompt = message.text)
-                                    MuseToast.show(savedRoutineToastText)
-                                },
-                                onOpenMediaViewer = { images, index ->
-                                    viewerMedia = images to index
-                                },
+                        // 主动简报 / 建议行动卡
+                        items(cueCards, key = { "cue:${it.cardId}" }) { cue ->
+                            AgentCueBriefingCard(
+                                card = cue,
+                                onSelectAction = viewModel::selectChoiceOption,
+                                onDismiss = viewModel::dismissCard,
                             )
+                        }
+
+                        // 可修复故障（断连 / 权限 / 运行环境 / 云端节点）重连卡
+                        items(reconnectCards, key = { "reconnect:${it.cardId}" }) { card ->
+                            val payload = remember(card.payloadJson) { ReconnectCardPayload.decode(card.payloadJson) }
+                            AgentReconnectCard(
+                                card = card,
+                                onFix = { handleFixReconnect(payload?.action) },
+                                onResume = { viewModel.retryReconnect(card.cardId, card.taskId) },
+                                onDismiss = viewModel::dismissCard,
+                            )
+                        }
+
+                        // 对话气泡 + 锚定动态任务卡 + 锚定后续建议卡
+                        items(transcript, key = { it.messageId }) { message ->
+                            Column(verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap)) {
+                                AgentMessageBubble(
+                                    message = message,
+                                    reactions = annotationsByMsg[message.messageId].orEmpty(),
+                                    chatPreferences = chatPreferences,
+                                    modelLabel = visibleModel,
+                                    onCopy = {
+                                        val cleanCopy = io.zer0.muse.transformer.InternalMarkupSanitizer.displayContent(message.text)
+                                        clipboard?.setPrimaryClip(ClipData.newPlainText(null, cleanCopy))
+                                        MuseToast.show(copiedToastText)
+                                    },
+                                    onRetry = { viewModel.retryMessage(message.messageId) },
+                                    onDelete = { deleteTarget = message },
+                                    onReact = { emoji -> viewModel.reactToMessage(message.messageId, emoji) },
+                                    onRemoveReaction = viewModel::removeAnnotation,
+                                    onQuote = {
+                                        viewModel.setQuotedMessage(message)
+                                    },
+                                    onEdit = {
+                                        viewModel.startEditingMessage(message)
+                                    },
+                                    onSaveAsRoutine = {
+                                        val title = message.text.lineSequence().firstOrNull().orEmpty().take(24)
+                                            .ifBlank { resolvedName }
+                                        viewModel.createRoutine(title = title, goalPrompt = message.text)
+                                        MuseToast.show(savedRoutineToastText)
+                                    },
+                                    onOpenMediaViewer = { images, index ->
+                                        viewerMedia = images to index
+                                    },
+                                )
 
                                 if (chatPreferences.agentShowPlanCards) {
                                     tasksByAnchor[message.messageId].orEmpty().forEach { taskRow ->
@@ -709,6 +711,15 @@ fun AgentBotScreen(
                         }
 
                         // 流内原生审批拍板卡
+                        foregroundMcpApproval?.let { request ->
+                            item(key = "foreground-mcp-approval:${request.requestId}") {
+                                AgentForegroundMcpApprovalCard(
+                                    request = request,
+                                    onApprove = { viewModel.decideForegroundMcpApproval(request.requestId, true) },
+                                    onDeny = { viewModel.decideForegroundMcpApproval(request.requestId, false) },
+                                )
+                            }
+                        }
                         items(pendingApprovals, key = { "approval:${it.approvalId}" }) { approval ->
                             AgentInlineApprovalCard(
                                 row = approval,
@@ -756,7 +767,7 @@ fun AgentBotScreen(
                             }
                         }
                     }
-            }
+                }
             }
         }
 
@@ -807,165 +818,162 @@ fun AgentBotScreen(
                     }
                 }
 
-        // 顶部透明悬浮层：常驻紧凑居中圆形头像压边名牌（紧贴 3 Tab 下方），两侧完全镂空
-        Column(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .fillMaxWidth()
-                .onSizeChanged { topOverlayHeightPx = it.height }
-                .padding(top = (topOverlayInset - MusePaddings.contentGap).coerceAtLeast(0.dp)),
-        ) {
-            AgentFloatingHeader(
-                assistantName = resolvedName,
-                assistant = activeAssistant,
-                avatarUri = resolvedAvatar,
-                modelLabel = visibleModel,
-                activeBadgeCount = activeBadgeCount,
-                hasPendingApproval = pendingApprovals.isNotEmpty(),
-                onOpenIdentitySwitch = { workbenchTab = AgentWorkbenchTab.SQUAD },
-                onOpenWorkbench = { workbenchTab = AgentWorkbenchTab.FOLLOW_UP },
-                showWorkbenchButton = topOverlayInset == 0.dp,
-                presenceState = presenceState,
-            )
+                // 顶部透明悬浮层：常驻紧凑居中圆形头像压边名牌（紧贴 3 Tab 下方），两侧完全镂空
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .fillMaxWidth()
+                        .onSizeChanged { topOverlayHeightPx = it.height }
+                        .padding(top = (topOverlayInset - MusePaddings.contentGap).coerceAtLeast(0.dp)),
+                ) {
+                    if (showFloatingHeader) {
+                        AgentFloatingHeader(
+                            assistantName = resolvedName,
+                            assistant = activeAssistant,
+                            avatarUri = resolvedAvatar,
+                            activeBadgeCount = activeBadgeCount,
+                            hasPendingApproval = pendingApprovals.isNotEmpty(),
+                            onOpenIdentitySwitch = { workbenchTab = AgentWorkbenchTab.SQUAD },
+                            onOpenWorkbench = { workbenchTab = AgentWorkbenchTab.FOLLOW_UP },
+                            showWorkbenchButton = topOverlayInset == 0.dp,
+                            presenceState = presenceState,
+                        )
+                    }
 
-            if (isLoading) {
-                MuseIndeterminateProgressBar(modifier = Modifier.fillMaxWidth())
-            }
-            if (scopeError) {
-                ScopeErrorRow(onRetry = viewModel::retryScope)
-            }
-        }
+                    if (isLoading) {
+                        MuseIndeterminateProgressBar(modifier = Modifier.fillMaxWidth())
+                    }
+                    if (scopeError) {
+                        ScopeErrorRow(onRetry = viewModel::retryScope)
+                    }
+                }
 
-        // 底部透明悬浮层：待拍板/进行中状态胶囊置顶于输入栏正上方 + 药丸输入岛
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .onSizeChanged { bottomOverlayHeightPx = it.height },
-        ) {
-            if (!isWelcomeEmpty && suggestions.isNotEmpty()) {
-                AgentSuggestionStrip(
-                    suggestions = suggestions,
-                    onSendSuggestion = viewModel::sendQuickPrompt,
-                    onDismissSuggestion = viewModel::dismissSuggestion,
-                )
-            }
-            AgentLiveActivityStrip(
-                runningCount = inProgressTasks.size,
-                approvalCount = pendingApprovals.size,
-                latestRunningNote = latestRunningNote,
-                activeVirtualDisplay = activeVirtualDisplay,
-                onClick = { workbenchTab = AgentWorkbenchTab.FOLLOW_UP },
-            )
+                // 底部透明悬浮层：待拍板/进行中状态胶囊置顶于输入栏正上方 + 药丸输入岛
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .onSizeChanged { bottomOverlayHeightPx = it.height },
+                ) {
+                    if (!isWelcomeEmpty && suggestions.isNotEmpty()) {
+                        AgentSuggestionStrip(
+                            suggestions = suggestions,
+                            onSendSuggestion = viewModel::sendQuickPrompt,
+                            onDismissSuggestion = viewModel::dismissSuggestion,
+                        )
+                    }
+                    AgentLiveActivityStrip(
+                        runningCount = inProgressTasks.size,
+                        approvalCount = pendingApprovals.size,
+                        latestRunningNote = latestRunningNote,
+                        activeVirtualDisplay = activeVirtualDisplay,
+                        onClick = { workbenchTab = AgentWorkbenchTab.FOLLOW_UP },
+                    )
 
-            AgentFloatingComposer(
-                composer = composer,
-                busy = busy,
-                isStreaming = streaming.active,
-                errorText = busy.error?.let { agentErrorLabel(it) },
-                enterToSend = chatPreferences.enterToSend,
-                showExpandButton = chatPreferences.showExpandButton,
-                isWebSearchEnabled = webSearchConfig.enabled,
-                isDeepThinkingEnabled = deepThinkingEnabled,
-                deepThinkingLevel = deepThinkingLevel,
-                isRecording = asrState.isRecording || systemRecording,
-                asrStatus = asrState.status,
-                asrErrorMessage = asrState.errorMessage,
-                recordingAmplitudes = asrState.amplitudes,
-                showMic = showMic,
-                onTextChange = viewModel::onComposerTextChange,
-                onClearQuote = { viewModel.setQuotedMessage(null) },
-                onCancelEdit = viewModel::cancelEditingMessage,
-                onToggleWebSearch = viewModel::toggleWebSearch,
-                onToggleDeepThinking = viewModel::toggleDeepThinking,
-                onCycleDeepThinkingLevel = viewModel::cycleDeepThinkingLevel,
-                onOpenKnowledgePicker = { showKnowledgePicker = true },
-                onPreviewPendingImage = { index ->
-                    val images = composer.pendingImages.map { "data:image/jpeg;base64,$it" }
-                    if (images.isNotEmpty()) viewerMedia = images to index
-                },
-                onSend = viewModel::send,
-                onStopReply = viewModel::stopReply,
-                onPickImages = {
-                    imagePicker.launchSafely(arrayOf("image/*"), context)
-                },
-                onPickGalleryImage = { uri -> viewModel.addPendingImage(uri, context) },
-                onRemoveImage = viewModel::removePendingImage,
-                onOpenVoiceMode = {
-                    viewModel.cancelStreamingAsr()
-                    systemRecording = false
-                    showVoiceMode = true
-                },
-                onStartRecording = {
-                    if (viewModel.shouldUseApiRecording()) {
-                        val hasMic = androidx.core.content.ContextCompat.checkSelfPermission(
-                            context,
-                            android.Manifest.permission.RECORD_AUDIO,
-                        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-                        if (hasMic) {
-                            val ok = viewModel.startStreamingAsr()
-                            if (!ok) {
-                                val err = viewModel.asrState.value.errorMessage
-                                    ?.takeIf { it.isNotBlank() }
-                                    ?: context.getString(R.string.asr_missing_api_key_error)
-                                MuseToast.show(err)
+                    AgentFloatingComposer(
+                        composer = composer,
+                        busy = busy,
+                        isStreaming = streaming.active,
+                        errorText = busy.error?.let { agentErrorLabel(it) },
+                        enterToSend = chatPreferences.enterToSend,
+                        showExpandButton = chatPreferences.showExpandButton,
+                        isWebSearchEnabled = webSearchConfig.enabled,
+                        isDeepThinkingEnabled = deepThinkingEnabled,
+                        deepThinkingLevel = deepThinkingLevel,
+                        isRecording = asrState.isRecording || systemRecording,
+                        asrStatus = asrState.status,
+                        asrErrorMessage = asrState.errorMessage,
+                        recordingAmplitudes = asrState.amplitudes,
+                        showMic = showMic,
+                        onTextChange = viewModel::onComposerTextChange,
+                        onClearQuote = { viewModel.setQuotedMessage(null) },
+                        onCancelEdit = viewModel::cancelEditingMessage,
+                        onToggleWebSearch = viewModel::toggleWebSearch,
+                        onToggleDeepThinking = viewModel::toggleDeepThinking,
+                        onCycleDeepThinkingLevel = viewModel::cycleDeepThinkingLevel,
+                        onOpenKnowledgePicker = { showKnowledgePicker = true },
+                        onPreviewPendingImage = { index ->
+                            val images = composer.pendingImages.map { "data:image/jpeg;base64,$it" }
+                            if (images.isNotEmpty()) viewerMedia = images to index
+                        },
+                        onSend = viewModel::send,
+                        onStopReply = viewModel::stopReply,
+                        onPickImages = {
+                            imagePicker.launchSafely(arrayOf("image/*"), context)
+                        },
+                        onPickGalleryImage = { uri -> viewModel.addPendingImage(uri, context) },
+                        onRemoveImage = viewModel::removePendingImage,
+                        onStartRecording = {
+                            if (viewModel.shouldUseApiRecording()) {
+                                val hasMic = androidx.core.content.ContextCompat.checkSelfPermission(
+                                    context,
+                                    android.Manifest.permission.RECORD_AUDIO,
+                                ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                                if (hasMic) {
+                                    val ok = viewModel.startStreamingAsr()
+                                    if (!ok) {
+                                        val err = viewModel.asrState.value.errorMessage
+                                            ?.takeIf { it.isNotBlank() }
+                                            ?: context.getString(R.string.asr_missing_api_key_error)
+                                        MuseToast.show(err)
+                                    }
+                                    ok
+                                } else {
+                                    micPermissionLauncher.launchSafely(
+                                        android.Manifest.permission.RECORD_AUDIO,
+                                        context,
+                                    )
+                                    MuseToast.show(context.getString(R.string.chat_err_mic_permission))
+                                    false
+                                }
+                            } else if (SpeechInput.isAvailable(context)) {
+                                systemRecording = true
+                                true
+                            } else {
+                                MuseToast.show(voiceUnavailableText)
+                                false
                             }
-                            ok
-                        } else {
-                            micPermissionLauncher.launchSafely(
-                                android.Manifest.permission.RECORD_AUDIO,
-                                context,
-                            )
-                            MuseToast.show(context.getString(R.string.chat_err_mic_permission))
-                            false
-                        }
-                    } else if (SpeechInput.isAvailable(context)) {
-                        systemRecording = true
-                        true
-                    } else {
-                        MuseToast.show(voiceUnavailableText)
-                        false
-                    }
-                },
-                onStopRecording = {
-                    if (viewModel.shouldUseApiRecording()) {
-                        viewModel.stopStreamingAsrAndSend()
-                    } else {
-                        systemRecording = false
-                        runCatching {
-                            voiceLauncher.launch(SpeechInput.createIntent(voiceRecordingPrompt))
-                        }.onFailure {
-                            Logger.w("AgentBotScreen", "拉起语音输入失败: ${it.message}")
-                            MuseToast.show(voiceUnavailableText)
-                        }
-                    }
-                },
-                onCancelRecording = {
-                    if (viewModel.shouldUseApiRecording()) {
-                        viewModel.cancelStreamingAsr()
-                    } else {
-                        systemRecording = false
-                    }
-                },
-                onOpenWorkbench = { workbenchTab = AgentWorkbenchTab.FOLLOW_UP },
-                onStartTeach = {
-                    viewModel.startTeachRecording()
-                    workbenchTab = AgentWorkbenchTab.ROUTINES
-                },
-                onOpenModel = onOpenModel,
-                onOpenProviderSettings = onOpenProviderSettings,
-                onOpenRuntimeInstall = onOpenRuntimeInstall,
-            )
-        }
+                        },
+                        onStopRecording = {
+                            if (viewModel.shouldUseApiRecording()) {
+                                viewModel.stopStreamingAsrAndSend()
+                            } else {
+                                systemRecording = false
+                                runCatching {
+                                    voiceLauncher.launch(SpeechInput.createIntent(voiceRecordingPrompt))
+                                }.onFailure {
+                                    Logger.w("AgentBotScreen", "拉起语音输入失败: ${it.message}")
+                                    MuseToast.show(voiceUnavailableText)
+                                }
+                            }
+                        },
+                        onCancelRecording = {
+                            if (viewModel.shouldUseApiRecording()) {
+                                viewModel.cancelStreamingAsr()
+                            } else {
+                                systemRecording = false
+                            }
+                        },
+                        onOpenWorkbench = { workbenchTab = AgentWorkbenchTab.FOLLOW_UP },
+                        onStartTeach = {
+                            viewModel.startTeachRecording()
+                            workbenchTab = AgentWorkbenchTab.ROUTINES
+                        },
+                        onOpenModel = onOpenModel,
+                        onOpenProviderSettings = onOpenProviderSettings,
+                        onOpenRuntimeInstall = onOpenRuntimeInstall,
+                    )
+                }
             }
         }
-
-        if (showVoiceMode) {
-            VoiceConversationMode(
-                onClose = { showVoiceMode = false },
-                bridge = voiceBridge,
-            )
-        }
+        SpacesEdgeDock(
+            cards = spaces,
+            refreshingIds = refreshingSpaceIds,
+            onRefresh = viewModel::refreshSpaceNow,
+            onCardAction = viewModel::handleSpaceCardAction,
+            onOpenSpacesTab = { workbenchTab = AgentWorkbenchTab.SPACES },
+            modifier = Modifier.align(Alignment.CenterEnd),
+        )
     }
 
     viewerMedia?.let { (images, initialIndex) ->
@@ -1024,7 +1032,6 @@ fun AgentBotScreen(
             initialTab = initialTab,
             currentBotId = composer.botId.ifBlank { AgentBotViewModel.DEFAULT_BOT_ID },
             projection = projection,
-            allowedTools = allowedTools.toList(),
             sandboxLogs = sandboxLogs,
             activeVirtualDisplay = activeVirtualDisplay,
             modelRoutes = modelRoutes,
@@ -1047,7 +1054,7 @@ fun AgentBotScreen(
             onFixConnector = { key ->
                 when (key) {
                     "proot" -> onOpenRuntimeInstall?.invoke()
-                    "mcp" -> onOpenProviderSettings?.invoke()
+                    "mcp" -> onOpenMcpConnections?.invoke()
                     else -> viewModel.refreshConnectorHealth()
                 }
             },
@@ -1063,8 +1070,13 @@ fun AgentBotScreen(
             },
             onRepairComputeNode = { nodeId ->
                 workbenchTab = null
-                showComputeNodeSetup = true
-                viewModel.repairComputeNode(nodeId)
+                val node = computeNodes.firstOrNull { it.nodeId == nodeId }
+                if (node != null && ComputeNodeMode.fromWire(node.connectionMode) == ComputeNodeMode.SSH_TUNNEL) {
+                    sshRepairTarget = node
+                    showComputeNodeSetup = true
+                } else {
+                    viewModel.repairComputeNode(nodeId)
+                }
             },
             onDeleteComputeNode = viewModel::deleteComputeNode,
             onOpenComputeTerminal = { nodeId ->
@@ -1106,7 +1118,6 @@ fun AgentBotScreen(
             onOpenGroupChats = onOpenGroupChats,
             onOpenCandidate = onOpenArtifact ?: viewModel::openCandidatePreview,
             onDiscardCandidate = viewModel::discardCandidate,
-            onRevokeAllowance = viewModel::revokeAllowance,
             onCheckWatcherNow = viewModel::checkWatcherNow,
             onPauseWatcher = viewModel::pauseWatcher,
             onResumeWatcher = viewModel::resumeWatcher,
@@ -1116,6 +1127,7 @@ fun AgentBotScreen(
             onFixReconnect = handleFixReconnect,
             onResumeReconnect = viewModel::retryReconnect,
             onDismissCard = viewModel::dismissCard,
+            onOpenArtifactCenter = onOpenArtifactCenter,
         )
     }
 
@@ -1125,11 +1137,14 @@ fun AgentBotScreen(
             nodes = computeNodes,
             onDismiss = {
                 showComputeNodeSetup = false
+                sshRepairTarget = null
                 viewModel.clearComputeNodeSetupState()
             },
             onStartSsh = viewModel::startSshBootstrap,
             onStartPairing = viewModel::startPairing,
             onDeleteNode = viewModel::deleteComputeNode,
+            repairTarget = sshRepairTarget,
+            onRepairSsh = viewModel::repairComputeNode,
         )
     }
 
@@ -1254,37 +1269,64 @@ fun AgentBotScreen(
     }
 
     candidatePreview?.let { preview ->
-        MuseDialog(
-            onDismissRequest = viewModel::closeCandidatePreview,
-            title = stringResource(R.string.agent_screen_artifact_preview),
-            content = {
-                // MuseDialog 外层已提供 verticalScroll，此处不重复嵌套。
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
-                ) {
-                    Text(preview.targetRef, style = MaterialTheme.typography.titleSmall)
-                    Text(
-                        stringResource(
-                            R.string.agent_screen_candidate_review_state,
-                            preview.taskRevision,
-                            candidateStateLabel(preview.verificationState),
-                        ),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    if (preview.truncated) {
-                        Text(
-                            stringResource(R.string.agent_screen_candidate_preview_truncated),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    MarkdownText(text = preview.content, style = MaterialTheme.typography.bodySmall)
-                }
-            },
-            confirmText = stringResource(R.string.common_close),
-            onConfirm = viewModel::closeCandidatePreview,
+        val context = LocalContext.current
+        val (mode, lang) = remember(preview.targetRef) {
+            io.zer0.muse.ui.artifact.inferRenderModeFromFileName(preview.targetRef)
+        }
+        val stateLine = stringResource(
+            R.string.agent_screen_candidate_review_state,
+            preview.taskRevision,
+            candidateStateLabel(preview.verificationState),
         )
+        val banner = if (preview.truncated) {
+            "$stateLine · ${stringResource(R.string.agent_screen_candidate_preview_truncated)}"
+        } else {
+            stateLine
+        }
+        if (mode == io.zer0.muse.ui.artifact.ArtifactRenderMode.RichWeb) {
+            androidx.compose.ui.window.Dialog(
+                onDismissRequest = viewModel::closeCandidatePreview,
+                properties = androidx.compose.ui.window.DialogProperties(
+                    usePlatformDefaultWidth = false,
+                    decorFitsSystemWindows = false,
+                ),
+            ) {
+                io.zer0.muse.ui.common.surface.MuseDialogWindowEffect(forceFullScreen = true)
+                io.zer0.muse.ui.screen.HtmlPreviewScreen(
+                    html = preview.content,
+                    language = lang ?: "html",
+                    title = preview.targetRef,
+                    onBack = viewModel::closeCandidatePreview,
+                )
+            }
+        } else {
+            io.zer0.muse.ui.artifact.FullScreenDocumentReader(
+                title = preview.targetRef,
+                subtitle = stringResource(R.string.agent_screen_artifact_preview),
+                content = preview.content,
+                mode = mode,
+                language = lang,
+                bannerNote = banner,
+                onDismiss = viewModel::closeCandidatePreview,
+                onCopy = { copied ->
+                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                    clipboard.setPrimaryClip(ClipData.newPlainText(preview.targetRef, copied))
+                    MuseToast.show(context.getString(R.string.chat_copied_toast))
+                },
+                onShare = {
+                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(Intent.EXTRA_SUBJECT, preview.targetRef)
+                        putExtra(Intent.EXTRA_TEXT, preview.content)
+                    }
+                    io.zer0.muse.util.ShareIntentHelper.startChooserSafely(
+                        context = context,
+                        shareIntent = shareIntent,
+                        chooserTitle = context.getString(R.string.artifact_share_chooser),
+                    )
+                },
+            )
+        }
     }
 }
 
@@ -1367,8 +1409,8 @@ private fun AgentSuggestionStrip(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = MusePaddings.inputIslandHorizontal, vertical = MusePaddings.tinyGap),
-        verticalArrangement = Arrangement.spacedBy(MusePaddings.tinyGap),
+            .padding(horizontal = MusePaddings.inputIslandHorizontal, vertical = MusePaddings.tightGap),
+        verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
     ) {
         Surface(
             shape = MuseShapes.pill,
@@ -1379,7 +1421,7 @@ private fun AgentSuggestionStrip(
         ) {
             Row(
                 modifier = Modifier.padding(
-                    horizontal = MusePaddings.inputPadding,
+                    horizontal = MusePaddings.contentGap,
                     vertical = MusePaddings.contentGap,
                 ),
                 verticalAlignment = Alignment.CenterVertically,
@@ -1412,8 +1454,8 @@ private fun AgentSuggestionStrip(
         }
         AnimatedVisibility(visible = expanded, enter = fadeIn(), exit = fadeOut()) {
             LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
-                contentPadding = PaddingValues(horizontal = MusePaddings.tinyGap),
+                horizontalArrangement = Arrangement.spacedBy(MusePaddings.sectionGap),
+                contentPadding = PaddingValues(horizontal = MusePaddings.tightGap),
             ) {
                 items(suggestions, key = { it.id }) { suggestion ->
                     val prompt = suggestionPrompt(suggestion)
@@ -1429,11 +1471,7 @@ private fun AgentSuggestionStrip(
 }
 
 @Composable
-private fun AgentSuggestionPill(
-    title: String,
-    onClick: () -> Unit,
-    onDismiss: () -> Unit,
-) {
+private fun AgentSuggestionPill(title: String, onClick: () -> Unit, onDismiss: () -> Unit) {
     val dismissCd = stringResource(R.string.agent_suggestion_dismiss_cd)
     Surface(
         shape = MuseShapes.pill,
@@ -1443,12 +1481,12 @@ private fun AgentSuggestionPill(
         Row(
             modifier = Modifier.padding(
                 start = MusePaddings.contentGap,
-                end = MusePaddings.tinyGap,
-                top = MusePaddings.tinyGap,
-                bottom = MusePaddings.tinyGap,
+                end = MusePaddings.contentGap,
+                top = MusePaddings.contentGap,
+                bottom = MusePaddings.contentGap,
             ),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(MusePaddings.tinyGap),
+            horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
         ) {
             Icon(
                 imageVector = MuseIcons.sparkle,
@@ -1484,12 +1522,12 @@ private fun AgentSuggestionPill(
 
 @Composable
 private fun suggestionTitle(suggestion: AgentSuggestion): String =
-    suggestion.titleCount?.let { stringResource(suggestion.titleRes, it) }
+    suggestion.titleText ?: suggestion.titleCount?.let { stringResource(suggestion.titleRes, it) }
         ?: stringResource(suggestion.titleRes)
 
 @Composable
 private fun suggestionPrompt(suggestion: AgentSuggestion): String =
-    suggestion.promptCount?.let { stringResource(suggestion.promptRes, it) }
+    suggestion.promptText ?: suggestion.promptCount?.let { stringResource(suggestion.promptRes, it) }
         ?: stringResource(suggestion.promptRes)
 
 @Composable
@@ -1530,6 +1568,8 @@ private fun agentErrorLabel(error: AgentBotError): String = when (error) {
     AgentBotError.NO_SESSION -> stringResource(R.string.agent_bot_error_no_session)
     AgentBotError.BINDING_UNREADABLE -> stringResource(R.string.agent_bot_error_binding_unreadable)
     AgentBotError.SAVE_FAILED -> stringResource(R.string.agent_bot_error_save_failed)
+    AgentBotError.RATE_LIMITED -> stringResource(R.string.err_chat_rate_limited)
+    AgentBotError.PROVIDER_FAILED -> stringResource(R.string.agent_bot_error_provider_failed)
     AgentBotError.ALREADY_DECIDED -> stringResource(R.string.agent_bot_error_already_decided)
     AgentBotError.APPROVAL_EXPIRED -> stringResource(R.string.agent_bot_error_approval_expired)
     AgentBotError.APPROVAL_STALE -> stringResource(R.string.agent_bot_error_approval_stale)

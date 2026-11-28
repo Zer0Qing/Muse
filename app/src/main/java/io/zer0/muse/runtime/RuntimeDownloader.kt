@@ -1,10 +1,9 @@
 package io.zer0.muse.runtime
 
-import io.zer0.common.Logger
 import io.zer0.common.AppJson
+import io.zer0.common.Logger
 import io.zer0.muse.data.AtomicFileStore
 import io.zer0.muse.util.GlobalCoroutineExceptionHandler
-import kotlinx.serialization.Serializable
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -14,6 +13,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.Serializable
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -114,14 +114,16 @@ class RuntimeDownloader(
                 emit(
                     onProgress,
                     throttle,
-                    request.operationId,
-                    RuntimeDownloadProgress.Phase.COMPLETED,
-                    0,
-                    source,
-                    request.expectedSize,
-                    request.expectedSize,
-                    0L,
-                    null,
+                    ProgressEvent(
+                        request.operationId,
+                        RuntimeDownloadProgress.Phase.COMPLETED,
+                        0,
+                        source,
+                        request.expectedSize,
+                        request.expectedSize,
+                        0L,
+                        null,
+                    ),
                 )
                 partMetadata.delete()
                 return@withContext Result.success(
@@ -145,116 +147,190 @@ class RuntimeDownloader(
 
         for (target in targets) {
             currentCoroutineContext().ensureActive()
-            val urls = target.urls
-            if (urls.isEmpty()) {
-                failures += "${target.source}: 没有下载 URL"
-                continue
-            }
-            for ((index, url) in urls.withIndex()) {
-                currentCoroutineContext().ensureActive()
-                val expectedSize = target.version.archive.sizeBytes
-                val expectedSha = target.sha256
-                if (part.length() > expectedSize) {
-                    part.delete()
-                    partMetadata.delete()
-                }
-                if (part.isFile && part.length() == expectedSize) {
-                    val actual = sha256(part)
-                    if (expectedSha == null || actual.equals(expectedSha, ignoreCase = true)) {
-                        val savedMetadata = readPartMetadata(partMetadata)
-                        promote(part, request.destination)
-                        partMetadata.delete()
-                        emit(onProgress, throttle, request.operationId, RuntimeDownloadProgress.Phase.COMPLETED, index, url, expectedSize, expectedSize, 0L, null)
-                        return@withContext Result.success(
-                            RuntimeDownloadResult(
-                                archiveFile = request.destination,
-                                sourceUrl = url,
-                                resumed = true,
-                                bytes = expectedSize,
-                                sha256 = actual,
-                                etag = savedMetadata?.etag,
-                                lastModified = savedMetadata?.lastModified,
-                            ),
-                        )
-                    }
-                    part.delete()
-                    partMetadata.delete()
-                }
-
-                Logger.i(TAG, "下载 ${target.version.archive.name}: 源 ${index + 1}/${urls.size} $url")
-                var forceFullRestart = false
-                var sourceFinished = false
-                while (!sourceFinished) {
-                    try {
-                        val savedMetadata = readPartMetadata(partMetadata)
-                        val fetchResult = fetch(
-                            url = url,
-                            part = part,
-                            partMetadata = partMetadata,
-                            expectedSize = expectedSize,
-                            expectedEtag = if (forceFullRestart) null else savedMetadata?.etag ?: request.expectedEtag,
-                            expectedLastModified = if (forceFullRestart) null else savedMetadata?.lastModified ?: request.expectedLastModified,
-                            onProgress = { downloaded, total, speed ->
-                                emit(
-                                    onProgress,
-                                    throttle,
-                                    request.operationId,
-                                    RuntimeDownloadProgress.Phase.DOWNLOADING,
-                                    index,
-                                    url,
-                                    downloaded,
-                                    total,
-                                    speed,
-                                    if (speed > 0L && total >= downloaded) (total - downloaded) / speed else null,
-                                )
-                            },
-                        )
-                        emit(onProgress, throttle, request.operationId, RuntimeDownloadProgress.Phase.VERIFYING, index, url, part.length(), expectedSize, 0L, null)
-                        val actual = sha256(part)
-                        if (part.length() != expectedSize ||
-                            (expectedSha != null && !actual.equals(expectedSha, ignoreCase = true))
-                        ) {
-                            val actualSize = part.length()
-                            part.delete()
-                            partMetadata.delete()
-                            throw IOException(
-                            "校验失败：期望 ${expectedSize} bytes/${expectedSha ?: "未提供 SHA-256"}，实际 ${actualSize} bytes/$actual",
-                            )
-                        }
-                        promote(part, request.destination)
-                        partMetadata.delete()
-                        emit(onProgress, throttle, request.operationId, RuntimeDownloadProgress.Phase.COMPLETED, index, url, expectedSize, expectedSize, 0L, null)
-                        Logger.i(TAG, "下载完成: ${request.destination.absolutePath} (${request.destination.length()} bytes)")
-                        return@withContext Result.success(
-                            RuntimeDownloadResult(
-                                archiveFile = request.destination,
-                                sourceUrl = url,
-                                resumed = fetchResult.resumed,
-                                bytes = expectedSize,
-                                sha256 = actual,
-                                etag = fetchResult.etag,
-                                lastModified = fetchResult.lastModified,
-                            ),
-                        )
-                    } catch (cancelled: CancellationException) {
-                        throw cancelled
-                    } catch (restart: RestartFromZeroException) {
-                        if (forceFullRestart) {
-                            failures += "${target.source} [$url]: ${restart.message}"
-                            sourceFinished = true
-                        } else {
-                            forceFullRestart = true
-                        }
-                    } catch (error: Exception) {
-                        val detail = "${target.source} [$url]: ${error.message ?: error.javaClass.simpleName}"
-                        failures += detail
-                        Logger.w(TAG, "下载源失败: $detail")
-                        sourceFinished = true
-                    }
-                }
+            downloadTarget(request, target, part, partMetadata, throttle, onProgress, failures)?.let {
+                return@withContext Result.success(it)
             }
         }
         Result.failure(IOException("所有运行环境下载源均失败：${failures.joinToString("；")}"))
+    }
+
+    private suspend fun downloadTarget(
+        request: RuntimeDownloadRequest,
+        target: DownloadTarget,
+        part: File,
+        partMetadata: File,
+        throttle: RuntimeProgressThrottle,
+        onProgress: (RuntimeDownloadProgress) -> Unit,
+        failures: MutableList<String>,
+    ): RuntimeDownloadResult? {
+        if (target.urls.isEmpty()) {
+            failures += "${target.source}: 没有下载 URL"
+            return null
+        }
+        for ((index, url) in target.urls.withIndex()) {
+            currentCoroutineContext().ensureActive()
+            val expectedSize = target.version.archive.sizeBytes
+            if (part.length() > expectedSize) {
+                part.delete()
+                partMetadata.delete()
+            }
+            val attempt = DownloadAttempt(request, target, part, partMetadata, index, url, throttle, onProgress)
+            resumeIfComplete(attempt)?.let { return it }
+            Logger.i(TAG, "下载 ${target.version.archive.name}: 源 ${index + 1}/${target.urls.size} $url")
+            val result = downloadUrl(attempt)
+            if (result != null) return result
+            failures += "${target.source} [$url]: 下载失败"
+        }
+        return null
+    }
+
+    private suspend fun resumeIfComplete(attempt: DownloadAttempt): RuntimeDownloadResult? {
+        val expectedSize = attempt.target.version.archive.sizeBytes
+        if (!attempt.part.isFile || attempt.part.length() != expectedSize) return null
+        val actual = sha256(attempt.part)
+        if (attempt.target.sha256 != null && !actual.equals(attempt.target.sha256, ignoreCase = true)) {
+            attempt.part.delete()
+            attempt.partMetadata.delete()
+            return null
+        }
+        val savedMetadata = readPartMetadata(attempt.partMetadata)
+        promote(attempt.part, attempt.request.destination)
+        attempt.partMetadata.delete()
+        emit(
+            attempt.onProgress,
+            attempt.throttle,
+            ProgressEvent(
+                attempt.request.operationId,
+                RuntimeDownloadProgress.Phase.COMPLETED,
+                attempt.index,
+                attempt.url,
+                expectedSize,
+                expectedSize,
+                0L,
+                null,
+            ),
+        )
+        return RuntimeDownloadResult(
+            archiveFile = attempt.request.destination,
+            sourceUrl = attempt.url,
+            resumed = true,
+            bytes = expectedSize,
+            sha256 = actual,
+            etag = savedMetadata?.etag,
+            lastModified = savedMetadata?.lastModified,
+        )
+    }
+
+    private suspend fun downloadUrl(attempt: DownloadAttempt): RuntimeDownloadResult? {
+        var forceFullRestart = false
+        while (true) {
+            try {
+                val savedMetadata = readPartMetadata(attempt.partMetadata)
+                val fetchResult = fetch(
+                    FetchRequest(
+                        url = attempt.url,
+                        part = attempt.part,
+                        partMetadata = attempt.partMetadata,
+                        expectedSize = attempt.target.version.archive.sizeBytes,
+                        expectedEtag = if (forceFullRestart) null else savedMetadata?.etag ?: attempt.request.expectedEtag,
+                        expectedLastModified = if (forceFullRestart) {
+                            null
+                        } else {
+                            savedMetadata?.lastModified ?: attempt.request.expectedLastModified
+                        },
+                    ),
+                    onProgress = { downloaded, total, speed ->
+                        emit(
+                            attempt.onProgress,
+                            attempt.throttle,
+                            ProgressEvent(
+                                attempt.request.operationId,
+                                RuntimeDownloadProgress.Phase.DOWNLOADING,
+                                attempt.index,
+                                attempt.url,
+                                downloaded,
+                                total,
+                                speed,
+                                if (speed > 0L && total >= downloaded) (total - downloaded) / speed else null,
+                            ),
+                        )
+                    },
+                )
+                val expectedSize = attempt.target.version.archive.sizeBytes
+                emit(
+                    attempt.onProgress,
+                    attempt.throttle,
+                    ProgressEvent(
+                        attempt.request.operationId,
+                        RuntimeDownloadProgress.Phase.VERIFYING,
+                        attempt.index,
+                        attempt.url,
+                        attempt.part.length(),
+                        expectedSize,
+                        0L,
+                        null,
+                    ),
+                )
+                val actual = sha256(attempt.part)
+                checkArchive(attempt.part, attempt.partMetadata, expectedSize, attempt.target.sha256, actual)
+                promote(attempt.part, attempt.request.destination)
+                attempt.partMetadata.delete()
+                emit(
+                    attempt.onProgress,
+                    attempt.throttle,
+                    ProgressEvent(
+                        attempt.request.operationId,
+                        RuntimeDownloadProgress.Phase.COMPLETED,
+                        attempt.index,
+                        attempt.url,
+                        expectedSize,
+                        expectedSize,
+                        0L,
+                        null,
+                    ),
+                )
+                Logger.i(TAG, "下载完成: ${attempt.request.destination.absolutePath} (${attempt.request.destination.length()} bytes)")
+                return RuntimeDownloadResult(
+                    archiveFile = attempt.request.destination,
+                    sourceUrl = attempt.url,
+                    resumed = fetchResult.resumed,
+                    bytes = expectedSize,
+                    sha256 = actual,
+                    etag = fetchResult.etag,
+                    lastModified = fetchResult.lastModified,
+                )
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (restart: RestartFromZeroException) {
+                if (forceFullRestart) {
+                    Logger.w(TAG, "下载源失败: ${attempt.target.source} [${attempt.url}]: ${restart.message}")
+                    return null
+                }
+                forceFullRestart = true
+            } catch (error: IOException) {
+                Logger.w(TAG, "下载源失败: ${attempt.target.source} [${attempt.url}]: ${error.message ?: error.javaClass.simpleName}")
+                return null
+            } catch (error: IllegalStateException) {
+                Logger.w(TAG, "下载源失败: ${attempt.target.source} [${attempt.url}]: ${error.message ?: error.javaClass.simpleName}")
+                return null
+            }
+        }
+    }
+
+    private fun checkArchive(
+        part: File,
+        partMetadata: File,
+        expectedSize: Long,
+        expectedSha: String?,
+        actual: String,
+    ) {
+        if (part.length() == expectedSize &&
+            (expectedSha == null || actual.equals(expectedSha, ignoreCase = true))
+        ) return
+        val actualSize = part.length()
+        part.delete()
+        partMetadata.delete()
+        throw IOException("校验失败：期望 $expectedSize bytes/${expectedSha ?: "未提供 SHA-256"}，实际 $actualSize bytes/$actual")
     }
 
     suspend fun download(
@@ -287,43 +363,34 @@ class RuntimeDownloader(
         }.map(RuntimeDownloadResult::archiveFile)
     }
 
-    suspend fun verifyArchive(file: File, expectedSize: Long, expectedSha256: String): Result<Unit> =
-        withContext(Dispatchers.IO) {
-            if (!file.isFile) return@withContext Result.failure(IOException("本地运行环境归档不存在"))
-            if (file.length() != expectedSize) {
-                return@withContext Result.failure(IOException("本地归档大小不符：${file.length()}/$expectedSize bytes"))
-            }
-            val actual = sha256(file)
-            if (!actual.equals(expectedSha256, ignoreCase = true)) {
-                return@withContext Result.failure(IOException("本地归档 SHA-256 不匹配"))
-            }
-            Result.success(Unit)
+    suspend fun verifyArchive(file: File, expectedSize: Long, expectedSha256: String): Result<Unit> = withContext(Dispatchers.IO) {
+        if (!file.isFile) return@withContext Result.failure(IOException("本地运行环境归档不存在"))
+        if (file.length() != expectedSize) {
+            return@withContext Result.failure(IOException("本地归档大小不符：${file.length()}/$expectedSize bytes"))
         }
+        val actual = sha256(file)
+        if (!actual.equals(expectedSha256, ignoreCase = true)) {
+            return@withContext Result.failure(IOException("本地归档 SHA-256 不匹配"))
+        }
+        Result.success(Unit)
+    }
 
     private suspend fun fetch(
-        url: String,
-        part: File,
-        partMetadata: File,
-        expectedSize: Long,
-        expectedEtag: String?,
-        expectedLastModified: String?,
+        request: FetchRequest,
         onProgress: (Long, Long, Long) -> Unit,
     ): FetchResult = suspendCancellableCoroutine { continuation ->
         val activeConnection = AtomicReference<HttpURLConnection?>(null)
         val worker = CoroutineScope(Dispatchers.IO + GlobalCoroutineExceptionHandler).launch {
             try {
                 val result = fetchBlocking(
-                    url,
-                    part,
-                    partMetadata,
-                    expectedSize,
-                    expectedEtag,
-                    expectedLastModified,
+                    request,
                     activeConnection,
                     onProgress,
                 )
                 if (continuation.isActive) continuation.resume(result)
-            } catch (error: Exception) {
+            } catch (error: IOException) {
+                if (continuation.isActive) continuation.resumeWithException(error)
+            } catch (error: IllegalStateException) {
                 if (continuation.isActive) continuation.resumeWithException(error)
             }
         }
@@ -334,17 +401,12 @@ class RuntimeDownloader(
     }
 
     private fun fetchBlocking(
-        url: String,
-        part: File,
-        partMetadata: File,
-        expectedSize: Long,
-        expectedEtag: String?,
-        expectedLastModified: String?,
+        request: FetchRequest,
         activeConnection: AtomicReference<HttpURLConnection?>,
         onProgress: (Long, Long, Long) -> Unit,
     ): FetchResult {
-        val start = part.takeIf(File::isFile)?.length() ?: 0L
-        val connection = (URL(url).openConnection() as? HttpURLConnection)
+        val start = request.part.takeIf(File::isFile)?.length() ?: 0L
+        val connection = (URL(request.url).openConnection() as? HttpURLConnection)
             ?: throw IOException("运行环境包下载只支持 HTTP(S) 地址")
         connection.apply {
             connectTimeout = connectTimeoutMs
@@ -353,7 +415,7 @@ class RuntimeDownloader(
             setRequestProperty("Accept-Encoding", "identity")
             if (start > 0L) {
                 setRequestProperty("Range", "bytes=$start-")
-                (expectedEtag ?: expectedLastModified)?.let { setRequestProperty("If-Range", it) }
+                (request.expectedEtag ?: request.expectedLastModified)?.let { setRequestProperty("If-Range", it) }
             }
         }
         activeConnection.set(connection)
@@ -385,59 +447,57 @@ class RuntimeDownloader(
             val code = connection.responseCode
             val append = when (code) {
                 HttpURLConnection.HTTP_OK -> {
-                    if (start > 0L) part.delete()
+                    if (start > 0L) request.part.delete()
                     false
                 }
                 HttpURLConnection.HTTP_PARTIAL -> {
-                    validateContentRange(connection.getHeaderField("Content-Range"), start, expectedSize)
+                    validateContentRange(connection.getHeaderField("Content-Range"), start, request.expectedSize)
                     true
                 }
                 else -> throw IOException("HTTP $code")
             }
             val responseEtag = connection.getHeaderField("ETag")
             val responseLastModified = connection.getHeaderField("Last-Modified")
-            if (append && expectedEtag != null && responseEtag != expectedEtag) {
-                part.delete()
-                partMetadata.delete()
+            if (append && request.expectedEtag != null && responseEtag != request.expectedEtag) {
+                request.part.delete()
+                request.partMetadata.delete()
                 throw RestartFromZeroException("ETag 已变化，清除断点后重新下载")
             }
-            if (append && expectedEtag == null && expectedLastModified != null && responseLastModified != expectedLastModified) {
-                part.delete()
-                partMetadata.delete()
+            if (append && request.expectedEtag == null && request.expectedLastModified != null &&
+                responseLastModified != request.expectedLastModified
+            ) {
+                request.part.delete()
+                request.partMetadata.delete()
                 throw RestartFromZeroException("Last-Modified 已变化，清除断点后重新下载")
             }
             AtomicFileStore.writeText(
-                partMetadata,
+                request.partMetadata,
                 AppJson.encodeToString(PartMetadata(responseEtag, responseLastModified)),
             )
-            val total = expectedSize
+            val total = request.expectedSize
             var written = if (append) start else 0L
             val begunAt = System.nanoTime()
             lastProgressNanos.set(begunAt)
             onProgress(written, total, 0L)
-            connection.inputStream.use { input ->
-                FileOutputStream(part, append).use { output ->
-                    if (append) output.channel.position(start)
-                    val buffer = ByteArray(BUFFER_SIZE)
-                    while (true) {
-                        val read = input.read(buffer)
-                        if (read < 0) break
-                        if (read == 0) continue
-                        output.write(buffer, 0, read)
-                        written += read
-                        val now = System.nanoTime()
-                        lastProgressNanos.set(now)
-                        val elapsed = TimeUnit.NANOSECONDS.toSeconds(now - begunAt).coerceAtLeast(1L)
-                        onProgress(written, total, (written - if (append) start else 0L) / elapsed)
-                        watchdogFailure.get()?.let { throw it }
-                        if (written > expectedSize) throw IOException("下载大小超过清单声明的 $expectedSize bytes")
-                    }
-                }
-            }
+            written = copyResponseBody(
+                connection,
+                CopyContext(
+                    request,
+                    append,
+                    start,
+                    written,
+                    begunAt,
+                    lastProgressNanos,
+                    watchdogFailure,
+                    onProgress,
+                ),
+            )
             watchdogFailure.get()?.let { throw it }
-            if (written != expectedSize) throw IOException("下载长度不符：$written/$expectedSize bytes")
+            if (written != request.expectedSize) throw IOException("下载长度不符：$written/${request.expectedSize} bytes")
             return FetchResult(append, responseEtag, responseLastModified)
-        } catch (error: Exception) {
+        } catch (error: IOException) {
+            throw watchdogFailure.get() ?: error
+        } catch (error: IllegalStateException) {
             throw watchdogFailure.get() ?: error
         } finally {
             watchdogTask.cancel(true)
@@ -445,6 +505,40 @@ class RuntimeDownloader(
             activeConnection.compareAndSet(connection, null)
             connection.disconnect()
         }
+    }
+
+    private fun copyResponseBody(connection: HttpURLConnection, context: CopyContext): Long {
+        var written = context.initialWritten
+        var eof = false
+        connection.inputStream.use { input ->
+            FileOutputStream(context.request.part, context.append).use { output ->
+                if (context.append) output.channel.position(context.start)
+                val buffer = ByteArray(BUFFER_SIZE)
+                while (!eof && written < context.request.expectedSize) {
+                    val read = input.read(buffer)
+                    when {
+                        read < 0 -> eof = true
+                        read > 0 -> {
+                            output.write(buffer, 0, read)
+                            written += read
+                            val now = System.nanoTime()
+                            context.lastProgressNanos.set(now)
+                            val elapsed = TimeUnit.NANOSECONDS.toSeconds(now - context.begunAt).coerceAtLeast(1L)
+                            context.onProgress(
+                                written,
+                                context.request.expectedSize,
+                                (written - if (context.append) context.start else 0L) / elapsed,
+                            )
+                            context.watchdogFailure.get()?.let { throw it }
+                            check(written <= context.request.expectedSize) {
+                                "下载大小超过清单声明的 ${context.request.expectedSize} bytes"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return written
     }
 
     private fun validateContentRange(header: String?, expectedStart: Long, expectedTotal: Long) {
@@ -490,53 +584,42 @@ class RuntimeDownloader(
             .getOrNull()
     }
 
-    private fun emit(
-        callback: (RuntimeDownloadProgress) -> Unit,
-        throttle: RuntimeProgressThrottle,
-        operationId: String,
-        phase: RuntimeDownloadProgress.Phase,
-        sourceIndex: Int,
-        sourceUrl: String,
-        downloaded: Long,
-        total: Long,
-        speed: Long,
-        eta: Long?,
-    ) {
+    private fun emit(callback: (RuntimeDownloadProgress) -> Unit, throttle: RuntimeProgressThrottle, event: ProgressEvent) {
         val now = System.currentTimeMillis()
-        if (throttle.shouldEmit(phase, downloaded, total, now)) {
+        if (throttle.shouldEmit(event.phase, event.downloaded, event.total, now)) {
             callback(
                 RuntimeDownloadProgress(
-                    operationId = operationId,
-                    phase = phase,
-                    sourceIndex = sourceIndex,
-                    sourceUrl = sourceUrl,
-                    downloadedBytes = downloaded,
-                    totalBytes = total,
-                    speedBytesPerSecond = speed,
-                    etaSeconds = eta,
+                    operationId = event.operationId,
+                    phase = event.phase,
+                    sourceIndex = event.sourceIndex,
+                    sourceUrl = event.sourceUrl,
+                    downloadedBytes = event.downloaded,
+                    totalBytes = event.total,
+                    speedBytesPerSecond = event.speed,
+                    etaSeconds = event.eta,
                 ),
             )
         }
     }
 
     private fun validateRequest(request: RuntimeDownloadRequest): Exception? {
-        if (request.operationId.isBlank()) return IllegalArgumentException("operationId 不能为空")
-        if (request.expectedSize <= 0L || request.version.archive.sizeBytes != request.expectedSize) {
-            return IllegalArgumentException("下载大小与所选版本清单不一致")
-        }
-        if (request.expectedSha256 == null && request.version.sourceTrust != RuntimeSourceTrust.UNVERIFIED) {
-            return IllegalArgumentException("缺少 SHA-256 的来源必须标记为未验证")
-        }
-        if (request.expectedSha256 != null &&
-            !request.expectedSha256.equals(request.version.archive.sha256, ignoreCase = true)
-        ) {
-            return IllegalArgumentException("下载 SHA-256 与所选版本清单不一致")
-        }
-        if (request.expectedSha256 != null && !RuntimeManifestDocument.isValidSha256(request.expectedSha256)) {
-            return IllegalArgumentException("下载 SHA-256 格式非法")
-        }
-        if (request.targetAbi.isBlank()) return IllegalArgumentException("目标 ABI 不能为空")
-        return null
+        return listOfNotNull(
+            IllegalArgumentException("operationId 不能为空").takeIf { request.operationId.isBlank() },
+            IllegalArgumentException("下载大小与所选版本清单不一致").takeIf {
+                request.expectedSize <= 0L || request.version.archive.sizeBytes != request.expectedSize
+            },
+            IllegalArgumentException("缺少 SHA-256 的来源必须标记为未验证").takeIf {
+                request.expectedSha256 == null && request.version.sourceTrust != RuntimeSourceTrust.UNVERIFIED
+            },
+            IllegalArgumentException("下载 SHA-256 与所选版本清单不一致").takeIf {
+                request.expectedSha256 != null &&
+                    !request.expectedSha256.equals(request.version.archive.sha256, ignoreCase = true)
+            },
+            IllegalArgumentException("下载 SHA-256 格式非法").takeIf {
+                request.expectedSha256 != null && !RuntimeManifestDocument.isValidSha256(request.expectedSha256)
+            },
+            IllegalArgumentException("目标 ABI 不能为空").takeIf { request.targetAbi.isBlank() },
+        ).firstOrNull()
     }
 
     private fun targetsFor(request: RuntimeDownloadRequest): List<DownloadTarget> {
@@ -566,10 +649,52 @@ class RuntimeDownloader(
         val sha256: String?,
     )
 
+    private data class DownloadAttempt(
+        val request: RuntimeDownloadRequest,
+        val target: DownloadTarget,
+        val part: File,
+        val partMetadata: File,
+        val index: Int,
+        val url: String,
+        val throttle: RuntimeProgressThrottle,
+        val onProgress: (RuntimeDownloadProgress) -> Unit,
+    )
+
     private data class FetchResult(
         val resumed: Boolean,
         val etag: String?,
         val lastModified: String?,
+    )
+
+    private data class FetchRequest(
+        val url: String,
+        val part: File,
+        val partMetadata: File,
+        val expectedSize: Long,
+        val expectedEtag: String?,
+        val expectedLastModified: String?,
+    )
+
+    private data class CopyContext(
+        val request: FetchRequest,
+        val append: Boolean,
+        val start: Long,
+        val initialWritten: Long,
+        val begunAt: Long,
+        val lastProgressNanos: AtomicLong,
+        val watchdogFailure: AtomicReference<SocketTimeoutException?>,
+        val onProgress: (Long, Long, Long) -> Unit,
+    )
+
+    private data class ProgressEvent(
+        val operationId: String,
+        val phase: RuntimeDownloadProgress.Phase,
+        val sourceIndex: Int,
+        val sourceUrl: String,
+        val downloaded: Long,
+        val total: Long,
+        val speed: Long,
+        val eta: Long?,
     )
 
     private class RestartFromZeroException(message: String) : IOException(message)

@@ -1,4 +1,4 @@
-package io.zer0.muse.data.agentbot;
+package io.zer0.muse.data.agentbot
 
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -26,11 +26,11 @@ class TransitionResultHonoredTest {
         assertFalse(
             "执行成功不能拆成 run 完成与任务状态转移",
             scheduler.contains("repository.closeRun(run.runId, TaskRunStatus.COMPLETED)"),
-        );
+        )
         assertTrue(
             "执行结果应通过仓储事务写入审核队列",
             scheduler.contains("repository.finishExecution(task.taskId, run.runId, run.taskRevision, payload)"),
-        );
+        )
         assertTrue(repository.contains("db.withTransaction { operation() }"))
     }
 
@@ -39,6 +39,6 @@ class TransitionResultHonoredTest {
         assertTrue(scheduler.contains("reconcileReviewingResults()"))
         assertTrue(scheduler.contains("repository.reviewingTasks()"))
         assertTrue(scheduler.contains("reviewer.recover(task, run, resultEvent.payloadRef)"))
-        assertTrue("未转入审核的候选要清理", scheduler.contains("if (!stagedArtifactsTransferred) stagedArtifactRefs.forEach"));
+        assertTrue("未转入审核的候选要清理", scheduler.contains("if (!stagedArtifactsTransferred) stagedArtifactRefs.forEach"))
     }
 }

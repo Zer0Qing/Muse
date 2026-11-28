@@ -1,11 +1,11 @@
 package io.zer0.muse.ui
 
+import io.zer0.muse.ui.chat.deriveBubbleText
+import io.zer0.muse.ui.chat.needsBubbleTextSanitization
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import io.zer0.muse.ui.chat.needsBubbleTextSanitization
-import io.zer0.muse.ui.chat.deriveBubbleText
 
 /**
  * 正文渲染派生值（`deriveBubbleText`）。

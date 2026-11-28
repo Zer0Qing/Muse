@@ -4,7 +4,6 @@ import io.zer0.common.Hashing
 import io.zer0.common.Logger
 import io.zer0.muse.tools.script.SkillBridgeHttpClient
 import java.io.File
-import java.security.MessageDigest
 
 /** Result of a verified artifact download; the file is app-private staging, not the active plugin dir. */
 data class DownloadedArtifact(

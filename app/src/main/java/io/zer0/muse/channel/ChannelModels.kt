@@ -73,6 +73,12 @@ data class ChannelConfig(
     val policyMode: String = "open",
     /** v2.6.23(C1): 策略名单:群 chat_id / 用户 openid;录入以逗号或换行分隔。 */
     val policyTargets: List<String> = emptyList(),
+    /** 群聊触发模式:all(全部)/mention(仅@机器人)/keyword(关键词)。 */
+    val groupTriggerMode: String = GROUP_TRIGGER_ALL,
+    /** keyword 模式下的触发词列表。 */
+    val triggerKeywords: List<String> = emptyList(),
+    /** 校验后识别到的机器人展示名（例如 @my_bot），用于 mention 识别与界面展示。 */
+    val botDisplayName: String = "",
     val createdAt: Long = System.currentTimeMillis(),
 ) {
     /** v2.0.1: 钉钉 API Base — 留空回退官方默认;去除尾斜杠避免拼接问题。 */
@@ -129,6 +135,12 @@ data class ChannelConfig(
             region = flat.region,
         )
     }
+
+    companion object {
+        const val GROUP_TRIGGER_ALL = "all"
+        const val GROUP_TRIGGER_MENTION = "mention"
+        const val GROUP_TRIGGER_KEYWORD = "keyword"
+    }
 }
 
 /** v2.0.1: 钉钉 API 默认 Base URL。 */
@@ -138,4 +150,12 @@ internal const val DINGTALK_DEFAULT_API_BASE = "https://api.dingtalk.com/v1.0"
 data class ChannelSendResult(
     val ok: Boolean,
     val detail: String,
+)
+
+/** 结构化凭据校验结果，供配置页与三步向导展示真实机器人信息。 */
+data class ChannelValidationResult(
+    val ok: Boolean,
+    val botName: String = "",
+    val summary: String = "",
+    val errorDetail: String = "",
 )

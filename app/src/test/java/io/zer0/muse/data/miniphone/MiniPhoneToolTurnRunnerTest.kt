@@ -74,12 +74,14 @@ class MiniPhoneToolTurnRunnerTest {
 
     @Test
     fun `高风险工具即使类别在白名单里也不会出现`() = runBlocking {
-        // 前提断言:这两个名字确实一边在允许的类别里、一边被风险真源判成 HIGH
-        assertEquals(ToolCategory.STANDARD, ToolCategories.categoryOf(SAVE_MEMORY))
-        assertEquals(ToolRiskLevel.HIGH, ToolPermissionResolver.riskLevelFor(SAVE_MEMORY))
+        // 前提断言:这个名字确实一边在允许的类别里、一边被风险真源判成 HIGH。
+        // 用 delete_memory 而不是 save_memory：后者已按「向用户自己的记忆追加、可在记忆中心删除」
+        // 归为 SAFE（ASK 模式下不再每次弹审批），不再是「类别放行但风险拦下」的样本。
+        assertEquals(ToolCategory.OPTIONAL, ToolCategories.categoryOf(DELETE_MEMORY))
+        assertEquals(ToolRiskLevel.HIGH, ToolPermissionResolver.riskLevelFor(DELETE_MEMORY))
 
         val chatService = mockk<ChatService>()
-        val registry = registryWith(def(SAVE_MEMORY), def("get_weather"))
+        val registry = registryWith(def(DELETE_MEMORY), def("get_weather"))
         val sent = stubCompletions(chatService) { _, _ -> ChatCompletion(text = "今天晴") }
 
         runner(chatService, registry).reply(messages(), null, null).toList()
@@ -195,7 +197,7 @@ class MiniPhoneToolTurnRunnerTest {
     )
 
     private companion object {
-        const val SAVE_MEMORY = "save_memory"
+        const val DELETE_MEMORY = "delete_memory"
         const val MAX_TOOL_ROUNDS = 3
 
         const val DEFAULT_TIMEOUT_MS = 60_000L

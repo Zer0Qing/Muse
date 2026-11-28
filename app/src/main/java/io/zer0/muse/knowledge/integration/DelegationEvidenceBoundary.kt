@@ -48,11 +48,7 @@ object DelegationEvidenceBoundary {
      * 把边界说明附加到委派消息序列末尾(仅当存在证据时)。
      * 不修改原消息字段,只追加一条系统可见说明消息。
      */
-    fun attach(
-        messages: List<UIMessage>,
-        bundle: EvidenceBundle?,
-        makeNoteMessage: (String) -> UIMessage,
-    ): List<UIMessage> {
+    fun attach(messages: List<UIMessage>, bundle: EvidenceBundle?, makeNoteMessage: (String) -> UIMessage): List<UIMessage> {
         val note = boundaryNote(bundle) ?: return messages
         return messages + makeNoteMessage(note)
     }

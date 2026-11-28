@@ -41,8 +41,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -66,6 +64,7 @@ import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseSheetSizes
 import io.zer0.muse.ui.theme.MuseSpringTier
 import io.zer0.muse.ui.theme.fakeGlassSurface
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -208,7 +207,7 @@ fun MuseBottomSheet(
                                 if (glassApply) Modifier.fakeGlassSurface(BottomSheetSurfaceShape, glassBase) else Modifier,
                             ),
                         ) {
-                            val dragThresholdPx = with(density) { MuseSheetSizes.dragDismissThreshold.toPx() }
+                            val dragThresholdPx = with(density) { (MuseSheetSizes.dragDismissThreshold * 2.25f).toPx() }
                             val rubberCapPx = with(density) { MuseSheetSizes.rubberBandMax.toPx() }
                             val slideOutPx = with(density) { sheetMaxHeight.toPx() }
                             Box(
@@ -229,18 +228,34 @@ fun MuseBottomSheet(
                                                 dragPx = dragOffsetY.value,
                                                 velocityPxPerSec = velocityY,
                                                 dismissThresholdPx = dragThresholdPx,
+                                                flingVelocityPxPerSec = 1200f,
                                             )
                                             when (decision) {
-                                                SheetSettleTarget.DISMISS -> sheetScope.launch {
-                                                    // 弹簧滑到屏幕外再走 exit（exit 只剩淡出，不叠加两段位移）。
-                                                    dragOffsetY.animateTo(
-                                                        slideOutPx,
-                                                        androidx.compose.animation.core.spring(
-                                                            dampingRatio = MuseAnimation.STEADY_DAMPING,
-                                                            stiffness = MuseAnimation.STEADY_STIFFNESS,
-                                                        ),
-                                                    )
-                                                    dismiss()
+                                                SheetSettleTarget.DISMISS -> {
+                                                    if (latestCanDismiss()) {
+                                                        sheetScope.launch {
+                                                            // 校验通过后再弹簧滑到屏幕外（exit 只剩淡出，不叠加两段位移）。
+                                                            dragOffsetY.animateTo(
+                                                                slideOutPx,
+                                                                androidx.compose.animation.core.spring(
+                                                                    dampingRatio = MuseAnimation.STEADY_DAMPING,
+                                                                    stiffness = MuseAnimation.STEADY_STIFFNESS,
+                                                                ),
+                                                            )
+                                                            visible.targetState = false
+                                                        }
+                                                    } else {
+                                                        latestOnDismiss()
+                                                        sheetScope.launch {
+                                                            dragOffsetY.animateTo(
+                                                                0f,
+                                                                androidx.compose.animation.core.spring(
+                                                                    dampingRatio = MuseAnimation.BOUNCY_DAMPING,
+                                                                    stiffness = MuseAnimation.BOUNCY_STIFFNESS,
+                                                                ),
+                                                            )
+                                                        }
+                                                    }
                                                 }
                                                 SheetSettleTarget.SETTLE -> sheetScope.launch {
                                                     dragOffsetY.animateTo(

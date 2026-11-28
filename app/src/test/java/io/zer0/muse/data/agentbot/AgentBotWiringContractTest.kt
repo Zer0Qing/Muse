@@ -25,11 +25,11 @@ class AgentBotWiringContractTest {
     @Test
     fun `input is released before the model call`() {
         val sendStart = viewModel.indexOf("fun send()")
-        assertTrue("send() 必须存在", sendStart > 0);
+        assertTrue("send() 必须存在", sendStart > 0)
         val sendEnd = viewModel.indexOf("private suspend fun runForegroundTurn(", sendStart)
         val body = viewModel.substring(sendStart, if (sendEnd > sendStart) sendEnd else viewModel.length)
 
-        val composerAt = body.indexOf("ui.setComposerText(\"\")");
+        val composerAt = body.indexOf("ui.setComposerText(\"\")")
         val releaseAt = body.indexOf("ui.setSending(false)", composerAt)
         val modelAt = body.indexOf("foregroundTurnJob = viewModelScope.launch")
         assertTrue(
@@ -41,7 +41,7 @@ class AgentBotWiringContractTest {
     @Test
     fun `foreground turn runs in its own coroutine not the send coroutine`() {
         val sendStart = viewModel.indexOf("fun send()")
-        val body = viewModel.substring(sendStart, minOf(sendStart + 3200, viewModel.length));
+        val body = viewModel.substring(sendStart, minOf(sendStart + 3200, viewModel.length))
         assertTrue(
             "回合要丢到独立 Job，不能占用发送协程",
             body.contains("viewModelScope.launch {"),
@@ -66,7 +66,7 @@ class AgentBotWiringContractTest {
             "读不到历史不该让整轮失败",
             viewModel.contains("退化为单轮"),
         )
-        assertTrue(viewModel.contains("getOrDefault(emptyList())"));
+        assertTrue(viewModel.contains("getOrDefault(emptyList())"))
     }
 
     @Test

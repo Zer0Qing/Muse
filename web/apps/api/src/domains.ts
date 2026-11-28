@@ -1,13 +1,13 @@
 import { AgentTaskStore } from "@muse/agents";
 import { defaultUploadPolicy, objectKey, sanitizeDownloadName, validateUpload } from "@muse/files";
-import { McpRegistry, validateMcpUrl, type McpServerConfig } from "@muse/mcp";
+import { InMemoryMcpConnectionStore, McpService, type McpConnectionStore } from "@muse/mcp";
 import { MemoryStore } from "@muse/memory";
 import { chunkText, searchChunks, toCitations, type TextChunk } from "@muse/rag";
 import { builtinTools, ToolRegistry, type ToolExecutionContext } from "@muse/tools";
 
 export interface ApiDomains {
   readonly memory: MemoryStore;
-  readonly mcp: McpRegistry;
+  readonly mcp: McpService;
   readonly agents: AgentTaskStore;
   readonly tools: ToolRegistry;
   readonly chunks: TextChunk[];
@@ -35,14 +35,14 @@ function calculator(expression: string): string {
   return String(value);
 }
 
-export function createApiDomains(): ApiDomains {
+export function createApiDomains(mcpStore: McpConnectionStore = new InMemoryMcpConnectionStore()): ApiDomains {
   const tools = new ToolRegistry();
   const timeTool = builtinTools.find((tool) => tool.name === "get_current_time");
   const calculatorTool = builtinTools.find((tool) => tool.name === "calculator");
   if (!timeTool || !calculatorTool) throw new Error("required builtin tools are missing");
   tools.register(timeTool, { execute: async () => new Date().toISOString() });
   tools.register(calculatorTool, { execute: async (args) => calculator(String(args.expression)) });
-  return { memory: new MemoryStore(), mcp: new McpRegistry(), agents: new AgentTaskStore(), tools, chunks: [] };
+  return { memory: new MemoryStore(), mcp: new McpService(mcpStore), agents: new AgentTaskStore(), tools, chunks: [] };
 }
 
 export function addDocumentChunked(domains: ApiDomains, accountId: string, documentId: string, text: string): TextChunk[] {
@@ -60,8 +60,6 @@ export function validateFileUpload(input: { name: string; mimeType: string; size
   validateUpload(input, defaultUploadPolicy);
   return { objectKey: objectKey(accountId, fileId, input.name), downloadName: sanitizeDownloadName(input.name) };
 }
-
-export function addMcpServer(domains: ApiDomains, config: McpServerConfig): void { validateMcpUrl(config.url); domains.mcp.addServer(config); }
 
 export function createToolContext(accountId: string, sessionId: string, assistantId: string, signal: AbortSignal): ToolExecutionContext {
   return { accountId, sessionId, assistantId, signal };

@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -39,7 +38,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import io.zer0.muse.R
@@ -50,17 +48,21 @@ import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseFloatingButton
-import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.icons.MuseIcons
+import io.zer0.muse.ui.common.navigation.MuseTopBar
 import io.zer0.muse.ui.common.surface.MusePageScaffold
+import io.zer0.muse.ui.theme.MuseBorderWidth
 import io.zer0.muse.ui.theme.MuseCornerRadius
+import io.zer0.muse.ui.theme.MuseElevation
+import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.MuseSpacing
 import io.zer0.muse.ui.theme.pill
 import io.zer0.muse.ui.theme.semiLarge
+import io.zer0.muse.util.launchSafely
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
-import io.zer0.muse.util.launchSafely
 
 /**
  * v1.0.53: 封面库管理页(封面工作流)。
@@ -109,32 +111,19 @@ fun CoverManagerScreen(onBack: () -> Unit, onPick: ((String) -> Unit)? = null) {
     }
 
     MusePageScaffold(
-        topBarHandlesInsets = false,
         topBar = {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 4.dp, vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                MuseTactileButton(
-                    icon = MuseIcons.arrowLeft,
-                    onClick = onBack,
-                    contentDescription = stringResource(R.string.action_back),
-                )
-                Spacer(Modifier.size(8.dp))
-                Text(
-                    text = stringResource(R.string.cover_library_title),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Spacer(Modifier.weight(1f))
-                Text(
-                    text = stringResource(R.string.cover_count, covers.size),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                )
-            }
+            MuseTopBar(
+                title = stringResource(R.string.cover_library_title),
+                onBack = onBack,
+                actions = {
+                    Text(
+                        text = stringResource(R.string.cover_count, covers.size),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(end = MuseSpacing.sm),
+                    )
+                },
+            )
         },
         floatingActionButton = {
             MuseFloatingButton(
@@ -159,37 +148,35 @@ fun CoverManagerScreen(onBack: () -> Unit, onPick: ((String) -> Unit)? = null) {
                 Icon(
                     imageVector = MuseIcons.image,
                     contentDescription = null,
-                    modifier = Modifier.size(64.dp),
+                    modifier = Modifier.size(MuseIconSizes.iconEmpty),
                     tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
                 )
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(MuseSpacing.lg))
                 Text(
                     text = stringResource(R.string.cover_empty_title),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                 )
-                Spacer(Modifier.height(16.dp))
-                // 空态内嵌主操作：此前这里写的是「点击右下角按钮导入图片」这类方位指路，
-                // 把按钮本身放到空态里比告诉用户去哪找更直接。
+                Spacer(Modifier.height(MuseSpacing.lg))
                 MuseCapsuleButton(
                     text = stringResource(R.string.cover_import),
                     onClick = {
-                    importLauncher.launchSafely(arrayOf("image/*"), context)
-                },
+                        importLauncher.launchSafely(arrayOf("image/*"), context)
+                    },
                     variant = IosCapsuleButtonVariant.Text,
                     fillWidth = false,
                 )
             }
         } else {
             LazyVerticalGrid(
-                columns = GridCells.Adaptive(120.dp),
+                columns = GridCells.Adaptive(MusePaddings.maxInlineWidth),
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
                     .padding(horizontal = MusePaddings.screen),
-                contentPadding = PaddingValues(vertical = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                contentPadding = PaddingValues(vertical = MuseSpacing.md),
+                horizontalArrangement = Arrangement.spacedBy(MuseSpacing.mdTight),
+                verticalArrangement = Arrangement.spacedBy(MuseSpacing.mdTight),
             ) {
                 items(covers, key = { it.id }) { cover ->
                     CoverGridItem(
@@ -205,7 +192,7 @@ fun CoverManagerScreen(onBack: () -> Unit, onPick: ((String) -> Unit)? = null) {
                     )
                 }
                 item {
-                    Spacer(Modifier.height(72.dp))
+                    Spacer(Modifier.height(MusePaddings.previewThumb))
                 }
             }
         }
@@ -218,10 +205,10 @@ fun CoverManagerScreen(onBack: () -> Unit, onPick: ((String) -> Unit)? = null) {
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .padding(MuseSpacing.lg),
                 shape = RoundedCornerShape(MuseCornerRadius.BUTTON.dp),
                 color = MaterialTheme.colorScheme.primary,
-                shadowElevation = 8.dp,
+                shadowElevation = MuseElevation.high,
                 onClick = {
                     onPick(repo.getCoverFile(selected).absolutePath)
                 },
@@ -229,11 +216,10 @@ fun CoverManagerScreen(onBack: () -> Unit, onPick: ((String) -> Unit)? = null) {
                 Text(
                     text = stringResource(R.string.cover_pick),
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 14.dp),
+                        .padding(vertical = MuseSpacing.md),
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 )
             }
@@ -282,7 +268,7 @@ private fun CoverGridItem(
             .then(
                 if (isSelected) {
                     Modifier.border(
-                        width = 3.dp,
+                        width = MuseBorderWidth.thick,
                         color = MaterialTheme.colorScheme.primary,
                         shape = MuseShapes.semiLarge,
                     )
@@ -303,7 +289,6 @@ private fun CoverGridItem(
                 .fillMaxWidth()
                 .height(88.dp),
         )
-        // 删除角标(点击删除)
         if (isSelected) {
             Icon(
                 imageVector = MuseIcons.trash,
@@ -311,12 +296,12 @@ private fun CoverGridItem(
                 tint = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(6.dp)
+                    .padding(MuseSpacing.smTight)
                     .clip(MuseShapes.pill)
                     .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.85f))
                     .clickable { onLongClick() }
-                    .padding(4.dp)
-                    .size(18.dp),
+                    .padding(MuseSpacing.xs)
+                    .size(MuseIconSizes.iconSmall),
             )
         }
     }

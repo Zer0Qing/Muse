@@ -61,190 +61,80 @@ class BotResultApplier(
      * @param expectedBaseHash 产出这份结果时目标的哈希
      * @param criteria 任务的验收标准
      */
-    suspend fun process(
-        task: BotTaskEntity,
-        run: TaskRunEntity,
-        payloadRef: String,
-        expectedBaseHash: String,
-        criteria: String,
-    ): Outcome {
-        val stagedIds = parseStagedIds(payloadRef)
-        val markerAt = payloadRef.lastIndexOf(STAGED_MARKER)
-        val summary = if (markerAt >= 0) payloadRef.substring(0, markerAt).trim() else payloadRef.trim()
-        val candidates = stagedIds.mapNotNull { id -> staging?.read(id)?.let { id to it } }
-        val malformedReference = markerAt >= 0 && !stagedReferencesAreValid(payloadRef, markerAt)
-        val missingCandidates = malformedReference || candidates.size != stagedIds.size
-        val summaryOnly = stagedIds.isEmpty() && markerAt < 0 && task.resourceScope.isBlank()
-        val currentHashes = candidates.associate { (id, candidate) ->
-            id to currentTargetHash(task, candidate.targetRef)
-        }
+    suspend fun process(task: BotTaskEntity, run: TaskRunEntity, payloadRef: String, expectedBaseHash: String, criteria: String): Outcome {
+        val preparation = prepareReview(task, run, payloadRef, expectedBaseHash, criteria)
+        val summaryOnly = preparation.summaryOnly
 
-        // 从步骤账本汇总"已经发生、不能重放"的操作。
-        //
-        // 这是 V23 的数据来源：StepSideEffect.NO_BLIND_REPLAY 标记的步骤意味着
-        // 副作用已经产生，重跑不安全。步骤表里早就记着这些，只是此前没人汇总。
-        // 读失败时**按"有副作用"处理**，不是按"没有"。
-        //
-        // 默认成空列表会把"读不到步骤"当成"没有副作用"，从而误判 ACCEPT ——
-        // 那是在用户不知情的情况下声称"干净地做完了"。宁可保守地说
-        // "可能有已发生的操作，请核验"，也不要乐观地说"什么都没发生"。
-        //
-        // ## 但空账本不能一律当"不可确认"
-        //
-        // 第一版实现直接对空账本报"无法确认"，结果把纯对话任务也判成了
-        // 需要核验 —— 那些任务本来就没执行任何工具，账本空是正确的。
-        // 第二版用"有产物候选"当判据，又把只测审核逻辑的用例全判红了。
-        //
-        // 最终判据：**只把"读失败"当成不可确认**。
-        //
-        // 空账本的成因在 `process` 这一层无法可靠区分 —— 它可能是"没执行工具"，
-        // 也可能是"记账丢了"。这个判断应该由**记录侧**负责：
-        // `BotTaskScheduler.onToolStarted` 里记账失败会打 error 级日志并带上工具名，
-        // 那是唯一能区分两者的地方。
-        //
-        // 在这里猜会把正常场景判红；在记录侧留痕则不会。
-        val stepRead = runCatching { repository.listSteps(run.runId) }
-            .onFailure { Logger.w("BotResultApplier", "读取步骤失败: ${it.message}") }
-        val sideEffects: List<String> = if (stepRead.isSuccess) {
-            stepRead.getOrThrow()
-                .filter { step -> step.sideEffect == StepSideEffect.NO_BLIND_REPLAY }
-                .map { step -> step.toolName.ifBlank { "未知操作" } }
-        } else {
-            listOf("无法确认已发生的操作（步骤账本读取失败）")
-        }
-
-        val candidateRefs = candidates.map { (_, candidate) -> candidate.targetRef }
-        val duplicateTargets = candidateRefs.size != candidateRefs.distinct().size
-        val baselineEntries = candidates.mapNotNull { (id, candidate) ->
-            candidate.baseHash.takeIf { it.isNotBlank() }?.let { baseHash ->
-                val currentHash = currentHashes[id].orEmpty()
-                val effectiveHash = if (currentHash == candidate.contentHash) baseHash else currentHash
-                Triple(candidate.targetRef, baseHash, effectiveHash)
-            }
-        }.sortedBy { it.first }
-        val reviewExpectedHash = when {
-            candidates.size == 1 -> baselineEntries.singleOrNull()?.second ?: expectedBaseHash
-            baselineEntries.isNotEmpty() -> compositeBaselineHash(baselineEntries.map { it.first to it.second })
-            else -> expectedBaseHash
-        }
-        val reviewActualHash = when {
-            candidates.size == 1 -> baselineEntries.singleOrNull()?.third
-                ?: currentHashes[stagedIds.single()].orEmpty()
-            baselineEntries.isNotEmpty() -> compositeBaselineHashFromTriples(baselineEntries)
-            else -> ""
-        }
-        val baselinesReadable = candidates.all { (id, _) ->
-            currentHashes[id] != StagedArtifactStore.UNREADABLE_TARGET_HASH
-        }
-        val baselineChecks = candidates.isNotEmpty() && baselineEntries.size == candidates.size &&
-            baselinesReadable && candidates.all { (id, candidate) ->
-                currentHashes[id] == candidate.baseHash || currentHashes[id] == candidate.contentHash
-            }
-        val verifiedChecks = if (baselineChecks) listOf(BASELINE_VERIFICATION) else emptyList()
-        val hasUnreadableBaseline = currentHashes.values.any { it == StagedArtifactStore.UNREADABLE_TARGET_HASH }
-        var decision = reviewer.review(
-            criteria = criteria,
-            claimedSummary = summary,
-            producedArtifacts = candidateRefs,
-            verifiedChecks = verifiedChecks,
-            expectedBaseHash = reviewExpectedHash,
-            actualBaseHash = reviewActualHash,
-            attempt = run.attempt,
-            irreversibleSideEffects = sideEffects,
-            summaryOnly = summaryOnly,
-        )
-        if (missingCandidates || (markerAt >= 0 && stagedIds.isEmpty())) {
-            decision = decision.copy(
-                disposition = ReviewDisposition.UNKNOWN,
-                findings = decision.findings + "候选引用无效或产物缺失，不能确认目标结果",
-            )
-        } else if (candidates.any { (_, candidate) ->
-                candidate.taskRevision != run.taskRevision ||
-                    (candidate.sourceRunId.isNotBlank() && candidate.sourceRunId != run.runId) ||
-                    candidate.verificationState == VerificationState.CONFLICTED
-            }
-        ) {
-            decision = decision.copy(
-                disposition = ReviewDisposition.UNKNOWN,
-                findings = decision.findings + "候选与当前执行轮次或任务版本不匹配，或此前已发生冲突",
-            )
-        } else if (duplicateTargets) {
-            decision = decision.copy(
-                disposition = ReviewDisposition.UNKNOWN,
-                findings = decision.findings + "同一目标存在多个独立候选，无法确认应用顺序",
-            )
-        } else if (hasUnreadableBaseline) {
-            decision = decision.copy(
-                disposition = ReviewDisposition.NEEDS_USER,
-                findings = decision.findings + "无法读取一个或多个目标基线，不能安全应用候选",
-            )
-        } else if (candidates.isNotEmpty() && workspaceManager != null) {
-            val mountIds = workspaceManager.mounts().mapTo(mutableSetOf()) { it.id }
-            val scopeErrors = candidates.mapNotNull { (_, candidate) ->
-                io.zer0.muse.tools.WorkspaceTool.resourceScopeError(
-                    name = io.zer0.muse.tools.WorkspaceTool.NAME_WRITE,
-                    args = mapOf("path" to candidate.targetRef),
-                    declaredScope = task.resourceScope,
-                    knownMountIds = mountIds,
-                )
-            }.distinct()
-            if (scopeErrors.isNotEmpty()) {
-                decision = decision.copy(
-                    disposition = ReviewDisposition.NEEDS_USER,
-                    findings = decision.findings + scopeErrors,
-                )
-            }
-        } else if (candidates.isEmpty() && task.resourceScope.isNotBlank()) {
-            decision = decision.copy(
-                disposition = ReviewDisposition.NEEDS_USER,
-                findings = decision.findings + "任务声明了可写范围，但没有结构化文件产物；摘要不能替代文件内容",
-            )
-        }
-
-        if (!decision.accepted) {
-            // 不接受就不应用：候选留着或丢弃由审核结论决定。
-            val transition = reviewer.transitionFor(decision) ?: BotTaskStatusMachine.Event.MARK_UNKNOWN
-            val settled = recordReview(
-                task = task,
-                run = run,
-                decision = decision,
-                transition = transition,
-                verifiedChecks = verifiedChecks,
-                sideEffects = sideEffects,
-                candidateRefs = candidateRefs,
-            )
-            if (settled != AgentBotRepository.ReviewCommitResult.STALE &&
-                (decision.disposition == ReviewDisposition.REWORK || decision.disposition == ReviewDisposition.REJECT)
-            ) {
-                stagedIds.forEach { staging?.discard(it) }
-            }
-            return Outcome(
-                disposition = decision.disposition,
-                findings = decision.findings,
-                blockedReason = decision.findings.firstOrNull().orEmpty(),
-            )
+        if (!preparation.decision.accepted) {
+            return recordRejectedReview(task, run, preparation)
         }
 
         if (summaryOnly) {
-            val committed = recordReview(
-                task = task,
-                run = run,
-                decision = decision,
-                transition = BotTaskStatusMachine.Event.REVIEW_ACCEPT,
-                verifiedChecks = verifiedChecks,
-                sideEffects = sideEffects,
-                candidateRefs = emptyList(),
-                summaryOnly = true,
-                resultSummary = summary,
-            )
-            return Outcome(
-                disposition = decision.disposition,
-                accepted = committed != AgentBotRepository.ReviewCommitResult.STALE &&
-                    committed != AgentBotRepository.ReviewCommitResult.EFFECT_REJECTED,
-                findings = decision.findings,
-            )
+            return recordSummaryReview(task, run, preparation)
         }
 
+        return applyAcceptedReview(task, run, preparation)
+    }
+
+    private suspend fun recordRejectedReview(
+        task: BotTaskEntity,
+        run: TaskRunEntity,
+        preparation: ReviewPreparation,
+    ): Outcome {
+        val decision = preparation.decision
+        val settled = recordReview(
+            task = task,
+            run = run,
+            decision = decision,
+            transition = reviewer.transitionFor(decision) ?: BotTaskStatusMachine.Event.MARK_UNKNOWN,
+            evidence = ReviewEvidence(preparation.verifiedChecks, preparation.sideEffects, preparation.candidateRefs),
+        )
+        if (settled != AgentBotRepository.ReviewCommitResult.STALE &&
+            (decision.disposition == ReviewDisposition.REWORK || decision.disposition == ReviewDisposition.REJECT)
+        ) {
+            preparation.stagedIds.forEach { staging?.discard(it) }
+        }
+        return Outcome(
+            disposition = decision.disposition,
+            findings = decision.findings,
+            blockedReason = decision.findings.firstOrNull().orEmpty(),
+        )
+    }
+
+    private suspend fun recordSummaryReview(
+        task: BotTaskEntity,
+        run: TaskRunEntity,
+        preparation: ReviewPreparation,
+    ): Outcome {
+        val committed = recordReview(
+            task = task,
+            run = run,
+            decision = preparation.decision,
+            transition = BotTaskStatusMachine.Event.REVIEW_ACCEPT,
+            evidence = ReviewEvidence(preparation.verifiedChecks, preparation.sideEffects, emptyList()),
+            summaryOnly = true,
+            resultSummary = preparation.summary,
+        )
+        return Outcome(
+            disposition = preparation.decision.disposition,
+            accepted = committed != AgentBotRepository.ReviewCommitResult.STALE &&
+                committed != AgentBotRepository.ReviewCommitResult.EFFECT_REJECTED,
+            findings = preparation.decision.findings,
+        )
+    }
+
+    private suspend fun applyAcceptedReview(
+        task: BotTaskEntity,
+        run: TaskRunEntity,
+        preparation: ReviewPreparation,
+    ): Outcome {
+        val decision = preparation.decision
+        val stagedIds = preparation.stagedIds
+        val candidates = preparation.candidates
+        val currentHashes = preparation.currentHashes
+        val sideEffects = preparation.sideEffects
+        val candidateRefs = preparation.candidateRefs
+        val verifiedChecks = preparation.verifiedChecks
         // 审核通过：现在才允许写目标。
         if (candidates.isEmpty()) {
             // 通过但没有候选，说明 producedArtifacts 那条校验没起作用 —— 不该发生。
@@ -253,24 +143,12 @@ class BotResultApplier(
             // 那是"声称做了却没做" —— 用户看到完成，目标一个字没变。
             // 现在转 NEEDS_USER，让用户知道这份结果没落地。
             Logger.e("BotResultApplier", "审核通过但无候选，不应用，转待处理: ${task.taskId}")
-            val blocked = decision.copy(
-                disposition = ReviewDisposition.NEEDS_USER,
-                findings = decision.findings + "审核通过但没有可应用的产物",
-            )
-            recordReview(
+            return recordBlockedOutcome(
                 task = task,
                 run = run,
-                decision = blocked,
-                transition = BotTaskStatusMachine.Event.REVIEW_NEEDS_USER,
-                verifiedChecks = verifiedChecks,
-                sideEffects = sideEffects,
-                candidateRefs = candidateRefs,
-            )
-            return Outcome(
-                disposition = blocked.disposition,
-                applied = false,
-                findings = blocked.findings,
-                blockedReason = "审核通过但没有可应用的产物",
+                decision = decision,
+                evidence = ReviewEvidence(verifiedChecks, sideEffects, candidateRefs),
+                reason = "审核通过但没有可应用的产物",
             )
         }
 
@@ -278,109 +156,101 @@ class BotResultApplier(
             // 宿主没提供写能力（只读场景）。候选保留，等用户手动处理。
             //
             // 同理不能落 SUCCEEDED：那会让用户以为结果已经进到目标里。
-            val blocked = decision.copy(
-                disposition = ReviewDisposition.NEEDS_USER,
-                findings = decision.findings + "没有写入能力，候选尚未应用",
-            )
-            recordReview(
+            return recordBlockedOutcome(
                 task = task,
                 run = run,
-                decision = blocked,
-                transition = BotTaskStatusMachine.Event.REVIEW_NEEDS_USER,
-                verifiedChecks = verifiedChecks,
-                sideEffects = sideEffects,
-                candidateRefs = candidateRefs,
-            )
-            return Outcome(
-                disposition = blocked.disposition,
-                applied = false,
-                findings = blocked.findings,
+                decision = decision,
+                evidence = ReviewEvidence(verifiedChecks, sideEffects, candidateRefs),
+                reason = "没有写入能力，候选尚未应用",
                 blockedReason = "没有写入能力，结果已保留待手动应用",
             )
         }
 
         val store = staging ?: run {
-            val blocked = decision.copy(
-                disposition = ReviewDisposition.NEEDS_USER,
-                findings = decision.findings + "没有暂存区，无法应用候选",
-            )
-            recordReview(
+            return recordBlockedOutcome(
                 task = task,
                 run = run,
-                decision = blocked,
-                transition = BotTaskStatusMachine.Event.REVIEW_NEEDS_USER,
-                verifiedChecks = verifiedChecks,
-                sideEffects = sideEffects,
-                candidateRefs = candidateRefs,
-            )
-            return Outcome(
-                disposition = blocked.disposition,
-                applied = false,
-                findings = blocked.findings,
+                decision = decision,
+                evidence = ReviewEvidence(verifiedChecks, sideEffects, candidateRefs),
+                reason = "没有暂存区，无法应用候选",
                 blockedReason = "没有暂存区，无法应用",
             )
         }
         val verificationFailed = stagedIds.any { store.updateVerificationState(it, VerificationState.VERIFIED) == null }
         if (verificationFailed) {
-            val blocked = decision.copy(
-                disposition = ReviewDisposition.NEEDS_USER,
-                findings = decision.findings + "候选验证状态无法保存，目标未修改",
-            )
-            recordReview(
+            return recordBlockedOutcome(
                 task = task,
                 run = run,
-                decision = blocked,
-                transition = BotTaskStatusMachine.Event.REVIEW_NEEDS_USER,
-                verifiedChecks = verifiedChecks,
-                sideEffects = sideEffects,
-                candidateRefs = candidateRefs,
-            )
-            return Outcome(
-                disposition = blocked.disposition,
-                findings = blocked.findings,
+                decision = decision,
+                evidence = ReviewEvidence(verifiedChecks, sideEffects, candidateRefs),
+                reason = "候选验证状态无法保存，目标未修改",
                 blockedReason = "候选验证状态无法保存",
             )
         }
-        var applyFailure: StagedArtifactStore.ApplyResult? = null
+        val attempt = applyCandidates(
+            task = task,
+            run = run,
+            decision = decision,
+            candidates = candidates,
+            currentHashes = currentHashes,
+            evidence = ReviewEvidence(verifiedChecks, sideEffects, candidateRefs),
+            store = store,
+        )
+        return settleAppliedReview(task, run, preparation, attempt)
+    }
+
+    private suspend fun applyCandidates(
+        task: BotTaskEntity,
+        run: TaskRunEntity,
+        decision: BotReviewWorker.Decision,
+        candidates: List<Pair<String, StagedArtifactStore.Candidate>>,
+        currentHashes: Map<String, String>,
+        evidence: ReviewEvidence,
+        store: StagedArtifactStore,
+    ): ApplyAttempt {
+        var failure: StagedArtifactStore.ApplyResult? = null
         val appliedTargets = mutableListOf<String>()
         val committed = recordReview(
             task = task,
             run = run,
             decision = decision,
             transition = BotTaskStatusMachine.Event.REVIEW_ACCEPT,
-            verifiedChecks = verifiedChecks,
-            sideEffects = sideEffects,
-            candidateRefs = candidateRefs,
+            evidence = evidence,
         ) {
             for ((id, candidate) in candidates) {
                 val result = store.apply(
                     stagedId = id,
                     currentTaskRevision = task.revision,
                     currentTargetHash = currentHashes[id].orEmpty(),
-                ) { targetRef, content ->
-                    writeArtifact(task, targetRef, content, candidate)
-                }
+                ) { targetRef, content -> writeArtifact(task, targetRef, content, candidate) }
                 if (result !is StagedArtifactStore.ApplyResult.Applied) {
-                    applyFailure = result
+                    failure = result
                     return@recordReview false
                 }
                 appliedTargets += candidate.targetRef
             }
             true
         }
+        return ApplyAttempt(committed, failure, appliedTargets)
+    }
 
-        if (committed == AgentBotRepository.ReviewCommitResult.COMMITTED ||
-            committed == AgentBotRepository.ReviewCommitResult.ALREADY_COMMITTED
+    private suspend fun settleAppliedReview(
+        task: BotTaskEntity,
+        run: TaskRunEntity,
+        preparation: ReviewPreparation,
+        attempt: ApplyAttempt,
+    ): Outcome {
+        val decision = preparation.decision
+        val appliedTargets = attempt.appliedTargets
+        if (attempt.committed == AgentBotRepository.ReviewCommitResult.COMMITTED ||
+            attempt.committed == AgentBotRepository.ReviewCommitResult.ALREADY_COMMITTED
         ) {
-            stagedIds.forEach(store::discard)
+            preparation.stagedIds.forEach { staging?.discard(it) }
             return Outcome(decision.disposition, applied = true, accepted = true, findings = decision.findings)
         }
-
-        if (committed == AgentBotRepository.ReviewCommitResult.STALE) {
+        if (attempt.committed == AgentBotRepository.ReviewCommitResult.STALE) {
             val latestTask = repository.getTask(task.taskId)
-            if (latestTask != null && latestTask.revision > run.taskRevision &&
-                latestTask.status == BotTaskStatus.REVIEWING
-            ) {
+            if (latestTask != null && latestTask.revision > run.taskRevision && latestTask.status == BotTaskStatus.REVIEWING) {
                 val staleDecision = decision.copy(
                     disposition = ReviewDisposition.UNKNOWN,
                     findings = decision.findings + "任务约束已更新，本轮旧版本结果未应用",
@@ -390,9 +260,7 @@ class BotResultApplier(
                     run = run,
                     decision = staleDecision,
                     transition = BotTaskStatusMachine.Event.MARK_UNKNOWN,
-                    verifiedChecks = verifiedChecks,
-                    sideEffects = sideEffects,
-                    candidateRefs = candidateRefs,
+                    evidence = ReviewEvidence(preparation.verifiedChecks, preparation.sideEffects, preparation.candidateRefs),
                 )
                 return Outcome(
                     disposition = ReviewDisposition.UNKNOWN,
@@ -402,9 +270,8 @@ class BotResultApplier(
                 )
             }
         }
-
-        val failedApply = applyFailure
-        if (committed == AgentBotRepository.ReviewCommitResult.EFFECT_REJECTED && failedApply != null) {
+        val failedApply = attempt.failure
+        if (attempt.committed == AgentBotRepository.ReviewCommitResult.EFFECT_REJECTED && failedApply != null) {
             val reason = when (failedApply) {
                 is StagedArtifactStore.ApplyResult.Conflict -> failedApply.reason
                 is StagedArtifactStore.ApplyResult.Stale -> failedApply.reason
@@ -420,9 +287,7 @@ class BotResultApplier(
                 run = run,
                 decision = unknownDecision,
                 transition = BotTaskStatusMachine.Event.MARK_UNKNOWN,
-                verifiedChecks = verifiedChecks,
-                sideEffects = sideEffects,
-                candidateRefs = candidateRefs,
+                evidence = ReviewEvidence(preparation.verifiedChecks, preparation.sideEffects, preparation.candidateRefs),
             )
             Logger.w("BotResultApplier", "候选未能结算为成功: ${task.taskId} | $reason")
             return Outcome(
@@ -433,12 +298,233 @@ class BotResultApplier(
                 blockedReason = reason,
             )
         }
-
         return Outcome(
             disposition = ReviewDisposition.UNKNOWN,
             applied = appliedTargets.isNotEmpty(),
             findings = decision.findings + "审核状态已变化，候选未能结算",
             blockedReason = "审核状态已变化，候选未能结算",
+        )
+    }
+
+    private suspend fun prepareReview(
+        task: BotTaskEntity,
+        run: TaskRunEntity,
+        payloadRef: String,
+        expectedBaseHash: String,
+        criteria: String,
+    ): ReviewPreparation {
+        val stagedIds = parseStagedIds(payloadRef)
+        val markerAt = payloadRef.lastIndexOf(STAGED_MARKER)
+        val summary = if (markerAt >= 0) payloadRef.substring(0, markerAt).trim() else payloadRef.trim()
+        val candidates = stagedIds.mapNotNull { id -> staging?.read(id)?.let { id to it } }
+        val malformedReference = markerAt >= 0 && !stagedReferencesAreValid(payloadRef, markerAt)
+        val missingCandidates = malformedReference || candidates.size != stagedIds.size
+        val summaryOnly = stagedIds.isEmpty() && markerAt < 0 && task.resourceScope.isBlank()
+        val reviewFacts = buildReviewFacts(task, candidates, stagedIds, expectedBaseHash)
+        val sideEffects = readSideEffects(run.runId)
+        val candidateRefs = candidates.map { (_, candidate) -> candidate.targetRef }
+        val duplicateTargets = candidateRefs.size != candidateRefs.distinct().size
+        val verifiedChecks = if (reviewFacts.baselineChecks) listOf(BASELINE_VERIFICATION) else emptyList()
+        var decision = reviewer.review(
+            BotReviewWorker.ReviewInput(
+                criteria = criteria,
+                claimedSummary = summary,
+                producedArtifacts = candidateRefs,
+                verifiedChecks = verifiedChecks,
+                expectedBaseHash = reviewFacts.expectedHash,
+                actualBaseHash = reviewFacts.actualHash,
+                attempt = run.attempt,
+                irreversibleSideEffects = sideEffects,
+                summaryOnly = summaryOnly,
+            ),
+        )
+        decision = applySafetyOverrides(
+            task = task,
+            run = run,
+            decision = decision,
+            candidates = candidates,
+            safety = SafetyContext(
+                missingCandidates = missingCandidates,
+                invalidMarker = markerAt >= 0 && stagedIds.isEmpty(),
+                duplicateTargets = duplicateTargets,
+                hasUnreadableBaseline = reviewFacts.hasUnreadableBaseline,
+            ),
+        )
+        return ReviewPreparation(
+            stagedIds = stagedIds,
+            summary = summary,
+            candidates = candidates,
+            currentHashes = reviewFacts.currentHashes,
+            sideEffects = sideEffects,
+            candidateRefs = candidateRefs,
+            verifiedChecks = verifiedChecks,
+            summaryOnly = summaryOnly,
+            decision = decision,
+        )
+    }
+
+    private suspend fun readSideEffects(runId: String): List<String> {
+        val stepRead = runCatching { repository.listSteps(runId) }
+            .onFailure { Logger.w("BotResultApplier", "读取步骤失败: ${it.message}") }
+        return if (stepRead.isSuccess) {
+            stepRead.getOrThrow()
+                .filter { step -> step.sideEffect == StepSideEffect.NO_BLIND_REPLAY }
+                .map { step -> step.toolName.ifBlank { "未知操作" } }
+        } else {
+            listOf("无法确认已发生的操作（步骤账本读取失败）")
+        }
+    }
+
+    private suspend fun buildReviewFacts(
+        task: BotTaskEntity,
+        candidates: List<Pair<String, StagedArtifactStore.Candidate>>,
+        stagedIds: List<String>,
+        expectedBaseHash: String,
+    ): ReviewFacts {
+        val currentHashes = candidates.associate { (id, candidate) ->
+            id to currentTargetHash(task, candidate.targetRef)
+        }
+        val baselineEntries = candidates.mapNotNull { (id, candidate) ->
+            candidate.baseHash.takeIf { it.isNotBlank() }?.let { baseHash ->
+                val currentHash = currentHashes[id].orEmpty()
+                val effectiveHash = if (currentHash == candidate.contentHash) baseHash else currentHash
+                Triple(candidate.targetRef, baseHash, effectiveHash)
+            }
+        }.sortedBy { it.first }
+        val expectedHash = when {
+            candidates.size == 1 -> baselineEntries.singleOrNull()?.second ?: expectedBaseHash
+            baselineEntries.isNotEmpty() -> compositeBaselineHash(baselineEntries.map { it.first to it.second })
+            else -> expectedBaseHash
+        }
+        val actualHash = when {
+            candidates.size == 1 -> baselineEntries.singleOrNull()?.third
+                ?: currentHashes[stagedIds.single()].orEmpty()
+            baselineEntries.isNotEmpty() -> compositeBaselineHashFromTriples(baselineEntries)
+            else -> ""
+        }
+        val hasUnreadableBaseline = currentHashes.values.any { it == StagedArtifactStore.UNREADABLE_TARGET_HASH }
+        val baselineChecks = candidates.isNotEmpty() && baselineEntries.size == candidates.size &&
+            !hasUnreadableBaseline && candidates.all { (id, candidate) ->
+                currentHashes[id] == candidate.baseHash || currentHashes[id] == candidate.contentHash
+            }
+        return ReviewFacts(currentHashes, expectedHash, actualHash, baselineChecks, hasUnreadableBaseline)
+    }
+
+    private fun applySafetyOverrides(
+        task: BotTaskEntity,
+        run: TaskRunEntity,
+        decision: BotReviewWorker.Decision,
+        candidates: List<Pair<String, StagedArtifactStore.Candidate>>,
+        safety: SafetyContext,
+    ): BotReviewWorker.Decision {
+        var result = decision
+        when {
+            safety.missingCandidates || safety.invalidMarker -> {
+                result = result.copy(
+                    disposition = ReviewDisposition.UNKNOWN,
+                    findings = result.findings + "候选引用无效或产物缺失，不能确认目标结果",
+                )
+            }
+            candidates.any { (_, candidate) ->
+                candidate.taskRevision != run.taskRevision ||
+                    (candidate.sourceRunId.isNotBlank() && candidate.sourceRunId != run.runId) ||
+                    candidate.verificationState == VerificationState.CONFLICTED
+            } -> {
+                result = result.copy(
+                    disposition = ReviewDisposition.UNKNOWN,
+                    findings = result.findings + "候选与当前执行轮次或任务版本不匹配，或此前已发生冲突",
+                )
+            }
+            safety.duplicateTargets -> {
+                result = result.copy(
+                    disposition = ReviewDisposition.UNKNOWN,
+                    findings = result.findings + "同一目标存在多个独立候选，无法确认应用顺序",
+                )
+            }
+            safety.hasUnreadableBaseline -> {
+                result = result.copy(
+                    disposition = ReviewDisposition.NEEDS_USER,
+                    findings = result.findings + "无法读取一个或多个目标基线，不能安全应用候选",
+                )
+            }
+            candidates.isNotEmpty() && workspaceManager != null -> {
+                val mountIds = workspaceManager.mounts().mapTo(mutableSetOf()) { it.id }
+                val scopeErrors = candidates.mapNotNull { (_, candidate) ->
+                    io.zer0.muse.tools.WorkspaceTool.resourceScopeError(
+                        name = io.zer0.muse.tools.WorkspaceTool.NAME_WRITE,
+                        args = mapOf("path" to candidate.targetRef),
+                        declaredScope = task.resourceScope,
+                        knownMountIds = mountIds,
+                    )
+                }.distinct()
+                if (scopeErrors.isNotEmpty()) {
+                    result = result.copy(
+                        disposition = ReviewDisposition.NEEDS_USER,
+                        findings = result.findings + scopeErrors,
+                    )
+                }
+            }
+            candidates.isEmpty() && task.resourceScope.isNotBlank() -> {
+                result = result.copy(
+                    disposition = ReviewDisposition.NEEDS_USER,
+                    findings = result.findings + "任务声明了可写范围，但没有结构化文件产物；摘要不能替代文件内容",
+                )
+            }
+        }
+        return result
+    }
+
+    private data class ReviewPreparation(
+        val stagedIds: List<String>,
+        val summary: String,
+        val candidates: List<Pair<String, StagedArtifactStore.Candidate>>,
+        val currentHashes: Map<String, String>,
+        val sideEffects: List<String>,
+        val candidateRefs: List<String>,
+        val verifiedChecks: List<String>,
+        val summaryOnly: Boolean,
+        val decision: BotReviewWorker.Decision,
+    )
+
+    private data class ReviewFacts(
+        val currentHashes: Map<String, String>,
+        val expectedHash: String,
+        val actualHash: String,
+        val baselineChecks: Boolean,
+        val hasUnreadableBaseline: Boolean,
+    )
+
+    private data class SafetyContext(
+        val missingCandidates: Boolean,
+        val invalidMarker: Boolean,
+        val duplicateTargets: Boolean,
+        val hasUnreadableBaseline: Boolean,
+    )
+
+    private suspend fun recordBlockedOutcome(
+        task: BotTaskEntity,
+        run: TaskRunEntity,
+        decision: BotReviewWorker.Decision,
+        evidence: ReviewEvidence,
+        reason: String,
+        blockedReason: String = reason,
+    ): Outcome {
+        val blocked = decision.copy(
+            disposition = ReviewDisposition.NEEDS_USER,
+            findings = decision.findings + reason,
+        )
+        recordReview(
+            task = task,
+            run = run,
+            decision = blocked,
+            transition = BotTaskStatusMachine.Event.REVIEW_NEEDS_USER,
+            evidence = evidence,
+        )
+        return Outcome(
+            disposition = blocked.disposition,
+            applied = false,
+            findings = blocked.findings,
+            blockedReason = blockedReason,
         )
     }
 
@@ -456,9 +542,7 @@ class BotResultApplier(
         run: TaskRunEntity,
         decision: BotReviewWorker.Decision,
         transition: BotTaskStatusMachine.Event,
-        verifiedChecks: List<String>,
-        sideEffects: List<String>,
-        candidateRefs: List<String>,
+        evidence: ReviewEvidence,
         summaryOnly: Boolean = false,
         resultSummary: String = "",
         applyEffect: suspend () -> Boolean = { true },
@@ -467,9 +551,9 @@ class BotResultApplier(
         val reviewedFact = reviewer.reviewDecision(
             decision = decision,
             goal = task.goal,
-            verifiedChecks = verifiedChecks,
-            sideEffects = sideEffects,
-            candidateRefs = candidateRefs,
+            verifiedChecks = evidence.verifiedChecks,
+            sideEffects = evidence.sideEffects,
+            candidateRefs = evidence.candidateRefs,
             publicationAllowed = publicationAllowed,
             publicationKey = PublicationService.publicationKeyFor(
                 taskId = task.taskId,
@@ -496,6 +580,18 @@ class BotResultApplier(
         )
     }
 
+    private data class ReviewEvidence(
+        val verifiedChecks: List<String>,
+        val sideEffects: List<String>,
+        val candidateRefs: List<String>,
+    )
+
+    private data class ApplyAttempt(
+        val committed: AgentBotRepository.ReviewCommitResult,
+        val failure: StagedArtifactStore.ApplyResult?,
+        val appliedTargets: List<String>,
+    )
+
     private suspend fun currentTargetHash(task: BotTaskEntity, targetRef: String): String {
         val manager = workspaceManager
         if (manager != null) {
@@ -514,12 +610,7 @@ class BotResultApplier(
         return StagedArtifactStore.hashSnapshot(readTarget?.invoke(targetRef))
     }
 
-    private suspend fun writeArtifact(
-        task: BotTaskEntity,
-        targetRef: String,
-        content: String,
-        candidate: StagedArtifactStore.Candidate,
-    ) {
+    private suspend fun writeArtifact(task: BotTaskEntity, targetRef: String, content: String, candidate: StagedArtifactStore.Candidate) {
         val manager = workspaceManager
         if (manager != null) {
             val mountScope = manager.sessionMountIds(task.originSessionId)
@@ -556,14 +647,13 @@ class BotResultApplier(
         staging?.listStagedResult() ?: StagedArtifactStore.StagedListResult.Success(emptyList())
 
     /** 宽松入口：读失败按"没有候选"处理。页面不要用这一条。 */
-    fun listPendingCandidates(): List<StagedArtifactStore.StagedEntry> =
-        when (val result = listPendingCandidatesResult()) {
-            is StagedArtifactStore.StagedListResult.Success -> result.entries
-            is StagedArtifactStore.StagedListResult.Error -> {
-                Logger.w("BotResultApplier", "读取候选列表失败: ${result.reason}", result.cause)
-                emptyList()
-            }
+    fun listPendingCandidates(): List<StagedArtifactStore.StagedEntry> = when (val result = listPendingCandidatesResult()) {
+        is StagedArtifactStore.StagedListResult.Success -> result.entries
+        is StagedArtifactStore.StagedListResult.Error -> {
+            Logger.w("BotResultApplier", "读取候选列表失败: ${result.reason}", result.cause)
+            emptyList()
         }
+    }
 
     /**
      * 清理"候选已经不在暂存区"的事件引用。
@@ -575,9 +665,7 @@ class BotResultApplier(
      * SQL 看不到文件系统，所以"文件还在不在"必须由持有暂存区的一方判断。
      * 暂存区读失败时一条都不删 —— 宁可多留几行，也不能让页面上的候选凭空消失。
      */
-    suspend fun pruneSettledStagedEvents(
-        retentionMs: Long = AgentBotRepository.EVENT_RETENTION_MS,
-    ): Int {
+    suspend fun pruneSettledStagedEvents(retentionMs: Long = AgentBotRepository.EVENT_RETENTION_MS): Int {
         val store = staging ?: return 0
         val live = when (val listed = store.listStagedResult()) {
             is StagedArtifactStore.StagedListResult.Success ->

@@ -35,10 +35,10 @@ import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.MuseSwitch
 import io.zer0.muse.ui.common.icons.MuseIcons
+import io.zer0.muse.util.launchSafely
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import io.zer0.muse.util.launchSafely
 
 /**
  * v1.97: 二维码分享弹窗 — 显示 Provider 配置的二维码。

@@ -48,9 +48,9 @@ class BotQuotaAndRestoreGateTest {
     @Test
     fun `restore window blocks the scheduler`() {
         val scheduler = File("src/main/java/io/zer0/muse/data/agentbot/BotTaskScheduler.kt").readText()
-        val tickAt = scheduler.indexOf("suspend fun tick()");
-        assertTrue(tickAt > 0);
-        val body = scheduler.substring(tickAt, minOf(tickAt + 1200, scheduler.length));
+        val tickAt = scheduler.indexOf("suspend fun tick()")
+        assertTrue(tickAt > 0)
+        val body = scheduler.substring(tickAt, minOf(tickAt + 1200, scheduler.length))
         assertTrue(
             "恢复期间库文件正在被替换，此时写库会产生在途写丢失",
             body.contains("ProcessWriteGate.restoring"),
@@ -60,9 +60,9 @@ class BotQuotaAndRestoreGateTest {
     @Test
     fun `overdue sweep also respects the restore window`() {
         val scheduler = File("src/main/java/io/zer0/muse/data/agentbot/BotTaskScheduler.kt").readText()
-        val sweepAt = scheduler.indexOf("suspend fun sweepOverdue");
-        assertTrue(sweepAt > 0);
-        val body = scheduler.substring(sweepAt, minOf(sweepAt + 800, scheduler.length));
+        val sweepAt = scheduler.indexOf("suspend fun sweepOverdue")
+        assertTrue(sweepAt > 0)
+        val body = scheduler.substring(sweepAt, minOf(sweepAt + 800, scheduler.length))
         assertTrue(
             "巡检会读库，恢复窗口内读到的可能是即将被替换的旧库",
             body.contains("ProcessWriteGate.restoring"),
@@ -72,6 +72,6 @@ class BotQuotaAndRestoreGateTest {
     @Test
     fun `governor keeps its three verdicts distinct`() {
         // 三种判定对用户是不同的话，合并成一个布尔会让"等一下"听起来像"不行"。
-        assertEquals(3, BotResourceGovernor.Verdict::class.sealedSubclasses.size + 0);
+        assertEquals(3, BotResourceGovernor.Verdict::class.sealedSubclasses.size + 0)
     }
 }

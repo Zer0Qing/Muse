@@ -60,6 +60,7 @@ object SubagentRunSkill {
             "token_budget" to "integer",
             "timeout_ms" to "integer",
         ),
+        parameterEnums = mapOf("access" to listOf("read", "write", "full")),
         // HIGH 风险:子 agent 可调用多个工具,潜在副作用较大,需用户确认
         riskLevel = ToolRiskLevel.HIGH,
     )

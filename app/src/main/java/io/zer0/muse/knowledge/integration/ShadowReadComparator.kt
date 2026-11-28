@@ -58,12 +58,7 @@ object ShadowReadComparator {
      *
      * @param topK 参与顺序一致率比较的前 K 条(默认 10)。
      */
-    fun compare(
-        query: String,
-        legacy: RetrievalOutcome,
-        v2: RetrievalOutcome,
-        topK: Int = 10,
-    ): ShadowComparisonReport {
+    fun compare(query: String, legacy: RetrievalOutcome, v2: RetrievalOutcome, topK: Int = 10): ShadowComparisonReport {
         val legacyCandidates = candidatesOf(legacy)
         val v2Candidates = candidatesOf(v2)
         val legacyIds = legacyCandidates.map { it.docId }.distinct()
@@ -77,8 +72,11 @@ object ShadowReadComparator {
         val legacyTop = legacyIds.take(topK)
         val v2Top = v2Ids.take(topK)
         val positions = minOf(legacyTop.size, v2Top.size)
-        val agreement = if (positions == 0) 1.0 else
+        val agreement = if (positions == 0) {
+            1.0
+        } else {
             (0 until positions).count { legacyTop[it] == v2Top[it] }.toDouble() / positions
+        }
 
         val reasons = mutableListOf<String>()
         if (jaccard < MIN_JACCARD_FOR_REVIEW) {
@@ -159,9 +157,8 @@ data class ShadowAggregate(
     val switchable: Boolean
         get() = queryCount > 0 && reviewCount == 0 && degradedCount == 0
 
-    fun summary(): String =
-        "shadow aggregate queries=$queryCount avgJaccard=${"%.2f".format(avgJaccard)} " +
-            "avgTopK=${"%.2f".format(avgTopKAgreement)} review=$reviewCount " +
-            "onlyLegacy=$onlyInLegacyTotal onlyV2=$onlyInV2Total degraded=$degradedCount " +
-            "switchable=$switchable"
+    fun summary(): String = "shadow aggregate queries=$queryCount avgJaccard=${"%.2f".format(avgJaccard)} " +
+        "avgTopK=${"%.2f".format(avgTopKAgreement)} review=$reviewCount " +
+        "onlyLegacy=$onlyInLegacyTotal onlyV2=$onlyInV2Total degraded=$degradedCount " +
+        "switchable=$switchable"
 }

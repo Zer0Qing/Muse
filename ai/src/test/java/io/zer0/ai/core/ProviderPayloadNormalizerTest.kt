@@ -78,7 +78,7 @@ class ProviderPayloadNormalizerTest {
         val result = ProviderPayloadNormalizer.normalizeMessages(input, Model(id = "m", providerId = "test"))
 
         assertEquals(4, result.size)
-        assertTrue(result.first().role == MessageRole.SYSTEM)
+        assertTrue(result.first().role == MessageRole.ASSISTANT)
         assertTrue(result.first().content.contains(ToolTraceProjection.SUMMARY_MARKER))
         assertEquals(original, input)
         assertEquals("new", result[3].toolCallId)

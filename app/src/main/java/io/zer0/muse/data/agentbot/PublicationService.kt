@@ -1,14 +1,12 @@
 package io.zer0.muse.data.agentbot
 
+import androidx.room.withTransaction
 import io.zer0.ai.core.MessageRole
-import io.zer0.ai.core.UIMessage
 import io.zer0.common.Logger
 import io.zer0.muse.data.session.MuseDb
 import io.zer0.muse.data.session.SessionRepository
-import androidx.room.withTransaction
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.util.UUID
 import kotlin.uuid.Uuid
 
 /**
@@ -34,7 +32,7 @@ import kotlin.uuid.Uuid
 class PublicationService(
     private val db: MuseDb,
     private val repository: AgentBotRepository,
-    private val sessionRepository: SessionRepository,
+    sessionRepository: SessionRepository,
 ) {
 
     /** 一条待发布 item。 */
@@ -201,29 +199,28 @@ class PublicationService(
      * 所以这里重新读库核对审核结论、作用域、任务当前状态与轮次版本；
      * 任何一项对不上就不写任何东西，并带上 [PublicationResult.refusedReason]。
      */
-    suspend fun publishReviewed(decision: ReviewDecision, scope: PublicationScope): PublicationResult =
-        withContext(Dispatchers.IO) {
-            db.withTransaction {
-                val refusal = reviewRefusal(decision, scope)
-                if (refusal != null) {
-                    Logger.e(
-                        "PublicationService",
-                        "拒绝发布: $refusal (task=${scope.taskId}, key=${decision.publicationKey})",
-                    )
-                    return@withTransaction PublicationResult(
-                        publicationKey = decision.publicationKey,
-                        messageIds = emptyList(),
-                        created = false,
-                        refusedReason = refusal,
-                    )
-                }
-                publishLocked(
+    suspend fun publishReviewed(decision: ReviewDecision, scope: PublicationScope): PublicationResult = withContext(Dispatchers.IO) {
+        db.withTransaction {
+            val refusal = reviewRefusal(decision, scope)
+            if (refusal != null) {
+                Logger.e(
+                    "PublicationService",
+                    "拒绝发布: $refusal (task=${scope.taskId}, key=${decision.publicationKey})",
+                )
+                return@withTransaction PublicationResult(
                     publicationKey = decision.publicationKey,
-                    scope = scope,
-                    content = PublishedContent(text = decision.userVisibleSummary),
+                    messageIds = emptyList(),
+                    created = false,
+                    refusedReason = refusal,
                 )
             }
+            publishLocked(
+                publicationKey = decision.publicationKey,
+                scope = scope,
+                content = PublishedContent(text = decision.userVisibleSummary),
+            )
         }
+    }
 
     /**
      * 发布前复核。返回 null 表示可以发，否则返回拒绝原因。
@@ -389,6 +386,10 @@ class PublicationService(
         moodByItem: List<String?> = emptyList(),
         citationsByItem: List<List<String>> = emptyList(),
     ): Result {
+        if (sessionRepository.getSessionById(sessionId) == null) {
+            Logger.w(TAG, "发布目标会话不存在，保留待发布条目: $sessionId")
+            return Result(0, 0, 0, emptyList())
+        }
         val pending = db.publicationOutboxDao().listByPublication(publicationId)
             .filter { it.status == PublicationStatus.PENDING }
         var committed = 0

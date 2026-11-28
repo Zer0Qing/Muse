@@ -26,9 +26,8 @@ class ProotRuntime(
     private val loaderBin: File get() = File(binsDir, "libmuse_proot_loader.so")
 
     /** jniLibs 中执行所需的四个文件是否都在。 */
-    fun isAvailable(): Boolean =
-        prootBin.isFile && loaderBin.isFile &&
-            File(binsDir, "libtalloc.so").isFile && File(binsDir, "libandroid-shmem.so").isFile
+    fun isAvailable(): Boolean = prootBin.isFile && loaderBin.isFile &&
+        File(binsDir, "libtalloc.so").isFile && File(binsDir, "libandroid-shmem.so").isFile
 
     private fun tmpDir(): File = File(store.rootDir(), "tmp").apply { mkdirs() }
 
@@ -123,9 +122,15 @@ class ProotRuntime(
             add("-0")
             add("-r")
             add(rootfs.absolutePath)
-            listOf("/dev", "/proc", "/sys").forEach { add("-b"); add(it) }
+            listOf("/dev", "/proc", "/sys").forEach {
+                add("-b")
+                add(it)
+            }
             (binds + "${ProotDnsConfig.ensureFile(context).absolutePath}:/etc/resolv.conf")
-                .forEach { add("-b"); add(it) }
+                .forEach {
+                    add("-b")
+                    add(it)
+                }
             add("-w")
             add(workdirGuest ?: "/")
             addAll(argv)
@@ -161,7 +166,10 @@ class ProotRuntime(
         Thread {
             val text = runCatching { input.bufferedReader().use { it.readText() } }.getOrDefault("")
             future.complete(text)
-        }.apply { isDaemon = true; name = "proot-io" }.start()
+        }.apply {
+            isDaemon = true
+            name = "proot-io"
+        }.start()
         return future
     }
 

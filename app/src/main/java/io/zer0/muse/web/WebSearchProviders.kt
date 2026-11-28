@@ -55,14 +55,17 @@ class BaiduProvider(
             client.executeAsync(request).use { response ->
                 if (!response.isSuccessful) {
                     throw SearchProviderFailure(
-                    providerName = name,
-                    httpCode = response.code,
-                    detail = response.searchDiagnostic(),
+                        providerName = name,
+                        httpCode = response.code,
+                        detail = response.searchDiagnostic(),
                     )
                 }
                 parseResults(response.body.string(), maxResults)
             }
-        }.onError { msg, t -> if (t is SearchProviderFailure) throw t; Logger.w(name, "search error: $msg", t) }
+        }.onError { msg, t ->
+            if (t is SearchProviderFailure) throw t
+            Logger.w(name, "search error: $msg", t)
+        }
             .getOrNull()
             ?: emptyList()
     }
@@ -123,9 +126,9 @@ class SearXNGProvider(
                 SearchRateLimiter.assertNotRateLimited(name, resp)
                 if (!resp.isSuccessful) {
                     throw SearchProviderFailure(
-                    providerName = "SearXNG",
-                    httpCode = resp.code,
-                    detail = resp.searchDiagnostic(),
+                        providerName = "SearXNG",
+                        httpCode = resp.code,
+                        detail = resp.searchDiagnostic(),
                     )
                 }
                 val body = resp.body.string()
@@ -211,9 +214,9 @@ class TavilyProvider(
                 SearchRateLimiter.assertNotRateLimited(name, resp)
                 if (!resp.isSuccessful) {
                     throw SearchProviderFailure(
-                    providerName = "Tavily",
-                    httpCode = resp.code,
-                    detail = resp.searchDiagnostic(),
+                        providerName = "Tavily",
+                        httpCode = resp.code,
+                        detail = resp.searchDiagnostic(),
                     )
                 }
                 val body = resp.body.string()
@@ -647,14 +650,17 @@ class BingProvider(
             client.executeAsync(request).use { response ->
                 if (!response.isSuccessful) {
                     throw SearchProviderFailure(
-                    providerName = name,
-                    httpCode = response.code,
-                    detail = response.searchDiagnostic(),
+                        providerName = name,
+                        httpCode = response.code,
+                        detail = response.searchDiagnostic(),
                     )
                 }
                 parseHttpResults(response.body.string(), maxResults)
             }
-        }.onError { msg, t -> if (t is SearchProviderFailure) throw t; Logger.w(name, "HTTP search error: $msg", t) }
+        }.onError { msg, t ->
+            if (t is SearchProviderFailure) throw t
+            Logger.w(name, "HTTP search error: $msg", t)
+        }
             .getOrNull()
             ?: emptyList()
     }
@@ -787,9 +793,9 @@ class ZhipuSearchProvider(
                 SearchRateLimiter.assertNotRateLimited(name, resp)
                 if (!resp.isSuccessful) {
                     throw SearchProviderFailure(
-                    providerName = "Zhipu",
-                    httpCode = resp.code,
-                    detail = resp.searchDiagnostic(),
+                        providerName = "Zhipu",
+                        httpCode = resp.code,
+                        detail = resp.searchDiagnostic(),
                     )
                 }
                 parseResults(resp.body.string(), maxResults)
@@ -865,9 +871,9 @@ class BraveSearchProvider(
                 SearchRateLimiter.assertNotRateLimited(name, resp)
                 if (!resp.isSuccessful) {
                     throw SearchProviderFailure(
-                    providerName = "Brave",
-                    httpCode = resp.code,
-                    detail = resp.searchDiagnostic(),
+                        providerName = "Brave",
+                        httpCode = resp.code,
+                        detail = resp.searchDiagnostic(),
                     )
                 }
                 parseResults(resp.body.string(), maxResults)
@@ -949,9 +955,9 @@ class SerperSearchProvider(
                 SearchRateLimiter.assertNotRateLimited(name, resp)
                 if (!resp.isSuccessful) {
                     throw SearchProviderFailure(
-                    providerName = "Serper",
-                    httpCode = resp.code,
-                    detail = resp.searchDiagnostic(),
+                        providerName = "Serper",
+                        httpCode = resp.code,
+                        detail = resp.searchDiagnostic(),
                     )
                 }
                 parseResults(resp.body.string(), maxResults)
@@ -1018,9 +1024,9 @@ class BochaSearchProvider(
                 SearchRateLimiter.assertNotRateLimited(name, resp)
                 if (!resp.isSuccessful) {
                     throw SearchProviderFailure(
-                    providerName = "Bocha",
-                    httpCode = resp.code,
-                    detail = resp.searchDiagnostic(),
+                        providerName = "Bocha",
+                        httpCode = resp.code,
+                        detail = resp.searchDiagnostic(),
                     )
                 }
                 parseResults(resp.body.string(), maxResults)
@@ -1089,9 +1095,9 @@ class MetasoSearchProvider(
                 SearchRateLimiter.assertNotRateLimited(name, resp)
                 if (!resp.isSuccessful) {
                     throw SearchProviderFailure(
-                    providerName = "Metaso",
-                    httpCode = resp.code,
-                    detail = resp.searchDiagnostic(),
+                        providerName = "Metaso",
+                        httpCode = resp.code,
+                        detail = resp.searchDiagnostic(),
                     )
                 }
                 parseResults(resp.body.string(), maxResults)
@@ -1191,9 +1197,9 @@ class ExaSearchProvider(
                 SearchRateLimiter.assertNotRateLimited(name, resp)
                 if (!resp.isSuccessful) {
                     throw SearchProviderFailure(
-                    providerName = "Exa",
-                    httpCode = resp.code,
-                    detail = resp.searchDiagnostic(),
+                        providerName = "Exa",
+                        httpCode = resp.code,
+                        detail = resp.searchDiagnostic(),
                     )
                 }
                 parseResults(resp.body.string(), maxResults)
@@ -1358,9 +1364,9 @@ class PerplexitySearchProvider(
                 SearchRateLimiter.assertNotRateLimited(name, resp)
                 if (!resp.isSuccessful) {
                     throw SearchProviderFailure(
-                    providerName = "Perplexity",
-                    httpCode = resp.code,
-                    detail = resp.searchDiagnostic(),
+                        providerName = "Perplexity",
+                        httpCode = resp.code,
+                        detail = resp.searchDiagnostic(),
                     )
                 }
                 parseResults(resp.body.string(), maxResults)

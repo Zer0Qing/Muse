@@ -1,10 +1,10 @@
 package io.zer0.memory.state
 
+import io.zer0.common.Logger
+import io.zer0.memory.format.RollingSummaryFormat
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
-import io.zer0.common.Logger
-import io.zer0.memory.format.RollingSummaryFormat
 
 /**
  * 编译产物状态管理。
@@ -112,9 +112,8 @@ object CompiledMemoryState {
         return lines.drop(idx).joinToString("\n")
     }
 
-    private fun isStrippableHeading(heading: RollingSummaryFormat.Heading): Boolean =
-        heading.level <= DOCUMENT_HEADING_MAX_LEVEL ||
-            heading.title.trim().lowercase() in SECTION_TITLES
+    private fun isStrippableHeading(heading: RollingSummaryFormat.Heading): Boolean = heading.level <= DOCUMENT_HEADING_MAX_LEVEL ||
+        heading.title.trim().lowercase() in SECTION_TITLES
 
     /**
      * 规范化 LLM 输出:

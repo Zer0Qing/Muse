@@ -1,8 +1,11 @@
-@file:Suppress("FunctionNaming", "LongMethod", "CyclomaticComplexMethod", "ReturnCount")
+@file:Suppress("FunctionNaming", "LongMethod", "CyclomaticComplexMethod", "ReturnCount", "LongParameterList")
 
 package io.zer0.muse.ui.memory
 
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -10,33 +13,31 @@ import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
@@ -45,32 +46,40 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import io.zer0.muse.ui.theme.MuseCornerRadius
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.state.MuseEmptyState
 import io.zer0.muse.ui.common.state.MuseLoadingState
 import io.zer0.muse.ui.theme.MuseAnimation
+import io.zer0.muse.ui.theme.MuseConstellationPalette
+import io.zer0.muse.ui.theme.MuseCornerRadius
 import io.zer0.muse.ui.theme.MuseMotion
-import io.zer0.muse.ui.theme.MusePaddings
-import io.zer0.muse.ui.theme.statusColors
+import io.zer0.muse.ui.theme.MuseSpacing
+import io.zer0.muse.ui.theme.constellationColors
+import kotlinx.coroutines.launch
+import kotlin.math.PI
+import kotlin.math.atan2
+import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.min
+import kotlin.math.sin
+
+private const val MIN_ZOOM = 0.35f
+private const val MAX_ZOOM = 3.2f
+private const val STARDUST_COUNT = 85
 
 /**
- * 记忆星座视图 (v2.0 重设计)。
+ * 记忆星座星图（v3.0 重设计）。
  *
- * 视觉结构:
- *  - 按类别聚簇:同主题记忆形成"星座群",簇底一层柔光,簇顶是分类标签;
- *  - 节点 = 光晕 + 实心点 + 描边环,置顶节点外圈带十字星芒;
- *  - 关系边为二次贝塞尔曲线,矛盾关系用红色虚线;
- *  - 首次进入自动取景(整张星座缩放到视口内),手势缩放/拖动,右下角可复位;
- *  - 缩放较小时自动隐藏普通节点标签,只保留重要/置顶/选中节点,避免糊成一团。
+ * 视觉与交互亮点：
+ *  - 默认星夜观星台底板，一键切换星夜 / 跟随明暗的纸质星图；
+ *  - 确定性簇内排斥 + 簇间分离布局 + MST 星座骨架 + 屏幕空间矩形碰撞避让标签；
+ *  - 支持顶部星群图例点击平滑飞镜聚焦、星体点击焦点高亮（亮显当前星 + 邻星 + 关系弧）、
+ *    完整正文检视与关联管理、双向/因果/矛盾关系弧样式与手动连线引导。
  */
 @Composable
 fun MemoryGraphView(
@@ -78,13 +87,20 @@ fun MemoryGraphView(
     modifier: Modifier = Modifier,
     onNodeAction: ((MemoryGraphNode, NodeAction) -> Unit)? = null,
     onEdgeAction: ((MemoryGraphEdge, EdgeAction) -> Unit)? = null,
-    /** v2.6.2（用户反馈）: 手动连边回调（源节点, 目标节点, 关系类型）。 */
     onManualLink: ((MemoryGraphNode, MemoryGraphNode, String) -> Unit)? = null,
+    onLoadFullContent: ((Long, (String?) -> Unit) -> Unit)? = null,
+    onRebuildEdges: (() -> Unit)? = null,
+    onOpenSettings: (() -> Unit)? = null,
+    isFullscreen: Boolean = false,
+    onToggleFullscreen: (() -> Unit)? = null,
 ) {
     val colors = MaterialTheme.colorScheme
-    val statusColors = MaterialTheme.statusColors
-    var selectedNode by remember { mutableStateOf<MemoryGraphNode?>(null) }
-    // v2.6.2: 手动连线状态 —— 点了“手动连线”后进入选目标模式，再点另一个节点弹出关系类型。
+    val constellationColors = MaterialTheme.constellationColors
+    var useObservatorySky by rememberSaveable { mutableStateOf(true) }
+    val palette = if (useObservatorySky) constellationColors.observatory else constellationColors.paper
+
+    var selectedNodeId by remember { mutableStateOf<Long?>(null) }
+    var focusedCategory by remember { mutableStateOf<String?>(null) }
     var linkSourceNode by remember { mutableStateOf<MemoryGraphNode?>(null) }
     var linkTargetNode by remember { mutableStateOf<MemoryGraphNode?>(null) }
 
@@ -109,408 +125,630 @@ fun MemoryGraphView(
     }
 
     val nodes = state.nodes
-    // v2.x: 动效补齐 — 星座整体入场 fade + scale(仅整体过渡,不做节点级 stagger,绘制层保持原样)。
-    var entryStarted by remember { mutableStateOf(false) }
-    LaunchedEffect(nodes) { entryStarted = true }
-    val entryProgress by animateFloatAsState(
-        targetValue = if (entryStarted) 1f else 0f,
-        animationSpec = MuseMotion.tween(MuseAnimation.NORMAL_MS),
-        label = "memoryGraphEntry",
-    )
-    // 画布尺寸由最大簇的节点环半径决定,保证节点永远画在画布内。
+    val nodesById = remember(nodes) { nodes.associateBy { it.factId } }
+    val selectedNode = selectedNodeId?.let { nodesById[it] }
+
+    var fullContentCache by remember(selectedNode?.factId) { mutableStateOf<String?>(null) }
+    var loadingFullContent by remember(selectedNode?.factId) { mutableStateOf(false) }
+    LaunchedEffect(selectedNode?.factId) {
+        val target = selectedNode ?: return@LaunchedEffect
+        val loader = onLoadFullContent
+        if (loader == null) {
+            fullContentCache = target.title
+            loadingFullContent = false
+        } else {
+            loadingFullContent = true
+            loader(target.factId) { loaded ->
+                fullContentCache = loaded ?: target.title
+                loadingFullContent = false
+            }
+        }
+    }
+
     val sizeDp = remember(nodes) {
         val maxClusterSize = nodes.groupingBy { it.category.lowercase() }.eachCount().values.maxOrNull() ?: 1
+        val categoryCount = nodes.map { it.category.lowercase() }.distinct().size
         val ring = clusterNodeRing(maxClusterSize)
-        maxOf(1100f, (ring + 220f) / 0.22f)
+        maxOf(1280f, (ring + 260f) / 0.22f, categoryCount * 220f)
     }
-    val constellation = remember(nodes, sizeDp) { buildClusterConstellation(nodes, sizeDp) }
-    val categoryLabels = nodes.map { it.category.lowercase() }.distinct()
-        .associateWith { categoryLabel(it) }
+    val constellation = remember(nodes, state.edges, sizeDp) {
+        buildClusterConstellation(nodes, sizeDp, state.edges)
+    }
+    val clusterLabels = constellation.clusters.associate { anchor ->
+        anchor.category to stringResource(
+            R.string.memory_constellation_cluster_chip,
+            memoryCategoryLabel(anchor.category),
+            anchor.memberCount,
+        )
+    }
+    val relationLabels = mapOf(
+        "related_to" to stringResource(R.string.memory_graph_link_type_related),
+        "causes" to stringResource(R.string.memory_graph_link_type_causes),
+        "part_of" to stringResource(R.string.memory_graph_link_type_part_of),
+        "contradicts" to stringResource(R.string.memory_graph_link_type_contradicts),
+    )
 
     val density = LocalDensity.current
-    var zoom by remember { mutableFloatStateOf(1f) }
-    var pan by remember { mutableStateOf(Offset.Zero) }
+    val cameraScope = rememberCoroutineScope()
+    val normalTween = MuseMotion.tween<Float>(MuseAnimation.NORMAL_MS)
+    val fastNormalTween = MuseMotion.tween<Float>(MuseAnimation.FAST_NORMAL_MS)
+    val zoomAnim = remember { Animatable(1f) }
+    val panXAnim = remember { Animatable(0f) }
+    val panYAnim = remember { Animatable(0f) }
     var viewportSize by remember { mutableStateOf(IntSize.Zero) }
     var framed by remember(nodes) { mutableStateOf(false) }
 
-    // 首次进入 / 数据换批:整张星座取景居中。
+    fun frameBoundsImmediate(bounds: ConstellationBounds, maxZoomCap: Float = 1.15f) {
+        if (viewportSize == IntSize.Zero) return
+        val wPx = with(density) { (bounds.maxX - bounds.minX).coerceAtLeast(160f).dp.toPx() }
+        val hPx = with(density) { (bounds.maxY - bounds.minY).coerceAtLeast(160f).dp.toPx() }
+        val targetZoom = min(viewportSize.width / wPx, viewportSize.height / hPx).coerceIn(MIN_ZOOM, maxZoomCap)
+        val cxPx = with(density) { ((bounds.minX + bounds.maxX) / 2f).dp.toPx() }
+        val cyPx = with(density) { ((bounds.minY + bounds.maxY) / 2f).dp.toPx() }
+        val targetPanX = viewportSize.width / 2f - cxPx * targetZoom
+        val targetPanY = viewportSize.height / 2f - cyPx * targetZoom
+        cameraScope.launch {
+            launch { zoomAnim.animateTo(targetZoom, normalTween) }
+            launch { panXAnim.animateTo(targetPanX, normalTween) }
+            launch { panYAnim.animateTo(targetPanY, normalTween) }
+        }
+    }
+
+    fun snapBounds(bounds: ConstellationBounds) {
+        if (viewportSize == IntSize.Zero) return
+        val wPx = with(density) { (bounds.maxX - bounds.minX).coerceAtLeast(160f).dp.toPx() }
+        val hPx = with(density) { (bounds.maxY - bounds.minY).coerceAtLeast(160f).dp.toPx() }
+        val targetZoom = min(viewportSize.width / wPx, viewportSize.height / hPx).coerceIn(MIN_ZOOM, 1.08f)
+        val cxPx = with(density) { ((bounds.minX + bounds.maxX) / 2f).dp.toPx() }
+        val cyPx = with(density) { ((bounds.minY + bounds.maxY) / 2f).dp.toPx() }
+        cameraScope.launch {
+            zoomAnim.snapTo(targetZoom)
+            panXAnim.snapTo(viewportSize.width / 2f - cxPx * targetZoom)
+            panYAnim.snapTo(viewportSize.height / 2f - cyPx * targetZoom)
+        }
+    }
+
+    fun focusOnStar(node: MemoryGraphNode, targetZoomMin: Float = 1.25f) {
+        val center = constellation.nodeCenters[node.factId] ?: return
+        if (viewportSize == IntSize.Zero) return
+        val targetZoom = maxOf(zoomAnim.value, targetZoomMin).coerceIn(MIN_ZOOM, MAX_ZOOM)
+        val cxPx = with(density) { center.x.dp.toPx() }
+        val cyPx = with(density) { center.y.dp.toPx() }
+        val targetPanX = viewportSize.width / 2f - cxPx * targetZoom
+        val targetPanY = viewportSize.height * 0.36f - cyPx * targetZoom
+        cameraScope.launch {
+            launch { zoomAnim.animateTo(targetZoom, normalTween) }
+            launch { panXAnim.animateTo(targetPanX, normalTween) }
+            launch { panYAnim.animateTo(targetPanY, normalTween) }
+        }
+    }
+
+    fun zoomAroundViewportCenter(factor: Float) {
+        if (viewportSize == IntSize.Zero) return
+        val oldZoom = zoomAnim.value
+        val newZoom = (oldZoom * factor).coerceIn(MIN_ZOOM, MAX_ZOOM)
+        val scale = newZoom / oldZoom
+        val cx = viewportSize.width / 2f
+        val cy = viewportSize.height / 2f
+        val newPanX = cx - (cx - panXAnim.value) * scale
+        val newPanY = cy - (cy - panYAnim.value) * scale
+        cameraScope.launch {
+            launch { zoomAnim.animateTo(newZoom, fastNormalTween) }
+            launch { panXAnim.animateTo(newPanX, fastNormalTween) }
+            launch { panYAnim.animateTo(newPanY, fastNormalTween) }
+        }
+    }
+
     LaunchedEffect(viewportSize, sizeDp, framed) {
         if (framed || viewportSize == IntSize.Zero) return@LaunchedEffect
-        val canvasPx = with(density) { sizeDp.dp.toPx() }
-        val fit = min(viewportSize.width / canvasPx, viewportSize.height / canvasPx)
-        val fitZoom = fit.coerceIn(0.45f, 1.05f)
-        zoom = fitZoom
-        pan = Offset(
-            (viewportSize.width - canvasPx * fitZoom) / 2f,
-            (viewportSize.height - canvasPx * fitZoom) / 2f,
-        )
+        val bounds = computeConstellationBounds(constellation.nodeCenters.values)
+        snapBounds(bounds)
         framed = true
     }
 
     val resetView = {
-        val canvasPx = with(density) { sizeDp.dp.toPx() }
-        if (viewportSize != IntSize.Zero) {
-            val fit = min(viewportSize.width / canvasPx, viewportSize.height / canvasPx)
-            val fitZoom = fit.coerceIn(0.45f, 1.05f)
-            zoom = fitZoom
-            pan = Offset(
-                (viewportSize.width - canvasPx * fitZoom) / 2f,
-                (viewportSize.height - canvasPx * fitZoom) / 2f,
-            )
+        focusedCategory = null
+        val bounds = computeConstellationBounds(constellation.nodeCenters.values)
+        frameBoundsImmediate(bounds, maxZoomCap = 1.08f)
+    }
+
+    val nodeLabelTextSizePx = with(density) { MaterialTheme.typography.labelSmall.fontSize.toPx() }
+    val clusterTextSizePx = with(density) { MaterialTheme.typography.labelSmall.fontSize.toPx() }
+    val relationTextSizePx = with(density) { MaterialTheme.typography.labelSmall.fontSize.toPx() }
+    val labelPaint = remember(nodeLabelTextSizePx) {
+        android.graphics.Paint().apply {
+            textSize = nodeLabelTextSizePx
+            isAntiAlias = true
+            textAlign = android.graphics.Paint.Align.LEFT
+        }
+    }
+    val clusterPaint = remember(clusterTextSizePx) {
+        android.graphics.Paint().apply {
+            textSize = clusterTextSizePx
+            isAntiAlias = true
+            isFakeBoldText = true
+            textAlign = android.graphics.Paint.Align.CENTER
+        }
+    }
+    val relationPaint = remember(relationTextSizePx) {
+        android.graphics.Paint().apply {
+            textSize = relationTextSizePx * 0.9f
+            isAntiAlias = true
+            textAlign = android.graphics.Paint.Align.CENTER
         }
     }
 
+    val neighborIds = remember(selectedNodeId, state.edges) {
+        val sid = selectedNodeId ?: return@remember emptySet()
+        buildSet {
+            add(sid)
+            state.edges.forEach { e ->
+                if (e.sourceFactId == sid) add(e.targetFactId)
+                if (e.targetFactId == sid) add(e.sourceFactId)
+            }
+        }
+    }
+
+    var entryStarted by remember { mutableStateOf(false) }
+    LaunchedEffect(nodes) { entryStarted = true }
+    val entryAlpha by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (entryStarted) 1f else 0f,
+        animationSpec = MuseMotion.tween(MuseAnimation.NORMAL_MS),
+        label = "memoryGraphEntry",
+    )
+
+    val containerShape = if (isFullscreen) RoundedCornerShape(0.dp) else RoundedCornerShape(MuseCornerRadius.CARD.dp)
+
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(MuseCornerRadius.CARD.dp))
-            .background(colors.surface)
-            // v2.x: 动效补齐 — 整体入场:淡入 + 轻微放大到位(0.96→1.0)
-            .graphicsLayer {
-                alpha = entryProgress
-                val entryScale = 0.96f + 0.04f * entryProgress
-                scaleX = entryScale
-                scaleY = entryScale
-            }
+            .clip(containerShape)
+            .background(palette.canvasBg)
+            .graphicsLayer { alpha = entryAlpha }
             .onSizeChanged { viewportSize = it }
             .pointerInput(nodes) {
                 detectTransformGestures { centroid, panChange, zoomChange, _ ->
-                    val newZoom = (zoom * zoomChange).coerceIn(0.35f, 2.5f)
-                    val scale = newZoom / zoom
-                    // 以手势中心为锚点缩放,再叠加拖动位移
-                    pan = Offset(
-                        centroid.x - (centroid.x - pan.x) * scale + panChange.x,
-                        centroid.y - (centroid.y - pan.y) * scale + panChange.y,
-                    )
-                    zoom = newZoom
+                    val oldZoom = zoomAnim.value
+                    val newZoom = (oldZoom * zoomChange).coerceIn(MIN_ZOOM, MAX_ZOOM)
+                    val scale = newZoom / oldZoom
+                    val nextPanX = centroid.x - (centroid.x - panXAnim.value) * scale + panChange.x
+                    val nextPanY = centroid.y - (centroid.y - panYAnim.value) * scale + panChange.y
+                    cameraScope.launch {
+                        zoomAnim.snapTo(newZoom)
+                        panXAnim.snapTo(nextPanX)
+                        panYAnim.snapTo(nextPanY)
+                    }
                 }
             }
             .pointerInput(nodes, constellation) {
-                detectTapGestures { tapOffset ->
-                    val canvasX = (tapOffset.x - pan.x) / zoom
-                    val canvasY = (tapOffset.y - pan.y) / zoom
-                    val hit = nodes.minByOrNull { node ->
-                        val center = constellation.nodeCenters[node.factId] ?: return@minByOrNull Float.MAX_VALUE
-                        val cx = with(density) { center.x.dp.toPx() }
-                        val cy = with(density) { center.y.dp.toPx() }
-                        val dx = canvasX - cx
-                        val dy = canvasY - cy
-                        dx * dx + dy * dy
-                    }
-                    if (hit != null) {
-                        val center = constellation.nodeCenters[hit.factId]
-                        if (center != null) {
-                            val cx = with(density) { center.x.dp.toPx() }
-                            val cy = with(density) { center.y.dp.toPx() }
-                            val hitRadius = with(density) {
-                                (nodeRadiusDp(hit).dp + 12.dp).toPx()
-                            } / zoom
-                            val dx = canvasX - cx
-                            val dy = canvasY - cy
-                            if (dx * dx + dy * dy <= hitRadius * hitRadius) {
-                                // v2.6.2: 选目标模式 —— 再点一个不同节点则弹出关系类型。
-                                val src = linkSourceNode
-                                if (src != null && src.factId != hit.factId) {
-                                    linkTargetNode = hit
-                                } else {
-                                    selectedNode = hit
-                                }
+                detectTapGestures(
+                    onDoubleTap = { tapOffset ->
+                        val curZoom = zoomAnim.value
+                        if (curZoom > 1.4f) {
+                            resetView()
+                        } else {
+                            val newZoom = (curZoom * 1.65f).coerceIn(MIN_ZOOM, MAX_ZOOM)
+                            val scale = newZoom / curZoom
+                            val targetPanX = tapOffset.x - (tapOffset.x - panXAnim.value) * scale
+                            val targetPanY = tapOffset.y - (tapOffset.y - panYAnim.value) * scale
+                            cameraScope.launch {
+                                launch { zoomAnim.animateTo(newZoom, fastNormalTween) }
+                                launch { panXAnim.animateTo(targetPanX, fastNormalTween) }
+                                launch { panYAnim.animateTo(targetPanY, fastNormalTween) }
                             }
                         }
-                    }
-                }
+                    },
+                    onTap = { tapOffset ->
+                        val curZoom = zoomAnim.value
+                        val canvasX = (tapOffset.x - panXAnim.value) / curZoom
+                        val canvasY = (tapOffset.y - panYAnim.value) / curZoom
+                        val hit = nodes.minByOrNull { node ->
+                            val c = constellation.nodeCenters[node.factId] ?: return@minByOrNull Float.MAX_VALUE
+                            val cx = with(density) { c.x.dp.toPx() }
+                            val cy = with(density) { c.y.dp.toPx() }
+                            val dx = canvasX - cx
+                            val dy = canvasY - cy
+                            dx * dx + dy * dy
+                        }
+                        val hitCenter = hit?.let { constellation.nodeCenters[it.factId] }
+                        val tappedNode = if (hit != null && hitCenter != null) {
+                            val cx = with(density) { hitCenter.x.dp.toPx() }
+                            val cy = with(density) { hitCenter.y.dp.toPx() }
+                            val degree = constellation.nodeDegrees[hit.factId] ?: 0
+                            val rPx = with(density) { (starRadiusDp(hit, degree).dp + 14.dp).toPx() } / curZoom
+                            val dx = canvasX - cx
+                            val dy = canvasY - cy
+                            if (dx * dx + dy * dy <= rPx * rPx) hit else null
+                        } else {
+                            null
+                        }
+                        if (tappedNode != null) {
+                            val src = linkSourceNode
+                            if (src != null && src.factId != tappedNode.factId) {
+                                linkTargetNode = tappedNode
+                            } else {
+                                selectedNodeId = tappedNode.factId
+                            }
+                        } else {
+                            if (selectedNodeId != null) {
+                                selectedNodeId = null
+                            } else {
+                                focusedCategory = null
+                            }
+                        }
+                    },
+                )
             },
     ) {
-        val toneResolver: (String) -> Color = { category -> nodeToneColor(category, colors, statusColors) }
-        val labelColor = colors.onSurface
-        val labelBg = colors.surface
-        val labelBorder = colors.outlineVariant
-        val selectedColor = colors.primary
+        val currentZoom = zoomAnim.value
+        val currentPanX = panXAnim.value
+        val currentPanY = panYAnim.value
 
-        Canvas(
-            modifier = Modifier
-                .size(sizeDp.dp)
-                .graphicsLayer {
-                    scaleX = zoom
-                    scaleY = zoom
-                    translationX = pan.x
-                    translationY = pan.y
-                    transformOrigin = TransformOrigin(0f, 0f)
-                },
-        ) {
-            val cw = size.width
-            val ch = size.height
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            drawStarfieldBackdrop(palette, size)
 
-            // 背景:中心柔光 + 点阵网格,给出"星图"底子
-            drawRect(
-                brush = Brush.radialGradient(
-                    colors = listOf(colors.primary.copy(alpha = 0.05f), Color.Transparent),
-                    center = Offset(cw / 2f, ch / 2f),
-                    radius = cw * 0.55f,
-                ),
+            fun toScreen(center: ConstellationCenter): Offset = Offset(
+                center.x.dp.toPx() * currentZoom + currentPanX,
+                center.y.dp.toPx() * currentZoom + currentPanY,
             )
-            val gridStep = 76.dp.toPx()
-            val gridDot = 1.1.dp.toPx()
-            var gx = gridStep
-            while (gx < cw) {
-                var gy = gridStep
-                while (gy < ch) {
-                    drawCircle(
-                        color = colors.outline.copy(alpha = 0.14f),
-                        radius = gridDot,
-                        center = Offset(gx, gy),
-                    )
-                    gy += gridStep
-                }
-                gx += gridStep
-            }
 
-            // 簇柔光 + 分类标签
+            // 1. 星座星云软光晕
             constellation.clusters.forEach { anchor ->
-                val tone = toneResolver(anchor.category)
-                val clusterCenter = Offset(anchor.x.dp.toPx(), anchor.y.dp.toPx())
-                val halo = anchor.spread * 1.55f
+                val tone = memoryCategoryColor(anchor.category, palette)
+                val center = toScreen(ConstellationCenter(anchor.x, anchor.y))
+                val haloPx = (anchor.spread * 1.45f).dp.toPx() * currentZoom
+                if (center.x + haloPx < 0f || center.x - haloPx > size.width ||
+                    center.y + haloPx < 0f || center.y - haloPx > size.height
+                ) {
+                    return@forEach
+                }
+                val clusterFocused = focusedCategory == null || focusedCategory.equals(anchor.category, ignoreCase = true)
+                val alphaFactor = when {
+                    selectedNode != null -> 0.45f
+                    clusterFocused -> 1f
+                    else -> 0.25f
+                }
                 drawCircle(
                     brush = Brush.radialGradient(
-                        colors = listOf(tone.copy(alpha = 0.10f), Color.Transparent),
-                        center = clusterCenter,
-                        radius = halo.dp.toPx(),
+                        colors = listOf(tone.copy(alpha = 0.14f * alphaFactor), Color.Transparent),
+                        center = center,
+                        radius = haloPx.coerceAtLeast(1f),
                     ),
-                    radius = halo.dp.toPx(),
-                    center = clusterCenter,
-                )
-                val label = categoryLabels[anchor.category] ?: anchor.category
-                drawChipLabel(
-                    text = label,
-                    center = Offset(clusterCenter.x, clusterCenter.y - (anchor.spread + 40f).dp.toPx()),
-                    textColor = colors.onSurfaceVariant,
-                    background = labelBg.copy(alpha = 0.9f),
-                    border = labelBorder,
-                    density = density,
-                    fontSize = 10.sp, // 画布内嵌簇标签:固定字号(随图形缩放,不走主题字体)
-                    letterSpacing = 1.5f,
-                    maxWidthPx = 180.dp.toPx(),
+                    radius = haloPx.coerceAtLeast(1f),
+                    center = center,
                 )
             }
 
-            // 关系边:二次贝塞尔,矛盾关系红色虚线
+            // 2. 簇内最小生成树星座骨架连线
+            constellation.skeletonEdges.forEach { (aId, bId) ->
+                val aNode = nodesById[aId] ?: return@forEach
+                val aPos = constellation.nodeCenters[aId]?.let(::toScreen) ?: return@forEach
+                val bPos = constellation.nodeCenters[bId]?.let(::toScreen) ?: return@forEach
+                val activeCluster = focusedCategory == null || focusedCategory.equals(aNode.category, ignoreCase = true)
+                val skeletonAlpha = when {
+                    selectedNode != null -> if (aId in neighborIds && bId in neighborIds) 0.28f else 0.05f
+                    activeCluster -> 0.18f
+                    else -> 0.04f
+                }
+                drawLine(
+                    color = palette.skeletonEdge.copy(alpha = skeletonAlpha),
+                    start = aPos,
+                    end = bPos,
+                    strokeWidth = 0.9.dp.toPx(),
+                    cap = StrokeCap.Round,
+                )
+            }
+
+            // 3. 显式关系弧线（因果/相关/包含/矛盾）
+            val edgeMidPoints = mutableListOf<Triple<MemoryGraphEdge, Offset, Color>>()
             state.edges.forEach { edge ->
-                val a = constellation.nodeCenters[edge.sourceFactId] ?: return@forEach
-                val b = constellation.nodeCenters[edge.targetFactId] ?: return@forEach
-                val aCenter = Offset(a.x.dp.toPx(), a.y.dp.toPx())
-                val bCenter = Offset(b.x.dp.toPx(), b.y.dp.toPx())
-                val dx = bCenter.x - aCenter.x
-                val dy = bCenter.y - aCenter.y
+                val aPos = constellation.nodeCenters[edge.sourceFactId]?.let(::toScreen) ?: return@forEach
+                val bPos = constellation.nodeCenters[edge.targetFactId]?.let(::toScreen) ?: return@forEach
+                val dx = bPos.x - aPos.x
+                val dy = bPos.y - aPos.y
                 val dist = hypot(dx, dy).coerceAtLeast(0.001f)
-                // 垂直方向偏移,画出轻微弧度,避免多条边完全重叠
-                val curve = dist * 0.08f
-                val mid = Offset(
-                    (aCenter.x + bCenter.x) / 2f - dy / dist * curve,
-                    (aCenter.y + bCenter.y) / 2f + dx / dist * curve,
+                val curve = dist * 0.10f
+                val ctrl = Offset(
+                    (aPos.x + bPos.x) / 2f - dy / dist * curve,
+                    (aPos.y + bPos.y) / 2f + dx / dist * curve,
+                )
+                val midOnCurve = Offset(
+                    0.25f * aPos.x + 0.5f * ctrl.x + 0.25f * bPos.x,
+                    0.25f * aPos.y + 0.5f * ctrl.y + 0.25f * bPos.y,
                 )
                 val isContradiction = edge.relationType.equals("contradicts", ignoreCase = true)
-                val lineColor = when {
-                    isContradiction -> colors.error.copy(alpha = 0.55f)
-                    edge.weight >= 0.7f -> colors.primary.copy(alpha = 0.34f)
-                    else -> colors.outline.copy(alpha = 0.22f)
+                val isCauses = edge.relationType.equals("causes", ignoreCase = true)
+                val relColor = memoryRelationColor(edge.relationType, palette)
+                val isIncident = selectedNodeId != null &&
+                    (edge.sourceFactId == selectedNodeId || edge.targetFactId == selectedNodeId)
+                val edgeAlpha = when {
+                    selectedNodeId != null -> if (isIncident) 0.94f else 0.09f
+                    focusedCategory != null -> {
+                        val sCat = nodesById[edge.sourceFactId]?.category
+                        val tCat = nodesById[edge.targetFactId]?.category
+                        if (sCat.equals(focusedCategory, true) || tCat.equals(focusedCategory, true)) 0.72f else 0.12f
+                    }
+                    else -> if (edge.weight >= 0.7f) 0.58f else 0.34f
                 }
                 val path = Path().apply {
-                    moveTo(aCenter.x, aCenter.y)
-                    quadraticBezierTo(mid.x, mid.y, bCenter.x, bCenter.y)
+                    moveTo(aPos.x, aPos.y)
+                    quadraticBezierTo(ctrl.x, ctrl.y, bPos.x, bPos.y)
                 }
                 drawPath(
                     path = path,
-                    color = lineColor,
+                    color = relColor.copy(alpha = edgeAlpha),
                     style = Stroke(
-                        width = if (edge.weight < 0.3f) 0.9.dp.toPx() else 1.5.dp.toPx(),
+                        width = (if (isIncident) 2.2f else if (edge.weight >= 0.7f) 1.6f else 1.1f).dp.toPx(),
                         cap = StrokeCap.Round,
                         pathEffect = if (isContradiction) {
-                            PathEffect.dashPathEffect(floatArrayOf(7f, 5f), 0f)
+                            PathEffect.dashPathEffect(floatArrayOf(10f, 7f), 0f)
                         } else {
                             null
                         },
                     ),
                 )
-                if (edge.weight >= 0.7f && !isContradiction) {
-                    // 强关系端点小光点,强化"星链"感
-                    drawCircle(colors.primary.copy(alpha = 0.5f), radius = 2.2.dp.toPx(), center = mid)
+                if (isCauses && edgeAlpha > 0.25f) {
+                    drawCauseArrow(midOnCurve, dx, dy, relColor.copy(alpha = edgeAlpha))
+                } else if (edge.weight >= 0.7f && !isContradiction && edgeAlpha > 0.25f) {
+                    drawCircle(relColor.copy(alpha = edgeAlpha), radius = 2.4.dp.toPx(), center = midOnCurve)
+                }
+                if (isIncident) {
+                    edgeMidPoints += Triple(edge, midOnCurve, relColor)
                 }
             }
 
-            // 节点
+            // 4. 发光星体
             nodes.forEach { node ->
-                val center = constellation.nodeCenters[node.factId] ?: return@forEach
-                val nodeCenter = Offset(center.x.dp.toPx(), center.y.dp.toPx())
-                val tone = toneResolver(node.category)
-                val isSelected = selectedNode?.factId == node.factId
-                val radius = nodeRadiusDp(node).dp.toPx()
+                val rawCenter = constellation.nodeCenters[node.factId] ?: return@forEach
+                val pos = toScreen(rawCenter)
+                val degree = constellation.nodeDegrees[node.factId] ?: 0
+                val radiusPx = starRadiusDp(node, degree).dp.toPx() * currentZoom.coerceIn(0.65f, 1.35f)
+                if (pos.x + radiusPx * 4 < 0f || pos.x - radiusPx * 4 > size.width ||
+                    pos.y + radiusPx * 4 < 0f || pos.y - radiusPx * 4 > size.height
+                ) {
+                    return@forEach
+                }
+                val tone = memoryCategoryColor(node.category, palette)
+                val isSelected = selectedNodeId == node.factId
+                val isLinkSource = linkSourceNode?.factId == node.factId
+                val inFocus = when {
+                    selectedNodeId != null -> node.factId in neighborIds
+                    focusedCategory != null -> node.category.equals(focusedCategory, ignoreCase = true)
+                    else -> true
+                }
+                val dim = if (inFocus) 1f else 0.20f
 
-                // 柔光三层,让节点像发光星体而不是"贴上去的圆"
-                drawCircle(tone.copy(alpha = 0.09f), radius = radius * 2.2f, center = nodeCenter)
-                drawCircle(tone.copy(alpha = 0.16f), radius = radius * 1.5f, center = nodeCenter)
-                drawCircle(
-                    color = tone.copy(alpha = if (isSelected) 1f else 0.92f),
-                    radius = radius,
-                    center = nodeCenter,
-                )
-                drawCircle(
-                    color = if (isSelected) tone else colors.onSurfaceVariant.copy(alpha = 0.42f),
-                    radius = radius,
-                    center = nodeCenter,
-                    style = Stroke(width = if (isSelected) 2.dp.toPx() else 0.9.dp.toPx()),
-                )
+                drawCircle(tone.copy(alpha = 0.14f * dim), radius = radiusPx * 2.5f, center = pos)
+                drawCircle(tone.copy(alpha = 0.28f * dim), radius = radiusPx * 1.65f, center = pos)
+                drawCircle(tone.copy(alpha = 0.94f * dim), radius = radiusPx, center = pos)
+                drawCircle(palette.starCore.copy(alpha = 0.85f * dim), radius = radiusPx * 0.38f, center = pos)
 
-                // 置顶节点:十字星芒
                 if (node.isPinned) {
-                    val beam = radius * 3.1f
-                    val beamWidth = 1.3.dp.toPx()
-                    val beamColor = tone.copy(alpha = 0.75f)
-                    drawLine(
-                        beamColor,
-                        Offset(nodeCenter.x - beam, nodeCenter.y),
-                        Offset(nodeCenter.x + beam, nodeCenter.y),
-                        beamWidth,
-                        StrokeCap.Round,
+                    drawStarFlare(pos, radiusPx * 2.55f, tone.copy(alpha = 0.85f * dim))
+                }
+                if (isSelected) {
+                    drawCircle(
+                        color = palette.selectionGlow,
+                        radius = radiusPx * 1.65f,
+                        center = pos,
+                        style = Stroke(width = 2.dp.toPx()),
                     )
-                    drawLine(
-                        beamColor,
-                        Offset(nodeCenter.x, nodeCenter.y - beam),
-                        Offset(nodeCenter.x, nodeCenter.y + beam),
-                        beamWidth,
-                        StrokeCap.Round,
+                } else if (isLinkSource) {
+                    drawCircle(
+                        color = palette.edgeCauses,
+                        radius = radiusPx * 1.85f,
+                        center = pos,
+                        style = Stroke(
+                            width = 2.dp.toPx(),
+                            pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 6f), 0f),
+                        ),
                     )
                 }
+            }
 
-                // 标签:缩放过小时只保留重要 / 置顶 / 选中节点
-                val showLabel = isSelected || node.isPinned || node.importance >= 2 || zoom >= 0.72f
-                if (showLabel) {
-                    val labelGap = radius + 10.dp.toPx()
-                    val toRight = nodeCenter.x < cw / 2f
-                    val labelX = if (toRight) nodeCenter.x + labelGap else nodeCenter.x - labelGap
-                    drawChipLabel(
-                        text = node.title,
-                        center = Offset(labelX, nodeCenter.y),
-                        textColor = if (isSelected) selectedColor else labelColor,
-                        background = if (isSelected) {
-                            selectedColor.copy(alpha = 0.12f)
-                        } else {
-                            labelBg.copy(alpha = 0.86f)
-                        },
-                        border = if (isSelected) selectedColor.copy(alpha = 0.45f) else labelBorder,
+            // 5. 焦点模式：邻边中点关系标签
+            edgeMidPoints.forEach { (edge, mid, relColor) ->
+                val relText = relationLabels[edge.relationType.lowercase()] ?: relationLabels["related_to"].orEmpty()
+                if (relText.isNotEmpty()) {
+                    drawRelationBadge(
+                        text = relText,
+                        center = mid,
+                        textColor = relColor,
+                        bgColor = palette.labelBg,
+                        borderColor = relColor.copy(alpha = 0.55f),
+                        paint = relationPaint,
                         density = density,
-                        fontSize = 11.sp, // 画布内嵌节点标签:固定字号(同上)
-                        anchorRight = !toRight,
-                        maxWidthPx = 168.dp.toPx(),
                     )
                 }
+            }
+
+            // 6. 星群标题徽标（记录为障碍物，避免节点标签与之重叠）
+            val obstacles = mutableListOf<ScreenLabelBox>()
+            if (selectedNodeId == null) {
+                constellation.clusters.forEach { anchor ->
+                    val clusterVisible = focusedCategory == null || focusedCategory.equals(anchor.category, ignoreCase = true)
+                    if (!clusterVisible) return@forEach
+                    val label = clusterLabels[anchor.category] ?: anchor.category
+                    val anchorPos = toScreen(ConstellationCenter(anchor.x, anchor.y))
+                    val labelY = anchorPos.y - (anchor.spread * 0.88f).dp.toPx() * currentZoom
+                    if (anchorPos.x in -80f..(size.width + 80f) && labelY in 40.dp.toPx()..(size.height - 60.dp.toPx())) {
+                        val tone = memoryCategoryColor(anchor.category, palette)
+                        val box = drawClusterBadge(
+                            id = -(anchor.category.hashCode().toLong()),
+                            text = label,
+                            center = Offset(anchorPos.x, labelY),
+                            textColor = palette.clusterLabelText,
+                            bgColor = palette.clusterLabelBg,
+                            borderColor = tone.copy(alpha = 0.5f),
+                            paint = clusterPaint,
+                            density = density,
+                        )
+                        obstacles += box
+                    }
+                }
+            }
+
+            // 7. 节点标签（碰撞避让 + 缩放分层数量限制）
+            val labelMaxCount = when {
+                selectedNodeId != null -> 14
+                currentZoom < 0.65f -> 10
+                currentZoom < 1.1f -> 22
+                else -> 46
+            }
+            val topMarginPx = 64.dp.toPx()
+            val bottomReservePx = if (selectedNode != null) 250.dp.toPx() else 64.dp.toPx()
+            val padH = 16.dp.toPx()
+            val chipH = labelPaint.textSize + 10.dp.toPx()
+            val maxChipW = 152.dp.toPx()
+
+            val candidates = nodes.mapNotNull { node ->
+                val isSelected = node.factId == selectedNodeId
+                val isNeighbor = selectedNodeId != null && node.factId in neighborIds
+                if (selectedNodeId != null && !isNeighbor) return@mapNotNull null
+                if (focusedCategory != null && !node.category.equals(focusedCategory, ignoreCase = true) && !isSelected) {
+                    return@mapNotNull null
+                }
+                val degree = constellation.nodeDegrees[node.factId] ?: 0
+                val showAtCurrentZoom = isSelected || isNeighbor || node.isPinned || node.importance >= 2 ||
+                    currentZoom >= 0.68f || (currentZoom >= 0.50f && node.importance >= 1)
+                if (!showAtCurrentZoom) return@mapNotNull null
+
+                val center = constellation.nodeCenters[node.factId] ?: return@mapNotNull null
+                val pos = toScreen(center)
+                if (pos.x < 12.dp.toPx() || pos.x > size.width - 12.dp.toPx() ||
+                    pos.y < topMarginPx || pos.y > size.height - bottomReservePx
+                ) {
+                    return@mapNotNull null
+                }
+                val radiusPx = starRadiusDp(node, degree).dp.toPx() * currentZoom.coerceIn(0.65f, 1.35f)
+                val display = ellipsizeText(node.title, labelPaint, maxChipW - padH)
+                val chipW = labelPaint.measureText(display) + padH
+                val priority = (if (isSelected) 10_000 else 0) +
+                    (if (isNeighbor) 4_000 else 0) +
+                    (if (node.isPinned) 1_000 else 0) +
+                    node.importance * 200 +
+                    degree * 40
+                LabelCandidate(
+                    node = node,
+                    starScreenX = pos.x,
+                    starScreenY = pos.y,
+                    starRadiusPx = radiusPx,
+                    chipWidthPx = chipW,
+                    chipHeightPx = chipH,
+                    priority = priority,
+                )
+            }
+
+            val placed = placeConstellationLabels(candidates, obstacles, labelMaxCount)
+            placed.forEach { item ->
+                val isSelected = item.node.factId == selectedNodeId
+                val tone = memoryCategoryColor(item.node.category, palette)
+                val display = ellipsizeText(item.node.title, labelPaint, maxChipW - padH)
+                drawRoundRect(
+                    color = if (isSelected) tone.copy(alpha = 0.26f) else palette.labelBg,
+                    topLeft = Offset(item.box.left, item.box.top),
+                    size = Size(item.box.right - item.box.left, item.box.bottom - item.box.top),
+                    cornerRadius = CornerRadius(chipH / 2f, chipH / 2f),
+                )
+                drawRoundRect(
+                    color = if (isSelected) tone else palette.labelBorder,
+                    topLeft = Offset(item.box.left, item.box.top),
+                    size = Size(item.box.right - item.box.left, item.box.bottom - item.box.top),
+                    cornerRadius = CornerRadius(chipH / 2f, chipH / 2f),
+                    style = Stroke(width = if (isSelected) 1.2.dp.toPx() else 0.7.dp.toPx()),
+                )
+                labelPaint.color = palette.labelText.toArgbInt()
+                drawContext.canvas.nativeCanvas.drawText(
+                    display,
+                    item.box.left + padH / 2f,
+                    (item.box.top + item.box.bottom) / 2f + labelPaint.textSize / 3f,
+                    labelPaint,
+                )
             }
         }
 
-        // 复位按钮
-        Surface(
-            onClick = resetView,
-            shape = RoundedCornerShape(MuseCornerRadius.BUTTON.dp),
-            color = colors.surface.copy(alpha = 0.92f),
-            border = androidx.compose.foundation.BorderStroke(0.6.dp, colors.outlineVariant),
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(MusePaddings.cardInner),
-        ) {
-            Text(
-                text = stringResource(R.string.memory_graph_reset_view),
-                style = MaterialTheme.typography.labelMedium,
-                color = colors.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+        // 顶部悬浮栏：分类星群 Chip + 观星台控制按钮
+        ConstellationTopOverlay(
+            clusters = constellation.clusters,
+            focusedCategory = focusedCategory,
+            palette = palette,
+            useObservatorySky = useObservatorySky,
+            isFullscreen = isFullscreen,
+            onSelectCategory = { cat ->
+                focusedCategory = cat
+                selectedNodeId = null
+                if (cat == null) {
+                    val bounds = computeConstellationBounds(constellation.nodeCenters.values)
+                    frameBoundsImmediate(bounds, maxZoomCap = 1.08f)
+                } else {
+                    focusBoundsForCategory(constellation, nodes, cat)?.let { bounds ->
+                        frameBoundsImmediate(bounds, maxZoomCap = 1.85f)
+                    }
+                }
+            },
+            onToggleSkyTheme = { useObservatorySky = !useObservatorySky },
+            onRebuildEdges = onRebuildEdges,
+            onOpenSettings = onOpenSettings,
+            onToggleFullscreen = onToggleFullscreen,
+            modifier = Modifier.align(Alignment.TopCenter),
+        )
+
+        // 连线模式引导条
+        linkSourceNode?.let { src ->
+            ConstellationLinkBanner(
+                sourceNode = src,
+                palette = palette,
+                onCancel = { linkSourceNode = null },
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 60.dp),
             )
         }
 
-        // 选中节点的操作面板
-        selectedNode?.let { node ->
-            val related = state.edges.filter { it.sourceFactId == node.factId || it.targetFactId == node.factId }
-            Surface(
-                modifier = Modifier.align(Alignment.BottomCenter).padding(MusePaddings.cardInner),
-                shape = RoundedCornerShape(MuseCornerRadius.SEMI_LARGE.dp),
-                color = colors.surface,
-                tonalElevation = 3.dp,
-            ) {
-                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(
-                        text = node.title,
-                        style = MaterialTheme.typography.titleSmall,
-                        color = colors.onSurface,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        text = "${categoryLabel(node.category)} · ${stringResource(R.string.memory_graph_node_related, related.size)}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = colors.onSurfaceVariant,
-                    )
-                    // v2.6.2（用户反馈）: 手动连线入口 —— 点一下进入选目标模式。
-                    if (onManualLink != null) {
-                        if (linkSourceNode == null) {
-                            MuseCapsuleButton(
-                                text = stringResource(R.string.memory_graph_link_action),
-                                onClick = {
-                                    linkSourceNode = node
-                                    selectedNode = null
-                                },
-                                variant = IosCapsuleButtonVariant.Text,
-                                fillWidth = false,
-                                modifier = Modifier.heightIn(min = 44.dp),
-                            )
-                        } else {
-                            Text(
-                                text = stringResource(R.string.memory_graph_link_pick_target),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = colors.primary,
-                            )
-                        }
-                    }
-                    @OptIn(ExperimentalLayoutApi::class)
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(MusePaddings.tinyGap),
-                        verticalArrangement = Arrangement.spacedBy(MusePaddings.tinyGap),
-                    ) {
-                        onNodeAction?.let { action ->
-                            val actionModifier = Modifier.heightIn(min = 44.dp)
-                            MuseCapsuleButton(
-                                text = stringResource(R.string.common_edit),
-                                onClick = { action(node, NodeAction.EDIT) },
-                                variant = IosCapsuleButtonVariant.Text,
-                                fillWidth = false,
-                                modifier = actionModifier,
-                            )
-                            MuseCapsuleButton(
-                                text = stringResource(R.string.memory_menu_pin),
-                                onClick = { action(node, NodeAction.PIN) },
-                                variant = IosCapsuleButtonVariant.Text,
-                                fillWidth = false,
-                                modifier = actionModifier,
-                            )
-                            MuseCapsuleButton(
-                                text = stringResource(R.string.common_delete),
-                                onClick = {
-                                    action(node, NodeAction.DELETE)
-                                    selectedNode = null
-                                },
-                                variant = IosCapsuleButtonVariant.Text,
-                                fillWidth = false,
-                                modifier = actionModifier,
-                            )
-                        }
-                        MuseCapsuleButton(
-                            text = stringResource(R.string.common_close),
-                            onClick = { selectedNode = null },
-                            variant = IosCapsuleButtonVariant.Text,
-                            fillWidth = false,
-                            modifier = Modifier.heightIn(min = 44.dp),
-                        )
-                    }
-                }
-            }
+        // 底部控件：未选中星体时展示统计与缩放按钮；选中时展示详细星体检视卡片
+        AnimatedVisibility(
+            visible = selectedNode == null,
+            enter = fadeIn(MuseMotion.tween(MuseAnimation.FAST_MS)),
+            exit = fadeOut(MuseMotion.tween(MuseAnimation.FAST_MS)),
+            modifier = Modifier.align(Alignment.BottomCenter),
+        ) {
+            ConstellationBottomControls(
+                nodeCount = nodes.size,
+                edgeCount = state.edges.size,
+                palette = palette,
+                onZoomIn = { zoomAroundViewportCenter(1.35f) },
+                onZoomOut = { zoomAroundViewportCenter(0.74f) },
+                onResetView = resetView,
+            )
         }
 
-        // v2.6.2（用户反馈）: 手动连线的关系类型选择弹窗。
+        selectedNode?.let { node ->
+            val related = state.edges.filter {
+                it.sourceFactId == node.factId || it.targetFactId == node.factId
+            }
+            ConstellationNodeInspectorCard(
+                node = node,
+                fullContent = fullContentCache,
+                loadingFullContent = loadingFullContent,
+                nodesById = nodesById,
+                relatedEdges = related,
+                palette = palette,
+                canManualLink = onManualLink != null,
+                onSelectNeighbor = { neighbor ->
+                    selectedNodeId = neighbor.factId
+                    focusOnStar(neighbor)
+                },
+                onEdgeAction = onEdgeAction,
+                onStartLink = {
+                    linkSourceNode = node
+                    selectedNodeId = null
+                },
+                onNodeAction = onNodeAction,
+                onClose = { selectedNodeId = null },
+                modifier = Modifier.align(Alignment.BottomCenter),
+            )
+        }
+
+        // 手动连线关系类型选择弹窗
         val srcNode = linkSourceNode
         val tgtNode = linkTargetNode
         if (onManualLink != null && srcNode != null && tgtNode != null) {
@@ -520,7 +758,7 @@ fun MemoryGraphView(
                 dismissText = stringResource(R.string.common_cancel),
                 onDismiss = { linkTargetNode = null },
                 content = {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(MuseSpacing.sm)) {
                         listOf(
                             "related_to" to R.string.memory_graph_link_type_related,
                             "causes" to R.string.memory_graph_link_type_causes,
@@ -533,6 +771,7 @@ fun MemoryGraphView(
                                     onManualLink(srcNode, tgtNode, type)
                                     linkSourceNode = null
                                     linkTargetNode = null
+                                    selectedNodeId = tgtNode.factId
                                 },
                                 variant = IosCapsuleButtonVariant.Text,
                                 fillWidth = true,
@@ -545,77 +784,159 @@ fun MemoryGraphView(
     }
 }
 
-/** 节点半径:置顶/高重要度更大,普通节点最小。 */
-private fun nodeRadiusDp(node: MemoryGraphNode): Float = when {
-    node.isPinned || node.importance >= 2 -> 15f
-    node.importance == 1 -> 12f
-    else -> 9f
+private fun starRadiusDp(node: MemoryGraphNode, degree: Int): Float = when {
+    node.isPinned -> 14.5f
+    node.importance >= 2 -> 13.5f
+    node.importance == 1 || degree >= 3 -> 11f
+    else -> 8.5f
 }
 
-/**
- * 画一个"胶囊标签":浅底圆角矩形 + 描边 + 单行文字。
- *
- * @param center 标签锚点中心;anchorRight=true 表示文字贴在锚点左侧(右对齐)
- */
-private fun DrawScope.drawChipLabel(
+private fun DrawScope.drawStarfieldBackdrop(palette: MuseConstellationPalette, canvasSize: Size) {
+    drawRect(color = palette.canvasBg)
+    drawRect(
+        brush = Brush.radialGradient(
+            colors = listOf(palette.canvasNebulaPrimary.copy(alpha = 0.24f), Color.Transparent),
+            center = Offset(canvasSize.width * 0.28f, canvasSize.height * 0.30f),
+            radius = maxOf(canvasSize.width, canvasSize.height) * 0.65f,
+        ),
+    )
+    drawRect(
+        brush = Brush.radialGradient(
+            colors = listOf(palette.canvasNebulaSecondary.copy(alpha = 0.18f), Color.Transparent),
+            center = Offset(canvasSize.width * 0.76f, canvasSize.height * 0.72f),
+            radius = maxOf(canvasSize.width, canvasSize.height) * 0.55f,
+        ),
+    )
+    for (i in 0 until STARDUST_COUNT) {
+        val fx = (((i * 73 + 19) % 997) / 997f) * canvasSize.width
+        val fy = (((i * 137 + 43) % 991) / 991f) * canvasSize.height
+        val r = (0.7f + (i % 3) * 0.45f).dp.toPx()
+        val a = 0.08f + (i % 4) * 0.045f
+        drawCircle(
+            color = palette.stardust.copy(alpha = a),
+            radius = r,
+            center = Offset(fx, fy),
+        )
+    }
+}
+
+private fun DrawScope.drawStarFlare(center: Offset, armPx: Float, color: Color) {
+    val corePx = armPx * 0.18f
+    val path = Path().apply {
+        moveTo(center.x, center.y - armPx)
+        quadraticBezierTo(center.x, center.y, center.x + corePx, center.y - corePx)
+        lineTo(center.x + armPx, center.y)
+        quadraticBezierTo(center.x, center.y, center.x + corePx, center.y + corePx)
+        lineTo(center.x, center.y + armPx)
+        quadraticBezierTo(center.x, center.y, center.x - corePx, center.y + corePx)
+        lineTo(center.x - armPx, center.y)
+        quadraticBezierTo(center.x, center.y, center.x - corePx, center.y - corePx)
+        close()
+    }
+    drawPath(path = path, color = color)
+}
+
+private fun DrawScope.drawCauseArrow(mid: Offset, dx: Float, dy: Float, color: Color) {
+    val angle = atan2(dy, dx)
+    val arrowLen = 7.dp.toPx()
+    val spread = (PI / 5.5).toFloat()
+    val left = Offset(
+        mid.x - cos(angle - spread) * arrowLen,
+        mid.y - sin(angle - spread) * arrowLen,
+    )
+    val right = Offset(
+        mid.x - cos(angle + spread) * arrowLen,
+        mid.y - sin(angle + spread) * arrowLen,
+    )
+    drawLine(color, mid, left, strokeWidth = 1.6.dp.toPx(), cap = StrokeCap.Round)
+    drawLine(color, mid, right, strokeWidth = 1.6.dp.toPx(), cap = StrokeCap.Round)
+}
+
+private fun DrawScope.drawRelationBadge(
     text: String,
     center: Offset,
     textColor: Color,
-    background: Color,
-    border: Color,
-    density: androidx.compose.ui.unit.Density,
-    fontSize: androidx.compose.ui.unit.TextUnit,
-    maxWidthPx: Float,
-    anchorRight: Boolean = false,
-    letterSpacing: Float = 0f,
+    bgColor: Color,
+    borderColor: Color,
+    paint: android.graphics.Paint,
+    density: Density,
 ) {
-    if (text.isBlank()) return
-    val paint = android.graphics.Paint().apply {
-        this.color = textColor.toArgb()
-        textSize = with(density) { fontSize.toPx() }
-        isAntiAlias = true
-        textAlign = android.graphics.Paint.Align.LEFT
-        // letterSpacing 单位是 em,这里按字号的倍数换算
-        this.letterSpacing = letterSpacing / fontSize.value.coerceAtLeast(1f)
-        typeface = android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.NORMAL)
-    }
-    val ellipsis = "…"
-    val maxTextWidth = maxWidthPx - 16.dp.toPx()
-    val displayText = if (paint.measureText(text) > maxTextWidth) {
-        var cut = text.length
-        while (cut > 0 && paint.measureText(text.substring(0, cut) + ellipsis) > maxTextWidth) cut--
-        text.substring(0, cut) + ellipsis
-    } else {
-        text
-    }
-    val textWidth = paint.measureText(displayText)
-    val chipWidth = textWidth + 16.dp.toPx()
-    val chipHeight = paint.textSize + 12.dp.toPx()
-    val left = if (anchorRight) center.x - chipWidth else center.x
-    val top = center.y - chipHeight / 2f
-    val corner = chipHeight / 2f
+    val padH = with(density) { 10.dp.toPx() }
+    val w = paint.measureText(text) + padH
+    val h = paint.textSize + with(density) { 7.dp.toPx() }
+    val left = center.x - w / 2f
+    val top = center.y - h / 2f
     drawRoundRect(
-        color = background,
+        color = bgColor,
         topLeft = Offset(left, top),
-        size = androidx.compose.ui.geometry.Size(chipWidth, chipHeight),
-        cornerRadius = androidx.compose.ui.geometry.CornerRadius(corner, corner),
+        size = Size(w, h),
+        cornerRadius = CornerRadius(h / 2f, h / 2f),
     )
     drawRoundRect(
-        color = border,
+        color = borderColor,
         topLeft = Offset(left, top),
-        size = androidx.compose.ui.geometry.Size(chipWidth, chipHeight),
-        cornerRadius = androidx.compose.ui.geometry.CornerRadius(corner, corner),
-        style = Stroke(width = 0.7.dp.toPx()),
+        size = Size(w, h),
+        cornerRadius = CornerRadius(h / 2f, h / 2f),
+        style = Stroke(width = 0.8.dp.toPx()),
     )
+    paint.color = textColor.toArgbInt()
     drawContext.canvas.nativeCanvas.drawText(
-        displayText,
-        left + 8.dp.toPx(),
-        top + chipHeight / 2f + paint.textSize / 3f,
+        text,
+        center.x,
+        top + h / 2f + paint.textSize / 3f,
         paint,
     )
 }
 
-private fun Color.toArgb(): Int = android.graphics.Color.argb(
+private fun DrawScope.drawClusterBadge(
+    id: Long,
+    text: String,
+    center: Offset,
+    textColor: Color,
+    bgColor: Color,
+    borderColor: Color,
+    paint: android.graphics.Paint,
+    density: Density,
+): ScreenLabelBox {
+    val padH = with(density) { 16.dp.toPx() }
+    val w = paint.measureText(text) + padH
+    val h = paint.textSize + with(density) { 10.dp.toPx() }
+    val left = center.x - w / 2f
+    val top = center.y - h / 2f
+    drawRoundRect(
+        color = bgColor,
+        topLeft = Offset(left, top),
+        size = Size(w, h),
+        cornerRadius = CornerRadius(h / 2f, h / 2f),
+    )
+    drawRoundRect(
+        color = borderColor,
+        topLeft = Offset(left, top),
+        size = Size(w, h),
+        cornerRadius = CornerRadius(h / 2f, h / 2f),
+        style = Stroke(width = 0.8.dp.toPx()),
+    )
+    paint.color = textColor.toArgbInt()
+    drawContext.canvas.nativeCanvas.drawText(
+        text,
+        center.x,
+        top + h / 2f + paint.textSize / 3f,
+        paint,
+    )
+    return ScreenLabelBox(id = id, left = left, top = top, right = left + w, bottom = top + h)
+}
+
+private fun ellipsizeText(text: String, paint: android.graphics.Paint, maxWidthPx: Float): String {
+    if (text.isBlank() || paint.measureText(text) <= maxWidthPx) return text
+    val ellipsis = "…"
+    var cut = text.length
+    while (cut > 0 && paint.measureText(text.substring(0, cut) + ellipsis) > maxWidthPx) {
+        cut--
+    }
+    return if (cut <= 0) ellipsis else text.substring(0, cut) + ellipsis
+}
+
+private fun Color.toArgbInt(): Int = android.graphics.Color.argb(
     (alpha * 255).toInt(),
     (red * 255).toInt(),
     (green * 255).toInt(),
@@ -624,30 +945,3 @@ private fun Color.toArgb(): Int = android.graphics.Color.argb(
 
 enum class NodeAction { EDIT, DELETE, PIN, LINK }
 enum class EdgeAction { CONFIRM, DELETE }
-
-@Composable
-private fun categoryLabel(category: String): String = stringResource(categoryStringRes(category))
-
-private fun categoryStringRes(category: String): Int = when (category.lowercase()) {
-    "preference" -> R.string.memory_graph_category_preference
-    "identity" -> R.string.memory_graph_category_identity
-    "event" -> R.string.memory_graph_category_event
-    "relationship" -> R.string.memory_graph_category_relationship
-    "goal" -> R.string.memory_graph_category_goal
-    "medical" -> R.string.memory_graph_category_medical
-    else -> R.string.memory_graph_category_general
-}
-
-private fun nodeToneColor(
-    category: String,
-    scheme: androidx.compose.material3.ColorScheme,
-    statusColors: io.zer0.muse.ui.theme.MuseStatusColors,
-): Color = when (category.lowercase()) {
-    "preference" -> scheme.secondary
-    "identity" -> scheme.primary
-    "event" -> scheme.tertiary
-    "relationship" -> scheme.primary.copy(alpha = 0.82f)
-    "goal" -> statusColors.success
-    "medical" -> statusColors.warning
-    else -> scheme.primary
-}

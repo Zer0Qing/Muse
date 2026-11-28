@@ -58,11 +58,12 @@ class DeviceCapabilityProfileTest {
         }
     }
 
-    private fun promptContext(forSubagent: Boolean = false) = PromptContext(
+    private fun promptContext(forSubagent: Boolean = false, userInput: String = "帮我打开应用截屏") = PromptContext(
         assistantId = "a1",
         sessionId = "s1",
         locale = "zh",
         forSubagent = forSubagent,
+        userInput = userInput,
     )
 
     // ── 档案派生属性 ────────────────────────────────────────────
@@ -115,7 +116,7 @@ class DeviceCapabilityProfileTest {
         assertTrue(text.contains("Shell 通道(Shizuku/adb: input/screencap/pm/am/settings): 不可用"))
         assertTrue(text.contains("Root(su: 系统分区读写/完整控制): 不可用"))
         assertTrue(text.contains("截屏能力: 不可用"))
-        assertTrue(text.contains("内置 Node 运行时(跑脚本/数据处理/MCP stdio): 可用"))
+        assertTrue(text.contains("Linux 沙盒运行时(Node/Python 脚本与数据处理): 可用"))
         assertTrue(text.contains("当前最高权限层: 无障碍"))
     }
 
@@ -128,7 +129,11 @@ class DeviceCapabilityProfileTest {
 
     @Test
     fun `operating guide covers channel selection verification and escalation`() {
-        val guide = DeviceCapabilityProfile().renderOperatingGuide()
+        val guide = DeviceCapabilityProfile.fromFlags(
+            accessibility = true,
+            shizuku = false,
+            root = false,
+        ).renderOperatingGuide()
         // 先探测再动手
         assertTrue(guide, guide.contains("动手前先确认能力"))
         // 按最低够用层级选通道（避免一上来就动 Root）
@@ -161,7 +166,7 @@ class DeviceCapabilityProfileTest {
         assertTrue(injected, injected.contains("设备能力档案"))
         assertTrue(injected, injected.contains("操作手机的决策规程"))
         assertTrue(injected, injected.contains("当前最高权限层: 无障碍"))
-        assertTrue(injected, injected.contains("内置 Node 运行时(跑脚本/数据处理/MCP stdio): 可用"))
+        assertTrue(injected, injected.contains("Linux 沙盒运行时(Node/Python 脚本与数据处理): 可用"))
     }
 
     @Test
@@ -195,6 +200,17 @@ class DeviceCapabilityProfileTest {
         val injected = hook.afterComposeSystemPrompt(promptContext())
         assertTrue(injected.contains("设备能力档案"))
         assertTrue(injected.contains("虚拟屏(把应用启动到独立屏幕,不打扰用户当前界面): 不可用"))
+    }
+
+    @Test
+    fun `hook injects compact one-line summary for casual chat`() = runTest {
+        val hook = DeviceCapabilityHook(
+            automationManager = managerWithState(accessibility = true, shell = false, root = false),
+            nodeRuntimeProbe = { true },
+        )
+        val injected = hook.afterComposeSystemPrompt(promptContext(userInput = "你好呀"))
+        assertTrue(injected.startsWith("## 设备能力\n"))
+        assertFalse("闲聊不得注入完整操作规程", injected.contains("操作手机的决策规程"))
     }
 
     @Test

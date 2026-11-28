@@ -40,6 +40,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
 import io.zer0.muse.data.lorebook.LorebookEntity
 import io.zer0.muse.data.lorebook.LorebookRepository
+import io.zer0.muse.ui.chat.ChatViewModel
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseActionSheetRow
@@ -60,8 +61,9 @@ import io.zer0.muse.ui.common.surface.MuseSurface
 import io.zer0.muse.ui.common.surface.museBottomBarInsets
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseShapes
+import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
-import io.zer0.muse.ui.chat.ChatViewModel
+import org.koin.compose.koinInject
 
 /**
  * Phase 8.5: Lorebook(世界书)管理页。
@@ -81,15 +83,18 @@ fun LorebookScreen(onBack: () -> Unit, viewModel: ChatViewModel = koinViewModel(
     var deleteTarget by remember { mutableStateOf<LorebookEntity?>(null) }
 
     val newDefaultName = stringResource(R.string.lorebook_new_default_name)
+    val ioScope = androidx.compose.runtime.rememberCoroutineScope()
+    val lorebookRepo: LorebookRepository = koinInject()
+    val saveFailedText = stringResource(R.string.common_save_failed)
     // 新建动作只在一处定义：FAB 与空态按钮共用，避免两处各写一份实体构造。
     val onCreate: () -> Unit = {
         val now = System.currentTimeMillis()
         editing = LorebookEntity(
-                        id = "lorebook-$now",
-                        name = newDefaultName,
-                        createdAt = now,
-                        updatedAt = now,
-                    )
+            id = "lorebook-$now",
+            name = newDefaultName,
+            createdAt = now,
+            updatedAt = now,
+        )
         isNew = true
     }
     // i18n: 预提取字符串资源,避免在 onClick 等非 Composable lambda 内调用 stringResource
@@ -103,9 +108,20 @@ fun LorebookScreen(onBack: () -> Unit, viewModel: ChatViewModel = koinViewModel(
                 isNew = false
             },
             onSave = { saved ->
-                viewModel.saveLorebook(saved)
                 editing = null
                 isNew = false
+                // 写盘失败必须说出来。之前直接交给 ViewModel 静默执行，
+                // 表单一关、列表还是空，用户只会以为「保存没生效」。
+                ioScope.launch {
+                    val ok = runCatching {
+                        lorebookRepo.upsert(saved.copy(updatedAt = System.currentTimeMillis()))
+                    }.isSuccess
+                    if (ok) {
+                        viewModel.refreshLorebooks()
+                    } else {
+                        io.zer0.muse.ui.common.feedback.MuseToast.show(saveFailedText)
+                    }
+                }
             },
         )
         return

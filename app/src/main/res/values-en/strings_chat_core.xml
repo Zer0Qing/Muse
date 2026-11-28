@@ -172,6 +172,10 @@
     <string name="chat_loading_thinking">Thinking</string>
     <string name="chat_tool_params">Parameters</string>
     <string name="chat_tool_result">Result</string>
+    <string name="chat_mcp_image_result">Image attachment · %1$s · %2$s</string>
+    <string name="chat_mcp_image_preview_unavailable">No preview is available</string>
+    <string name="chat_mcp_audio_result">Audio attachment · %1$s · %2$s</string>
+    <string name="chat_mcp_audio_playback_unavailable">Playback is unavailable</string>
 
     <!-- ===== InputBar ===== -->
     <!-- Top toggles -->
@@ -570,6 +574,7 @@
     <string name="backup_import_error_version">The backup version is too new or too old for this app.</string>
     <string name="backup_import_error_missing">The backup file is missing. It may have been moved or deleted.</string>
     <string name="backup_import_error_space">There is not enough storage. Free some space and try again.</string>
+    <string name="backup_import_error_empty">This backup file is empty (0 bytes), so there is nothing to import. Check whether the export was interrupted, or try another backup.</string>
     <string name="backup_import_error_unknown">The backup is invalid. The previous state was restored.</string>
     <string name="onboarding_connect_error_unauthorized">The API key is invalid or expired. Enter it again.</string>
     <string name="onboarding_connect_error_forbidden">Access is denied. Check that this key can use the selected model.</string>

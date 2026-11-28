@@ -3,13 +3,13 @@ package io.zer0.muse.tools
 import android.content.Context
 import android.webkit.URLUtil
 import io.zer0.common.Logger
+import io.zer0.muse.ui.common.SsrfGuard
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jsoup.Jsoup
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
-import io.zer0.muse.ui.common.SsrfGuard
 
 /**
  * v1.0.47 P2-2/P2-3/P2-4: 文件与链接工具集(AI 可调用)。
@@ -152,7 +152,24 @@ object FileTools {
                 // 用 filesDir 那一支推目录：tool_outputs/ 就挂在它下面。
                 siblingHint(File(context.filesDir, trimmedPath))
 
-        if (!target.canRead()) return "[错误] 文件不可读: ${target.absolutePath}"
+        if (!target.canRead()) {
+            // 公共 Download 目录在 Android 10+ 受分区存储限制：文件确实存在，
+            // 但应用没有直接读权限，MediaProvider 会拒绝。这里必须说清是权限问题、
+            // 并给出用户能走的两条路，否则模型只会反复重试同一个路径。
+            val inPublicDownloads = runCatching {
+                target.canonicalPath.startsWith(
+                    android.os.Environment
+                        .getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS)
+                        .canonicalPath,
+                )
+            }.getOrDefault(false)
+            return if (inPublicDownloads) {
+                "[错误] 系统拒绝了读取公共 Download 目录里的文件（Android 分区存储限制）。" +
+                    "请不要重试同一路径。可选做法：让用户把文件导入知识库，或复制到应用工作区后再读。"
+            } else {
+                "[错误] 文件不可读: ${target.absolutePath}"
+            }
+        }
 
         val size = target.length()
         val requestedOffset = args["offset_chars"]?.toIntOrNull()?.coerceAtLeast(0)

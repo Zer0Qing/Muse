@@ -151,6 +151,7 @@ object ProactiveReplyParser {
     }
 
     private fun fallbackToProse(text: String): Result {
+        if (looksLikeSkipRefusal(text)) return Result.Skip("模型用自然语言表示暂不发送")
         if (!looksLikeProse(text)) return Result.Failed("输出无法解析")
         Logger.w(TAG, "模型未按 JSON 返回，按纯文本正文接受")
         return Result.Message(null, text, "")
@@ -199,7 +200,19 @@ object ProactiveReplyParser {
      * 这个兜底存在是因为有些小模型就是不肯返回 JSON，
      * 而它写出来的话往往是可用的 —— 扔掉它等于白白失败一次。
      */
+    private fun looksLikeSkipRefusal(text: String): Boolean {
+        val lower = text.trim().lowercase()
+        return lower.contains("暂时不发") ||
+            lower.contains("先跳过") ||
+            lower.contains("不需要发") ||
+            lower.contains("不必主动") ||
+            lower.startsWith("skip") ||
+            lower.contains("no need to send") ||
+            lower.contains("don't send")
+    }
+
     private fun looksLikeProse(text: String): Boolean {
+        if (looksLikeSkipRefusal(text)) return false
         val structural = text.count { it == '{' || it == '}' || it == ':' }
         return text.length in 4..800 &&
             !text.contains("\"skip\"") &&

@@ -68,124 +68,151 @@ class DefaultMemoryDreamService(
         )
     }
 
-    override suspend fun start(scope: MemoryScopeKey, trigger: DreamTrigger, currentSections: Map<String, String>): DreamStartResult =
+    override suspend fun start(
+        scope: MemoryScopeKey,
+        trigger: DreamTrigger,
+        currentSections: Map<String, String>,
+    ): DreamStartResult =
         mutex.withLock {
             MemoryMaintenanceLock.mutex.withLock {
                 withContext(Dispatchers.IO) {
-                    val fence = writeGate?.fence()
-                    if (writeGate?.blocksWrite(scope, fence) == true) {
-                        return@withContext DreamStartResult.Rejected(GATE_PAUSED_REASON)
-                    }
-                    val state = stateFor(scope)
-                    hydrate(scope, state)
-                    if (state.snapshot().running) return@withContext DreamStartResult.Rejected("dream already running")
-                    val runId = UUID.randomUUID().toString()
-                    state.start(runId)
-                    try {
-                        persist(scope, state, fence)
-                    } catch (cancelled: CancellationException) {
-                        abortCancelled(scope, state, cancelled, fence)
-                    }
-                    // 先让 planner 产出候选，再校验；模型输出永远不直接落库。
-                    // planner 为 null 时走纯长度收敛，保持「Dream 只整理不生成」的旧行为。
-                    // 取消必须在这里就收尾：planner 跑在下面的发布 try 之外，漏掉这一步会让
-                    // 持久化行永远停在 running=true，用户之后每次启动都被「已在运行」挡住。
-                    val nextSections: Map<String, String> = try {
-                        if (planner == null) {
-                            preserveAndTrimSections(currentSections)
-                        } else {
-                            when (val result = runPlanner(planner, currentSections)) {
-                                is DreamPlanResult.Planned -> currentSections + result.sections
-                                DreamPlanResult.Empty -> {
-                                    state.markStopped()
-                                    persist(scope, state, fence)
-                                    return@withContext DreamStartResult.Rejected("dream plan is empty")
-                                }
-                                is DreamPlanResult.Rejected -> {
-                                    state.markFailure(result.reason)
-                                    persist(scope, state, fence)
-                                    return@withContext DreamStartResult.Rejected(result.reason)
-                                }
-                                is DreamPlanResult.Failed -> {
-                                    state.markFailure(result.reason)
-                                    persist(scope, state, fence)
-                                    return@withContext DreamStartResult.Rejected(result.reason)
-                                }
-                            }
-                        }
-                    } catch (cancelled: CancellationException) {
-                        abortCancelled(scope, state, cancelled, fence)
-                    }
-                    if (writeGate?.blocksWrite(scope, fence) == true) {
-                        state.markFailure(GATE_PAUSED_REASON)
-                        return@withContext DreamStartResult.Rejected(GATE_PAUSED_REASON)
-                    }
-                    val changed = diffSections(currentSections, nextSections)
-                    if (changed.isEmpty()) {
-                        state.markStopped()
-                        persist(scope, state, fence)
-                        return@withContext DreamStartResult.Rejected("dream made no changes")
-                    }
-                    val revision = MemoryDreamRevision(
-                        runId,
-                        trigger,
-                        fingerprintCompiled(currentSections),
-                        currentSections,
-                        nextSections,
-                        Instant.now().toString(),
-                    )
-                    try {
-                        val latest = snapshotReader?.invoke(scope)
-                        if (latest != null && fingerprintCompiled(latest) != revision.beforeFingerprint) {
-                            state.markFailure("memory changed during dream")
-                            persist(scope, state, fence)
-                            return@withContext DreamStartResult.Rejected("memory changed during dream")
-                        }
-                        if (db != null) {
-                            var blockedInTransaction = false
-                            db.withTransaction {
-                                if (writeGate?.blocksWrite(scope, fence) == true) {
-                                    blockedInTransaction = true
-                                    return@withTransaction
-                                }
-                                publishSections(scope, changed, revision.beforeFingerprint, revision.publishedAt)
-                                db.memoryDreamDao().insertRevision(revision.toEntity(scope))
-                                state.markPublished(runId)
-                                db.memoryDreamDao().upsertState(state.toEntity(scope))
-                            }
-                            if (blockedInTransaction) {
-                                state.markFailure(GATE_PAUSED_REASON)
-                                return@withContext DreamStartResult.Rejected(GATE_PAUSED_REASON)
-                            }
-                        } else if (!state.publish(revision)) {
-                            state.markFailure("dream publish rejected")
-                            persist(scope, state, fence)
-                            return@withContext DreamStartResult.Rejected("dream publish rejected")
-                        } else {
-                            state.markPublished(runId)
-                            persist(scope, state, fence)
-                        }
-                        DreamStartResult.Started(runId)
-                    } catch (cancelled: CancellationException) {
-                        abortCancelled(scope, state, cancelled, fence)
-                    } catch (error: Exception) {
-                        state.markFailure(error.message ?: "dream publish failed")
-                        persist(scope, state, fence)
-                        DreamStartResult.Rejected("dream publish failed")
-                    }
+                    runStart(scope, trigger, currentSections)
                 }
             }
         }
 
-    override suspend fun currentSections(scope: MemoryScopeKey): Map<String, String> =
-        withContext(Dispatchers.IO) {
-            snapshotReader?.invoke(scope)
-                ?: db?.scopedCompiledSectionDao()
-                    ?.getForScope(scope.scope, scope.spaceId)
-                    ?.filter { row -> row.status == "READY" }
-                    ?.associate { row -> row.sectionKey to row.content }
-                ?: emptyMap()
+    private suspend fun runStart(scope: MemoryScopeKey, trigger: DreamTrigger, currentSections: Map<String, String>): DreamStartResult {
+        val fence = writeGate?.fence()
+        if (writeGate?.blocksWrite(scope, fence) == true) return DreamStartResult.Rejected(GATE_PAUSED_REASON)
+        val state = stateFor(scope)
+        hydrate(scope, state)
+        if (state.snapshot().running) return DreamStartResult.Rejected("dream already running")
+        val runId = UUID.randomUUID().toString()
+        state.start(runId)
+        try {
+            persist(scope, state, fence)
+        } catch (cancelled: CancellationException) {
+            abortCancelled(scope, state, cancelled, fence)
         }
+        // 先让 planner 产出候选，再校验；模型输出永远不直接落库。
+        // planner 为 null 时走纯长度收敛，保持「Dream 只整理不生成」的旧行为。
+        // 取消必须在这里就收尾：planner 跑在下面的发布 try 之外，漏掉这一步会让
+        // 持久化行永远停在 running=true，用户之后每次启动都被「已在运行」挡住。
+        val plan: DreamPlanResult = try {
+            resolveDreamPlan(
+                planner = planner,
+                currentSections = currentSections,
+                fallback = { preserveAndTrimSections(currentSections) },
+                runPlanner = ::runPlanner,
+            )
+        } catch (cancelled: CancellationException) {
+            abortCancelled(scope, state, cancelled, fence)
+        }
+        return when (plan) {
+            is DreamPlanResult.Planned -> publishDream(
+                scope,
+                trigger,
+                currentSections,
+                currentSections + plan.sections,
+                state,
+                runId,
+                fence,
+            )
+            DreamPlanResult.Empty -> {
+                state.markStopped()
+                persist(scope, state, fence)
+                DreamStartResult.Rejected("dream plan is empty")
+            }
+            is DreamPlanResult.Rejected -> {
+                state.markFailure(plan.reason)
+                persist(scope, state, fence)
+                DreamStartResult.Rejected(plan.reason)
+            }
+            is DreamPlanResult.Failed -> {
+                state.markFailure(plan.reason)
+                persist(scope, state, fence)
+                DreamStartResult.Rejected(plan.reason)
+            }
+        }
+    }
+
+    private suspend fun publishDream(
+        scope: MemoryScopeKey,
+        trigger: DreamTrigger,
+        currentSections: Map<String, String>,
+        nextSections: Map<String, String>,
+        state: MemoryDreamState,
+        runId: String,
+        fence: MemoryWriteFence?,
+    ): DreamStartResult {
+        if (writeGate?.blocksWrite(scope, fence) == true) {
+            state.markFailure(GATE_PAUSED_REASON)
+            return DreamStartResult.Rejected(GATE_PAUSED_REASON)
+        }
+        val changed = diffSections(currentSections, nextSections)
+        if (changed.isEmpty()) {
+            state.markStopped()
+            persist(scope, state, fence)
+            return DreamStartResult.Rejected("dream made no changes")
+        }
+        val revision = MemoryDreamRevision(
+            runId,
+            trigger,
+            fingerprintCompiled(currentSections),
+            currentSections,
+            nextSections,
+            Instant.now().toString(),
+        )
+        return try {
+            val latest = snapshotReader?.invoke(scope)
+            if (latest != null && fingerprintCompiled(latest) != revision.beforeFingerprint) {
+                state.markFailure("memory changed during dream")
+                persist(scope, state, fence)
+                DreamStartResult.Rejected("memory changed during dream")
+            } else if (db != null) {
+                var blockedInTransaction = false
+                db.withTransaction {
+                    if (writeGate?.blocksWrite(scope, fence) == true) {
+                        blockedInTransaction = true
+                        return@withTransaction
+                    }
+                    publishSections(scope, changed, revision.beforeFingerprint, revision.publishedAt)
+                    db.memoryDreamDao().insertRevision(revision.toEntity(scope, json))
+                    state.markPublished(runId)
+                    db.memoryDreamDao().upsertState(state.toEntity(scope))
+                }
+                if (blockedInTransaction) {
+                    state.markFailure(GATE_PAUSED_REASON)
+                    DreamStartResult.Rejected(GATE_PAUSED_REASON)
+                } else {
+                    DreamStartResult.Started(runId)
+                }
+            } else if (!state.publish(revision)) {
+                state.markFailure("dream publish rejected")
+                persist(scope, state, fence)
+                DreamStartResult.Rejected("dream publish rejected")
+            } else {
+                state.markPublished(runId)
+                persist(scope, state, fence)
+                DreamStartResult.Started(runId)
+            }
+        } catch (cancelled: CancellationException) {
+            abortCancelled(scope, state, cancelled, fence)
+        } catch (error: Exception) {
+            state.markFailure(error.message ?: "dream publish failed")
+            persist(scope, state, fence)
+            DreamStartResult.Rejected("dream publish failed")
+        }
+    }
+
+    override suspend fun currentSections(scope: MemoryScopeKey): Map<String, String> = withContext(Dispatchers.IO) {
+        snapshotReader?.invoke(scope)
+            ?: db?.scopedCompiledSectionDao()
+                ?.getForScope(scope.scope, scope.spaceId)
+                ?.filter { row -> row.status == "READY" }
+                ?.associate { row -> row.sectionKey to row.content }
+            ?: emptyMap()
+    }
 
     override suspend fun stop(scope: MemoryScopeKey): DreamStopResult = mutex.withLock {
         MemoryMaintenanceLock.mutex.withLock {
@@ -226,7 +253,7 @@ class DefaultMemoryDreamService(
                 hydrate(scope, state)
                 val revision = db?.memoryDreamDao()
                     ?.findRevision(revisionId, scope.assistantId, scope.scope, scope.spaceId)
-                    ?.toRevision()
+                    ?.toRevision(json)
                     ?: state.revisionOf(revisionId)
                     ?: return@withContext DreamRestoreResult.Rejected("revision not found: $revisionId")
                 if (revision.nextSections.isEmpty()) {
@@ -318,12 +345,7 @@ class DefaultMemoryDreamService(
      * 旧实现整段 `deleteForScope + 重写`，会把同时存在的 FAILED/STALE 投影和新编译成果一起抹掉；
      * 逐 key UPSERT 才能既让 Dream 生效，又保留无关行。
      */
-    private suspend fun publishSections(
-        scope: MemoryScopeKey,
-        changed: Map<String, String>,
-        sourceFingerprint: String,
-        now: String,
-    ) {
+    private suspend fun publishSections(scope: MemoryScopeKey, changed: Map<String, String>, sourceFingerprint: String, now: String) {
         val scoped = db?.scopedCompiledSectionDao() ?: return
         for ((key, content) in changed) {
             scoped.updateContent(
@@ -358,79 +380,6 @@ class DefaultMemoryDreamService(
 
     private fun legacySectionDao(): CompiledSectionDao = requireNotNull(db).compiledSectionDao()
 
-    private fun MemoryDreamRevision.toEntity(scope: MemoryScopeKey) = MemoryDreamRevisionEntity(
-        revisionId, scope.assistantId, scope.scope, scope.spaceId, trigger.name, beforeFingerprint,
-        json.encodeToString(before), json.encodeToString(nextSections), publishedAt,
-    )
-
-    private fun MemoryDreamRevisionEntity.toRevision() = MemoryDreamRevision(
-        revisionId,
-        DreamTrigger.valueOf(trigger),
-        beforeFingerprint,
-        json.decodeFromString(beforeJson),
-        json.decodeFromString(nextJson),
-        publishedAt,
-    )
-
-    private fun MemoryDreamState.toEntity(scope: MemoryScopeKey): MemoryDreamStateEntity {
-        val value = snapshot()
-        return MemoryDreamStateEntity(
-            scope.assistantId,
-            scope.scope,
-            scope.spaceId,
-            value.running,
-            value.runId,
-            value.lastRevisionId,
-            activeRevisionId(),
-            value.lastError,
-        )
-    }
-
-    /**
-     * 跑一次 planner 并把异常收敛成 [DreamPlanResult.Failed]。
-     *
-     * 取消必须原样抛出：它表示上层主动停止，不是「计划失败」，吞掉会让 stop 语义失效。
-     */
-    private suspend fun runPlanner(planner: MemoryDreamPlanner, current: Map<String, String>): DreamPlanResult =
-        try {
-            MemoryDreamPlanValidator.validate(planner.plan(current), current)
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (error: Exception) {
-            DreamPlanResult.Failed(error.message ?: "dream planner failed")
-        }
-
-    /**
-     * planner 缺席时的保守整理：只收敛 longterm 长度。
-     *
-     * 以 current 为底而不是重建四段：未知 section 不该因为 Dream 跑一次就被丢掉。
-     */
-    private fun preserveAndTrimSections(current: Map<String, String>): Map<String, String> {
-        val facts = current[MemoryCompiler.Section.FACTS.key].orEmpty()
-        val today = current[MemoryCompiler.Section.TODAY.key].orEmpty()
-        val week = current[MemoryCompiler.Section.WEEK.key].orEmpty()
-        val longterm = current[MemoryCompiler.Section.LONGTERM.key].orEmpty()
-        val joined = listOf(longterm, facts, today, week).filter { it.isNotBlank() }.joinToString("\n")
-        val trimmed = if (joined.length <= 830) joined else joined.take(730) + "\n[…]"
-        return current + (MemoryCompiler.Section.LONGTERM.key to trimmed)
-    }
-
-    /** 两个快照之间内容真正不同的 key（任一侧缺失也算差异）。 */
-    private fun diffSections(before: Map<String, String>, after: Map<String, String>): Map<String, String> {
-        val keys = before.keys + after.keys
-        return keys.mapNotNull { key ->
-            val old = before[key]?.trim().orEmpty()
-            val new = after[key] ?: return@mapNotNull null
-            if (old == new.trim()) null else key to new
-        }.toMap()
-    }
-
-    /** 这次 revision 改过的 key：回滚只需要处理这些。 */
-    private fun changedKeys(before: Map<String, String>, after: Map<String, String>): List<String> =
-        (before.keys + after.keys).filter { key ->
-            before[key]?.trim().orEmpty() != after[key]?.trim().orEmpty()
-        }
-
     private companion object {
         const val MAIN_SCOPE = "main"
         const val DEFAULT_SPACE = "default"
@@ -438,3 +387,81 @@ class DefaultMemoryDreamService(
         const val STALE_RUN_ERROR = "previous dream run interrupted"
     }
 }
+
+private fun MemoryDreamRevision.toEntity(scope: MemoryScopeKey, json: Json) = MemoryDreamRevisionEntity(
+    revisionId,
+    scope.assistantId,
+    scope.scope,
+    scope.spaceId,
+    trigger.name,
+    beforeFingerprint,
+    json.encodeToString(before),
+    json.encodeToString(nextSections),
+    publishedAt,
+)
+
+private fun MemoryDreamRevisionEntity.toRevision(json: Json) = MemoryDreamRevision(
+    revisionId,
+    DreamTrigger.valueOf(trigger),
+    beforeFingerprint,
+    json.decodeFromString(beforeJson),
+    json.decodeFromString(nextJson),
+    publishedAt,
+)
+
+private fun MemoryDreamState.toEntity(scope: MemoryScopeKey): MemoryDreamStateEntity {
+    val value = snapshot()
+    return MemoryDreamStateEntity(
+        scope.assistantId,
+        scope.scope,
+        scope.spaceId,
+        value.running,
+        value.runId,
+        value.lastRevisionId,
+        activeRevisionId(),
+        value.lastError,
+    )
+}
+
+private suspend fun resolveDreamPlan(
+    planner: MemoryDreamPlanner?,
+    currentSections: Map<String, String>,
+    fallback: () -> Map<String, String>,
+    runPlanner: suspend (MemoryDreamPlanner, Map<String, String>) -> DreamPlanResult,
+): DreamPlanResult = planner?.let { runPlanner(it, currentSections) }
+    ?: DreamPlanResult.Planned(fallback())
+
+private suspend fun runPlanner(planner: MemoryDreamPlanner, current: Map<String, String>): DreamPlanResult = try {
+    MemoryDreamPlanValidator.validate(planner.plan(current), current)
+} catch (cancelled: CancellationException) {
+    throw cancelled
+} catch (error: java.io.IOException) {
+    DreamPlanResult.Failed(error.message ?: "dream planner failed")
+} catch (error: IllegalStateException) {
+    DreamPlanResult.Failed(error.message ?: "dream planner failed")
+} catch (error: IllegalArgumentException) {
+    DreamPlanResult.Failed(error.message ?: "dream planner failed")
+}
+
+private fun preserveAndTrimSections(current: Map<String, String>): Map<String, String> {
+    val facts = current[MemoryCompiler.Section.FACTS.key].orEmpty()
+    val today = current[MemoryCompiler.Section.TODAY.key].orEmpty()
+    val week = current[MemoryCompiler.Section.WEEK.key].orEmpty()
+    val longterm = current[MemoryCompiler.Section.LONGTERM.key].orEmpty()
+    val joined = listOf(longterm, facts, today, week).filter { it.isNotBlank() }.joinToString("\n")
+    val trimmed = if (joined.length <= 830) joined else joined.take(730) + "\n[…]"
+    return current + (MemoryCompiler.Section.LONGTERM.key to trimmed)
+}
+
+private fun diffSections(before: Map<String, String>, after: Map<String, String>): Map<String, String> {
+    val keys = before.keys + after.keys
+    return keys.mapNotNull { key ->
+        val old = before[key]?.trim().orEmpty()
+        val new = after[key] ?: return@mapNotNull null
+        if (old == new.trim()) null else key to new
+    }.toMap()
+}
+
+private fun changedKeys(before: Map<String, String>, after: Map<String, String>): List<String> = (before.keys + after.keys).filter { key ->
+        before[key]?.trim().orEmpty() != after[key]?.trim().orEmpty()
+    }

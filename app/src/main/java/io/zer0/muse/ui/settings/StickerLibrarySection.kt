@@ -66,11 +66,11 @@ import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.MuseSpacing
 import io.zer0.muse.ui.theme.pill
+import io.zer0.muse.util.launchSafely
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import androidx.compose.foundation.lazy.items as lazyItems
-import io.zer0.muse.util.launchSafely
 
 /**
  * v1.95: 表情包库管理区 — 启用开关 + 发送概率 + 导入 zip + 分类筛选 + 预览网格。

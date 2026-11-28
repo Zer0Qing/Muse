@@ -72,7 +72,7 @@ class ColorSchemeBridgeTest {
             "surfaceContainerHigh" to (Color(s.surfaceContainerHigh) to cs.surfaceContainerHigh),
             "surfaceContainerHighest" to (
                 Color(s.surfaceContainerHighest) to cs.surfaceContainerHighest
-            ),
+                ),
             "surfaceContainerLow" to (Color(s.surfaceContainerLow) to cs.surfaceContainerLow),
             "surfaceContainerLowest" to (Color(s.surfaceContainerLowest) to cs.surfaceContainerLowest),
         )

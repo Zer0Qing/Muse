@@ -30,10 +30,10 @@ class StagingWiringTest {
 
     @Test
     fun `workspace tool proposals stage structured content before reporting`() {
-        val stageAt = scheduler.indexOf("stageWorkspaceArtifact = {");
-        assertTrue("候选必须来自工具产生的结构化内容", stageAt > 0);
-        assertTrue("摘要不能作为文件内容", !scheduler.contains("content = result.summary"));
-        val eventAt = scheduler.indexOf("repository.finishExecution(", stageAt);
+        val stageAt = scheduler.indexOf("stageWorkspaceArtifact = {")
+        assertTrue("候选必须来自工具产生的结构化内容", stageAt > 0)
+        assertTrue("摘要不能作为文件内容", !scheduler.contains("content = result.summary"))
+        val eventAt = scheduler.indexOf("repository.finishExecution(", stageAt)
         assertTrue(
             "暂存要早于结果事件，否则审核阶段拿不到候选",
             stageAt < eventAt,
@@ -61,7 +61,7 @@ class StagingWiringTest {
 
     @Test
     fun `staging is optional so pure JVM tests still run`() {
-        assertTrue(scheduler.contains("staging == null"));
+        assertTrue(scheduler.contains("staging == null"))
     }
 
     @Test
@@ -70,6 +70,6 @@ class StagingWiringTest {
             "暂存区要落在 cacheDir 下，不能是内存态（进程一死候选全丢）",
             koin.contains("agentbot-staging"),
         )
-        assertTrue(koin.contains("staging = get()"));
+        assertTrue(koin.contains("staging = get()"))
     }
 }

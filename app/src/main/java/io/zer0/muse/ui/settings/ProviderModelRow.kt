@@ -102,14 +102,12 @@ internal fun ProviderModelRow(
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
             )
             Text(
                 text = summary,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
             if (testStatus !is ModelTestStatus.Idle) {
@@ -175,8 +173,8 @@ private fun rememberModelSummaryLine(model: Model): String {
     val labelReasoning = stringResource(R.string.settings_model_ability_reasoning)
     val labelImage = stringResource(R.string.settings_model_ability_image)
     val labelMultimodal = stringResource(R.string.settings_model_ability_multimodal)
+    val labelNoImageInput = stringResource(R.string.settings_model_ability_no_image_input)
     val labelVideo = stringResource(R.string.settings_model_ability_video)
-    val labelChat = stringResource(R.string.settings_model_ability_chat)
     val labelContextFmt = stringResource(R.string.settings_model_context_label)
     val labelOutputFmt = stringResource(R.string.settings_model_output_label)
 
@@ -192,16 +190,18 @@ private fun rememberModelSummaryLine(model: Model): String {
         model.supportsVideo,
         contextChip,
         outputChip,
+        labelNoImageInput,
     ) {
         buildList {
+            // 图片输入状态必须先于可能较长的上下文与输出元数据，确保一眼可辨。
+            add(if (model.supportsVisionInput()) labelMultimodal else labelNoImageInput)
             contextChip?.let { add(it) }
             outputChip?.let { add(it) }
             if (model.supportsReasoning()) add(labelReasoning)
             if (model.supportsToolCalling()) add(labelTool)
-            if (model.supportsVisionInput()) add(labelMultimodal)
             if (model.supportsImageOutput()) add(labelImage)
             if (model.supportsVideoOutput()) add(labelVideo)
-        }.ifEmpty { listOf(labelChat) }.joinToString(" · ")
+        }.joinToString(" · ")
     }
 }
 
@@ -315,12 +315,7 @@ private fun ModelTestStatusPill(testStatus: ModelTestStatus) {
 }
 
 @Composable
-private fun TestStatusChip(
-    text: String,
-    containerColor: Color,
-    contentColor: Color,
-    leading: @Composable () -> Unit,
-) {
+private fun TestStatusChip(text: String, containerColor: Color, contentColor: Color, leading: @Composable () -> Unit) {
     Surface(
         color = containerColor,
         shape = MuseShapes.small,

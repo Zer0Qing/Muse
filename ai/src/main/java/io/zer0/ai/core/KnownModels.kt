@@ -1201,16 +1201,15 @@ object TokenCostCalculator {
         val promptTokensIncludeCache: Boolean = true,
     ) {
         /** 饱和加法：避免 Long 溢出回绕。 */
-        fun plus(other: Usage): Usage =
-            Usage(
-                promptTokens = satAdd(promptTokens, other.promptTokens),
-                cachedTokens = satAdd(cachedTokens, other.cachedTokens),
-                cacheWriteTokens = satAdd(cacheWriteTokens, other.cacheWriteTokens),
-                completionTokens = satAdd(completionTokens, other.completionTokens),
-                reasoningTokens = satAdd(reasoningTokens, other.reasoningTokens),
-                // 累加时口径必须一致，否则相加本身没意义；取更严格的那个（不相减才不丢输入费）
-                promptTokensIncludeCache = promptTokensIncludeCache && other.promptTokensIncludeCache,
-            )
+        fun plus(other: Usage): Usage = Usage(
+            promptTokens = satAdd(promptTokens, other.promptTokens),
+            cachedTokens = satAdd(cachedTokens, other.cachedTokens),
+            cacheWriteTokens = satAdd(cacheWriteTokens, other.cacheWriteTokens),
+            completionTokens = satAdd(completionTokens, other.completionTokens),
+            reasoningTokens = satAdd(reasoningTokens, other.reasoningTokens),
+            // 累加时口径必须一致，否则相加本身没意义；取更严格的那个（不相减才不丢输入费）
+            promptTokensIncludeCache = promptTokensIncludeCache && other.promptTokensIncludeCache,
+        )
 
         companion object {
             fun satAdd(a: Long, b: Long): Long {
@@ -1282,19 +1281,17 @@ object TokenCostCalculator {
      * 便捷入口：[UsageTokens] 直接计价（缓存读/写分列在 [UsageTokens.cachedTokens] /
      * [UsageTokens.cacheWriteTokens]，此处按同名分项映射到 [Usage]）。
      */
-    fun costFor(provider: String, modelId: String, usage: UsageTokens): Cost =
-        costFor(provider, modelId, fromUsageTokens(usage))
+    fun costFor(provider: String, modelId: String, usage: UsageTokens): Cost = costFor(provider, modelId, fromUsageTokens(usage))
 
     /** [UsageTokens] → 计价分项。缓存读继续占 [Usage.cachedTokens]，缓存写单列，prompt 口径随数据走。 */
-    fun fromUsageTokens(usage: UsageTokens): Usage =
-        Usage(
-            promptTokens = usage.promptTokens.toLong(),
-            cachedTokens = usage.cachedTokens.toLong(),
-            cacheWriteTokens = usage.cacheWriteTokens.toLong(),
-            completionTokens = usage.completionTokens.toLong(),
-            reasoningTokens = usage.reasoningTokens.toLong(),
-            promptTokensIncludeCache = usage.promptTokensIncludeCache,
-        )
+    fun fromUsageTokens(usage: UsageTokens): Usage = Usage(
+        promptTokens = usage.promptTokens.toLong(),
+        cachedTokens = usage.cachedTokens.toLong(),
+        cacheWriteTokens = usage.cacheWriteTokens.toLong(),
+        completionTokens = usage.completionTokens.toLong(),
+        reasoningTokens = usage.reasoningTokens.toLong(),
+        promptTokensIncludeCache = usage.promptTokensIncludeCache,
+    )
 
     /**
      * 缓存写入相对基础输入价的倍数。

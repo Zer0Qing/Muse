@@ -2,11 +2,11 @@ package io.zer0.muse.tools
 
 import android.content.Context
 import android.os.BatteryManager
+import io.zer0.muse.ui.theme.MuseDateFormats
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
-import io.zer0.muse.ui.theme.MuseDateFormats
 
 /**
  * current_status 工具。

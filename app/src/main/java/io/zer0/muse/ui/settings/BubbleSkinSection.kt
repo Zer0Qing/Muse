@@ -1,6 +1,5 @@
 package io.zer0.muse.ui.settings
 
-import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
@@ -57,9 +56,8 @@ import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseSpacing
 import io.zer0.muse.ui.theme.PluginSkinSource
-import kotlinx.coroutines.launch
-import io.zer0.muse.ui.chat.MessageBubble
 import io.zer0.muse.util.launchSafely
+import kotlinx.coroutines.launch
 
 /**
  * Phase 4: 气泡皮肤选择与预览区。

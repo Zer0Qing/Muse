@@ -2,8 +2,8 @@ package io.zer0.memory.experience
 
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
-import org.junit.Test
 import org.junit.Assert.assertTrue
+import org.junit.Test
 import java.nio.file.Files
 
 class ExperienceStoreTest {

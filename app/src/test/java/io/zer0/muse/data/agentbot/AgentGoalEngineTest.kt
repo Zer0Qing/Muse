@@ -68,6 +68,49 @@ class AgentGoalEngineTest {
     }
 
     @Test
+    fun `upsert rejects a different owner scope`() = runTest {
+        val dao = FakeGoalDao()
+        val engine = engine(dao)
+        dao.upsert(goal(botId = "bot-owner", originSessionId = "session-owner"))
+
+        val result = engine.upsertGoal(
+            goalId = "goal-1",
+            botId = "bot-other",
+            originSessionId = "session-other",
+            title = "覆盖目标",
+            description = "不应写入",
+        )
+
+        assertEquals(null, result)
+        assertEquals("长期目标", dao.getById("goal-1")?.title)
+        assertEquals("bot-owner", dao.getById("goal-1")?.botId)
+    }
+
+    @Test
+    fun `scoped milestone update rejects a different owner scope`() = runTest {
+        val dao = FakeGoalDao()
+        val engine = engine(dao)
+        dao.upsert(
+            goal(
+                botId = "bot-owner",
+                originSessionId = "session-owner",
+                milestonesJson = """[{"id":"m1","title":"第一步","done":false}]""",
+            ),
+        )
+
+        val result = engine.updateMilestone(
+            goalId = "goal-1",
+            milestoneId = "m1",
+            done = true,
+            expectedBotId = "bot-other",
+            expectedSessionId = "session-other",
+        )
+
+        assertEquals(null, result)
+        assertFalse(engine.parseMilestones(dao.getById("goal-1")!!.milestonesJson).single().done)
+    }
+
+    @Test
     fun `progress is the completed milestone ratio`() {
         val engine = engine(FakeGoalDao())
 
@@ -282,25 +325,75 @@ private class FakeGoalDao : AgentGoalDao {
 
     override fun observeAll(): Flow<List<AgentGoalEntity>> = flowOf(rows.values.toList())
 
-    override fun observeByBot(botId: String): Flow<List<AgentGoalEntity>> =
-        flowOf(rows.values.filter { it.botId == botId })
+    override fun observeByBot(botId: String): Flow<List<AgentGoalEntity>> = flowOf(rows.values.filter { it.botId == botId })
 
     override fun observeBySession(sessionId: String): Flow<List<AgentGoalEntity>> =
         flowOf(rows.values.filter { it.originSessionId == sessionId })
 
-    override suspend fun listActive(): List<AgentGoalEntity> =
-        rows.values.filter { it.status == AgentGoalStatus.ACTIVE }
+    override suspend fun listActive(): List<AgentGoalEntity> = rows.values.filter { it.status == AgentGoalStatus.ACTIVE }
 
-    override suspend fun updateMilestones(
-        goalId: String,
-        milestonesJson: String,
-        progress: Int,
-        updatedAt: Long,
-    ): Int {
+    override suspend fun updateMilestones(goalId: String, milestonesJson: String, progress: Int, updatedAt: Long): Int {
         val current = rows[goalId] ?: return 0
         rows[goalId] = current.copy(
             milestonesJson = milestonesJson,
             progress = progress,
+            updatedAt = updatedAt,
+        )
+        return 1
+    }
+
+    override suspend fun updateScoped(
+        goalId: String,
+        botId: String,
+        sessionId: String,
+        expectedUpdatedAt: Long,
+        title: String,
+        description: String,
+        milestonesJson: String,
+        progress: Int,
+        status: String,
+        dueAt: Long,
+        updatedAt: Long,
+    ): Int {
+        val current = rows[goalId] ?: return 0
+        if (current.botId != botId || current.originSessionId != sessionId ||
+            current.updatedAt != expectedUpdatedAt
+        ) {
+            return 0
+        }
+        rows[goalId] = current.copy(
+            title = title,
+            description = description,
+            milestonesJson = milestonesJson,
+            progress = progress,
+            status = status,
+            dueAt = dueAt,
+            updatedAt = updatedAt,
+        )
+        return 1
+    }
+
+    override suspend fun updateMilestonesAndStatus(
+        goalId: String,
+        expectedUpdatedAt: Long,
+        botId: String,
+        sessionId: String,
+        milestonesJson: String,
+        progress: Int,
+        status: String,
+        updatedAt: Long,
+    ): Int {
+        val current = rows[goalId] ?: return 0
+        if (current.updatedAt != expectedUpdatedAt ||
+            (botId.isNotBlank() && current.botId != botId) ||
+            (sessionId.isNotBlank() && current.originSessionId != sessionId)
+        ) {
+            return 0
+        }
+        rows[goalId] = current.copy(
+            milestonesJson = milestonesJson,
+            progress = progress,
+            status = status,
             updatedAt = updatedAt,
         )
         return 1

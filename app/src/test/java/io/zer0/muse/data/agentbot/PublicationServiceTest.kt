@@ -59,7 +59,7 @@ class PublicationServiceTest {
 
     @After
     fun tearDown() {
-        db.close();
+        db.close()
     }
 
     @Test
@@ -123,7 +123,7 @@ class PublicationServiceTest {
             taskRevision = 1,
             items = emptyList(),
         )
-        assertEquals(0, result.committed);
+        assertEquals(0, result.committed)
         assertTrue(result.allCommitted)
     }
 
@@ -141,6 +141,7 @@ class PublicationServiceTest {
                 items = listOf(PublicationService.Item("MODEL_RAW_TEXT", "私有推理")),
             )
         } catch (e: IllegalArgumentException) {
+            assertNotNull(e.message)
             threw = true
         }
         assertTrue("模型正文不得进入公共发布通道", threw)

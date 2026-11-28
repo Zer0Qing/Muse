@@ -1,6 +1,5 @@
 package io.zer0.muse.mcp
 
-import android.util.Base64
 import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
@@ -49,6 +48,8 @@ object McpOAuthFlow {
         io.zer0.ai.core.ProxyProvider.applyTo(OkHttpClient.Builder())
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
+            .followRedirects(false)
+            .followSslRedirects(false)
             .build()
     }
 
@@ -84,8 +85,6 @@ object McpOAuthFlow {
         val verifier = generateCodeVerifier()
         val challenge = computeCodeChallenge(verifier)
         val state = generateRandomString(32)
-        // L-MCP5: 日志中脱敏 state,仅记录前 4 位
-        Logger.d(TAG, "PKCE pair generated: verifier length=${verifier.length}, state=${state.take(4)}***")
         return PkcePair(verifier, challenge, state)
     }
 
@@ -109,6 +108,7 @@ object McpOAuthFlow {
             add("code_challenge_method" to "S256")
             add("state" to pkce.state)
             if (config.scopes.isNotBlank()) add("scope" to config.scopes)
+            if (config.resource.isNotBlank()) add("resource" to config.resource)
         }
         val query = params.joinToString("&") { (k, v) -> "$k=${urlEncode(v)}" }
         // 第一个参数用 ? 开头(若 endpoint 已含 ?,用 & 衔接)
@@ -116,10 +116,6 @@ object McpOAuthFlow {
             append(config.authorizationEndpoint.trimEnd('?', '&'))
             append(if (config.authorizationEndpoint.contains("?")) "&" else "?")
             append(query)
-        }.also {
-            // L-MCP5: 日志中脱敏 state 参数,仅记录前 4 位
-            val maskedUrl = it.replace("state=${pkce.state}", "state=${pkce.state.take(4)}***")
-            Logger.d(TAG, "Authorization URL: $maskedUrl")
         }
     }
 
@@ -140,9 +136,8 @@ object McpOAuthFlow {
             Logger.w(TAG, "tokenEndpoint is blank, cannot exchange code")
             return@withContext null
         }
-        // M-OAUTH1: 校验 tokenEndpoint 使用 HTTPS,防止 token 明文传输
-        if (!config.tokenEndpoint.startsWith("https://")) {
-            Logger.w(TAG, "tokenEndpoint 不是 HTTPS,拒绝交换 token: ${config.tokenEndpoint}")
+        if (!McpDynamicRegistration.isAllowedEndpoint(config.tokenEndpoint, config.resource.ifBlank { config.tokenEndpoint })) {
+            Logger.w(TAG, "Token endpoint is invalid or unsafe; refusing token exchange")
             return@withContext null
         }
         val form = FormBody.Builder()
@@ -151,6 +146,7 @@ object McpOAuthFlow {
             .add("redirect_uri", config.redirectUri)
             .add("client_id", config.clientId)
             .add("code_verifier", verifier)
+            .apply { if (config.resource.isNotBlank()) add("resource", config.resource) }
             .build()
 
         val request = Request.Builder()
@@ -160,16 +156,17 @@ object McpOAuthFlow {
             .build()
 
         resultOf {
-            httpClient.newCall(request).execute().use { resp ->
-                val body = resp.body.string()
-                if (!resp.isSuccessful) {
-                    Logger.w(TAG, "Token exchange failed: HTTP ${resp.code}")
-                    return@resultOf null
+            McpHttpSecurity.secureClient(httpClient, config.resource.ifBlank { config.tokenEndpoint })
+                .newCall(request).execute().use { resp ->
+                    val body = resp.body.string()
+                    if (!resp.isSuccessful) {
+                        Logger.w(TAG, "Token exchange failed: HTTP ${resp.code}")
+                        return@resultOf null
+                    }
+                    parseTokenResponse(body)
                 }
-                parseTokenResponse(body)
-            }
-        }.onError { msg, t ->
-            Logger.w(TAG, "Token exchange exception: $msg", t)
+        }.onError { _, _ ->
+            Logger.w(TAG, "Token exchange failed")
         }.getOrNull()
     }
 
@@ -188,15 +185,15 @@ object McpOAuthFlow {
             Logger.w(TAG, "tokenEndpoint is blank, cannot refresh")
             return@withContext null
         }
-        // M-OAUTH1: 校验 tokenEndpoint 使用 HTTPS,防止 token 明文传输
-        if (!config.tokenEndpoint.startsWith("https://")) {
-            Logger.w(TAG, "tokenEndpoint 不是 HTTPS,拒绝 refresh token: ${config.tokenEndpoint}")
+        if (!McpDynamicRegistration.isAllowedEndpoint(config.tokenEndpoint, config.resource.ifBlank { config.tokenEndpoint })) {
+            Logger.w(TAG, "Token endpoint is invalid or unsafe; refusing token refresh")
             return@withContext null
         }
         val form = FormBody.Builder()
             .add("grant_type", "refresh_token")
             .add("refresh_token", refreshToken)
             .add("client_id", config.clientId)
+            .apply { if (config.resource.isNotBlank()) add("resource", config.resource) }
             .build()
 
         val request = Request.Builder()
@@ -206,21 +203,22 @@ object McpOAuthFlow {
             .build()
 
         resultOf {
-            httpClient.newCall(request).execute().use { resp ->
-                val body = resp.body.string()
-                if (!resp.isSuccessful) {
-                    Logger.w(TAG, "Token refresh failed: HTTP ${resp.code}")
-                    return@resultOf null
+            McpHttpSecurity.secureClient(httpClient, config.resource.ifBlank { config.tokenEndpoint })
+                .newCall(request).execute().use { resp ->
+                    val body = resp.body.string()
+                    if (!resp.isSuccessful) {
+                        Logger.w(TAG, "Token refresh failed: HTTP ${resp.code}")
+                        return@resultOf null
+                    }
+                    // refresh 响应可能不含新 refresh_token,沿用旧的;server 轮换 refresh_token 时用新的
+                    parseTokenResponse(body)?.let { token ->
+                        token.copy(
+                            refreshToken = token.refreshToken.ifBlank { refreshToken },
+                        )
+                    }
                 }
-                // refresh 响应可能不含新 refresh_token,沿用旧的;server 轮换 refresh_token 时用新的
-                parseTokenResponse(body)?.let { token ->
-                    token.copy(
-                        refreshToken = token.refreshToken.ifBlank { refreshToken },
-                    )
-                }
-            }
-        }.onError { msg, t ->
-            Logger.w(TAG, "Token refresh exception: $msg", t)
+        }.onError { _, _ ->
+            Logger.w(TAG, "Token refresh failed")
         }.getOrNull()
     }
 
@@ -234,27 +232,44 @@ object McpOAuthFlow {
         // L-OAUTH1: 校验回调 URI 前缀(去掉 query 部分),防止恶意回调
         if (expectedPrefix != null) {
             val prefix = expectedPrefix.substringBefore('?')
-            if (!redirectUri.startsWith(prefix)) {
+            if (redirectUri.substringBefore('?') != prefix) {
                 Logger.w(TAG, "OAuth 回调 URI 前缀不匹配: expected=$prefix, got=${redirectUri.substringBefore('?')}")
                 return null
             }
         }
-        val query = redirectUri.substringAfter('?', "")
-        if (query.isBlank()) return null
-        val params = query.split('&').mapNotNull {
-            val idx = it.indexOf('=')
-            if (idx < 0) null else it.substring(0, idx) to urlDecode(it.substring(idx + 1))
-        }.toMap()
+        val params = decodeCallbackQuery(redirectUri) ?: return null
 
         // OAuth 2.1 错误响应:error=...&error_description=...
-        params["error"]?.let { err ->
-            Logger.w(TAG, "OAuth callback error: $err, desc=${params["error_description"]}")
+        params["error"]?.let {
+            Logger.w(TAG, "OAuth callback returned an error")
             return null
         }
 
         val code = params["code"] ?: return null
         val state = params["state"] ?: return null
         return code to state
+    }
+
+    /** Return the callback state even when the authorization server reports denial. */
+    fun callbackState(redirectUri: String, expectedPrefix: String? = null): String? {
+        if (expectedPrefix != null && redirectUri.substringBefore('?') != expectedPrefix.substringBefore('?')) return null
+        return decodeCallbackQuery(redirectUri)?.get("state")
+    }
+
+    private fun decodeCallbackQuery(redirectUri: String): Map<String, String>? {
+        val query = redirectUri.substringAfter('?', "")
+        if (query.isBlank() || query.length > 8192) return null
+        return runCatching {
+            buildMap {
+                query.split('&').forEach { item ->
+                    val index = item.indexOf('=')
+                    if (index < 1) return@forEach
+                    val key = urlDecode(item.substring(0, index))
+                    if (containsKey(key)) return null
+                    put(key, urlDecode(item.substring(index + 1)))
+                }
+            }
+        }.getOrNull()
     }
 
     // ── 内部工具 ──────────────────────────────────────────────────────────────
@@ -275,7 +290,7 @@ object McpOAuthFlow {
      */
     private fun computeCodeChallenge(verifier: String): String {
         val digest = MessageDigest.getInstance("SHA-256").digest(verifier.toByteArray(Charsets.UTF_8))
-        return Base64.encodeToString(digest, Base64.URL_SAFE or Base64.NO_PADDING or Base64.NO_WRAP)
+        return java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(digest)
     }
 
     /** 生成随机字符串(state / nonce 用)。 */
@@ -302,7 +317,7 @@ object McpOAuthFlow {
             return null
         }
         if (!resp.error.isNullOrEmpty()) {
-            Logger.w(TAG, "Token response error: ${resp.error}, desc=${resp.error_description}")
+            Logger.w(TAG, "Token response indicated an error")
             return null
         }
         if (resp.access_token.isBlank()) {

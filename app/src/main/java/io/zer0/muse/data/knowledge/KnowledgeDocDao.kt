@@ -140,6 +140,10 @@ interface KnowledgeDocDao {
     @Query("SELECT * FROM knowledge_docs WHERE is_internal = 1")
     suspend fun getInternalDocs(): List<KnowledgeDocEntity>
 
+    /** 按知识库 ID 查询内部文档（用于用户画像分域知识库等内部隔离文档）。 */
+    @Query("SELECT * FROM knowledge_docs WHERE kb_id = :kbId AND is_internal = 1 ORDER BY updated_at DESC")
+    suspend fun getInternalByKb(kbId: String): List<KnowledgeDocEntity>
+
     /** v1.133: 按 content_hash 查询(增量更新判断)。 */
     @Query("SELECT * FROM knowledge_docs WHERE content_hash = :hash LIMIT 1")
     suspend fun findByContentHash(hash: String): KnowledgeDocEntity?

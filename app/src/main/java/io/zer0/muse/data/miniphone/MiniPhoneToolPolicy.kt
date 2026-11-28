@@ -18,7 +18,7 @@ import io.zer0.muse.tools.ToolRiskLevel
  *  2. 分类闸:必须在 [ALLOWED_CATEGORIES] 里 —— GLOBAL(执行类、浏览器、UI 自动化)、
  *     LEGACY,以及未登记分类的动态工具(插件 `plugin_*` / MCP `mcp_*__*`)在这里被挡掉;
  *  3. 风险闸 [ToolPermissionResolver.riskLevelFor] 不是 HIGH —— 与后台任务同一口径,
- *     注册台账里写低风险但名字语义高危的工具(如 `save_memory`)照旧拦下。
+ *     注册台账里写低风险但名字语义高危的工具(如 `delete_memory`、`pin_memory`)照旧拦下。
  */
 internal object MiniPhoneToolPolicy {
 

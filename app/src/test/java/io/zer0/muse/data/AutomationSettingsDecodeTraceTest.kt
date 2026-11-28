@@ -79,10 +79,9 @@ class AutomationSettingsDecodeTraceTest {
     }
 
     /** 只取本模块的日志。 */
-    private fun ourLogs() =
-        ShadowLog.getLogs()
-            .drop(logStartIndex)
-            .filter { it.tag == "AutomationSettings" }
+    private fun ourLogs() = ShadowLog.getLogs()
+        .drop(logStartIndex)
+        .filter { it.tag == "AutomationSettings" }
 
     private suspend fun putCorrupt(key: androidx.datastore.preferences.core.Preferences.Key<String>) {
         context.museSettingsDataStore.edit { it[key] = "{ 这不是合法 JSON " }

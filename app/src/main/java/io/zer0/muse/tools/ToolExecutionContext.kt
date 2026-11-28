@@ -41,4 +41,6 @@ data class ToolExecutionContext(
     val isSubagentContext: Boolean = false,
     /** Host callback for pausing a durable task when its required runtime is absent. */
     val onRuntimeMissing: (suspend () -> Unit)? = null,
+    /** Called before a remote execution starts so its outbox result can return to this exact owner. */
+    val onRemoteExecStarted: (suspend (nodeId: String, remoteRunId: String) -> Unit)? = null,
 )

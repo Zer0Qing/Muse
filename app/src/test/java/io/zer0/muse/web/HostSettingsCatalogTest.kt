@@ -5,7 +5,6 @@ import android.content.res.Resources
 import androidx.test.core.app.ApplicationProvider
 import io.zer0.muse.feature.FeatureFlags
 import io.zer0.muse.ui.settings.SettingsCatalog
-import io.zer0.muse.ui.settings.SettingsGroupKind
 import io.zer0.muse.ui.settings.SettingsEntryAction
 import io.zer0.muse.ui.settings.SettingsToggleKey
 import org.junit.Assert.assertEquals
@@ -51,8 +50,7 @@ class HostSettingsCatalogTest {
      * 2026-11-22: 原来这里要按 `FeatureFlags.MINI_PHONE` 过滤掉收起的小手机分类；
      * 该分类已并入 CONNECTION，不再有需要按开关隐藏的独立分组，过滤条件随之去掉。
      */
-    private fun visibleAppGroups(): List<String> =
-        SettingsCatalog.groups.map { resourceName(it.titleRes) }
+    private fun visibleAppGroups(): List<String> = SettingsCatalog.groups.map { resourceName(it.titleRes) }
 
     @Test
     fun `catalog entries match each group's declared entries`() {

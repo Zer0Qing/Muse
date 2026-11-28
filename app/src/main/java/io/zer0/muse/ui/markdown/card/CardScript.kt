@@ -1,5 +1,8 @@
 package io.zer0.muse.ui.markdown.card
 
+import io.zer0.common.AppJson
+import kotlinx.serialization.builtins.serializer
+
 /**
  * 卡片里唯一的一份脚本。
  *
@@ -40,6 +43,13 @@ internal object CardScript {
     /** 交互桥的全局名。 */
     const val BRIDGE_NAME: String = "MuseCardBridge"
 
+    /** 将宿主的静默响应回传给卡片端 Promise。 */
+    fun askResolveJs(requestId: String, responseJson: String): String {
+        val idArg = AppJson.encodeToString(String.serializer(), requestId)
+        val bodyArg = AppJson.encodeToString(String.serializer(), responseJson)
+        return "window.__museAskResolve&&window.__museAskResolve($idArg,$bodyArg)"
+    }
+
     /**
      * 完整页面脚本。
      *
@@ -50,6 +60,18 @@ internal object CardScript {
      * 每次 HTML 装配调用。
      */
     fun build(): String = BUILD
+
+    /**
+     * 门面脚本单独暴露：它必须在卡片自身的内联脚本之前执行。
+     *
+     * 卡片脚本在挂载时就会同步调用 `window.muse.getJSON()` / `window.muse.data.onChange()`，
+     * 而这些入口原来排在卡片正文之后，导致首次挂载必然抛
+     * `Cannot read properties of undefined (reading 'onChange')`，订阅也永远注册不上。
+     */
+    fun facadeJs(): String = FACADE_JS
+
+    /** 高度观测脚本：需要 document.body，放在卡片正文之后注入。 */
+    fun observerJs(): String = OBSERVER_JS
 
     private val BUILD: String by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
         buildString {
@@ -74,22 +96,23 @@ internal object CardScript {
   document.addEventListener('click', function(){ lastTap = Date.now(); }, true);
   document.addEventListener('touchend', function(){ lastTap = Date.now(); }, true);
 
-  // 身份只由宿主产生并注入；卡片端只读。
-  window.muse.cardId = null;
+  // 身份只由宿主产生并注入；卡片端只读。宿主已通过前置脚本写过 cardId 时不得覆盖成 null，
+  // 否则无桥宿主（工作台小应用、产物预览）里 getData() 会永远拿到空 id。
+  window.muse.cardId = window.muse.cardId || null;
   if (bridge) { try { window.muse.cardId = bridge.getCardId(); } catch (e) { } }
 
   function capability(){
     if (!bridge) {
-      return { emit: 'requires_host', state: 'requires_host', data: 'requires_host',
-               height: 'available', cardId: null };
+      return { emit: 'requires_host', state: 'requires_host', ask: 'requires_host',
+               saveState: 'requires_host', data: 'requires_host', height: 'available', cardId: null };
     }
     try {
       var raw = bridge.capabilities();
-      return raw ? JSON.parse(raw) : { emit: 'requires_host', state: 'requires_host',
-                                      data: 'requires_host', height: 'available', cardId: null };
+      return raw ? JSON.parse(raw) : { emit: 'requires_host', state: 'requires_host', ask: 'requires_host',
+                                      saveState: 'requires_host', data: 'requires_host', height: 'available', cardId: null };
     } catch (e) {
-      return { emit: 'requires_host', state: 'requires_host', data: 'requires_host',
-               height: 'available', cardId: null };
+      return { emit: 'requires_host', state: 'requires_host', ask: 'requires_host',
+               saveState: 'requires_host', data: 'requires_host', height: 'available', cardId: null };
     }
   }
   window.muse.capabilities = capability;
@@ -115,6 +138,56 @@ internal object CardScript {
     try { payload = (typeof state === 'string') ? state : JSON.stringify(state); }
     catch (e) { payload = null; }
     try { bridge.sendWithData(body, payload); } catch (e) { reportBridgeFailure('sendWithData', e); }
+  };
+
+  window.__museAskPending = window.__museAskPending || {};
+  window.__museAskResolve = function(reqId, rawJson){
+    var cb = window.__museAskPending[reqId];
+    if (!cb) return;
+    delete window.__museAskPending[reqId];
+    var parsed;
+    try { parsed = (typeof rawJson === 'string') ? JSON.parse(rawJson) : rawJson; }
+    catch (e) { parsed = { ok: false, error: 'invalid_json', text: String(rawJson || '') }; }
+    try { cb(parsed); } catch (ignored) {}
+  };
+  window.muse.ask = function(input){
+    return new Promise(function(resolve){
+      if (!bridge) { resolve({ ok: false, error: 'requires_host' }); return; }
+      if (!withinGesture()) { resolve({ ok: false, error: 'requires_gesture' }); return; }
+      var req = (typeof input === 'string') ? { prompt: input } : (input || {});
+      var reqId = 'ask_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
+      var timer = setTimeout(function(){
+        if (window.__museAskPending[reqId]) {
+          delete window.__museAskPending[reqId];
+          resolve({ ok: false, error: 'timeout' });
+        }
+      }, 35000);
+      window.__museAskPending[reqId] = function(res){
+        clearTimeout(timer);
+        resolve(res);
+      };
+      try {
+        var ok = bridge.ask(reqId, JSON.stringify(req));
+        if (!ok) {
+          clearTimeout(timer);
+          delete window.__museAskPending[reqId];
+          resolve({ ok: false, error: 'requires_host' });
+        }
+      } catch (e) {
+        clearTimeout(timer);
+        delete window.__museAskPending[reqId];
+        reportBridgeFailure('ask', e);
+        resolve({ ok: false, error: 'bridge_error' });
+      }
+    });
+  };
+  window.muse.saveState = function(state){
+    if (!bridge || state === undefined || state === null) return false;
+    var payload;
+    try { payload = (typeof state === 'string') ? state : JSON.stringify(state); }
+    catch (e) { return false; }
+    try { return !!bridge.saveState(payload); }
+    catch (e) { reportBridgeFailure('saveState', e); return false; }
   };
 
   // 声明式回传：元素上写 data-m-invoke="要发的话"，点一下就走 send。
@@ -197,8 +270,7 @@ internal object CardScript {
      * 与桥无关：没有交互桥的卡片同样需要高度跟随，只是不能回传。
      * 这条独立性是旧实现踩过的坑 —— 当时高度上报挂在桥上，无桥路径完全没有观测。
      */
-    private fun observerJs(): String {
-        return """
+    private val OBSERVER_JS: String = """
 (function(){
   if (window.__museHeightObserver) return;
   window.__museHeightObserver = true;
@@ -271,6 +343,5 @@ internal object CardScript {
   }
   start();
 })();
-""".trimIndent()
-    }
+    """.trimIndent()
 }

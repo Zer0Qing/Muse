@@ -3,14 +3,14 @@ package io.zer0.muse.ui.theme
 import io.zer0.muse.data.ThemeLocationCache
 import io.zer0.muse.data.ThemeScheduleConfig
 import io.zer0.muse.data.ThemeSolarUnavailableReason
-import java.time.Instant
-import java.time.ZoneId
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.time.Instant
+import java.time.ZoneId
 
 class ThemeSchedulerTest {
     private val utc = ZoneId.of("UTC")

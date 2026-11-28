@@ -27,8 +27,7 @@ object RuntimeBridge {
     }
 
     /** 宿主路径 → guest 路径；不在 filesDir 下就原样返回（调用方负责只传合法路径）。 */
-    fun toGuestPath(context: Context, hostPath: String): String =
-        toGuestPath(context.filesDir.absolutePath, hostPath)
+    fun toGuestPath(context: Context, hostPath: String): String = toGuestPath(context.filesDir.absolutePath, hostPath)
 
     internal fun toGuestPath(filesRoot: String, hostPath: String): String {
         val root = filesRoot.trimEnd('/', '\\')

@@ -50,29 +50,25 @@ class EmbeddingSpaceRegistry {
     /**
      * 解析空间。只有通过能力验证且维度确定的 profile 才能得到 [SpaceResolution.Ready]。
      */
-    fun resolve(profile: EmbeddingProfile, verification: CapabilityVerification? = null): SpaceResolution =
-        when (profile.source) {
-            // 关键词能力不冒充语义:维度固定 0,不参与向量余弦。
-            RagConfig.EmbeddingSource.LOCAL_KEYWORD.name -> SpaceResolution.Ready(
-                SpaceIdentity(
-                    spaceId = "lexical:local_keyword:v1",
-                    semantic = false,
-                    dimension = 0,
-                    modelRevision = null,
-                ),
-            )
+    fun resolve(profile: EmbeddingProfile, verification: CapabilityVerification? = null): SpaceResolution = when (profile.source) {
+        // 关键词能力不冒充语义:维度固定 0,不参与向量余弦。
+        RagConfig.EmbeddingSource.LOCAL_KEYWORD.name -> SpaceResolution.Ready(
+            SpaceIdentity(
+                spaceId = "lexical:local_keyword:v1",
+                semantic = false,
+                dimension = 0,
+                modelRevision = null,
+            ),
+        )
 
-            RagConfig.EmbeddingSource.LOCAL.name -> resolveLocal(profile, verification)
+        RagConfig.EmbeddingSource.LOCAL.name -> resolveLocal(profile, verification)
 
-            RagConfig.EmbeddingSource.CLOUD.name -> resolveCloud(profile, verification)
+        RagConfig.EmbeddingSource.CLOUD.name -> resolveCloud(profile, verification)
 
-            else -> SpaceResolution.Unavailable("未知 embedding 来源: ${profile.source}")
-        }
+        else -> SpaceResolution.Unavailable("未知 embedding 来源: ${profile.source}")
+    }
 
-    private fun resolveLocal(
-        profile: EmbeddingProfile,
-        verification: CapabilityVerification?,
-    ): SpaceResolution = when {
+    private fun resolveLocal(profile: EmbeddingProfile, verification: CapabilityVerification?): SpaceResolution = when {
         profile.localModelPath.isBlank() -> SpaceResolution.Unavailable("本地模型路径为空")
         profile.localModelDigest.isBlank() ->
             SpaceResolution.NeedsVerification("本地模型缺少内容摘要(同路径替换无法识别)")
@@ -94,10 +90,7 @@ class EmbeddingSpaceRegistry {
         }
     }
 
-    private fun resolveCloud(
-        profile: EmbeddingProfile,
-        verification: CapabilityVerification?,
-    ): SpaceResolution = when {
+    private fun resolveCloud(profile: EmbeddingProfile, verification: CapabilityVerification?): SpaceResolution = when {
         profile.providerId.isBlank() || profile.model.isBlank() ->
             SpaceResolution.Unavailable("云端编码配置缺少 provider 或模型")
         profile.endpointFingerprint.isBlank() ->
@@ -206,8 +199,7 @@ class EmbeddingSpaceRegistry {
         }
 
         /** 本地模型文件内容摘要:同一路径被替换会得到不同摘要。 */
-        fun localModelDigestOf(bytes: ByteArray): String =
-            MessageDigest.getInstance("SHA-256").digest(bytes)
-                .joinToString("") { "%02x".format(it) }
+        fun localModelDigestOf(bytes: ByteArray): String = MessageDigest.getInstance("SHA-256").digest(bytes)
+            .joinToString("") { "%02x".format(it) }
     }
 }

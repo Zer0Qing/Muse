@@ -3,7 +3,6 @@ package io.zer0.muse
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
-import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * P2-3 拆域：OCR / TTS / 语音克隆等媒体服务注册独立模块。
@@ -23,7 +22,11 @@ val appMediaModule = module {
     //   release 混淆下触发 NoDefinitionFoundException,链式导致 ChatViewModel 创建失败 → 应用崩溃。
     //   chat client 已配置 30s/120s/30s 超时 + 代理,适合 TTS 网络请求,无需单独再建一个。
     single { io.zer0.muse.ui.speech.CloudTtsService(get(named("chat"))) }
-    single { io.zer0.muse.ui.speech.TtsManager(androidContext(), get()) }
+    single {
+        val tts = io.zer0.muse.ui.speech.TtsManager(androidContext(), get())
+        tts.onBeforePlaybackStart = { get<io.zer0.muse.ui.speech.VoicePlaybackController>().stop() }
+        tts
+    }
 
     // v2.6.16: 语音消息音频存档（filesDir/voice_messages/，与 cacheDir 临时文件分开，避免被系统清理）
     single {
@@ -34,7 +37,12 @@ val appMediaModule = module {
 
     // v2.6.16: 语音消息共享播放控制器 —— 语音条不各自持有播放器，
     //   由这一个单例保证「同一时刻只有一条语音在播」。
-    single { io.zer0.muse.ui.speech.VoicePlaybackController() }
+    single {
+        io.zer0.muse.ui.speech.VoicePlaybackController(
+            appContext = androidContext(),
+            onBeforePlay = { get<io.zer0.muse.ui.speech.TtsManager>().stop() },
+        )
+    }
 
     // P2-9: 语音克隆 — ElevenLabs Voice Cloning Provider 复用 chat OkHttpClient
     //   (内部用 newBuilder() 覆盖为 30s 三项超时,满足"API 调用必须有超时(30 秒)"约束)

@@ -7,12 +7,19 @@ import org.junit.Test
 /**
  * P0-1 回归:备份密码失效守卫 [BackupService.isBackupPasswordUnavailable]。
  *
- * 覆盖"已设密码 + 密码读空(Keystore 失效)→ 必须判定不可用并拒绝导出/上传",
- * 防止备份被静默降级为明文写盘。判定与本地导出([BackupService.export]/
- * [BackupService.exportStreaming])和云上传([BackupService.exportToCloud])共用,
- * 三处行为一致。
+ * 覆盖"已设密码 + 密码读空(Keystore 失效)→ 云端或密码保护单 JSON 导出必须拒绝",
+ * 防止加密备份被静默降级为明文写盘。流式本地 NDJSON 是用户确认后的明文格式，
+ * 不依赖云备份密码。
  */
 class BackupPasswordGuardTest {
+
+    @Test
+    fun cloudProviderSecretsRequireAnEncryptionPassword() {
+        val unencrypted = CloudBackupConfig()
+        assertTrue(BackupService.requiresCloudBackupPassword(unencrypted, includeSecrets = true))
+        assertFalse(BackupService.requiresCloudBackupPassword(unencrypted, includeSecrets = false))
+        assertFalse(BackupService.requiresCloudBackupPassword(unencrypted.copy(backupPassword = "test"), includeSecrets = true))
+    }
 
     @Test
     fun passwordSetButBlank_isUnavailable() {

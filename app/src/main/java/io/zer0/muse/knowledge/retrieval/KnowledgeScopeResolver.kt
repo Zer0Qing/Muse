@@ -23,10 +23,7 @@ interface KnowledgeScopeResolver {
      * @param folderScopes (kbId, folderPath) 绑定;folderPath 为库内相对路径
      *   (未归一化原始输入,解析器内部归一化),空串表示整库。
      */
-    suspend fun resolveBinding(
-        knowledgeBaseIds: List<String>,
-        folderScopes: List<Pair<String, String>>,
-    ): KnowledgeScope
+    suspend fun resolveBinding(knowledgeBaseIds: List<String>, folderScopes: List<Pair<String, String>>): KnowledgeScope
 }
 
 /**
@@ -40,10 +37,7 @@ class DefaultKnowledgeScopeResolver(
     private val docsByKbIds: suspend (List<String>) -> List<ScopeDoc>,
 ) : KnowledgeScopeResolver {
 
-    override suspend fun resolveBinding(
-        knowledgeBaseIds: List<String>,
-        folderScopes: List<Pair<String, String>>,
-    ): KnowledgeScope {
+    override suspend fun resolveBinding(knowledgeBaseIds: List<String>, folderScopes: List<Pair<String, String>>): KnowledgeScope {
         val kbIds = knowledgeBaseIds.map { it.trim() }.filter { it.isNotBlank() }.distinct()
         val scopes = folderScopes
             .map { (kbId, path) -> kbId.trim() to FolderPathNormalizer.normalize(path) }
@@ -93,10 +87,7 @@ class DefaultKnowledgeScopeResolver(
  *
  * 返回 null 的唯一来源 = 未绑定且无 mention;返回空列表的唯一来源 = 显式零结果许可。
  */
-fun mergeMentionWithPermit(
-    mentionDocIds: List<String>?,
-    permittedDocIds: List<String>?,
-): List<String>? = when {
+fun mergeMentionWithPermit(mentionDocIds: List<String>?, permittedDocIds: List<String>?): List<String>? = when {
     permittedDocIds == null -> mentionDocIds?.takeIf { it.isNotEmpty() }
     permittedDocIds.isEmpty() -> emptyList()
     mentionDocIds.isNullOrEmpty() -> permittedDocIds

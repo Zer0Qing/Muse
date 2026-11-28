@@ -4,6 +4,8 @@ import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Entity
 import androidx.room.Index
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.PrimaryKey
 import androidx.room.Query
 import androidx.room.Upsert
@@ -75,6 +77,9 @@ interface BotMessageCardDao {
     @Upsert
     suspend fun upsertAll(cards: List<BotMessageCardEntity>)
 
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertIfAbsent(card: BotMessageCardEntity): Long
+
     @Query("SELECT * FROM bot_message_cards WHERE cardId = :cardId LIMIT 1")
     suspend fun getById(cardId: String): BotMessageCardEntity?
 
@@ -89,12 +94,20 @@ interface BotMessageCardDao {
         "UPDATE bot_message_cards SET status = :status, selectedOptionId = :selectedOptionId, updatedAt = :updatedAt " +
             "WHERE cardId = :cardId",
     )
-    suspend fun updateInteraction(
-        cardId: String,
-        status: String,
-        selectedOptionId: String,
-        updatedAt: Long,
-    ): Int
+    suspend fun updateInteraction(cardId: String, status: String, selectedOptionId: String, updatedAt: Long): Int
+
+    @Query(
+        "UPDATE bot_message_cards SET status = 'RESOLVED', selectedOptionId = :selectedOptionId, " +
+            "updatedAt = :updatedAt WHERE cardId = :cardId AND botId = :botId " +
+            "AND originSessionId = :sessionId AND status = 'ACTIVE'",
+    )
+    suspend fun resolveActiveForScope(cardId: String, botId: String, sessionId: String, selectedOptionId: String, updatedAt: Long): Int
+
+    @Query(
+        "UPDATE bot_message_cards SET status = 'DISMISSED', selectedOptionId = '', updatedAt = :updatedAt " +
+            "WHERE cardId = :cardId AND botId = :botId AND originSessionId = :sessionId AND status = 'ACTIVE'",
+    )
+    suspend fun dismissActiveForScope(cardId: String, botId: String, sessionId: String, updatedAt: Long): Int
 
     @Query("SELECT * FROM bot_message_cards")
     suspend fun getAll(): List<BotMessageCardEntity>

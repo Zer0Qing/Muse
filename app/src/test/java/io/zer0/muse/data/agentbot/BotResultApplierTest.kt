@@ -28,9 +28,9 @@ import java.io.File
 class BotResultApplierTest {
 
     private lateinit var db: MuseDb
-    private lateinit var repo: AgentBotRepository;
-    private lateinit var dir: File;
-    private lateinit var staging: StagedArtifactStore;
+    private lateinit var repo: AgentBotRepository
+    private lateinit var dir: File
+    private lateinit var staging: StagedArtifactStore
     private var clock = 1_000L
 
     /** 被写入的目标，测试断言用。 */
@@ -38,10 +38,10 @@ class BotResultApplierTest {
 
     @Before
     fun setUp() {
-        val context: Context = ApplicationProvider.getApplicationContext();
+        val context: Context = ApplicationProvider.getApplicationContext()
         db = Room.inMemoryDatabaseBuilder(context, MuseDb::class.java)
             .allowMainThreadQueries()
-            .build();
+            .build()
         repo = AgentBotRepository(
             taskDao = db.botTaskDao(),
             runDao = db.taskRunDao(),
@@ -52,15 +52,15 @@ class BotResultApplierTest {
             bindingDao = db.botBindingDao(),
             database = db,
             now = { clock },
-        );
-        dir = File(System.getProperty("java.io.tmpdir"), "applier-" + System.nanoTime());
-        staging = StagedArtifactStore(dir);
+        )
+        dir = File(System.getProperty("java.io.tmpdir"), "applier-" + System.nanoTime())
+        staging = StagedArtifactStore(dir)
     }
 
     @After
     fun tearDown() {
-        db.close();
-        dir.deleteRecursively();
+        db.close()
+        dir.deleteRecursively()
     }
 
     private fun applier(
@@ -72,7 +72,7 @@ class BotResultApplierTest {
         reviewer = BotReviewWorker(),
         readTarget = read,
         writeTarget = write,
-    );
+    )
 
     private suspend fun newTaskAndRun(resourceScope: String = "notes.md"): Pair<BotTaskEntity, TaskRunEntity> {
         val task = repo.createTask(
@@ -82,22 +82,22 @@ class BotResultApplierTest {
             goal = "改错字",
             acceptanceCriteria = "只改错字",
             resourceScope = resourceScope,
-        );
-        val run = repo.openRun(task.taskId)!!;
-        repo.transition(task.taskId, BotTaskStatusMachine.Event.START);
-        repo.transition(task.taskId, BotTaskStatusMachine.Event.EXECUTE_DONE);
+        )
+        val run = repo.openRun(task.taskId)!!
+        repo.transition(task.taskId, BotTaskStatusMachine.Event.START)
+        repo.transition(task.taskId, BotTaskStatusMachine.Event.EXECUTE_DONE)
         repo.closeRun(run.runId, TaskRunStatus.COMPLETED)
-        return task to run;
+        return task to run
     }
 
     @Test
     fun `accepted result is written to the target`() = runTest {
-        targets["notes.md"] = "原内容";
-        val (task, run) = newTaskAndRun();
-        val baseHash = StagedArtifactStore.hashOf("原内容");
+        targets["notes.md"] = "原内容"
+        val (task, run) = newTaskAndRun()
+        val baseHash = StagedArtifactStore.hashOf("原内容")
         val stagedId = staging.stage(
             StagedArtifactStore.Candidate("notes.md", "改好的内容", baseHash, run.taskRevision),
-        );
+        )
 
         val outcome = applier().process(
             task = task,
@@ -105,10 +105,10 @@ class BotResultApplierTest {
             payloadRef = "改完了\n" + BotResultApplier.STAGED_MARKER + stagedId + "]",
             expectedBaseHash = baseHash,
             criteria = "只改错字",
-        );
+        )
 
-        assertTrue("审核通过应真的写目标", outcome.applied);
-        assertEquals("改好的内容", targets["notes.md"]);
+        assertTrue("审核通过应真的写目标", outcome.applied)
+        assertEquals("改好的内容", targets["notes.md"])
         assertNull("审核事务完成后才清理候选", staging.read(stagedId))
     }
 
@@ -161,14 +161,14 @@ class BotResultApplierTest {
 
     @Test
     fun `target changed after staging is not overwritten`() = runTest {
-        targets["notes.md"] = "原内容";
-        val (task, run) = newTaskAndRun();
-        val baseHash = StagedArtifactStore.hashOf("原内容");
+        targets["notes.md"] = "原内容"
+        val (task, run) = newTaskAndRun()
+        val baseHash = StagedArtifactStore.hashOf("原内容")
         val stagedId = staging.stage(
             StagedArtifactStore.Candidate("notes.md", "改好的内容", baseHash, run.taskRevision),
-        );
+        )
         // 用户在任务跑完后手动改了文件
-        targets["notes.md"] = "用户自己改的";
+        targets["notes.md"] = "用户自己改的"
 
         val outcome = applier().process(
             task = task,
@@ -176,35 +176,35 @@ class BotResultApplierTest {
             payloadRef = "改完了\n" + BotResultApplier.STAGED_MARKER + stagedId + "]",
             expectedBaseHash = baseHash,
             criteria = "只改错字",
-        );
+        )
 
-        assertFalse("目标被改过不能覆盖", outcome.applied);
-        assertEquals("用户自己改的", targets["notes.md"]);
+        assertFalse("目标被改过不能覆盖", outcome.applied)
+        assertEquals("用户自己改的", targets["notes.md"])
     }
 
     @Test
     fun `result without artifacts is not applied`() = runTest {
-        val (task, run) = newTaskAndRun();
+        val (task, run) = newTaskAndRun()
         val outcome = applier().process(
             task = task,
             run = run,
             payloadRef = "我做完了",
             expectedBaseHash = "",
             criteria = "只改错字",
-        );
+        )
 
-        assertFalse("只返回文字不算完成", outcome.applied);
-        assertTrue(targets.isEmpty());
+        assertFalse("只返回文字不算完成", outcome.applied)
+        assertTrue(targets.isEmpty())
     }
 
     @Test
     fun `missing write capability keeps the candidate`() = runTest {
-        targets["notes.md"] = "原内容";
-        val (task, run) = newTaskAndRun();
-        val baseHash = StagedArtifactStore.hashOf("原内容");
+        targets["notes.md"] = "原内容"
+        val (task, run) = newTaskAndRun()
+        val baseHash = StagedArtifactStore.hashOf("原内容")
         val stagedId = staging.stage(
             StagedArtifactStore.Candidate("notes.md", "改好的内容", baseHash, run.taskRevision),
-        );
+        )
 
         val outcome = applier(write = null).process(
             task = task,
@@ -212,21 +212,21 @@ class BotResultApplierTest {
             payloadRef = "改完了\n" + BotResultApplier.STAGED_MARKER + stagedId + "]",
             expectedBaseHash = baseHash,
             criteria = "只改错字",
-        );
+        )
 
-        assertFalse(outcome.applied);
-        assertTrue("要说明为什么没应用", outcome.blockedReason.contains("没有写入能力"));
-        assertTrue("候选要留着，等用户手动处理", staging.read(stagedId) != null);
+        assertFalse(outcome.applied)
+        assertTrue("要说明为什么没应用", outcome.blockedReason.contains("没有写入能力"))
+        assertTrue("候选要留着，等用户手动处理", staging.read(stagedId) != null)
     }
 
     @Test
     fun `staged id is parsed from payload ref`() = runTest {
-        targets["notes.md"] = "原内容";
-        val (task, run) = newTaskAndRun();
-        val baseHash = StagedArtifactStore.hashOf("原内容");
+        targets["notes.md"] = "原内容"
+        val (task, run) = newTaskAndRun()
+        val baseHash = StagedArtifactStore.hashOf("原内容")
         val stagedId = staging.stage(
             StagedArtifactStore.Candidate("notes.md", "改好的内容", baseHash, run.taskRevision),
-        );
+        )
 
         val outcome = applier().process(
             task = task,
@@ -234,8 +234,8 @@ class BotResultApplierTest {
             payloadRef = "摘要在这里\n" + BotResultApplier.STAGED_MARKER + stagedId + "]",
             expectedBaseHash = baseHash,
             criteria = "只改错字",
-        );
+        )
 
-        assertTrue("必须能从 payloadRef 里认出 staged id", outcome.applied);
+        assertTrue("必须能从 payloadRef 里认出 staged id", outcome.applied)
     }
 }

@@ -860,7 +860,9 @@ internal fun ProviderEditPage(
             config.category
         }
         return config.copy(
-            displayName = displayName.ifBlank { type.name },
+            // 不再把空名字静默兜成类型名（会存出一张叫 OPENAI 的卡片，用户不知道它是哪次操作）。
+            // 名字为空的情况已在保存入口拦住，这里只做 trim。
+            displayName = displayName.trim(),
             type = type,
             baseUrl = baseUrl.trim(),
             apiKey = apiKey.trim(),
@@ -878,7 +880,19 @@ internal fun ProviderEditPage(
 
     // 保存业务逻辑
     val save: () -> Unit = {
-        onSave(buildCurrentConfig())
+        val built = buildCurrentConfig()
+        // 空白表单直接保存会在列表里长出一张没有名字、没有地址的 OPENAI 卡片，
+        // 用户既看不懂也删不掉它跟哪次操作有关。新增时必须至少给出名称与地址；
+        // 编辑已有供应商时 displayName 早已有值，不会误挡。
+        // 判据必须用输入框的原始值：buildCurrentConfig() 会做 trim，用它的结果判定
+        // 等于把“用户到底填了没有”这件事又丢一次。
+        val missingName = isNew && displayName.isBlank()
+        val missingUrl = isNew && baseUrl.isBlank()
+        if (missingName || missingUrl) {
+            MuseToast.show(context.getString(R.string.settings_provider_required_fields))
+        } else {
+            onSave(built)
+        }
     }
 
     // ── P1-6: OAuth 登录 ──────────────────────────────────────────────
@@ -1441,23 +1455,21 @@ private data class AutoFix(
 )
 
 /** 协议 → ProviderType。Gemini/Anthropic 各走自己的 Provider。 */
-private fun io.zer0.ai.openai.OpenAiEndpointCandidates.ProtocolKind.toProviderType(): io.zer0.ai.core.ProviderType =
-    when (this) {
-        io.zer0.ai.openai.OpenAiEndpointCandidates.ProtocolKind.OPENAI_CHAT -> io.zer0.ai.core.ProviderType.OPENAI
-        io.zer0.ai.openai.OpenAiEndpointCandidates.ProtocolKind.OPENAI_RESPONSES -> io.zer0.ai.core.ProviderType.OPENAI_RESPONSES
-        io.zer0.ai.openai.OpenAiEndpointCandidates.ProtocolKind.ANTHROPIC -> io.zer0.ai.core.ProviderType.ANTHROPIC
-        io.zer0.ai.openai.OpenAiEndpointCandidates.ProtocolKind.GEMINI -> io.zer0.ai.core.ProviderType.GEMINI
-    }
+private fun io.zer0.ai.openai.OpenAiEndpointCandidates.ProtocolKind.toProviderType(): io.zer0.ai.core.ProviderType = when (this) {
+    io.zer0.ai.openai.OpenAiEndpointCandidates.ProtocolKind.OPENAI_CHAT -> io.zer0.ai.core.ProviderType.OPENAI
+    io.zer0.ai.openai.OpenAiEndpointCandidates.ProtocolKind.OPENAI_RESPONSES -> io.zer0.ai.core.ProviderType.OPENAI_RESPONSES
+    io.zer0.ai.openai.OpenAiEndpointCandidates.ProtocolKind.ANTHROPIC -> io.zer0.ai.core.ProviderType.ANTHROPIC
+    io.zer0.ai.openai.OpenAiEndpointCandidates.ProtocolKind.GEMINI -> io.zer0.ai.core.ProviderType.GEMINI
+}
 
 /** 协议 → specific 配置。只给出该协议必需的默认值，其余交给用户后续调整。 */
-private fun io.zer0.ai.openai.OpenAiEndpointCandidates.ProtocolKind.toSpecific(): io.zer0.ai.core.ProviderSpecificConfig =
-    when (this) {
-        io.zer0.ai.openai.OpenAiEndpointCandidates.ProtocolKind.OPENAI_CHAT ->
-            io.zer0.ai.core.ProviderSpecificConfig.OpenAI(useResponseApi = false)
-        io.zer0.ai.openai.OpenAiEndpointCandidates.ProtocolKind.OPENAI_RESPONSES ->
-            io.zer0.ai.core.ProviderSpecificConfig.OpenAI(useResponseApi = true)
-        io.zer0.ai.openai.OpenAiEndpointCandidates.ProtocolKind.ANTHROPIC ->
-            io.zer0.ai.core.ProviderSpecificConfig.Anthropic()
-        io.zer0.ai.openai.OpenAiEndpointCandidates.ProtocolKind.GEMINI ->
-            io.zer0.ai.core.ProviderSpecificConfig.Gemini()
-    }
+private fun io.zer0.ai.openai.OpenAiEndpointCandidates.ProtocolKind.toSpecific(): io.zer0.ai.core.ProviderSpecificConfig = when (this) {
+    io.zer0.ai.openai.OpenAiEndpointCandidates.ProtocolKind.OPENAI_CHAT ->
+        io.zer0.ai.core.ProviderSpecificConfig.OpenAI(useResponseApi = false)
+    io.zer0.ai.openai.OpenAiEndpointCandidates.ProtocolKind.OPENAI_RESPONSES ->
+        io.zer0.ai.core.ProviderSpecificConfig.OpenAI(useResponseApi = true)
+    io.zer0.ai.openai.OpenAiEndpointCandidates.ProtocolKind.ANTHROPIC ->
+        io.zer0.ai.core.ProviderSpecificConfig.Anthropic()
+    io.zer0.ai.openai.OpenAiEndpointCandidates.ProtocolKind.GEMINI ->
+        io.zer0.ai.core.ProviderSpecificConfig.Gemini()
+}

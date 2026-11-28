@@ -41,8 +41,12 @@ class ProactiveBacklogClaimTest {
         db.pendingThoughtDao().upsert(thought)
         db.proactiveBacklogDao().insertIfAbsent(
             ProactiveBacklogDispatchEntity(
-                dispatchId = "d1", thoughtId = thought.id, assistantId = "a1", sessionId = "s1",
-                createdAt = 1L, updatedAt = 1L,
+                dispatchId = "d1",
+                thoughtId = thought.id,
+                assistantId = "a1",
+                sessionId = "s1",
+                createdAt = 1L,
+                updatedAt = 1L,
             ),
         )
 
@@ -60,8 +64,12 @@ class ProactiveBacklogClaimTest {
         db.pendingThoughtDao().upsert(thought)
         db.proactiveBacklogDao().insertIfAbsent(
             ProactiveBacklogDispatchEntity(
-                dispatchId = "d1", thoughtId = thought.id, assistantId = "a1", sessionId = "s1",
-                createdAt = 1L, updatedAt = 1L,
+                dispatchId = "d1",
+                thoughtId = thought.id,
+                assistantId = "a1",
+                sessionId = "s1",
+                createdAt = 1L,
+                updatedAt = 1L,
             ),
         )
         val first = repository.claimOne(now = 10_000L, leaseUntil = 20_000L) ?: error("first claim expected")

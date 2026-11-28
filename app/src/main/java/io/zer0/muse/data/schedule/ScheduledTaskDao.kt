@@ -64,11 +64,13 @@ interface ScheduledTaskDao {
      *
      * @param id 任务 id
      * @param expectedNextRunAt 调用方从 DB 读到的 next_run_at 快照(CAS 期望值)
-     * @param claimedAt 领取时间戳,写入 last_run_at 与 updated_at
+     * @param claimedAt 领取时间戳,写入 updated_at; routine 行保留计划 slot 到 last_run_at
      * @param claimNextRun 领取时临时推进的 next_run_at 哨兵值(远未来),由调用方传入
      */
     @Query(
-        "UPDATE scheduled_tasks SET next_run_at = :claimNextRun, last_run_at = :claimedAt, updated_at = :claimedAt " +
+        "UPDATE scheduled_tasks SET next_run_at = :claimNextRun, " +
+            "last_run_at = CASE WHEN id LIKE 'routine:%' THEN :expectedNextRunAt ELSE :claimedAt END, " +
+            "updated_at = :claimedAt " +
             "WHERE id = :id AND next_run_at = :expectedNextRunAt",
     )
     suspend fun claimTask(id: String, expectedNextRunAt: Long, claimedAt: Long, claimNextRun: Long): Int
@@ -85,7 +87,7 @@ interface ScheduledTaskDao {
      * 领取([claimTask])会把 next_run_at 临时推进为远未来哨兵以摘除"到期"身份;若之后
      * [recordExecutionAndScheduleNext] 事务失败回滚,next_run_at 永远停在哨兵值,到期扫描
      * 永远命中不了。这里把"next_run_at=哨兵 且 updated_at 已过阈值"的任务重置 next_run_at
-     * 为 now(并刷新 updated_at),由下一轮轮询重新纳入到期执行。
+     * routine 行恢复 last_run_at 中保留的计划 slot,普通任务移动到 now；两者都刷新 updated_at。
      *
      * 防误重置:
      *  - updated_at < staleBefore 过滤:正在执行中的任务其 updated_at 是刚领取的时间,未过阈值
@@ -97,7 +99,8 @@ interface ScheduledTaskDao {
      * @return 受影响行数(回收的任务数)
      */
     @Query(
-        "UPDATE scheduled_tasks SET next_run_at = :now, updated_at = :now " +
+        "UPDATE scheduled_tasks SET next_run_at = CASE " +
+            "WHEN id LIKE 'routine:%' AND last_run_at > 0 THEN last_run_at ELSE :now END, updated_at = :now " +
             "WHERE next_run_at = :sentinel AND enabled = 1 AND updated_at < :staleBefore",
     )
     suspend fun recoverStuckClaim(sentinel: Long, staleBefore: Long, now: Long): Int

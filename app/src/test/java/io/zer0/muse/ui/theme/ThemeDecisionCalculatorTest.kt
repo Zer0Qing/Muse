@@ -1,14 +1,14 @@
 package io.zer0.muse.ui.theme
 
 import io.zer0.muse.data.ThemeScheduleConfig
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneId
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
 
 class ThemeDecisionCalculatorTest {
     private val utc = ZoneId.of("UTC")
@@ -87,7 +87,9 @@ class ThemeDecisionCalculatorTest {
         val polarDay = normal.copy(condition = SolarCondition.POLAR_DAY, sunriseAt = null, sunsetAt = null)
         val polarNight = polarDay.copy(condition = SolarCondition.POLAR_NIGHT)
         assertFalse(evaluate(BaseThemeMode.DARK, ThemeAutoPolicy.SUNRISE_SUNSET, schedule, "2026-06-01T12:00:00Z", solar = polarDay).isDark)
-        assertTrue(evaluate(BaseThemeMode.LIGHT, ThemeAutoPolicy.SUNRISE_SUNSET, schedule, "2026-06-01T12:00:00Z", solar = polarNight).isDark)
+        assertTrue(
+            evaluate(BaseThemeMode.LIGHT, ThemeAutoPolicy.SUNRISE_SUNSET, schedule, "2026-06-01T12:00:00Z", solar = polarNight).isDark,
+        )
     }
 
     @Test

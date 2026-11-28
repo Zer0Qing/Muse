@@ -4,12 +4,13 @@ import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.State
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import io.zer0.muse.ui.theme.MoodSkinColors
@@ -27,12 +28,13 @@ fun MoodSkinOverlay(skin: String?) {
     if (skin == null || skin == "off") return
 
     val colors = MoodSkinColors.overlays[skin] ?: MoodSkinColors.defaultOverlay
+    val gradientBrush = remember(colors) { Brush.verticalGradient(colors) }
 
-    val alpha = if (MuseMotion.isReducedMotion()) {
-        0.82f
+    val animatedAlpha: State<Float>? = if (MuseMotion.isReducedMotion()) {
+        null
     } else {
         val transition = rememberInfiniteTransition(label = "moodSkin")
-        val animatedAlpha by transition.animateFloat(
+        transition.animateFloat(
             initialValue = 0.65f,
             targetValue = 1f,
             animationSpec = infiniteRepeatable(
@@ -41,15 +43,15 @@ fun MoodSkinOverlay(skin: String?) {
             ),
             label = "moodSkinAlpha",
         )
-        animatedAlpha
     }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(colors),
-            )
-            .background(color = Color.White.copy(alpha = (1f - alpha) * 0.08f)),
+            .drawBehind {
+                drawRect(brush = gradientBrush)
+                val alphaVal = animatedAlpha?.value ?: 0.82f
+                drawRect(color = Color.White.copy(alpha = (1f - alphaVal) * 0.08f))
+            },
     )
 }

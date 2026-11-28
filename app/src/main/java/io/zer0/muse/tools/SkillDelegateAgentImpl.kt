@@ -30,7 +30,6 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
-import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * P1-3e 拆域：SkillExecutor 的 delegateAgent 实现。

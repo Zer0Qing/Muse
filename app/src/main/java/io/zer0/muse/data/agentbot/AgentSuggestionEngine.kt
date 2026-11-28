@@ -49,6 +49,8 @@ data class AgentSuggestion(
     val titleCount: Int? = null,
     val promptCount: Int? = null,
     val priority: Int = 0,
+    val titleText: String? = null,
+    val promptText: String? = null,
 )
 
 /** 生成建议所需的纯数据快照。 */
@@ -132,35 +134,37 @@ object AgentSuggestionEngine {
                     ),
                 )
             }
-            when (input.hourOfDay) {
-                in 5..11 -> add(
-                    AgentSuggestion(
-                        id = "morning_brief",
-                        kind = AgentSuggestionKind.MORNING_BRIEF,
-                        titleRes = R.string.agent_suggestion_morning_title,
-                        promptRes = R.string.agent_suggestion_morning_prompt,
-                        priority = 60 - input.hourOfDay,
-                    ),
-                )
-                in 12..17 -> add(
-                    AgentSuggestion(
-                        id = "afternoon_progress",
-                        kind = AgentSuggestionKind.AFTERNOON_PROGRESS,
-                        titleRes = R.string.agent_suggestion_afternoon_title,
-                        promptRes = R.string.agent_suggestion_afternoon_prompt,
-                        priority = 50 - (input.hourOfDay - 12),
-                    ),
-                )
-                in 18..22 -> add(
-                    AgentSuggestion(
-                        id = "evening_review",
-                        kind = AgentSuggestionKind.EVENING_REVIEW,
-                        titleRes = R.string.agent_suggestion_evening_title,
-                        promptRes = R.string.agent_suggestion_evening_prompt,
-                        priority = 40 - (input.hourOfDay - 18),
-                    ),
-                )
-                else -> Unit
+            if (!input.hasConversationHistory) {
+                when (input.hourOfDay) {
+                    in 5..11 -> add(
+                        AgentSuggestion(
+                            id = "morning_brief",
+                            kind = AgentSuggestionKind.MORNING_BRIEF,
+                            titleRes = R.string.agent_suggestion_morning_title,
+                            promptRes = R.string.agent_suggestion_morning_prompt,
+                            priority = 60 - input.hourOfDay,
+                        ),
+                    )
+                    in 12..17 -> add(
+                        AgentSuggestion(
+                            id = "afternoon_progress",
+                            kind = AgentSuggestionKind.AFTERNOON_PROGRESS,
+                            titleRes = R.string.agent_suggestion_afternoon_title,
+                            promptRes = R.string.agent_suggestion_afternoon_prompt,
+                            priority = 50 - (input.hourOfDay - 12),
+                        ),
+                    )
+                    in 18..22 -> add(
+                        AgentSuggestion(
+                            id = "evening_review",
+                            kind = AgentSuggestionKind.EVENING_REVIEW,
+                            titleRes = R.string.agent_suggestion_evening_title,
+                            promptRes = R.string.agent_suggestion_evening_prompt,
+                            priority = 40 - (input.hourOfDay - 18),
+                        ),
+                    )
+                    else -> Unit
+                }
             }
         }
         return candidates

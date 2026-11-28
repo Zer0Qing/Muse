@@ -37,12 +37,21 @@ object TeachEventSanitizer {
         val viewId: String = "",
         val text: String? = null,
         val contentDescription: String? = null,
+        val isEditable: Boolean = false,
         val isPassword: Boolean = false,
         val timestamp: Long,
     )
 
     sealed interface Decision {
-        data class Record(val action: String, val targetApp: String) : Decision
+        data class Record(
+            val action: String,
+            val targetApp: String,
+            val targetPackage: String,
+            val targetText: String = "",
+            val contentDesc: String = "",
+            val resourceIdHint: String = "",
+            val actionKind: String,
+        ) : Decision
 
         data class Blocked(val reason: BlockReason) : Decision
 
@@ -63,12 +72,7 @@ object TeachEventSanitizer {
      * @param startedAt 本次录制开始时间（wall clock，毫秒）；0 表示尚未开始
      * @param now 当前时间（wall clock，毫秒），默认取事件时间便于测试注入
      */
-    fun decide(
-        event: RawEvent,
-        recordedSteps: Int,
-        startedAt: Long,
-        now: Long = event.timestamp,
-    ): Decision {
+    fun decide(event: RawEvent, recordedSteps: Int, startedAt: Long, now: Long = event.timestamp): Decision {
         if (event.isPassword || isPasswordInput(event)) {
             return Decision.Blocked(BlockReason.PASSWORD_FIELD)
         }
@@ -101,14 +105,23 @@ object TeachEventSanitizer {
     }
 
     private fun clickDecision(event: RawEvent): Decision.Record {
+        val editableControl = event.isEditable || isEditableControl(event.className)
         val label = firstNonBlank(
             event.contentDescription,
-            event.text,
+            event.text.takeUnless { editableControl },
             event.viewId.substringAfterLast('/'),
             event.className.substringAfterLast('.'),
         ).take(MAX_LABEL_LENGTH)
         val action = if (label.isBlank()) "点击界面元素" else "点击「$label」"
-        return Decision.Record(action.take(MAX_ACTION_LENGTH), event.packageName.trim())
+        return Decision.Record(
+            action = action.take(MAX_ACTION_LENGTH),
+            targetApp = event.packageName.trim(),
+            targetPackage = event.packageName.trim(),
+            targetText = event.text.orEmpty().trim().take(MAX_LABEL_LENGTH).takeUnless { editableControl }.orEmpty(),
+            contentDesc = event.contentDescription.orEmpty().trim().take(MAX_LABEL_LENGTH),
+            resourceIdHint = event.viewId.substringAfterLast('/').trim().take(MAX_LABEL_LENGTH),
+            actionKind = "click",
+        )
     }
 
     private fun textDecision(event: RawEvent): Decision.Record {
@@ -120,7 +133,14 @@ object TeachEventSanitizer {
         val length = event.text?.length ?: 0
         val detail = if (length > 0) "已脱敏，$length 字符" else "内容已脱敏"
         val action = "在「$field」输入文本（$detail）"
-        return Decision.Record(action.take(MAX_ACTION_LENGTH), event.packageName.trim())
+        return Decision.Record(
+            action = action.take(MAX_ACTION_LENGTH),
+            targetApp = event.packageName.trim(),
+            targetPackage = event.packageName.trim(),
+            contentDesc = event.contentDescription.orEmpty().trim().take(MAX_LABEL_LENGTH),
+            resourceIdHint = event.viewId.substringAfterLast('/').trim().take(MAX_LABEL_LENGTH),
+            actionKind = "text_changed",
+        )
     }
 
     private fun windowDecision(event: RawEvent): Decision.Record {
@@ -129,7 +149,14 @@ object TeachEventSanitizer {
             event.packageName,
         ).take(MAX_LABEL_LENGTH)
         val action = if (page.isBlank()) "切换页面" else "切换到「$page」"
-        return Decision.Record(action.take(MAX_ACTION_LENGTH), event.packageName.trim())
+        return Decision.Record(
+            action = action.take(MAX_ACTION_LENGTH),
+            targetApp = event.packageName.trim(),
+            targetPackage = event.packageName.trim(),
+            contentDesc = event.contentDescription.orEmpty().trim().take(MAX_LABEL_LENGTH),
+            resourceIdHint = event.viewId.substringAfterLast('/').trim().take(MAX_LABEL_LENGTH),
+            actionKind = "window_changed",
+        )
     }
 
     /** 密码输入框的补充识别：部分系统只给 viewId/描述，不设 isPassword 标志。 */
@@ -137,6 +164,11 @@ object TeachEventSanitizer {
         if (event.eventType != AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED) return false
         val haystack = "${event.viewId} ${event.contentDescription.orEmpty()}".lowercase()
         return PASSWORD_FIELD_HINTS.any { hint -> haystack.contains(hint) }
+    }
+
+    private fun isEditableControl(className: String): Boolean {
+        val normalized = className.lowercase()
+        return listOf("edittext", "textinput", "autocomplete").any(normalized::contains)
     }
 
     private fun firstNonBlank(vararg values: String?): String {

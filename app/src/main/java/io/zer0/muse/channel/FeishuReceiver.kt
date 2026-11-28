@@ -8,7 +8,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonObject
@@ -26,33 +25,24 @@ import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 import okio.ByteString
 import okio.ByteString.Companion.toByteString
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 
 /**
- * v2.0.1: 飞书长连接接收器 — pbbp2 over WebSocket(免公网)。
- *
- * 流程:POST {openBase}/callback/ws/endpoint 换取 wss 地址(含 service_id)→ 连接 →
- * 周期性 control ping 保活;数据帧按 message_id 分片合并后解析事件,处理完回写 ack
- * (同帧 payload 置为 {"code":200})。兼容飞书中国版与 Lark 国际版(region 字段)。
- *
- * 事件:仅处理 `im.message.receive_v1`;p2p 消息回给发送者 open_id,群消息回给 chat_id
- * (发送侧 [FeishuChannelSender] 按 target 前缀自动判定 receive_id_type)。
+ * v2.0.1: 飞书长连接接收器 — pbbp2 over WebSocket(免公网)，支持多实例并行。
  */
 class FeishuReceiver(
     private val channelManager: ChannelManager,
     private val context: Context,
     private val appScope: CoroutineScope,
-) {
-    /**
-     * 当前生效的渠道配置。
-     *
-     * 图片下载是异步的，需要读到与连接循环同一份配置，
-     * 所以从 connectLoop 的局部变量提升为成员。
-     */
-    @Volatile private var currentConfig: ChannelConfig? = null
+) : ChannelReceiver {
+    override val platform: ChannelPlatform = ChannelPlatform.FEISHU
 
-    private var job: Job? = null
+    private val lock = Any()
+    private var watcherJob: Job? = null
+    private val channelJobs = ConcurrentHashMap<String, Job>()
+    private val channelFingerprints = ConcurrentHashMap<String, String>()
 
     /** 分片事件缓冲:有界 FIFO 拼装,避免单个异常连接耗尽内存。 */
     private val frameAssembler = FeishuFrameAssembler()
@@ -62,51 +52,95 @@ class FeishuReceiver(
         val text: String,
         val eventId: String,
         /** 图片消息的 image_key；非图片消息为 null。 */
-
         val imageKey: String? = null,
+        val isGroup: Boolean = false,
+        val isMentioned: Boolean = false,
     )
 
     /** 启动接收循环(幂等;已有循环先停再起)。 */
-    fun restart() {
-        job?.cancel()
-        job = appScope.launch {
-            ChannelInbox.attach(context)
-            connectLoop()
+    override fun restart() {
+        synchronized(lock) {
+            stopAllLocked()
+            watcherJob = appScope.launch {
+                ChannelInbox.attach(context)
+                channelManager.refresh()
+                reconcile(channelManager.channels.value)
+                channelManager.channels.collect { channels ->
+                    reconcile(channels)
+                }
+            }
         }
     }
 
     /** 停止接收。 */
-    fun stop() {
-        job?.cancel()
-        job = null
+    override fun stop() {
+        synchronized(lock) {
+            stopAllLocked()
+        }
     }
 
-    private suspend fun connectLoop() {
-        while (currentCoroutineContext().isActive) {
-            channelManager.refresh()
-            val config = channelManager.channels.value.firstOrNull {
-                it.enabled && it.platform == ChannelPlatform.FEISHU &&
+    private fun stopAllLocked() {
+        watcherJob?.cancel()
+        watcherJob = null
+        channelJobs.keys.toList().forEach { id ->
+            channelJobs.remove(id)?.cancel()
+            channelFingerprints.remove(id)
+            ChannelRuntimeRegistry.markStopped(id, platform)
+        }
+    }
+
+    private fun reconcile(channels: List<ChannelConfig>) {
+        synchronized(lock) {
+            val active = channels.filter {
+                it.enabled && it.platform == platform &&
                     it.appId.isNotBlank() && it.appSecret.isNotBlank()
             }
+            val activeMap = active.associateBy { it.id }
+            val allIds = channels.filter { it.platform == platform }.mapTo(HashSet()) { it.id }
 
-            currentConfig = config
-            if (config == null) {
-                // v2.6.7: 无启用渠道时**挂起等待配置变化**，不再每 5 秒空转唤醒。
-                // 旧写法 delay(5s)+continue 让五个接收器每分钟合计唤醒 60 次，阻止深度休眠。
-                // 配置变更由 ChannelManager.upsert/remove/refresh 写入 channels；
-                // 设置页保存后还会调 restart() 重进本循环，两条路径都能唤醒。
-                Logger.i(TAG, "无启用中的飞书渠道,接收循环挂起等待配置")
-                channelManager.channels.first { list ->
-                    list.any {
-                        it.enabled && it.platform == ChannelPlatform.FEISHU &&
-                            it.appId.isNotBlank() && it.appSecret.isNotBlank()
+            channelJobs.keys.toList().forEach { id ->
+                val nextCfg = activeMap[id]
+                val nextFp = nextCfg?.let { "${it.region}:${it.appId}:${it.appSecret}" }
+                if (nextCfg == null || channelFingerprints[id] != nextFp) {
+                    channelJobs.remove(id)?.cancel()
+                    channelFingerprints.remove(id)
+                    if (id !in allIds) {
+                        ChannelRuntimeRegistry.remove(id)
+                    } else if (nextCfg == null) {
+                        ChannelRuntimeRegistry.markStopped(id, platform)
                     }
                 }
-                continue
             }
-            Logger.i(TAG, "飞书接收循环: 找到渠道 ${config.id},建立连接…")
+
+            channels.filter { it.platform == platform && !it.enabled }.forEach { disabled ->
+                ChannelRuntimeRegistry.markStopped(disabled.id, platform)
+            }
+
+            active.forEach { cfg ->
+                val existing = channelJobs[cfg.id]
+                if (existing == null || !existing.isActive) {
+                    channelFingerprints[cfg.id] = "${cfg.region}:${cfg.appId}:${cfg.appSecret}"
+                    channelJobs[cfg.id] = appScope.launch {
+                        connectLoopForChannel(cfg)
+                    }
+                }
+            }
+        }
+    }
+
+    private suspend fun connectLoopForChannel(config: ChannelConfig) {
+        while (currentCoroutineContext().isActive) {
+            ChannelRuntimeRegistry.markConnecting(config.id, platform)
+            Logger.i(TAG, "飞书接收循环: 建立连接 ${config.id}…")
             runCatching { connectOnce(config) }
-                .onFailure { e -> Logger.w(TAG, "飞书连接异常: ${e.message}") }
+                .onFailure { e ->
+                    Logger.w(TAG, "飞书连接异常: ${e.message}")
+                    if (ChannelRuntimeRegistry.looksLikeAuthError(e.message)) {
+                        ChannelRuntimeRegistry.markAuthError(config.id, platform, e.message.orEmpty())
+                    } else {
+                        ChannelRuntimeRegistry.markReconnecting(config.id, platform, e.message.orEmpty())
+                    }
+                }
             if (!currentCoroutineContext().isActive) return
             delay(RECONNECT_DELAY_MS)
         }
@@ -114,7 +148,10 @@ class FeishuReceiver(
 
     /** 建立一次 WebSocket 并挂起至断开。 */
     private suspend fun connectOnce(config: ChannelConfig) {
-        val endpoint = requestEndpoint(config) ?: return
+        val endpoint = requestEndpoint(config) ?: run {
+            ChannelRuntimeRegistry.markReconnecting(config.id, platform, "飞书长连接地址获取失败")
+            return
+        }
         val serviceId = queryParam(endpoint.url, "service_id")?.toIntOrNull() ?: 0
         Logger.i(TAG, "endpoint 就绪(service=$serviceId, ping=${endpoint.pingIntervalSeconds}s),建立 WebSocket…")
         val disconnected = CompletableDeferred<Unit>()
@@ -152,21 +189,24 @@ class FeishuReceiver(
             request,
             object : WebSocketListener() {
                 override fun onOpen(webSocket: WebSocket, response: Response) {
-                    Logger.i(TAG, "飞书 WS 已连接")
+                    Logger.i(TAG, "飞书 WS 已连接(${config.id})")
+                    ChannelRuntimeRegistry.markConnected(config.id, platform, config.botDisplayName)
                 }
 
                 override fun onMessage(webSocket: WebSocket, bytes: ByteString) {
-                    runCatching { handleFrame(bytes.toByteArray(), webSocket, config.id) }
+                    runCatching { handleFrame(bytes.toByteArray(), webSocket, config) }
                         .onFailure { e -> Logger.w(TAG, "飞书帧处理失败: ${e.message}") }
                 }
 
                 override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
                     Logger.w(TAG, "飞书 WS 断开: ${t.message}")
+                    ChannelRuntimeRegistry.markReconnecting(config.id, platform, t.message.orEmpty())
                     disconnected.complete(Unit)
                 }
 
                 override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
                     Logger.i(TAG, "飞书 WS 关闭(code=$code, reason=$reason)")
+                    ChannelRuntimeRegistry.markReconnecting(config.id, platform, reason)
                     disconnected.complete(Unit)
                 }
             },
@@ -179,16 +219,16 @@ class FeishuReceiver(
     }
 
     /** 帧分派:control(ping/pong)与 data(事件)。 */
-    private fun handleFrame(bytes: ByteArray, webSocket: WebSocket, channelId: String) {
+    private fun handleFrame(bytes: ByteArray, webSocket: WebSocket, config: ChannelConfig) {
         val frame = FeishuPbbp2.decode(bytes)
         when (frame.method) {
             FeishuPbbp2.METHOD_CONTROL -> Unit // ping 回显 / pong 配置更新(首版忽略)
-            FeishuPbbp2.METHOD_DATA -> handleDataFrame(frame, webSocket, channelId)
+            FeishuPbbp2.METHOD_DATA -> handleDataFrame(frame, webSocket, config)
         }
     }
 
     /** 数据帧:分片合并 → 事件分发 → ack 回写。 */
-    private fun handleDataFrame(frame: FeishuPbbp2.Frame, webSocket: WebSocket, channelId: String) {
+    private fun handleDataFrame(frame: FeishuPbbp2.Frame, webSocket: WebSocket, config: ChannelConfig) {
         val messageId = frame.header("message_id")
         val frameType = frame.header("type")
         val merged = messageId
@@ -199,7 +239,7 @@ class FeishuReceiver(
                 frameAssembler.add(it, sum, seq, frame.payload)
             }
         if (merged != null) {
-            dispatchEvent(merged, channelId)
+            dispatchEvent(merged, config)
         }
         if (shouldAcknowledgeFeishuEventFrame(messageId, frameType)) {
             // 每个事件分片都确认传输层已收到;只有完整 payload 才进入上面的业务派发。
@@ -230,14 +270,20 @@ class FeishuReceiver(
 
      */
 
-    private fun dispatchEvent(json: String, channelId: String) {
+    private fun dispatchEvent(json: String, config: ChannelConfig) {
         val event = parseInboundEvent(json) ?: return
 
-        val source = ChannelInbox.Source("FEISHU", event.from, channelId, event.eventId)
+        val source = ChannelInbox.Source(
+            platform = "FEISHU",
+            from = event.from,
+            channelId = config.id,
+            eventId = event.eventId,
+            isGroup = event.isGroup,
+            isMentioned = event.isMentioned,
+        )
+        ChannelRuntimeRegistry.markInbound(config.id, platform)
 
-        val cfg = currentConfig
-
-        if (event.imageKey.isNullOrBlank() || cfg == null) {
+        if (event.imageKey.isNullOrBlank()) {
             ChannelInbox.record(source, event.text, "")
 
             return
@@ -245,7 +291,7 @@ class FeishuReceiver(
 
         appScope.launch {
             val base64 = ChannelImageFetcher.fetchFeishu(
-                config = cfg,
+                config = config,
                 imageKey = event.imageKey,
                 tokenProvider = { c -> FeishuChannelSender().fetchToken(c) },
             )
@@ -284,6 +330,8 @@ class FeishuReceiver(
         val supportedEvent = eventType == "im.message.receive_v1"
         val userMessage = senderType == null || senderType == "user"
         val messageReady = from.isNotBlank() && text.isNotBlank()
+        val mentions = message?.get("mentions") as? kotlinx.serialization.json.JsonArray
+        val isMentioned = mentions != null && mentions.isNotEmpty()
         // 图片消息附带 image_key，供后续真正下载；其余类型为 null。
 
         val imageKey =
@@ -296,7 +344,14 @@ class FeishuReceiver(
             }
 
         return if (supportedEvent && userMessage && messageReady) {
-            InboundEvent(from, text, eventId, imageKey)
+            InboundEvent(
+                from = from,
+                text = text,
+                eventId = eventId,
+                imageKey = imageKey,
+                isGroup = chatType != "p2p",
+                isMentioned = isMentioned,
+            )
         } else {
             null
         }

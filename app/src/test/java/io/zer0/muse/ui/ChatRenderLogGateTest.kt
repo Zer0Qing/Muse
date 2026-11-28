@@ -1,9 +1,9 @@
 package io.zer0.muse.ui
 
+import io.zer0.muse.ui.chat.render.ChatRenderLogGate
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import io.zer0.muse.ui.chat.render.ChatRenderLogGate
 
 /**
  * 「非渲染消息」诊断日志的去重。

@@ -31,10 +31,7 @@ object BindingScopeMigration {
      * 路径绑定必须提供 [FolderIdResolver] 归一 —— 无 resolver 时目录绑定拒绝解析
      * (Unresolved),调用方不可用本函数做纯路径解析(防止静默域扩大)。
      */
-    fun migrate(
-        entries: List<String>,
-        folderIdResolver: FolderIdResolver? = null,
-    ): List<Entry> = entries.map { raw ->
+    fun migrate(entries: List<String>, folderIdResolver: FolderIdResolver? = null): List<Entry> = entries.map { raw ->
         val trimmed = raw.trim()
         when {
             trimmed.isEmpty() -> Entry.Unresolved(raw, "空条目")

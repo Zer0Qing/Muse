@@ -403,6 +403,35 @@ class SubagentRunnerTest {
     }
 
     @Test
+    fun `a user denied safe tool is never run through persistent approval`() = runTest {
+        val chatService = mockk<ChatService>(relaxed = true)
+        val registry = mockk<ToolRegistry>(relaxed = true)
+        val config = mockk<ToolConfigStore>(relaxed = true)
+        every { registry.listTools() } returns listOf(
+            ToolRegistry.ToolDef("echo", "Echo", emptyMap(), riskLevel = ToolRiskLevel.SAFE),
+        )
+        every { registry.listToolsAsToolDefinitions(any()) } returns listOf(ToolDefinition("echo", "Echo", "{}"))
+        every { registry.getToolRiskLevel("echo") } returns ToolRiskLevel.SAFE
+        coEvery { config.getConfiguredPolicy("echo") } returns ToolApprovalPolicy.ALWAYS_DENY
+        coEvery { chatService.completeText(any(), any(), any(), any(), any(), any(), any(), any()) } returnsMany listOf(
+            ChatCompletion(text = "", finishReason = "tool_calls", toolCalls = listOf(ToolCall("echo-1", "echo", "{}"))),
+            ChatCompletion(text = "Tool unavailable", finishReason = "stop"),
+        )
+        val runner = SubagentRunner(chatService, registry, mockThreadStore(), mockLimiter(), config, ToolApprovalRouter())
+
+        val result = runner.run(
+            SubagentRunner.Params(
+                task = "Echo a message",
+                onApprovalRequired = { _, _, _, _ -> error("A denied tool cannot ask for approval") },
+            ),
+        )
+
+        assertFalse(result.progressEntries.single().success)
+        coVerify(exactly = 0) { registry.executeFromJson(any(), any(), any<ToolExecutionContext>()) }
+        coVerify(exactly = 0) { registry.executeFromJson(any(), any()) }
+    }
+
+    @Test
     fun `host tool context carries the task resource scope and step identity`() = runTest {
         val mockChatService = mockk<ChatService>(relaxed = true)
         val mockToolRegistry = mockk<ToolRegistry>(relaxed = true)
@@ -1109,7 +1138,7 @@ class SubagentRunnerTest {
         assertFalse("第一轮不应暴露无关全局工具 browser_navigate", "browser_navigate" in round1Names)
 
         val round2Names = offeredPerRound[1].map { it.name }.toSet()
-assertTrue("find_tools 动态装载的 workspace_write 应在下一轮可见", "workspace_write" in round2Names)
+        assertTrue("find_tools 动态装载的 workspace_write 应在下一轮可见", "workspace_write" in round2Names)
         assertFalse("未装载的 browser_navigate 仍应收窄", "browser_navigate" in round2Names)
     }
 

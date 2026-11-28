@@ -14,7 +14,6 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
 import java.io.File
-import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * 断点续传(工具中断恢复)— 持久化未完成的工具调用。
@@ -75,8 +74,10 @@ object PendingToolCallStore {
     internal var persistenceCipher: SecureKeyCipher = SecureKeyStore
 
     /**
-     * 初始化文件路径。需在 App 启动时调用一次(从 [MuseApp] 或 Koin 模块注入时)。
-     * 不调用也能用 — 首次 [loadAll] 会用 applicationContext 兜底。
+     * 初始化文件路径。由 [io.zer0.muse.MuseApp] 在启动时调用一次。
+     *
+     * 没初始化时读写会被静默跳过 —— 所以这里不再宣称「首次 loadAll 会自动兜底」,
+     * 那句话曾经让人以为漏调也无所谓,结果断点续传从来没落过盘。
      */
     fun init(context: Context) {
         val target = File(context.applicationContext.filesDir, FILE_NAME)

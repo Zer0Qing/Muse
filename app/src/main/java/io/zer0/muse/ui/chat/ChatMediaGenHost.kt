@@ -57,8 +57,13 @@ class ChatMediaGenHost(
             }
             // 二维码是本地生成,无需占位卡片
             MediaGenKind.QR_CODE -> Unit
-            // 语音合成只用一两秒,也不占占位卡片(失败/成功文案由 report 写入)
-            MediaGenKind.VOICE -> Unit
+            // 语音合成展示微信式「正在生成语音…」轻量占位条
+            MediaGenKind.VOICE -> accessor.update {
+                it.copy(
+                    isGeneratingVoice = true,
+                    synthesizingVoiceMessageIds = it.synthesizingVoiceMessageIds + assistantId,
+                )
+            }
         }
         return Slot(kind, assistantId, toolSessionIdProvider(), generationTokenProvider())
     }
@@ -68,7 +73,19 @@ class ChatMediaGenHost(
             MediaGenKind.IMAGE -> accessor.update { it.copy(isGeneratingImage = false) }
             MediaGenKind.VIDEO -> accessor.update { it.copy(isGeneratingVideo = false) }
             MediaGenKind.QR_CODE -> Unit
-            MediaGenKind.VOICE -> Unit
+            MediaGenKind.VOICE -> {
+                val aid = toolAssistantIdProvider()
+                accessor.update {
+                    it.copy(
+                        isGeneratingVoice = false,
+                        synthesizingVoiceMessageIds = if (aid != null) {
+                            it.synthesizingVoiceMessageIds - aid
+                        } else {
+                            emptySet()
+                        },
+                    )
+                }
+            }
         }
     }
 

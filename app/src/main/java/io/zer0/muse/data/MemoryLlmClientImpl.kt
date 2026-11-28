@@ -287,8 +287,7 @@ private val JSON_OUTPUT_PROMPT_RE = Regex(
 /** 仅接受含真实 JSON 键值结构或空数组的载荷，避免英文思考里的 `[User]`/`{topic}` 误命中。 */
 private val JSON_PAYLOAD_RE = Regex("""\{\s*"[^"\r\n]+"\s*:[\s\S]*\}|\[\s*(?:\{\s*"[^"\r\n]+"\s*:|"[^"\r\n]*"|\])""")
 
-private fun containsValidJsonPayload(text: String): Boolean =
-    hasValidJsonContainer(text, '{', '}') || hasValidJsonContainer(text, '[', ']')
+private fun containsValidJsonPayload(text: String): Boolean = hasValidJsonContainer(text, '{', '}') || hasValidJsonContainer(text, '[', ']')
 
 private fun hasValidJsonContainer(text: String, open: Char, close: Char): Boolean {
     var cursor = 0

@@ -1,9 +1,9 @@
 package io.zer0.muse.ui.navigation
 
+import io.zer0.muse.ui.chat.ChatScreen
+import io.zer0.muse.ui.screen.MuseRoutes
 import io.zer0.muse.ui.settings.SettingsGroupKind
 import kotlinx.serialization.Serializable
-import io.zer0.muse.ui.screen.MuseRoutes
-import io.zer0.muse.ui.chat.ChatScreen
 
 /**
  * 类型安全路由目的地。
@@ -15,7 +15,10 @@ import io.zer0.muse.ui.chat.ChatScreen
 data object ToolsScreenRoute
 
 @Serializable
-data object VideoGenerationRoute
+data object MediaStudioRoute
+
+@Deprecated("Use MediaStudioRoute", replaceWith = ReplaceWith("MediaStudioRoute"))
+typealias VideoGenerationRoute = MediaStudioRoute
 
 @Serializable
 data object VoiceCloningRoute
@@ -101,6 +104,9 @@ data object SettingsAsrRoute
 data object SettingsMcpRoute
 
 @Serializable
+data class McpServerSettingsRoute(val serverId: String)
+
+@Serializable
 data object SettingsAssistantResourcesRoute
 
 @Serializable
@@ -122,7 +128,7 @@ data object SettingsDataRoute
 data object SettingsRuntimeRoute
 
 @Serializable
-data object SettingsCloudBackupRoute
+data class SettingsCloudBackupRoute(val includeSecrets: Boolean = false)
 
 @Serializable
 data object SettingsAppearanceRoute
@@ -163,6 +169,10 @@ data object StickerSettingsRoute
 
 @Serializable
 data object SettingsMediaRoute
+
+/** 生图与生视频模型供应商配置页（从供应商页折叠区拆出，与创作台分离）。 */
+@Serializable
+data object SettingsMediaGenRoute
 
 @Serializable
 data object SettingsExperimentsRoute

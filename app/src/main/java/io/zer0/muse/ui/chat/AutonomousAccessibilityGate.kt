@@ -1,6 +1,5 @@
 package io.zer0.muse.ui.chat
 
-import io.zer0.muse.automation.core.AutomationAction
 import io.zer0.muse.automation.core.AutonomousAccessibilityApproval
 import io.zer0.muse.automation.core.AutonomousAccessibilityRuntimeSnapshot
 import io.zer0.muse.automation.core.AutonomousAccessibilityTaskScope
@@ -77,10 +76,6 @@ object AutonomousAccessibilityGate {
             !AutonomousAccessibilityTaskScope.confirms(latest, currentPackage)
         ) {
             return AutonomousAccessibilityApproval.Result(pending, "autonomous_task_mismatch")
-        }
-        val action = AutonomousAccessibilityApproval.actionFor(toolName)
-        if (action == AutomationAction.INPUT) {
-            return AutonomousAccessibilityApproval.Result(pending, "autonomous_input_blocked")
         }
         return AutonomousAccessibilityApproval.evaluate(
             window = snapshot.window,

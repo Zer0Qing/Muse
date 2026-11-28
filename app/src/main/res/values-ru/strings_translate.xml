@@ -16,6 +16,7 @@
     <string name="translate_page_speak_result">Говорить перевод</string>
     <string name="translate_page_use_as_input">Использовать в качестве входных данных</string>
     <string name="translate_page_send_to_chat_session">Отправить в чат</string>
+    <string name="translate_page_still_translating">Перевод ещё идёт — отправьте после завершения</string>
     <string name="translate_page_more">Более</string>
     <string name="translate_page_style_label">Стиль перевода</string>
     <string name="translate_page_tts_not_ready">TTS не готов. Повторите попытку позже.</string>

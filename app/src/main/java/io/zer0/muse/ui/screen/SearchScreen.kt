@@ -46,6 +46,8 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
+import io.zer0.muse.ui.chat.ChatViewModel
+import io.zer0.muse.ui.chat.isSameDay
 import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseCapsuleTab
@@ -72,10 +74,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
-import io.zer0.muse.ui.chat.ChatScreen
-import io.zer0.muse.ui.chat.isSameDay
-import io.zer0.muse.ui.chat.ChatViewModel
-import io.zer0.muse.ui.chat.MessageBubble
 
 /**
  * v0.45: 独立全局搜索页。

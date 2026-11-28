@@ -86,6 +86,7 @@ object PublicationKind {
 object PublicationStatus {
     const val PENDING = "PENDING"
     const val COMMITTED = "COMMITTED"
+
     /** 因新输入到达而放弃（未发布的旧批次）。 */
     const val SUPERSEDED = "SUPERSEDED"
     const val FAILED = "FAILED"

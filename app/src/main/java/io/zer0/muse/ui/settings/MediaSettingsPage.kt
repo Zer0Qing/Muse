@@ -24,9 +24,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.muse.R
 import io.zer0.muse.data.MediaConfig
@@ -48,6 +45,7 @@ import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.form.MuseTextField
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.settings.SettingsSliderRow
+import io.zer0.muse.ui.common.settings.SettingsSwitchRow
 import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.common.surface.MuseListItem
 import io.zer0.muse.ui.common.surface.actionItem
@@ -169,7 +167,12 @@ fun MediaSettingsPage(
                     title = stringResource(R.string.settings_media_tts_voice_selector),
                     subtitle = voiceDisplay,
                     leadingContent = {
-                        Icon(MuseIcons.microphone, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium))
+                        Icon(
+                            MuseIcons.microphone,
+                            null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
                     },
                     onClick = { if (voices.isNotEmpty()) voiceExpanded = true },
                 )
@@ -232,7 +235,12 @@ fun MediaSettingsPage(
                     key = "voice_cloning_entry",
                     title = stringResource(R.string.voice_cloning_title),
                     leadingContent = {
-                        Icon(MuseIcons.microphone, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium))
+                        Icon(
+                            MuseIcons.microphone,
+                            null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
                     },
                     onClick = onOpenVoiceCloning,
                 )
@@ -301,7 +309,12 @@ private fun CloudTtsConfigSection(
                 MuseListItem(
                     onClick = { engineExpanded = true },
                     leadingContent = {
-                        Icon(MuseIcons.cloud, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium))
+                        Icon(
+                            MuseIcons.cloud,
+                            null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
                     },
                     headlineContent = { Text(stringResource(R.string.settings_media_tts_engine)) },
                     supportingContent = { Text(currentLabel) },
@@ -340,7 +353,12 @@ private fun CloudTtsConfigSection(
                     scope.launch { settings.saveMediaConfig(config.copy(ttsFollowProvider = follow)) }
                 },
                 leadingContent = {
-                    Icon(MuseIcons.cloud, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium))
+                    Icon(
+                        MuseIcons.cloud,
+                        null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(MuseIconSizes.iconMedium),
+                    )
                 },
             )
             if (config.ttsFollowProvider) {
@@ -350,7 +368,12 @@ private fun CloudTtsConfigSection(
                         MuseListItem(
                             onClick = { providerExpanded = true },
                             leadingContent = {
-                                Icon(MuseIcons.server, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium))
+                                Icon(
+                                    MuseIcons.server,
+                                    null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(MuseIconSizes.iconMedium),
+                                )
                             },
                             headlineContent = { Text(stringResource(R.string.common_provider)) },
                             supportingContent = { Text(selectedProvider?.displayName ?: unsetLabel) },
@@ -551,7 +574,12 @@ private fun ResponseFormatRow(current: String, onPicked: (String) -> Unit) {
         MuseListItem(
             onClick = { expanded = true },
             leadingContent = {
-                Icon(MuseIcons.template, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(MuseIconSizes.iconMedium))
+                Icon(
+                    MuseIcons.template,
+                    null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(MuseIconSizes.iconMedium),
+                )
             },
             headlineContent = { Text(stringResource(R.string.settings_media_tts_response_format)) },
             supportingContent = { Text(current) },
@@ -753,16 +781,24 @@ private fun LazyListScope.globalVoiceFrequencySection() {
         val context = LocalContext.current
         val voiceStore = remember { VoiceReplyPolicyStore.of(context) }
         val snapshot by voiceStore.snapshot.collectAsStateWithLifecycle(initialValue = emptyMap())
+        val autoBarSnapshot by voiceStore.autoVoiceBarSnapshot.collectAsStateWithLifecycle(initialValue = emptyMap())
         val scope = rememberCoroutineScope()
         GlobalVoiceFrequencySection(
             current = VoiceReplyFrequency.fromName(snapshot[VoiceReplyPolicyStore.GLOBAL_KEY]),
+            autoVoiceBar = autoBarSnapshot[VoiceReplyPolicyStore.GLOBAL_KEY] == true,
             onSelect = { level -> scope.launch { voiceStore.setGlobal(level) } },
+            onToggleAutoVoiceBar = { enabled -> scope.launch { voiceStore.setGlobalAutoVoiceBar(enabled) } },
         )
     }
 }
 
 @Composable
-private fun GlobalVoiceFrequencySection(current: VoiceReplyFrequency, onSelect: (VoiceReplyFrequency) -> Unit) {
+private fun GlobalVoiceFrequencySection(
+    current: VoiceReplyFrequency,
+    autoVoiceBar: Boolean,
+    onSelect: (VoiceReplyFrequency) -> Unit,
+    onToggleAutoVoiceBar: (Boolean) -> Unit,
+) {
     val labels = mapOf(
         VoiceReplyFrequency.NEVER to stringResource(R.string.voice_reply_never),
         VoiceReplyFrequency.RARELY to stringResource(R.string.voice_reply_rarely),
@@ -792,6 +828,15 @@ private fun GlobalVoiceFrequencySection(current: VoiceReplyFrequency, onSelect: 
                     }
                 }
             }
+        }
+        content(key = "voice_auto_bar_toggle") {
+            SettingsSwitchRow(
+                icon = MuseIcons.microphone,
+                title = stringResource(R.string.voice_reply_auto_bar_title),
+                subtitle = stringResource(R.string.voice_reply_auto_bar_desc),
+                checked = autoVoiceBar,
+                onCheckedChange = onToggleAutoVoiceBar,
+            )
         }
     }
 }

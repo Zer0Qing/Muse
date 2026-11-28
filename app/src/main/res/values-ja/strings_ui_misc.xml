@@ -220,6 +220,7 @@
     <string name="agent_bot_error_binding_unreadable">このアシスタントの保存済み会話を読み込めなかったため、送信していません。しばらくしてからもう一度お試しください</string>
     <string name="agent_bot_error_no_session">まだ使える会話がありません</string>
     <string name="agent_bot_error_save_failed">メッセージを保存できませんでした。もう一度お試しください</string>
+    <string name="agent_bot_error_provider_failed">モデルサービスがエラーを返したため、このターンの返信はありません</string>
     <string name="agent_bot_error_already_decided">この手順はすでに決定済みです</string>
     <string name="agent_bot_error_approval_expired">この手順は期限切れです。やり直しが必要です</string>
     <string name="agent_bot_error_approval_stale">内容が変わったため、以前の承認は無効になりました</string>

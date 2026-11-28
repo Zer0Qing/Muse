@@ -20,7 +20,7 @@ import java.util.concurrent.ConcurrentHashMap
  */
 class RuntimeManager(
     private val context: Context,
-    private val store: RuntimeStore = RuntimeStore(context),
+    internal val store: RuntimeStore = RuntimeStore(context),
     private val installer: RuntimeInstaller,
     private val manifestSource: RuntimeManifestSource = RuntimeManifestSource(context),
 ) {
@@ -30,24 +30,15 @@ class RuntimeManager(
     /** 正在进行的安装进度；null 表示没有安装任务。 */
     val progress: StateFlow<RuntimeInstaller.Progress?> = _progress.asStateFlow()
 
-    /** 已安装状态（由指针推导，不缓存，避免界面与磁盘不一致）。 */
-    fun state(id: RuntimeId = RuntimeId.UBUNTU_NODE): RuntimeState = store.state(id)
-
-    fun currentRevision(id: RuntimeId = RuntimeId.UBUNTU_NODE): String? = store.currentRevision(id)
-
-    fun hasRollbackVersion(id: RuntimeId = RuntimeId.UBUNTU_NODE): Boolean = store.previousRevision(id) != null
-
     fun operation(id: RuntimeId = RuntimeId.UBUNTU_NODE): RuntimeInstallOperation? =
         RuntimeInstallOperationStore(store.operationFile(id)).load()
 
     /** 当前 ABI 的清单（远程优先、内置兜底）；没有对应包时返回 null。 */
-    suspend fun manifest(id: RuntimeId = RuntimeId.UBUNTU_NODE): RuntimeManifest? =
-        selectedManifest(manifestSource.loadCandidates(id))
+    suspend fun manifest(id: RuntimeId = RuntimeId.UBUNTU_NODE): RuntimeManifest? = selectedManifest(manifestSource.loadCandidates(id))
 
-    suspend fun versions(id: RuntimeId = RuntimeId.UBUNTU_NODE): List<RuntimeVersion> =
-        manifestSource.loadCandidates(id)
-            .flatMap { it.document.versionsOrLegacy() }
-            .distinctBy(RuntimeVersion::revision)
+    suspend fun versions(id: RuntimeId = RuntimeId.UBUNTU_NODE): List<RuntimeVersion> = manifestSource.loadCandidates(id)
+        .flatMap { it.document.versionsOrLegacy() }
+        .distinctBy(RuntimeVersion::revision)
 
     /**
      * 安装（幂等）。返回 Result 里的错误消息可直接展示给用户。
@@ -59,22 +50,14 @@ class RuntimeManager(
         installResolved(id, manifest, candidates)
     }
 
-    suspend fun installSelected(
-        id: RuntimeId,
-        revision: String,
-    ): Result<Unit> = lockFor(id).withLock {
+    suspend fun installSelected(id: RuntimeId, revision: String): Result<Unit> = lockFor(id).withLock {
         val candidates = manifestSource.loadCandidates(id)
         val manifest = selectedManifest(candidates, revision)
             ?: return@withLock Result.failure(IllegalArgumentException("清单中没有版本 $revision"))
         installResolved(id, manifest, candidates)
     }
 
-    suspend fun installCustomUrl(
-        id: RuntimeId,
-        revision: String,
-        url: String,
-        sha256: String?,
-    ): Result<Unit> = lockFor(id).withLock {
+    suspend fun installCustomUrl(id: RuntimeId, revision: String, url: String, sha256: String?): Result<Unit> = lockFor(id).withLock {
         val candidates = manifestSource.loadCandidates(id)
         val manifest = selectedManifest(candidates, revision)
             ?: return@withLock Result.failure(IllegalArgumentException("清单中没有版本 $revision"))
@@ -92,11 +75,7 @@ class RuntimeManager(
         installResolved(id, custom, emptyList())
     }
 
-    suspend fun installFromArchive(
-        id: RuntimeId,
-        revision: String,
-        archiveFile: java.io.File,
-    ): Result<Unit> = lockFor(id).withLock {
+    suspend fun installFromArchive(id: RuntimeId, revision: String, archiveFile: java.io.File): Result<Unit> = lockFor(id).withLock {
         val candidates = manifestSource.loadCandidates(id)
         val manifest = selectedManifest(candidates, revision)
             ?: return@withLock Result.failure(IllegalArgumentException("清单中没有版本 $revision"))
@@ -180,9 +159,6 @@ class RuntimeManager(
     }
 
     /** 已安装时占用的字节数（用于设置页展示与空间统计）。 */
-    fun installedBytes(id: RuntimeId = RuntimeId.UBUNTU_NODE): Long =
-        (store.state(id) as? RuntimeState.Ready)?.installedBytes ?: 0L
-
     private fun selectedManifest(candidates: List<ManifestCandidate>): RuntimeManifest? {
         val candidate = candidates.firstOrNull() ?: return null
         val version = candidate.document.versionsOrLegacy().firstOrNull() ?: return null
@@ -220,11 +196,7 @@ class RuntimeManager(
         return result
     }
 
-    private suspend fun installArchiveResolved(
-        id: RuntimeId,
-        manifest: RuntimeManifest,
-        archiveFile: java.io.File,
-    ): Result<Unit> {
+    private suspend fun installArchiveResolved(id: RuntimeId, manifest: RuntimeManifest, archiveFile: java.io.File): Result<Unit> {
         RuntimeInstallStatus.begin()
         RuntimeInstallStatus.setRevision(manifest.revision)
         return try {
@@ -246,3 +218,13 @@ class RuntimeManager(
         val locks = ConcurrentHashMap<RuntimeId, Mutex>()
     }
 }
+
+/** 已安装状态（由指针推导，不缓存，避免界面与磁盘不一致）。 */
+fun RuntimeManager.state(id: RuntimeId = RuntimeId.UBUNTU_NODE): RuntimeState = store.state(id)
+
+fun RuntimeManager.currentRevision(id: RuntimeId = RuntimeId.UBUNTU_NODE): String? = store.currentRevision(id)
+
+fun RuntimeManager.hasRollbackVersion(id: RuntimeId = RuntimeId.UBUNTU_NODE): Boolean = store.previousRevision(id) != null
+
+fun RuntimeManager.installedBytes(id: RuntimeId = RuntimeId.UBUNTU_NODE): Long =
+    (store.state(id) as? RuntimeState.Ready)?.installedBytes ?: 0L

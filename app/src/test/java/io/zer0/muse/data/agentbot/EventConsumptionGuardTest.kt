@@ -1,9 +1,9 @@
-package io.zer0.muse.data.agentbot;
+package io.zer0.muse.data.agentbot
 
-import org.junit.Assert.assertFalse;
-import org.junit.Assert.assertTrue;
-import org.junit.Test;
-import java.io.File;
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import java.io.File
 
 /**
  * 结果类事件不能被无条件消费。
@@ -17,43 +17,43 @@ import java.io.File;
 class EventConsumptionGuardTest {
 
     private val vm: String by lazy {
-        File("src/main/java/io/zer0/muse/ui/agentbot/AgentBotViewModel.kt").readText();
+        File("src/main/java/io/zer0/muse/ui/agentbot/AgentBotViewModel.kt").readText()
     }
 
     private fun turnBody(): String {
-        val at = vm.indexOf("suspend fun runTurnOnce(");
-        require(at > 0) { "找不到 runTurnOnce" };
-        val end = vm.indexOf("fun tickScheduler(", at);
-        return vm.substring(at, if (end > at) end else vm.length);
+        val at = vm.indexOf("suspend fun runTurnOnce(")
+        require(at > 0) { "找不到 runTurnOnce" }
+        val end = vm.indexOf("fun tickScheduler(", at)
+        return vm.substring(at, if (end > at) end else vm.length)
     }
 
     @Test
     fun `result events are not consumed`() {
-        val body = turnBody();
+        val body = turnBody()
         // TASK_RESULT_READY 与 TASK_FAILED 必须走 false 分支。
         assertTrue(
             "结果类事件必须显式返回 false",
             body.contains("BotEventKind.TASK_RESULT_READY,") &&
                 body.contains("BotEventKind.TASK_FAILED,"),
-        );
-        assertTrue("并且返回 false", body.contains("false"));
+        )
+        assertTrue("并且返回 false", body.contains("false"))
     }
 
     @Test
     fun `no catch all true branch`() {
-        val body = turnBody();
+        val body = turnBody()
         assertFalse(
             "不能有 else -> true —— 那等于一律消费",
             body.contains("else -> true"),
-        );
+        )
     }
 
     @Test
     fun `unknown events are preserved not dropped`() {
-        val body = turnBody();
+        val body = turnBody()
         assertTrue(
             "未识别类型也要保留，宁可堆积也不静默丢弃",
             body.contains("else -> false"),
-        );
+        )
     }
 }

@@ -8,11 +8,9 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.widget.RemoteViews
-import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.MainActivity
 import io.zer0.muse.R
-import java.util.Date
-import java.util.Locale
+import io.zer0.muse.ui.theme.MuseDateFormats
 
 /**
  * F-25: 桌面启动小部件(最小可用版)。

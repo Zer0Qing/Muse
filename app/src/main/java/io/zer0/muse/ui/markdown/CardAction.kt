@@ -3,9 +3,8 @@ package io.zer0.muse.ui.markdown
 import android.os.Handler
 import android.os.Looper
 import android.webkit.JavascriptInterface
-import org.json.JSONObject
 import io.zer0.common.Logger
-import io.zer0.muse.ui.chat.ChatViewModel
+import org.json.JSONObject
 
 /**
  * v1.0.92: 卡片回传动作 — 富内容卡片(HTML/SVG)与宿主之间的最小契约。
@@ -79,11 +78,15 @@ sealed interface CardAction {
  *    保持无桥、无脚本的纯渲染。
  */
 internal class MuseCardBridge(
-    private val onAction: (CardAction) -> Unit,
+    private val onAction: ((CardAction) -> Unit)? = null,
     /** v2.0: 卡片数据读取(cardId → JSON 文本);null 表示该场景不提供数据。 */
     private val readCardData: ((String) -> String?)? = null,
     /** v2.6.7: 卡片身份(宿主注入);null 表示不注入,卡片端 cardId 为 null。 */
     private val cardId: String? = null,
+    /** 卡内静默 AI 请求回调；不走聊天记录。 */
+    private val onSilentAsk: ((requestId: String, payloadJson: String) -> Unit)? = null,
+    /** 卡内状态静默落盘回调；不发聊天消息。 */
+    private val onSaveState: ((cardId: String, stateJson: String) -> Unit)? = null,
 ) {
 
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -97,9 +100,10 @@ internal class MuseCardBridge(
      */
     @JavascriptInterface
     fun send(text: String) {
+        val actionHandler = onAction ?: return
         val trimmed = text.trim().take(MAX_ACTION_TEXT_LENGTH)
         if (trimmed.isEmpty()) return
-        mainHandler.post { onAction(CardAction.Send(trimmed, cardId, null)) }
+        mainHandler.post { actionHandler(CardAction.Send(trimmed, cardId, null)) }
     }
 
     /**
@@ -110,11 +114,35 @@ internal class MuseCardBridge(
      */
     @JavascriptInterface
     fun sendWithData(text: String, data: String?) {
+        val actionHandler = onAction ?: return
         val trimmed = text.trim().take(MAX_ACTION_TEXT_LENGTH)
         val payload = data?.trim()?.take(MAX_ACTION_DATA_LENGTH)?.takeIf { it.isNotEmpty() }
         if (trimmed.isEmpty() && payload == null) return
         // 纯状态、无摘要时留空串，由 ViewModel 侧补本地化文案。
-        mainHandler.post { onAction(CardAction.Send(trimmed, cardId, payload)) }
+        mainHandler.post { actionHandler(CardAction.Send(trimmed, cardId, payload)) }
+    }
+
+    /** 卡内静默请求助手推理（不发聊天消息，完成后经 evaluateJavascript 回填 Promise）。 */
+    @JavascriptInterface
+    fun ask(requestId: String, payloadJson: String): Boolean {
+        val askHandler = onSilentAsk ?: return false
+        val safeId = requestId.trim()
+        val safePayload = payloadJson.trim()
+        if (safeId.isEmpty() || safeId.length > MAX_REQUEST_ID_LENGTH) return false
+        if (safePayload.isEmpty() || safePayload.length > MAX_ASK_PAYLOAD_LENGTH) return false
+        mainHandler.post { askHandler(safeId, safePayload) }
+        return true
+    }
+
+    /** 卡内状态静默保存到宿主持久层，不触发对话气泡。 */
+    @JavascriptInterface
+    fun saveState(stateJson: String): Boolean {
+        val saveHandler = onSaveState ?: return false
+        val targetId = cardId?.takeIf { it.isNotBlank() } ?: return false
+        val payload = stateJson.trim().take(MAX_ACTION_DATA_LENGTH)
+        if (payload.isEmpty()) return false
+        mainHandler.post { saveHandler(targetId, payload) }
+        return true
     }
 
     /**
@@ -174,8 +202,12 @@ internal class MuseCardBridge(
     fun capabilities(): String {
         val canEmit = onAction != null
         val canRead = readCardData != null || cardId != null
+        val canAsk = onSilentAsk != null
+        val canSave = onSaveState != null && !cardId.isNullOrBlank()
         return """{"emit":"${if (canEmit) "available" else "requires_host"}",""" +
             """"state":"${if (canEmit) "available" else "requires_host"}",""" +
+            """"ask":"${if (canAsk) "available" else "requires_host"}",""" +
+            """"saveState":"${if (canSave) "available" else "requires_host"}",""" +
             """"data":"${if (canRead) "available" else "requires_host"}",""" +
             """"height":"available","cardId":${if (cardId == null) "null" else "\"$cardId\""}}"""
     }
@@ -208,12 +240,15 @@ internal class MuseCardBridge(
         /** 单次回传文本上限(字符),防止脚本滥用注入超长消息。 */
         private const val TAG = "MuseCardBridge"
         private const val MAX_ACTION_TEXT_LENGTH = 4000
+
         // 上报文本的上限：桥的方法可以被卡片脚本任意次调用，
         // 不限长度就等于让一张写坏的卡把日志刷满。
         private const val MAX_REPORT_LENGTH = 500
 
         /** 单次回传状态上限(字符)。状态是结构化数据，比摘要允许更长，但仍需设上限。 */
         private const val MAX_ACTION_DATA_LENGTH = 16_000
+        private const val MAX_REQUEST_ID_LENGTH = 64
+        private const val MAX_ASK_PAYLOAD_LENGTH = 20_000
 
         /**
          * 卡片只回状态、没给摘要时的占位文本。
@@ -308,6 +343,58 @@ internal const val CARD_BRIDGE_BOOTSTRAP_JS: String = """
     }, 800);
     return function(){ clearInterval(timer); };
   };
+  window.muse.ask = function(input){
+    return new Promise(function(resolve){
+      if (Date.now() - __museLastTap > 1500) {
+        resolve({ ok: false, error: 'requires_gesture' });
+        return;
+      }
+      var req = (typeof input === 'string') ? { prompt: input } : (input || {});
+      var reqId = 'ask_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
+      window.__museAskPending = window.__museAskPending || {};
+      var timer = setTimeout(function(){
+        if (window.__museAskPending[reqId]) {
+          delete window.__museAskPending[reqId];
+          resolve({ ok: false, error: 'timeout' });
+        }
+      }, 35000);
+      window.__museAskPending[reqId] = function(res){
+        clearTimeout(timer);
+        resolve(res);
+      };
+      try {
+        var accepted = MuseCardBridge.ask(reqId, JSON.stringify(req));
+        if (!accepted) {
+          clearTimeout(timer);
+          delete window.__museAskPending[reqId];
+          resolve({ ok: false, error: 'requires_host' });
+        }
+      } catch (e) {
+        clearTimeout(timer);
+        delete window.__museAskPending[reqId];
+        reportBridgeFailure('ask', e);
+        resolve({ ok: false, error: 'bridge_error' });
+      }
+    });
+  };
+  window.__museAskResolve = function(reqId, rawJson){
+    var map = window.__museAskPending || {};
+    var cb = map[reqId];
+    if (!cb) return;
+    delete map[reqId];
+    var parsed;
+    try { parsed = typeof rawJson === 'string' ? JSON.parse(rawJson) : rawJson; }
+    catch (e) { parsed = { ok: false, error: 'invalid_json', text: String(rawJson || '') }; }
+    try { cb(parsed); } catch (ignored) {}
+  };
+  window.muse.saveState = function(state){
+    if (state === undefined || state === null) return false;
+    var payload;
+    try { payload = typeof state === 'string' ? state : JSON.stringify(state); }
+    catch (e) { return false; }
+    try { return !!MuseCardBridge.saveState(payload); }
+    catch (e) { reportBridgeFailure('saveState', e); return false; }
+  };
   // v2.6.7: 能力协商 —— 卡片先问宿主支持什么，再决定显示哪些控件。
   // 用法：
   //   var cap = window.muse.capabilities();
@@ -316,9 +403,9 @@ internal const val CARD_BRIDGE_BOOTSTRAP_JS: String = """
   window.muse.capabilities = function(){
     try {
       var raw = MuseCardBridge.capabilities();
-      return raw ? JSON.parse(raw) : { emit: 'requires_host', state: 'requires_host', data: 'requires_host', height: 'requires_host', cardId: null };
+      return raw ? JSON.parse(raw) : { emit: 'requires_host', state: 'requires_host', ask: 'requires_host', saveState: 'requires_host', data: 'requires_host', height: 'requires_host', cardId: null };
     } catch (e) {
-      return { emit: 'requires_host', state: 'requires_host', data: 'requires_host', height: 'requires_host', cardId: null };
+      return { emit: 'requires_host', state: 'requires_host', ask: 'requires_host', saveState: 'requires_host', data: 'requires_host', height: 'requires_host', cardId: null };
     }
   };
   // v2.6.7: 高度自适应 —— 内容变高告诉宿主，避免大卡片被旧高度挤压。

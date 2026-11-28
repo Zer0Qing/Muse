@@ -93,6 +93,7 @@
     <string name="settings_model_ability_streaming">ストリーミング</string>
     <string name="settings_model_ability_image">画像</string>
     <string name="settings_model_ability_multimodal">マルチモーダル</string>
+    <string name="settings_model_ability_no_image_input">画像入力なし</string>
     <string name="settings_model_ability_video">ビデオ</string>
     <string name="settings_model_ability_chat">チャット</string>
     <!-- v1.0.8 (7.7): Context window label (e.g. "128K context") -->

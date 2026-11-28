@@ -3,6 +3,7 @@ package io.zer0.muse.knowledge
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import io.zer0.muse.data.knowledge.IndexGenerationState
 import io.zer0.muse.data.knowledge.KnowledgeActiveGenerationEntity
 import io.zer0.muse.data.knowledge.KnowledgeGenChunkEntity
 import io.zer0.muse.data.knowledge.KnowledgeGenLexicalEntity
@@ -20,7 +21,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import io.zer0.muse.data.knowledge.IndexGenerationState
 
 /**
  * R4 协调器合同(计划 R4 「outbox 只负责 ANN、缓存失效和清理」的清理面):

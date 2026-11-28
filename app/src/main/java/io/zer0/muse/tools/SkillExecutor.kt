@@ -18,7 +18,6 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import okhttp3.OkHttpClient
-import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * Phase 8.8: Skill 执行器(Kotlin 直实现,不用 QuickJS)。
@@ -166,7 +165,9 @@ class SkillExecutor(
                     onProgress(context.getString(R.string.skill_progress_planning))
                     agentTools?.execTaskPlan(args, sessionId) ?: context.getString(R.string.skill_impl_not_configured)
                 }
-                "update_plan_step" -> agentTools?.execUpdatePlanStep(args, sessionId) ?: context.getString(R.string.skill_impl_not_configured)
+                "update_plan_step" ->
+                    agentTools?.execUpdatePlanStep(args, sessionId)
+                        ?: context.getString(R.string.skill_impl_not_configured)
                 // v1.30: 群聊工具(多 Agent 群聊中发言/跳过/读取上下文)
                 "channel_reply" -> agentTools?.execChannelReply(args) ?: context.getString(R.string.skill_impl_not_configured)
                 "channel_pass" -> agentTools?.execChannelPass(args) ?: context.getString(R.string.skill_impl_not_configured)
@@ -645,7 +646,10 @@ class SkillExecutor(
                     id = "web_search",
                     name = "网页搜索",
                     // v1.0.75 fix (工具审查 01): 删冗余 time_period,补 date_range 使用指引
-                    description = "搜索网页，返回标题、URL 和摘要。限定时间时传 date_range(如用户说'最近一周',传 past_week);查询里带'今天/最近/最新/本月'等词也会自动推断时间范围。支持 site:域名、filetype:类型、intitle:关键词 操作符,会作为结果过滤生效。用完整的自然语言或关键词串提问即可,不要只给一个单词。不要使用: 常识性问题或用户已提供足够信息时;搜索结果不相关时换关键词重搜,不要编造。",
+                    description = "搜索网页，返回标题、URL 和摘要。限定时间时传 date_range(如用户说'最近一周',传 past_week);" +
+                        "查询里带'今天/最近/最新/本月'等词也会自动推断时间范围。支持 site:域名、filetype:类型、" +
+                        "intitle:关键词 操作符,会作为结果过滤生效。用完整的自然语言或关键词串提问即可,不要只给一个单词。" +
+                        "不要使用: 常识性问题或用户已提供足够信息时;搜索结果不相关时换关键词重搜,不要编造。",
                     parametersJson =
                     buildJsonObject {
                         put("type", "object")
@@ -836,7 +840,9 @@ class SkillExecutor(
                 SkillEntity(
                     id = "install_skill",
                     name = "安装 Skill",
-                    description = "生成并安装新的 skill。skill_json 必填 id/name/description/category/implementationKotlin/parametersJson。implementationKotlin 只接受内置实现（read_file/write_file/http_get/http_post/web_search/web_fetch/knowledge_search/arxiv_search）或 \"prompt\"（指令放 prompt 字段，8KB 上限）。字段取值见参数示例。",
+                    description = "生成并安装新的 skill。skill_json 必填 id/name/description/category/implementationKotlin/parametersJson。" +
+                        "implementationKotlin 只接受内置实现（read_file/write_file/http_get/http_post/web_search/web_fetch/" +
+                        "knowledge_search/arxiv_search）或 \"prompt\"（指令放 prompt 字段，8KB 上限）。字段取值见参数示例。",
                     parametersJson =
                     buildJsonObject {
                         put("type", "object")
@@ -849,7 +855,12 @@ class SkillExecutor(
                                         put("type", "string")
                                         put(
                                             "description",
-                                            "skill 定义 JSON 字符串(.skill.json 格式)。示例: {\"id\":\"fetch_weather\",\"name\":\"查询天气\",\"description\":\"查询城市天气\",\"parametersJson\":\"{\\\"type\\\":\\\"object\\\",\\\"properties\\\":{\\\"url\\\":{\\\"type\\\":\\\"string\\\"}}}\",\"implementationKotlin\":\"http_get\"}",
+                                            "skill 定义 JSON 字符串(.skill.json 格式)。示例: " +
+                                                "{\"id\":\"fetch_weather\",\"name\":\"查询天气\",\"description\":\"查询城市天气\"," +
+                                                "\"parametersJson\":\"" +
+                                                "{\\\"type\\\":\\\"object\\\",\\\"properties\\\":" +
+                                                    "{\\\"url\\\":{\\\"type\\\":\\\"string\\\"}}}\"," +
+                                                "\"implementationKotlin\":\"http_get\"}",
                                         )
                                     },
                                 )
@@ -908,7 +919,8 @@ class SkillExecutor(
                                         put("type", "string")
                                         put(
                                             "description",
-                                            "JS 入口源码(≤256KB)。每个工具的 functionName 必须在源码里有顶层 function 声明,如 'function summarize(args) { return ...; }'",
+                                            "JS 入口源码(≤256KB)。每个工具的 functionName 必须在源码里有顶层 function 声明,如 " +
+                                                "'function summarize(args) { return ...; }'",
                                         )
                                     },
                                 )
@@ -1437,7 +1449,8 @@ class SkillExecutor(
                 SkillEntity(
                     id = "list_public_files",
                     name = "列出公共目录",
-                    description = "列出公共目录（Downloads/Documents 等）的文件名与大小，默认 Downloads，最多 50 条，按修改时间倒序，并返回可供 read_public_file 读取的 content:// URI。",
+                    description = "列出公共目录（Downloads/Documents 等）的文件名与大小，默认 Downloads，最多 50 条，按修改时间倒序，" +
+                        "并返回可供 read_public_file 读取的 content:// URI。",
                     parametersJson =
                     buildJsonObject {
                         put("type", "object")
@@ -1863,7 +1876,8 @@ class SkillExecutor(
                                         put("type", "string")
                                         put(
                                             "description",
-                                            "参考图 URL 或 base64(用于图生图/图片编辑);非空时调用图生图端点。注意:LLM 无法访问用户本地相册,本地参考图由用户在工具审批卡片中从相册选择后注入,LLM 调用时无需也无法填入本参数",
+                                            "参考图 URL 或 base64(用于图生图/图片编辑);非空时调用图生图端点。注意:LLM 无法访问用户本地相册," +
+                                                "本地参考图由用户在工具审批卡片中从相册选择后注入,LLM 调用时无需也无法填入本参数",
                                         )
                                     },
                                 )

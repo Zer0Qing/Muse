@@ -5,9 +5,8 @@ package io.zer0.muse.ui.common.form
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.BasicTextField
@@ -20,10 +19,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.theme.MuseIconSizes
@@ -44,17 +45,18 @@ fun MuseSearchField(
     placeholder: String,
     modifier: Modifier = Modifier,
     onSearch: (() -> Unit)? = null,
+    containerColor: Color = MaterialTheme.colorScheme.surface,
+    minHeight: Dp = MusePaddings.searchBarHeight,
 ) {
     Surface(
         shape = MaterialTheme.shapes.pill,
-        color = MaterialTheme.colorScheme.surface,
-        modifier = modifier
-            .fillMaxWidth()
-            .height(MusePaddings.searchBarHeight),
+        color = containerColor,
+        modifier = modifier.fillMaxWidth(),
     ) {
         Row(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
+                .heightIn(min = minHeight)
                 .padding(horizontal = MuseSpacing.md),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
@@ -98,7 +100,7 @@ fun MuseSearchField(
                 MuseTactileButton(
                     icon = MuseIcons.x,
                     onClick = { onQueryChange("") },
-                    contentDescription = stringResource(R.string.settings_preset_clear),
+                    contentDescription = stringResource(R.string.audit_log_clear_search),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     compact = true,
                 )

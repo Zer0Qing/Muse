@@ -16,8 +16,8 @@ import io.zer0.muse.knowledge.retrieval.LexicalRetriever
 import io.zer0.muse.rag.RagConfig
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
-import org.junit.Test
 import org.junit.Assert.assertTrue
+import org.junit.Test
 
 /**
  * R7 步骤 6/5(计划 R7:「群聊逐参与者应用选择与可见消息；工具接可信 scope；
@@ -28,13 +28,10 @@ class KnowledgeEntryParityTest {
 
     private fun contributor(): KnowledgeContextContributor {
         val lexical = object : LexicalRetriever {
-            override suspend fun search(
-                request: KnowledgeSearchRequest,
-                activeGenerationIds: List<String>,
-                limit: Int,
-            ): LexicalRecall = LexicalRecall(
-                hits = listOf(LexicalHit("c1", "doc-1", "gen-1", "relevant text", "p1s1", 1f, 0)),
-            )
+            override suspend fun search(request: KnowledgeSearchRequest, activeGenerationIds: List<String>, limit: Int): LexicalRecall =
+                LexicalRecall(
+                    hits = listOf(LexicalHit("c1", "doc-1", "gen-1", "relevant text", "p1s1", 1f, 0)),
+                )
         }
         val retriever = KnowledgeRetriever(
             lexicalRetriever = lexical,

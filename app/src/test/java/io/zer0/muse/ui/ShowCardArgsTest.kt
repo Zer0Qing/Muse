@@ -1,5 +1,6 @@
 package io.zer0.muse.ui
 
+import io.zer0.muse.ui.chat.parseShowCardArgs
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -8,7 +9,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import io.zer0.muse.ui.chat.parseShowCardArgs
 
 /**
  * v2.6.0: show_card 工具参数解析 —— 内联卡片渲染的入口。

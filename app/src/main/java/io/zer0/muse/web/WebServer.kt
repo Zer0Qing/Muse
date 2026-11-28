@@ -38,6 +38,7 @@ import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.session.SessionEntity
 import io.zer0.muse.data.session.SessionRepository
 import io.zer0.muse.notification.MuseNotificationManager
+import io.zer0.muse.ui.chat.ChatViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -51,7 +52,6 @@ import java.io.File
 import java.security.MessageDigest
 import java.util.Date
 import java.util.concurrent.ConcurrentHashMap
-import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * Phase 8.11: 嵌入式 Web 服务器(Ktor Netty + JWT + mDNS,可选 HTTPS)。

@@ -66,9 +66,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
-import io.zer0.muse.ui.chat.SmartImage
-import io.zer0.muse.ui.chat.AssistantVideoCard
-import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * 群聊调度器 — 用户发消息后串行触发群聊中的 Agent 轮转发言。
@@ -345,7 +342,8 @@ class GroupChatScheduler(
         /** v1.97: @mention 正则 — 匹配 @name 形式,name 为非空白非标点字符序列。 */
         private val MENTION_REGEX = Regex("@([^\\s@,，。.!！?？:：;；()（）\\[\\]【】]+)")
         private val LIST_INDEX_PREFIX_REGEX = Regex("^\\d+[.、)\\s]+")
-        private val CHANNEL_REPLY_REGEX = Regex("\\[channel_reply\\](.*?)\\[/channel_reply\\]", setOf(RegexOption.DOT_MATCHES_ALL, RegexOption.IGNORE_CASE))
+        private val CHANNEL_REPLY_REGEX =
+            Regex("\\[channel_reply\\](.*?)\\[/channel_reply\\]", setOf(RegexOption.DOT_MATCHES_ALL, RegexOption.IGNORE_CASE))
 
         /**
          * v1.0.53 Phase 5: channel_* 工具决策轮次上限。
@@ -3671,10 +3669,7 @@ class GroupChatScheduler(
      */
     // 群聊 RAG 的提前返回都是隔离门禁，任一绑定解析失败都不能退化为全库召回。
     @Suppress("ReturnCount", "CyclomaticComplexMethod")
-    private suspend fun buildGroupRagSystemMessage(
-        assistant: AssistantEntity,
-        ragQuery: String,
-    ): UIMessage? {
+    private suspend fun buildGroupRagSystemMessage(assistant: AssistantEntity, ragQuery: String): UIMessage? {
         val baseConfig = resultOf { settings.getRagConfig() }.getOrNull() ?: RagConfig()
         // 按 assistant 合并 RAG 覆盖:群聊里每个成员各有自己的配置,不能全用全局值。
         val ragConfig = resultOf { assistantRepository.mergeRagConfigOverride(assistant, baseConfig) }

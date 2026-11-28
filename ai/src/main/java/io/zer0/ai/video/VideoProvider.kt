@@ -77,6 +77,8 @@ data class VideoGenRequest(
     val videoGenerationsPath: String? = null,
     val duration: Int = 5,
     val resolution: String = "720p",
+    val aspectRatio: String = "",
+    val negativePrompt: String = "",
 )
 
 /**

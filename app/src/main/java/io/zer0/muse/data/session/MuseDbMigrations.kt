@@ -1,7 +1,5 @@
 package io.zer0.muse.data.session
 
-import androidx.room.migration.Migration
-
 /**
  * `MuseDb` 的 Room 迁移链（127 个版本迁移）的**聚合门面**。
  *
@@ -66,6 +64,8 @@ internal object MuseDbMigrations {
     val MIGRATION_137_138 get() = MigrationsB.MIGRATION_137_138
     val MIGRATION_138_139 get() = MigrationsB.MIGRATION_138_139
     val MIGRATION_139_140 get() = MigrationsB.MIGRATION_139_140
+    val MIGRATION_140_141 get() = MigrationsB.MIGRATION_140_141
+    val MIGRATION_141_142 get() = MigrationsB.MIGRATION_141_142
     val MIGRATION_132_133 get() = MigrationsB.MIGRATION_132_133
     val MIGRATION_130_131 get() = MigrationsB.MIGRATION_130_131
     val MIGRATION_124_125 get() = MigrationsB.MIGRATION_124_125

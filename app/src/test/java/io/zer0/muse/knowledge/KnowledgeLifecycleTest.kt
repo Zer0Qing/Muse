@@ -6,6 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import io.zer0.muse.data.knowledge.KnowledgeV2DocEntity
 import io.zer0.muse.data.session.MuseDb
 import io.zer0.muse.knowledge.index.GenerationPublisher
+import io.zer0.muse.knowledge.ingest.LocatedChunk
 import io.zer0.muse.knowledge.storage.KnowledgeContentStore
 import io.zer0.muse.knowledge.storage.KnowledgeLifecycleService
 import kotlinx.coroutines.runBlocking
@@ -13,13 +14,12 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import io.zer0.muse.knowledge.ingest.LocatedChunk
-import org.junit.Assert.assertTrue
 
 /**
  * R8 步骤 1/3(计划 R8:「先写重命名/移动/删除子树、同级重名、目录环、跨库移动、
@@ -144,8 +144,12 @@ class KnowledgeLifecycleTest {
         )
         db.knowledgeV2Dao().insertRevision(
             io.zer0.muse.data.knowledge.KnowledgeV2RevisionEntity(
-                revisionId = revId, docId = "doc-9", revisionNo = 1,
-                contentHash = "h", fullContent = "x", preview = "x",
+                revisionId = revId,
+                docId = "doc-9",
+                revisionNo = 1,
+                contentHash = "h",
+                fullContent = "x",
+                preview = "x",
             ),
         )
         val result = service.deleteFolder(folderId, KnowledgeLifecycleService.FolderDeletePolicy.DELETE_SUBTREE_DOCS)
@@ -169,8 +173,12 @@ class KnowledgeLifecycleTest {
         )
         db.knowledgeV2Dao().insertRevision(
             io.zer0.muse.data.knowledge.KnowledgeV2RevisionEntity(
-                revisionId = revId, docId = "doc-10", revisionNo = 1,
-                contentHash = "h", fullContent = "x", preview = "x",
+                revisionId = revId,
+                docId = "doc-10",
+                revisionNo = 1,
+                contentHash = "h",
+                fullContent = "x",
+                preview = "x",
             ),
         )
         val result = service.deleteFolder(
@@ -221,10 +229,13 @@ class KnowledgeLifecycleTest {
         assertEquals("代内 chunk 已清", 0, db.knowledgeJobDao().countGenChunks(gen))
         assertEquals("代内词法行已清", 0, db.knowledgeJobDao().countGenLexical(gen))
         assertNull("代行已删", db.knowledgeJobDao().getGeneration(gen))
-        assertTrue("保留租约已清", db.knowledgeV2Dao().getActiveLeases(
-            KnowledgeContentStore.hashOf("purge body".toByteArray()),
-            0L,
-        ).isEmpty())
+        assertTrue(
+            "保留租约已清",
+            db.knowledgeV2Dao().getActiveLeases(
+                KnowledgeContentStore.hashOf("purge body".toByteArray()),
+                0L,
+            ).isEmpty(),
+        )
         assertEquals("指向该文档的绑定必须真实删除", 0, db.knowledgeFolderV2Dao().getBindings("Assistant", "a1").size)
         assertEquals("内容 blob 清理回调被调用", listOf(KnowledgeContentStore.hashOf("purge body".toByteArray())), cleaner.deletedBlobs)
         assertTrue("请求保留时不得调快照清除", cleaner.citationClears.isEmpty())
@@ -256,9 +267,12 @@ class KnowledgeLifecycleTest {
         )
         db.knowledgeV2Dao().insertRevision(
             io.zer0.muse.data.knowledge.KnowledgeV2RevisionEntity(
-                revisionId = revId, docId = "doc-11", revisionNo = 1,
+                revisionId = revId,
+                docId = "doc-11",
+                revisionNo = 1,
                 contentHash = KnowledgeContentStore.hashOf("folder body".toByteArray()),
-                fullContent = "folder body", preview = "folder body",
+                fullContent = "folder body",
+                preview = "folder body",
             ),
         )
         val gen = publisher.stageGeneration(

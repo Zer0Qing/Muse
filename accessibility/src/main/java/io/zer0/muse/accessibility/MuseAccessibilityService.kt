@@ -8,6 +8,7 @@ import android.graphics.Path
 import android.os.Build
 import android.os.Bundle
 import android.os.Looper
+import android.view.KeyEvent
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import io.zer0.common.Logger
@@ -97,6 +98,14 @@ open class MuseAccessibilityService : AccessibilityService() {
                     .onFailure { Logger.w(TAG, "连接监听回调失败: ${it.message}") }
             }
         }
+
+        @Volatile
+        private var volumeDownAbortHandler: (() -> Unit)? = null
+
+        /** 前台自动化运行时注册音量下键急停回调，结束后必须置 null 释放监听。 */
+        fun setVolumeDownAbortHandler(handler: (() -> Unit)?) {
+            volumeDownAbortHandler = handler
+        }
     }
 
     /** 最近一次窗口状态变化事件的包名/类名(用于 getCurrentActivityName)。 */
@@ -132,6 +141,20 @@ open class MuseAccessibilityService : AccessibilityService() {
 
     override fun onInterrupt() {
         Logger.w(TAG, "无障碍服务被系统中断")
+    }
+
+    override fun onKeyEvent(event: KeyEvent?): Boolean {
+        val handler = volumeDownAbortHandler
+        if (handler != null &&
+            event != null &&
+            event.keyCode == KeyEvent.KEYCODE_VOLUME_DOWN &&
+            event.action == KeyEvent.ACTION_DOWN
+        ) {
+            Logger.i(TAG, "捕获音量下键急停信号，触发自动化中断")
+            runCatching { handler() }
+            return true
+        }
+        return super.onKeyEvent(event)
     }
 
     /**
@@ -372,17 +395,16 @@ open class MuseAccessibilityService : AccessibilityService() {
      * @return 路径字符串(如 "0.1.2");未找到返回 null
      */
     private fun findNodePath(root: AccessibilityNodeInfo, target: AccessibilityNodeInfo): String? {
-        val targetHash = System.identityHashCode(target)
-        return findNodePathRec(root, "0", targetHash)
+        return findNodePathRec(root, "0", target)
     }
 
-    private fun findNodePathRec(node: AccessibilityNodeInfo, path: String, targetHash: Int): String? {
-        if (System.identityHashCode(node) == targetHash) return path
+    private fun findNodePathRec(node: AccessibilityNodeInfo, path: String, target: AccessibilityNodeInfo): String? {
+        if (node == target) return path
         val childCount = node.childCount
         for (i in 0 until childCount) {
             val child = node.getChild(i) ?: continue
             val found = try {
-                findNodePathRec(child, "$path.$i", targetHash)
+                findNodePathRec(child, "$path.$i", target)
             } finally {
                 child.recycle()
             }
@@ -419,23 +441,33 @@ open class MuseAccessibilityService : AccessibilityService() {
     @androidx.annotation.RequiresApi(android.os.Build.VERSION_CODES.R)
     private fun saveScreenshot(screenshot: ScreenshotResult, path: String, format: String): Boolean {
         val hardwareBuffer = screenshot.hardwareBuffer ?: return false
-        val bitmap = Bitmap.wrapHardwareBuffer(hardwareBuffer, null) ?: run {
+        val hardwareBitmap = Bitmap.wrapHardwareBuffer(hardwareBuffer, null) ?: run {
             hardwareBuffer.close()
             return false
         }
+        var softwareBitmap: Bitmap? = null
         return try {
+            softwareBitmap = if (hardwareBitmap.config == Bitmap.Config.HARDWARE) {
+                hardwareBitmap.copy(Bitmap.Config.ARGB_8888, false)
+            } else {
+                hardwareBitmap
+            }
+            val writable = softwareBitmap ?: return false
             val fmt = if (format.equals("JPEG", ignoreCase = true)) {
                 Bitmap.CompressFormat.JPEG
             } else {
                 Bitmap.CompressFormat.PNG
             }
-            FileOutputStream(path).use { fos -> bitmap.compress(fmt, 90, fos) }
+            FileOutputStream(path).use { fos -> writable.compress(fmt, 90, fos) }
             true
         } catch (e: Exception) {
-            // 必要容错:文件 IO 可能失败(磁盘满/权限),记录日志而非吞异常
             Logger.e(TAG, "saveScreenshot 失败: ${e.message}", e)
             false
         } finally {
+            if (softwareBitmap != null && softwareBitmap !== hardwareBitmap) {
+                runCatching { softwareBitmap.recycle() }
+            }
+            runCatching { hardwareBitmap.recycle() }
             hardwareBuffer.close()
         }
     }

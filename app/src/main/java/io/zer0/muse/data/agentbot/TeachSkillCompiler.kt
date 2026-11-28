@@ -43,6 +43,11 @@ class TeachSkillCompiler(
         val action: String,
         val targetApp: String,
         val riskReason: String? = null,
+        val targetPackage: String = "",
+        val targetText: String = "",
+        val contentDesc: String = "",
+        val resourceIdHint: String = "",
+        val actionKind: String = "",
     ) {
         val requiresConfirmation: Boolean get() = riskReason != null
     }
@@ -79,6 +84,11 @@ class TeachSkillCompiler(
                 action = step.action,
                 targetApp = step.targetApp,
                 riskReason = reason,
+                targetPackage = step.targetPackage,
+                targetText = step.targetText,
+                contentDesc = step.contentDesc,
+                resourceIdHint = step.resourceIdHint,
+                actionKind = step.actionKind,
             )
         }
         val confirmationPoints = compiledSteps.mapNotNull { step ->
@@ -115,10 +125,7 @@ class TeachSkillCompiler(
         )
     }
 
-    private suspend fun refineWithModel(
-        draft: AgentTeachRecorder.FinishedDraft,
-        steps: List<RawStep>,
-    ): ModelRefinement? {
+    private suspend fun refineWithModel(draft: AgentTeachRecorder.FinishedDraft, steps: List<RawStep>): ModelRefinement? {
         val provider = refiner ?: return null
         val request = buildRefinementRequest(draft, steps)
         return try {
@@ -126,16 +133,13 @@ class TeachSkillCompiler(
             parseRefinement(raw)
         } catch (e: CancellationException) {
             throw e
-        } catch (e: Exception) {
+        } catch (e: java.io.IOException) {
             Logger.w(TAG, "示范技能提炼模型调用失败，使用规则编译: ${e.message}", e)
             null
         }
     }
 
-    private fun buildRefinementRequest(
-        draft: AgentTeachRecorder.FinishedDraft,
-        steps: List<RawStep>,
-    ): String = buildString {
+    private fun buildRefinementRequest(draft: AgentTeachRecorder.FinishedDraft, steps: List<RawStep>): String = buildString {
         appendLine("你是技能编译器。下面是一次已脱敏的手机操作示范，请提炼成可复用技能。")
         appendLine("只输出一个 JSON 对象，不要 markdown，不要解释。格式：")
         appendLine("""{"name":"不超过20字的技能名","description":"一句话说明用途和触发场景","confirmStepNumbers":[需要人工确认的步骤编号]}""")
@@ -183,34 +187,59 @@ class TeachSkillCompiler(
     }
 
     private fun parseStepTarget(text: String): RawStep {
-        val target = TARGET_PREFIX.matchEntire(text) ?: BRACKET_TARGET_PREFIX.matchEntire(text)
-        return if (target != null) {
-            RawStep(action = target.groupValues[2].trim(), targetApp = target.groupValues[1].trim())
+        val metaMatch = META_SUFFIX_REGEX.find(text)
+        val body = if (metaMatch != null) text.removeRange(metaMatch.range).trim() else text
+        val metaPairs = metaMatch?.groupValues?.getOrNull(1)
+            ?.split(";")
+            ?.mapNotNull { entry ->
+                val idx = entry.indexOf('=')
+                if (idx <= 0) null else entry.substring(0, idx).trim() to entry.substring(idx + 1).trim()
+            }
+            ?.toMap()
+            .orEmpty()
+        val target = TARGET_PREFIX.matchEntire(body) ?: BRACKET_TARGET_PREFIX.matchEntire(body)
+        val (actionText, appText) = if (target != null) {
+            target.groupValues[2].trim() to target.groupValues[1].trim()
         } else {
-            RawStep(action = text, targetApp = "")
+            body to ""
         }
+        return RawStep(
+            index = 0,
+            action = actionText,
+            targetApp = appText,
+            targetPackage = metaPairs["pkg"].orEmpty(),
+            targetText = metaPairs["text"].orEmpty(),
+            contentDesc = metaPairs["desc"].orEmpty(),
+            resourceIdHint = metaPairs["id"].orEmpty(),
+            actionKind = metaPairs["kind"].orEmpty(),
+        )
     }
 
-    private fun buildPromptText(
-        title: String,
-        steps: List<CompiledStep>,
-        confirmationPoints: List<ConfirmationPoint>,
-    ): String = buildString {
-        appendLine("执行技能「$title」时，严格按下面录制路径操作，不擅自跳步或改道：")
-        steps.forEach { step ->
-            val target = if (step.targetApp.isBlank()) "" else "（${step.targetApp}）"
-            appendLine("${step.index}. $target${step.action}")
-        }
-        if (confirmationPoints.isNotEmpty()) {
-            appendLine()
-            appendLine("人工确认点：")
-            confirmationPoints.forEach { point ->
-                appendLine("- 第 ${point.stepIndex} 步「${point.action}」执行前必须暂停，向用户说明风险（${point.reason}），得到明确确认后才能继续。")
+    private fun buildPromptText(title: String, steps: List<CompiledStep>, confirmationPoints: List<ConfirmationPoint>): String =
+        buildString {
+            appendLine("执行技能「$title」时，严格按下面录制路径操作，不擅自跳步或改道：")
+            steps.forEach { step ->
+                val target = if (step.targetApp.isBlank()) "" else "（${step.targetApp}）"
+                val hints = buildList {
+                    if (step.targetPackage.isNotBlank()) add("包名=${step.targetPackage}")
+                    if (step.actionKind.isNotBlank()) add("动作=${step.actionKind}")
+                    if (step.targetText.isNotBlank()) add("文本=${step.targetText}")
+                    if (step.contentDesc.isNotBlank()) add("描述=${step.contentDesc}")
+                    if (step.resourceIdHint.isNotBlank()) add("控件=${step.resourceIdHint}")
+                }
+                val hintSuffix = if (hints.isEmpty()) "" else " 【控件线索: ${hints.joinToString("，")}】"
+                appendLine("${step.index}. $target${step.action}$hintSuffix")
             }
+            if (confirmationPoints.isNotEmpty()) {
+                appendLine()
+                appendLine("人工确认点：")
+                confirmationPoints.forEach { point ->
+                    appendLine("- 第 ${point.stepIndex} 步「${point.action}」执行前必须暂停，向用户说明风险（${point.reason}），得到明确确认后才能继续。")
+                }
+            }
+            appendLine()
+            append("遇到登录、验证码、支付、权限授权或任何未在录制中出现的页面变化时，暂停并让用户接管。")
         }
-        appendLine()
-        append("遇到登录、验证码、支付、权限授权或任何未在录制中出现的页面变化时，暂停并让用户接管。")
-    }
 
     companion object {
         private const val TAG = "TeachSkillCompiler"
@@ -221,6 +250,7 @@ class TeachSkillCompiler(
         private val STEP_LINE_REGEX = Regex("""^\d+\.\s+.+""")
         private val TARGET_PREFIX = Regex("""^（([^）]+)）\s*(.+)$""")
         private val BRACKET_TARGET_PREFIX = Regex("""^\[([^\]]+)]\s*(.+)$""")
+        private val META_SUFFIX_REGEX = Regex("""\s*\[meta:\s*([^\]]+)\]\s*$""")
 
         /** 高风险动作词：命中即插入人工确认点。 */
         private val HIGH_RISK_WORDS = listOf(
@@ -236,7 +266,14 @@ class TeachSkillCompiler(
 
         /** 高敏目标应用的包名/名称片段。 */
         private val HIGH_RISK_TARGETS = listOf(
-            "bank", "pay", "wallet", "finance", "alipay", "支付宝", "微信支付", "银行",
+            "bank",
+            "pay",
+            "wallet",
+            "finance",
+            "alipay",
+            "支付宝",
+            "微信支付",
+            "银行",
         )
 
         fun classifyRisk(action: String, targetApp: String): String? {
@@ -247,11 +284,9 @@ class TeachSkillCompiler(
             return matchedTarget?.let { "目标应用属于高风险类型「$it」" }
         }
 
-        private fun defaultTitle(steps: List<RawStep>): String =
-            steps.firstOrNull()?.action?.take(24)?.takeIf(String::isNotBlank) ?: "示范技能"
+        private fun defaultTitle(steps: List<RawStep>): String = steps.firstOrNull()?.action?.take(24)?.takeIf(String::isNotBlank) ?: "示范技能"
 
-        private fun defaultSummary(stepCount: Int): String =
-            "由示范录制编译的可复用技能，共 $stepCount 步。"
+        private fun defaultSummary(stepCount: Int): String = "由示范录制编译的可复用技能，共 $stepCount 步。"
 
         private fun defaultId(title: String): String {
             val slug = title.lowercase()
@@ -276,6 +311,11 @@ class TeachSkillCompiler(
         val index: Int,
         val action: String,
         val targetApp: String,
+        val targetPackage: String = "",
+        val targetText: String = "",
+        val contentDesc: String = "",
+        val resourceIdHint: String = "",
+        val actionKind: String = "",
     ) {
         constructor(action: String, targetApp: String) : this(0, action, targetApp)
     }

@@ -22,8 +22,6 @@ import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.floatOrNull
 import kotlinx.serialization.json.intOrNull
 import java.io.File
-import io.zer0.muse.ui.assistant.AssistantScreen
-import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * Assistant 领域模型 + 仓库(Phase 8.2)。
@@ -73,12 +71,14 @@ class AssistantRepository(
             .forEach { (updated, _) -> upsert(updated) }
     }
 
+    suspend fun updateMcpServerIds(id: String, idsJson: String) = dao.updateMcpServerIds(id, idsJson)
+
     /** 删除已不存在的 MCP server 绑定，避免 orphan id 和 id 复用后的意外复活。 */
     suspend fun removeMcpServerBinding(serverId: String) {
         getAll().forEach { assistant ->
             val ids = parseMcpServerIds(assistant)
             if (serverId in ids) {
-                upsert(assistant.copy(mcpServerIdsJson = serializeStringList(ids - serverId)))
+                updateMcpServerIds(assistant.id, serializeStringList(ids - serverId))
             }
         }
     }
@@ -508,8 +508,7 @@ TA 闹着玩的时候你接梗、吐槽、抬杠都行;TA 真的需要帮忙的�
     }
 
     /** 路径命中文件夹子树（空路径=整库，不参与改写）。 */
-    private fun hitsFolder(path: String, folder: String): Boolean =
-        path == folder || path.startsWith("$folder/")
+    private fun hitsFolder(path: String, folder: String): Boolean = path == folder || path.startsWith("$folder/")
 
     /**
      * v1.133: 把 [AssistantEntity.ragConfigOverride] 合并到全局 [baseConfig] 之上。

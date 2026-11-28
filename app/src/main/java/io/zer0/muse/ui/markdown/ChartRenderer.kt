@@ -29,6 +29,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -96,7 +97,9 @@ private const val MERMAID_POLL_MAX_ATTEMPTS = 40
  * @return true 表示应交给 [MermaidBlock] 渲染
  */
 fun isMermaidCodeBlock(lang: String?, code: String): Boolean {
-    if (lang != null && lang.trim().equals("mermaid", ignoreCase = true)) return true
+    if (!lang.isNullOrBlank()) {
+        return lang.trim().equals("mermaid", ignoreCase = true)
+    }
     val firstLine = code.lineSequence().firstOrNull { it.isNotBlank() } ?: return false
     val trimmed = firstLine.trim()
     return MERMAID_KEYWORDS.any { kw -> trimmed.startsWith(kw, ignoreCase = true) }
@@ -105,16 +108,12 @@ fun isMermaidCodeBlock(lang: String?, code: String): Boolean {
 /**
  * 判断代码块是否为 PlantUML 图表。
  *
- * 判定规则(满足任一即可):
- *  - 语言标识为 "plantuml"(大小写不敏感,去空白);
- *  - 代码包含 [@startuml] 标记(PlantUML 源码必备)。
- *
- * @param lang 代码块声明的语言(可能为 null/空白)
- * @param code 代码块内容
- * @return true 表示应交给 [PlantUmlBlock] 渲染
+ * 显式声明了其他语言时不启发式劫持。
  */
 fun isPlantUmlCodeBlock(lang: String?, code: String): Boolean {
-    if (lang != null && lang.trim().equals("plantuml", ignoreCase = true)) return true
+    if (!lang.isNullOrBlank()) {
+        return lang.trim().equals("plantuml", ignoreCase = true)
+    }
     return code.contains(PLANTUML_START)
 }
 
@@ -147,9 +146,11 @@ fun MermaidBlock(code: String) {
     val mermaidCd = stringResource(R.string.markdown_mermaid_cd, code.take(80))
     // CONS-02: JS 错误文案前缀从字符串资源读取,JSON 编码成 JS 字符串字面量后嵌入模板
     val renderFailedPrefix = stringResource(R.string.markdown_chart_render_failed_prefix)
+    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val mermaidTheme = if (isDark) "dark" else "neutral"
 
     // mermaid 源码 JSON 编码,安全注入 JS 字符串
-    val html = remember(code, renderFailedPrefix) {
+    val html = remember(code, renderFailedPrefix, mermaidTheme) {
         val encodedSrc = io.zer0.common.AppJson.encodeToString(String.serializer(), code)
         val encodedPrefix = io.zer0.common.AppJson.encodeToString(String.serializer(), renderFailedPrefix)
         """
@@ -168,7 +169,7 @@ fun MermaidBlock(code: String) {
         <div id="err"></div>
         <script>
             try {
-                mermaid.initialize({ startOnLoad: false, theme: 'neutral', securityLevel: 'strict' });
+                mermaid.initialize({ startOnLoad: false, theme: '$mermaidTheme', securityLevel: 'strict' });
                 var src = $encodedSrc;
                 mermaid.render('mmd', src).then(function(res) {
                     document.getElementById('out').innerHTML = res.svg;
@@ -302,6 +303,7 @@ fun MermaidBlock(code: String) {
                             htmlContent = html,
                             baseUrl = "file:///android_asset/",
                             javaScriptEnabled = true,
+                            webViewClient = remember { RichContentWebViewClient() },
                             onWebViewCreated = { webViewRef = it },
                             onWebViewReleased = { webViewRef = null },
                             modifier = Modifier

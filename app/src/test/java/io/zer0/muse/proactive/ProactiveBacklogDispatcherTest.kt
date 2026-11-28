@@ -4,14 +4,14 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.ProactiveMessageConfig
+import io.zer0.muse.data.SettingsRepository
+import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.data.proactive.ProactiveBacklogPublisher
 import io.zer0.muse.data.proactive.ProactiveBacklogRepository
 import io.zer0.muse.data.proactive.ProactiveOutcomeRepository
 import io.zer0.muse.data.proactive.ProactiveRelationRepository
 import io.zer0.muse.data.proactive.ProactiveThoughtRepository
-import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.data.session.SessionRepository
 import io.zer0.muse.notification.MuseNotificationManager
 import io.zer0.muse.schedule.ChatGenerationManager

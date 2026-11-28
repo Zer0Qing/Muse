@@ -12,7 +12,6 @@ import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 import java.io.File
 import java.security.MessageDigest
-import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * v2.0: 卡片数据存储 — 卡片数据绑定(cardId → JSON 数据)。
@@ -35,6 +34,8 @@ import io.zer0.muse.ui.chat.ChatViewModel
  * 旧文件保留兼容：分片目录为空且旧 `card_data.json` 存在时，读旧文件 → 写分片 →
  * 旧文件改名 `.migrated`。旧文件仍在备份白名单里，迁移失败的机器不会丢数据。
  */
+data class CardDataSnapshot(val data: String?, val revision: Long)
+
 class CardDataStore(context: Context) {
 
     private val filesDir: File = context.filesDir
@@ -44,6 +45,7 @@ class CardDataStore(context: Context) {
     private val serializer = MapSerializer(String.serializer(), String.serializer())
 
     private val _data = MutableStateFlow<Map<String, String>>(emptyMap())
+    private val revisions = mutableMapOf<String, Long>()
 
     /**
      * 恢复窗口内被删除的 cardId（P28 引入异步恢复后的补丁）。
@@ -89,22 +91,27 @@ class CardDataStore(context: Context) {
         }.onFailure { e: Throwable ->
             Logger.w(TAG, "卡片数据恢复失败: ${e.message}")
         }.getOrElse { emptyMap() }
-        if (restored.isEmpty()) {
+        synchronized(this) {
+            if (restored.isNotEmpty()) {
+                // 合并而不是覆盖：恢复期间写入的卡片优先；恢复期间被删除的卡片不复活。
+                val survivors = restored.filterKeys { it !in removedDuringRestore }
+                _data.value = survivors + _data.value
+                survivors.keys.forEach { revisions.putIfAbsent(it, 1L) }
+            }
             restoreFinished = true
             removedDuringRestore.clear()
-            return
         }
-        // 合并而不是覆盖：恢复期间写入的卡片优先；恢复期间被删除的卡片不复活。
-        val survivors = restored.filterKeys { it !in removedDuringRestore }
-        _data.value = survivors + _data.value
-        restoreFinished = true
-        removedDuringRestore.clear()
     }
 
     /** 写入/更新一条卡片数据(JSON 文本;超长截断,超出条数上限时淘汰最旧)。 */
+    @Synchronized
     fun put(cardId: String, jsonText: String) {
         if (cardId.isBlank()) return
         val trimmed = jsonText.trim().take(MAX_DATA_LENGTH)
+        putLocked(cardId, trimmed)
+    }
+
+    private fun putLocked(cardId: String, trimmed: String): Boolean {
         val merged = _data.value + (cardId to trimmed)
         val bounded = if (merged.size <= MAX_ITEMS) {
             merged
@@ -112,22 +119,53 @@ class CardDataStore(context: Context) {
             merged.entries.drop(merged.size - MAX_ITEMS).associate { it.toPair() }
         }
         // 先落盘再改内存：只有这条卡片的数据被写，其它分片不动。
-        if (!persistShard(cardId, trimmed)) return
+        if (!persistShard(cardId, trimmed)) return false
         (merged.keys - bounded.keys).forEach { dropped -> deleteShard(dropped) }
         _data.value = bounded
+        revisions[cardId] = (revisions[cardId] ?: 0L) + 1L
+        (merged.keys - bounded.keys).forEach { dropped ->
+            revisions[dropped] = (revisions[dropped] ?: 0L) + 1L
+        }
+        return true
+    }
+
+    @Synchronized
+    fun snapshot(cardId: String): CardDataSnapshot = CardDataSnapshot(
+        data = _data.value[cardId],
+        revision = revisions[cardId] ?: 0L,
+    )
+
+    @Synchronized
+    fun compareAndPut(cardId: String, expectedRevision: Long, jsonText: String): Long? {
+        if (cardId.isBlank() || (revisions[cardId] ?: 0L) != expectedRevision) return null
+        if (!putLocked(cardId, jsonText.trim().take(MAX_DATA_LENGTH))) return null
+        return revisions[cardId]
+    }
+
+    @Synchronized
+    fun compareAndRemove(cardId: String, expectedRevision: Long): Boolean {
+        if (cardId.isBlank() || (revisions[cardId] ?: 0L) != expectedRevision) return false
+        removeLocked(cardId)
+        return true
     }
 
     /** 读取一条卡片数据(JSON 文本);不存在返回 null。 */
     fun get(cardId: String): String? = _data.value[cardId]
 
     /** 删除一条卡片数据。 */
+    @Synchronized
     fun remove(cardId: String) {
+        removeLocked(cardId)
+    }
+
+    private fun removeLocked(cardId: String) {
         // 必须在改内存**之前**登记：恢复线程的过滤读的是这个集合，先登记才能保证
         // 「删了又被快照复活」不会发生（两种交错顺序下结果都正确）。
         if (!restoreFinished) removedDuringRestore.add(cardId)
         if (!_data.value.containsKey(cardId)) return
         deleteShard(cardId)
         _data.value = _data.value - cardId
+        revisions[cardId] = (revisions[cardId] ?: 0L) + 1L
     }
 
     // ── 分片读写 ────────────────────────────────────────────────

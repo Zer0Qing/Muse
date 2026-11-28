@@ -26,6 +26,7 @@ class UiAgentTool(private val runner: UiAgentRunner) {
                     "budget_minutes" to "可选。总时间预算 1-15 分钟,默认 5;长任务或界面很慢时可调大",
                     "display" to "可选。auto(默认) 有目标包名时优先独立虚拟屏，否则前台；也可指定 foreground 或 virtual",
                     "package_name" to "可选目标应用包名，例如 com.example.app；virtual 模式必填，auto 模式提供后会先尝试隔离运行",
+                    "handoff_on_finish" to "可选。true 时任务结束后保留虚拟屏并移交用户接管，不立即销毁",
                 ),
                 required = setOf("task"),
                 riskLevel = ToolRiskLevel.HIGH,
@@ -34,6 +35,7 @@ class UiAgentTool(private val runner: UiAgentRunner) {
             val task = args["task"]?.trim().orEmpty()
             if (task.isBlank()) return@registerOutcomeWithContext ToolOutcome.error("错误:缺少 task 参数")
             val maxSteps = args["max_steps"]?.toIntOrNull() ?: UiAgentRunner.DEFAULT_MAX_STEPS
+            val handoffOnFinish = args["handoff_on_finish"]?.trim().equals("true", ignoreCase = true)
             val displayMode = when (args["display"]?.trim()?.lowercase()) {
                 null, "", "auto" -> UiAgentRunner.DisplayMode.AUTO
                 "foreground" -> UiAgentRunner.DisplayMode.FOREGROUND
@@ -49,6 +51,7 @@ class UiAgentTool(private val runner: UiAgentRunner) {
                 onProgress = { msg -> executionContext?.onProgress?.invoke(msg) },
                 displayMode = displayMode,
                 packageName = args["package_name"],
+                handoffOnFinish = handoffOnFinish,
             )
             val content = buildString {
                 append(if (result.finished) "任务结束:" else "任务未完成:")

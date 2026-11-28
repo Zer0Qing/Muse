@@ -75,11 +75,7 @@ class ReasoningReplayModelGuardWireTest {
         )
     }
 
-    private fun request(
-        history: UIMessage,
-        modelId: String,
-        withTools: Boolean,
-    ): ChatRequest = ChatRequest(
+    private fun request(history: UIMessage, modelId: String, withTools: Boolean): ChatRequest = ChatRequest(
         messages = listOf(
             UIMessage(role = MessageRole.SYSTEM, content = "system prompt"),
             UIMessage(role = MessageRole.USER, content = "hello"),

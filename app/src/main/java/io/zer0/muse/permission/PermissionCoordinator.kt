@@ -51,6 +51,7 @@ class PermissionCoordinator(
         val rootGrantState: RootAuthorizer.GrantState = RootAuthorizer.GrantState.NoRoot,
         val rootManager: String? = null,
         val termuxAvailability: TermuxChannel.Availability = TermuxChannel.Availability.NotInstalled,
+        val accessibilityServiceDead: Boolean = false,
     ) {
         val shellEnabled: Boolean get() = shizukuState == ShizukuAuthorizer.ShizukuState.READY
 
@@ -107,6 +108,7 @@ class PermissionCoordinator(
     @Suppress("TooGenericExceptionCaught") // 单通道探针异常必须降级为不可用，不能击穿整页刷新。
     suspend fun refresh(): PermissionSnapshot = mutex.withLock {
         val a11y = probeBool("a11y") { a11yInstaller.isEnabled() }
+        val a11yLive = probeBool("a11yLive") { MuseAccessibilityService.instance?.isAccessibilityServiceEnabled() == true }
         val providerInstalled = probeBool("a11yProvider") { a11yInstaller.isProviderInstalled() }
         val providerBundled = probeBool("a11yProviderBundled") { a11yInstaller.isProviderApkBundled() }
         val shizukuInstalled = probeBool("shizukuInstalled") { shizukuInstaller.isInstalled() }
@@ -146,6 +148,7 @@ class PermissionCoordinator(
             rootGrantState = rootState,
             rootManager = rootManager,
             termuxAvailability = termuxAvail,
+            accessibilityServiceDead = a11y && !a11yLive,
         )
         _snapshot.value = snap
         snap

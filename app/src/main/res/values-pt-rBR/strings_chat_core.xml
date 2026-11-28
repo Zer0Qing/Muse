@@ -554,6 +554,7 @@
     <string name="backup_import_error_version">A versão do backup é nova ou antiga demais para este app.</string>
     <string name="backup_import_error_missing">O arquivo de backup não foi encontrado. Ele pode ter sido movido ou excluído.</string>
     <string name="backup_import_error_space">Não há espaço suficiente. Libere espaço e tente novamente.</string>
+    <string name="backup_import_error_empty">O arquivo de backup está vazio (0 byte), então não há nada para importar. Verifique se a exportação foi interrompida ou tente outro backup.</string>
     <string name="backup_import_error_unknown">O backup é inválido. O estado anterior foi restaurado.</string>
     <string name="onboarding_connect_error_unauthorized">A chave de API é inválida ou expirou. Informe-a novamente.</string>
     <string name="onboarding_connect_error_forbidden">Acesso negado. Verifique se a chave pode usar este modelo.</string>

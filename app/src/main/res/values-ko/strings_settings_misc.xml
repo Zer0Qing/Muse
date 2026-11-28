@@ -93,6 +93,7 @@
     <string name="settings_model_ability_streaming">스트리밍</string>
     <string name="settings_model_ability_image">영상</string>
     <string name="settings_model_ability_multimodal">다중 모드</string>
+    <string name="settings_model_ability_no_image_input">이미지 입력 없음</string>
     <string name="settings_model_ability_video">동영상</string>
     <string name="settings_model_ability_chat">채팅</string>
     <!-- v1.0.8 (7.7): Context window label (e.g. "128K context") -->

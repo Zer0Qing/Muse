@@ -1,11 +1,21 @@
-@file:Suppress("FunctionNaming", "LongMethod", "LongParameterList", "CyclomaticComplexMethod", "TooManyFunctions", "ReturnCount", "TooGenericExceptionCaught", "SwallowedException", "MaxLineLength", "ComplexCondition", "UseCheckOrError", "UnusedPrivateProperty")
+@file:Suppress(
+    "FunctionNaming",
+    "LongMethod",
+    "LongParameterList",
+    "CyclomaticComplexMethod",
+    "TooManyFunctions",
+    "ReturnCount",
+    "TooGenericExceptionCaught",
+    "SwallowedException",
+    "MaxLineLength",
+    "ComplexCondition",
+    "UseCheckOrError",
+    "UnusedPrivateProperty",
+)
 
 package io.zer0.muse.ui.chat
 
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -45,10 +55,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -79,6 +88,7 @@ import io.zer0.muse.ui.theme.largeCard
 import io.zer0.muse.ui.theme.semiLarge
 import io.zer0.muse.ui.theme.tiny
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 
@@ -369,17 +379,20 @@ fun SmartImage(
         val imageModel = remember(model) {
             if (model is String && model.startsWith("/")) File(model) else model
         }
+        val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
+        val placeholderPainter = remember(surfaceVariant) {
+            androidx.compose.ui.graphics.painter.ColorPainter(surfaceVariant.copy(alpha = 0.6f))
+        }
+        val errorPainter = remember(surfaceVariant) {
+            androidx.compose.ui.graphics.painter.ColorPainter(surfaceVariant.copy(alpha = 0.4f))
+        }
         AsyncImage(
             model = imageModel,
             contentDescription = contentDescription,
             modifier = modifier,
             contentScale = contentScale,
-            placeholder = androidx.compose.ui.graphics.painter.ColorPainter(
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-            ),
-            error = androidx.compose.ui.graphics.painter.ColorPainter(
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-            ),
+            placeholder = placeholderPainter,
+            error = errorPainter,
         )
     }
 }
@@ -434,61 +447,127 @@ private fun decodeDataUriBitmap(base64Part: String): android.graphics.Bitmap? = 
  * http(s) URL 仍直接调起系统播放器;无应用可处理时 Toast 提示。
  */
 @Composable
-internal fun AssistantVideoCard(videoUri: String, modifier: Modifier = Modifier) {
+internal fun AssistantVideoCard(videoUri: String, modifier: Modifier = Modifier, promptSummary: String? = null) {
     val context = LocalContext.current
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(160.dp)
-            .clip(MuseShapes.medium)
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .clickable {
-                runCatching {
-                    // C-01: data URI → 解码落盘 cacheDir 后播放文件;http(s) 直放
-                    val playable = if (videoUri.startsWith("data:")) {
-                        val commaIndex = videoUri.indexOf(',')
-                        val base64 = if (commaIndex > 0) videoUri.substring(commaIndex + 1) else videoUri
-                        val normalized = base64.replace("\n", "").replace("\r", "")
-                        val bytes = android.util.Base64.decode(normalized, android.util.Base64.NO_WRAP)
-                        val file = java.io.File(context.cacheDir, "muse_video_${videoUri.hashCode()}.mp4")
-                        file.writeBytes(bytes)
-                        file.toURI().toString()
-                    } else {
-                        videoUri
-                    }
-                    val intent = Intent(Intent.ACTION_VIEW).apply {
-                        setDataAndType(Uri.parse(playable), "video/*")
-                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    }
-                    context.startActivity(intent)
-                }.onFailure { e ->
-                    MuseToast.show(context.getString(R.string.chat_video_open_failed, e.message ?: ""))
-                }
-            },
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            imageVector = MuseIcons.video,
-            contentDescription = stringResource(R.string.chat_generated_video_cd),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(MuseIconSizes.iconEmpty),
-        )
-        // 中央播放图标(scrim 半透明背景提升对比度,与用户视频附件一致)
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val storage: io.zer0.muse.data.media.MediaAssetStorage = org.koin.compose.koinInject()
+    var showPlayer by remember { androidx.compose.runtime.mutableStateOf(false) }
+
+    val thumbPath by produceState<String?>(initialValue = null, videoUri) {
+        value = if (videoUri.startsWith("file://") || videoUri.startsWith("/") || videoUri.startsWith("content://")) {
+            storage.getOrExtractVideoThumbnail(videoUri, videoUri.hashCode().toString())
+        } else {
+            null
+        }
+    }
+
+    Column(modifier = modifier.fillMaxWidth()) {
         Box(
             modifier = Modifier
-                .size(56.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.5f)),
+                .fillMaxWidth()
+                .aspectRatio(16f / 9f)
+                .clip(MuseShapes.largeCard)
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .clickable { showPlayer = true },
             contentAlignment = Alignment.Center,
         ) {
-            Icon(
-                imageVector = MuseIcons.play,
-                contentDescription = stringResource(R.string.chat_video_play_cd),
-                tint = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.size(MuseIconSizes.iconLarge),
+            if (!thumbPath.isNullOrBlank()) {
+                // The guard above establishes the path is non-null for the image model.
+                AsyncImage(
+                    model = File(thumbPath!!),
+                    contentDescription = stringResource(R.string.chat_generated_video_cd),
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            } else {
+                Icon(
+                    imageVector = MuseIcons.video,
+                    contentDescription = stringResource(R.string.chat_generated_video_cd),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(MuseIconSizes.iconEmpty),
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.55f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = MuseIcons.play,
+                    contentDescription = stringResource(R.string.chat_video_play_cd),
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(MuseIconSizes.iconLarge),
+                )
+            }
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = MusePaddings.tightGap),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
+        ) {
+            Text(
+                text = promptSummary?.takeIf { it.isNotBlank() }
+                    ?: stringResource(R.string.chat_generated_video_cd),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            MuseTactileButton(
+                icon = MuseIcons.download,
+                onClick = {
+                    scope.launch {
+                        val file = withContext(Dispatchers.IO) {
+                            io.zer0.muse.ui.media.resolveVideoToLocalFile(context, videoUri)
+                        }
+                        if (file == null) {
+                            MuseToast.show(context.getString(R.string.media_studio_video_download_first))
+                            return@launch
+                        }
+                        storage.saveToSystemGallery(file, isVideo = true)
+                            .onSuccess { MuseToast.show(context.getString(R.string.media_studio_saved_to_gallery)) }
+                            .onFailure { e ->
+                                MuseToast.show(context.getString(R.string.media_studio_save_failed, e.message ?: ""))
+                            }
+                    }
+                },
+                contentDescription = stringResource(R.string.media_studio_save_to_gallery),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                size = MuseIconSizes.touchTarget,
+                iconSize = MuseIconSizes.iconSmall,
+            )
+            MuseTactileButton(
+                icon = MuseIcons.share,
+                onClick = {
+                    scope.launch {
+                        val local = withContext(Dispatchers.IO) {
+                            io.zer0.muse.ui.media.resolveVideoToLocalFile(context, videoUri)
+                        }
+                        if (local == null || !storage.shareLocalFile(context, local, "video/mp4")) {
+                            MuseToast.show(context.getString(R.string.chat_share_failed_no_uri))
+                        }
+                    }
+                },
+                contentDescription = stringResource(R.string.common_share),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                size = MuseIconSizes.touchTarget,
+                iconSize = MuseIconSizes.iconSmall,
             )
         }
+    }
+
+    if (showPlayer) {
+        io.zer0.muse.ui.media.MuseVideoPlayerDialog(
+            videoUri = videoUri,
+            promptSummary = promptSummary,
+            onDismiss = { showPlayer = false },
+            storage = storage,
+        )
     }
 }
 
@@ -508,11 +587,11 @@ internal fun AssistantVideoCard(videoUri: String, modifier: Modifier = Modifier)
  */
 @Composable
 internal fun StreamingCursor(color: Color, modifier: Modifier = Modifier) {
-    val alpha = if (MuseMotion.isReducedMotion()) {
-        1f
+    val animatedAlpha = if (MuseMotion.isReducedMotion()) {
+        null
     } else {
         val transition = rememberInfiniteTransition(label = "streaming_cursor")
-        val animatedAlpha by transition.animateFloat(
+        transition.animateFloat(
             initialValue = 1f,
             targetValue = 0.2f,
             animationSpec = infiniteRepeatable(
@@ -521,12 +600,12 @@ internal fun StreamingCursor(color: Color, modifier: Modifier = Modifier) {
             ),
             label = "cursor_alpha",
         )
-        animatedAlpha
     }
     Box(
         modifier = modifier
             .size(width = 2.5.dp, height = 18.dp)
-            .background(color = color.copy(alpha = alpha)),
+            .graphicsLayer { alpha = animatedAlpha?.value ?: 1f }
+            .background(color = color),
     )
 }
 

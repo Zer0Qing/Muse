@@ -6,10 +6,11 @@ import io.zer0.muse.computenode.ComputeTarget
 import io.zer0.muse.computenode.ComputeTargetRouter
 import io.zer0.muse.computenode.ExecKind
 import io.zer0.muse.computenode.ExecRequest
+import io.zer0.muse.computenode.MuseNodeException
 import io.zer0.muse.computenode.RemoteComputeRuntime
 import io.zer0.muse.computenode.TaskCategory
-import io.zer0.muse.runtime.RuntimeBridge
 import io.zer0.muse.runtime.PythonRuntime
+import io.zer0.muse.runtime.RuntimeBridge
 import io.zer0.muse.runtime.RuntimeMissing
 import io.zer0.muse.tools.script.PythonSkillEngine
 import io.zer0.muse.tools.script.SkillEngineResult
@@ -64,6 +65,7 @@ object PythonScriptTool {
         context: Context,
         args: Map<String, String>,
         remoteRuntime: RemoteComputeRuntime? = null,
+        onRemoteExecStarted: (suspend (nodeId: String, remoteRunId: String) -> Unit)? = null,
     ): String {
         val code = args["code"].orEmpty()
         val timeoutMs = args["timeout_ms"]?.toLongOrNull()?.coerceIn(1L, MAX_TIMEOUT_MS) ?: DEFAULT_TIMEOUT_MS
@@ -77,13 +79,16 @@ object PythonScriptTool {
             remoteRuntime?.resolve(requested, TaskCategory.PYTHON) ?: ComputeTarget.LocalProot
         } catch (e: CancellationException) {
             throw e
-        } catch (e: Exception) {
+        } catch (e: MuseNodeException) {
+            Logger.w("PythonScriptTool", "解析算力目标失败: ${e.message}", e)
+            return errorJson("云端电脑不可用: ${e.message}")
+        } catch (e: RuntimeException) {
             Logger.w("PythonScriptTool", "解析算力目标失败: ${e.message}", e)
             return errorJson("云端电脑不可用: ${e.message}")
         }
         if (computeTarget is ComputeTarget.RemoteNode) {
             val runtime = remoteRuntime ?: return errorJson("云端电脑未配置")
-            return executeRemote(code, timeoutMs, computeTarget, runtime)
+            return executeRemote(code, timeoutMs, computeTarget, runtime, onRemoteExecStarted)
         }
         return when {
             !RuntimeBridge.isReady(context) -> RuntimeMissing.toJson()
@@ -97,6 +102,7 @@ object PythonScriptTool {
         timeoutMs: Long,
         target: ComputeTarget.RemoteNode,
         runtime: RemoteComputeRuntime,
+        onRemoteExecStarted: (suspend (nodeId: String, remoteRunId: String) -> Unit)?,
     ): String {
         val outcome = try {
             runtime.execute(
@@ -107,10 +113,14 @@ object PythonScriptTool {
                     cwd = "~/muse-workspace",
                     timeoutSec = (timeoutMs / 1000).coerceIn(1L, 3600L).toInt(),
                 ),
+                onRemoteExecStarted = onRemoteExecStarted,
             )
         } catch (e: CancellationException) {
             throw e
-        } catch (e: Exception) {
+        } catch (e: MuseNodeException) {
+            Logger.w("PythonScriptTool", "云端执行失败: ${e.message}", e)
+            return errorJson("云端执行失败: ${e.message}")
+        } catch (e: RuntimeException) {
             Logger.w("PythonScriptTool", "云端执行失败: ${e.message}", e)
             return errorJson("云端执行失败: ${e.message}")
         }
@@ -180,8 +190,8 @@ class PythonScriptToolRegistrar(
     }
 
     fun registerAll() {
-        toolRegistry.register(PythonScriptTool.toolDef()) { args ->
-            PythonScriptTool.execute(context, args, remoteRuntime)
+        toolRegistry.registerOutcomeWithContext(PythonScriptTool.toolDef()) { args, executionContext ->
+            ToolOutcome.ok(PythonScriptTool.execute(context, args, remoteRuntime, executionContext?.onRemoteExecStarted))
         }
     }
 }

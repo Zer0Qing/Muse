@@ -11,7 +11,9 @@ interface MemoryDreamDao {
     suspend fun insertRevision(entity: MemoryDreamRevisionEntity)
 
     @Query(
-        "SELECT * FROM memory_dream_revisions WHERE revisionId = :revisionId AND assistantId = :assistantId AND scope = :scope AND spaceId = :spaceId",
+        "SELECT * FROM memory_dream_revisions " +
+            "WHERE revisionId = :revisionId AND assistantId = :assistantId " +
+            "AND scope = :scope AND spaceId = :spaceId",
     )
     suspend fun findRevision(revisionId: String, assistantId: String, scope: String, spaceId: String): MemoryDreamRevisionEntity?
 

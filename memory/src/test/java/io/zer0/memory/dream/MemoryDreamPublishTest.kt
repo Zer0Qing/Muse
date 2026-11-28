@@ -85,11 +85,13 @@ class MemoryDreamPublishTest {
         seed("week", "无关的过期周报", "STALE")
         val planner = plannerChanging("facts" to "新事实", "today" to "今天")
         val service = DefaultMemoryDreamService(db = db, planner = planner)
-        val runId = (service.start(
-            scope,
-            DreamTrigger.MANUAL,
-            mapOf("facts" to "旧事实"),
-        ) as DreamStartResult.Started).runId
+        val runId = (
+            service.start(
+                scope,
+                DreamTrigger.MANUAL,
+                mapOf("facts" to "旧事实"),
+            ) as DreamStartResult.Started
+            ).runId
 
         assertEquals("今天", db.scopedCompiledSectionDao().get("today", "main", "default")?.content)
 
@@ -108,11 +110,13 @@ class MemoryDreamPublishTest {
     fun `restore rejects when a later compile changed a dream section`() = runTest {
         seed("facts", "旧事实", "READY")
         val service = DefaultMemoryDreamService(db = db, planner = plannerChanging("facts" to "新事实"))
-        val runId = (service.start(
-            scope,
-            DreamTrigger.MANUAL,
-            mapOf("facts" to "旧事实"),
-        ) as DreamStartResult.Started).runId
+        val runId = (
+            service.start(
+                scope,
+                DreamTrigger.MANUAL,
+                mapOf("facts" to "旧事实"),
+            ) as DreamStartResult.Started
+            ).runId
         // 模拟 Dream 之后定时编译又改过这一段。
         db.scopedCompiledSectionDao().updateContent(
             "facts",
@@ -165,8 +169,7 @@ class MemoryDreamPublishTest {
     @Test
     fun `cancelled start persists non-running state so it can be retried`() = runTest {
         val cancelledPlanner = object : MemoryDreamPlanner {
-            override suspend fun plan(current: Map<String, String>): MemoryDreamPlan =
-                throw CancellationException("user stopped")
+            override suspend fun plan(current: Map<String, String>): MemoryDreamPlan = throw CancellationException("user stopped")
         }
         val service = DefaultMemoryDreamService(db = db, planner = cancelledPlanner)
 
@@ -196,7 +199,6 @@ class MemoryDreamPublishTest {
     }
 
     private fun plannerChanging(vararg sections: Pair<String, String>) = object : MemoryDreamPlanner {
-        override suspend fun plan(current: Map<String, String>): MemoryDreamPlan =
-            MemoryDreamPlan(sections = sections.toMap())
+        override suspend fun plan(current: Map<String, String>): MemoryDreamPlan = MemoryDreamPlan(sections = sections.toMap())
     }
 }

@@ -254,104 +254,136 @@ private fun WatcherCard(
             modifier = Modifier.padding(MusePaddings.cardInner),
             verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
-            ) {
-                Icon(
-                    imageVector = MuseIcons.timer,
-                    contentDescription = null,
-                    tint = statusColor,
-                    modifier = Modifier.size(MuseIconSizes.iconSmall),
-                )
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = watcher.title,
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        text = stringResource(
-                            R.string.agent_follow_up_watcher_meta,
-                            watcherTargetLabel(watcher),
-                            watcher.intervalMinutes,
-                        ),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                StatusPill(label = watcherStatusLabel(watcher.status), color = statusColor)
-            }
+            WatcherCardHeader(watcher = watcher, statusColor = statusColor)
             Text(
                 text = watcherLastCheckedLabel(watcher.lastCheckedAt, nowMillis),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            if (watcher.lastError.isNotBlank()) {
-                Text(
-                    text = stringResource(R.string.agent_follow_up_watcher_last_error, watcher.lastError),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.statusColors.error,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            } else if (watcher.lastResult.isNotBlank()) {
-                Text(
-                    text = stringResource(R.string.agent_follow_up_watcher_last_result, watcher.lastResult),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            if (watcher.status != AgentWatcherStatus.ENDED) {
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(MusePaddings.labelVerticalGap),
-                    verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
-                ) {
-                    MuseCapsuleButton(
-                        text = stringResource(R.string.agent_follow_up_watcher_check_now),
-                        onClick = onCheckNow,
-                        leadingIcon = MuseIcons.refresh,
-                        variant = IosCapsuleButtonVariant.Secondary,
-                        fillWidth = false,
-                        size = MuseButtonSize.Compact,
-                    )
-                    if (watcher.status == AgentWatcherStatus.ACTIVE) {
-                        MuseCapsuleButton(
-                            text = stringResource(R.string.agent_follow_up_watcher_pause),
-                            onClick = onPause,
-                            leadingIcon = MuseIcons.pause,
-                            variant = IosCapsuleButtonVariant.Secondary,
-                            fillWidth = false,
-                            size = MuseButtonSize.Compact,
-                        )
-                    } else {
-                        MuseCapsuleButton(
-                            text = stringResource(R.string.agent_follow_up_watcher_resume),
-                            onClick = onResume,
-                            leadingIcon = MuseIcons.play,
-                            variant = IosCapsuleButtonVariant.Secondary,
-                            fillWidth = false,
-                            size = MuseButtonSize.Compact,
-                        )
-                    }
-                    MuseCapsuleButton(
-                        text = stringResource(R.string.agent_follow_up_watcher_end),
-                        onClick = onEnd,
-                        leadingIcon = MuseIcons.trash,
-                        destructive = true,
-                        fillWidth = false,
-                        size = MuseButtonSize.Compact,
-                    )
-                }
-            }
+            WatcherCardOutcome(watcher = watcher)
+            WatcherCardActions(
+                watcher = watcher,
+                onCheckNow = onCheckNow,
+                onPause = onPause,
+                onResume = onResume,
+                onEnd = onEnd,
+            )
         }
+    }
+}
+
+@Composable
+private fun WatcherCardHeader(watcher: AgentWatcherEntity, statusColor: androidx.compose.ui.graphics.Color) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+    ) {
+        Icon(
+            imageVector = MuseIcons.timer,
+            contentDescription = null,
+            tint = statusColor,
+            modifier = Modifier.size(MuseIconSizes.iconSmall),
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = watcher.title,
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = stringResource(
+                    R.string.agent_follow_up_watcher_meta,
+                    watcherTargetLabel(watcher),
+                    watcher.intervalMinutes,
+                ),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        StatusPill(label = watcherStatusLabel(watcher.status), color = statusColor)
+    }
+}
+
+@Composable
+private fun WatcherCardOutcome(watcher: AgentWatcherEntity) {
+    val watcherErrorText = when (watcher.lastError) {
+        AgentWatcherStatus.ERROR_REMOTE_REVOCATION_PENDING -> stringResource(R.string.agent_follow_up_watcher_remote_pending)
+        AgentWatcherStatus.ERROR_REMOTE_BINDING_UNKNOWN -> stringResource(R.string.agent_follow_up_watcher_remote_unknown)
+        else -> when {
+            watcher.lastError.startsWith(AgentWatcherStatus.WATCHER_NOTIFY_PENDING_PREFIX) ->
+                stringResource(R.string.agent_follow_up_watcher_notify_pending)
+            watcher.lastError.isNotBlank() ->
+                stringResource(R.string.agent_follow_up_watcher_last_error, watcher.lastError)
+            else -> null
+        }
+    }
+    when {
+        watcherErrorText != null -> Text(
+            text = watcherErrorText,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.statusColors.error,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+        watcher.lastResult.isNotBlank() -> Text(
+            text = stringResource(R.string.agent_follow_up_watcher_last_result, watcher.lastResult),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun WatcherCardActions(
+    watcher: AgentWatcherEntity,
+    onCheckNow: () -> Unit,
+    onPause: () -> Unit,
+    onResume: () -> Unit,
+    onEnd: () -> Unit,
+) {
+    if (watcher.status == AgentWatcherStatus.ENDED) return
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(MusePaddings.labelVerticalGap),
+        verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
+    ) {
+        MuseCapsuleButton(
+            text = stringResource(R.string.agent_follow_up_watcher_check_now),
+            onClick = onCheckNow,
+            leadingIcon = MuseIcons.refresh,
+            variant = IosCapsuleButtonVariant.Secondary,
+            fillWidth = false,
+            size = MuseButtonSize.Compact,
+        )
+        MuseCapsuleButton(
+            text = stringResource(
+                if (watcher.status == AgentWatcherStatus.ACTIVE) {
+                    R.string.agent_follow_up_watcher_pause
+                } else {
+                    R.string.agent_follow_up_watcher_resume
+                },
+            ),
+            onClick = if (watcher.status == AgentWatcherStatus.ACTIVE) onPause else onResume,
+            leadingIcon = if (watcher.status == AgentWatcherStatus.ACTIVE) MuseIcons.pause else MuseIcons.play,
+            variant = IosCapsuleButtonVariant.Secondary,
+            fillWidth = false,
+            size = MuseButtonSize.Compact,
+        )
+        MuseCapsuleButton(
+            text = stringResource(R.string.agent_follow_up_watcher_end),
+            onClick = onEnd,
+            leadingIcon = MuseIcons.trash,
+            destructive = true,
+            fillWidth = false,
+            size = MuseButtonSize.Compact,
+        )
     }
 }
 
@@ -387,11 +419,7 @@ private fun WorkbenchGoalsSection(
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun GoalCard(
-    goal: AgentGoalEntity,
-    onToggleMilestone: (milestoneId: String, done: Boolean) -> Unit,
-    onRefineInChat: () -> Unit,
-) {
+private fun GoalCard(goal: AgentGoalEntity, onToggleMilestone: (milestoneId: String, done: Boolean) -> Unit, onRefineInChat: () -> Unit) {
     val milestones = remember(goal.milestonesJson) { decodeGoalMilestones(goal.milestonesJson) }
     val statusColor = goalStatusColor(goal.status)
     Surface(
@@ -542,145 +570,200 @@ private fun WorkbenchLiveSection(
                 modifier = Modifier.padding(MusePaddings.contentGap),
             )
         } else {
-            activeTasks.forEach { task ->
-                AgentLiveMissionCard(
-                    row = task,
-                    onOpenDetails = onOpenTask,
-                    onOpenComputer = { vdPreviewOpen = true },
-                    onSteer = onSteerTask,
-                    onSaveAsRoutine = onSaveTaskAsRoutine,
-                    onContinue = onContinueTask,
-                    onRetry = onRetryTask,
-                    onCancel = onCancelTask,
-                    activeVirtualDisplay = activeVirtualDisplay?.takeIf { it.taskId == task.taskId },
-                    onOpenVirtualDisplay = { vdPreviewOpen = true },
+            LiveMissionTaskList(
+                tasks = activeTasks,
+                activeVirtualDisplay = activeVirtualDisplay,
+                onOpenTask = onOpenTask,
+                onOpenComputer = { vdPreviewOpen = true },
+                onSteerTask = onSteerTask,
+                onSaveTaskAsRoutine = onSaveTaskAsRoutine,
+                onContinueTask = onContinueTask,
+                onRetryTask = onRetryTask,
+                onCancelTask = onCancelTask,
+            )
+        }
+        if (liveVdDisplayId != null) {
+            LiveVirtualDisplayCard(
+                displayId = liveVdDisplayId,
+                packageName = liveVdPackage,
+                previewOpen = vdPreviewOpen,
+                onTogglePreview = { vdPreviewOpen = !vdPreviewOpen },
+                onClose = {
+                    VirtualDisplayHandoffRegistry.release(liveVdDisplayId)
+                    vdPreviewOpen = false
+                    handoffRefreshToken++
+                },
+            )
+        }
+        if (sandboxLogs.isNotEmpty()) {
+            SandboxLogsCard(
+                logs = sandboxLogs,
+                expanded = terminalExpanded,
+                onToggle = { terminalExpanded = !terminalExpanded },
+                onClear = onClearSandboxLogs,
+            )
+        }
+    }
+}
+
+@Composable
+private fun LiveMissionTaskList(
+    tasks: List<AgentBotUiState.TaskRow>,
+    activeVirtualDisplay: LiveMissionProgressBus.ActiveVirtualDisplay?,
+    onOpenTask: (String) -> Unit,
+    onOpenComputer: () -> Unit,
+    onSteerTask: (String, String) -> Unit,
+    onSaveTaskAsRoutine: (String) -> Unit,
+    onContinueTask: (String) -> Unit,
+    onRetryTask: (String) -> Unit,
+    onCancelTask: (String) -> Unit,
+) {
+    tasks.forEach { task ->
+        AgentLiveMissionCard(
+            row = task,
+            onOpenDetails = onOpenTask,
+            onOpenComputer = onOpenComputer,
+            onSteer = onSteerTask,
+            onSaveAsRoutine = onSaveTaskAsRoutine,
+            onContinue = onContinueTask,
+            onRetry = onRetryTask,
+            onCancel = onCancelTask,
+            activeVirtualDisplay = activeVirtualDisplay?.takeIf { it.taskId == task.taskId },
+            onOpenVirtualDisplay = onOpenComputer,
+        )
+    }
+}
+
+@Composable
+private fun LiveVirtualDisplayCard(
+    displayId: String,
+    packageName: String,
+    previewOpen: Boolean,
+    onTogglePreview: () -> Unit,
+    onClose: () -> Unit,
+) {
+    Surface(
+        shape = MuseShapes.semiLarge,
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = MuseAlpha.mutedSurface),
+        border = BorderStroke(MuseBorderWidth.hairline, MaterialTheme.colorScheme.outlineVariant),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier.padding(MusePaddings.cardInner),
+            verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+            ) {
+                Icon(
+                    imageVector = MuseIcons.deviceMobile,
+                    contentDescription = null,
+                    tint = MaterialTheme.statusColors.info,
+                    modifier = Modifier.size(MuseIconSizes.iconSmall),
+                )
+                Text(
+                    text = stringResource(R.string.agent_hub_computer_vdisplay_title),
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.weight(1f),
+                )
+                MuseCapsuleButton(
+                    text = stringResource(R.string.agent_hub_computer_vdisplay_takeover),
+                    onClick = onTogglePreview,
+                    variant = IosCapsuleButtonVariant.Secondary,
+                    fillWidth = false,
+                    size = MuseButtonSize.Compact,
+                )
+            }
+            if (previewOpen) {
+                VirtualDisplayHandoffPanel(
+                    displayId = displayId,
+                    packageName = packageName,
+                    screenshot = { AutomationRuntime.screenshot(displayId) },
+                    tap = { x, y -> AutomationRuntime.tap(displayId, x, y) },
+                    bringToMain = { AutomationRuntime.launchOnMain(packageName) },
+                    onClose = onClose,
                 )
             }
         }
-        if (liveVdDisplayId != null) {
-            Surface(
-                shape = MuseShapes.semiLarge,
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = MuseAlpha.mutedSurface),
-                border = BorderStroke(MuseBorderWidth.hairline, MaterialTheme.colorScheme.outlineVariant),
-                modifier = Modifier.fillMaxWidth(),
+    }
+}
+
+@Composable
+private fun SandboxLogsCard(
+    logs: List<LiveMissionProgressBus.SandboxLogLine>,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    onClear: () -> Unit,
+) {
+    Surface(
+        shape = MuseShapes.semiLarge,
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = MuseAlpha.mutedSurface),
+        border = BorderStroke(MuseBorderWidth.hairline, MaterialTheme.colorScheme.outlineVariant),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier.padding(MusePaddings.cardInner),
+            verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().clickable(onClick = onToggle),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
             ) {
-                Column(
-                    modifier = Modifier.padding(MusePaddings.cardInner),
-                    verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+                Icon(
+                    imageVector = MuseIcons.terminal,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(MuseIconSizes.iconSmall),
+                )
+                Text(
+                    text = stringResource(R.string.agent_follow_up_terminal_title),
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    text = stringResource(R.string.agent_follow_up_terminal_lines, logs.size),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Icon(
+                    imageVector = if (expanded) MuseIcons.chevronUp else MuseIcons.chevronDown,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(MuseIconSizes.iconSmallTiny),
+                )
+            }
+            if (expanded) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
-                    ) {
-                        Icon(
-                            imageVector = MuseIcons.deviceMobile,
-                            contentDescription = null,
-                            tint = MaterialTheme.statusColors.info,
-                            modifier = Modifier.size(MuseIconSizes.iconSmall),
-                        )
+                    MuseCapsuleButton(
+                        text = stringResource(R.string.agent_hub_computer_clear_logs),
+                        onClick = onClear,
+                        variant = IosCapsuleButtonVariant.Text,
+                        fillWidth = false,
+                        size = MuseButtonSize.Compact,
+                    )
+                }
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = MusePaddings.dialogContentMaxHeight)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
+                ) {
+                    logs.takeLast(80).forEach { line ->
                         Text(
-                            text = stringResource(R.string.agent_hub_computer_vdisplay_title),
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.weight(1f),
-                        )
-                        MuseCapsuleButton(
-                            text = stringResource(R.string.agent_hub_computer_vdisplay_takeover),
-                            onClick = { vdPreviewOpen = !vdPreviewOpen },
-                            variant = IosCapsuleButtonVariant.Secondary,
-                            fillWidth = false,
-                            size = MuseButtonSize.Compact,
-                        )
-                    }
-                    if (vdPreviewOpen) {
-                        VirtualDisplayHandoffPanel(
-                            displayId = liveVdDisplayId,
-                            packageName = liveVdPackage,
-                            screenshot = { AutomationRuntime.screenshot(liveVdDisplayId) },
-                            tap = { x, y -> AutomationRuntime.tap(liveVdDisplayId, x, y) },
-                            bringToMain = { AutomationRuntime.launchOnMain(liveVdPackage) },
-                            onClose = {
-                                VirtualDisplayHandoffRegistry.release(liveVdDisplayId)
-                                vdPreviewOpen = false
-                                handoffRefreshToken++
+                            text = "[${line.source}] ${line.text}",
+                            style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+                            color = if (line.isError) {
+                                MaterialTheme.statusColors.error
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
                             },
                         )
-                    }
-                }
-            }
-        }
-        if (sandboxLogs.isNotEmpty()) {
-            Surface(
-                shape = MuseShapes.semiLarge,
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = MuseAlpha.mutedSurface),
-                border = BorderStroke(MuseBorderWidth.hairline, MaterialTheme.colorScheme.outlineVariant),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Column(
-                    modifier = Modifier.padding(MusePaddings.cardInner),
-                    verticalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { terminalExpanded = !terminalExpanded },
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
-                    ) {
-                        Icon(
-                            imageVector = MuseIcons.terminal,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(MuseIconSizes.iconSmall),
-                        )
-                        Text(
-                            text = stringResource(R.string.agent_follow_up_terminal_title),
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.weight(1f),
-                        )
-                        Text(
-                            text = stringResource(R.string.agent_follow_up_terminal_lines, sandboxLogs.size),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Icon(
-                            imageVector = if (terminalExpanded) MuseIcons.chevronUp else MuseIcons.chevronDown,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(MuseIconSizes.iconSmallTiny),
-                        )
-                    }
-                    if (terminalExpanded) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.End,
-                        ) {
-                            MuseCapsuleButton(
-                                text = stringResource(R.string.agent_hub_computer_clear_logs),
-                                onClick = onClearSandboxLogs,
-                                variant = IosCapsuleButtonVariant.Text,
-                                fillWidth = false,
-                                size = MuseButtonSize.Compact,
-                            )
-                        }
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(max = MusePaddings.dialogContentMaxHeight)
-                                .verticalScroll(rememberScrollState()),
-                            verticalArrangement = Arrangement.spacedBy(MusePaddings.tightGap),
-                        ) {
-                            sandboxLogs.takeLast(80).forEach { line ->
-                                Text(
-                                    text = "[${line.source}] ${line.text}",
-                                    style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
-                                    color = if (line.isError) {
-                                        MaterialTheme.statusColors.error
-                                    } else {
-                                        MaterialTheme.colorScheme.onSurface
-                                    },
-                                )
-                            }
-                        }
                     }
                 }
             }
@@ -725,27 +808,25 @@ private fun watcherStatusColor(status: String): androidx.compose.ui.graphics.Col
 }
 
 @Composable
-private fun watcherTargetLabel(watcher: AgentWatcherEntity): String =
-    if (watcher.computeTarget.equals("cloud", ignoreCase = true)) {
-        stringResource(R.string.agent_follow_up_watcher_target_cloud)
-    } else {
-        stringResource(R.string.agent_follow_up_watcher_target_local)
-    }
+private fun watcherTargetLabel(watcher: AgentWatcherEntity): String = if (watcher.computeTarget.equals("cloud", ignoreCase = true)) {
+    stringResource(R.string.agent_follow_up_watcher_target_cloud)
+} else {
+    stringResource(R.string.agent_follow_up_watcher_target_local)
+}
 
 @Composable
-private fun watcherLastCheckedLabel(lastCheckedAt: Long, nowMillis: Long): String =
-    if (lastCheckedAt > 0L) {
-        stringResource(
-            R.string.agent_follow_up_watcher_last_checked,
-            DateUtils.getRelativeTimeSpanString(
-                lastCheckedAt,
-                nowMillis,
-                DateUtils.MINUTE_IN_MILLIS,
-            ).toString(),
-        )
-    } else {
-        stringResource(R.string.agent_follow_up_watcher_never_checked)
-    }
+private fun watcherLastCheckedLabel(lastCheckedAt: Long, nowMillis: Long): String = if (lastCheckedAt > 0L) {
+    stringResource(
+        R.string.agent_follow_up_watcher_last_checked,
+        DateUtils.getRelativeTimeSpanString(
+            lastCheckedAt,
+            nowMillis,
+            DateUtils.MINUTE_IN_MILLIS,
+        ).toString(),
+    )
+} else {
+    stringResource(R.string.agent_follow_up_watcher_never_checked)
+}
 
 @Composable
 private fun goalStatusLabel(status: String): String = when (status) {

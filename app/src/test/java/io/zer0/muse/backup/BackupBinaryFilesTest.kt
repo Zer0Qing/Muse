@@ -97,6 +97,14 @@ class BackupBinaryFilesTest {
         File(context.filesDir, "restore-staging").deleteRecursively()
         File(context.filesDir, "note_attachments").deleteRecursively()
         File(context.filesDir, "avatar").deleteRecursively()
+        File(context.filesDir, "avatars").deleteRecursively()
+        File(context.filesDir, "muse_images").deleteRecursively()
+        File(context.filesDir, "covers").deleteRecursively()
+        File(context.filesDir, "voice_messages").deleteRecursively()
+        File(context.filesDir, "workspace").deleteRecursively()
+        File(context.filesDir, "tool_outputs").deleteRecursively()
+        File(context.filesDir, "channel_conversations").deleteRecursively()
+        File(context.filesDir, "chat_background.jpg").delete()
         File(context.filesDir, "card_data.json").delete()
     }
 
@@ -179,7 +187,6 @@ class BackupBinaryFilesTest {
             "card_data.json",
             "note_attachments",
             "note_attachments/",
-            "avatars/x.png",
             "note_attachment/x.png",
             "../note_attachments/x.png",
             "/note_attachments/x.png",
@@ -196,6 +203,49 @@ class BackupBinaryFilesTest {
         }
         assertTrue(BackupBinaryFiles.isAllowedPath("note_attachments/a.txt"))
         assertTrue(BackupBinaryFiles.isAllowedPath("avatar/deep/nested.jpg"))
+        assertTrue(BackupBinaryFiles.isAllowedPath("avatars/assistant_1.jpg"))
+        assertTrue(BackupBinaryFiles.isAllowedPath("chat_background.jpg"))
+        assertTrue(BackupBinaryFiles.isAllowedPath("chat_bg_session_abc_123.jpg"))
+        assertFalse(BackupBinaryFiles.isAllowedPath("chat_background_backup.jpg"))
+        assertFalse(BackupBinaryFiles.isAllowedPath("content://provider/private.jpg"))
+    }
+
+    @Test
+    fun `private avatar and background file references are portable while external URIs are untouched`() {
+        val root = tempRoot()
+        assertEquals(
+            File(root, "avatars/avatar.jpg").absolutePath,
+            BackupBinaryFiles.rebasePrivateFileReference(
+                "/data/user/10/io.zer0.muse/files/avatars/avatar.jpg",
+                root,
+                "io.zer0.muse",
+            ),
+        )
+        assertEquals(
+            "file://${File(root, "chat_background.jpg").absolutePath}",
+            BackupBinaryFiles.rebasePrivateFileReference(
+                "file:///data/data/io.zer0.muse/files/chat_background.jpg",
+                root,
+                "io.zer0.muse",
+            ),
+        )
+        assertEquals(
+            "content://provider/user-picked.jpg",
+            BackupBinaryFiles.rebasePrivateFileReference(
+                "content://provider/user-picked.jpg",
+                root,
+                "io.zer0.muse",
+            ),
+        )
+        assertEquals(
+            "/storage/emulated/0/Pictures/user.jpg",
+            BackupBinaryFiles.rebasePrivateFileReference(
+                "/storage/emulated/0/Pictures/user.jpg",
+                root,
+                "io.zer0.muse",
+            ),
+        )
+        root.deleteRecursively()
     }
 
     @Test
@@ -299,13 +349,15 @@ class BackupBinaryFilesTest {
         val buffer = BackupBinaryFiles.Buffer()
         val small = Base64.getEncoder().encodeToString("ok".toByteArray())
         val big = Base64.getEncoder().encodeToString(ByteArray((BackupBinaryFiles.MAX_FILE_BYTES + 1).toInt()))
+        val exactLimit = Base64.getEncoder().encodeToString(ByteArray(BackupBinaryFiles.MAX_FILE_BYTES.toInt()))
 
         buffer.offer("note_attachments/../evil.txt", small)
         buffer.offer("card_data.json", small)
         buffer.offer("avatar/huge.jpg", big)
         buffer.offer("avatar/ok.jpg", small)
+        buffer.offer("note_attachments/exact-limit.bin", exactLimit)
 
-        assertEquals(setOf("avatar/ok.jpg"), buffer.toMap().keys)
+        assertEquals(setOf("avatar/ok.jpg", "note_attachments/exact-limit.bin"), buffer.toMap().keys)
         assertEquals(3, buffer.stats.skippedFiles)
     }
 
@@ -402,25 +454,62 @@ class BackupBinaryFilesTest {
         // 而不是手工拼行:确保 meta 计数、行类型、恢复分发三处接线一致。
         val attachment = "附件字节".toByteArray(Charsets.UTF_8)
         val avatar = ByteArray(32) { (it * 5).toByte() }
+        val assistantAvatar = ByteArray(48) { (it * 7).toByte() }
+        val chatImage = ByteArray(64) { (it * 11).toByte() }
+        val background = ByteArray(80) { (it * 13).toByte() }
+        val largeAttachment = ByteArray(9 * 1024 * 1024 + 17) { (it * 17).toByte() }
+        val additionalFiles = listOf(
+            "voice_messages/recording.opus",
+            "workspace/a/b/c/d/e/notes.txt",
+            "tool_outputs/report.md",
+            "channel_conversations/conversation.json",
+        )
+        byteArrayOf(0x89.toByte(), 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a)
+            .copyInto(largeAttachment)
         File(context.filesDir, "note_attachments").mkdirs()
         File(context.filesDir, "avatar").mkdirs()
+        File(context.filesDir, "avatars").mkdirs()
+        File(context.filesDir, "muse_images").mkdirs()
+        File(context.filesDir, "covers").mkdirs()
         File(context.filesDir, "note_attachments/a.txt").writeBytes(attachment)
         File(context.filesDir, "avatar/b.bin").writeBytes(avatar)
+        File(context.filesDir, "avatars/assistant_fixture.jpg").writeBytes(assistantAvatar)
+        File(context.filesDir, "muse_images/fixture.bin").writeBytes(chatImage)
+        File(context.filesDir, "chat_background.jpg").writeBytes(background)
+        File(context.filesDir, "covers/large_fixture.png").writeBytes(largeAttachment)
+        File(context.filesDir, "covers/another_large_fixture.png").writeBytes(largeAttachment)
+        additionalFiles.forEach { path ->
+            val file = File(context.filesDir, path)
+            file.parentFile?.mkdirs()
+            file.writeBytes(attachment)
+        }
         File(context.filesDir, "card_data.json").writeText("""{"c1":"{}"}""")
 
         val exported = exportNdJsonLines()
-        assertTrue("导出必须带 binaryFile 行", exported.any { it.contains("\"binaryFile\"") })
+        assertTrue(exported.any { it.contains("\"binaryFileStart\"") })
+        assertTrue(exported.any { it.contains("\"binaryFileChunk\"") })
         assertTrue("导出必须带 card_data.json 的 fileStore 行", exported.any { it.contains("card_data.json") })
 
         // 清掉源文件,模拟换机后的空目录。
         File(context.filesDir, "note_attachments").deleteRecursively()
         File(context.filesDir, "avatar").deleteRecursively()
+        File(context.filesDir, "avatars").deleteRecursively()
+        File(context.filesDir, "muse_images").deleteRecursively()
+        File(context.filesDir, "covers").deleteRecursively()
+        File(context.filesDir, "chat_background.jpg").delete()
         File(context.filesDir, "card_data.json").delete()
+        additionalFiles.forEach { File(context.filesDir, it).delete() }
 
         invokeNdJsonRecovery(service, exported.asSequence())
 
         assertArrayEquals(attachment, File(context.filesDir, "note_attachments/a.txt").readBytes())
         assertArrayEquals(avatar, File(context.filesDir, "avatar/b.bin").readBytes())
+        assertArrayEquals(assistantAvatar, File(context.filesDir, "avatars/assistant_fixture.jpg").readBytes())
+        assertArrayEquals(chatImage, File(context.filesDir, "muse_images/fixture.bin").readBytes())
+        assertArrayEquals(background, File(context.filesDir, "chat_background.jpg").readBytes())
+        assertArrayEquals(largeAttachment, File(context.filesDir, "covers/large_fixture.png").readBytes())
+        assertArrayEquals(largeAttachment, File(context.filesDir, "covers/another_large_fixture.png").readBytes())
+        additionalFiles.forEach { assertArrayEquals(attachment, File(context.filesDir, it).readBytes()) }
         assertEquals("""{"c1":"{}"}""", File(context.filesDir, "card_data.json").readText())
     }
 

@@ -47,7 +47,7 @@ CHECK_EXTENSIONS = {
 }
 
 # 忽略的目录
-IGNORE_DIRS = {"build", ".gradle", ".idea", ".git", "node_modules", "__pycache__"}
+IGNORE_DIRS = {"build", ".gradle", ".idea", ".git", "node_modules", "__pycache__", ".cache", "out"}
 
 # 禁止入库的文件类型(仓库卫生 R-DOC-01)
 FORBIDDEN_EXTENSIONS = {".db", ".db-wal", ".db-shm"}
@@ -108,6 +108,11 @@ def check_file_size(file_path: Path) -> list[str]:
     return []
 
 
+def is_ignored_path(file_path: Path) -> bool:
+    """忽略缓存目录与运行时临时工作目录，避免检查生成内容。"""
+    return any(part in IGNORE_DIRS or part.startswith(".work-") for part in file_path.parts)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Muse 仓库卫生检查")
     parser.add_argument("--path", default=".", help="检查路径(默认: 项目根目录)")
@@ -123,9 +128,9 @@ def main():
     file_count = 0
 
     for file_path in scan_path.rglob("*"):
-        if not file_path.is_file():
+        if is_ignored_path(file_path):
             continue
-        if any(part in IGNORE_DIRS for part in file_path.parts):
+        if not file_path.is_file():
             continue
         if file_path.suffix not in CHECK_EXTENSIONS:
             continue

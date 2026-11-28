@@ -24,6 +24,7 @@ import androidx.core.content.ContextCompat
 import io.zer0.common.Logger
 import io.zer0.muse.R
 import io.zer0.muse.data.agentbot.AgentTeachRecorder
+import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -64,7 +65,7 @@ class TeachOverlayController(
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state.asStateFlow()
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate + GlobalCoroutineExceptionHandler)
     private val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
     private val notificationManager = NotificationManagerCompat.from(context)
 
@@ -190,8 +191,7 @@ class TeachOverlayController(
     }
 
     private fun restoreSnapshot(snapshot: AgentTeachRecorder.State) {
-        recorder.start(snapshot.botId, snapshot.titleDraft)
-        snapshot.steps.forEach { step -> recorder.recordStep(step.action, step.targetApp) }
+        recorder.resume(snapshot)
     }
 
     private fun preferredPresentation(): Presentation = when {
@@ -340,15 +340,14 @@ class TeachOverlayController(
         pauseButton = null
     }
 
-    private fun controlButton(text: String, contentDescription: String, onClick: () -> Unit): TextView =
-        TextView(context).apply {
-            this.text = text
-            this.contentDescription = contentDescription
-            gravity = Gravity.CENTER
-            setTextColor(android.graphics.Color.WHITE)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-            setOnClickListener { onClick() }
-        }
+    private fun controlButton(text: String, contentDescription: String, onClick: () -> Unit): TextView = TextView(context).apply {
+        this.text = text
+        this.contentDescription = contentDescription
+        gravity = Gravity.CENTER
+        setTextColor(android.graphics.Color.WHITE)
+        setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+        setOnClickListener { onClick() }
+    }
 
     private fun pauseLabel(paused: Boolean): String = context.getString(
         if (paused) R.string.speech_resume_cd else R.string.speech_pause_cd,
@@ -403,8 +402,7 @@ class TeachOverlayController(
         }
     }
 
-    private fun dp(value: Int): Int =
-        (value * context.resources.displayMetrics.density).toInt()
+    private fun dp(value: Int): Int = (value * context.resources.displayMetrics.density).toInt()
 
     companion object {
         private const val TAG = "TeachOverlayController"

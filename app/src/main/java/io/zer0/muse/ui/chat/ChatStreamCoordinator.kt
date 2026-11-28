@@ -244,6 +244,7 @@ class ChatStreamCoordinator(
         // persistCurrentAssistant(msg=...) 落盘兜底,前台刷新从 DB 加载,这里降级为 debug。
         if (index == -1) {
             val now = System.currentTimeMillis()
+            if (missingAssistantLogAt.size > 128) missingAssistantLogAt.clear()
             val previous = missingAssistantLogAt.put(id, now)
             if (previous == null || now - previous >= 2_000L) {
                 val displayedSession =
@@ -283,16 +284,20 @@ class ChatStreamCoordinator(
 
                 (!reasoning.isNullOrBlank() && streamFlushCache.hasTagMarker(reasoning))
         if (isStreaming && !hasSpecialTags) {
-            val updated =
-                msg.copy(
-                    content = content,
-                    reasoning = reasoning ?: msg.reasoning,
-                    imageBase64List = imageBase64List ?: msg.imageBase64List,
-                    imageUrls = imageUrls ?: msg.imageUrls,
-                    videoFileUri = videoFileUri ?: msg.videoFileUri,
-                )
-            val newMessages = messages.toMutableList().apply { set(index, updated) }
-            accessor.updateMessages { newMessages }
+            accessor.updateMessages { currentList ->
+                val targetIndex = currentList.indexOfFirst { it.id == id }
+                if (targetIndex == -1) return@updateMessages currentList
+                val currentMsg = currentList[targetIndex]
+                val updated =
+                    currentMsg.copy(
+                        content = content,
+                        reasoning = reasoning ?: currentMsg.reasoning,
+                        imageBase64List = imageBase64List ?: currentMsg.imageBase64List,
+                        imageUrls = imageUrls ?: currentMsg.imageUrls,
+                        videoFileUri = videoFileUri ?: currentMsg.videoFileUri,
+                    )
+                currentList.toMutableList().apply { set(targetIndex, updated) }
+            }
             return
         }
 
@@ -367,19 +372,23 @@ class ChatStreamCoordinator(
                 !thinkContent.isNullOrBlank() -> InternalMarkupSanitizer.stripContainerTags(thinkContent)
                 else -> msg.reasoning?.let(InternalMarkupSanitizer::stripContainerTags)
             }
-        val updated =
-            msg.copy(
-                content = cleanContent,
-                reasoning = combinedReasoning,
-                imageBase64List = imageBase64List ?: msg.imageBase64List,
-                imageUrls = imageUrls ?: msg.imageUrls,
-                videoFileUri = videoFileUri ?: msg.videoFileUri,
-                mood = effectiveMood ?: msg.mood,
-                moodSkin = moodSkinContent ?: msg.moodSkin,
-                reflection = reflectionContent ?: msg.reflection,
-            )
-        val newMessages = messages.toMutableList().apply { set(index, updated) }
-        accessor.updateMessages { newMessages }
+        accessor.updateMessages { currentList ->
+            val targetIndex = currentList.indexOfFirst { it.id == id }
+            if (targetIndex == -1) return@updateMessages currentList
+            val currentMsg = currentList[targetIndex]
+            val updated =
+                currentMsg.copy(
+                    content = cleanContent,
+                    reasoning = combinedReasoning,
+                    imageBase64List = imageBase64List ?: currentMsg.imageBase64List,
+                    imageUrls = imageUrls ?: currentMsg.imageUrls,
+                    videoFileUri = videoFileUri ?: currentMsg.videoFileUri,
+                    mood = effectiveMood ?: currentMsg.mood,
+                    moodSkin = moodSkinContent ?: currentMsg.moodSkin,
+                    reflection = reflectionContent ?: currentMsg.reflection,
+                )
+            currentList.toMutableList().apply { set(targetIndex, updated) }
+        }
     }
 
     /**
@@ -776,33 +785,43 @@ class ChatStreamCoordinator(
             val boundaryInPage =
                 persisted.lastCoveredMessageId.isBlank() ||
                     persisted.lastCoveredMessageId in knownIds
-            // The chat UI normally holds only a recent page. Validate a missing boundary
-            // against the full persisted session before deciding that the checkpoint is stale;
-            // otherwise pagination alone would delete a valid compression checkpoint.
-            val fullHistoryForValidation =
+            val cachedSummary = io.zer0.muse.transformer.CompressionSummaryStore.entry(sessionId)
+            val validationIds: Set<String> =
                 if (boundaryInPage) {
-                    null
+                    knownIds
                 } else {
-                    resultOf { sessionRepository.getAllMessagesForWarmup(sessionId) }
-                        .onError { msg, error -> Logger.w(tag, "checkpoint full-history validation failed: $msg", error) }
-                        .getOrNull()
+                    val exists =
+                        resultOf { sessionRepository.messageExistsInSession(sessionId, persisted.lastCoveredMessageId) }
+                            .onError { msg, error -> Logger.w(tag, "checkpoint boundary exists check failed: $msg", error) }
+                            .getOrNull()
+                    when {
+                        exists == false -> emptySet()
+                        exists == true && cachedSummary != null -> setOf(persisted.lastCoveredMessageId)
+                        else -> {
+                            val fullHistoryForValidation =
+                                resultOf { sessionRepository.getAllMessagesForWarmup(sessionId) }
+                                    .onError { msg, error -> Logger.w(tag, "checkpoint full-history validation failed: $msg", error) }
+                                    .getOrNull()
+                            if (fullHistoryForValidation != null) {
+                                val coveredIds =
+                                    io.zer0.muse.transformer.ContextCheckpointMerge.coveredMessageIds(
+                                        fullHistoryForValidation,
+                                        persisted,
+                                    )
+                                if (coveredIds.isNotEmpty() && persisted.summary.isNotBlank()) {
+                                    io.zer0.muse.transformer.CompressionSummaryStore.remember(
+                                        sessionId = sessionId,
+                                        coveredIds = coveredIds,
+                                        summary = persisted.summary,
+                                    )
+                                }
+                                fullHistoryForValidation.mapTo(HashSet()) { it.id.toString() }
+                            } else {
+                                knownIds
+                            }
+                        }
+                    }
                 }
-            val validationIds =
-                fullHistoryForValidation?.mapTo(HashSet()) { it.id.toString() } ?: knownIds
-            if (!boundaryInPage && fullHistoryForValidation != null) {
-                val coveredIds =
-                    io.zer0.muse.transformer.ContextCheckpointMerge.coveredMessageIds(
-                        fullHistoryForValidation,
-                        persisted,
-                    )
-                if (coveredIds.isNotEmpty() && persisted.summary.isNotBlank()) {
-                    io.zer0.muse.transformer.CompressionSummaryStore.remember(
-                        sessionId = sessionId,
-                        coveredIds = coveredIds,
-                        summary = persisted.summary,
-                    )
-                }
-            }
             val checkpoint =
                 if (!boundaryInPage && validationIds.isEmpty()) {
                     persisted
@@ -1128,6 +1147,7 @@ class ChatStreamCoordinator(
                                     effectiveModel,
                                     accessor.snapshot.contextMaxTokens,
                                 ),
+                                systemTokens = ContextTokenUsage.estimateMessages(prefixMessages),
                                 toolTokens = toolDefinitionTokens(),
                                 maxOutputTokens = effectiveModel?.maxOutputTokens ?: 0,
                             ),

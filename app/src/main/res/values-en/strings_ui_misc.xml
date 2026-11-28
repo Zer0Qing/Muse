@@ -236,6 +236,7 @@ Tap refresh to fetch the list upstream</string>
     <string name="agent_bot_error_binding_unreadable">Could not read the saved conversation for this assistant, so nothing was sent. Try again later</string>
     <string name="agent_bot_error_no_session">No conversation is available yet</string>
     <string name="agent_bot_error_save_failed">The message didn\'t save. Try again</string>
+    <string name="agent_bot_error_provider_failed">The model service returned an error, so this turn has no reply</string>
     <string name="agent_bot_error_already_decided">You already decided this step</string>
     <string name="agent_bot_error_approval_expired">This step timed out and needs to be started again</string>
     <string name="agent_bot_error_approval_stale">The details changed, so the earlier approval no longer applies</string>

@@ -95,10 +95,10 @@ object AutonomousAccessibilityTaskScope {
      * A user request counts as task-level confirmation only when it asks for
      * device operation and names the same foreground package.
      */
-    fun confirms(latestUserMessage: String?, packageName: String): Boolean {
+    fun confirms(latestUserMessage: String?, packageName: String, resolvedLabel: String? = null): Boolean {
         if (latestUserMessage.isNullOrBlank()) return false
         if (packageName.isBlank()) return false
-        val appHint = packageLabel(packageName)
+        val appHint = resolvedLabel?.takeIf { it.isNotBlank() } ?: packageLabel(packageName)
         val namesPackage =
             latestUserMessage.contains(packageName, ignoreCase = true) ||
                 (appHint != null && latestUserMessage.contains(appHint, ignoreCase = true))
@@ -121,6 +121,18 @@ object AutonomousAccessibilityTaskScope {
 
     private fun packageLabel(packageName: String): String? = when (packageName) {
         "com.xingin.xhs" -> "小红书"
+        "com.tencent.mm" -> "微信"
+        "com.eg.android.AlipayGphone" -> "支付宝"
+        "com.taobao.taobao" -> "淘宝"
+        "com.sankuai.meituan" -> "美团"
+        "com.ss.android.ugc.aweme" -> "抖音"
+        "tv.danmaku.bili" -> "哔哩哔哩"
+        "com.jingdong.app.mall" -> "京东"
+        "com.xunmeng.pinduoduo" -> "拼多多"
+        "com.zhihu.android" -> "知乎"
+        "com.sina.weibo" -> "微博"
+        "com.autonavi.minimap" -> "高德地图"
+        "com.tencent.mobileqq" -> "QQ"
         else -> null
     }
 }

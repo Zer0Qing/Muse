@@ -10,6 +10,7 @@ import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import io.zer0.ai.core.RagCitation
 import io.zer0.muse.R
+import io.zer0.muse.ui.chat.RagCitationChips
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -17,7 +18,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
-import io.zer0.muse.ui.chat.RagCitationChips
 
 /**
  * Phase 2: RAG 引用 chip 的 key 去重、无障碍描述与展开动作测试。

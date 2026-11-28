@@ -60,12 +60,12 @@ internal fun shouldCompileToday(turnCount: Int): Boolean = turnCount > 0 && turn
  *  - 无 cache snapshot reflection(muse 不做 prompt cache 观测)
  *  - 无 editable facts 模式(muse 永远走 legacy)
  *  - 无 agent-id / agent-dir 可观测产物
- *  - 用 Kotlin 协程替代 setInterval,Job 跟踪替代 _activeJobs Set
+ *  - 用 Kotlin 协程替代 setInterval,Job 跟踪替代 activeJobs Set
  *
  * 线程安全:
- *  - [_summaryInProgress] / [_activeJobs] 用 [Mutex] 保护
- *  - [_health] 用 synchronized 保护(纯内存读写,极短临界区)
- *  - daily pipeline 用 [_dailyRunning] (AtomicBoolean.compareAndSet) 防重入
+ *  - [summaryInProgress] / [activeJobs] 用 [Mutex] 保护
+ *  - [health] 用 synchronized 保护(纯内存读写,极短临界区)
+ *  - daily pipeline 用 [dailyRunning] (AtomicBoolean.compareAndSet) 防重入
  */
 @Suppress("LongParameterList")
 class MemoryTicker(
@@ -198,7 +198,7 @@ class MemoryTicker(
     // ──────────────────────────────────────────────
 
     /** session → 累计轮数(自上次 rollingSummary 后)。v1.78: 改 ConcurrentHashMap 防并发修改异常。 */
-    private val _turnCounts = ConcurrentHashMap<String, Int>()
+    private val turnCounts = ConcurrentHashMap<String, Int>()
 
     /**
      * 每个 session 最近一次对话通知对应的助手/空间快照。
@@ -206,11 +206,11 @@ class MemoryTicker(
      * 会话切换时 [notifySessionEnd] 可能在运行时上下文已经切到新空间后才真正执行；
      * 这里保存发送完成时的目标，避免旧 session 的滚动摘要串入新空间。
      */
-    private val _sessionNotificationTargets = ConcurrentHashMap<String, MemoryCompileTarget>()
+    private val sessionNotificationTargets = ConcurrentHashMap<String, MemoryCompileTarget>()
 
     /** 正在跑 rollingSummary 的 session id(防止重入)。 */
-    private val _summaryInProgress = mutableSetOf<String>()
-    private val _summaryInProgressLock = Mutex()
+    private val summaryInProgress = mutableSetOf<String>()
+    private val summaryInProgressLock = Mutex()
 
     /**
      * v1.0.51: compileToday 互斥锁 — serialize 对 TODAY section 的写入。
@@ -219,20 +219,20 @@ class MemoryTicker(
      * 两者都调用 compiler.compileToday 写同一行 Room 记录(TODAY section),
      * 不加锁会导致 fingerprint 竞态写覆盖 + LLM 双调用浪费。
      */
-    private val _compileTodayLock = Mutex()
+    private val compileTodayLock = Mutex()
 
     /**
      * 审查修复 (B-6): FACTS 段编译互斥锁 — 序列化对 FACTS section 的写入。
      *
      * daily pipeline 的 step4 与 forceCompileNow 两条链都会调用 compiler.compileFacts
      * 直写 FACTS(读 prevFacts + LLM 合并 + 写),无互斥时为 last-writer-wins,并发时
-     * 后写者覆盖前者产物。这里用独立 lock 隔离,与 TODAY 的 [_compileTodayLock] 正交。
+     * 后写者覆盖前者产物。这里用独立 lock 隔离,与 TODAY 的 [compileTodayLock] 正交。
      *
      * 锁顺序约束(防死锁): TODAY 锁内不拿本锁,本锁内不拿 TODAY 锁 —
      * doDaily 的 step0/1(TODAY) 与 step4(FACTS) 是顺序执行的两段临界区,
      * forceCompileNow 亦先 FACTS 后 TODAY,二者从不同时嵌套,无死锁风险。
      */
-    private val _compileFactsLock = Mutex()
+    private val compileFactsLock = Mutex()
 
     /**
      * v1.0.50: 全局并发上限 — 限制同时进行的 rollingSummary 数量。
@@ -243,35 +243,35 @@ class MemoryTicker(
      *
      * 上限 3:与 DeepMemoryProcessor.MAX_CONCURRENT 对齐,避免记忆后台任务挤占用户对话的 API 配额。
      */
-    private val _rollingSummaryConcurrency = Semaphore(3)
+    private val rollingSummaryConcurrency = Semaphore(3)
 
     /** 后台 Job 集合(stop 时统一 await)。 */
-    private val _activeJobs = mutableSetOf<Job>()
-    private val _activeJobsLock = Any()
+    private val activeJobs = mutableSetOf<Job>()
+    private val activeJobsLock = Any()
 
     // v1.78 (H7): 改 AtomicBoolean,用 compareAndSet 消除 check-then-act 竞态
-    private val _dailyRunning = AtomicBoolean(false)
+    private val dailyRunning = AtomicBoolean(false)
 
-    @Volatile private var _lastDailyJobDate: String? = null
+    @Volatile private var lastDailyJobDate: String? = null
 
     /** v2.6.2（记忆审计）: 按 target 分别记录“今日 daily 已完成”—— 否则切 Space/Assistant 后
      * 新 target 的 daily 当天永不编译。key = "scope|space"。 */
-    private val _lastDailyJobDateByTarget = java.util.concurrent.ConcurrentHashMap<String, String>()
+    private val lastDailyJobDateByTarget = java.util.concurrent.ConcurrentHashMap<String, String>()
 
-    @Volatile private var _stopped = false
-    private var _timerJob: Job? = null
+    @Volatile private var stopped = false
+    private var timerJob: Job? = null
 
     /**
      * 计时器生命周期状态。
      *
      * 必须把 [TimerPhase.STOPPING] 与 [TimerPhase.STOPPED] 分开:stop() 要等正在跑的后台任务
      * 收尾(最长 30s),这段时间里计时 job 已经取消、但「停止」还没结束。旧实现只有一个
-     * `_timerJob != null` 判断,把这段窗口误当成「仍在运行」,于是 start() 直接 return,
+     * `timerJob != null` 判断,把这段窗口误当成「仍在运行」,于是 start() 直接 return,
      * 随后 stop() 把 job 置空 —— 记忆日检就此永久停摆,日志里一个字都没有。
      */
     private enum class TimerPhase { STOPPED, RUNNING, STOPPING }
 
-    /** 保护 [timerPhase] / [_timerJob] / [startQueuedDuringStop] 的转换。 */
+    /** 保护 [timerPhase] / [timerJob] / [startQueuedDuringStop] 的转换。 */
     private val timerLock = Any()
     private var timerPhase = TimerPhase.STOPPED
 
@@ -290,13 +290,13 @@ class MemoryTicker(
         val failCount: Int = 0,
     )
 
-    private val _health = STEP_KEYS.associateWith { StepHealth() }.toMutableMap()
-    private val _healthLock = Any()
+    private val health = STEP_KEYS.associateWith { StepHealth() }.toMutableMap()
+    private val healthLock = Any()
 
-    // v1.0.51: healthFlow 初始化为当前 _health 快照,而非空 map,
+    // v1.0.51: healthFlow 初始化为当前 health 快照,而非空 map,
     // 订阅方首次读取即可看到全部步骤的初始健康状态(而非等首次 publishHealth)
-    private val _healthFlow = MutableStateFlow<Map<String, StepHealth>>(_health.toMap())
-    val healthFlow: StateFlow<Map<String, StepHealth>> = _healthFlow.asStateFlow()
+    private val healthFlow = MutableStateFlow<Map<String, StepHealth>>(health.toMap())
+    val healthFlow: StateFlow<Map<String, StepHealth>> = healthFlow.asStateFlow()
 
     /**
      * v1.0.51: 存量记忆迁移进度 — 升级后首次启动补跑历史 session 摘要时实时报告。
@@ -313,8 +313,8 @@ class MemoryTicker(
         val done: Boolean,
     )
 
-    private val _backfillProgressFlow = MutableStateFlow<BackfillProgress?>(null)
-    val backfillProgressFlow: StateFlow<BackfillProgress?> = _backfillProgressFlow.asStateFlow()
+    private val backfillProgressFlow = MutableStateFlow<BackfillProgress?>(null)
+    val backfillProgressFlow: StateFlow<BackfillProgress?> = backfillProgressFlow.asStateFlow()
 
     /**
      * v1.0.51: per-step 错误去重签名 — 替代原全局单一 _lastErrorSig。
@@ -323,11 +323,11 @@ class MemoryTicker(
      * 导致 step A 下次失败不被去重(刷屏),且 step B 的恢复日志归属错误。
      * 改为 per-step map 后,各步骤的恢复/去重互不干扰。
      */
-    private val _errorSigs = ConcurrentHashMap<String, String>()
+    private val errorSigs = ConcurrentHashMap<String, String>()
 
     // ── D3-P1: 管线观测(每步耗时/触发/失败分类 → pipeline_log) ──────────────
     /** 单步运行起点(stepKey → 起点时间/触发来源)。 */
-    private val _stepRunMeta = ConcurrentHashMap<String, StepRunMeta>()
+    private val stepRunMeta = ConcurrentHashMap<String, StepRunMeta>()
 
     /** 步骤运行元数据(D3-P1)。 */
     private data class StepRunMeta(val startMs: Long, val trigger: String, val scope: String?)
@@ -347,12 +347,12 @@ class MemoryTicker(
      * 未标记的步骤在记录时会得 0 耗时 + "unknown" 来源,不影响正确性。
      */
     private fun markStepStart(stepKey: String, trigger: String, scope: String? = null) {
-        _stepRunMeta[stepKey] = StepRunMeta(System.currentTimeMillis(), trigger, scope)
+        stepRunMeta[stepKey] = StepRunMeta(System.currentTimeMillis(), trigger, scope)
     }
 
     /** D3-P1: 步骤结果上报观测层(计数 + pipeline_log);无论成败都消费本次 start 元数据。 */
     private fun recordStepOutcome(stepKey: String, error: Throwable?) {
-        val meta = _stepRunMeta.remove(stepKey)
+        val meta = stepRunMeta.remove(stepKey)
         val duration = meta?.let { System.currentTimeMillis() - it.startMs } ?: 0L
         val trigger = meta?.trigger ?: "unknown"
         val scope = meta?.scope
@@ -377,9 +377,9 @@ class MemoryTicker(
 
     private fun markSuccess(stepKey: String) {
         recordStepOutcome(stepKey, null)
-        synchronized(_healthLock) {
-            val h = _health[stepKey] ?: return
-            _health[stepKey] = h.copy(
+        synchronized(healthLock) {
+            val h = health[stepKey] ?: return
+            health[stepKey] = h.copy(
                 lastSuccessAt = Instant.now().toString(),
                 lastErrorAt = null,
                 lastErrorMsg = null,
@@ -391,9 +391,9 @@ class MemoryTicker(
 
     private fun markFailure(stepKey: String, err: Throwable) {
         recordStepOutcome(stepKey, err)
-        synchronized(_healthLock) {
-            val h = _health[stepKey] ?: return
-            _health[stepKey] = h.copy(
+        synchronized(healthLock) {
+            val h = health[stepKey] ?: return
+            health[stepKey] = h.copy(
                 lastErrorAt = Instant.now().toString(),
                 lastErrorMsg = err.message ?: err.toString(),
                 failCount = h.failCount + 1,
@@ -403,29 +403,29 @@ class MemoryTicker(
     }
 
     private fun publishHealth() {
-        _healthFlow.value = _health.toMap()
+        healthFlow.value = health.toMap()
     }
 
     private fun logStepError(label: String, err: Throwable) {
         val msg = err.message ?: err.toString()
         val sig = "$label|$msg"
         // v1.0.51: per-step 去重 — 同一 step 的相同根因只打一次 warn
-        if (_errorSigs[label] == sig) {
+        if (errorSigs[label] == sig) {
             Logger.d(TAG, "$label (dup suppressed): $msg")
             return
         }
-        _errorSigs[label] = sig
+        errorSigs[label] = sig
         Logger.w(TAG, "$label 失败: $msg", err)
     }
 
     private fun markStepRecovered(label: String) {
-        val prev = _errorSigs.remove(label) ?: return
+        val prev = errorSigs.remove(label) ?: return
         Logger.i(TAG, "$label 恢复正常(之前: $prev)")
     }
 
     /** 返回每个步骤的健康快照(深拷贝,调用方安全持有)。 */
-    fun getHealthStatus(): Map<String, StepHealth> = synchronized(_healthLock) {
-        _health.mapValues { it.value.copy() }
+    fun getHealthStatus(): Map<String, StepHealth> = synchronized(healthLock) {
+        health.mapValues { it.value.copy() }
     }
 
     // ──────────────────────────────────────────────
@@ -433,8 +433,8 @@ class MemoryTicker(
     // ──────────────────────────────────────────────
 
     private fun trackJob(job: Job) {
-        synchronized(_activeJobsLock) { _activeJobs.add(job) }
-        job.invokeOnCompletion { synchronized(_activeJobsLock) { _activeJobs.remove(job) } }
+        synchronized(activeJobsLock) { activeJobs.add(job) }
+        job.invokeOnCompletion { synchronized(activeJobsLock) { activeJobs.remove(job) } }
     }
 
     /** 在 [scope] 里 launch 一个被跟踪的 fire-and-forget 任务。 */
@@ -575,14 +575,14 @@ class MemoryTicker(
             return false
         }
         // 重入保护: 同一 session 不并发跑两次 rolling
-        _summaryInProgressLock.withLock {
-            if (sessionId in _summaryInProgress) return false
-            _summaryInProgress.add(sessionId)
+        summaryInProgressLock.withLock {
+            if (sessionId in summaryInProgress) return false
+            summaryInProgress.add(sessionId)
         }
         try {
             markStepStart("rollingSummary", trigger)
             // v1.0.50: 全局并发限制 — 即使快速切多个会话,同时只有 3 个 rollingSummary 在跑
-            val result = _rollingSummaryConcurrency.withPermit {
+            val result = rollingSummaryConcurrency.withPermit {
                 summaryManager.rollingSummary(
                     sessionId,
                     messages,
@@ -597,16 +597,16 @@ class MemoryTicker(
                 )
             }
             // v1.0.50: 根据 changed 区分日志,避免"LLM 返回空 → changed=false → 误打 updated"掩盖故障
-            if (result.changed) {
+            return if (result.changed) {
                 Logger.d(TAG, "rolling summary updated: ${sessionId.take(8)}… (trigger=$trigger, ${result.summary.length} chars)")
                 markSuccess("rollingSummary")
                 markStepRecovered("滚动摘要")
-                return true
+                true
             } else {
                 // changed=false 可能是: 空对话 / LLM 返回空 / 增量无新内容
                 Logger.d(TAG, "rolling summary unchanged: ${sessionId.take(8)}… (trigger=$trigger, summary=${result.summary.length} chars)")
                 // 不标记失败 — 空对话/无增量是正常情况;真正的 LLM 失败会走 catch 分支
-                return false
+                false
             }
         } catch (e: CancellationException) {
             throw e
@@ -615,7 +615,7 @@ class MemoryTicker(
             logStepError("滚动摘要 ($sessionId)", e)
             return false
         } finally {
-            _summaryInProgressLock.withLock { _summaryInProgress.remove(sessionId) }
+            summaryInProgressLock.withLock { summaryInProgress.remove(sessionId) }
         }
     }
 
@@ -637,7 +637,7 @@ class MemoryTicker(
 
     private fun captureNotificationTarget(sessionId: String, assistantId: String, spaceId: String?) {
         if (assistantId.isBlank() && spaceId.isNullOrBlank()) return
-        _sessionNotificationTargets[sessionId] =
+        sessionNotificationTargets[sessionId] =
             notificationCompileTarget(
                 current = MemoryCompileTarget(),
                 assistantId = assistantId,
@@ -673,7 +673,7 @@ class MemoryTicker(
             markStepStart("compileToday", "turn")
             val target = targetOverride ?: currentCompileTarget()
             // v1.0.51: serialize compileToday 调用,避免 notifyTurn/notifySessionEnd 并发写 TODAY section 竞态
-            _compileTodayLock.withLock {
+            compileTodayLock.withLock {
                 // A-19: 只编译主助手摘要,子助手会话摘要不得串台进入"今天"段
                 compiler.compileToday(summaryManager, model, locale, timeZone, target = target)
             }
@@ -704,7 +704,7 @@ class MemoryTicker(
             return
         }
         // v1.78 (H7): 用 compareAndSet 原子化 check-then-act,消除竞态
-        if (!_dailyRunning.compareAndSet(false, true)) return
+        if (!dailyRunning.compareAndSet(false, true)) return
         try {
             // 本轮 daily 的恢复栅栏:模型调用可能让一次恢复完整发生在步骤里面,
             // 结束时 restoring 已复位,但产物和 checkpoint 都基于旧库。
@@ -721,13 +721,13 @@ class MemoryTicker(
             Logger.i(TAG, "每日任务开始 (${context.logicalDate})")
             var hasFailed = false
 
-            // 审查修复 (B-5): Step 0 + Step 1 整段纳入 _compileTodayLock。
+            // 审查修复 (B-5): Step 0 + Step 1 整段纳入 compileTodayLock。
             // doCompileTodayAndAssemble(由 notifyTurn 并发触发)与本节都会写 TODAY section。
             // 若不在同一把锁内,跨日首 turn 时 doCompileTodayAndAssemble 可能在 Step 0 读取
             // 昨日草稿后被并发覆盖为新一天内容,导致 yesterdayDraft 读到被改写的草稿、昨日
             // daily 丢失。整段持锁(读草稿 + compileDaily + compileToday 刷新)保证读而再进行
             // 写 TODAY 原子。
-            _compileTodayLock.withLock {
+            compileTodayLock.withLock {
                 // Step 0: compileDaily——把已经翻篇的昨天蒸馏成 memory/daily/{date}.md。
                 // 必须先于 compileToday 执行:compileDaily 读取的"昨天最终版今日草稿"是这一刻仍
                 // 躺在 TODAY section 里的内容;compileToday 一旦先跑,日期切换会把 today 重置为
@@ -818,12 +818,12 @@ class MemoryTicker(
             }
 
             // Step 4: compileFacts(独立于 step 0-3)
-            // 审查修复 (B-6): FACTS 段编译纳入 _compileFactsLock,与 forceCompileNow 里的
+            // 审查修复 (B-6): FACTS 段编译纳入 compileFactsLock,与 forceCompileNow 里的
             // compileFacts 互斥 — 两条链都直写 FACTS(读 prevFacts + LLM 合并 + 写),不加锁
             // 会 last-writer-wins 覆盖彼此产物。对账亦写 FACTS 段,故随同一临界区持锁。
             if (io.zer0.common.ProcessWriteGate.restoring) return
             if (canRunStep("compileFacts", completed)) {
-                _compileFactsLock.withLock {
+                compileFactsLock.withLock {
                     try {
                         markStepStart("compileFacts", "daily")
                         // A-19: 只编译主助手摘要
@@ -931,8 +931,8 @@ class MemoryTicker(
                 val done = completed.keys.joinToString(", ")
                 Logger.w(TAG, "每日任务部分失败,已完成: [$done],下次 tick 重试未完成步骤")
             } else if (writeDailyState(context, completed, Instant.now().toString(), fence)) {
-                _lastDailyJobDate = context.logicalDate
-                _lastDailyJobDateByTarget[context.stateKey] = context.logicalDate
+                lastDailyJobDate = context.logicalDate
+                lastDailyJobDateByTarget[context.stateKey] = context.logicalDate
                 Logger.i(TAG, "每日任务完成")
             } else {
                 // 写不进完成标记就不能宣称今天跑完了:否则恢复结束后当天不再重试。
@@ -940,16 +940,16 @@ class MemoryTicker(
             }
         } finally {
             // v1.78 (H7): AtomicBoolean 用 set(false) 释放
-            _dailyRunning.set(false)
+            dailyRunning.set(false)
         }
     }
 
     private fun checkDailyJob(model: Model?, locale: String, timeZone: String) {
-        if (_stopped) return
+        if (stopped) return
         if (!isMemoryEnabled()) return
         launchTracked {
             val context = currentContext()
-            if (_lastDailyJobDateByTarget[context.stateKey] != context.logicalDate) doDaily(model, locale, timeZone)
+            if (lastDailyJobDateByTarget[context.stateKey] != context.logicalDate) doDaily(model, locale, timeZone)
         }
     }
 
@@ -977,19 +977,19 @@ class MemoryTicker(
         assistantId: String = "",
         spaceId: String? = null,
     ) {
-        if (_stopped) return
+        if (stopped) return
         if (!isMemoryEnabled()) return
         captureNotificationTarget(sessionId, assistantId, spaceId)
         // v1.78: 原子 read-modify-write,防止并发切会话时丢计数
         // L1: ConcurrentHashMap.merge 对 absent key 会写入 defaultValue(1),且累加永不返回 null,
         // 故运行期永不返回 null;?: 1 为死代码,已移除。merge 签名返回 V?,用 !! 断言非空以匹配实际语义。
         // 注意:用 lambda 替代 Int::plus,避免 Kotlin 严格可空检查下 Int::plus 被解析为 Int? 接收者
-        val count = _turnCounts.merge(sessionId, 1) { a, b -> a + b }!!
+        val count = turnCounts.merge(sessionId, 1) { a, b -> a + b }!!
 
         if (shouldRollSummary(count)) {
             launchTracked {
                 val target = resolveSessionNotificationTarget(
-                    captured = _sessionNotificationTargets[sessionId],
+                    captured = sessionNotificationTargets[sessionId],
                     assistantId = assistantId,
                     spaceId = spaceId,
                 )
@@ -1029,11 +1029,11 @@ class MemoryTicker(
         assistantId: String = "",
         spaceId: String? = null,
     ): Job {
-        if (_stopped) return scope.launch { /* no-op */ }
-        val capturedTarget = _sessionNotificationTargets.remove(sessionId)
-        val count = _turnCounts.remove(sessionId) ?: 0
+        if (stopped) return scope.launch { /* no-op */ }
+        val capturedTarget = sessionNotificationTargets.remove(sessionId)
+        val count = turnCounts.remove(sessionId) ?: 0
         if (!isMemoryEnabled()) return scope.launch { /* no-op */ }
-        // 计数为 0 原本直接 return —— 但 `_turnCounts` 只是内存表，
+        // 计数为 0 原本直接 return —— 但 `turnCounts` 只是内存表，
         // 进程重启后归零，于是「重启 → 进会话 → 退出」这条路径会静默跳过收尾摘要，
         // 摘要停在旧版本，下一次靠阈值触发时把整段对话重新摘要一遍
         // （用户观感就是「记忆被反复重新处理」）。
@@ -1072,11 +1072,11 @@ class MemoryTicker(
         assistantId: String = "",
         spaceId: String? = null,
     ): Job {
-        if (_stopped) return scope.launch { /* no-op */ }
-        val capturedTarget = _sessionNotificationTargets.remove(sessionId)
+        if (stopped) return scope.launch { /* no-op */ }
+        val capturedTarget = sessionNotificationTargets.remove(sessionId)
         // 与 notifySessionEnd 同理：内存计数在进程重启后归零，不能作为「要不要收尾」的唯一依据。
         // 这里从持久层取完整历史，`messages.size < 2` 已经足够判定「没有可摘要的对话」。
-        _turnCounts.remove(sessionId)
+        turnCounts.remove(sessionId)
         if (!isMemoryEnabled()) return scope.launch { /* no-op */ }
         return launchTracked {
             val messages = messagesProvider()
@@ -1153,7 +1153,7 @@ class MemoryTicker(
         timeZone: String = TimeContext.DEFAULT_TIMEZONE,
         assistantId: String = "",
     ): Job {
-        if (_stopped) return scope.launch { /* no-op */ }
+        if (stopped) return scope.launch { /* no-op */ }
         if (!isMemoryEnabled()) return scope.launch { /* no-op */ }
         return launchTracked {
             doRollingSummary(sessionId, messages, model, locale, timeZone, "manual", assistantId)
@@ -1179,18 +1179,18 @@ class MemoryTicker(
         var revivedDeadTimer = false
         synchronized(timerLock) {
             // 与旧实现一致:start 意味着流水线该跑
-            _stopped = false
+            stopped = false
             when {
                 timerPhase == TimerPhase.STOPPING -> {
                     startQueuedDuringStop = true
                     queuedBehindStop = true
                 }
-                timerPhase == TimerPhase.RUNNING && _timerJob?.isActive == true -> Unit
+                timerPhase == TimerPhase.RUNNING && timerJob?.isActive == true -> Unit
                 else -> {
                     // 走到这里要么是 STOPPED，要么是 RUNNING 但计时 job 已经死掉
                     revivedDeadTimer = timerPhase == TimerPhase.RUNNING
                     timerPhase = TimerPhase.RUNNING
-                    _timerJob = launchDailyCheckTimer()
+                    timerJob = launchDailyCheckTimer()
                     started = true
                 }
             }
@@ -1209,7 +1209,7 @@ class MemoryTicker(
 
     /** 计时器此刻是真的在跑(状态为运行且 job 活跃)。停摆诊断与测试都用它。 */
     internal fun isTimerRunning(): Boolean = synchronized(timerLock) {
-        timerPhase == TimerPhase.RUNNING && _timerJob?.isActive == true
+        timerPhase == TimerPhase.RUNNING && timerJob?.isActive == true
     }
 
     /** 计时器生命周期状态名(诊断/测试用)。 */
@@ -1217,9 +1217,9 @@ class MemoryTicker(
 
     /** 建并启动计时 job。调用方必须持有 [timerLock]。 */
     private fun launchDailyCheckTimer(): Job = scope.launch(Dispatchers.IO) {
-        while (!_stopped) {
+        while (!stopped) {
             delay(DAILY_CHECK_INTERVAL_MS)
-            if (_stopped) break
+            if (stopped) break
             checkDailyJob(model = null, locale = "zh-CN", timeZone = TimeContext.DEFAULT_TIMEZONE)
         }
     }
@@ -1251,24 +1251,24 @@ class MemoryTicker(
 
     /** stop 的第一步(同步):标记状态并取回要等的计时 job。 */
     private fun beginStop(): Job? = synchronized(timerLock) {
-        _stopped = true
+        stopped = true
         when (timerPhase) {
             TimerPhase.STOPPED -> null
             TimerPhase.RUNNING, TimerPhase.STOPPING -> {
                 timerPhase = TimerPhase.STOPPING
-                _timerJob
+                timerJob
             }
         }
     }
 
     /** 等正在跑的后台任务收尾(带 30s 上限)。 */
     private suspend fun stopTrackedJobs() {
-        val jobs: List<Job> = synchronized(_activeJobsLock) { _activeJobs.toList() }
+        val jobs: List<Job> = synchronized(activeJobsLock) { activeJobs.toList() }
         if (jobs.isEmpty()) return
         // v1.0.51: 先 cancel 全部 job 让它们开始退出,再用 joinAll 并行等待,
         // 替代原 forEach 顺序 join(5 个 job 各 5s → 25s 串行 vs 5s 并行)
-        synchronized(_activeJobsLock) {
-            _activeJobs.forEach { it.cancel() }
+        synchronized(activeJobsLock) {
+            activeJobs.forEach { it.cancel() }
         }
         // v1.78 (H8): join 不用 runCatching(会吞 CancellationException);
         // cancel 块用 try/finally 必达,即使 withTimeoutOrNull 超时也要执行
@@ -1288,13 +1288,13 @@ class MemoryTicker(
         var restarted = false
         synchronized(timerLock) {
             if (timerPhase != TimerPhase.STOPPING) return
-            _timerJob = null
+            timerJob = null
             if (startQueuedDuringStop) {
                 // stop 期间有人要它跑:停完直接补起,不把请求丢掉
                 startQueuedDuringStop = false
                 timerPhase = TimerPhase.RUNNING
-                _stopped = false
-                _timerJob = launchDailyCheckTimer()
+                stopped = false
+                timerJob = launchDailyCheckTimer()
                 restarted = true
             } else {
                 timerPhase = TimerPhase.STOPPED
@@ -1314,7 +1314,7 @@ class MemoryTicker(
      * 先跑 daily job(确保 week/longterm/facts 存在),再 compileToday。
      */
     suspend fun tick(model: Model? = null, locale: String = "zh-CN", timeZone: String = TimeContext.DEFAULT_TIMEZONE) {
-        if (_stopped) return
+        if (stopped) return
         // B-7: 备份恢复(文件级替换 DB)窗口内跳过写入型编译,避免写丢失。
         if (io.zer0.common.ProcessWriteGate.restoring) {
             Logger.d(TAG, "tick: 备份恢复进行中,跳过本次记忆编译")
@@ -1322,7 +1322,7 @@ class MemoryTicker(
         }
         if (!isMemoryEnabled()) return
         val context = currentContext()
-        if (_lastDailyJobDateByTarget[context.stateKey] != context.logicalDate) {
+        if (lastDailyJobDateByTarget[context.stateKey] != context.logicalDate) {
             doDaily(model, locale, timeZone)
         }
         doCompileTodayAndAssemble(model, locale, timeZone)
@@ -1341,7 +1341,7 @@ class MemoryTicker(
     /**
      * v1.0.51: 为单个 session 补跑 rollingSummary(用于存量迁移)。
      *
-     * 复用 [doRollingSummary] 内部逻辑(含 _summaryInProgress 重入保护 + Semaphore(3) 全局并发限流),
+     * 复用 [doRollingSummary] 内部逻辑(含 summaryInProgress 重入保护 + Semaphore(3) 全局并发限流),
      * trigger="backfill" 便于日志区分。失败不抛异常,返回 false,由调用方统计 failed 计数。
      *
      * @return true 表示摘要有变化(成功);false 表示空对话/LLM 返回空/失败
@@ -1354,19 +1354,19 @@ class MemoryTicker(
         timeZone: String = TimeContext.DEFAULT_TIMEZONE,
         assistantId: String = "",
     ): Boolean {
-        if (_stopped) return false
+        if (stopped) return false
         if (!isMemoryEnabled()) return false
         return doRollingSummary(sessionId, messages, model, locale, timeZone, "backfill", assistantId)
     }
 
     /** v1.0.51: 报告 backfill 进度(供 UI 实时展示)。 */
     fun reportBackfillProgress(progress: BackfillProgress) {
-        _backfillProgressFlow.value = progress
+        backfillProgressFlow.value = progress
     }
 
     /** v1.0.51: 清除 backfill 进度(迁移完成后调用,UI 进度条自动隐藏)。 */
     fun clearBackfillProgress() {
-        _backfillProgressFlow.value = null
+        backfillProgressFlow.value = null
     }
 
     /**
@@ -1380,18 +1380,18 @@ class MemoryTicker(
      * 失败步骤记录到 health,不中断整体流程。
      */
     suspend fun forceCompileNow(model: Model? = null, locale: String = "zh-CN", timeZone: String = TimeContext.DEFAULT_TIMEZONE) {
-        if (_stopped) return
+        if (stopped) return
         if (!isMemoryEnabled()) return
         if (io.zer0.common.ProcessWriteGate.restoring) {
             Logger.d(TAG, "forceCompileNow: 备份恢复进行中，跳过本次记忆编译")
             return
         }
         // 1. 强制重跑 compileFacts(从 30 天摘要提取 fact,忽略指纹缓存外的 checkpoint)
-        // 审查修复 (B-6): 纳入 _compileFactsLock,与 doDaily step4 的 compileFacts 互斥,
+        // 审查修复 (B-6): 纳入 compileFactsLock,与 doDaily step4 的 compileFacts 互斥,
         // 避免两链并发写 FACTS 段 last-writer-wins 丢产物。
         // v1.78 (H2): 包装 suspend 调用必须用 resultOf,避免吞 CancellationException
         val target = currentCompileTarget()
-        _compileFactsLock.withLock {
+        compileFactsLock.withLock {
             markStepStart("compileFacts", "force")
             resultOf {
                 compiler.compileFacts(summaryManager, model, locale, runtimeContext.getConfig(), target = target)

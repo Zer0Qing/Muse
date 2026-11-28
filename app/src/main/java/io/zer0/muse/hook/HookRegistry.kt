@@ -33,7 +33,7 @@ import kotlin.reflect.KClass
  */
 class HookRegistry {
 
-    private val TAG = "HookRegistry"
+    private val tag = "HookRegistry"
 
     /** 按 Hook 接口分桶存储,同一类型下按 id 去重。 */
     private val buckets = ConcurrentHashMap<KClass<out SkillHook>, MutableMap<String, SkillHook>>()
@@ -56,12 +56,12 @@ class HookRegistry {
         allHooks[hook.id] = hook
         val types = hookTypesOf(hook)
         if (types.isEmpty()) {
-            Logger.w(TAG, "register: ${hook::class.simpleName}#${hook.id} 的接口未登记，走全量兜底")
+            Logger.w(tag, "register: ${hook::class.simpleName}#${hook.id} 的接口未登记，走全量兜底")
             return
         }
         types.forEach { type -> buckets.getOrPut(type) { ConcurrentHashMap() }[hook.id] = hook }
         Logger.i(
-            TAG,
+            tag,
             "registered: ${hook::class.simpleName}#${hook.id} interfaces=${types.size} (priority=${hook.priority})",
         )
     }
@@ -73,7 +73,7 @@ class HookRegistry {
     fun unregister(hook: SkillHook) {
         allHooks.remove(hook.id)
         hookTypesOf(hook).forEach { type -> buckets[type]?.remove(hook.id) }
-        Logger.i(TAG, "unregistered: ${hook::class.simpleName}#${hook.id}")
+        Logger.i(tag, "unregistered: ${hook::class.simpleName}#${hook.id}")
     }
 
     /**
@@ -126,7 +126,7 @@ class HookRegistry {
                 throw e
             } catch (err: Exception) {
                 val summary = "${err::class.simpleName}: ${err.message?.take(200)}"
-                Logger.e(TAG, "Hook ${hook::class.simpleName}#${hook.id} failed, skipping: $summary", err)
+                Logger.e(tag, "Hook ${hook::class.simpleName}#${hook.id} failed, skipping: $summary", err)
                 acc // 失败则跳过,保留前一步结果
             }
         }
@@ -147,7 +147,7 @@ class HookRegistry {
                 throw e
             } catch (err: Exception) {
                 val summary = "${err::class.simpleName}: ${err.message?.take(200)}"
-                Logger.e(TAG, "Hook ${hook::class.simpleName}#${hook.id} failed, skipping: $summary", err)
+                Logger.e(tag, "Hook ${hook::class.simpleName}#${hook.id} failed, skipping: $summary", err)
             }
         }
     }
@@ -156,7 +156,7 @@ class HookRegistry {
     fun clear() {
         buckets.clear()
         allHooks.clear()
-        Logger.i(TAG, "all hooks cleared")
+        Logger.i(tag, "all hooks cleared")
     }
 
     /** 获取已注册的 Hook 总数(按实例去重,调试用)。 */

@@ -63,8 +63,7 @@ object AppLocales {
      * Locale 归到候选项，让勾选态与实际界面语言一致。未覆盖的系统语言回落到
      * 默认资源语言，避免没有任何一项被勾选。
      */
-    fun resolveDisplayLanguageCode(stored: String, locale: Locale): String =
-        Language.entries.firstOrNull { it.code == stored }?.code
-            ?: codeFor(locale)
-            ?: Language.ZH.code
+    fun resolveDisplayLanguageCode(stored: String, locale: Locale): String = Language.entries.firstOrNull { it.code == stored }?.code
+        ?: codeFor(locale)
+        ?: Language.ZH.code
 }

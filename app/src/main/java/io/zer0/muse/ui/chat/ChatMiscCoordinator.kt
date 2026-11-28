@@ -16,11 +16,10 @@ import io.zer0.muse.data.quickmsg.QuickMessageRepository
 import io.zer0.muse.data.session.FolderRepository
 import io.zer0.muse.data.session.SearchResult
 import io.zer0.muse.data.session.SessionRepository
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlin.uuid.Uuid
-import io.zer0.muse.ui.screen.SearchScreen
-import io.zer0.muse.ui.screen.LorebookScreen
 
 /**
  * v1.105 阶段 2: 从 ChatViewModel 抽离的杂项 Coordinator。
@@ -46,6 +45,25 @@ class ChatMiscCoordinator(
 ) {
 
     private val tag = "ChatVM"
+
+    /**
+     * 当前在跑的搜索任务。
+     *
+     * 搜索由输入框每次变化触发，而 FTS 查询在超大消息表上可能跑很久。
+     * 不取消上一次就会堆积：新查询排在旧查询后面，界面一直停在「正在搜索」，
+     * 而且旧结果晚到还会覆盖新关键词的结果。这里始终只保留最后一次。
+     */
+    private var searchJob: kotlinx.coroutines.Job? = null
+    private var messageSearchJob: kotlinx.coroutines.Job? = null
+
+    /**
+     * 搜索看门狗时长。
+     *
+     * `withTimeoutOrNull` 只在挂起点生效：Room/SQLite 的阻塞查询（典型场景是首次启动的
+     * 全量 FTS 重建）跑在 IO 线程上时根本不看取消信号，超时形同虚设。
+     * 到点后强制收掉加载态并给出提示，用户至少知道发生了什么，而不是盯着“正在搜索…”不动。
+     */
+    private val searchWatchdogMs = 8000L
 
     // ── 文件夹分组 CRUD ──────────────────────────────────────────────────
 
@@ -139,8 +157,26 @@ class ChatMiscCoordinator(
     fun search() {
         val query = accessor.snapshot.searchQuery.trim()
         if (query.isEmpty()) return
+        searchJob?.cancel()
         accessor.update { it.copy(isSearching = true, searchError = null) }
-        accessor.coroutineScope.launch {
+        searchJob = accessor.coroutineScope.launch {
+            val watchdog = launch {
+                delay(searchWatchdogMs)
+                accessor.update { st ->
+                    // 结果已经回来就不再插手，避免把成功结果刷成超时。
+                    if (!st.isSearching) {
+                        st
+                    } else {
+                        st.copy(
+                            isSearching = false,
+                            searchError = appContext.getString(
+                                R.string.err_chat_request_failed,
+                                appContext.getString(R.string.search_timeout_hint),
+                            ),
+                        )
+                    }
+                }
+            }
             var failed = false
             var detail: String? = null
             val results = try {
@@ -148,14 +184,17 @@ class ChatMiscCoordinator(
                     sessionRepository.searchMessages(query)
                 } ?: emptyList<SearchResult>().also {
                     failed = true
-                    detail = appContext.getString(R.string.err_chat_network_timeout)
+                    detail = appContext.getString(R.string.search_timeout_hint)
                 }
             } catch (t: Throwable) {
+                // 被更新的搜索取代是正常流程，不能当成失败展示。
+                if (t is kotlinx.coroutines.CancellationException) throw t
                 Logger.w(tag, "Search failed: ${t.message}")
                 failed = true
                 detail = t.message ?: appContext.getString(R.string.err_chat_unknown)
                 emptyList()
             }
+            watchdog.cancel()
             accessor.update {
                 it.copy(
                     searchResults = results,
@@ -172,6 +211,9 @@ class ChatMiscCoordinator(
 
     /** 清空搜索状态。 */
     fun clearSearch() {
+        // 清空时同时取消在跑的查询：否则它晚到的结果会把已经清空的搜索框又填满结果。
+        searchJob?.cancel()
+        messageSearchJob?.cancel()
         accessor.update {
             it.copy(
                 searchQuery = "",
@@ -206,7 +248,24 @@ class ChatMiscCoordinator(
             return
         }
         accessor.update { it.copy(isSearchingMessages = true, searchError = null) }
-        accessor.coroutineScope.launch {
+        messageSearchJob?.cancel()
+        messageSearchJob = accessor.coroutineScope.launch {
+            val watchdog = launch {
+                delay(searchWatchdogMs)
+                accessor.update { st ->
+                    if (!st.isSearchingMessages) {
+                        st
+                    } else {
+                        st.copy(
+                            isSearchingMessages = false,
+                            searchError = appContext.getString(
+                                R.string.err_chat_request_failed,
+                                appContext.getString(R.string.search_timeout_hint),
+                            ),
+                        )
+                    }
+                }
+            }
             var failed = false
             var detail: String? = null
             val results = try {
@@ -214,7 +273,7 @@ class ChatMiscCoordinator(
                     sessionRepository.searchMessageContentFlow(query).first()
                 } ?: emptyList<SearchResult>().also {
                     failed = true
-                    detail = appContext.getString(R.string.err_chat_network_timeout)
+                    detail = appContext.getString(R.string.search_timeout_hint)
                 }
             } catch (t: Throwable) {
                 // v1.x: 协程取消(跳转/退出搜索页)必须重抛,不显示为搜索失败
@@ -224,6 +283,7 @@ class ChatMiscCoordinator(
                 detail = t.message ?: appContext.getString(R.string.err_chat_unknown)
                 emptyList()
             }
+            watchdog.cancel()
             accessor.update {
                 it.copy(
                     messageResults = results,
@@ -582,7 +642,10 @@ class ChatMiscCoordinator(
     fun refreshLorebooks() {
         accessor.coroutineScope.launch {
             try {
-                val list = lorebookRepository.observeAll().first()
+                // 这里必须一次性直查，不能用 observeAll().first()。
+                // first() 只取 Flow 的第一次发射就取消订阅：刚写完库时这次发射可能仍是写前快照，
+                // 空列表会被 copy 进状态并永久锁死（保存成功但列表一直空）。
+                val list = lorebookRepository.getAll()
                 accessor.update { it.copy(lorebooks = list, lorebooksError = null) }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
@@ -596,37 +659,56 @@ class ChatMiscCoordinator(
 
     fun saveLorebook(entity: LorebookEntity) {
         accessor.coroutineScope.launch {
-            lorebookRepository.upsert(entity.copy(updatedAt = System.currentTimeMillis()))
-            refreshLorebooks()
+            // 写盘必须 await + 失败可见：静默丢弃会让用户以为保存成功。
+            resultOf { lorebookRepository.upsert(entity.copy(updatedAt = System.currentTimeMillis())) }
+                .onSuccess { refreshLorebooks() }
+                .onError { msg, t ->
+                    Logger.w(tag, "saveLorebook 失败: $msg", t)
+                    accessor.update { it.copy(lorebooksError = appContext.getString(R.string.common_save_failed)) }
+                }
         }
     }
 
     fun deleteLorebook(id: String) {
         accessor.coroutineScope.launch {
-            lorebookRepository.delete(id)
-            refreshLorebooks()
+            resultOf { lorebookRepository.delete(id) }
+                .onSuccess { refreshLorebooks() }
+                .onError { msg, t ->
+                    Logger.w(tag, "deleteLorebook 失败: $msg", t)
+                    accessor.update { it.copy(lorebooksError = appContext.getString(R.string.common_save_failed)) }
+                }
         }
     }
 
     /** v1.97: 懒加载全部 PromptInjection 条目。 */
     fun refreshPromptInjections() {
         accessor.coroutineScope.launch {
-            val list = promptInjectionRepository.observeAll().first()
-            accessor.update { it.copy(promptInjections = list) }
+            // 同 refreshLorebooks：一次性直查，不用 observeAll().first() 的首次发射。
+            resultOf { promptInjectionRepository.getAll() }
+                .onSuccess { list -> accessor.update { it.copy(promptInjections = list) } }
+                .onError { msg, t -> Logger.w(tag, "refreshPromptInjections 失败: $msg", t) }
         }
     }
 
     fun savePromptInjection(entity: PromptInjectionEntity) {
         accessor.coroutineScope.launch {
-            promptInjectionRepository.upsert(entity.copy(updatedAt = System.currentTimeMillis()))
-            refreshPromptInjections()
+            resultOf { promptInjectionRepository.upsert(entity.copy(updatedAt = System.currentTimeMillis())) }
+                .onSuccess { refreshPromptInjections() }
+                .onError { msg, t ->
+                    Logger.w(tag, "savePromptInjection 失败: $msg", t)
+                    io.zer0.muse.ui.common.feedback.MuseToast.show(appContext.getString(R.string.common_save_failed))
+                }
         }
     }
 
     fun deletePromptInjection(id: String) {
         accessor.coroutineScope.launch {
-            promptInjectionRepository.delete(id)
-            refreshPromptInjections()
+            resultOf { promptInjectionRepository.delete(id) }
+                .onSuccess { refreshPromptInjections() }
+                .onError { msg, t ->
+                    Logger.w(tag, "deletePromptInjection 失败: $msg", t)
+                    io.zer0.muse.ui.common.feedback.MuseToast.show(appContext.getString(R.string.common_save_failed))
+                }
         }
     }
 

@@ -20,7 +20,6 @@ import io.zer0.muse.data.subagent.SubagentThreadStore
 import io.zer0.muse.notification.MuseNotificationManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.runBlocking
-import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * Agent 工具注册器（实现自既有工具系统）。
@@ -193,7 +192,7 @@ class AgentToolsRegistrar(
 
         // 普通聊天里的“许愿”：把当前助手绑定到主动消息调度器。
         toolRegistry.registerWithContext(ProactiveWishTool.toolDef()) { args, executionContext ->
-            ProactiveWishTool.execute(args, settings, executionContext)
+            ProactiveWishTool.execute(args, settings, executionContext, proactiveThoughtStore)
         }
 
         // v2.6.9: 牵挂记账 —— 主动消息新机制的主要燃料。
@@ -234,8 +233,18 @@ class AgentToolsRegistrar(
         // v2.6.13: 改用 context 版注册 —— 卡片的身份是承载它的消息 id，
         // 模型在生成过程中拿不到它，必须由宿主注入（[io.zer0.muse.tools.ToolExecutionContext.messageId]）。
         // 回执里带上这个 id，模型下一轮想更新同一张卡就有据可依。
+        val renderedCardIds = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
         toolRegistry.registerWithContext(ShowCardTool.toolDef()) { args, ctx ->
-            ShowCardTool.execute(args, ctx.messageId)
+            val result = ShowCardTool.execute(args, ctx.messageId)
+            val cardId = ctx.messageId?.trim().orEmpty()
+            if (!result.startsWith("Error:") && cardId.isNotEmpty()) {
+                renderedCardIds.add(cardId)
+                val initialData = args["data"]
+                if (!initialData.isNullOrBlank()) {
+                    cardDataStore?.put(cardId, initialData)
+                }
+            }
+            result
         }
         // v2.x: bounded chart/table output rendered directly in the tool result card.
         toolRegistry.register(RenderDataTool.toolDef()) { args ->
@@ -278,7 +287,7 @@ class AgentToolsRegistrar(
                 else -> {
                     // 写入前先看一眼这个 id 以前绑过数据没有：
                     // 写到一个没人读的键上不会报错，表现只是「卡片不动」，极难排查。
-                    val previouslyBound = cardDataStore.get(cardId) != null
+                    val previouslyBound = cardDataStore.get(cardId) != null || renderedCardIds.contains(cardId)
                     cardDataStore.put(cardId, data)
                     if (previouslyBound || cardId == ctx.messageId) {
                         "Card '$cardId' data updated (${data.length} chars)."
@@ -341,18 +350,11 @@ private fun io.zer0.muse.tools.ToolExecutionContext.scopeKey(): MemoryScopeKey =
  * 守卫放在这里而不是每个分支各写一句，是为了让 pin/unpin/save/delete 四条入口
  * 不可能出现「某条忘了挡」的情况。
  */
-internal fun longTermMemoryWriteBlockReason(
-    context: ToolExecutionContext,
-    action: String = "write",
-): String? =
+internal fun longTermMemoryWriteBlockReason(context: ToolExecutionContext, action: String = "write"): String? =
     if (context.isSubagentContext) "subagent context cannot $action long-term memory" else null
 
 /** save_memory 的唯一实现路径：解析参数 → MemoryUseCases → 面向模型的文案。 */
-internal suspend fun saveMemoryViaUseCases(
-    useCases: MemoryUseCases,
-    context: ToolExecutionContext,
-    args: Map<String, String>,
-): String {
+internal suspend fun saveMemoryViaUseCases(useCases: MemoryUseCases, context: ToolExecutionContext, args: Map<String, String>): String {
     val content = args["content"]?.trim().orEmpty()
     if (content.isEmpty()) return "Error: content parameter is required."
     val tags = args["tags"]?.split(',')?.map { it.trim() }?.filter { it.isNotEmpty() }.orEmpty()
@@ -379,11 +381,7 @@ internal suspend fun saveMemoryViaUseCases(
 }
 
 /** pin_memory 的唯一实现路径。 */
-internal suspend fun pinMemoryViaUseCases(
-    useCases: MemoryUseCases,
-    context: ToolExecutionContext,
-    args: Map<String, String>,
-): String {
+internal suspend fun pinMemoryViaUseCases(useCases: MemoryUseCases, context: ToolExecutionContext, args: Map<String, String>): String {
     val content = args["content"]?.trim().orEmpty()
     if (content.isBlank()) return "Error: content parameter is required."
     return when (val result = useCases.pin(PinMemoryRequest(context.scopeKey(), content))) {
@@ -393,22 +391,19 @@ internal suspend fun pinMemoryViaUseCases(
 }
 
 /** unpin_memory 的唯一实现路径。 */
-internal suspend fun unpinMemoryViaUseCases(
-    useCases: MemoryUseCases,
-    context: ToolExecutionContext,
-    args: Map<String, String>,
-): String = when (
-    useCases.unpin(
-        UnpinMemoryRequest(
-            scope = context.scopeKey(),
-            id = args["id"]?.trim(),
-            keyword = args["keyword"]?.trim(),
-        ),
-    )
-) {
-    UnpinMemoryResult.Removed -> "Unpinned successfully."
-    UnpinMemoryResult.Missing -> "No matching pinned memory found."
-}
+internal suspend fun unpinMemoryViaUseCases(useCases: MemoryUseCases, context: ToolExecutionContext, args: Map<String, String>): String =
+    when (
+        useCases.unpin(
+            UnpinMemoryRequest(
+                scope = context.scopeKey(),
+                id = args["id"]?.trim(),
+                keyword = args["keyword"]?.trim(),
+            ),
+        )
+    ) {
+        UnpinMemoryResult.Removed -> "Unpinned successfully."
+        UnpinMemoryResult.Missing -> "No matching pinned memory found."
+    }
 
 /**
  * delete_memory 的唯一实现路径。
@@ -416,11 +411,7 @@ internal suspend fun unpinMemoryViaUseCases(
  * 只给 `match` 时先按同一作用域检索再删；检索带 includeSuppressed=true，
  * 否则「已退出自动召回」的记忆用户明确要求忘掉时反而删不掉。跨空间由 use case 拒绝。
  */
-internal suspend fun deleteMemoryViaUseCases(
-    useCases: MemoryUseCases,
-    context: ToolExecutionContext,
-    args: Map<String, String>,
-): String {
+internal suspend fun deleteMemoryViaUseCases(useCases: MemoryUseCases, context: ToolExecutionContext, args: Map<String, String>): String {
     val scope = context.scopeKey()
     val idArg = args["id"]?.trim()?.toLongOrNull()
     val targetId = if (idArg != null && idArg > 0) {

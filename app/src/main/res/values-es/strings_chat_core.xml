@@ -554,6 +554,7 @@
     <string name="backup_import_error_version">La versión de la copia es demasiado nueva o antigua para esta app.</string>
     <string name="backup_import_error_missing">No se encuentra el archivo de copia. Puede haberse movido o eliminado.</string>
     <string name="backup_import_error_space">No hay espacio suficiente. Libera espacio e inténtalo de nuevo.</string>
+    <string name="backup_import_error_empty">El archivo de copia está vacío (0 bytes), así que no hay nada que importar. Comprueba si la exportación se interrumpió o prueba con otra copia.</string>
     <string name="backup_import_error_unknown">La copia no es válida. Se restauró el estado anterior.</string>
     <string name="onboarding_connect_error_unauthorized">La clave API no es válida o ha caducado. Vuelve a introducirla.</string>
     <string name="onboarding_connect_error_forbidden">Acceso denegado. Comprueba que la clave pueda usar este modelo.</string>

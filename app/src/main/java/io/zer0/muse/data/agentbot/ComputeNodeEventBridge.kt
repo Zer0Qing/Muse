@@ -24,8 +24,7 @@ import java.security.MessageDigest
  * 将 [ComputeNodeManager] 发出的节点重连、恢复上线与离机出箱事件接入 Agent 中枢：
  * - 节点掉线需要修复时，为每个启用的 Agent 绑定写入确定的 [BotCardKind.RECONNECT] 卡；
  * - 节点重新上线时，自动将对应重连卡标记为已解决；
- * - 收到离机 outbox 事件时，整理摘要并通过 [PublicationService.publishIdempotent] 落入对话流，
- *   确认至少一个启用绑定完成发布后才调用 [ComputeNodeManager.acknowledgeOutbox]。
+ * - 收到离机 outbox 事件时，仅按已验证的任务归属发布到唯一启用会话；每条事件单独确认。
  */
 class ComputeNodeEventBridge(
     private val context: Context,
@@ -38,6 +37,8 @@ class ComputeNodeEventBridge(
         notifyIfBackground(context, settings, binding, text)
     },
     private val clock: () -> Long = System::currentTimeMillis,
+    private val outboxOwnerResolver: suspend (nodeId: String, event: OutboxEvent) -> OutboxOwner? = { _, _ -> null },
+    private val outboxOwnerAcknowledged: suspend (nodeId: String, event: OutboxEvent) -> Unit = { _, _ -> },
 ) {
 
     private var job: Job? = null
@@ -51,7 +52,7 @@ class ComputeNodeEventBridge(
                     handleEvent(event)
                 } catch (e: CancellationException) {
                     throw e
-                } catch (e: Exception) {
+                } catch (e: java.io.IOException) {
                     Logger.w(TAG, "处理云端电脑事件失败: ${e.message}", e)
                 }
             }
@@ -109,40 +110,75 @@ class ComputeNodeEventBridge(
 
     private suspend fun handleOutboxReceived(event: ComputeNodeEvent.OutboxReceived) {
         if (event.events.isEmpty()) return
-        val targets = activeTargets()
-        if (targets.isEmpty()) return
-
         val nodeName = runCatching { nodeDao.getById(event.nodeId)?.name.orEmpty() }
             .onFailure { Logger.w(TAG, "读取云端电脑名称失败(${event.nodeId}): ${it.message}", it) }
             .getOrDefault("")
             .ifBlank { event.nodeId }
-        val summary = formatOutboxSummary(nodeName, event.events)
-        val batchKey = stableBatchKey(event.events)
+        val bindings = repository.enabledBindings().filter { it.canonicalAgentSessionId.isNotBlank() }
+        event.events.forEach { item -> handleOutboxItem(event.nodeId, nodeName, bindings, item) }
+    }
 
-        var anyCommitted = false
-        for (binding in targets) {
-            val result = publication.publishIdempotent(
-                publicationKey = "node-outbox:${binding.botId}:${event.nodeId}:$batchKey",
-                scope = PublicationService.PublicationScope(
-                    botId = binding.botId,
-                    originSessionId = binding.canonicalAgentSessionId,
-                ),
-                content = PublicationService.PublishedContent(text = summary),
-            )
-            if (result.committed > 0) {
-                anyCommitted = true
-            }
-            if (result.created && result.committed > 0) {
-                runCatching { notifier(binding, summary) }
-                    .onFailure { Logger.w(TAG, "发送离机出箱通知失败: ${it.message}", it) }
-            }
+    private suspend fun handleOutboxItem(
+        nodeId: String,
+        nodeName: String,
+        bindings: List<BotBindingEntity>,
+        item: OutboxEvent,
+    ) {
+        val owner = resolveOutboxOwner(nodeId, item) ?: return
+        val binding = bindings.singleOrNull {
+            it.botId == owner.botId && it.canonicalAgentSessionId == owner.originSessionId
+        } ?: return
+        val summary = formatOutboxSummary(nodeName, listOf(item))
+        val eventKey = item.eventId.ifBlank { stableBatchKey(listOf(item)) }
+        val result = publishOutboxItem(nodeId, binding, eventKey, summary) ?: return
+        if (result.created && result.committed > 0) {
+            runCatching { notifier(binding, summary) }
+                .onFailure { Logger.w(TAG, "发送离机出箱通知失败: ${it.message}", it) }
         }
+        if (result.committed <= 0) return
+        val ackId = item.eventId.takeIf(String::isNotBlank) ?: return
+        acknowledgeOutboxItem(nodeId, ackId, item)
+    }
 
-        if (!anyCommitted) return
-        val ackIds = event.events.mapNotNull { it.eventId.takeIf(String::isNotBlank) }.distinct()
-        if (ackIds.isEmpty()) return
-        runCatching { computeNodeManager.acknowledgeOutbox(event.nodeId, ackIds) }
-            .onFailure { Logger.w(TAG, "确认云端电脑出箱事件失败(${event.nodeId}): ${it.message}", it) }
+    private suspend fun resolveOutboxOwner(nodeId: String, item: OutboxEvent): OutboxOwner? = try {
+        outboxOwnerResolver(nodeId, item)
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: java.io.IOException) {
+        Logger.w(TAG, "解析离机事件归属失败(${item.eventId}): ${e.message}", e)
+        null
+    }
+
+    private suspend fun publishOutboxItem(
+        nodeId: String,
+        binding: BotBindingEntity,
+        eventKey: String,
+        summary: String,
+    ): PublicationService.PublicationResult? = try {
+        publication.publishIdempotent(
+            publicationKey = "node-outbox:${binding.botId}:$nodeId:$eventKey",
+            scope = PublicationService.PublicationScope(
+                botId = binding.botId,
+                originSessionId = binding.canonicalAgentSessionId,
+            ),
+            content = PublicationService.PublishedContent(text = summary),
+        )
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: java.io.IOException) {
+        Logger.w(TAG, "发布离机事件失败($nodeId/$eventKey): ${e.message}", e)
+        null
+    }
+
+    private suspend fun acknowledgeOutboxItem(nodeId: String, ackId: String, item: OutboxEvent) {
+        try {
+            val removed = computeNodeManager.acknowledgeOutbox(nodeId, listOf(ackId))
+            if (removed > 0) outboxOwnerAcknowledged(nodeId, item)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: java.io.IOException) {
+            Logger.w(TAG, "确认云端电脑出箱事件失败($nodeId/$ackId): ${e.message}", e)
+        }
     }
 
     private suspend fun activeTargets(): List<BotBindingEntity> =
@@ -182,15 +218,9 @@ class ComputeNodeEventBridge(
         private const val RESOLVED_ONLINE = "online"
         private const val MAX_ITEM_DETAIL_CHARS = 180
 
-        fun reconnectCardId(botId: String, nodeId: String): String =
-            "reconnect:node:$botId:$nodeId"
+        fun reconnectCardId(botId: String, nodeId: String): String = "reconnect:node:$botId:$nodeId"
 
-        private suspend fun notifyIfBackground(
-            context: Context,
-            settings: SettingsRepository,
-            binding: BotBindingEntity,
-            text: String,
-        ) {
+        private suspend fun notifyIfBackground(context: Context, settings: SettingsRepository, binding: BotBindingEntity, text: String) {
             val policy = runCatching { settings.notificationPolicyFlow.first() }
                 .onFailure { Logger.w(TAG, "读取通知策略失败，按 when_unfocused 处理: ${it.message}") }
                 .getOrDefault("when_unfocused")
@@ -202,6 +232,39 @@ class ComputeNodeEventBridge(
                     ?.let { MuseNotificationTarget.Session(it) }
                     ?: MuseNotificationTarget.Chat,
             )
+        }
+    }
+}
+
+data class OutboxOwner(val botId: String, val originSessionId: String)
+
+class ComputeNodeOutboxOwnerResolver(
+    private val watcherDao: AgentWatcherDao,
+    private val repository: AgentBotRepository,
+) {
+    suspend fun resolve(nodeId: String, event: OutboxEvent): OutboxOwner? {
+        return when (event.type) {
+            "watcher" -> {
+                val watcher = event.watcherId.takeIf(String::isNotBlank)?.let { watcherDao.getById(it) }
+                val binding = watcher?.let { RemoteWatcherBinding.decode(it.remoteWatcherId) }
+                if (watcher != null && binding?.nodeId == nodeId &&
+                    watcher.computeTarget == io.zer0.muse.computenode.ComputeTargetRouter.TARGET_CLOUD
+                ) {
+                    OutboxOwner(watcher.botId, watcher.originSessionId)
+                } else {
+                    null
+                }
+            }
+            "exec" -> repository.findRemoteExecOwner(nodeId, event.runId)?.let {
+                OutboxOwner(it.botId, it.originSessionId)
+            }
+            else -> null
+        }
+    }
+
+    suspend fun acknowledged(nodeId: String, event: OutboxEvent) {
+        if (event.type == "exec" && event.runId.isNotBlank()) {
+            repository.clearRemoteExecOwner(nodeId, event.runId)
         }
     }
 }

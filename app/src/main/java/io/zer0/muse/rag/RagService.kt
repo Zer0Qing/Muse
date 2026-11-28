@@ -30,13 +30,11 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
-import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
 import java.security.MessageDigest
 import java.util.concurrent.atomic.AtomicInteger
-import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * v1.54: RAG 编排服务(分块 + embedding + 索引 + 检索 + 注入)。
@@ -1563,8 +1561,7 @@ class RagService(
     }
 
     /** 转义文档片段中的闭合 </knowledge_context> 标签,防止文档正文逃逸出防注入边界。 */
-    private fun escapeKnowledgeContextTag(raw: String): String =
-        KNOWLEDGE_CONTEXT_CLOSING_TAG.replace(raw, "<\\/knowledge_context>")
+    private fun escapeKnowledgeContextTag(raw: String): String = KNOWLEDGE_CONTEXT_CLOSING_TAG.replace(raw, "<\\/knowledge_context>")
 
     /** 用 <knowledge_context> 边界与非指令声明包裹检索片段,防止知识库文档携带提示词注入。 */
     private fun wrapKnowledgeContext(body: String, useChinese: Boolean, isKeywordFallback: Boolean): String =
@@ -1614,6 +1611,30 @@ class RagService(
     suspend fun deleteDocument(docId: String) {
         deleteDocIndex(docId)
         docDao.delete(docId)
+        invalidateTitlesCache()
+    }
+
+    /**
+     * 批量删除多篇文档及其派生索引，只在最后统一落盘一次 HNSW 索引与清空缓存。
+     *
+     * 避免删除大型知识库时每篇文档重写一次全库 hnsw_index.bin 导致超长卡顿或协程取消。
+     */
+    suspend fun deleteDocuments(docIds: Collection<String>) {
+        val ids = docIds.map { it.trim() }.filter { it.isNotEmpty() }.distinct()
+        if (ids.isEmpty()) return
+        ensureVectorIndexLoaded()
+        ids.forEach { docId ->
+            removeDocChunksFromVectorIndex(docId)
+            withFtsSelfHeal { ftsDao.deleteByDoc(docId) }
+        }
+        ids.chunked(DELETE_CHUNK_BATCH_SIZE).forEach { batch ->
+            chunkDao.deleteByDocIds(batch)
+        }
+        ids.forEach { docId ->
+            docDao.delete(docId)
+        }
+        saveVectorIndex()
+        vectorSearch.invalidateCache()
         invalidateTitlesCache()
     }
 
@@ -2055,10 +2076,8 @@ class RagService(
      * ([KnowledgeDocDao.getByKbIds] + [KnowledgeFolderBrowser.folderPath]),保证过渡期两种
      * 展开入口的结果一致。
      */
-    suspend fun resolveBindingScope(
-        knowledgeBaseIds: List<String>,
-        folderScopes: List<Pair<String, String>>,
-    ): KnowledgeScope = knowledgeScopeResolver.resolveBinding(knowledgeBaseIds, folderScopes)
+    suspend fun resolveBindingScope(knowledgeBaseIds: List<String>, folderScopes: List<Pair<String, String>>): KnowledgeScope =
+        knowledgeScopeResolver.resolveBinding(knowledgeBaseIds, folderScopes)
 
     /** R1: 惰性构造的范围解析器(与 [resolveKbFolderScopes] 同一 DAO 数据源)。 */
     private val knowledgeScopeResolver: KnowledgeScopeResolver by lazy {
@@ -2183,6 +2202,7 @@ class RagService(
 
         /** P3-3: chunkMetaCache 重建时每页读取条数。 */
         private const val CACHE_REBUILD_PAGE_SIZE = 500
+        private const val DELETE_CHUNK_BATCH_SIZE = 200
 
         /** v1.133: content SHA-256 used by all knowledge import entry points. */
         fun computeContentHash(content: String): String = resultOf {

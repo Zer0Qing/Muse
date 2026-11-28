@@ -1,11 +1,11 @@
 package io.zer0.muse.session
 
+import io.zer0.muse.ui.chat.ChatViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentHashMap
-import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * v1.x: 会话级资源管理器 — 引用计数 + 自动 idle 清理。

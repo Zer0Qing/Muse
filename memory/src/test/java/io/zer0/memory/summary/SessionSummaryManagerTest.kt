@@ -86,6 +86,7 @@ private class EmptySessionSummaryDao : SessionSummaryDao {
     override suspend fun markProcessed(sessionId: String, now: String) = Unit
     override suspend fun deleteAll() = Unit
     override suspend fun deleteById(sessionId: String) = Unit
+
     // 助手被删除时要清掉它名下的摘要；空数据 fake 里没有可删的行。
     override suspend fun deleteByAssistant(assistantId: String): Int = 0
     override suspend fun assistantIdsForSpace(spaceId: String): List<String> = emptyList()

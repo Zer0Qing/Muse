@@ -84,6 +84,9 @@ class BackupNdJsonFolderRestoreTest {
         "remoteComputeNode" to "remoteComputeNodeDao().upsert(",
         // v2.7.x(E2): 术语表。用户的确认不可从历史重新推导，恢复分支必须有对应缓冲。
         "sessionTerm" to "sessionTermBuf",
+        // Media Studio：生成记录与资产行。恢复分支走附加表 upsert，缺标记会掩盖漏接线。
+        "mediaGenTask" to "mediaGenDao().upsertTask(",
+        "mediaGenAsset" to "mediaGenDao().insertAssets(",
     )
 
     /** 从源码提取导出侧 writeTypedLines 的全部行类型。 */

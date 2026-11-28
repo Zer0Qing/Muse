@@ -16,7 +16,6 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -62,7 +61,6 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -77,7 +75,6 @@ import coil.compose.SubcomposeAsyncImage
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.UIMessage
 import io.zer0.common.resultOf
-import io.zer0.muse.ui.theme.MuseCornerRadius
 import io.zer0.muse.R
 import io.zer0.muse.data.artifact.ArtifactEntity
 import io.zer0.muse.data.session.MessageMarkers
@@ -95,9 +92,11 @@ import io.zer0.muse.ui.common.media.ContextMenuItem
 import io.zer0.muse.ui.common.media.DesktopContextMenu
 import io.zer0.muse.ui.common.media.FullScreenMediaViewer
 import io.zer0.muse.ui.common.media.rememberDesktopShortcutsEnabled
+import io.zer0.muse.ui.common.saveImageToGallery
 import io.zer0.muse.ui.common.state.MuseSpinner
 import io.zer0.muse.ui.markdown.CardAction
-import io.zer0.muse.ui.markdown.MoodSectionParser
+import io.zer0.muse.ui.screen.MessageActionSurface
+import io.zer0.muse.ui.screen.favoriteStarTint
 import io.zer0.muse.ui.taskcard.AgentPlan
 import io.zer0.muse.ui.taskcard.PlanCard
 import io.zer0.muse.ui.theme.BubbleRole
@@ -106,6 +105,7 @@ import io.zer0.muse.ui.theme.BubbleSkinResolver
 import io.zer0.muse.ui.theme.MuseAnimation
 import io.zer0.muse.ui.theme.MuseAvatarSize
 import io.zer0.muse.ui.theme.MuseBubbleStyles
+import io.zer0.muse.ui.theme.MuseCornerRadius
 import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MuseHaptics
 import io.zer0.muse.ui.theme.MuseIconSizes
@@ -118,11 +118,7 @@ import io.zer0.muse.ui.theme.glassFakeSurfaceColor
 import io.zer0.muse.ui.theme.tiny
 import io.zer0.muse.ui.theme.titleMediumStrong
 import io.zer0.muse.util.ShareIntentHelper
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import io.zer0.muse.ui.screen.favoriteStarTint
-import io.zer0.muse.ui.screen.MessageActionSurface
-import io.zer0.muse.ui.common.saveImageToGallery
 
 internal fun messageCopyText(content: String, reasoning: String? = null): String {
     // v2.6.8: 复制走统一导出出口 —— 剥内部标记块 + 卡片状态尾巴 + 内联特效。
@@ -142,7 +138,8 @@ internal fun messageCopyText(content: String, reasoning: String? = null): String
  * 普通工具卡受「显示工具调用详情」开关控制;show_card 是内容卡片(非调试信息),
  * 开关关闭时仍照常渲染。
  */
-private fun toolPayloadShowing(toolName: String, showToolCallDetails: Boolean): Boolean = showToolCallDetails || toolName == "show_card"
+private fun toolPayloadShowing(toolName: String, showToolCallDetails: Boolean): Boolean =
+    showToolCallDetails || toolName == "show_card" || toolName == "render_data"
 
 /**
  * 这条消息是否要渲染独立的工具卡。
@@ -320,6 +317,8 @@ internal fun MessageBubble(
     // Phase 8.7: TTS 朗读(仅 AI 消息)
     isSpeaking: Boolean = false,
     onToggleTts: () -> Unit = {},
+    isSynthesizingVoice: Boolean = false,
+    onVoiceCompleted: (() -> Unit)? = null,
     // Phase 8.8: 任务卡(仅 AI 消息,有工具调用时显示)
     taskCard: io.zer0.muse.ui.taskcard.TaskCardData? = null,
     // Phase 10.1: 任务卡交互回调
@@ -480,8 +479,7 @@ internal fun MessageBubble(
     val showLanguageSubmenu = actionSurface == MessageActionSurface.TranslationLanguages
     // v1.0.74 fix: 记录气泡在窗口中的位置,长按菜单以此锚定(此前无锚点,永远弹在窗口右上角)
     var actionMenuBounds by remember { mutableStateOf(androidx.compose.ui.geometry.Rect.Zero) }
-    // 长按菜单需要使用手指实际按下的位置,而不是整条气泡的固定边界。
-    var actionMenuPressPointLocal by remember { mutableStateOf<Offset?>(null) }
+    val actionMenuPressPointRef = remember { androidx.compose.ui.node.Ref<Offset>() }
     var actionMenuPointInWindow by remember { mutableStateOf<Offset?>(null) }
     // v1.0.72: 长按菜单 — false=精简面板(引用/分享/复制/选择文本/更多),
     // true=展开完整菜单(委托/分支/翻译/收藏/编辑/删除等)
@@ -506,8 +504,6 @@ internal fun MessageBubble(
     var showInfoSheet by remember { mutableStateOf(false) }
     // 末尾 AI 流式时光标显示
     val showStreamingCursor = !isUser && isLastAssistant && isStreaming
-    // 只有正在增长的流式尾巴需要尺寸动画。历史气泡常开动画会在列表滚动、
-    // LazyColumn 复用时持续参与布局，是主对话滚动卡顿的高频来源。
     val isAnimating = isLastAssistant && isStreaming
     // 触觉反馈句柄(长按菜单 / 复制 / 收藏 / 重新生成 / TTS 切换时触发)
     val hapticFeedback = LocalHapticFeedback.current
@@ -584,9 +580,11 @@ internal fun MessageBubble(
     val toolPayloadVisible = showToolCallDetails && msg.toolCallInfo != null
     // v2.6.0: show_card 是内容卡片(非调试信息),不受「显示工具调用详情」开关控制。
     val isShowCardMessage = msg.toolCallInfo?.toolName == SHOW_CARD_TOOL_NAME
-    // v2.6.16: 语音消息 — 有语音引用时用语音条替换正文气泡。
-    //   只换渲染,content 一字不动:模型靠文本理解上下文,界面不能顺手把它清空。
+    // v2.6.16: 语音消息 — 有语音引用时渲染语音条，纯占位语音消息隐藏正文并用转文字承载；
+    // 文本+语音共生的消息保留正文，同时附带语音条。
     val voiceUri = msg.voiceUri?.takeIf { it.isNotBlank() }
+    val voicePlaceholder = stringResource(R.string.err_chat_voice_generated)
+    val isVoiceOnlyPlaceholder = voiceUri != null && (body.isBlank() || body.trim() == voicePlaceholder.trim())
     val hasAssistantPayload = body.isNotBlank() ||
         (!rendersBody && msg.content.isNotBlank()) ||
         // 中断/截断记号在正文里被摘掉后 body 是空的，但界面会把那句话画出来；
@@ -597,6 +595,7 @@ internal fun MessageBubble(
         msg.imageBase64List.isNotEmpty() ||
         msg.videoFileUri != null ||
         voiceUri != null ||
+        isSynthesizingVoice ||
         msg.artifactIds.isNotEmpty() ||
         toolPayloadVisible ||
         isShowCardMessage ||
@@ -628,11 +627,10 @@ internal fun MessageBubble(
     val bubbleClickModifier =
         if (messageBubbleNeedsBodyInteraction(rendersBody)) {
             Modifier
-                // 旁路观察按下点,不消费事件,保留 combinedClickable 对链接/选择文本的既有行为。
                 .pointerInput(msg.id) {
                     awaitEachGesture {
                         val down = awaitFirstDown(requireUnconsumed = false)
-                        actionMenuPressPointLocal = down.position
+                        actionMenuPressPointRef.value = down.position
                         waitForUpOrCancellation()
                     }
                 }
@@ -661,7 +659,7 @@ internal fun MessageBubble(
                 .onGloballyPositioned { coordinates ->
                     if (showActionMenu) {
                         val bounds = coordinates.boundsInWindow()
-                        val pointInWindow = actionMenuPressPointLocal?.let(coordinates::localToWindow)
+                        val pointInWindow = actionMenuPressPointRef.value?.let(coordinates::localToWindow)
                         if (actionMenuBounds != bounds) actionMenuBounds = bounds
                         if (actionMenuPointInWindow != pointInWindow) {
                             actionMenuPointInWindow = pointInWindow
@@ -681,21 +679,12 @@ internal fun MessageBubble(
     // 原实现滚动期间每帧 onGloballyPositioned 写 MutableState,气泡(含 MarkdownText)滚动中反复重组。
     // v1.0.90: 菜单改为底部面板后，这里不再需要任何锚点坐标。
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .then(
-                if (isAnimating) {
-                    Modifier.animateContentSize(
-                        // v2.6.7: 尺寸变化用 GrowEase（起步快、收尾稳），不再用位移曲线。
-                        animationSpec = MuseMotion.tween(MuseAnimation.NORMAL_MS, easing = MuseAnimation.GrowEase),
-                    )
-                } else {
-                    Modifier
-                },
-            ),
+        modifier = Modifier.fillMaxWidth(),
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(if (isAnimating) Modifier.animateContentSize(MuseMotion.tween(MuseAnimation.NORMAL_MS)) else Modifier),
             horizontalAlignment = horizontalAlignment,
         ) {
             // B7-01: 多选模式指示
@@ -1135,11 +1124,12 @@ internal fun MessageBubble(
                             )
                         }
                         if (voiceUri != null) {
-                            // v2.6.16: 语音消息 — 语音条替换正文气泡(内容仍保留在 msg.content 里)
                             VoiceMessageBubble(
                                 voiceUri = voiceUri,
                                 durationMs = msg.voiceDurationMs,
                                 isFromUser = true,
+                                transcript = userText.takeIf { it.isNotBlank() },
+                                showTranscriptToggle = userText.isNotBlank(),
                             )
                         } else if (userText.isNotBlank()) {
                             val userBase = MaterialTheme.typography.bodyMedium
@@ -1179,6 +1169,7 @@ internal fun MessageBubble(
                     msg.artifactIds.isEmpty() &&
                     msg.toolCallInfo == null &&
                     voiceUri == null &&
+                    !isSynthesizingVoice &&
                     msg.reasoning.isNullOrBlank() &&
                     msg.mood.isNullOrBlank() &&
                     msg.reflection.isNullOrBlank()
@@ -1324,13 +1315,18 @@ internal fun MessageBubble(
                             if (isLastAssistant && isStreaming && !isPureToolBubble && !hasVisibleThinkingPanel) {
                                 ThinkingIndicator()
                             }
-                            // v2.6.16: 语音消息条 — 与图片/视频同层分流,不参与正文渲染
                             voiceUri?.let { uri ->
                                 VoiceMessageBubble(
                                     voiceUri = uri,
                                     durationMs = msg.voiceDurationMs,
                                     isFromUser = false,
+                                    transcript = body.takeIf { !isVoiceOnlyPlaceholder && it.isNotBlank() },
+                                    showTranscriptToggle = isVoiceOnlyPlaceholder,
+                                    onPlaybackCompleted = onVoiceCompleted,
                                 )
+                            }
+                            if (voiceUri == null && isSynthesizingVoice) {
+                                VoiceSynthesizingBubble(isFromUser = false)
                             }
                             // Phase 5-G / Phase 8.6: 渲染生成的图片(URL 或 base64 data URI)
                             // 统一显示源:优先用 imageUrls,避免 Gemini 同时有 imageUrls(data URI) 和 imageBase64List 时重复渲染
@@ -1354,10 +1350,10 @@ internal fun MessageBubble(
                                     fromUrls
                                 } else {
                                     // Markdown 图片：解析器会把 ![alt](url) 从正文里抹掉，
-                                    // 不在这里取出来就整行消失。表情包路径同理。
+                                    // 不在这里取出来就整行消失。表情包路径同理。去重防止同一图片双渲染。
                                     val markdownImages = extractMarkdownImageUrls(msg.content)
                                     val stickerUris = extractStickerPaths(msg.content).map { "file://$it" }
-                                    fromUrls + markdownImages + stickerUris
+                                    (fromUrls + markdownImages + stickerUris).distinct()
                                 }
                             }
                             if (displayImageUris.size > 1) {
@@ -1559,7 +1555,7 @@ internal fun MessageBubble(
                                 val content = bubbleText.content
                                 val titleText = bubbleText.titleText
                                 val bodyContent = bubbleText.bodyContent
-                                if (rendersBody && voiceUri == null && content.isNotBlank()) {
+                                if (rendersBody && !isVoiceOnlyPlaceholder && content.isNotBlank()) {
                                     // Markdown 标题行
                                     titleText?.let {
                                         Text(
@@ -1609,14 +1605,6 @@ internal fun MessageBubble(
                                     //        流式中不启用选择,避免与光标/内容更新冲突;
                                     //        SelectionContainer 会消费文本上的长按手势(用于选择),
                                     //        父 Column 的 combinedClickable 仅在非文本区域触发操作菜单。
-                                    // v1.0.53: 数据卡片(```card JSON)优先渲染,其余走 markdown
-                                    val dataCard = remember(bodyContent) {
-                                        if (io.zer0.muse.ui.markdown.DataCardParser.containsCardBlock(bodyContent)) {
-                                            io.zer0.muse.ui.markdown.DataCardParser.parse(bodyContent)
-                                        } else {
-                                            null
-                                        }
-                                    }
                                     // v2.0: 正文排版 — 字号缩放与字间距走用户偏好(默认值下与旧版一致)
                                     val bodyBase = MaterialTheme.typography.bodyMedium
                                     val bodyScale = chatPrefs.messageFontScale.coerceIn(0.85f, 1.3f)
@@ -1625,60 +1613,54 @@ internal fun MessageBubble(
                                         lineHeight = bodyBase.lineHeight.let { if (it.isUnspecified) it else it * bodyScale },
                                         letterSpacing = chatPrefs.messageLetterSpacingEm.coerceIn(-0.02f, 0.1f).em,
                                     )
-                                    val markdownContent = @Composable {
-                                        // 内联特效判定与剥离都在这里每帧跑；两个结果只由 bodyContent 决定，按它缓存。
-                                        val hasInlineEffect = remember(bodyContent) {
-                                            MoodSkinParser.containsInlineEffect(bodyContent)
-                                        }
-                                        val bodyWithoutInlineEffect = remember(bodyContent, hasInlineEffect) {
-                                            if (hasInlineEffect) bodyContent else MoodSkinParser.stripInlineEffects(bodyContent)
-                                        }
-                                        // v1.79 (H-B3): 防御性处理 citationUrls,MarkdownText 内部应保证 [N] 不越界
-                                        val safeCitationUrls = msg.citationUrls
-                                        if (highlightText != null && bodyContent.contains(highlightText, ignoreCase = true)) {
-                                            androidx.compose.material3.Text(
-                                                text = buildHighlightedText(bodyContent, highlightText),
-                                                style = bodyStyle,
-                                                color = bodyTextColor,
-                                                modifier = Modifier.fillMaxWidth(),
-                                            )
-                                        } else if (hasInlineEffect) {
-                                            Text(
-                                                text = buildMoodSkinAnnotated(bodyContent),
-                                                style = bodyStyle,
-                                                color = bodyTextColor,
-                                                modifier = Modifier.fillMaxWidth(),
-                                            )
-                                        } else {
-                                            // v2.x: 表情包标记 [[sticker:分类]] → 纯图片卡片;无标记时零开销直通原 MarkdownText
-                                            StickerAwareMarkdownBody(
-                                                text = bodyWithoutInlineEffect,
-                                                stickerSeed = msg.id.hashCode().toLong(),
-                                                style = bodyStyle,
-                                                color = bodyTextColor,
-                                                modifier = Modifier.fillMaxWidth(),
-                                                citationUrls = safeCitationUrls,
-                                                isStreaming = isLastAssistant && isStreaming,
-                                                // v1.0.72: 选择模式或文本选择模式都禁用链接检测:
-                                                // 文本选择模式必须禁用,否则 LinkableText 的 pointerInput 拦截长按,
-                                                // 系统文本选择手柄永远无法激活(用户反馈"选择文本完全失效")
-                                                disableLinks = selectionMode,
-                                                onHtmlPreview = onHtmlPreview,
-                                                onCardAction = onCardAction,
-                                                // v2.6.13: 卡片身份必须直通 —— 正文里的 ```html / ```svg
-                                                // 卡片靠它读自己的绑定数据、回传时带来源。
-                                                cardId = msg.id.toString(),
-                                                // v1.0.72: 长按非链接区域 → 弹气泡长按菜单(修复长按消息无反应)
-                                                onLongPressOutside = {
-                                                    actionSurface = MessageActionSurface.Compact
-                                                },
-                                            )
-                                        }
+                                    // 内联特效判定与剥离都在这里每帧跑；两个结果只由 bodyContent 决定，按它缓存。
+                                    val hasInlineEffect = remember(bodyContent) {
+                                        MoodSkinParser.containsInlineEffect(bodyContent)
                                     }
-                                    if (dataCard != null) {
-                                        io.zer0.muse.ui.markdown.DataCardRenderer(card = dataCard)
+                                    val bodyWithoutInlineEffect = remember(bodyContent, hasInlineEffect) {
+                                        if (hasInlineEffect) bodyContent else MoodSkinParser.stripInlineEffects(bodyContent)
+                                    }
+                                    // v1.79 (H-B3): 防御性处理 citationUrls,MarkdownText 内部应保证 [N] 不越界
+                                    val safeCitationUrls = msg.citationUrls
+                                    if (highlightText != null && bodyContent.contains(highlightText, ignoreCase = true)) {
+                                        androidx.compose.material3.Text(
+                                            text = buildHighlightedText(bodyContent, highlightText),
+                                            style = bodyStyle,
+                                            color = bodyTextColor,
+                                            modifier = Modifier.fillMaxWidth(),
+                                        )
+                                    } else if (hasInlineEffect) {
+                                        Text(
+                                            text = buildMoodSkinAnnotated(bodyContent),
+                                            style = bodyStyle,
+                                            color = bodyTextColor,
+                                            modifier = Modifier.fillMaxWidth(),
+                                        )
                                     } else {
-                                        markdownContent()
+                                        // v2.x: 表情包标记 [[sticker:分类]] → 纯图片卡片;无标记时零开销直通原 MarkdownText
+                                        // ```card 块已在 MarkdownText 内按块级内联渲染，不再吞掉前后正文。
+                                        StickerAwareMarkdownBody(
+                                            text = bodyWithoutInlineEffect,
+                                            stickerSeed = msg.id.hashCode().toLong(),
+                                            style = bodyStyle,
+                                            color = bodyTextColor,
+                                            modifier = Modifier.fillMaxWidth(),
+                                            citationUrls = safeCitationUrls,
+                                            isStreaming = isLastAssistant && isStreaming,
+                                            // v1.0.72: 选择模式或文本选择模式都禁用链接检测:
+                                            // 文本选择模式必须禁用,否则 LinkableText 的 pointerInput 拦截长按,
+                                            // 系统文本选择手柄永远无法激活(用户反馈"选择文本完全失效")
+                                            disableLinks = selectionMode,
+                                            onHtmlPreview = onHtmlPreview,
+                                            onCardAction = onCardAction,
+                                            // v2.6.13: 卡片身份必须直通 —— 正文里的 ```html / ```svg
+                                            // 卡片靠它读自己的绑定数据、回传时带来源。
+                                            cardId = msg.id.toString(),
+                                            // v1.0.72: 长按非链接区域 → 弹气泡长按菜单(修复长按消息无反应)
+                                            onLongPressOutside = {
+                                                actionSurface = MessageActionSurface.Compact
+                                            },
+                                        )
                                     }
                                 }
                                 // 功能3: 链接预览卡片(仅非流式时,避免流式增量导致重抓)
@@ -1712,10 +1694,17 @@ internal fun MessageBubble(
                                         modifier = Modifier.padding(top = 2.dp),
                                     )
                                 }
-                                // v1.43: 产物卡片列表(代码/文档/HTML/SVG/图片等)
-                                if (artifacts.isNotEmpty()) {
+                                // 仅展示独立产物（<artifact> 抽取物等）；自动同步进库的 rich_card 已在上方正文渲染，
+                                // 长文交付物（doc_ 前缀）同理，不再双渲染
+                                val displayArtifacts = remember(artifacts) {
+                                    artifacts.filterNot {
+                                        it.type.equals("rich_card", ignoreCase = true) ||
+                                            it.id.startsWith(io.zer0.muse.ui.artifact.LongFormArtifacts.ID_PREFIX)
+                                    }
+                                }
+                                if (displayArtifacts.isNotEmpty()) {
                                     ArtifactCardList(
-                                        artifacts = artifacts,
+                                        artifacts = displayArtifacts,
                                         onArtifactClick = onArtifactClick,
                                         modifier = Modifier.padding(top = MusePaddings.contentGap),
                                     )
@@ -2256,12 +2245,11 @@ internal fun MessageBubble(
                                             },
                                         )
                                     }
-                                    // U-2: AI 消息长按菜单补"朗读/停止朗读"(复用 TTS 开关回调;仅 AI 消息)
                                     if (!isUser && msg.content.isNotBlank()) {
-                                        val ttsLabel = if (isSpeaking) {
-                                            stringResource(R.string.chat_tts_stop)
-                                        } else {
-                                            stringResource(R.string.chat_tts_play)
+                                        val ttsLabel = when {
+                                            isSpeaking -> stringResource(R.string.chat_tts_stop)
+                                            voiceUri == null -> stringResource(R.string.chat_voice_convert_action)
+                                            else -> stringResource(R.string.chat_tts_play)
                                         }
                                         ActionMenuItem(
                                             icon = MuseIcons.play,

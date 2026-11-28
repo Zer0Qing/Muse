@@ -1,8 +1,11 @@
 package io.zer0.muse.ui.artifact
 
+import android.content.Context
+import android.content.Intent
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,44 +23,66 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.core.content.FileProvider
+import io.zer0.common.Logger
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.feedback.MuseToast
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
+import io.zer0.muse.ui.common.form.MuseCapsuleButton
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.icons.MuseIcons
+import io.zer0.muse.ui.common.media.LifecycleAwareWebView
 import io.zer0.muse.ui.common.media.LifecycleAwareWebViewFactory
 import io.zer0.muse.ui.common.state.MuseSpinner
+import io.zer0.muse.ui.common.surface.MuseDialogWindowEffect
 import io.zer0.muse.ui.common.surface.museSafeTopInsetPadding
 import io.zer0.muse.ui.theme.MuseIconSizes
+import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.theme.MuseSpacing
+import io.zer0.muse.util.ShareIntentHelper
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.json.JSONObject
+import java.io.File
 
 /**
- * v2.0.1: 文档预览（PDF）— 全屏 WebView + pdf.js（assets 离线分发）。
+ * 文档预览（PDF）— 全屏 WebView + pdf.js（assets 离线分发），支持分享与外部应用打开。
  *
- * 数据以 base64 注入 viewer.html 的 `window.renderPdf`（避免 file:// 跨域限制）；
- * 超过 [MAX_DOC_BYTES] 的文件回退加载失败态（后续可扩展分块加载）。
+ * 超过 [MAX_DOC_BYTES] 时提示大小上限，并保留外部应用打开入口。
  */
 @Composable
 fun DocPreviewDialog(fileName: String, loadBytes: suspend () -> ByteArray?, onDismiss: () -> Unit) {
+    val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    var payloadB64 by remember { mutableStateOf<String?>(null) }
-    var failed by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    var rawBytes by remember(fileName) { mutableStateOf<ByteArray?>(null) }
+    var payloadB64 by remember(fileName) { mutableStateOf<String?>(null) }
+    var tooLarge by remember(fileName) { mutableStateOf(false) }
+    var failed by remember(fileName) { mutableStateOf(false) }
     val webViewRef = remember { arrayOfNulls<WebView>(1) }
 
     LaunchedEffect(fileName) {
-        val bytes = runCatching { loadBytes() }.getOrNull()
-        if (bytes == null || bytes.isEmpty() || bytes.size > MAX_DOC_BYTES) {
-            failed = true
-        } else {
-            payloadB64 = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
+        val bytes = runCatching { withContext(Dispatchers.IO) { loadBytes() } }.getOrNull()
+        rawBytes = bytes
+        when {
+            bytes == null || bytes.isEmpty() -> failed = true
+            bytes.size > MAX_DOC_BYTES -> tooLarge = true
+            else -> payloadB64 = withContext(Dispatchers.Default) {
+                android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
+            }
         }
     }
 
@@ -68,6 +93,7 @@ fun DocPreviewDialog(fileName: String, loadBytes: suspend () -> ByteArray?, onDi
             decorFitsSystemWindows = false,
         ),
     ) {
+        MuseDialogWindowEffect(forceFullScreen = true)
         Surface(
             color = MaterialTheme.colorScheme.background,
             modifier = Modifier.fillMaxSize(),
@@ -77,7 +103,7 @@ fun DocPreviewDialog(fileName: String, loadBytes: suspend () -> ByteArray?, onDi
                     modifier = Modifier
                         .fillMaxWidth()
                         .museSafeTopInsetPadding()
-                        .padding(horizontal = 4.dp, vertical = 4.dp),
+                        .padding(horizontal = MuseSpacing.xs, vertical = MuseSpacing.xs),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     MuseTactileButton(
@@ -85,7 +111,7 @@ fun DocPreviewDialog(fileName: String, loadBytes: suspend () -> ByteArray?, onDi
                         onClick = onDismiss,
                         contentDescription = stringResource(R.string.action_back),
                     )
-                    Spacer(Modifier.width(4.dp))
+                    Spacer(Modifier.width(MuseSpacing.xs))
                     Text(
                         text = fileName,
                         style = MaterialTheme.typography.titleMedium,
@@ -94,6 +120,29 @@ fun DocPreviewDialog(fileName: String, loadBytes: suspend () -> ByteArray?, onDi
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f),
                     )
+                    val availableBytes = rawBytes
+                    if (availableBytes != null && availableBytes.isNotEmpty()) {
+                        MuseTactileButton(
+                            icon = MuseIcons.share,
+                            onClick = {
+                                scope.launch {
+                                    sharePdfBytes(context, fileName, availableBytes)
+                                }
+                            },
+                            contentDescription = stringResource(R.string.common_share),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        MuseTactileButton(
+                            icon = MuseIcons.externalLink,
+                            onClick = {
+                                scope.launch {
+                                    openPdfExternal(context, fileName, availableBytes)
+                                }
+                            },
+                            contentDescription = stringResource(R.string.artifact_open_external),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
                 Box(
                     modifier = Modifier
@@ -103,6 +152,29 @@ fun DocPreviewDialog(fileName: String, loadBytes: suspend () -> ByteArray?, onDi
                 ) {
                     val b64 = payloadB64
                     when {
+                        tooLarge -> Column(
+                            modifier = Modifier.padding(MusePaddings.screen),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(MuseSpacing.md),
+                        ) {
+                            Text(
+                                text = stringResource(R.string.doc_preview_too_large),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center,
+                            )
+                            val oversizedBytes = rawBytes
+                            if (oversizedBytes != null) {
+                                MuseCapsuleButton(
+                                    text = stringResource(R.string.artifact_open_external),
+                                    onClick = {
+                                        scope.launch { openPdfExternal(context, fileName, oversizedBytes) }
+                                    },
+                                    variant = IosCapsuleButtonVariant.Secondary,
+                                    fillWidth = false,
+                                )
+                            }
+                        }
                         failed -> Text(
                             text = stringResource(R.string.common_load_failed),
                             style = MaterialTheme.typography.bodyMedium,
@@ -117,6 +189,9 @@ fun DocPreviewDialog(fileName: String, loadBytes: suspend () -> ByteArray?, onDi
                                     settings.javaScriptEnabled = true
                                     settings.allowFileAccess = false
                                     settings.allowContentAccess = false
+                                    settings.setSupportZoom(true)
+                                    settings.builtInZoomControls = true
+                                    settings.displayZoomControls = false
                                     settings.mediaPlaybackRequiresUserGesture = true
                                     setBackgroundColor(android.graphics.Color.TRANSPARENT)
                                     val labels = JSONObject().apply {
@@ -142,11 +217,60 @@ fun DocPreviewDialog(fileName: String, loadBytes: suspend () -> ByteArray?, onDi
         }
     }
 
-    DisposableEffect(Unit) {
+    DisposableEffect(lifecycleOwner) {
         onDispose {
-            webViewRef[0]?.destroy()
+            webViewRef[0]?.also { wv ->
+                if (wv is LifecycleAwareWebView) {
+                    lifecycleOwner.lifecycle.removeObserver(wv)
+                }
+                wv.destroy()
+            }
             webViewRef[0] = null
         }
+    }
+}
+
+private suspend fun writeTempPdfUri(context: Context, fileName: String, bytes: ByteArray) = withContext(Dispatchers.IO) {
+    val safeName = artifactExportFileName(fileName.substringBeforeLast('.'), ".pdf")
+    val dir = File(context.cacheDir, "artifact_open").apply { mkdirs() }
+    val file = File(dir, safeName)
+    file.writeBytes(bytes)
+    FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+}
+
+private suspend fun sharePdfBytes(context: Context, fileName: String, bytes: ByteArray) {
+    runCatching {
+        val uri = writeTempPdfUri(context, fileName, bytes)
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "application/pdf"
+            putExtra(Intent.EXTRA_SUBJECT, fileName)
+            putExtra(Intent.EXTRA_STREAM, uri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        ShareIntentHelper.startChooserSafely(
+            context = context,
+            shareIntent = intent,
+            chooserTitle = context.getString(R.string.artifact_share_chooser),
+        )
+    }.onFailure { e ->
+        Logger.w("DocPreviewDialog", "分享 PDF 失败: ${e.message}", e)
+        MuseToast.show(context.getString(R.string.artifact_open_failed_with_reason, e.message ?: ""))
+    }
+}
+
+private suspend fun openPdfExternal(context: Context, fileName: String, bytes: ByteArray) {
+    runCatching {
+        val uri = writeTempPdfUri(context, fileName, bytes)
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, "application/pdf")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        context.startActivity(intent)
+    }.onFailure { e ->
+        val reason = e.message ?: e.javaClass.simpleName
+        Logger.w("DocPreviewDialog", "外部打开 PDF 失败: $reason", e)
+        MuseToast.show(context.getString(R.string.artifact_open_failed_with_reason, reason))
     }
 }
 

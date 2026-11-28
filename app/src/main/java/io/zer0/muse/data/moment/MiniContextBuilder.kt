@@ -1,8 +1,8 @@
 package io.zer0.muse.data.moment
 
-import io.zer0.common.AppJson
 import io.zer0.ai.core.MessageRole
 import io.zer0.ai.core.UIMessage
+import io.zer0.common.AppJson
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.muse.data.SettingsRepository
@@ -18,9 +18,8 @@ import io.zer0.muse.transformer.SystemPromptAssembler
 import io.zer0.muse.transformer.ThinkTagTransformer
 import io.zer0.muse.transformer.TransformContext
 import io.zer0.muse.transformer.TransformerPipeline
-import io.zer0.muse.worldbook.WorldBookHook
-import kotlinx.serialization.json.Json
 import io.zer0.muse.ui.chat.ChatViewModel
+import io.zer0.muse.worldbook.WorldBookHook
 
 /**
  * 小手机（私信对话 / 主动消息 / 动态）这类"旁路生成"的上下文构建器。

@@ -14,6 +14,9 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.test.core.app.ApplicationProvider
 import io.zer0.muse.R
 import io.zer0.muse.ui.common.feedback.MUSE_DIALOG_SCRIM_TAG
+import io.zer0.muse.ui.memory.MemoryMergeDialog
+import io.zer0.muse.ui.memory.MemoryMergeDraft
+import io.zer0.muse.ui.memory.mergeDialogProperties
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -23,9 +26,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.util.concurrent.atomic.AtomicBoolean
-import io.zer0.muse.ui.memory.MemoryMergeDialog
-import io.zer0.muse.ui.memory.mergeDialogProperties
-import io.zer0.muse.ui.memory.MemoryMergeDraft
 
 /**
  * 多选合并预览弹窗的交互约束。

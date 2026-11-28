@@ -13,7 +13,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
-import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * P2-2 拆分：聊天行为设置子仓库。
@@ -77,10 +76,10 @@ class ChatSettingsStore(private val context: Context) {
             val raw = prefs[KEY_CHAT_PREFERENCES]
             backupIfCorrupt(raw)
             val current = decodeChatPreferences(raw)
-            if (!current.preferCardOutput || !current.generativeUiEnabled) {
+            if (!current.generativeUiEnabled) {
                 prefs[KEY_CHAT_PREFERENCES] = AppJson.encodeToString(
                     ChatPreferences.serializer(),
-                    current.copy(preferCardOutput = true, generativeUiEnabled = true),
+                    current.copy(generativeUiEnabled = true),
                 )
             }
             prefs[KEY_CARD_OUTPUT_ON_MIGRATED] = true

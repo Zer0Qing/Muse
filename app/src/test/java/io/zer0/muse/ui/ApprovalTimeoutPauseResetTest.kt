@@ -2,7 +2,6 @@ package io.zer0.muse.ui
 
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import io.zer0.muse.ui.chat.ChatScreen
 
 /**
  * AUD-UI-F12: 审批超时暂停状态必须在离开组合时复位。

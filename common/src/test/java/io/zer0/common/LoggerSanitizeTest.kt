@@ -143,5 +143,4 @@ class LoggerSanitizeTest {
         assertTrue("展开层数应受限，实际 caused=$caused", caused <= Logger.MAX_CAUSE_DEPTH - 1)
         assertFalse(safe.message!!.contains("DEEP"))
     }
-
 }

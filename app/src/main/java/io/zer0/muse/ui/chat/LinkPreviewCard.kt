@@ -35,6 +35,7 @@ import io.zer0.common.Logger
 import io.zer0.common.Result
 import io.zer0.common.resultOf
 import io.zer0.muse.R
+import io.zer0.muse.ui.common.SsrfGuard
 import io.zer0.muse.ui.common.surface.MuseSurface
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
@@ -46,7 +47,6 @@ import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URI
 import java.net.URL
-import io.zer0.muse.ui.common.SsrfGuard
 
 private const val TAG = "LinkPreviewCard"
 
@@ -103,7 +103,8 @@ internal fun linkDomain(url: String): String {
  *  通过 IGNORE_CASE 容错大小写,允许 property 与 content 任意先后。
  */
 private val META_REGEX = Regex(
-    """<meta\s+[^>]*(?:property|name)\s*=\s*["']([^"']+)["'][^>]*content\s*=\s*["']([^"']*)["'][^>]*/?>|<meta\s+[^>]*content\s*=\s*["']([^"']*)["'][^>]*(?:property|name)\s*=\s*["']([^"']+)["'][^>]*/?>""",
+    """<meta\s+[^>]*(?:property|name)\s*=\s*["']([^"']+)["'][^>]*content\s*=\s*["']([^"']*)["'][^>]*/?>|""" +
+        """<meta\s+[^>]*content\s*=\s*["']([^"']*)["'][^>]*(?:property|name)\s*=\s*["']([^"']+)["'][^>]*/?>""",
     RegexOption.IGNORE_CASE,
 )
 

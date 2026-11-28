@@ -92,11 +92,12 @@ class AgnesVideoProvider(
     /** R-TEST-20: Agnes 视频请求体构造(纯 DTO,便于测试)。 */
     internal fun buildRequestBody(request: VideoGenRequest, numFrames: Int): JsonObject {
         val images = request.referenceImages.filter { it.isNotBlank() }
+        val (resolvedWidth, resolvedHeight) = resolveDimensions(request)
         return buildJsonObject {
             put("model", request.model.ifBlank { DEFAULT_MODEL })
             put("prompt", request.prompt)
-            put("width", request.width)
-            put("height", request.height)
+            put("width", resolvedWidth)
+            put("height", resolvedHeight)
             put("frame_rate", request.frameRate)
             put("num_frames", numFrames)
             when {
@@ -110,6 +111,21 @@ class AgnesVideoProvider(
                     )
                 }
             }
+        }
+    }
+
+    private fun resolveDimensions(request: VideoGenRequest): Pair<Int, Int> {
+        val isDefaultSize = request.width == DEFAULT_WIDTH && request.height == DEFAULT_HEIGHT
+        if (!isDefaultSize || request.aspectRatio.isBlank()) {
+            return request.width to request.height
+        }
+        return when (request.aspectRatio.trim()) {
+            "16:9" -> 1280 to 720
+            "9:16" -> 720 to 1280
+            "1:1" -> 960 to 960
+            "4:3" -> 1024 to 768
+            "3:4" -> 768 to 1024
+            else -> request.width to request.height
         }
     }
 
@@ -151,8 +167,10 @@ class AgnesVideoProvider(
                     val apiMsg = parseApiErrorMessage(respBody)
                     error(
                         "Agnes submit 失败: HTTP ${resp.code}" +
-                            (apiMsg?.let { ": $it" }
-                                ?: ProviderError.safeErrorDetail(respBody)?.let { ": $it" }.orEmpty()),
+                            (
+                                apiMsg?.let { ": $it" }
+                                    ?: ProviderError.safeErrorDetail(respBody)?.let { ": $it" }.orEmpty()
+                                ),
                     )
                 }
                 val root = json.parseToJsonElement(respBody).jsonObject
@@ -408,6 +426,10 @@ class AgnesVideoProvider(
 
         /** 默认帧率。 */
         private const val DEFAULT_FRAME_RATE = 24
+
+        /** 默认宽/高(pixels)。 */
+        private const val DEFAULT_WIDTH = 1152
+        private const val DEFAULT_HEIGHT = 768
 
         /** 默认时长(秒)。 */
         private const val DEFAULT_DURATION = 5

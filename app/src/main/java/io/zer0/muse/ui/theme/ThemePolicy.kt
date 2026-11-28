@@ -6,7 +6,8 @@ import kotlinx.serialization.Serializable
 enum class BaseThemeMode(val wireValue: String) {
     SYSTEM("system"),
     LIGHT("light"),
-    DARK("dark");
+    DARK("dark"),
+    ;
 
     companion object {
         fun fromWire(value: String): BaseThemeMode = entries.firstOrNull { it.wireValue == value } ?: SYSTEM

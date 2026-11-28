@@ -1,6 +1,7 @@
 package io.zer0.muse.debug
 
 import android.content.Context
+import io.zer0.muse.ui.theme.MuseDateFormats
 import java.io.File
 import java.io.PrintWriter
 import java.io.StringWriter
@@ -9,8 +10,6 @@ import java.util.Date
 import java.util.Locale
 import java.util.concurrent.ConcurrentLinkedDeque
 import java.util.concurrent.atomic.AtomicInteger
-import io.zer0.muse.ui.debug.DebugScreen
-import io.zer0.muse.ui.theme.MuseDateFormats
 
 /**
  * 调试日志内存存储 — 环形缓冲 + 可导出文件。

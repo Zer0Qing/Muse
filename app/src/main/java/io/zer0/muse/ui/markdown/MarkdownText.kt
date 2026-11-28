@@ -12,11 +12,9 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -41,6 +39,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
@@ -68,22 +70,21 @@ import io.zer0.common.resultOf
 import io.zer0.muse.R
 import io.zer0.muse.common.markdown.FrontmatterParser
 import io.zer0.muse.perf.MarkdownParseCache
+import io.zer0.muse.ui.chat.ChatScreen
+import io.zer0.muse.ui.chat.MessageBubble
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.icons.MuseIcons
+import io.zer0.muse.ui.screen.HtmlPreviewScreen
 import io.zer0.muse.ui.theme.MuseElevation
 import io.zer0.muse.ui.theme.MuseMarkdownRhythm
 import io.zer0.muse.ui.theme.MuseMonoFontFamily
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
-import io.zer0.muse.ui.theme.pill
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import java.io.File
-import io.zer0.muse.ui.screen.HtmlPreviewScreen
-import io.zer0.muse.ui.chat.MessageBubble
-import io.zer0.muse.ui.chat.ChatScreen
 
 // L-MD15 修复: 行号 gutter 宽度计算常量(原先 10dp/16dp 硬编码在 CodeBlockView 内)
 // 每位数字宽度 10dp,最小宽度 16dp(1 位数也保留对齐空间)
@@ -224,11 +225,10 @@ fun MarkdownText(
     // 内容非纯追加时解析器内部自动回退全量。
     val allBlocks: List<MarkdownBlock> = if (isStreaming) {
         val parser = remember { IncrementalMarkdownParser() }
-        val streamed by produceState<List<MarkdownBlock>>(emptyList(), bodyText) {
-            // v1.0.92: 50ms → 16ms(一帧) — 流式内容延迟出现是"卡顿+闪现"感的来源之一;
-            // chunk 间隔(~50ms)本身已提供自然降频,此延迟仅用于让快速连续变更合并到一帧。
+        val streamed by produceState<List<MarkdownBlock>>(emptyList(), bodyText, cardId) {
             delay(16)
             val parsed = withContext(Dispatchers.Default) { parser.parse(bodyText) }
+            MarkdownParseCache.put(cardId, bodyText, parsed)
             value = parsed
         }
         streamed
@@ -326,165 +326,188 @@ fun MarkdownText(
             }
             visible
         }
+        val globalBlockOffset = allBlocks.size - blocks.size
         renderedBlocks.forEachIndexed { idx, (block, blankBetween) ->
-            val gap = markdownBlockGap(renderedBlocks.getOrNull(idx - 1)?.first, block, blankBetween)
-            if (gap > 0.dp) Spacer(Modifier.height(gap))
-            when (block) {
-                is MarkdownBlock.Paragraph -> {
-                    // Phase 8.5 修复: parseInline 用 remember 缓存,避免每次重组重新解析行内格式。
-                    // 键包含 text + 所有颜色 + citationUrls,任一变化才重新解析。
-                    val annotated = remember(block.text, color, linkColor, codeBgColor, citationUrls, citationColor) {
-                        parseInline(block.text, color, linkColor, codeBgColor, citationUrls, citationColor)
+            key(globalBlockOffset + idx) {
+                val gap = markdownBlockGap(renderedBlocks.getOrNull(idx - 1)?.first, block, blankBetween)
+                if (gap > 0.dp) Spacer(Modifier.height(gap))
+                when (block) {
+                    is MarkdownBlock.Paragraph -> {
+                        // Phase 8.5 修复: parseInline 用 remember 缓存,避免每次重组重新解析行内格式。
+                        // 键包含 text + 所有颜色 + citationUrls,任一变化才重新解析。
+                        val annotated = remember(block.text, color, linkColor, codeBgColor, citationUrls, citationColor) {
+                            parseInline(block.text, color, linkColor, codeBgColor, citationUrls, citationColor)
+                        }
+                        if (isStreaming || disableLinks) {
+                            // v1.42: 流式中直接用 Text 渲染,避免 LinkableText 的 pointerInput 随内容变化反复重建。
+                            // v1.0.63: 多选模式下同样用 Text,保证点击消息本体可选中。
+                            Text(
+                                text = annotated,
+                                style = style,
+                                color = color,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        } else {
+                            LinkableText(
+                                annotatedText = annotated,
+                                style = style,
+                                modifier = Modifier.fillMaxWidth(),
+                                onLongPressOutside = onLongPressOutside,
+                            )
+                        }
                     }
-                    if (isStreaming || disableLinks) {
-                        // v1.42: 流式中直接用 Text 渲染,避免 LinkableText 的 pointerInput 随内容变化反复重建。
-                        // v1.0.63: 多选模式下同样用 Text,保证点击消息本体可选中。
-                        Text(
-                            text = annotated,
-                            style = style,
-                            color = color,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    } else {
-                        LinkableText(
-                            annotatedText = annotated,
-                            style = style,
-                            modifier = Modifier.fillMaxWidth(),
-                            onLongPressOutside = onLongPressOutside,
-                        )
-                    }
-                }
 
-                is MarkdownBlock.Heading -> {
-                    // v2.x: 层级拉出清晰的 24 / 20 / 17 阶梯(此前 h1 与 h2 同为 20sp,层级塌陷);
-                    // 上下留白交给 [markdownBlockGap](上大下小,标题贴近所引导的正文)。
-                    val headingStyle = when (block.level) {
-                        1 -> MaterialTheme.typography.headlineLarge
-                        2 -> MaterialTheme.typography.titleLarge
-                        3 -> MaterialTheme.typography.titleMedium
-                        4 -> MaterialTheme.typography.titleSmall
-                        else -> MaterialTheme.typography.labelLarge
+                    is MarkdownBlock.Heading -> {
+                        // v2.x: 层级拉出清晰的 24 / 20 / 17 阶梯(此前 h1 与 h2 同为 20sp,层级塌陷);
+                        // 上下留白交给 [markdownBlockGap](上大下小,标题贴近所引导的正文)。
+                        val headingStyle = when (block.level) {
+                            1 -> MaterialTheme.typography.headlineLarge
+                            2 -> MaterialTheme.typography.titleLarge
+                            3 -> MaterialTheme.typography.titleMedium
+                            4 -> MaterialTheme.typography.titleSmall
+                            else -> MaterialTheme.typography.labelLarge
+                        }
+                        val annotated = remember(block.text, color, linkColor, codeBgColor, citationUrls, citationColor) {
+                            parseInline(block.text, color, linkColor, codeBgColor, citationUrls, citationColor)
+                        }
+                        // v2.x: 显式取主题正文墨色(此前未传 color,依赖 LocalContentColor 兜底)
+                        val headingColor = MaterialTheme.colorScheme.onSurface
+                        if (disableLinks) {
+                            Text(
+                                text = annotated,
+                                style = headingStyle,
+                                color = headingColor,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        } else {
+                            LinkableText(
+                                annotatedText = annotated,
+                                style = headingStyle,
+                                color = headingColor,
+                                modifier = Modifier.fillMaxWidth(),
+                                onLongPressOutside = onLongPressOutside,
+                            )
+                        }
                     }
-                    val annotated = remember(block.text, color, linkColor, codeBgColor, citationUrls, citationColor) {
-                        parseInline(block.text, color, linkColor, codeBgColor, citationUrls, citationColor)
-                    }
-                    // v2.x: 显式取主题正文墨色(此前未传 color,依赖 LocalContentColor 兜底)
-                    val headingColor = MaterialTheme.colorScheme.onSurface
-                    if (disableLinks) {
-                        Text(
-                            text = annotated,
-                            style = headingStyle,
-                            color = headingColor,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    } else {
-                        LinkableText(
-                            annotatedText = annotated,
-                            style = headingStyle,
-                            color = headingColor,
-                            modifier = Modifier.fillMaxWidth(),
-                            onLongPressOutside = onLongPressOutside,
-                        )
-                    }
-                }
 
-                is MarkdownBlock.CodeBlock -> {
-                    val richLang = block.language?.lowercase()?.trim().orEmpty()
-                    // v2.6.6: 生成式卡片渐进渲染 —— 流式期间也让 svg/html/chart 卡片出现，
-                    // 而不是降级为纯文本（对齐 Intelligent UI 的“边生成边渲染”）。
-                    // 内容太短时不渲染（避免半句 HTML 闪一下）；卡片内部按长度节流重绘。
-                    val canProgressiveCard =
-                        richLang in setOf("svg", "html", "chart") &&
-                            block.code.length >= ProgressiveCard.MIN_CHARS
-                    if (canProgressiveCard) {
-                        RichContentCard(
-                            language = richLang,
-                            content = block.code,
-                            onHtmlPreview = onHtmlPreview,
-                            onCardAction = onCardAction,
-                            cardId = cardId,
-                            progressive = isStreaming,
-                        )
-                    } else if (isStreaming) {
-                        // v1.97 (P2): 非卡片代码块流式期间降级为纯文本预览
-                        StreamingCodePreview(block, style, codeBgColor)
-                    } else {
-                        // v0.48: 富媒体代码块(svg/html/chart)用 RichContentCard 渲染,其余走 CodeBlockView
-                        when {
-                            // ChartRenderer: mermaid / plantuml 用独立渲染器(WebView + Coil,含高度自适应与失败回退)
-                            isMermaidCodeBlock(block.language, block.code) -> MermaidBlock(code = block.code)
-                            isPlantUmlCodeBlock(block.language, block.code) -> PlantUmlBlock(code = block.code)
-                            richLang in setOf("svg", "html", "chart") ->
-                                RichContentCard(
-                                    language = richLang,
+                    is MarkdownBlock.CodeBlock -> {
+                        val richLang = block.language?.lowercase()?.trim().orEmpty()
+                        // v2.6.6: 生成式卡片渐进渲染 —— 流式期间也让 svg/html/chart 卡片出现，
+                        // 而不是降级为纯文本（对齐 Intelligent UI 的“边生成边渲染”）。
+                        // 内容太短时不渲染（避免半句 HTML 闪一下）；卡片内部按长度节流重绘。
+                        val canProgressiveCard =
+                            richLang in setOf("svg", "html", "chart") &&
+                                block.code.length >= ProgressiveCard.MIN_CHARS
+                        if (canProgressiveCard) {
+                            RichContentCard(
+                                language = richLang,
+                                content = block.code,
+                                onHtmlPreview = onHtmlPreview,
+                                onCardAction = onCardAction,
+                                cardId = cardId,
+                                progressive = isStreaming,
+                            )
+                        } else if (isStreaming) {
+                            // v1.97 (P2): 非卡片代码块流式期间降级为纯文本预览
+                            StreamingCodePreview(block, style, codeBgColor)
+                        } else {
+                            // v0.48: 富媒体代码块(svg/html/chart)用 RichContentCard 渲染,其余走 CodeBlockView
+                            when {
+                                richLang == "card" -> {
+                                    val dataCard = remember(block.code) { DataCardParser.parseJson(block.code) }
+                                    if (dataCard != null) {
+                                        DataCardRenderer(card = dataCard)
+                                    } else {
+                                        CodeBlockView(block)
+                                    }
+                                }
+                                isMermaidCodeBlock(block.language, block.code) -> RichContentCard(
+                                    language = "mermaid",
                                     content = block.code,
                                     onHtmlPreview = onHtmlPreview,
                                     onCardAction = onCardAction,
                                     cardId = cardId,
                                 )
-                            else -> CodeBlockView(block)
+                                isPlantUmlCodeBlock(block.language, block.code) -> PlantUmlBlock(code = block.code)
+                                richLang in setOf("svg", "html", "chart") ->
+                                    RichContentCard(
+                                        language = richLang,
+                                        content = block.code,
+                                        onHtmlPreview = onHtmlPreview,
+                                        onCardAction = onCardAction,
+                                        cardId = cardId,
+                                    )
+                                else -> CodeBlockView(block)
+                            }
                         }
                     }
-                }
 
-                is MarkdownBlock.ListItem -> ListItemView(block, style, color, linkColor, codeBgColor, citationUrls, citationColor)
+                    is MarkdownBlock.ListItem -> ListItemView(block, style, color, linkColor, codeBgColor, citationUrls, citationColor)
 
-                is MarkdownBlock.Quote -> QuoteView(
-                    block,
-                    style,
-                    color,
-                    linkColor,
-                    codeBgColor,
-                    quoteTextColor,
-                    citationUrls,
-                    citationColor,
-                )
-
-                // Phase 8.6: LaTeX 公式块(JLatexMath 渲染)
-                // v1.97 (P2): 流式期间降级为纯文本,跳过 JLatexMath 渲染(重布局)
-                is MarkdownBlock.Formula -> {
-                    if (isStreaming) {
-                        Text(
-                            text = block.latex,
-                            style = style.copy(fontFamily = MuseMonoFontFamily),
-                            color = quoteTextColor,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    } else {
-                        FormulaView(block.latex)
-                    }
-                }
-
-                // v1.97: Markdown 表格
-                // v1.97 (P2): 流式期间降级为纯文本预览,跳过 TableView 布局
-                is MarkdownBlock.Table -> {
-                    if (isStreaming) {
-                        val plain = buildString {
-                            appendLine(block.headers.joinToString(" | "))
-                            block.rows.forEach { appendLine(it.joinToString(" | ")) }
-                        }
-                        Text(
-                            text = plain,
-                            style = style.copy(fontFamily = MuseMonoFontFamily),
-                            color = quoteTextColor,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    } else {
-                        TableView(block)
-                    }
-                }
-
-                MarkdownBlock.Divider -> {
-                    // v2.x: 线色与线宽对齐 MuseDivider(设置页同款发丝线),上下节奏由块间距函数给。
-                    HorizontalDivider(
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.13f),
-                        thickness = MusePaddings.dividerThickness,
+                    is MarkdownBlock.Quote -> QuoteView(
+                        block,
+                        style,
+                        color,
+                        linkColor,
+                        codeBgColor,
+                        quoteTextColor,
+                        citationUrls,
+                        citationColor,
                     )
-                }
 
-                // 空行块已在 renderedBlocks 阶段合并(只贡献"前一块与当前块之间是否有空行"),
-                // 这里保留分支仅为满足 sealed when 的穷尽性,不会真正渲染。
-                MarkdownBlock.Blank -> Unit
+                    // Phase 8.6: LaTeX 公式块(JLatexMath 渲染)
+                    // v1.97 (P2): 流式期间降级为纯文本,跳过 JLatexMath 渲染(重布局)
+                    is MarkdownBlock.Formula -> {
+                        if (isStreaming) {
+                            Text(
+                                text = block.latex,
+                                style = style.copy(fontFamily = MuseMonoFontFamily),
+                                color = quoteTextColor,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        } else {
+                            FormulaView(block.latex)
+                        }
+                    }
+
+                    // v1.97: Markdown 表格
+                    // v1.97 (P2): 流式期间降级为纯文本预览,跳过 TableView 布局
+                    is MarkdownBlock.Table -> {
+                        if (isStreaming) {
+                            val plain = buildString {
+                                appendLine(block.headers.joinToString(" | "))
+                                block.rows.forEach { appendLine(it.joinToString(" | ")) }
+                            }
+                            Text(
+                                text = plain,
+                                style = style.copy(fontFamily = MuseMonoFontFamily),
+                                color = quoteTextColor,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        } else {
+                            TableView(
+                                table = block,
+                                baseColor = color,
+                                linkColor = linkColor,
+                                codeBgColor = codeBgColor,
+                                citationUrls = citationUrls,
+                                citationColor = citationColor,
+                            )
+                        }
+                    }
+
+                    MarkdownBlock.Divider -> {
+                        // v2.x: 线色与线宽对齐 MuseDivider(设置页同款发丝线),上下节奏由块间距函数给。
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.13f),
+                            thickness = MusePaddings.dividerThickness,
+                        )
+                    }
+
+                    // 空行块已在 renderedBlocks 阶段合并(只贡献"前一块与当前块之间是否有空行"),
+                    // 这里保留分支仅为满足 sealed when 的穷尽性,不会真正渲染。
+                    MarkdownBlock.Blank -> Unit
+                }
             }
         }
     }
@@ -773,51 +796,48 @@ private fun CodeBlockView(block: MarkdownBlock.CodeBlock) {
             // Phase 10.5: 行号右对齐 + 固定宽度(按总行数位数计算),1/10/100 对齐美观
             // L-MD15 修复: gutter 宽度用文件级常量计算(原先 10/16 硬编码)
             val gutterWidth = (lineCount.toString().length * GUTTER_CHAR_WIDTH_DP).coerceAtLeast(GUTTER_MIN_WIDTH_DP).dp
+            val codeTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+            val gutterText = remember(displayedLines.size) {
+                (1..displayedLines.size).joinToString("\n")
+            }
+            val joinedCode = remember(displayedLines, expanded, hiddenCount) {
+                buildString {
+                    displayedLines.forEachIndexed { idx, line ->
+                        if (idx > 0) append('\n')
+                        if (!expanded && idx == previewLineCount - 1 && hiddenCount > 0) {
+                            append(line)
+                            append("  // …")
+                        } else {
+                            append(line)
+                        }
+                    }
+                }
+            }
+            val highlightedCode = CodeHighlighter.highlight(joinedCode, block.language)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .horizontalScroll(rememberScrollState()),
             ) {
-                // 行号 gutter(右对齐,等宽字体保证数字对齐)
-                Column(modifier = Modifier.width(gutterWidth).padding(end = 8.dp)) {
-                    displayedLines.forEachIndexed { idx, _ ->
-                        Text(
-                            text = "${idx + 1}",
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                fontFamily = MuseMonoFontFamily,
-                                textAlign = androidx.compose.ui.text.style.TextAlign.End,
-                            ),
-                            color = MaterialTheme.colorScheme.outline,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-                }
-                // 代码内容
-                // v1.48: 折叠时叠加渐变遮罩,符合"折叠带渐变遮罩"约束
+                Text(
+                    text = gutterText,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontFamily = MuseMonoFontFamily,
+                        textAlign = TextAlign.End,
+                    ),
+                    color = MaterialTheme.colorScheme.outline,
+                    softWrap = false,
+                    modifier = Modifier.width(gutterWidth).padding(end = 8.dp),
+                )
                 Box {
-                    Column {
-                        // H-MD1 修复: 用 key() 标识每行,避免折叠/展开切换时
-                        // forEachIndexed 位置记忆错乱导致 CodeHighlighter 缓存失效。
-                        // 以原始 line 内容为 key(不含折叠时追加的 // … 后缀),
-                        // Compose 能跨重组匹配同一行的高亮缓存。
-                        displayedLines.forEachIndexed { idx, line ->
-                            key(line, idx) {
-                                val displayLine = if (!expanded && idx == previewLineCount - 1 && hiddenCount > 0) {
-                                    // 折叠时最后一行显示省略号提示
-                                    "$line  // …"
-                                } else {
-                                    line
-                                }
-                                Text(
-                                    text = CodeHighlighter.highlight(displayLine, block.language),
-                                    style = MaterialTheme.typography.bodyMedium.copy(
-                                        fontFamily = MuseMonoFontFamily,
-                                    ),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        }
-                    }
+                    Text(
+                        text = highlightedCode,
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontFamily = MuseMonoFontFamily,
+                        ),
+                        color = codeTextColor,
+                        softWrap = false,
+                    )
                     // 折叠时在底部叠加从透明到背景色的渐变,营造"未完待续"的视觉提示
                     if (!expanded && hiddenCount > 0) {
                         val bgColor = MaterialTheme.colorScheme.surfaceVariant
@@ -940,24 +960,28 @@ private fun QuoteView(
     //  - 语义色改为中性 outline —— primary 是"挣来的"交互色,引用只是旁证,不该抢品牌绿;
     //  - 色条高度改为跟随整段文字(原固定 20dp,多行引用只有首行有竖条);
     //  - 上下留白交给 markdownBlockGap,内部仅保留色条与文字的紧凑间距。
-    Row(
+    val accentColor = MaterialTheme.colorScheme.outline
+    val barWidthDp = 3.dp
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(IntrinsicSize.Min),
-        verticalAlignment = Alignment.CenterVertically,
+            .drawBehind {
+                val barWidthPx = barWidthDp.toPx()
+                val radiusPx = barWidthPx / 2f
+                drawRoundRect(
+                    color = accentColor,
+                    topLeft = Offset.Zero,
+                    size = Size(barWidthPx, size.height),
+                    cornerRadius = CornerRadius(radiusPx, radiusPx),
+                )
+            }
+            .padding(start = barWidthDp + MusePaddings.contentGap),
     ) {
-        Box(
-            modifier = Modifier
-                .width(3.dp)
-                .fillMaxHeight()
-                .background(MaterialTheme.colorScheme.outline, MuseShapes.pill),
-        )
-        Spacer(Modifier.width(MusePaddings.contentGap))
         LinkableText(
             annotatedText = annotated,
             style = baseStyle.copy(fontStyle = FontStyle.Italic),
             color = quoteTextColor,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.fillMaxWidth(),
         )
     }
 }
@@ -982,76 +1006,106 @@ fun parseInline(
     citationUrls: List<String> = emptyList(),
     citationColor: Color = linkColor,
 ): AnnotatedString {
-    if (!hasInlineMarkdownSyntax(text, citationUrls.isNotEmpty())) return AnnotatedString(text)
+    if (!hasInlineMarkdownSyntax(text, citationUrls.isNotEmpty())) {
+        return AnnotatedString(CjkLatinSpacing.format(text))
+    }
     return buildAnnotatedString {
-    // L2 修复: 正则已提升为文件级 private val(INLINE_REGEX / CITATION_REGEX),此处直接引用
-    // Phase 8.4: 单独走 [N] 引用扫描(在主正则之后),避免与 [text](url) 冲突
-    var lastEnd = 0
-    INLINE_REGEX.findAll(text).forEach { match ->
-        // 输出匹配前的普通文本(可能含 [N] 引用或纯文本 URL)
-        if (match.range.first > lastEnd) {
+        var lastEnd = 0
+        var lastRealChar: Char? = null
+
+        fun appendPlainSegment(raw: String) {
+            if (raw.isEmpty()) return
+            val spaced = CjkLatinSpacing.format(raw)
+            if (CjkLatinSpacing.needsEdgeGap(lastRealChar, spaced.firstOrNull())) {
+                append(CjkLatinSpacing.THIN_SPACE)
+            }
             appendSegmentWithCitations(
-                text.substring(lastEnd, match.range.first),
+                spaced,
                 citationUrls,
                 citationColor,
                 CITATION_REGEX,
                 baseColor,
                 linkColor,
             )
+            lastRealChar = spaced.lastOrNull() ?: lastRealChar
         }
-        when {
-            // 链接 [text](url) — group 1=text, 2=url
-            match.groupValues[1].isNotEmpty() -> {
-                val linkText = match.groupValues[1]
-                val url = match.groupValues[2]
-                pushStringAnnotation(tag = "URL", annotation = url)
-                withStyle(
-                    SpanStyle(
-                        color = linkColor,
-                        textDecoration = TextDecoration.Underline,
-                    ),
-                ) {
-                    append(linkText)
-                }
-                pop()
+
+        INLINE_REGEX.findAll(text).forEach { match ->
+            if (match.range.first > lastEnd) {
+                appendPlainSegment(text.substring(lastEnd, match.range.first))
             }
-            // 行内代码 `...` — group 3
-            match.groupValues[3].isNotEmpty() -> {
-                withStyle(
-                    SpanStyle(
-                        fontFamily = MuseMonoFontFamily,
-                        background = codeBgColor,
-                    ),
-                ) {
-                    append(match.groupValues[3])
+            when {
+                // 链接 [text](url) — group 1=text, 2=url
+                match.groupValues[1].isNotEmpty() -> {
+                    val linkText = CjkLatinSpacing.format(match.groupValues[1])
+                    val url = match.groupValues[2]
+                    if (CjkLatinSpacing.needsEdgeGap(lastRealChar, linkText.firstOrNull())) {
+                        append(CjkLatinSpacing.THIN_SPACE)
+                    }
+                    pushStringAnnotation(tag = "URL", annotation = url)
+                    withStyle(
+                        SpanStyle(
+                            color = linkColor,
+                            textDecoration = TextDecoration.Underline,
+                        ),
+                    ) {
+                        append(linkText)
+                    }
+                    pop()
+                    lastRealChar = linkText.lastOrNull() ?: lastRealChar
+                }
+                // 行内代码 `...` — group 3
+                match.groupValues[3].isNotEmpty() -> {
+                    val codeText = match.groupValues[3]
+                    if (lastRealChar != null && !lastRealChar!!.isWhitespace() && CjkLatinSpacing.isCjk(lastRealChar!!)) {
+                        append(CjkLatinSpacing.THIN_SPACE)
+                    }
+                    withStyle(
+                        SpanStyle(
+                            fontFamily = MuseMonoFontFamily,
+                            background = codeBgColor,
+                        ),
+                    ) {
+                        append('\u200A')
+                        append(codeText)
+                        append('\u200A')
+                    }
+                    val nextChar = text.getOrNull(match.range.last + 1)
+                    if (nextChar != null && !nextChar.isWhitespace() && CjkLatinSpacing.isCjk(nextChar)) {
+                        append(CjkLatinSpacing.THIN_SPACE)
+                        lastRealChar = CjkLatinSpacing.THIN_SPACE
+                    } else {
+                        lastRealChar = codeText.lastOrNull() ?: lastRealChar
+                    }
+                }
+                // 粗体 **...** — group 4
+                match.groupValues[4].isNotEmpty() -> {
+                    val boldText = CjkLatinSpacing.format(match.groupValues[4])
+                    if (CjkLatinSpacing.needsEdgeGap(lastRealChar, boldText.firstOrNull())) {
+                        append(CjkLatinSpacing.THIN_SPACE)
+                    }
+                    withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                        append(boldText)
+                    }
+                    lastRealChar = boldText.lastOrNull() ?: lastRealChar
+                }
+                // 斜体 *...* — group 5
+                match.groupValues[5].isNotEmpty() -> {
+                    val italicText = CjkLatinSpacing.format(match.groupValues[5])
+                    if (CjkLatinSpacing.needsEdgeGap(lastRealChar, italicText.firstOrNull())) {
+                        append(CjkLatinSpacing.THIN_SPACE)
+                    }
+                    withStyle(SpanStyle(fontStyle = FontStyle.Italic)) {
+                        append(italicText)
+                    }
+                    lastRealChar = italicText.lastOrNull() ?: lastRealChar
                 }
             }
-            // 粗体 **...** — group 4
-            match.groupValues[4].isNotEmpty() -> {
-                withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-                    append(match.groupValues[4])
-                }
-            }
-            // 斜体 *...* — group 5
-            match.groupValues[5].isNotEmpty() -> {
-                withStyle(SpanStyle(fontStyle = FontStyle.Italic)) {
-                    append(match.groupValues[5])
-                }
-            }
+            lastEnd = match.range.last + 1
         }
-        lastEnd = match.range.last + 1
-    }
-    // 输出末尾剩余文本(可能含 [N] 引用或纯文本 URL)
-    if (lastEnd < text.length) {
-        appendSegmentWithCitations(
-            text.substring(lastEnd),
-            citationUrls,
-            citationColor,
-            CITATION_REGEX,
-            baseColor,
-            linkColor,
-        )
-    }
+        if (lastEnd < text.length) {
+            appendPlainSegment(text.substring(lastEnd))
+        }
     }
 }
 
@@ -1159,60 +1213,75 @@ private fun AnnotatedString.Builder.appendCitationOnly(
 }
 
 /**
- * v1.97: Markdown 表格渲染。
- * 表头行用 primary 半透明背景,数据行用 onSurfaceVariant 色,等宽列布局。
+ * Markdown 表格渲染：宽表（>= 4 列）自动横向滚动，单元格支持行内格式解析。
  */
 @Composable
-private fun TableView(table: MarkdownBlock.Table) {
+private fun TableView(
+    table: MarkdownBlock.Table,
+    baseColor: Color,
+    linkColor: Color,
+    codeBgColor: Color,
+    citationUrls: List<String>,
+    citationColor: Color,
+) {
     val headerColor = MaterialTheme.colorScheme.onSurface
-    val cellColor = MaterialTheme.colorScheme.onSurfaceVariant
-    // v2.x: 行线对齐 MuseDivider 线色(onSurface@13%),与设置页发丝线同一套语言
     val rowLineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.13f)
     val headerBg = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+    val columnCount = maxOf(table.headers.size, table.rows.maxOfOrNull { it.size } ?: 0, 1)
+    val wideTable = columnCount >= 4
+    val colMinWidth = MusePaddings.maxInlineWidth
 
-    // v2.x 长文排版: 表格作为独立内容块 —— 圆角容器 + 与代码块同源的浅面,
-    // 让它在双平面底上"自成一块",与正文拉开对比;表格上下留白走 markdownBlockGap。
+    val tableModifier = if (wideTable) {
+        Modifier.horizontalScroll(rememberScrollState())
+    } else {
+        Modifier.fillMaxWidth()
+    }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(MuseShapes.medium)
             .background(MaterialTheme.colorScheme.surfaceVariant),
     ) {
-        // 表头行
-        Row(modifier = Modifier.fillMaxWidth()) {
-            table.headers.forEach { header ->
-                Text(
-                    text = header,
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = headerColor,
-                    modifier = Modifier
-                        .weight(1f)
-                        .background(headerBg)
-                        .padding(MuseMarkdownRhythm.tableCellHeader),
-                    textAlign = TextAlign.Start,
-                )
-            }
-        }
-        HorizontalDivider(color = rowLineColor, thickness = MusePaddings.dividerThickness)
-        // 数据行
-        table.rows.forEachIndexed { rowIndex, row ->
-            Row(modifier = Modifier.fillMaxWidth()) {
-                row.forEach { cell ->
+        Column(modifier = tableModifier) {
+            Row(modifier = if (wideTable) Modifier else Modifier.fillMaxWidth()) {
+                for (colIndex in 0 until columnCount) {
+                    val header = table.headers.getOrElse(colIndex) { "" }
+                    val annotated = remember(header, headerColor, linkColor, codeBgColor, citationUrls, citationColor) {
+                        parseInline(header, headerColor, linkColor, codeBgColor, citationUrls, citationColor)
+                    }
                     Text(
-                        text = cell,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = cellColor,
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(MuseMarkdownRhythm.tableCellBody),
+                        text = annotated,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = headerColor,
+                        modifier = (if (wideTable) Modifier.width(colMinWidth) else Modifier.weight(1f))
+                            .background(headerBg)
+                            .padding(MuseMarkdownRhythm.tableCellHeader),
                         textAlign = TextAlign.Start,
                     )
                 }
             }
-            // 末行下不再补一条悬空的分隔线
-            if (rowIndex < table.rows.lastIndex) {
-                HorizontalDivider(color = rowLineColor.copy(alpha = 0.5f), thickness = MusePaddings.dividerThickness)
+            HorizontalDivider(color = rowLineColor, thickness = MusePaddings.dividerThickness)
+            table.rows.forEachIndexed { rowIndex, row ->
+                Row(modifier = if (wideTable) Modifier else Modifier.fillMaxWidth()) {
+                    for (colIndex in 0 until columnCount) {
+                        val cell = row.getOrElse(colIndex) { "" }
+                        val annotated = remember(cell, baseColor, linkColor, codeBgColor, citationUrls, citationColor) {
+                            parseInline(cell, baseColor, linkColor, codeBgColor, citationUrls, citationColor)
+                        }
+                        Text(
+                            text = annotated,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = baseColor,
+                            modifier = (if (wideTable) Modifier.width(colMinWidth) else Modifier.weight(1f))
+                                .padding(MuseMarkdownRhythm.tableCellBody),
+                            textAlign = TextAlign.Start,
+                        )
+                    }
+                }
+                if (rowIndex < table.rows.lastIndex) {
+                    HorizontalDivider(color = rowLineColor.copy(alpha = 0.5f), thickness = MusePaddings.dividerThickness)
+                }
             }
         }
     }

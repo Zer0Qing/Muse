@@ -38,8 +38,8 @@ import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
-import io.zer0.muse.ui.theme.MuseSpacing
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.ui.theme.MuseSpacing
 import kotlinx.coroutines.launch
 
 /**
@@ -76,7 +76,6 @@ fun ConnectorSettingsPage(onBack: () -> Unit) {
         title = stringResource(R.string.connector_page_title),
         onBack = onBack,
     ) {
-
         if (connectors.isEmpty() && configError != null) {
             item(key = "error") {
                 Text(

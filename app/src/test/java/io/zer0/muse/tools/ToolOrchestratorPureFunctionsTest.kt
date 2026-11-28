@@ -16,7 +16,6 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * Phase 2.3.5: ToolOrchestrator 纯函数单元测试。

@@ -1,10 +1,10 @@
 package io.zer0.muse.ui
 
-import org.junit.Assert.assertEquals
-import org.junit.Test
+import io.zer0.muse.ui.chat.ChatMessageRenderRow
 import io.zer0.muse.ui.chat.render.ChatRenderChunk
 import io.zer0.muse.ui.chat.render.ChatRenderRowIndex
-import io.zer0.muse.ui.chat.ChatMessageRenderRow
+import org.junit.Assert.assertEquals
+import org.junit.Test
 
 class ChatRenderRowIndexTest {
     @Test

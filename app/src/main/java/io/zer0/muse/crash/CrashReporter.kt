@@ -5,6 +5,7 @@ import android.content.Intent
 import android.os.Build
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
+import io.zer0.muse.ui.theme.MuseDateFormats
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -12,10 +13,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
 import java.net.Proxy
-import java.util.Date
-import java.util.Locale
 import java.util.concurrent.TimeUnit
-import io.zer0.muse.ui.theme.MuseDateFormats
 
 /**
  * 崩溃上报的固定出口。

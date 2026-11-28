@@ -49,6 +49,7 @@ import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.data.assistant.CharacterCardImporter
 import io.zer0.muse.data.assistant.PersonaDiff
 import io.zer0.muse.data.assistant.PersonaFieldChange
+import io.zer0.muse.ui.chat.ChatViewModel
 import io.zer0.muse.ui.common.animation.museSharedElement
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.feedback.MuseToast
@@ -65,12 +66,11 @@ import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.pill
+import io.zer0.muse.util.launchSafely
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 import kotlin.uuid.Uuid
-import io.zer0.muse.ui.chat.ChatViewModel
-import io.zer0.muse.util.launchSafely
 
 /**
  * 助手列表页 —— 全量重写。

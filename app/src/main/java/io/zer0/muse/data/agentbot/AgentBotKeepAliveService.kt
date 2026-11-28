@@ -62,9 +62,7 @@ class AgentBotKeepAliveService : Service() {
             runCatching { stopSelf() }
             return
         }
-        try {
-            initForeground()
-        } catch (t: Throwable) {
+        runCatching { initForeground() }.onFailure { t ->
             Logger.e("AgentBotKeepAlive", "onCreate 初始化失败，放弃保活", t)
             runCatching { stopSelf() }
         }
@@ -137,12 +135,11 @@ class AgentBotKeepAliveService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
-    private fun buildNotification(title: String) =
-        notificationManager.buildGenerationNotification(
-            sessionTitle = title,
-            currentChars = 0,
-            target = MuseNotificationTarget.Chat,
-        )
+    private fun buildNotification(title: String) = notificationManager.buildGenerationNotification(
+        sessionTitle = title,
+        currentChars = 0,
+        target = MuseNotificationTarget.Chat,
+    )
 
     /** Android 14+ 要求 startForeground 显式声明类型。 */
     private fun startForegroundCompat(notification: android.app.Notification) {

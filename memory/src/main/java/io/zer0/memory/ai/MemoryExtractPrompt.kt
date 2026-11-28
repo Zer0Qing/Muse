@@ -86,25 +86,32 @@ $existingSection
    - linkType: causes(因果)/ explains(解释)/ part_of(包含)/ related_to(关联)/ contradicts(矛盾)
    - weight: 0.0~1.0 关系强度
 
-3. updatedEntities: 对已有记忆的更新(按 matchTitle 模糊匹配)。
+3. proactiveThoughts: 主动牵挂账本建议(仅当对话结束时确实适合过一段时间再主动发消息联系用户时输出,最多 2 条,否则留空数组 `[]`)。
+   - seed: 写给未来自己的极简一句话事由(中文或与对话一致的语言)
+   - kind: REMINDER(明确日程或待办提醒) / FOLLOW_UP(未完待续的话题跟进) / CARE(身体或情绪关心) / SHARE(延伸分享)
+   - urgency: IMMEDIATE(当日强时效) / WINDOW(数日窗口) / EVERGREEN(长期常青)
+   - dueHours: 预计多少小时后最适合提及(可选浮点,无明确时间填 null)
+   - weight: 0.0~1.0 重要度
+
+4. updatedEntities: 对已有记忆的更新(按 matchTitle 模糊匹配)。
    - matchTitle: 已有记忆的 title(可部分匹配)
    - newContent: 替换后的正文
    - newImportance / newFolderPath / newTags: 可选更新(不更新填 null)
 
-4. mergedEntities: 相似记忆合并(去重)。
+5. mergedEntities: 相似记忆合并(去重)。
    - sourceTitles: 要合并的已有/新记忆 title 列表
    - mergedTitle / mergedContent: 合并后的新标题和正文
 
-5. 保留字段: mainProblem 与 profileMarkdown 暂不启用,不要生成或填写它们(保持 null 或省略)。
+6. 保留字段: mainProblem 与 profileMarkdown 暂不启用,不要生成或填写它们(保持 null 或省略)。
 
-6. 禁止提取:
+7. 禁止提取:
    - 不要把助手的自述、承诺、偏好、临时计划写入用户事实;这类内容 speaker 必须为 ASSISTANT,随后不会写入用户事实库
    - 工作流程偏好、工具偏好、工程规则、执行细节
    - 助手的内心活动、临时调试信息
    - 一次性任务细节(如"修改了 xxx 文件第 y 行")
    - 下方示例中的演示内容(示例仅演示 JSON 格式,严禁照抄;所有条目必须来自本次对话)
 
-7. 如果对话无值得记忆的内容,返回空结构(所有数组为空)。
+8. 如果对话无值得记忆的内容,返回空结构(所有数组为空)。
 
 ## 输出格式
 
@@ -118,6 +125,7 @@ $existingSection
   "links": [
     {"sourceTitle": "对青霉素过敏", "targetTitle": "需避免阿莫西林", "linkType": "causes", "weight": 0.9}
   ],
+  "proactiveThoughts": [],
   "updatedEntities": [],
   "mergedEntities": []
 }
@@ -149,25 +157,32 @@ $existingSection
    - linkType: causes / explains / part_of / related_to / contradicts
    - weight: 0.0~1.0 relationship strength
 
-3. updatedEntities: Updates to existing memories (matched by matchTitle, fuzzy match allowed).
+3. proactiveThoughts: Proactive outreach items worth following up on later after this conversation (max 2 items; leave `[]` if not needed).
+   - seed: Brief one-line note for the assistant's future self
+   - kind: REMINDER / FOLLOW_UP / CARE / SHARE
+   - urgency: IMMEDIATE / WINDOW / EVERGREEN
+   - dueHours: Suggested delay in hours (optional float or null)
+   - weight: 0.0~1.0 priority weight
+
+4. updatedEntities: Updates to existing memories (matched by matchTitle, fuzzy match allowed).
    - matchTitle: Title of existing memory (partial match allowed)
    - newContent: Replacement body
    - newImportance / newFolderPath / newTags: Optional updates (null to skip)
 
-4. mergedEntities: Similar memory merges (deduplication).
+5. mergedEntities: Similar memory merges (deduplication).
    - sourceTitles: List of existing/new memory titles to merge
    - mergedTitle / mergedContent: New title and body after merge
 
-5. Reserved fields: mainProblem and profileMarkdown are disabled; do not populate them (omit or leave null).
+6. Reserved fields: mainProblem and profileMarkdown are disabled; do not populate them (omit or leave null).
 
-6. Do NOT extract:
+7. Do NOT extract:
    - Do not turn the assistant's self-statements, promises, preferences, or temporary plans into user facts; mark them ASSISTANT so they are rejected from the user fact store
    - Workflow preferences, tool preferences, engineering rules, execution details
    - Assistant's inner thoughts, temporary debugging info
    - One-off task details (e.g. "modified line Y of file X")
    - Demo content from the examples below (examples illustrate JSON format only; never copy them; every entry must come from this conversation)
 
-7. If nothing in the conversation is worth remembering, return an empty structure (all arrays empty).
+8. If nothing in the conversation is worth remembering, return an empty structure (all arrays empty).
 
 ## Output Format
 
@@ -181,6 +196,7 @@ Strict JSON object, no markdown code fences:
   "links": [
     {"sourceTitle": "penicillin allergy", "targetTitle": "avoid amoxicillin", "linkType": "causes", "weight": 0.9}
   ],
+  "proactiveThoughts": [],
   "updatedEntities": [],
   "mergedEntities": []
 }

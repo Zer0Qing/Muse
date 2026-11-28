@@ -178,10 +178,18 @@ interface CardEntityDao {
         "UPDATE card_entities SET refreshIntervalMinutes = :intervalMinutes, refreshPrompt = :refreshPrompt, " +
             "lastRefreshedAt = :lastRefreshedAt, updatedAt = :updatedAt WHERE id = :id",
     )
-    suspend fun updateSpaceRefresh(
+    suspend fun updateSpaceRefresh(id: String, intervalMinutes: Int, refreshPrompt: String, lastRefreshedAt: Long, updatedAt: Long): Int
+
+    @Query(
+        "UPDATE card_entities SET lastRefreshedAt = :lastRefreshedAt, updatedAt = :updatedAt " +
+            "WHERE id = :id AND updatedAt = :expectedUpdatedAt AND spacePinned = 1 " +
+            "AND refreshIntervalMinutes = :expectedInterval AND refreshPrompt = :expectedPrompt",
+    )
+    suspend fun commitSpaceRefreshIfUnchanged(
         id: String,
-        intervalMinutes: Int,
-        refreshPrompt: String,
+        expectedUpdatedAt: Long,
+        expectedInterval: Int,
+        expectedPrompt: String,
         lastRefreshedAt: Long,
         updatedAt: Long,
     ): Int

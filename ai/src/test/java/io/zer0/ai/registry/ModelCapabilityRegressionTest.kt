@@ -159,8 +159,14 @@ class ModelCapabilityRegressionTest {
     fun `无前缀的常规模型 ID 必须原样返回`() {
         // 这是最常见的路径，统一归一化不能改变任何无前缀 ID 的行为
         for (id in listOf(
-            "gpt-4o", "claude-3-5-sonnet", "deepseek-v3", "qwen-max",
-            "gemini-2.5-pro", "glm-4.5", "kimi-k2", "o1-mini",
+            "gpt-4o",
+            "claude-3-5-sonnet",
+            "deepseek-v3",
+            "qwen-max",
+            "gemini-2.5-pro",
+            "glm-4.5",
+            "kimi-k2",
+            "o1-mini",
         )) {
             assertEquals(id, io.zer0.ai.core.normalizeModelIdForLookup(id))
         }

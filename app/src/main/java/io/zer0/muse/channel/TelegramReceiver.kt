@@ -12,83 +12,117 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.io.File
 import java.security.MessageDigest
+import java.util.concurrent.ConcurrentHashMap
 
 /**
- * v2.0: Telegram 接收器 — 长轮询循环。
- *
- * 存在启用中的 TELEGRAM 渠道时循环调用 getUpdates(长轮询约 30s):
- * 用户消息写入 [ChannelInbox](触发自动回复链路)。出站连接,免公网。
- * 配置保存/删除后由 UI 或应用启动时调用 [restart]。
+ * v2.0: Telegram 接收器 — 长轮询循环（支持同平台多渠道并行在线）。
  */
 class TelegramReceiver(
     private val channelManager: ChannelManager,
     private val context: Context,
     private val appScope: CoroutineScope,
-) {
-    private var job: Job? = null
+) : ChannelReceiver {
+    override val platform: ChannelPlatform = ChannelPlatform.TELEGRAM
+
+    private val lock = Any()
+    private var watcherJob: Job? = null
+    private val channelJobs = ConcurrentHashMap<String, Job>()
+    private val channelSecrets = ConcurrentHashMap<String, String>()
 
     /** 启动轮询(幂等;已有循环先停再起)。 */
-    fun restart() {
-        job?.cancel()
-        job = appScope.launch {
-            ChannelInbox.attach(context)
-            pollLoop()
+    override fun restart() {
+        synchronized(lock) {
+            stopAllLocked()
+            watcherJob = appScope.launch {
+                ChannelInbox.attach(context)
+                channelManager.refresh()
+                reconcile(channelManager.channels.value)
+                channelManager.channels.collect { channels ->
+                    reconcile(channels)
+                }
+            }
         }
     }
 
     /** 停止轮询。 */
-    fun stop() {
-        job?.cancel()
-        job = null
+    override fun stop() {
+        synchronized(lock) {
+            stopAllLocked()
+        }
+    }
+
+    private fun stopAllLocked() {
+        watcherJob?.cancel()
+        watcherJob = null
+        channelJobs.keys.toList().forEach { id ->
+            channelJobs.remove(id)?.cancel()
+            channelSecrets.remove(id)
+            ChannelRuntimeRegistry.markStopped(id, platform)
+        }
+    }
+
+    private fun reconcile(channels: List<ChannelConfig>) {
+        synchronized(lock) {
+            val active = channels.filter {
+                it.enabled && it.platform == platform && it.appSecret.isNotBlank()
+            }
+            val activeMap = active.associateBy { it.id }
+            val allIds = channels.filter { it.platform == platform }.mapTo(HashSet()) { it.id }
+
+            channelJobs.keys.toList().forEach { id ->
+                val nextCfg = activeMap[id]
+                val secretChanged = nextCfg != null && channelSecrets[id] != nextCfg.appSecret
+                if (nextCfg == null || secretChanged) {
+                    channelJobs.remove(id)?.cancel()
+                    channelSecrets.remove(id)
+                    if (id !in allIds) {
+                        ChannelRuntimeRegistry.remove(id)
+                    } else if (nextCfg == null) {
+                        ChannelRuntimeRegistry.markStopped(id, platform)
+                    }
+                }
+            }
+
+            channels.filter { it.platform == platform && !it.enabled }.forEach { disabled ->
+                ChannelRuntimeRegistry.markStopped(disabled.id, platform)
+            }
+
+            active.forEach { cfg ->
+                val existing = channelJobs[cfg.id]
+                if (existing == null || !existing.isActive) {
+                    channelSecrets[cfg.id] = cfg.appSecret
+                    channelJobs[cfg.id] = appScope.launch {
+                        pollLoopForChannel(cfg)
+                    }
+                }
+            }
+        }
     }
 
     @Suppress("TooGenericExceptionCaught") // Preserve the current getUpdates offset for any local persistence failure.
-    private suspend fun pollLoop() {
+    private suspend fun pollLoopForChannel(config: ChannelConfig) {
         var cursor = TelegramCursor()
-        var reportedEmpty = false
+        ChannelRuntimeRegistry.markConnecting(config.id, platform)
         while (currentCoroutineContext().isActive) {
-            channelManager.refresh()
-            val config = channelManager.channels.value.firstOrNull {
-                it.enabled && it.platform == ChannelPlatform.TELEGRAM && it.appSecret.isNotBlank()
-            }
-            if (config == null) {
-                // 只在「进入无渠道状态」时记一次日志；之后用长退避等待。
-                //
-                // 旧实现在这个分支上每 5 秒循环一轮并打一行日志：没有配置渠道的用户会看到
-                // 每分钟 12 行同样的「接收循环退出」，同时无谓地唤醒线程。
-                if (!reportedEmpty) {
-                    Logger.i(TAG, "无启用中的 Telegram 渠道,接收循环挂起等待配置")
-                    reportedEmpty = true
-                }
-                delay(NO_CHANNEL_BACKOFF_MS)
-                continue
-            }
-            if (reportedEmpty) {
-                Logger.i(TAG, "Telegram 渠道已启用,恢复接收")
-                reportedEmpty = false
-            }
-            // v2.6.0 (AUD-CHANNEL-F2): 单轮轮询抽成函数 —— 游标失败/网络异常/
-            // 写入异常统一返回“等待时长”,循环不再堆跳转语句。
-            cursor = pollOnce(config, cursor)
+            val result = pollOnce(config, cursor)
+            cursor = result
             delay(RETRY_DELAY_MS)
         }
     }
 
-    /**
-     * 执行一次轮询,返回下一轮应使用的游标。
-     *
-     * 任何本地/网络异常都已在函数内记日志,不影响循环继续 —— 这是 F2 的核心:
-     * 接收循环不得因为一次异常而永久退出。
-     */
     /** 落库一条入站消息；图片走两步下载。 */
-
     private suspend fun recordInbound(config: ChannelConfig, msg: TelegramClient.InboundMsg) {
+        val isGroup = msg.chatType == "group" || msg.chatType == "supergroup"
         val source = ChannelInbox.Source(
-            "TELEGRAM",
-            msg.chatId.toString(),
-            config.id,
-            msg.updateId?.toString().orEmpty(),
+            platform = "TELEGRAM",
+            from = msg.chatId.toString(),
+            channelId = config.id,
+            eventId = msg.updateId?.toString().orEmpty(),
+            isGroup = isGroup,
+            isMentioned = msg.isMentioned,
+            senderDisplayName = msg.senderDisplayName,
         )
+        ChannelRuntimeRegistry.markInbound(config.id, platform)
 
         val fileId = msg.photoFileId
 
@@ -121,6 +155,15 @@ class TelegramReceiver(
         }
     }
 
+    private fun reportPollFailure(channelId: String, error: Throwable) {
+        val message = error.message.orEmpty()
+        if (ChannelRuntimeRegistry.looksLikeAuthError(message)) {
+            ChannelRuntimeRegistry.markAuthError(channelId, platform, message)
+        } else {
+            ChannelRuntimeRegistry.markReconnecting(channelId, platform, message)
+        }
+    }
+
     @Suppress("TooGenericExceptionCaught", "ReturnCount")
     private suspend fun pollOnce(config: ChannelConfig, cursor: TelegramCursor): TelegramCursor {
         val next = nextCursorFor(config, cursor) ?: return cursor
@@ -129,8 +172,10 @@ class TelegramReceiver(
         // 它坏了的表现是"用户从 Telegram 发消息永远没反应"，而日志查不到任何线索。
         val updates = TelegramClient.getUpdates(config.appSecret, next.offset)
             .onFailure { e -> Logger.w(TAG, telegramPollIssue(config.id, e), e) }
+            .onFailure { e -> reportPollFailure(config.id, e) }
             .getOrNull()
             ?: return next
+        ChannelRuntimeRegistry.markConnected(config.id, platform, config.botDisplayName)
         return try {
             updates.messages.forEach { msg -> recordInbound(config, msg) }
             val nextOffset = updates.nextOffset

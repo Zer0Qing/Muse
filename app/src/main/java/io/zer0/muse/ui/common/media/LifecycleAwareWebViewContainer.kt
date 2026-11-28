@@ -157,6 +157,14 @@ fun LifecycleAwareWebViewContainer(
             }
         },
         update = { webView ->
+            webView.isVerticalScrollBarEnabled = scrollable
+            webView.isHorizontalScrollBarEnabled = scrollable
+            webView.isNestedScrollingEnabled = scrollable
+            webView.overScrollMode = if (scrollable) {
+                android.view.View.OVER_SCROLL_IF_CONTENT_SCROLLS
+            } else {
+                android.view.View.OVER_SCROLL_NEVER
+            }
             // v2.6.6: 内容未变时不重新加载 —— 原逻辑每次重组都 loadDataWithBaseURL,
             // 流式渐进渲染下会导致每个 token 重载整个 WebView(卡死)。
             // 只有 HTML 真正变化时才刷新。

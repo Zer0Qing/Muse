@@ -40,8 +40,7 @@ interface MemoryWriteGate {
     fun isStale(fence: MemoryWriteFence): Boolean = false
 
     /** 写前判定：当前被阻塞,或入口取的栅栏已失效。 */
-    fun blocksWrite(scope: MemoryScopeKey, fence: MemoryWriteFence? = null): Boolean =
-        isBlocked(scope) || (fence != null && isStale(fence))
+    fun blocksWrite(scope: MemoryScopeKey, fence: MemoryWriteFence? = null): Boolean = isBlocked(scope) || (fence != null && isStale(fence))
 }
 
 /**

@@ -94,6 +94,7 @@
     <string name="settings_model_ability_streaming">流式</string>
     <string name="settings_model_ability_image">画图</string>
     <string name="settings_model_ability_multimodal">多模态</string>
+    <string name="settings_model_ability_no_image_input">无图片输入</string>
     <string name="settings_model_ability_video">视频</string>
     <string name="settings_model_ability_chat">聊天</string>
     <!-- v1.0.8 (7.7): 上下文窗口标签(如 "128K 上下文") -->

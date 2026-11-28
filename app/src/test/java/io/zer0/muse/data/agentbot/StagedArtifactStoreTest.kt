@@ -24,33 +24,30 @@ class StagedArtifactStoreTest {
 
     @Before
     fun setUp() {
-        dir = File(System.getProperty("java.io.tmpdir"), "agentbot-staging-" + System.nanoTime());
-        store = StagedArtifactStore(dir);
+        dir = File(System.getProperty("java.io.tmpdir"), "agentbot-staging-" + System.nanoTime())
+        store = StagedArtifactStore(dir)
     }
 
     @After
     fun tearDown() {
-        dir.deleteRecursively();
+        dir.deleteRecursively()
     }
 
-    private fun candidate(
-        revision: Int = 1,
-        baseHash: String = "hash-v1",
-    ) = StagedArtifactStore.Candidate(
+    private fun candidate(revision: Int = 1, baseHash: String = "hash-v1") = StagedArtifactStore.Candidate(
         targetRef = "workspace/notes.md",
         content = "改好的内容",
         baseHash = baseHash,
         taskRevision = revision,
-    );
+    )
 
     @Test
     fun `staged candidate round-trips`() = kotlinx.coroutines.test.runTest {
-        val id = store.stage(candidate());
-        val read = store.read(id);
-        assertNotNull(read);
-        assertEquals("workspace/notes.md", read!!.targetRef);
-        assertEquals("改好的内容", read.content);
-        assertEquals(1, read.taskRevision);
+        val id = store.stage(candidate())
+        val read = store.read(id)
+        assertNotNull(read)
+        assertEquals("workspace/notes.md", read!!.targetRef)
+        assertEquals("改好的内容", read.content)
+        assertEquals(1, read.taskRevision)
     }
 
     @Test
@@ -59,12 +56,12 @@ class StagedArtifactStoreTest {
             StagedArtifactStore.Candidate(
                 targetRef = "workspace/notes.md",
                 content = "新的正文",
-            baseHash = StagedArtifactStore.hashSnapshot("旧正文"),
+                baseHash = StagedArtifactStore.hashSnapshot("旧正文"),
                 taskRevision = 3,
                 sourceRunId = "run-3",
                 verificationState = VerificationState.VERIFIED,
-            hasBaseSnapshot = true,
-            baseContent = "旧正文",
+                hasBaseSnapshot = true,
+                baseContent = "旧正文",
             ),
         )
 
@@ -101,39 +98,41 @@ class StagedArtifactStoreTest {
 
     @Test
     fun `stale revision is discarded instead of applied`() = kotlinx.coroutines.test.runTest {
-        val id = store.stage(candidate(revision = 1));
+        val id = store.stage(candidate(revision = 1))
         var wrote = false
 
         val result = store.apply(
             stagedId = id,
-            currentTaskRevision = 2,   // 用户追加了约束
+            // 用户追加了约束，旧候选不能再应用。
+            currentTaskRevision = 2,
             currentTargetHash = "hash-v1",
-        ) { _, _ -> wrote = true };
+        ) { _, _ -> wrote = true }
 
-        assertTrue("约束变了旧候选必须失效", result is StagedArtifactStore.ApplyResult.Stale);
-        assertFalse("不能写目标", wrote);
-        assertNull("过期候选直接丢弃", store.read(id));
+        assertTrue("约束变了旧候选必须失效", result is StagedArtifactStore.ApplyResult.Stale)
+        assertFalse("不能写目标", wrote)
+        assertNull("过期候选直接丢弃", store.read(id))
     }
 
     @Test
     fun `base hash drift blocks the write`() = kotlinx.coroutines.test.runTest {
-        val id = store.stage(candidate(baseHash = "hash-v1"));
+        val id = store.stage(candidate(baseHash = "hash-v1"))
         var wrote = false
 
         val result = store.apply(
             stagedId = id,
             currentTaskRevision = 1,
-            currentTargetHash = "hash-v2",   // 目标被别人改过
-        ) { _, _ -> wrote = true };
+            // 目标被别人改过，不能覆盖。
+            currentTargetHash = "hash-v2",
+        ) { _, _ -> wrote = true }
 
-        assertTrue("目标被改过不能覆盖", result is StagedArtifactStore.ApplyResult.Conflict);
-        assertFalse(wrote);
+        assertTrue("目标被改过不能覆盖", result is StagedArtifactStore.ApplyResult.Conflict)
+        assertFalse(wrote)
     }
 
     @Test
     fun `conflicting candidate is kept so the user can see it`() = kotlinx.coroutines.test.runTest {
-        val id = store.stage(candidate(baseHash = "hash-v1"));
-        store.apply(id, 1, "hash-v2") { _, _ -> };
+        val id = store.stage(candidate(baseHash = "hash-v1"))
+        store.apply(id, 1, "hash-v2") { _, _ -> }
 
         assertNotNull(
             "冲突候选要留着，让用户能看到这份结果本来想改成什么",
@@ -143,24 +142,24 @@ class StagedArtifactStoreTest {
 
     @Test
     fun `matching revision and hash applies exactly once`() = kotlinx.coroutines.test.runTest {
-        val id = store.stage(candidate());
+        val id = store.stage(candidate())
         var writes = 0
         var written = ""
 
         val result = store.apply(id, 1, "hash-v1") { _, content ->
-            writes++;
+            writes++
             written = content
-        };
+        }
 
-        assertTrue(result is StagedArtifactStore.ApplyResult.Applied);
-        assertEquals(1, writes);
-        assertEquals("改好的内容", written);
+        assertTrue(result is StagedArtifactStore.ApplyResult.Applied)
+        assertEquals(1, writes)
+        assertEquals("改好的内容", written)
         assertEquals(VerificationState.APPLIED_PENDING_COMMIT, store.readArtifact(id)?.verificationState)
     }
 
     @Test
     fun `retry after target write recognizes the applied content without writing twice`() = kotlinx.coroutines.test.runTest {
-        val id = store.stage(candidate());
+        val id = store.stage(candidate())
         var writes = 0
         val first = store.apply(id, 1, "hash-v1") { _, _ -> writes++ }
         val retry = store.apply(id, 1, StagedArtifactStore.hashOf("改好的内容")) { _, _ -> writes++ }
@@ -174,12 +173,12 @@ class StagedArtifactStoreTest {
     @Test
     fun `blank base hash means no baseline check`() = kotlinx.coroutines.test.runTest {
         // 新建文件没有基线，此时不该因为"哈希不匹配"就拒绝。
-        val id = store.stage(candidate(baseHash = ""));
+        val id = store.stage(candidate(baseHash = ""))
         var wrote = false
-        val result = store.apply(id, 1, "anything") { _, _ -> wrote = true };
+        val result = store.apply(id, 1, "anything") { _, _ -> wrote = true }
 
-        assertTrue(result is StagedArtifactStore.ApplyResult.Applied);
-        assertTrue(wrote);
+        assertTrue(result is StagedArtifactStore.ApplyResult.Applied)
+        assertTrue(wrote)
     }
 
     @Test
@@ -200,45 +199,45 @@ class StagedArtifactStoreTest {
 
     @Test
     fun `missing staged entry is stale not a crash`() = kotlinx.coroutines.test.runTest {
-        val result = store.apply("does-not-exist", 1, "hash") { _, _ -> };
-        assertTrue(result is StagedArtifactStore.ApplyResult.Stale);
+        val result = store.apply("does-not-exist", 1, "hash") { _, _ -> }
+        assertTrue(result is StagedArtifactStore.ApplyResult.Stale)
     }
 
     @Test
     fun `clearAll removes every staged file`() = kotlinx.coroutines.test.runTest {
-        store.stage(candidate());
-        store.stage(candidate());
-        store.clearAll();
-        assertEquals(0, dir.listFiles()?.size ?: 0);
+        store.stage(candidate())
+        store.stage(candidate())
+        store.clearAll()
+        assertEquals(0, dir.listFiles()?.size ?: 0)
     }
 
     @Test
     fun `an empty staging dir is a successful empty result`() {
-        val fresh = StagedArtifactStore(File(dir, "never-created"));
+        val fresh = StagedArtifactStore(File(dir, "never-created"))
 
-        val result = fresh.listStagedResult();
+        val result = fresh.listStagedResult()
 
         assertTrue(
             "没有候选时必须是成功结果，而不是 Error",
             result is StagedArtifactStore.StagedListResult.Success,
-        );
-        assertTrue((result as StagedArtifactStore.StagedListResult.Success).entries.isEmpty());
+        )
+        assertTrue((result as StagedArtifactStore.StagedListResult.Success).entries.isEmpty())
     }
 
     @Test
     fun `a staging path that is not a directory is an error`() {
         // 目录名被一个普通文件占住：listFiles() 只会返回 null，与"空目录"分不开。
-        val blocked = File(System.getProperty("java.io.tmpdir"), "agentbot-blocked-" + System.nanoTime());
-        blocked.writeText("not a directory");
+        val blocked = File(System.getProperty("java.io.tmpdir"), "agentbot-blocked-" + System.nanoTime())
+        blocked.writeText("not a directory")
         try {
-            val result = StagedArtifactStore(blocked).listStagedResult();
+            val result = StagedArtifactStore(blocked).listStagedResult()
 
             assertTrue(
                 "读失败不能被伪装成空列表",
                 result is StagedArtifactStore.StagedListResult.Error,
-            );
+            )
         } finally {
-            blocked.delete();
+            blocked.delete()
         }
     }
 }

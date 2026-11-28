@@ -25,6 +25,9 @@ class PromptInjectionRepository(
 
     suspend fun getById(id: String): PromptInjectionEntity? = dao.getById(id)
 
+    /** 一次性全量直查；管理页刷新不用 observeAll().first()，理由见 LorebookRepository.getAll。 */
+    suspend fun getAll(): List<PromptInjectionEntity> = dao.getAll()
+
     /**
      * 新增或更新。L-PID7: 校正 insertionPosition 为合法值,非法值回落到默认 after_system
      * (PromptInjectionTransformer 仅支持 before_system/after_system,不支持 before_last)。

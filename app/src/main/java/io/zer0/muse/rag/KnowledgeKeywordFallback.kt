@@ -37,14 +37,15 @@ object KnowledgeKeywordFallback {
         metadataFilter: VectorSearchService.MetadataFilter?,
         daos: SearchDaos,
     ): List<KeywordFallbackResult> {
-        if (query.isBlank() || topK <= 0 || scopeDocIds?.isEmpty() == true) return emptyList()
+        val cleanQuery = HybridSearchService.sanitizeQueryForRag(query)
+        if (cleanQuery.isBlank() || topK <= 0 || scopeDocIds?.isEmpty() == true) return emptyList()
         val allowedIds = scopeDocIds?.toSet()
         val filter = metadataFilter?.takeUnless { it.isEmpty() }
-        val indexedResults = searchIndexedChunks(query, topK, allowedIds, filter, daos)
+        val indexedResults = searchIndexedChunks(cleanQuery, topK, allowedIds, filter, daos)
         return if (indexedResults.isNotEmpty()) {
             indexedResults
         } else {
-            searchDocuments(query, topK, allowedIds, filter, daos)
+            searchDocuments(cleanQuery, topK, allowedIds, filter, daos)
         }
     }
 
@@ -83,7 +84,20 @@ object KnowledgeKeywordFallback {
             .associateBy { it.id }
 
         return hits.mapNotNull { hit ->
-            resultForFtsHit(hit, chunkById, docById, filter)
+            val result = resultForFtsHit(hit, chunkById, docById, filter) ?: return@mapNotNull null
+            if (hit.score >= 0.0) {
+                val relevance = HybridSearchService.computeLexicalRelevance(
+                    query = query,
+                    content = result.snippet,
+                    title = result.docTitle,
+                )
+                if (relevance < HybridSearchService.MIN_UNSCORED_LEXICAL_RELEVANCE) {
+                    return@mapNotNull null
+                }
+                result.copy(score = relevance)
+            } else {
+                result
+            }
         }.distinctBy { it.chunkId }.take(topK)
     }
 
@@ -121,6 +135,16 @@ object KnowledgeKeywordFallback {
         }.getOrNull().orEmpty()
         val publicDocs = fallbackDocs.asSequence()
             .filter { !it.isInternal && (allowedIds == null || it.id in allowedIds) }
+            .filter { doc ->
+                allowedIds == null ||
+                    doc.title.contains(query, ignoreCase = true) ||
+                    doc.content.contains(query, ignoreCase = true) ||
+                    HybridSearchService.computeLexicalRelevance(
+                        query = query,
+                        content = doc.content.take(2000),
+                        title = doc.title,
+                    ) >= HybridSearchService.MIN_UNSCORED_LEXICAL_RELEVANCE
+            }
             .take(topK)
             .toList()
         val results = mutableListOf<KeywordFallbackResult>()

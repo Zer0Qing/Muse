@@ -89,6 +89,7 @@ internal fun RichInputBar(
     glassActive: Boolean = false,
     /** v2.5.0: 玻璃风格与档位配置。 */
     glassConfig: io.zer0.muse.ui.theme.LiquidGlassConfig = io.zer0.muse.ui.theme.LiquidGlassConfig(),
+    onOpenMediaStudio: (() -> Unit)? = null,
 ) {
     // v1.0.75 fix: 格式工具条已移除,直接透传原 InputBar。
     // 注:InputBar 自身已含 imePadding/navigationBarsPadding,此处不再重复施加。
@@ -161,6 +162,7 @@ internal fun RichInputBar(
             onCancelRecording = onCancelRecording,
             onShowToolCalls = onShowToolCalls,
             onAddPastedTextAsDocument = onAddPastedTextAsDocument,
+            onOpenMediaStudio = onOpenMediaStudio,
         ),
     )
 }

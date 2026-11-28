@@ -3,6 +3,7 @@ package io.zer0.muse.asr.local
 import android.content.Context
 import io.zer0.common.Logger
 import io.zer0.muse.asr.AsrConstants
+import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -23,7 +24,6 @@ import java.io.IOException
 import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
-import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 
 /**
  * 本地语音模型下载器：断点续传（.part + HTTP Range）+ SHA-256 校验 + 串行下载。

@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="media_studio_title">Media Studio</string>
+    <string name="media_studio_tools_subtitle">Image &amp; video creation, background queue, and local gallery</string>
+    <string name="media_studio_settings_cd">Media model settings</string>
+    <string name="media_studio_tab_image">Image</string>
+    <string name="media_studio_tab_video">Video</string>
+    <string name="media_studio_tab_gallery">Gallery</string>
+    <string name="media_studio_tab_gallery_count">Gallery (%1$d)</string>
+
+    <string name="media_studio_prompt_label">Prompt</string>
+    <string name="media_studio_image_prompt_placeholder">Describe the subject, style, lighting, and composition…</string>
+    <string name="media_studio_video_prompt_placeholder">Describe motion, camera movement, pacing, and mood…</string>
+    <string name="media_studio_provider_label">Provider</string>
+    <string name="media_studio_model_label">Model</string>
+    <string name="media_studio_size_label">Size &amp; Aspect Ratio</string>
+    <string name="media_studio_quality_label">Quality</string>
+    <string name="media_studio_style_label">Style</string>
+    <string name="media_studio_count_label">Count</string>
+    <string name="media_studio_count_chip">%1$d</string>
+    <string name="media_studio_aspect_label">Aspect Ratio</string>
+    <string name="media_studio_reference_label">Reference Image (Optional)</string>
+    <string name="media_studio_reference_pick">Choose Reference Image</string>
+    <string name="media_studio_reference_clear">Remove Reference Image</string>
+    <string name="media_studio_no_provider_hint">No active provider configured. Add and enable a provider API key first.</string>
+    <string name="media_studio_no_image_model_hint">No explicit image models configured for this provider; showing preset image models.</string>
+    <string name="media_studio_no_video_provider">No video provider configured</string>
+    <string name="media_studio_go_configure">Configure Models</string>
+
+    <string name="media_studio_submit_image">Generate Image</string>
+    <string name="media_studio_submit_video">Generate Video</string>
+    <string name="media_studio_task_queued_hint">Queued in background; leaving this screen will not interrupt it</string>
+    <string name="media_studio_active_tasks_title">Active Tasks</string>
+    <string name="media_studio_failed_tasks_title">Recent Failed Tasks</string>
+    <string name="media_studio_task_elapsed">Generating %1$ds…</string>
+    <string name="media_studio_task_cancel">Cancel</string>
+    <string name="media_studio_task_retry">Retry</string>
+    <string name="media_studio_task_dismiss">Dismiss</string>
+    <string name="media_studio_task_interrupted">Background task interrupted by app restart</string>
+
+    <string name="media_studio_filter_all">All</string>
+    <string name="media_studio_filter_images">Images</string>
+    <string name="media_studio_filter_videos">Videos</string>
+    <string name="media_studio_filter_favorites">Favorites</string>
+    <string name="media_studio_gallery_empty_title">Your Gallery is empty</string>
+    <string name="media_studio_gallery_empty_subtitle">Creations from Image, Video, or chat tools are saved locally here automatically.</string>
+    <string name="media_studio_go_create_image">Create Image</string>
+    <string name="media_studio_go_create_video">Create Video</string>
+
+    <string name="media_studio_player_title">Video Playback</string>
+    <string name="media_studio_open_external_player">Open with system player</string>
+    <string name="media_studio_video_prepare_failed">Unable to prepare video URI for playback</string>
+    <string name="media_studio_video_save_failed">Failed to download or save generated video</string>
+    <string name="media_studio_video_download_first">Cache this video locally from Media Studio before saving</string>
+    <string name="media_studio_save_to_gallery">Save to Gallery</string>
+    <string name="media_studio_saved_to_gallery">Saved to system gallery</string>
+    <string name="media_studio_save_failed">Save failed: %1$s</string>
+    <string name="media_studio_copy_prompt">Copy Prompt</string>
+    <string name="media_studio_prompt_copied">Prompt copied</string>
+    <string name="media_studio_reuse_image_params">Reuse Parameters</string>
+    <string name="media_studio_to_video">Animate to Video</string>
+    <string name="media_studio_favorite_cd">Toggle favorite</string>
+    <string name="media_studio_delete_asset_cd">Delete creation</string>
+    <string name="media_studio_preview_cd">Creation preview</string>
+</resources>

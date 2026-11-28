@@ -199,8 +199,9 @@ class AgentSpaceEngineTest {
 
     @Test
     fun refreshFailureDoesNotAdvanceLastRefreshedAt() = runTest {
+        val engine = engine()
         val card = requireNotNull(
-            engine().pinMessageCard(
+            engine.pinMessageCard(
                 messageId = "message-fail",
                 title = "失败卡片",
                 code = "<div>fail</div>",
@@ -211,12 +212,60 @@ class AgentSpaceEngineTest {
         )
         refresher.failure = IllegalStateException("network down")
 
-        val outcome = engine().refreshDue(at = 5_000L).single()
+        val outcome = engine.refreshDue(at = 5_000L).single()
 
         val failure = requireNotNull(outcome as? SpaceRefreshOutcome.Failed)
         assertEquals("network down", failure.reason)
         assertEquals(0L, database.cardEntityDao().getById(card.id)?.lastRefreshedAt)
         assertEquals("""{"v":1}""", writer.data[card.id])
+        assertTrue(engine.refreshFailures.first().containsKey(card.id))
+        assertTrue(engine.refreshDue(at = 5_001L).isEmpty())
+    }
+
+    @Test
+    fun refreshDoesNotCommitModelOutputAfterCardSettingsChange() = runTest {
+        val engine = engine()
+        val card = requireNotNull(
+            engine().pinMessageCard(
+                messageId = "message-changed",
+                title = "会变化的卡片",
+                code = "<div>changed</div>",
+                isSvg = false,
+                dataJson = """{"v":1}""",
+                refreshIntervalMinutes = 15,
+            ),
+        )
+        refresher.afterRefresh = {
+            assertTrue(engine.setRefreshPolicy(card.id, 0, "用户已关闭"))
+        }
+
+        val outcome = engine.refreshDue(at = 5_000L).single()
+
+        assertTrue(outcome is SpaceRefreshOutcome.Skipped)
+        assertEquals("""{"v":1}""", writer.data[card.id])
+        assertEquals(0, database.cardEntityDao().getById(card.id)?.refreshIntervalMinutes)
+    }
+
+    @Test
+    fun refreshDoesNotOverwriteCardDataChangedWhileModelRuns() = runTest {
+        val engine = engine()
+        val card = requireNotNull(
+            engine.pinMessageCard(
+                messageId = "message-data-changed",
+                title = "数据会变化的卡片",
+                code = "<div>data</div>",
+                isSvg = false,
+                dataJson = """{"v":1}""",
+                refreshIntervalMinutes = 15,
+            ),
+        )
+        refresher.afterRefresh = { writer.write(card.id, """{"v":"user"}""") }
+
+        val outcome = engine.refreshDue(at = 5_000L).single()
+
+        assertTrue(outcome is SpaceRefreshOutcome.Skipped)
+        assertEquals("""{"v":"user"}""", writer.data[card.id])
+        assertEquals(0L, database.cardEntityDao().getById(card.id)?.lastRefreshedAt)
     }
 
     @Test
@@ -268,15 +317,22 @@ class AgentSpaceEngineTest {
     fun normalizeRefreshJsonAcceptsFencesAndRejectsProse() {
         assertEquals(
             """{"v":1}""",
-            AgentSpaceEngine.normalizeRefreshJson("""说明
+            AgentSpaceEngine.normalizeRefreshJson(
+                """说明
 ```json
 {"v":1}
 ```
-结束"""),
+结束""",
+            ),
         )
-        assertEquals("""[1,2]""", AgentSpaceEngine.normalizeRefreshJson("""```
+        assertEquals(
+            """[1,2]""",
+            AgentSpaceEngine.normalizeRefreshJson(
+                """```
 [1,2]
-```"""))
+```""",
+            ),
+        )
         assertNull(AgentSpaceEngine.normalizeRefreshJson("没有 JSON"))
     }
 
@@ -290,11 +346,28 @@ class AgentSpaceEngineTest {
 
 private class FakeSpaceDataWriter : SpaceCardDataWriter {
     val data = linkedMapOf<String, String>()
+    private val revisions = mutableMapOf<String, Long>()
 
     override fun read(cardId: String): String? = data[cardId]
 
+    override fun snapshot(cardId: String): SpaceCardDataSnapshot = SpaceCardDataSnapshot(data[cardId], revisions[cardId] ?: 0L)
+
     override suspend fun write(cardId: String, jsonText: String) {
         data[cardId] = jsonText
+        revisions[cardId] = (revisions[cardId] ?: 0L) + 1L
+    }
+
+    override suspend fun compareAndWrite(cardId: String, expected: SpaceCardDataSnapshot, jsonText: String): Long? {
+        if (snapshot(cardId) != expected) return null
+        write(cardId, jsonText)
+        return snapshot(cardId).revision
+    }
+
+    override suspend fun compareAndRestore(cardId: String, expectedRevision: Long, previous: SpaceCardDataSnapshot): Boolean {
+        if ((revisions[cardId] ?: 0L) != expectedRevision) return false
+        if (previous.data == null) data.remove(cardId) else data[cardId] = previous.data
+        revisions[cardId] = expectedRevision + 1L
+        return true
     }
 }
 
@@ -302,10 +375,12 @@ private class FakeSpaceRefresher : SpaceCardRefresher {
     var reply: String? = """{"v":2}"""
     var failure: Exception? = null
     val requests = mutableListOf<String>()
+    var afterRefresh: (suspend () -> Unit)? = null
 
     override suspend fun refresh(card: CardEntity, previousData: String?): String? {
         requests += card.id
         failure?.let { throw it }
+        afterRefresh?.invoke()
         return reply
     }
 }

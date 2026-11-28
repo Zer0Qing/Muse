@@ -176,69 +176,63 @@ internal class MpCheckupStore(
     }
 
     private fun parseBatchResponse(raw: String, batchSize: Int): ParsedBatchResult {
-        val cleaned = raw
-            .replace(THINK_CLOSED_REGEX, "")
-            .replace(THINK_UNCLOSED_REGEX, "")
-            .trim()
-        val unfenced = FENCE_REGEX.find(cleaned)?.groupValues?.get(1)?.trim() ?: cleaned
-        val jsonCandidate = extractBalancedJsonObject(unfenced)
-        if (jsonCandidate != null) {
-            val fromJson = runCatching {
-                val root = JSONObject(jsonCandidate)
-                val verdicts = LinkedHashMap<Int, String>()
-                val arr = root.optJSONArray("verdicts")
-                if (arr != null) {
-                    for (i in 0 until arr.length()) {
-                        val obj = arr.optJSONObject(i)
-                        if (obj != null) {
-                            val idx = obj.optInt("index", i + 1)
-                            val text = obj.optString("verdict").trim()
-                            if (idx in 1..batchSize && text.isNotBlank()) verdicts[idx] = text
-                        } else {
-                            val text = arr.optString(i).trim()
-                            if (i + 1 <= batchSize && text.isNotBlank()) verdicts[i + 1] = text
-                        }
-                    }
-                }
-                val summary = root.optString("summary").trim().ifBlank { null }
-                ParsedBatchResult(verdicts = verdicts, summary = summary)
-            }.onFailure { e ->
-                Logger.w(TAG, "查岗 JSON 解析失败，降级文本解析: ${e.message}")
-            }.getOrNull()
-            if (fromJson != null && (fromJson.verdicts.isNotEmpty() || fromJson.summary != null)) {
-                return fromJson
-            }
-        }
+        val unfenced = normalizeBatchResponse(raw)
+        parseJsonBatch(unfenced, batchSize)?.let { return it }
+        parseNumberedBatch(unfenced, batchSize)?.let { return it }
+        val plain = unfenced.trim()
+        if (plain.isEmpty()) return ParsedBatchResult(emptyMap(), null)
+        return ParsedBatchResult(
+            verdicts = (1..batchSize).associateWith { plain },
+            summary = plain,
+        )
+    }
 
-        // 兜底 1：按编号行解析（模型未遵守 JSON 时）
-        val lineVerdicts = LinkedHashMap<Int, String>()
-        var parsedSummary: String? = null
-        for (line in unfenced.lineSequence()) {
+    private fun normalizeBatchResponse(raw: String): String {
+        val cleaned = raw.replace(THINK_CLOSED_REGEX, "").replace(THINK_UNCLOSED_REGEX, "").trim()
+        return FENCE_REGEX.find(cleaned)?.groupValues?.get(1)?.trim() ?: cleaned
+    }
+
+    private fun parseJsonBatch(text: String, batchSize: Int): ParsedBatchResult? {
+        val jsonCandidate = extractBalancedJsonObject(text) ?: return null
+        val result = runCatching {
+            val root = JSONObject(jsonCandidate)
+            val verdicts = parseJsonVerdicts(root.optJSONArray("verdicts"), batchSize)
+            ParsedBatchResult(verdicts, root.optString("summary").trim().ifBlank { null })
+        }.onFailure { e ->
+            Logger.w(TAG, "查岗 JSON 解析失败，降级文本解析: ${e.message}")
+        }.getOrNull()
+        return result?.takeIf { it.verdicts.isNotEmpty() || it.summary != null }
+    }
+
+    private fun parseJsonVerdicts(array: org.json.JSONArray?, batchSize: Int): LinkedHashMap<Int, String> {
+        val verdicts = LinkedHashMap<Int, String>()
+        if (array == null) return verdicts
+        for (i in 0 until array.length()) {
+            val obj = array.optJSONObject(i)
+            val index = obj?.optInt("index", i + 1) ?: (i + 1)
+            val text = obj?.optString("verdict")?.trim() ?: array.optString(i).trim()
+            if (index in 1..batchSize && text.isNotBlank()) verdicts[index] = text
+        }
+        return verdicts
+    }
+
+    private fun parseNumberedBatch(text: String, batchSize: Int): ParsedBatchResult? {
+        val verdicts = LinkedHashMap<Int, String>()
+        var summary: String? = null
+        text.lineSequence().forEach { line ->
             val trimmed = line.trim()
             val numbered = NUMBERED_LINE_REGEX.find(trimmed)
             if (numbered != null) {
-                val idx = numbered.groupValues[1].toIntOrNull()
-                val text = numbered.groupValues[2].trim()
-                if (idx != null && idx in 1..batchSize && text.isNotBlank()) {
-                    lineVerdicts[idx] = text
-                }
+                val index = numbered.groupValues[1].toIntOrNull()
+                val verdict = numbered.groupValues[2].trim()
+                if (index != null && index in 1..batchSize && verdict.isNotBlank()) verdicts[index] = verdict
             } else if (trimmed.startsWith("结论") || trimmed.startsWith("总结")) {
-                val body = trimmed.substringAfter("：", trimmed.substringAfter(":", "")).trim()
-                if (body.isNotBlank()) parsedSummary = body
+                summary = trimmed.substringAfter("：", trimmed.substringAfter(":", "")).trim().takeIf { it.isNotBlank() }
             }
         }
-        if (lineVerdicts.isNotEmpty()) {
-            return ParsedBatchResult(
-                verdicts = lineVerdicts,
-                summary = parsedSummary ?: unfenced.trim().takeIf { it.isNotBlank() },
-            )
+        return verdicts.takeIf { it.isNotEmpty() }?.let {
+            ParsedBatchResult(it, summary ?: text.trim().takeIf(String::isNotBlank))
         }
-
-        // 兜底 2：纯文本整段结论（兼容极简回复），同时填入摘要与各条解读以便展示
-        val plain = unfenced.trim()
-        if (plain.isEmpty()) return ParsedBatchResult(emptyMap(), null)
-        val fallbackVerdicts = (1..batchSize).associateWith { plain }
-        return ParsedBatchResult(verdicts = fallbackVerdicts, summary = plain)
     }
 
     private fun extractBalancedJsonObject(text: String): String? {

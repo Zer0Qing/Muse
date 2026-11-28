@@ -3,14 +3,14 @@ package io.zer0.ai.core
 import io.zer0.ai.anthropic.AnthropicUsage
 import io.zer0.ai.anthropic.anthropicUsageTokens
 import io.zer0.ai.gemini.GeminiUsageMetadata
-import io.zer0.ai.gemini.toUsageTokens as geminiUsageTokens
 import io.zer0.ai.openai.OpenAICompletionPromptTokensDetails
 import io.zer0.ai.openai.OpenAICompletionUsage
-import io.zer0.ai.openai.toUsageTokens as openAIUsageTokens
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import io.zer0.ai.gemini.toUsageTokens as geminiUsageTokens
+import io.zer0.ai.openai.toUsageTokens as openAIUsageTokens
 
 /**
  * 各 provider 的 usage 字段落到 [UsageTokens] 的哪个分项。

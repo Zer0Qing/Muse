@@ -68,6 +68,10 @@ class TeachEventSanitizerTest {
         assertTrue(record.action.contains("11 字符"))
         assertFalse(record.action.contains(rawText))
         assertEquals("com.example.app", record.targetApp)
+        assertEquals("com.example.app", record.targetPackage)
+        assertEquals("text_changed", record.actionKind)
+        assertEquals("", record.targetText)
+        assertFalse(record.contentDesc.contains(rawText))
     }
 
     @Test
@@ -91,6 +95,7 @@ class TeachEventSanitizerTest {
             TeachEventSanitizer.decide(
                 event = rawEvent(
                     eventType = AccessibilityEvent.TYPE_VIEW_CLICKED,
+                    viewId = "com.example.app:id/search_button",
                     contentDescription = "搜索",
                 ),
                 recordedSteps = 0,
@@ -101,6 +106,41 @@ class TeachEventSanitizerTest {
 
         assertEquals("点击「搜索」", record.action)
         assertEquals("com.example.app", record.targetApp)
+        assertEquals("com.example.app", record.targetPackage)
+        assertEquals("click", record.actionKind)
+        assertEquals("搜索", record.contentDesc)
+        assertEquals("search_button", record.resourceIdHint)
+    }
+
+    @Test
+    fun `click text supplies a bounded static target label but editable text stays out`() {
+        val button = recordOf(
+            TeachEventSanitizer.decide(
+                event = rawEvent(
+                    eventType = AccessibilityEvent.TYPE_VIEW_CLICKED,
+                    className = "android.widget.Button",
+                    text = "继续",
+                ),
+                recordedSteps = 0,
+                startedAt = startedAt,
+            ),
+        )
+        val editable = recordOf(
+            TeachEventSanitizer.decide(
+                event = rawEvent(
+                    eventType = AccessibilityEvent.TYPE_VIEW_CLICKED,
+                    className = "com.example.CustomField",
+                    text = "private input",
+                    isEditable = true,
+                ),
+                recordedSteps = 0,
+                startedAt = startedAt,
+            ),
+        )
+
+        assertEquals("继续", button.targetText)
+        assertEquals("", editable.targetText)
+        assertFalse(editable.action.contains("private input"))
     }
 
     @Test
@@ -225,6 +265,7 @@ class TeachEventSanitizerTest {
         text: String? = null,
         contentDescription: String? = null,
         isPassword: Boolean = false,
+        isEditable: Boolean = false,
         timestamp: Long = startedAt + 1_000L,
     ): TeachEventSanitizer.RawEvent = TeachEventSanitizer.RawEvent(
         eventType = eventType,
@@ -233,6 +274,7 @@ class TeachEventSanitizerTest {
         viewId = viewId,
         text = text,
         contentDescription = contentDescription,
+        isEditable = isEditable,
         isPassword = isPassword,
         timestamp = timestamp,
     )

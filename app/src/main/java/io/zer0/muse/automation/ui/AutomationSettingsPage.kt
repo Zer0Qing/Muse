@@ -1,5 +1,6 @@
 package io.zer0.muse.automation.ui
 
+import android.content.Context
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
@@ -24,6 +25,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -36,14 +38,23 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.common.Logger
 import io.zer0.muse.R
+import io.zer0.muse.automation.AutomationRuntime
+import io.zer0.muse.automation.appcontrol.AndroidAppController
+import io.zer0.muse.automation.appcontrol.InstalledAppInfo
 import io.zer0.muse.automation.core.AutomationManager
+import io.zer0.muse.automation.core.AutonomousAccessibilityGrant
+import io.zer0.muse.automation.vdisplay.VirtualDisplayHandoffRegistry
 import io.zer0.muse.data.AutomationSettingsStore
 import io.zer0.muse.data.SettingsRepository
+import io.zer0.muse.permission.PermissionCoordinator
 import io.zer0.muse.ui.chat.ChatViewModel
 import io.zer0.muse.ui.common.feedback.MuseToast
 import io.zer0.muse.ui.common.icons.MuseIcons
@@ -58,17 +69,16 @@ import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
 import io.zer0.muse.ui.theme.MuseSpacing
 import io.zer0.muse.ui.theme.largeCard
-import io.zer0.muse.ui.theme.semiLarge
 import io.zer0.muse.ui.theme.titleMediumStrong
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import org.koin.compose.koinInject
+import org.koin.java.KoinJavaComponent
 
 /**
  * UI 自动化设置页。
  *
- * v2.x: 三通道权限配置已收敛到「权限配置向导」页(消除两页逐层重复);
- * 本页保留:功能说明、向导入口、动作编排、屏幕读取测试与开发者诊断。
+ * 收敛为「总览（能力仪表盘 + 总闸 + 三大入口）+ 三个专注子页」，
+ * 避免子页继续重复渲染总览横幅和主开关，并在回到前台时自动刷新无障碍与服务状态。
  */
 @Suppress("LongMethod", "FunctionNaming")
 @Composable
@@ -81,32 +91,60 @@ fun AutomationSettingsPage(
     onOpenPermissionWizard: () -> Unit = {},
     /** Tasker/外部自动化开关；可选以保持 Robolectric 页面测试不依赖 Koin。 */
     settings: SettingsRepository? = null,
+    permissionCoordinator: PermissionCoordinator? = null,
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val resolvedCoordinator = remember(permissionCoordinator) {
+        permissionCoordinator ?: runCatching {
+            KoinJavaComponent.getOrNull<PermissionCoordinator>(PermissionCoordinator::class.java)
+        }.getOrNull()
+    }
+    val chatViewModel: ChatViewModel? = remember {
+        runCatching { KoinJavaComponent.getOrNull<ChatViewModel>(ChatViewModel::class.java) }.getOrNull()
+    }
+
     val taskerEnabled by settings?.taskerTriggerEnabledFlow?.collectAsStateWithLifecycle(initialValue = false)
         ?: remember { mutableStateOf(false) }
     val automationEnabled by settings?.automationEnabledFlow?.collectAsStateWithLifecycle(initialValue = true)
         ?: remember { mutableStateOf(true) }
-    // P1-02：助手留下的虚拟屏（可预览、可自己操作）。展开的是 displayId。
+    val visionEnabled by settings?.visionEnabledFlow?.collectAsStateWithLifecycle(initialValue = false)
+        ?: remember { mutableStateOf(false) }
+    val visionModelId by settings?.visionModelIdFlow?.collectAsStateWithLifecycle(initialValue = null)
+        ?: remember { mutableStateOf<String?>(null) }
+
     var handoffExpanded by remember { mutableStateOf<Int?>(null) }
-    // R1: 无障碍被系统回收时，页面要主动提示 —— 否则用户只会看到「开关都开着」，
-    // 却不知道为什么读屏/点击全都失败。实时读 permissionState（不是一次性探测）。
     val permissionState by manager.permissionState.collectAsStateWithLifecycle()
+    val coordSnapshotState = resolvedCoordinator?.snapshot?.collectAsStateWithLifecycle()
+    val a11yDead = coordSnapshotState?.value?.accessibilityServiceDead == true
+    val handoffs by VirtualDisplayHandoffRegistry.handoffsFlow.collectAsStateWithLifecycle()
+
     var testing by remember { mutableStateOf(false) }
-    var testResult by remember { mutableStateOf<ScreenTestResult?>(null) }
+    var testResult by remember { mutableStateOf<FourPointSelfTestResult?>(null) }
     val automationSettingsStore = remember { AutomationSettingsStore(context.applicationContext) }
     var autonomousDraft by remember { mutableStateOf(AutonomousAccessibilityDraftState()) }
     var packageEditor by remember { mutableStateOf(AutonomousAccessibilityDraftState().allowedPackages.joinToString("\n")) }
     var autonomousLoaded by remember { mutableStateOf(false) }
     var taskPreview by remember { mutableStateOf<ChatViewModel.AutonomousAccessibilityTaskPreview?>(null) }
-    var taskGrant by remember { mutableStateOf<io.zer0.muse.automation.core.AutonomousAccessibilityGrant?>(null) }
-    val chatViewModel: ChatViewModel? = koinInject()
+    var taskGrant by remember { mutableStateOf<AutonomousAccessibilityGrant?>(null) }
+    var installedApps by remember { mutableStateOf<List<InstalledAppInfo>>(emptyList()) }
 
-    // 25: 把堆砌的单页拆成「总览 + 三个子页」的菜单。用页内状态而非新导航路由，
-    // 免得动导航图/设置目录/web 镜像与一堆计数测试；返回键先回总览再退出。
     var subPage by remember { mutableStateOf(AutomationSubPage.LANDING) }
     BackHandler(enabled = subPage != AutomationSubPage.LANDING) { subPage = AutomationSubPage.LANDING }
+
+    DisposableEffect(lifecycleOwner, manager, resolvedCoordinator) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                scope.launch {
+                    runCatching { manager.refreshPermissions() }
+                    runCatching { resolvedCoordinator?.refresh() }
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     LaunchedEffect(automationSettingsStore, chatViewModel) {
         autonomousDraft =
@@ -119,7 +157,12 @@ fun AutomationSettingsPage(
         autonomousLoaded = true
     }
 
-    // 2.6.24: 子页按「整页横向推入」呈现（含各自页头），不再在原页上只换标题与按钮。
+    LaunchedEffect(subPage, manager) {
+        if (subPage == AutomationSubPage.AUTONOMOUS && installedApps.isEmpty()) {
+            installedApps = AndroidAppController(context.applicationContext, manager).listLaunchableApps()
+        }
+    }
+
     AnimatedContent(
         targetState = subPage,
         transitionSpec = {
@@ -134,214 +177,345 @@ fun AutomationSettingsPage(
                 if (page != AutomationSubPage.LANDING) subPage = AutomationSubPage.LANDING else onBack()
             },
         ) {
-            // 顶部说明卡
-            item(key = "intro") {
-                AutomationNoticeCard(
-                    icon = MuseIcons.computer,
-                    text = stringResource(R.string.automation_settings_intro),
-                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = MuseAlpha.mutedSurface),
-                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    iconTint = MaterialTheme.colorScheme.primary,
-                )
-            }
-
-            // 总闸关闭时，页面顶部先给一条醒目提示：否则用户只会看到「开关是关的」，
-            // 却不知道这意味着所有屏幕自动化工具此刻都在拒绝执行。
-            // 两条横幅**必须互斥**：一条说「为什么现在不能用」，一条说「去哪儿开回来」；
-            // 同时出现只会让用户读到两句互相矛盾的话。
-            // 以前这个互斥只靠两句手写条件（`!enabled` 与 `enabled && !a11y`）维持，
-            // 谁改一句就可能同时点亮 —— 所以把判定抽出来，见文件末尾的 [automationBannerKind]。
-            val bannerKind = automationBannerKind(
-                automationEnabled = automationEnabled,
-                accessibilityEnabled = permissionState.accessibilityEnabled,
-            )
-            when (bannerKind) {
-                AutomationBannerKind.MASTER_OFF -> {
-                    item(key = "master-off-banner") {
-                        AutomationNoticeCard(
-                            icon = MuseIcons.shield,
-                            text = stringResource(R.string.automation_master_off_banner),
-                            containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = MuseAlpha.mutedSurface),
-                            contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                            iconTint = MaterialTheme.colorScheme.error,
-                        )
-                    }
-                }
-
-                // R1: 总闸开着、但无障碍服务当前不可用（多半是被系统回收/用户关了开关）。
-                // 与上面的「总闸关闭」横幅互斥：那条说「为什么不能用」，这条说「去哪开回来」。
-                AutomationBannerKind.A11Y_OFF -> {
-                    item(key = "a11y-off-banner") {
-                        AutomationNoticeCard(
-                            icon = MuseIcons.shield,
-                            text = stringResource(R.string.automation_a11y_off_banner),
-                            containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = MuseAlpha.mutedSurface),
-                            contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                            iconTint = MaterialTheme.colorScheme.onTertiaryContainer,
-                            action = {
-                                Text(
-                                    text = stringResource(R.string.automation_a11y_off_action),
-                                    style = MaterialTheme.typography.labelLarge,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier
-                                        .padding(top = MuseSpacing.smTight)
-                                        .clip(MuseShapes.small)
-                                        .clickable {
-                                            manager.openSystemSettings(
-                                                AutomationManager.SystemSettingsTarget.ACCESSIBILITY,
-                                            )
-                                        }
-                                        .padding(horizontal = MuseSpacing.xs, vertical = MuseSpacing.xxs),
-                                )
-                            },
-                        )
-                    }
-                }
-
-                AutomationBannerKind.NONE -> Unit
-            }
-
-            // v2.x: 三通道权限配置已收敛到「权限配置向导」(消除两页逐层重复)
-            if (page == AutomationSubPage.ACCESS) {
-                item(key = "permissions-entry") {
-                    CardGroup {
-                        navigationItem(
-                            key = "permission_wizard",
-                            title = stringResource(R.string.permission_wizard_title),
-                            subtitle = stringResource(R.string.permission_wizard_desc),
-                            onClick = onOpenPermissionWizard,
-                            leadingContent = { SettingsRowIcon(MuseIcons.shieldCheck) },
-                        )
-                    }
-                }
-            }
-
-            // 虚拟屏交接（P1-02）：任务跑完把屏留下来时，用户在这里看得到、也能自己点。
-            val handoffs = io.zer0.muse.automation.vdisplay.VirtualDisplayHandoffRegistry
-                .list(System.currentTimeMillis())
-            if (page == AutomationSubPage.ACCESS && handoffs.isNotEmpty()) {
-                item(key = "vdisplay-handoff") {
-                    VirtualDisplayHandoffSection(
-                        handoffs = handoffs,
-                        expandedId = handoffExpanded,
-                        onExpand = { id -> handoffExpanded = id },
-                        onClose = { id ->
-                            // 关闭 = 放弃交接 + 销毁：留着它就是一块用户看不见、还占资源的屏
-                            io.zer0.muse.automation.vdisplay.VirtualDisplayHandoffRegistry.release(id)
-                            handoffExpanded = null
-                            scope.launch { io.zer0.muse.automation.AutomationRuntime.destroy(id) }
-                        },
+            when (page) {
+                AutomationSubPage.LANDING -> {
+                    landingSubPage(
+                        manager = manager,
+                        settings = settings,
+                        automationEnabled = automationEnabled,
+                        taskerEnabled = taskerEnabled,
+                        permissionState = permissionState,
+                        a11yDead = a11yDead,
+                        visionEnabled = visionEnabled,
+                        visionModelId = visionModelId,
+                        scope = scope,
+                        onOpenPermissionWizard = onOpenPermissionWizard,
+                        onNavigate = { subPage = it },
                     )
                 }
-            }
 
-            // 25: 两个并列总闸收进同一张卡，减少「一项一卡」的堆砌感；行为与开关各自独立不变。
-            // 没有 SettingsRepository（如页面测试）时开关不可交互：与其渲染一个拖不动却看不出原因的
-            // 开关，不如让 switchItem 明确进入禁用态。
-            val switchEnabled = settings != null
-            item(key = "automation-master") {
-                CardGroup {
-                    switchItem(
-                        key = "automation_master",
-                        title = stringResource(R.string.automation_master_title),
-                        subtitle = stringResource(R.string.automation_master_desc),
-                        checked = automationEnabled,
-                        onCheckedChange = { enabled ->
-                            settings?.let { repository -> scope.launch { repository.saveAutomationEnabled(enabled) } }
-                        },
-                        enabled = switchEnabled,
-                        leadingContent = { SettingsRowIcon(MuseIcons.switch) },
-                    )
-                    // AUD-20261011-TASKER-ABUSE: exported broadcast remains opt-in and visibly warns about model cost.
-                    switchItem(
-                        key = "automation_tasker",
-                        title = stringResource(R.string.automation_tasker_title),
-                        subtitle = stringResource(R.string.automation_tasker_desc),
-                        checked = taskerEnabled,
-                        onCheckedChange = { enabled ->
-                            settings?.let { repository ->
-                                scope.launch { repository.saveTaskerTriggerEnabled(enabled) }
+                AutomationSubPage.ACCESS -> {
+                    item(key = "permissions-entry") {
+                        CardGroup {
+                            navigationItem(
+                                key = "permission_wizard",
+                                title = stringResource(R.string.permission_wizard_title),
+                                subtitle = stringResource(R.string.permission_wizard_desc),
+                                onClick = onOpenPermissionWizard,
+                                leadingContent = { SettingsRowIcon(MuseIcons.shieldCheck) },
+                            )
+                        }
+                    }
+                    val liveHandoffs = handoffs.filter { !it.isExpired(System.currentTimeMillis()) }
+                    if (liveHandoffs.isNotEmpty()) {
+                        item(key = "vdisplay-handoff") {
+                            VirtualDisplayHandoffSection(
+                                handoffs = liveHandoffs,
+                                expandedId = handoffExpanded,
+                                onExpand = { id -> handoffExpanded = id },
+                                onClose = { id ->
+                                    VirtualDisplayHandoffRegistry.release(id)
+                                    handoffExpanded = null
+                                    scope.launch { AutomationRuntime.destroy(id) }
+                                },
+                            )
+                        }
+                    }
+                }
+
+                AutomationSubPage.AUTONOMOUS -> {
+                    item(key = "autonomous-accessibility") {
+                        AutonomousAccessibilityItem(
+                            loaded = autonomousLoaded,
+                            draft = autonomousDraft,
+                            packageEditor = packageEditor,
+                            taskPreview = taskPreview,
+                            grant = taskGrant,
+                            installedApps = installedApps,
+                            store = automationSettingsStore,
+                            onDraftChange = { autonomousDraft = it },
+                            onPackageEditorChange = { packageEditor = it },
+                            onGrantChange = { taskGrant = it },
+                        )
+                    }
+                }
+
+                AutomationSubPage.ORCHESTRATION -> {
+                    orchestrationSubPage(
+                        testing = testing,
+                        testResult = testResult,
+                        onRunTest = {
+                            scope.launch {
+                                testing = true
+                                testResult = null
+                                testResult = runFourPointSelfTest(manager, context, a11yDead)
+                                testing = false
                             }
                         },
-                        enabled = switchEnabled,
-                        leadingContent = { SettingsRowIcon(MuseIcons.link) },
+                        onOpenScheduledTasks = onOpenScheduledTasks,
                     )
                 }
-            }
-
-            // 25: 总览页的三个子页入口（默认全开：点进去即可配置，不再一页堆砌）。
-            if (page == AutomationSubPage.LANDING) {
-                item(key = "sub-menu") {
-                    CardGroup {
-                        navigationItem(
-                            key = "sub_access",
-                            title = stringResource(R.string.automation_sub_access),
-                            subtitle = stringResource(R.string.automation_sub_access_desc),
-                            onClick = { subPage = AutomationSubPage.ACCESS },
-                            leadingContent = { SettingsRowIcon(MuseIcons.shieldCheck) },
-                        )
-                        navigationItem(
-                            key = "sub_autonomous",
-                            title = stringResource(R.string.automation_sub_autonomous),
-                            subtitle = stringResource(R.string.automation_sub_autonomous_desc),
-                            onClick = { subPage = AutomationSubPage.AUTONOMOUS },
-                            leadingContent = { SettingsRowIcon(MuseIcons.computer) },
-                        )
-                        navigationItem(
-                            key = "sub_orchestration",
-                            title = stringResource(R.string.automation_sub_orchestration),
-                            subtitle = stringResource(R.string.automation_sub_orchestration_desc),
-                            onClick = { subPage = AutomationSubPage.ORCHESTRATION },
-                            leadingContent = { SettingsRowIcon(MuseIcons.clock) },
-                        )
-                    }
-                }
-            }
-
-            if (page == AutomationSubPage.AUTONOMOUS) {
-                item(key = "autonomous-accessibility") {
-                    AutonomousAccessibilityItem(
-                        loaded = autonomousLoaded,
-                        draft = autonomousDraft,
-                        packageEditor = packageEditor,
-                        taskPreview = taskPreview,
-                        grant = taskGrant,
-                        store = automationSettingsStore,
-                        onDraftChange = { autonomousDraft = it },
-                        onPackageEditorChange = { packageEditor = it },
-                        onGrantChange = { taskGrant = it },
-                    )
-                }
-            }
-
-            // v1.xxx: F-24 编排与测试子页（抽成独立函数，页内只留分流，降复杂度）。
-            if (page == AutomationSubPage.ORCHESTRATION) {
-                orchestrationSubPage(
-                    testing = testing,
-                    testResult = testResult,
-                    onRunTest = {
-                        scope.launch {
-                            testing = true
-                            testResult = null
-                            testResult = runScreenReadTest(manager, context)
-                            testing = false
-                        }
-                    },
-                    onOpenScheduledTasks = onOpenScheduledTasks,
-                )
             }
         }
     }
 }
 
-/**
- * 页面顶部的说明/拦截条。
- *
- * 与卡片组区分开：它是「读一段话」的提示，不是可配置项，所以不套 [CardGroup]
- * （套了会得到一个不可点的空行，反而让人去试着点它）。
- */
+private fun LazyListScope.landingSubPage(
+    manager: AutomationManager,
+    settings: SettingsRepository?,
+    automationEnabled: Boolean,
+    taskerEnabled: Boolean,
+    permissionState: AutomationManager.PermissionState,
+    a11yDead: Boolean,
+    visionEnabled: Boolean,
+    visionModelId: String?,
+    scope: kotlinx.coroutines.CoroutineScope,
+    onOpenPermissionWizard: () -> Unit,
+    onNavigate: (AutomationSubPage) -> Unit,
+) {
+    item(key = "intro") {
+        AutomationNoticeCard(
+            icon = MuseIcons.computer,
+            text = stringResource(R.string.automation_settings_intro),
+            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = MuseAlpha.mutedSurface),
+            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            iconTint = MaterialTheme.colorScheme.primary,
+        )
+    }
+
+    val bannerKind = automationBannerKind(
+        automationEnabled = automationEnabled,
+        accessibilityEnabled = permissionState.accessibilityEnabled,
+    )
+    if (bannerKind == AutomationBannerKind.MASTER_OFF) {
+        item(key = "master-off-banner") {
+            AutomationNoticeCard(
+                icon = MuseIcons.shield,
+                text = stringResource(R.string.automation_master_off_banner),
+                containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = MuseAlpha.mutedSurface),
+                contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                iconTint = MaterialTheme.colorScheme.error,
+            )
+        }
+    } else if (bannerKind == AutomationBannerKind.A11Y_OFF || a11yDead) {
+        item(key = "a11y-off-banner") {
+            AutomationNoticeCard(
+                icon = MuseIcons.shield,
+                text = stringResource(
+                    if (a11yDead) R.string.automation_a11y_dead_banner else R.string.automation_a11y_off_banner,
+                ),
+                containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = MuseAlpha.mutedSurface),
+                contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                iconTint = MaterialTheme.colorScheme.onTertiaryContainer,
+                action = {
+                    Text(
+                        text = stringResource(R.string.automation_a11y_off_action),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier
+                            .padding(top = MuseSpacing.smTight)
+                            .clip(MuseShapes.small)
+                            .clickable {
+                                manager.openSystemSettings(
+                                    AutomationManager.SystemSettingsTarget.ACCESSIBILITY,
+                                )
+                            }
+                            .padding(horizontal = MuseSpacing.xs, vertical = MuseSpacing.xs),
+                    )
+                },
+            )
+        }
+    }
+
+    item(key = "readiness-dashboard") {
+        CapabilityReadinessDashboard(
+            permissionState = permissionState,
+            a11yDead = a11yDead,
+            visionEnabled = visionEnabled,
+            visionModelId = visionModelId,
+            onOpenAccessibility = {
+                manager.openSystemSettings(AutomationManager.SystemSettingsTarget.ACCESSIBILITY)
+            },
+            onOpenPermissionWizard = onOpenPermissionWizard,
+        )
+    }
+
+    val switchEnabled = settings != null
+    item(key = "automation-master") {
+        CardGroup {
+            switchItem(
+                key = "automation_master",
+                title = stringResource(R.string.automation_master_title),
+                subtitle = stringResource(R.string.automation_master_desc),
+                checked = automationEnabled,
+                onCheckedChange = { enabled ->
+                    settings?.let { repository -> scope.launch { repository.saveAutomationEnabled(enabled) } }
+                },
+                enabled = switchEnabled,
+                leadingContent = { SettingsRowIcon(MuseIcons.switch) },
+            )
+            switchItem(
+                key = "automation_tasker",
+                title = stringResource(R.string.automation_tasker_title),
+                subtitle = stringResource(R.string.automation_tasker_desc),
+                checked = taskerEnabled,
+                onCheckedChange = { enabled ->
+                    settings?.let { repository ->
+                        scope.launch { repository.saveTaskerTriggerEnabled(enabled) }
+                    }
+                },
+                enabled = switchEnabled,
+                leadingContent = { SettingsRowIcon(MuseIcons.link) },
+            )
+        }
+    }
+
+    item(key = "sub-menu") {
+        CardGroup {
+            navigationItem(
+                key = "sub_access",
+                title = stringResource(R.string.automation_sub_access),
+                subtitle = stringResource(R.string.automation_sub_access_desc),
+                onClick = { onNavigate(AutomationSubPage.ACCESS) },
+                leadingContent = { SettingsRowIcon(MuseIcons.shieldCheck) },
+            )
+            navigationItem(
+                key = "sub_autonomous",
+                title = stringResource(R.string.automation_sub_autonomous),
+                subtitle = stringResource(R.string.automation_sub_autonomous_desc),
+                onClick = { onNavigate(AutomationSubPage.AUTONOMOUS) },
+                leadingContent = { SettingsRowIcon(MuseIcons.computer) },
+            )
+            navigationItem(
+                key = "sub_orchestration",
+                title = stringResource(R.string.automation_sub_orchestration),
+                subtitle = stringResource(R.string.automation_sub_orchestration_desc),
+                onClick = { onNavigate(AutomationSubPage.ORCHESTRATION) },
+                leadingContent = { SettingsRowIcon(MuseIcons.clock) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun CapabilityReadinessDashboard(
+    permissionState: AutomationManager.PermissionState,
+    a11yDead: Boolean,
+    visionEnabled: Boolean,
+    visionModelId: String?,
+    onOpenAccessibility: () -> Unit,
+    onOpenPermissionWizard: () -> Unit,
+) {
+    val a11yStatus = when {
+        permissionState.accessibilityEnabled && !a11yDead -> CheckState.PASS
+        a11yDead -> CheckState.WARN
+        else -> CheckState.FAIL
+    }
+    val shellStatus = if (permissionState.shellEnabled || permissionState.rootEnabled) {
+        CheckState.PASS
+    } else {
+        CheckState.FAIL
+    }
+    val vdStatus = if (AutomationRuntime.isReady && (permissionState.shellEnabled || permissionState.rootEnabled)) {
+        CheckState.PASS
+    } else {
+        CheckState.FAIL
+    }
+    val visionStatus = if (visionEnabled && !visionModelId.isNullOrBlank()) CheckState.PASS else CheckState.WARN
+
+    CardGroup(title = { Text(stringResource(R.string.automation_readiness_title)) }) {
+        item(
+            key = "ready_a11y",
+            onClick = onOpenAccessibility,
+            leadingContent = { SettingsRowIcon(MuseIcons.shieldCheck) },
+            headlineContent = {
+                Text(
+                    stringResource(R.string.automation_readiness_accessibility),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            },
+            trailingContent = { ReadinessPill(a11yStatus) },
+        )
+        item(
+            key = "ready_shell",
+            onClick = onOpenPermissionWizard,
+            leadingContent = { SettingsRowIcon(MuseIcons.bolt) },
+            headlineContent = { Text(stringResource(R.string.automation_readiness_shell), maxLines = 1, overflow = TextOverflow.Ellipsis) },
+            trailingContent = { ReadinessPill(shellStatus) },
+        )
+        item(
+            key = "ready_vdisplay",
+            onClick = onOpenPermissionWizard,
+            leadingContent = { SettingsRowIcon(MuseIcons.deviceMobile) },
+            headlineContent = {
+                Text(
+                    stringResource(R.string.automation_readiness_vdisplay),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            },
+            trailingContent = { ReadinessPill(vdStatus) },
+        )
+        item(
+            key = "ready_vision",
+            leadingContent = { SettingsRowIcon(MuseIcons.image) },
+            headlineContent = {
+                Text(
+                    stringResource(R.string.automation_readiness_vision),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            },
+            supportingContent = {
+                Text(
+                    text = when {
+                        !visionEnabled -> stringResource(R.string.automation_readiness_vision_off)
+                        !visionModelId.isNullOrBlank() -> stringResource(R.string.automation_readiness_vision_on, visionModelId)
+                        else -> stringResource(R.string.automation_readiness_vision_on_unnamed)
+                    },
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            },
+            trailingContent = { ReadinessPill(visionStatus) },
+        )
+    }
+}
+
+@Composable
+private fun ReadinessPill(state: CheckState) {
+    val labelRes = when (state) {
+        CheckState.PASS -> R.string.automation_readiness_ready
+        CheckState.WARN -> R.string.automation_readiness_dead
+        CheckState.FAIL -> R.string.automation_readiness_off
+    }
+    StatusPill(label = stringResource(labelRes), state = state)
+}
+
+@Composable
+private fun StatusPill(label: String, state: CheckState) {
+    val (bg, fg) = when (state) {
+        CheckState.PASS -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
+        CheckState.WARN -> MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
+        CheckState.FAIL -> MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
+    }
+    Surface(
+        shape = MuseShapes.small,
+        color = bg,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = fg,
+            maxLines = 1,
+            modifier = Modifier.padding(horizontal = MuseSpacing.smTight, vertical = MuseSpacing.xxs),
+        )
+    }
+}
+
 @Composable
 private fun AutomationNoticeCard(
     icon: ImageVector,
@@ -373,7 +547,6 @@ private fun AutomationNoticeCard(
                     style = MaterialTheme.typography.bodySmall,
                     color = contentColor,
                 )
-                // 可选动作区：非空才组合，避免在空槽位上多铺一层布局节点。
                 val actionContent = action
                 if (actionContent != null) {
                     actionContent()
@@ -383,12 +556,6 @@ private fun AutomationNoticeCard(
     }
 }
 
-/**
- * 卡片行首图标。
- *
- * 取 24dp 而不是 20dp：卡片内分隔线的缩进按「行内边距 + 24dp 图标 + 行内边距」计算，
- * 图标换成更小档位会让每一条分隔线相对文字列左移 4dp，看起来像没对齐。
- */
 @Composable
 private fun SettingsRowIcon(icon: ImageVector) {
     Icon(
@@ -399,10 +566,9 @@ private fun SettingsRowIcon(icon: ImageVector) {
     )
 }
 
-/** 25: 编排与测试子页。从主页抽出，页内只留子页分流，避免单函数分支复杂度超标。 */
 private fun LazyListScope.orchestrationSubPage(
     testing: Boolean,
-    testResult: ScreenTestResult?,
+    testResult: FourPointSelfTestResult?,
     onRunTest: () -> Unit,
     onOpenScheduledTasks: () -> Unit,
 ) {
@@ -412,7 +578,6 @@ private fun LazyListScope.orchestrationSubPage(
                 Column(
                     Modifier
                         .fillMaxWidth()
-                        // 自定义块不经过 MuseListItem，边距只在这里补一次；块内不再二次缩进。
                         .padding(MusePaddings.cardInner),
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -449,7 +614,7 @@ private fun LazyListScope.orchestrationSubPage(
                 title = if (testing) {
                     stringResource(R.string.automation_test_running)
                 } else {
-                    stringResource(R.string.automation_test_action)
+                    stringResource(R.string.automation_selftest_action)
                 },
                 onClick = onRunTest,
                 enabled = !testing,
@@ -459,79 +624,85 @@ private fun LazyListScope.orchestrationSubPage(
     }
     testResult?.let { result ->
         item(key = "test-result") {
-            ScreenTestResultCard(result)
+            FourPointSelfTestCard(result)
         }
     }
 }
 
-/** 屏幕读取自测结果卡（含默认折叠的开发者诊断信息）。 */
 @Composable
-private fun ScreenTestResultCard(result: ScreenTestResult) {
-    Surface(
-        shape = MuseShapes.semiLarge,
-        color = if (result.success) {
-            MaterialTheme.colorScheme.secondaryContainer.copy(alpha = MuseAlpha.mutedSurface)
-        } else {
-            MaterialTheme.colorScheme.errorContainer.copy(alpha = MuseAlpha.mutedSurface)
-        },
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(Modifier.padding(MusePaddings.cardInner)) {
-            Text(text = result.message, style = MaterialTheme.typography.bodySmall)
-            // ST-04: 开发者诊断信息默认折叠,展开显示包名与数据来源
-            result.devInfo?.let { devInfo ->
+private fun FourPointSelfTestCard(result: FourPointSelfTestResult) {
+    CardGroup(title = { Text(stringResource(R.string.automation_selftest_title)) }) {
+        result.items.forEachIndexed { index, entry ->
+            item(
+                key = "check_$index",
+                headlineContent = { Text(entry.title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                supportingContent = { Text(entry.detail) },
+                trailingContent = {
+                    val labelRes = when (entry.state) {
+                        CheckState.PASS -> R.string.automation_selftest_pass
+                        CheckState.WARN -> R.string.automation_selftest_warn
+                        CheckState.FAIL -> R.string.automation_selftest_fail
+                    }
+                    StatusPill(label = stringResource(labelRes), state = entry.state)
+                },
+            )
+        }
+        result.devInfo?.let { devInfo ->
+            content(key = "self_test_dev_info") {
                 var showDevInfo by remember { mutableStateOf(false) }
-                Spacer(Modifier.height(MuseSpacing.smTight))
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(MuseShapes.small)
-                        .clickable { showDevInfo = !showDevInfo }
-                        .padding(horizontal = MuseSpacing.sm, vertical = MuseSpacing.xs),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = stringResource(R.string.automation_developer_info),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Icon(
-                        imageVector = if (showDevInfo) MuseIcons.chevronUp else MuseIcons.chevronDown,
-                        contentDescription = null,
-                        modifier = Modifier.size(MuseIconSizes.iconSmall),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                if (showDevInfo) {
-                    Text(
-                        text = devInfo,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = MuseSpacing.sm, vertical = MuseSpacing.xs),
-                    )
+                Column(Modifier.padding(MusePaddings.cardInner)) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(MuseShapes.small)
+                            .clickable { showDevInfo = !showDevInfo }
+                            .padding(vertical = MuseSpacing.xs),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.automation_developer_info),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Icon(
+                            imageVector = if (showDevInfo) MuseIcons.chevronUp else MuseIcons.chevronDown,
+                            contentDescription = null,
+                            modifier = Modifier.size(MuseIconSizes.iconSmall),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    if (showDevInfo) {
+                        Text(
+                            text = devInfo,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(bottom = MuseSpacing.xs),
+                        )
+                    }
                 }
             }
         }
     }
 }
 
-/** 25: UI 自动化页内菜单层级（总览 + 三子页），用页内状态切换，不新增导航路由。 */
 private enum class AutomationSubPage { LANDING, ACCESS, AUTONOMOUS, ORCHESTRATION }
 
-/**
- * 一次屏幕读取自测的结果:用户可见文案 + 是否成功(决定提示卡配色)。
- * devInfo 为开发者诊断信息(包名/数据来源),ST-04 起默认折叠展示。
- */
-private data class ScreenTestResult(
-    val message: String,
-    val success: Boolean,
+private enum class CheckState { PASS, WARN, FAIL }
+
+private data class SelfTestItem(
+    val title: String,
+    val detail: String,
+    val state: CheckState,
+)
+
+private data class FourPointSelfTestResult(
+    val items: List<SelfTestItem>,
     val devInfo: String? = null,
 )
 
-/** 25: 子页标题映射（从页面抽出，降低页内分支复杂度）。 */
 @androidx.annotation.StringRes
 private fun automationSubPageTitleRes(subPage: AutomationSubPage): Int = when (subPage) {
     AutomationSubPage.LANDING -> R.string.automation_settings_title
@@ -540,48 +711,114 @@ private fun automationSubPageTitleRes(subPage: AutomationSubPage): Int = when (s
     AutomationSubPage.ORCHESTRATION -> R.string.automation_sub_orchestration
 }
 
-/** 25: 屏幕读取自测的执行逻辑（从页面 onClick 抽出，页面只负责状态翻转）。 */
-private suspend fun runScreenReadTest(manager: AutomationManager, context: android.content.Context): ScreenTestResult = runCatching {
-    manager.refreshPermissions()
-    val screen = manager.readScreen()
-    if (screen.source == "unavailable") {
-        ScreenTestResult(context.getString(R.string.automation_test_no_channel), success = false)
+private suspend fun runFourPointSelfTest(manager: AutomationManager, context: Context, a11yDead: Boolean): FourPointSelfTestResult {
+    val perms = runCatching { manager.refreshPermissions() }.getOrElse { manager.permissionState.value }
+    val a11yItem = when {
+        perms.accessibilityEnabled && !a11yDead -> SelfTestItem(
+            title = context.getString(R.string.automation_selftest_check_a11y),
+            detail = context.getString(R.string.automation_selftest_a11y_live),
+            state = CheckState.PASS,
+        )
+        a11yDead -> SelfTestItem(
+            title = context.getString(R.string.automation_selftest_check_a11y),
+            detail = context.getString(R.string.automation_selftest_a11y_dead),
+            state = CheckState.WARN,
+        )
+        else -> SelfTestItem(
+            title = context.getString(R.string.automation_selftest_check_a11y),
+            detail = context.getString(R.string.automation_selftest_a11y_off),
+            state = CheckState.FAIL,
+        )
+    }
+
+    val shellChannels = buildList {
+        if (perms.shellEnabled) add("Shizuku")
+        if (perms.rootEnabled) add("Root")
+    }
+    val shellItem = if (shellChannels.isNotEmpty()) {
+        SelfTestItem(
+            title = context.getString(R.string.automation_selftest_check_shell),
+            detail = context.getString(R.string.automation_selftest_shell_ok, shellChannels.joinToString(" + ")),
+            state = CheckState.PASS,
+        )
     } else {
-        val unknown = context.getString(R.string.automation_test_unknown)
-        // ST-04: 包名与数据来源属开发者诊断信息,收进 devInfo 折叠区
-        ScreenTestResult(
-            message = buildString {
-                appendLine(context.getString(R.string.automation_test_node_count, screen.nodes.size))
-                appendLine(context.getString(R.string.automation_test_resolution, screen.screenWidth, screen.screenHeight))
-            }.trimEnd('\n'),
-            success = true,
+        SelfTestItem(
+            title = context.getString(R.string.automation_selftest_check_shell),
+            detail = context.getString(R.string.automation_selftest_shell_off),
+            state = CheckState.FAIL,
+        )
+    }
+
+    val vdItem = if (AutomationRuntime.isReady && shellChannels.isNotEmpty()) {
+        SelfTestItem(
+            title = context.getString(R.string.automation_selftest_check_vdisplay),
+            detail = context.getString(R.string.automation_selftest_vd_ok, shellChannels.first()),
+            state = CheckState.PASS,
+        )
+    } else {
+        val reason = if (shellChannels.isEmpty()) {
+            context.getString(R.string.automation_selftest_shell_off)
+        } else {
+            context.getString(R.string.automation_readiness_off)
+        }
+        SelfTestItem(
+            title = context.getString(R.string.automation_selftest_check_vdisplay),
+            detail = context.getString(R.string.automation_selftest_vd_off, reason),
+            state = CheckState.FAIL,
+        )
+    }
+
+    var devInfo: String? = null
+    val screenItem = runCatching {
+        val screen = manager.readScreen()
+        if (screen.source == "unavailable") {
+            SelfTestItem(
+                title = context.getString(R.string.automation_selftest_check_screen),
+                detail = context.getString(R.string.automation_test_no_channel),
+                state = CheckState.FAIL,
+            )
+        } else {
+            val unknown = context.getString(R.string.automation_test_unknown)
             devInfo = buildString {
                 appendLine(context.getString(R.string.automation_test_current_app, screen.packageName ?: unknown))
                 appendLine(context.getString(R.string.automation_test_source, screen.source))
-            }.trimEnd('\n'),
+            }.trimEnd('\n')
+            SelfTestItem(
+                title = context.getString(R.string.automation_selftest_check_screen),
+                detail = context.getString(
+                    R.string.automation_selftest_screen_ok,
+                    screen.nodes.size,
+                    screen.screenWidth,
+                    screen.screenHeight,
+                ),
+                state = CheckState.PASS,
+            )
+        }
+    }.getOrElse {
+        SelfTestItem(
+            title = context.getString(R.string.automation_selftest_check_screen),
+            detail = context.getString(
+                R.string.automation_test_failed,
+                it.message ?: context.getString(R.string.automation_test_unknown),
+            ),
+            state = CheckState.FAIL,
         )
     }
-}.getOrElse {
-    ScreenTestResult(
-        context.getString(R.string.automation_test_failed, it.message ?: context.getString(R.string.automation_test_unknown)),
-        success = false,
+
+    return FourPointSelfTestResult(
+        items = listOf(a11yItem, shellItem, vdItem, screenItem),
+        devInfo = devInfo,
     )
 }
 
-/**
- * 虚拟屏交接区：一行入口 + 展开后的预览/触摸面板。
- *
- * 抽成独立 composable 的原因：设置页的分支复杂度已经顶到 detekt 上限，
- * 而这块本身是"看 + 操作一块外部屏幕"的完整单元，独立更好读。
- */
 @Composable
 private fun VirtualDisplayHandoffSection(
-    handoffs: List<io.zer0.muse.automation.vdisplay.VirtualDisplayHandoffRegistry.Handoff>,
+    handoffs: List<VirtualDisplayHandoffRegistry.Handoff>,
     expandedId: Int?,
     onExpand: (Int?) -> Unit,
     onClose: (Int) -> Unit,
 ) {
-    if (!io.zer0.muse.automation.AutomationRuntime.isReady) return
+    if (!AutomationRuntime.isReady) return
     val first = handoffs.firstOrNull() ?: return
     val expanded = expandedId == first.displayId
     CardGroup {
@@ -597,37 +834,26 @@ private fun VirtualDisplayHandoffSection(
         VirtualDisplayHandoffPanel(
             displayId = first.displayId,
             packageName = first.packageName,
-            screenshot = { io.zer0.muse.automation.AutomationRuntime.screenshot(first.displayId) },
-            tap = { x, y -> io.zer0.muse.automation.AutomationRuntime.tap(first.displayId, x, y) },
-            bringToMain = {
-                io.zer0.muse.automation.AutomationRuntime.launchOnMain(first.packageName)
-            },
+            screenshot = { AutomationRuntime.screenshot(first.displayId) },
+            tap = { x, y -> AutomationRuntime.tap(first.displayId, x, y) },
+            bringToMain = { AutomationRuntime.launchOnMain(first.packageName) },
             onClose = { onClose(first.displayId) },
         )
     }
 }
 
-/**
- * 自主无障碍那一整块（从 [AutomationSettingsPage] 外提）。
- *
- * 为什么要外提：那一块里有"没加载完不显示 / 预览或目标包缺失 / 授权建不出来 / 已有授权"
- * 四个判定，全留在页面函数里会让它复杂到没人敢改。外提后页面只负责**决定放不放这一块**，
- * 判定留在自己的函数里，各自的复杂度都能被读得下。
- *
- * `scope`/`context` 在这里自取而不是当参数传：两者本来就是组合作用域内的东西
- * （`rememberCoroutineScope()` / `LocalContext.current`），传参反而多两个可传错的入口。
- */
 @Composable
 private fun AutonomousAccessibilityItem(
     loaded: Boolean,
     draft: AutonomousAccessibilityDraftState,
     packageEditor: String,
     taskPreview: ChatViewModel.AutonomousAccessibilityTaskPreview?,
-    grant: io.zer0.muse.automation.core.AutonomousAccessibilityGrant?,
+    grant: AutonomousAccessibilityGrant?,
+    installedApps: List<InstalledAppInfo>,
     store: AutomationSettingsStore,
     onDraftChange: (AutonomousAccessibilityDraftState) -> Unit,
     onPackageEditorChange: (String) -> Unit,
-    onGrantChange: (io.zer0.muse.automation.core.AutonomousAccessibilityGrant?) -> Unit,
+    onGrantChange: (AutonomousAccessibilityGrant?) -> Unit,
 ) {
     if (!loaded) return
     val scope = rememberCoroutineScope()
@@ -638,6 +864,7 @@ private fun AutonomousAccessibilityItem(
         packageEditor = packageEditor,
         taskPreview = taskPreview,
         grant = grant,
+        installedApps = installedApps,
         onDraftChange = onDraftChange,
         onPackageEditorChange = onPackageEditorChange,
         onSave = {
@@ -651,11 +878,18 @@ private fun AutonomousAccessibilityItem(
         },
         onConfirmTask = {
             val preview = taskPreview
-            val targetPackage = draft.allowedPackages.firstOrNull()
+            val editedPackages = parseAutonomousPackages(packageEditor)
+            val resolvedPackages = editedPackages.ifEmpty { draft.allowedPackages }
+            val targetPackage = resolvedPackages.firstOrNull()
             if (preview == null || targetPackage == null) {
                 MuseToast.show(context.getString(R.string.automation_autonomous_confirm_required))
             } else {
                 scope.launch {
+                    if (editedPackages.isNotEmpty() && editedPackages != draft.allowedPackages) {
+                        val updatedDraft = draft.copy(allowedPackages = editedPackages)
+                        onDraftChange(updatedDraft)
+                        runCatching { store.saveAutonomousAccessibilityWindow(updatedDraft.toWindow()) }
+                    }
                     val newGrant = buildAutonomousGrant(
                         sessionId = preview.sessionId,
                         latestUserMessage = preview.message,
@@ -690,9 +924,6 @@ internal enum class AutomationBannerKind { NONE, MASTER_OFF, A11Y_OFF }
 
 /**
  * 总闸与无障碍权限两条横幅的**互斥判定**（纯函数，所以能被测）。
- *
- * 规则：总闸关着时只说「为什么现在不能用」—— 那时候去开无障碍是没意义的，
- * 两句同时冒出来只会互相矛盾。因此总闸优先，且三者互斥。
  */
 internal fun automationBannerKind(automationEnabled: Boolean, accessibilityEnabled: Boolean): AutomationBannerKind = when {
     !automationEnabled -> AutomationBannerKind.MASTER_OFF

@@ -1,12 +1,12 @@
 package io.zer0.muse.ui
 
 import io.zer0.muse.R
+import io.zer0.muse.ui.chat.ToolEntry
+import io.zer0.muse.ui.chat.findToolEntry
 import io.zer0.muse.ui.common.icons.MuseIcons
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Test
-import io.zer0.muse.ui.chat.ToolEntry
-import io.zer0.muse.ui.chat.findToolEntry
 
 class ToolEntryLocalizationTest {
     @Test

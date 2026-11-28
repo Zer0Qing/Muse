@@ -5,7 +5,6 @@ import androidx.test.platform.app.InstrumentationRegistry
 import io.zer0.muse.tools.TOOL_OUTPUTS_DIR
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
 import org.junit.Test

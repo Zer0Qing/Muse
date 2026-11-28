@@ -55,6 +55,7 @@ internal object HostSettingsCatalog {
             "settings_group_general",
             link("appearance", "settings_screen_appearance_label", "palette"),
             link("chat", "settings_screen_chat", "chat"),
+            link("share", "common_share", "share"),
             link("user_profile", "settings_user_profile_title", "user"),
             link("stats", "settings_screen_stats", "chartBar"),
         ),
@@ -78,7 +79,7 @@ internal object HostSettingsCatalog {
             link("asr", "settings_screen_asr", "microphone"),
             link("voice_cloning", "voice_cloning_title", "play"),
             link("vision", "settings_vision_title", "image"),
-            link("image_video_gen", "video_gen_title", "video"),
+            link("image_video_gen", "settings_media_gen_models_title", "video"),
         ),
         group(
             "settings_group_memory",
@@ -89,16 +90,14 @@ internal object HostSettingsCatalog {
         group(
             "settings_group_tools",
             link("tools", "settings_screen_tools", "wrench"),
+            link("skills", "settings_assistant_skills", "puzzle", enabled = false),
             link("web_search", "settings_screen_web_search", "globe"),
             link("provider_plugins", "provider_plugins_title", "affiliate"),
             link("mcp", "settings_screen_mcp", "plug"),
         ),
         group(
-            "settings_group_connection",
-            link("channel", "channel_page_title", "wifi"),
-            link("browser", "settings_screen_browser", "globe", enabled = false),
-            link("web_access", "settings_screen_web_access", "router"),
-            link("proxy", "proxy_title", "proxy"),
+            "settings_group_channels",
+            link("channel", "channel_page_title", "chat"),
         ),
         group(
             "settings_group_automation",
@@ -120,8 +119,13 @@ internal object HostSettingsCatalog {
             toggle("pii_guard", "settings_screen_pii_guard", "shield", HostSettingKeys.PII_GUARD),
             link("permission_wizard", "permission_wizard_title", "shieldCheck"),
             link("tool_approval", "settings_screen_entry_tool_approval", "shieldCheck", enabled = false),
-            link("share", "common_share", "lock"),
             link("audit_log", "settings_audit_log", "history"),
+        ),
+        group(
+            "settings_group_connection",
+            link("browser", "settings_screen_browser", "globe", enabled = false),
+            link("web_access", "settings_screen_web_access", "router"),
+            link("proxy", "proxy_title", "proxy"),
         ),
         group(
             "settings_group_about",
@@ -155,15 +159,14 @@ internal object HostSettingsCatalog {
     private fun visibleGroups(all: List<HostSettingsGroup>): List<HostSettingsGroup> =
         all.filter { group -> group.key != "settings_group_miniphone" || FeatureFlags.MINI_PHONE }
 
-    private fun link(id: String, titleKey: String, iconKey: String, enabled: Boolean = true): HostSettingsEntry =
-        HostSettingsEntry(
-            id = id,
-            titleKey = titleKey,
-            groupKey = "",
-            iconKey = iconKey,
-            kind = KIND_LINK,
-            enabled = enabled,
-        )
+    private fun link(id: String, titleKey: String, iconKey: String, enabled: Boolean = true): HostSettingsEntry = HostSettingsEntry(
+        id = id,
+        titleKey = titleKey,
+        groupKey = "",
+        iconKey = iconKey,
+        kind = KIND_LINK,
+        enabled = enabled,
+    )
 
     private fun action(id: String, titleKey: String, iconKey: String): HostSettingsEntry = HostSettingsEntry(
         id = id,
@@ -173,15 +176,14 @@ internal object HostSettingsCatalog {
         kind = KIND_ACTION,
     )
 
-    private fun toggle(id: String, titleKey: String, iconKey: String, settingKey: String): HostSettingsEntry =
-        HostSettingsEntry(
-            id = id,
-            titleKey = titleKey,
-            groupKey = "",
-            iconKey = iconKey,
-            kind = KIND_SWITCH,
-            toggleKey = settingKey,
-        )
+    private fun toggle(id: String, titleKey: String, iconKey: String, settingKey: String): HostSettingsEntry = HostSettingsEntry(
+        id = id,
+        titleKey = titleKey,
+        groupKey = "",
+        iconKey = iconKey,
+        kind = KIND_SWITCH,
+        toggleKey = settingKey,
+    )
 
     const val KIND_LINK = "link"
     const val KIND_SWITCH = "switch"

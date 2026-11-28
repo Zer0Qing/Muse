@@ -1,5 +1,4 @@
 package io.zer0.muse.ui.chat
-import io.zer0.muse.ui.screen.HomeScreen
 
 /**
  * 聊天页所处的界面形态。
@@ -23,10 +22,11 @@ enum class ChatSurface {
     FULL,
     AGENT,
     MINI_PHONE,
+    HOME_DRAWER_TASK,
     ;
 
     /** 是否由外部容器提供顶栏（此时 `ChatScreen` 不画自己的顶栏）。 */
-    val hidesOwnTopBar: Boolean get() = this == AGENT
+    val hidesOwnTopBar: Boolean get() = this == AGENT || this == HOME_DRAWER_TASK
 
     /** 是否属于小手机内嵌形态。 */
     val isMiniPhone: Boolean get() = this == MINI_PHONE

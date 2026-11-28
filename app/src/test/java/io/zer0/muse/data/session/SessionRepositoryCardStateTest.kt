@@ -132,6 +132,32 @@ class SessionRepositoryCardStateTest {
         assertEquals("普通 通一 一句 句话 话", ftsContentFor(messageId).trim())
     }
 
+    @Test
+    fun `FTS4 rebuild replaces stale entries with one row for current message content`() = runTest {
+        val sessionId = newSession("rebuild")
+        val messageId = repository.appendMessage(
+            sessionId,
+            UIMessage(role = MessageRole.USER, content = "旧内容词条", createdAt = System.currentTimeMillis()),
+        )
+        database.openHelper.writableDatabase.execSQL(
+            "UPDATE messages SET content = ? WHERE id = ?",
+            arrayOf("当前内容词条", messageId),
+        )
+
+        repository.rebuildFtsIndex()
+
+        val indexed = ftsContentFor(messageId)
+        val rowCount = database.openHelper.readableDatabase
+            .query("SELECT COUNT(*) FROM messages_fts WHERE message_id = ?", arrayOf(messageId))
+            .use { cursor ->
+                cursor.moveToFirst()
+                cursor.getInt(0)
+            }
+        assertEquals(1, rowCount)
+        assertTrue(indexed.contains("当前"))
+        assertFalse(indexed.contains("旧"))
+    }
+
     private suspend fun newSession(tag: String): String {
         val now = System.currentTimeMillis()
         val id = "session-$tag-$now"

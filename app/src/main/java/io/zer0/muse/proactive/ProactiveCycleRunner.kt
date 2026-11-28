@@ -6,15 +6,15 @@ import io.zer0.common.Logger
 import io.zer0.common.ProcessWriteGate
 import io.zer0.muse.data.ProactiveMessageConfig
 import io.zer0.muse.data.assistant.AssistantEntity
-import io.zer0.muse.data.proactive.ProactiveRelationEntity
-import io.zer0.muse.data.proactive.ProactiveTimingEngine
 import io.zer0.muse.data.proactive.PendingThoughtEntity
 import io.zer0.muse.data.proactive.ProactiveBacklogRepository
+import io.zer0.muse.data.proactive.ProactiveRelationEntity
+import io.zer0.muse.data.proactive.ProactiveTimingEngine
 import io.zer0.muse.notification.MuseNotificationTarget
 import io.zer0.muse.schedule.GenerationGate
 import io.zer0.muse.schedule.readScheduleWorkEnabledOrFalse
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
 
 /**
@@ -92,6 +92,8 @@ class ProactiveCycleRunner(
          * 是另一个问题，由用户选的等级决定。
          */
         val relation: ProactiveRelationEntity,
+        val scheduledThoughtId: String? = null,
+        var candidateThoughts: List<PendingThoughtEntity> = emptyList(),
         var selectedThought: PendingThoughtEntity? = null,
     )
 
@@ -105,12 +107,12 @@ class ProactiveCycleRunner(
      * @param force 手动测试：跳过总开关与四问里的时机限制，但**不越过账本** ——
      *              没有牵挂就没有内容可生成，强行发只会生成空洞的话。
      */
-    suspend fun execute(trigger: String, force: Boolean): Outcome {
+    suspend fun execute(trigger: String, force: Boolean, scheduledThought: PendingThoughtEntity? = null): Outcome {
         val entry = guard.tryEnter(System.currentTimeMillis())
             ?: return skipped(trigger)
         var sent = false
         return try {
-            run(trigger, force, entry).also { sent = it.sent }
+            run(trigger, force, entry, scheduledThought).also { sent = it.sent }
         } finally {
             guard.leave(entry, sent)
         }
@@ -129,11 +131,15 @@ class ProactiveCycleRunner(
         )
     }
 
-    private suspend fun run(trigger: String, force: Boolean, entry: ProactiveCycleGuard.Entry): Outcome =
-        when (val prepared = prepare(trigger, force, entry)) {
-            is Preparation.Blocked -> prepared.outcome
-            is Preparation.Ready -> runPrepared(trigger, prepared.value, force)
-        }
+    private suspend fun run(
+        trigger: String,
+        force: Boolean,
+        entry: ProactiveCycleGuard.Entry,
+        scheduledThought: PendingThoughtEntity?,
+    ): Outcome = when (val prepared = gateBlock(force) ?: assemble(trigger, entry, scheduledThought)) {
+        is Preparation.Blocked -> prepared.outcome
+        is Preparation.Ready -> runPrepared(trigger, prepared.value, force)
+    }
 
     /** 拿到准备好的材料后，决定说还是不说。 */
     private suspend fun runPrepared(trigger: String, ready: Prepared, force: Boolean): Outcome {
@@ -273,11 +279,6 @@ class ProactiveCycleRunner(
         data class Blocked(val outcome: Outcome) : Preparation
     }
 
-    private suspend fun prepare(trigger: String, force: Boolean, entry: ProactiveCycleGuard.Entry): Preparation {
-        val gate = gateBlock(force)
-        return gate ?: assemble(trigger, entry)
-    }
-
     /**
      * 前三道闸：恢复中 / 总控关闭 / 主动消息未开启。
      *
@@ -294,16 +295,19 @@ class ProactiveCycleRunner(
     }
 
     /** 把一轮巡检要的材料凑齐。拿不到的就降级为一次 Blocked。 */
-    private suspend fun assemble(trigger: String, entry: ProactiveCycleGuard.Entry): Preparation {
+    private suspend fun assemble(trigger: String, entry: ProactiveCycleGuard.Entry, scheduledThought: PendingThoughtEntity?): Preparation {
         val config = runtime.settings.proactiveMessageConfigFlow.first()
         val now = System.currentTimeMillis()
 
         // 助手是后面所有步骤的前提，拿不到就没必要继续凑材料
-        val assistant = loader.loadAssistant(config.agentId) ?: return blocked("没有可用助手")
+        val assistant = loader.loadAssistant(
+            scheduledThought?.assistantId ?: config.agentId,
+            allowFallback = scheduledThought == null,
+        ) ?: return blocked("没有可用助手")
 
         // 例行清理 + 推导新牵挂，全是本地操作，不花钱。
         // 主动消息关着的时候也做：账本照常积累，用户打开时才有东西可说。
-        stores.thoughts.maintenance(now)
+        stores.thoughts.maintenance(now, stores.outcomes.outcomeDao)
         // 发出去一天还没人理的，就在这轮收尾成 EXPIRED。放在巡检里而不是新起定时器：
         // 巡检本来就是这条链路上唯一会定期跑的本地活儿，多一个 Worker 就多一处
         // 「什么时候跑、跑在哪个进程」要维护。
@@ -324,7 +328,7 @@ class ProactiveCycleRunner(
                 backlogWorkScheduler?.enqueueIfNeeded()
             } catch (cancelled: CancellationException) {
                 throw cancelled
-            } catch (error: Exception) {
+            } catch (error: RuntimeException) {
                 Logger.w(TAG, "backlog 对账失败，正常巡检继续: ${error.message}", error)
             }
         }
@@ -376,6 +380,7 @@ class ProactiveCycleRunner(
                     context = context,
                     decision = decision,
                     relation = relation,
+                    scheduledThoughtId = scheduledThought?.id,
                 ),
             )
         }
@@ -400,7 +405,13 @@ class ProactiveCycleRunner(
             ready.assistant.id,
             ledger.mapTo(mutableSetOf()) { it.kindEnum() },
         )
-        val candidates = ProactiveCandidateFilter.select(ledger, intensity, banned)
+        val now = System.currentTimeMillis()
+        val candidates = ProactiveCandidateFilter.select(ledger, intensity, banned, now = now)
+            .filter { ready.scheduledThoughtId == null || it.id == ready.scheduledThoughtId }
+        if (ready.scheduledThoughtId != null && candidates.isEmpty()) {
+            return ProactiveReplyParser.Result.Skip("本次预约已失效或不满足发送条件")
+        }
+        ready.candidateThoughts = candidates.take(ProactiveComposer.MAX_CANDIDATES)
         ready.selectedThought = candidates.firstOrNull()
         if (banned.isNotEmpty()) {
             Logger.i(TAG, "候选过滤 | 已不感兴趣的类型=${banned.joinToString { it.name }} | 剩=${candidates.size}")
@@ -424,12 +435,13 @@ class ProactiveCycleRunner(
         val minutesSinceProactive = runCatching {
             stores.outcomes.getRecent(ready.assistant.id, 1).firstOrNull()
         }.getOrNull()?.let { (nowForFacts - it.sentAt).coerceAtLeast(0L) / 60_000L }
+        val localeTag = java.util.Locale.getDefault().toLanguageTag().ifBlank { "zh-CN" }
         return withTimeoutOrNull(COMPOSE_TIMEOUT_MS) {
             GenerationGate.withPermit {
                 composer.compose(
                     input = ProactiveComposer.Input(
                         assistant = ready.assistant,
-                        candidates = listOfNotNull(ready.selectedThought),
+                        candidates = ready.candidateThoughts,
                         sessionId = ready.sessionId,
                         recentMessages = ready.context.recentMessages,
                         recentProactiveMessages = ready.context.recentProactiveTexts,
@@ -437,6 +449,7 @@ class ProactiveCycleRunner(
                         minutesSinceLastChat = minutesSinceChat,
                         minutesSinceLastProactive = minutesSinceProactive,
                         intensity = intensity,
+                        locale = localeTag,
                     ),
                     model = route?.second,
                     providerConfig = route?.first,
@@ -457,7 +470,11 @@ class ProactiveCycleRunner(
      */
     private suspend fun publish(trigger: String, ready: Prepared, message: ProactiveReplyParser.Result.Message): Boolean {
         val now = System.currentTimeMillis()
-        val selectedThoughtId = ready.selectedThought?.id
+        val modelThoughtId = message.thoughtId?.trim()?.takeIf { it.isNotBlank() }
+        val matchedThought = modelThoughtId?.let { id ->
+            ready.candidateThoughts.firstOrNull { it.id == id }
+        }
+        val selectedThoughtId = matchedThought?.id
         var actual: PendingThoughtEntity? = null
         var outcomeId: String? = null
         val proactiveMessage = UIMessage(
@@ -471,11 +488,24 @@ class ProactiveCycleRunner(
                 message = proactiveMessage,
             ) { messageId ->
                 val selected = selectedThoughtId?.let { id ->
-                    stores.thoughts.getOpen(ready.assistant.id).firstOrNull { it.id == id && it.lastSurfacedAt == null }
+                    stores.thoughts.getOpen(ready.assistant.id).firstOrNull { it.id == id }
                 }
-                if (selectedThoughtId != null && selected == null) throw ThoughtAlreadyHandled()
-                if (selected != null && stores.thoughts.markSurfacedIfOpen(selected.id, now) != 1) {
+                val selectedIsEligible = selected != null &&
+                    (selectedThoughtId == null ||
+                        stores.thoughts.markSurfacedIfEligible(
+                            id = selected.id,
+                            at = now,
+                            reSurfaceBefore = now - ProactiveCandidateFilter.DEFAULT_RESURFACE_COOLDOWN_MS,
+                        ) == 1)
+                if (selectedThoughtId != null && !selectedIsEligible) {
                     throw ThoughtAlreadyHandled()
+                }
+                if (selected != null && (
+                        selected.kindEnum() == io.zer0.muse.data.proactive.ThoughtKind.REMINDER ||
+                            selected.urgencyEnum() == io.zer0.muse.data.proactive.ThoughtUrgency.IMMEDIATE
+                        )
+                ) {
+                    stores.thoughts.complete(selected.id)
                 }
                 actual = selected
                 val stableOutcomeId = java.util.UUID.nameUUIDFromBytes(
@@ -495,11 +525,14 @@ class ProactiveCycleRunner(
                 outcomeId = outcome.outcomeId
             }
         } catch (e: ThoughtAlreadyHandled) {
-            Logger.i(TAG, "主动消息候选已由其他 lane 处理，本轮回滚 | thoughtId=$selectedThoughtId")
+            Logger.i(
+                TAG,
+                "主动消息候选已由其他 lane 处理，本轮回滚 | thoughtId=$selectedThoughtId | error=${e.message}",
+            )
             return false
         } catch (e: CancellationException) {
             throw e
-        } catch (e: Exception) {
+        } catch (e: RuntimeException) {
             Logger.e(TAG, "落库失败，本次放弃: ${e.message}", e)
             null
         }
@@ -545,7 +578,7 @@ class ProactiveCycleRunner(
             runtime.notifier.proactiveNotificationBlocker()
         } catch (e: CancellationException) {
             throw e
-        } catch (e: Exception) {
+        } catch (e: RuntimeException) {
             e.message ?: e::class.java.simpleName
         }
         val notified = try {
@@ -558,7 +591,7 @@ class ProactiveCycleRunner(
             )
         } catch (e: CancellationException) {
             throw e
-        } catch (e: Exception) {
+        } catch (e: RuntimeException) {
             Logger.w(TAG, "主动消息通知异常: ${e.message}")
             false
         }

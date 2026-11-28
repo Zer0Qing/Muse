@@ -25,6 +25,22 @@ import java.util.UUID
  * `revision` 是写入计数器：UI 与 prompt 不需要 Room 的 observeAll 也能在写入后立刻
  * 重新读到最新条目 —— 少了这条信号，统一数据源就会退化成「写完看不见」。
  */
+data class ExperienceRecordInput(
+    val assistantId: String,
+    val category: String,
+    val content: String,
+    val metadata: ExperienceRecordMetadata = ExperienceRecordMetadata(),
+)
+
+data class ExperienceRecordMetadata(
+    val title: String = "",
+    val tags: List<String> = emptyList(),
+    val source: String = ExperienceEntry.SOURCE_MANUAL,
+    val sessionId: String? = null,
+    val createdAt: String? = null,
+    val updatedAt: String? = null,
+)
+
 class ExperienceStore(
     private val storageDir: File,
 ) {
@@ -49,32 +65,43 @@ class ExperienceStore(
         tags: List<String> = emptyList(),
         source: String = ExperienceEntry.SOURCE_MANUAL,
         sessionId: String? = null,
-        /** 导入旧表时保留原时间；普通写入留空即用当前时间。 */
-        createdAt: String? = null,
-        updatedAt: String? = null,
-    ): String = withContext(Dispatchers.IO) {
+    ): String = recordAt(
+        ExperienceRecordInput(
+            assistantId = assistantId,
+            category = category,
+            content = content,
+            metadata = ExperienceRecordMetadata(
+                title = title,
+                tags = tags,
+                source = source,
+                sessionId = sessionId,
+            ),
+        ),
+    )
+
+    suspend fun recordAt(input: ExperienceRecordInput): String = withContext(Dispatchers.IO) {
         mutex.withLock {
-            val safeAssistant = validateSegment(assistantId, "assistantId")
-            val safeCategory = validateSegment(category, "category")
-            val trimmed = content.trim()
+            val safeAssistant = validateSegment(input.assistantId, "assistantId")
+            val safeCategory = validateSegment(input.category, "category")
+            val trimmed = input.content.trim()
             require(trimmed.isNotBlank()) { "content must not be blank" }
-            val entries = loadLocked(safeAssistant, safeCategory)
+            val entries = readFile(categoryFile(safeAssistant, safeCategory))
             val existing = entries.firstOrNull { it.content == trimmed }
             if (existing != null) return@withLock existing.id
 
             val now = Instant.now().toString()
-            val created = createdAt?.takeIf { it.isNotBlank() } ?: now
+            val created = input.metadata.createdAt?.takeIf { it.isNotBlank() } ?: now
             val entry = ExperienceEntry(
                 id = UUID.randomUUID().toString(),
                 assistantId = safeAssistant,
                 category = safeCategory,
                 content = trimmed,
                 createdAt = created,
-                title = title.trim(),
-                tags = tags.map { it.trim() }.filter { it.isNotEmpty() },
-                source = source,
-                sessionId = sessionId,
-                updatedAt = updatedAt?.takeIf { it.isNotBlank() } ?: created,
+                title = input.metadata.title.trim(),
+                tags = input.metadata.tags.map { it.trim() }.filter { it.isNotEmpty() },
+                source = input.metadata.source,
+                sessionId = input.metadata.sessionId,
+                updatedAt = input.metadata.updatedAt?.takeIf { it.isNotBlank() } ?: created,
             )
             writeLocked(safeAssistant, safeCategory, entries + entry)
             bumpLocked()
@@ -89,7 +116,7 @@ class ExperienceStore(
                 assistantFiles(safeAssistant).flatMap { readFile(it) }.sortedByDescending { it.updatedAt }
             } else {
                 val safeCategory = validateSegment(category, "category")
-                loadLocked(safeAssistant, safeCategory).sortedByDescending { it.updatedAt }
+                readFile(categoryFile(safeAssistant, safeCategory)).sortedByDescending { it.updatedAt }
             }
         }
     }
@@ -114,12 +141,13 @@ class ExperienceStore(
             val located = locateLocked(entry.id) ?: return@withLock false
             val updated = entry.copy(assistantId = safeAssistant, category = safeCategory, content = entry.content.trim())
             if (located.assistant == safeAssistant && located.category == safeCategory) {
-                val rest = loadLocked(located.assistant, located.category).map { if (it.id == updated.id) updated else it }
+                val rest = readFile(categoryFile(located.assistant, located.category))
+                    .map { if (it.id == updated.id) updated else it }
                 writeLocked(safeAssistant, safeCategory, rest)
             } else {
-                val remaining = loadLocked(located.assistant, located.category).filter { it.id != updated.id }
+                val remaining = readFile(categoryFile(located.assistant, located.category)).filter { it.id != updated.id }
                 writeLocked(located.assistant, located.category, remaining)
-                val target = loadLocked(safeAssistant, safeCategory)
+                val target = readFile(categoryFile(safeAssistant, safeCategory))
                 writeLocked(safeAssistant, safeCategory, target + updated)
             }
             bumpLocked()
@@ -131,7 +159,7 @@ class ExperienceStore(
     suspend fun delete(id: String): Boolean = withContext(Dispatchers.IO) {
         mutex.withLock {
             val located = locateLocked(id) ?: return@withLock false
-            val remaining = loadLocked(located.assistant, located.category).filter { it.id != id }
+            val remaining = readFile(categoryFile(located.assistant, located.category)).filter { it.id != id }
             writeLocked(located.assistant, located.category, remaining)
             bumpLocked()
             true
@@ -164,17 +192,13 @@ class ExperienceStore(
         return value
     }
 
-    private fun fileFor(assistantId: String): File = File(storageDir, assistantId)
-
-    private fun categoryFile(assistantId: String, category: String): File = File(fileFor(assistantId), "$category.json")
+    private fun categoryFile(assistantId: String, category: String): File =
+        File(File(storageDir, assistantId), "$category.json")
 
     private fun assistantFiles(assistantId: String): List<File> =
-        fileFor(assistantId).listFiles().orEmpty().filter { it.isFile && it.extension == "json" }.toList()
+        File(storageDir, assistantId).listFiles().orEmpty().filter { it.isFile && it.extension == "json" }.toList()
 
-    private fun allFiles(): List<File> =
-        storageDir.walkTopDown().filter { it.isFile && it.extension == "json" }.toList()
-
-    private fun loadLocked(assistantId: String, category: String): List<ExperienceEntry> = readFile(categoryFile(assistantId, category))
+    private fun allFiles(): List<File> = storageDir.walkTopDown().filter { it.isFile && it.extension == "json" }.toList()
 
     private fun readFile(file: File): List<ExperienceEntry> {
         if (!file.isFile) return emptyList()

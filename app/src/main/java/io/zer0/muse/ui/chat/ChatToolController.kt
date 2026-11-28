@@ -146,6 +146,6 @@ class ChatToolController(
 
     companion object {
         /** 支持在审批卡片中选取本地参考图的工具名集合。 */
-        private val REFERENCE_IMAGE_TOOL_NAMES: Set<String> = setOf("generate_image")
+        private val REFERENCE_IMAGE_TOOL_NAMES: Set<String> = setOf("generate_image", "generate_video")
     }
 }

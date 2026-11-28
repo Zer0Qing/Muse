@@ -144,6 +144,7 @@ class BotTaskStatusMachineTest {
         assertEquals("终态集合必须是五个", 5, BotTaskStatus.TERMINAL.size)
         assertNotNull(BotTaskStatus.TERMINAL.firstOrNull())
     }
+
     @Test
     fun `approval resume goes to needs-user not straight back to queue`() {
         // 自动回 QUEUED 会让 tick 开新 attempt 从头跑 —— 已执行的步骤会再来一遍，
@@ -154,20 +155,21 @@ class BotTaskStatusMachineTest {
                 BotTaskStatus.WAITING_APPROVAL,
                 BotTaskStatusMachine.Event.RESUME_FROM_APPROVAL,
             ),
-        );
+        )
     }
 
     @Test
     fun `needs-user is not auto-resumed by anything`() {
         // 到了 NEEDS_USER 就该停在那儿等用户，不能被别的事件悄悄拉走。
-        val status = BotTaskStatus.NEEDS_USER;
+        val status = BotTaskStatus.NEEDS_USER
         assertNull(
             BotTaskStatusMachine.next(status, BotTaskStatusMachine.Event.START),
-        );
+        )
         assertNull(
             BotTaskStatusMachine.next(status, BotTaskStatusMachine.Event.EXECUTE_DONE),
-        );
+        )
     }
+
     @Test
     fun `user confirmation moves needs-user back to queue`() {
         assertEquals(
@@ -176,7 +178,7 @@ class BotTaskStatusMachineTest {
                 BotTaskStatus.NEEDS_USER,
                 BotTaskStatusMachine.Event.USER_CONFIRMED_CONTINUE,
             ),
-        );
+        )
     }
 
     @Test
@@ -187,15 +189,16 @@ class BotTaskStatusMachineTest {
                 BotTaskStatus.NEEDS_USER,
                 BotTaskStatusMachine.Event.CANCEL_REQUEST,
             ),
-        );
+        )
     }
+
     @Test
     fun `needs-user is not in the terminal set`() {
         // 它有两个出口（继续 / 取消），列进 TERMINAL 会让那两个动作永远不生效。
         assertFalse(
             "NEEDS_USER 是阻塞态不是终态",
             BotTaskStatus.isTerminal(BotTaskStatus.NEEDS_USER),
-        );
+        )
     }
 
     @Test
@@ -207,35 +210,40 @@ class BotTaskStatusMachineTest {
             BotTaskStatus.WAITING_APPROVAL, BotTaskStatus.REVIEWING, BotTaskStatus.CANCEL_REQUESTED,
             BotTaskStatus.SUCCEEDED, BotTaskStatus.PARTIAL, BotTaskStatus.FAILED,
             BotTaskStatus.CANCELLED, BotTaskStatus.NEEDS_USER, BotTaskStatus.UNKNOWN,
-        );
+        )
         allStatuses.forEach { status ->
             val hasExit = BotTaskStatusMachine.Event.entries.any { event ->
                 BotTaskStatusMachine.next(status, event) != null
-            };
-            val markedTerminal = BotTaskStatus.isTerminal(status);
+            }
+            val markedTerminal = BotTaskStatus.isTerminal(status)
             if (markedTerminal) {
                 assertFalse(
                     "$status 被标为终态，却仍有事件能改写它",
                     hasExit,
-                );
+                )
             }
-        };
+        }
     }
 
     @Test
     fun `non terminal statuses all have at least one exit`() {
         val nonTerminal = listOf(
-            BotTaskStatus.QUEUED, BotTaskStatus.RUNNING, BotTaskStatus.WAITING_RESOURCE,
-            BotTaskStatus.WAITING_APPROVAL, BotTaskStatus.REVIEWING, BotTaskStatus.CANCEL_REQUESTED,
+            BotTaskStatus.QUEUED,
+            BotTaskStatus.RUNNING,
+            BotTaskStatus.WAITING_RESOURCE,
+            BotTaskStatus.WAITING_APPROVAL,
+            BotTaskStatus.REVIEWING,
+            BotTaskStatus.CANCEL_REQUESTED,
             BotTaskStatus.NEEDS_USER,
-        );
+        )
         nonTerminal.forEach { status ->
             val hasExit = BotTaskStatusMachine.Event.entries.any { event ->
                 BotTaskStatusMachine.next(status, event) != null
-            };
-            assertTrue("$status 没有出口，任务会永久停住", hasExit);
-        };
+            }
+            assertTrue("$status 没有出口，任务会永久停住", hasExit)
+        }
     }
+
     @Test
     fun `needs-user branch is not shadowed by the terminal branch`() {
         // when 按顺序匹配。如果 NEEDS_USER 同时出现在终态分支和它自己的分支里，
@@ -245,24 +253,24 @@ class BotTaskStatusMachineTest {
         ).readText()
 
         // 终态分支里不能有 NEEDS_USER。
-        val terminalAt = src.indexOf("// 终态：任何事件都不再改写");
-        assertTrue("终态分支必须存在", terminalAt > 0);
+        val terminalAt = src.indexOf("// 终态：任何事件都不再改写")
+        assertTrue("终态分支必须存在", terminalAt > 0)
         // 切到 next() 函数结束，不要用固定偏移 —— 越界会把 isBlocked() 里的
         // NEEDS_USER 也扫进来，产生假失败。
-        val fnEnd = src.indexOf("    /**", terminalAt);
-        val terminalBlock = src.substring(terminalAt, if (fnEnd > terminalAt) fnEnd else src.length);
+        val fnEnd = src.indexOf("    /**", terminalAt)
+        val terminalBlock = src.substring(terminalAt, if (fnEnd > terminalAt) fnEnd else src.length)
         // 只看代码行：注释里提到 NEEDS_USER 是在解释"为什么不在终态里"，
         // 不能把它当成违规。
-        val codeLines = terminalBlock.lines().filterNot { it.trimStart().startsWith("//") };
+        val codeLines = terminalBlock.lines().filterNot { it.trimStart().startsWith("//") }
         assertFalse(
             "NEEDS_USER 不能出现在终态分支里，那会遮蔽它自己的转移",
             codeLines.any { it.contains("BotTaskStatus.NEEDS_USER") },
-        );
+        )
 
         // 但它必须有自己的分支。
         assertTrue(
             "NEEDS_USER 必须有独立的 when 分支",
             src.contains("BotTaskStatus.NEEDS_USER -> when (event)"),
-        );
+        )
     }
 }

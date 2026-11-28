@@ -6,7 +6,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.nio.file.Files
 import java.nio.file.Path
-import io.zer0.muse.ui.screen.HomeScreen
 
 /**
  * 小手机"入口隐藏"契约（全面细化 · 小手机第一批）。

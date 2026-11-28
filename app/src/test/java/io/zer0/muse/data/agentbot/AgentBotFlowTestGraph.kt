@@ -64,17 +64,16 @@ internal class AgentBotFlowTestGraph(
      * 换掉某一个 DAO 的仓储。用来模拟"某一次读取真的抛异常" ——
      * 读失败与"没有数据"必须在页面层可区分，靠真实 Room 造不出这种故障。
      */
-    fun repositoryWith(bindingDao: BotBindingDao = db.botBindingDao()): AgentBotRepository =
-        AgentBotRepository(
-            taskDao = db.botTaskDao(),
-            runDao = db.taskRunDao(),
-            stepDao = db.taskStepDao(),
-            eventDao = db.botEventDao(),
-            approvalDao = db.approvalRequestDao(),
-            publicationDao = db.publicationOutboxDao(),
-            bindingDao = bindingDao,
-            now = clock,
-        )
+    fun repositoryWith(bindingDao: BotBindingDao = db.botBindingDao()): AgentBotRepository = AgentBotRepository(
+        taskDao = db.botTaskDao(),
+        runDao = db.taskRunDao(),
+        stepDao = db.taskStepDao(),
+        eventDao = db.botEventDao(),
+        approvalDao = db.approvalRequestDao(),
+        publicationDao = db.publicationOutboxDao(),
+        bindingDao = bindingDao,
+        now = clock,
+    )
 
     val sessions = SessionRepository(
         sessionDao = db.sessionDao(),
@@ -111,21 +110,20 @@ internal class AgentBotFlowTestGraph(
     fun viewModel(
         restorer: TranscriptRestorer = TranscriptRestorer(sessions),
         repository: AgentBotRepository = this.repository,
-    ): AgentBotViewModel =
-        AgentBotViewModel(
-            repository = repository,
-            facade = facade,
-            inbox = inbox,
-            scheduler = scheduler,
-            publication = publication,
-            approvals = approvals,
-            allowances = allowances,
-            coordinator = coordinator,
-            sessions = sessions,
-            resultApplier = resultApplier,
-            restorer = restorer,
-            results = results,
-        )
+    ): AgentBotViewModel = AgentBotViewModel(
+        repository = repository,
+        facade = facade,
+        inbox = inbox,
+        scheduler = scheduler,
+        publication = publication,
+        approvals = approvals,
+        allowances = allowances,
+        coordinator = coordinator,
+        sessions = sessions,
+        resultApplier = resultApplier,
+        restorer = restorer,
+        results = results,
+    )
 
     fun close() {
         db.close()
@@ -133,12 +131,10 @@ internal class AgentBotFlowTestGraph(
 }
 
 /** 等到页面离开 Loading。Room Flow 的首次发射在后台执行器上，advanceUntilIdle 不追踪它。 */
-internal suspend fun AgentBotViewModel.awaitScopeSettled(): AgentBotScopeState =
-    scopeState.first { it !is AgentBotScopeState.Loading }
+internal suspend fun AgentBotViewModel.awaitScopeSettled(): AgentBotScopeState = scopeState.first { it !is AgentBotScopeState.Loading }
 
 /** 等到绑定解析完成（显式 bind 或从 bot_bindings 回读）。 */
-internal suspend fun AgentBotViewModel.awaitBoundSession(): String =
-    boundSessionId.first { it.isNotBlank() }
+internal suspend fun AgentBotViewModel.awaitBoundSession(): String = boundSessionId.first { it.isNotBlank() }
 
 /** 构造一条任务行。测试只关心 scope 条件，其余字段给稳定默认值。 */
 internal fun scopedTask(
@@ -222,8 +218,7 @@ internal class UnreadableBindingDao(
         delegate.upsertAll(bindings)
     }
 
-    override suspend fun getById(botId: String): BotBindingEntity? =
-        throw java.io.IOException("room: 读取绑定失败")
+    override suspend fun getById(botId: String): BotBindingEntity? = throw java.io.IOException("room: 读取绑定失败")
 
     override suspend fun listEnabled(): List<BotBindingEntity> = delegate.listEnabled()
 
@@ -231,11 +226,9 @@ internal class UnreadableBindingDao(
 
     override suspend fun getAll(): List<BotBindingEntity> = delegate.getAll()
 
-    override suspend fun listBySession(sessionId: String): List<BotBindingEntity> =
-        delegate.listBySession(sessionId)
+    override suspend fun listBySession(sessionId: String): List<BotBindingEntity> = delegate.listBySession(sessionId)
 
-    override suspend fun listByAssistant(assistantId: String): List<BotBindingEntity> =
-        delegate.listByAssistant(assistantId)
+    override suspend fun listByAssistant(assistantId: String): List<BotBindingEntity> = delegate.listByAssistant(assistantId)
 
     override suspend fun deleteBySession(sessionId: String) = delegate.deleteBySession(sessionId)
 

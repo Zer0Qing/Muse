@@ -12,7 +12,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
-import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * subagent_task 工具。
@@ -84,6 +83,7 @@ object SubagentTool {
         ),
         required = setOf("action"),
         category = "built-in",
+        parameterEnums = mapOf("action" to listOf("launch", "reply", "close", "status", "cancel", "list")),
         // 与 ToolPermissionResolver.EXPLICIT_RISK_OVERRIDES 保持一致:subagent_task 归 HIGH
         riskLevel = ToolRiskLevel.HIGH,
     )

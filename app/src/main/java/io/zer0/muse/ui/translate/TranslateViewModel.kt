@@ -17,6 +17,7 @@ import io.zer0.ai.core.UIMessage
 import io.zer0.ai.core.providerError
 import io.zer0.common.Logger
 import io.zer0.muse.R
+import io.zer0.muse.ui.chat.ChatViewModel
 import io.zer0.muse.ui.speech.TtsManager
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -28,7 +29,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
-import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * v1.97 gap8: 独立翻译页 ViewModel。
@@ -396,6 +396,14 @@ class TranslateViewModel(
                 } catch (e: UnsupportedOperationException) {
                     // Provider 未实现 completeText,降级流式
                     collectStream(messages)
+                } catch (e: ProviderException) {
+                    // 限流/配额/鉴权是「换一条路径也一样过不去」的错误。
+                    // 原先无条件降级 streamChat,于是 429 会在流式路径上按退避重试几十秒,
+                    // 期间 translating 恒为 true：翻译按钮、发送到会话全部变灰不可点,
+                    // 用户只看到「点了没反应」。这类错误直接落地成可读提示。
+                    if (e.providerError.isTerminalForFallback()) throw e
+                    Logger.w(TAG, "completeText failed, fallback to streamChat", e)
+                    collectStream(messages)
                 } catch (e: Exception) {
                     // 其他错误也降级流式(网络抖动等)
                     Logger.w(TAG, "completeText failed, fallback to streamChat", e)
@@ -434,10 +442,19 @@ class TranslateViewModel(
                 throw e
             } catch (t: Exception) {
                 Logger.e(TAG, "translate failed", t)
+                // 限流单独说清楚：它可重试，但“再点一下”比“等 40 秒”体验好得多。
+                val rateLimited = (t as? ProviderException)?.providerError is ProviderError.RateLimit
                 _state.update {
                     it.copy(
                         translating = false,
-                        errorMessage = appContext.getString(R.string.err_chat_translate_failed, t.message ?: appContext.getString(R.string.err_chat_unknown)),
+                        errorMessage = if (rateLimited) {
+                            appContext.getString(R.string.err_chat_rate_limited)
+                        } else {
+                            appContext.getString(
+                                R.string.err_chat_translate_failed,
+                                t.message ?: appContext.getString(R.string.err_chat_unknown),
+                            )
+                        },
                     )
                 }
             }
@@ -725,6 +742,19 @@ class TranslateViewModel(
         return io.zer0.muse.transformer.stripThinkTags(sb.toString()).trim()
     }
 
+    /**
+     * 这条错误是否「换一条调用路径也一样过不去」。
+     *
+     * 限流、余额、鉴权都属于供应商侧的状态问题：completeText 被拒，streamChat 会被同样拒掉，
+     * 只会白白多耗一轮退避时间并把 UI 锁在“翻译中”。网络抖动与 5xx 不在此列，它们值得换个路径重试。
+     */
+    private fun ProviderError.isTerminalForFallback(): Boolean = when (this) {
+        is ProviderError.RateLimit, is ProviderError.InsufficientQuota, is ProviderError.AuthError -> true
+        is ProviderError.Network, is ProviderError.ServerError, is ProviderError.InvalidRequest,
+        is ProviderError.Cancelled, is ProviderError.Unknown,
+        -> false
+    }
+
     /** v1.0.30 gap4.8: 构建 LRU 缓存 key。 */
     private fun buildCacheKey(sourceText: String, targetLanguage: String, style: String): String =
         "${sourceText.hashCode()}_${targetLanguage}_$style"
@@ -790,8 +820,7 @@ class TranslateViewModel(
 
         // Localize labels only; persisted values and prompt selection remain unchanged.
         @StringRes
-        fun translationStyleLabelResId(style: String): Int? =
-            translationStyleLabelResIds.getOrNull(TRANSLATION_STYLES.indexOf(style))
+        fun translationStyleLabelResId(style: String): Int? = translationStyleLabelResIds.getOrNull(TRANSLATION_STYLES.indexOf(style))
 
         /**
          * 构建单条翻译的 SYSTEM 指令（不含待翻译原文，与 [buildTranslationUserContent] 配对使用）。
@@ -876,10 +905,7 @@ class TranslateViewModel(
          *  - 必须强调"只输出译文",否则模型容易先复述识别到的原文再给译文;
          *  - 原文框有内容时放在 USER 的 `<source_text>` 中作为补充说明。
          */
-        private fun buildImageTranslationSystemPrompt(
-            targetLanguage: String,
-            sourceLanguage: String,
-        ): String = buildString {
+        private fun buildImageTranslationSystemPrompt(targetLanguage: String, sourceLanguage: String): String = buildString {
             appendLine(
                 """
                 你是翻译引擎。请翻译图片中的文字。

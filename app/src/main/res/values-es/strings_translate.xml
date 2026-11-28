@@ -16,6 +16,7 @@
     <string name="translate_page_speak_result">Leer traducción en voz alta</string>
     <string name="translate_page_use_as_input">Usar como entrada</string>
     <string name="translate_page_send_to_chat_session">Enviar al chat</string>
+    <string name="translate_page_still_translating">Sigue traduciendo; envía al terminar</string>
     <string name="translate_page_more">Más</string>
     <string name="translate_page_style_label">Estilo de traducción</string>
     <string name="translate_page_tts_not_ready">TTS no está listo; inténtalo de nuevo más tarde</string>

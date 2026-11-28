@@ -122,6 +122,12 @@ class ProviderPluginRegistry(
         }
         val r = resultOf {
             val text = file.readText()
+            // 先看首个非空白字符：不是 '{' 就不是插件 JSON。
+            // 不拦的话，用户误选的纯文本会直接进序列化器，报出「Expected start of the object」
+            // 这种对用户毫无意义的内部错误。
+            require(text.trimStart().startsWith("{")) {
+                "不是 Provider 插件 JSON（文件开头应为 '{'）"
+            }
             val plugin = json.decodeFromString<ProviderPlugin>(text)
             validate(plugin)
             register(plugin)

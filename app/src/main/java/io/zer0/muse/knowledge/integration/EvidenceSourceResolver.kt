@@ -93,6 +93,5 @@ object EvidenceSourceResolver {
      * 防冒充校验:缺源/删除/旧版引用都**不得**返回"可跳转到最新文本"。
      * 只有 AVAILABLE 才允许打开文档。
      */
-    fun shouldOpenDocument(resolution: EvidenceSourceResolution): Boolean =
-        resolution.canOpenDocument
+    fun shouldOpenDocument(resolution: EvidenceSourceResolution): Boolean = resolution.canOpenDocument
 }

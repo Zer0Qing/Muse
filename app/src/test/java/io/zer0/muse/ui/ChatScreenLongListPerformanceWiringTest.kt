@@ -5,10 +5,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.nio.file.Files
 import java.nio.file.Path
-import io.zer0.muse.ui.chat.render.ChatRenderContinuationRow
-import io.zer0.muse.ui.chat.ChatMessageRenderRows
-import io.zer0.muse.ui.chat.MessageBubble
-import io.zer0.muse.ui.chat.ChatScreen
 
 class ChatScreenLongListPerformanceWiringTest {
     @Test

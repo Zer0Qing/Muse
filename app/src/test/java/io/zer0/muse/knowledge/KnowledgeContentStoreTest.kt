@@ -23,11 +23,10 @@ class KnowledgeContentStoreTest {
     @get:Rule
     val tmp = TemporaryFolder()
 
-    private fun store(vararg failAt: KnowledgeContentStore.FailurePoint) =
-        KnowledgeContentStore(
-            rootDirectory = tmp.newFolder("blobs"),
-            injectedFailures = failAt.toSet(),
-        )
+    private fun store(vararg failAt: KnowledgeContentStore.FailurePoint) = KnowledgeContentStore(
+        rootDirectory = tmp.newFolder("blobs"),
+        injectedFailures = failAt.toSet(),
+    )
 
     // ---------- 正常路径:六断点全过 ----------
 

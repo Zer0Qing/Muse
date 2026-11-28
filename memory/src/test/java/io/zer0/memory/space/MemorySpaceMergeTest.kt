@@ -99,10 +99,9 @@ class MemorySpaceMergeTest {
         root.deleteRecursively()
     }
 
-    private fun newFactDb(context: Context): FactDb =
-        Room.inMemoryDatabaseBuilder(context, FactDb::class.java)
-            .allowMainThreadQueries()
-            .build()
+    private fun newFactDb(context: Context): FactDb = Room.inMemoryDatabaseBuilder(context, FactDb::class.java)
+        .allowMainThreadQueries()
+        .build()
 
     private fun newCompiler(): MemoryCompiler = MemoryCompiler(
         sectionDao = memoryDb.compiledSectionDao(),
@@ -391,39 +390,36 @@ class MemorySpaceMergeTest {
         assertEquals(1, gated.countFactsInSpace("default"))
     }
 
-    private fun scopedRow(section: String, spaceId: String, content: String): ScopedCompiledSectionEntity =
-        ScopedCompiledSectionEntity(
-            sectionKey = section,
-            scope = MAIN_SCOPE,
-            spaceId = spaceId,
-            content = content,
-            updatedAt = NOW,
-        )
+    private fun scopedRow(section: String, spaceId: String, content: String): ScopedCompiledSectionEntity = ScopedCompiledSectionEntity(
+        sectionKey = section,
+        scope = MAIN_SCOPE,
+        spaceId = spaceId,
+        content = content,
+        updatedAt = NOW,
+    )
 
-    private fun revision(revisionId: String, spaceId: String): MemoryDreamRevisionEntity =
-        MemoryDreamRevisionEntity(
-            revisionId = revisionId,
-            assistantId = "default",
-            scope = MAIN_SCOPE,
-            spaceId = spaceId,
-            trigger = "MANUAL",
-            beforeFingerprint = "fp",
-            beforeJson = "{}",
-            nextJson = "{}",
-            publishedAt = NOW,
-        )
+    private fun revision(revisionId: String, spaceId: String): MemoryDreamRevisionEntity = MemoryDreamRevisionEntity(
+        revisionId = revisionId,
+        assistantId = "default",
+        scope = MAIN_SCOPE,
+        spaceId = spaceId,
+        trigger = "MANUAL",
+        beforeFingerprint = "fp",
+        beforeJson = "{}",
+        nextJson = "{}",
+        publishedAt = NOW,
+    )
 
-    private fun state(revisionId: String, spaceId: String): MemoryDreamStateEntity =
-        MemoryDreamStateEntity(
-            assistantId = "default",
-            scope = MAIN_SCOPE,
-            spaceId = spaceId,
-            running = false,
-            runId = null,
-            lastRevisionId = revisionId,
-            activeRevisionId = revisionId,
-            lastError = null,
-        )
+    private fun state(revisionId: String, spaceId: String): MemoryDreamStateEntity = MemoryDreamStateEntity(
+        assistantId = "default",
+        scope = MAIN_SCOPE,
+        spaceId = spaceId,
+        running = false,
+        runId = null,
+        lastRevisionId = revisionId,
+        activeRevisionId = revisionId,
+        lastError = null,
+    )
 
     private companion object {
         const val NOW = "2026-11-20T08:00:00Z"

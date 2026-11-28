@@ -234,7 +234,6 @@ class KnowledgeRetriever(
         }
     }
 
-
     /** 两路召回结果与降级原因。 */
     private class RecallOutcome(
         val lexicalHits: List<LexicalHit>,
@@ -251,17 +250,12 @@ class KnowledgeRetriever(
             return !lexicalAvailable && !denseAvailable && (hybridEnabled || noDenseRetriever)
         }
 
-        fun unavailableReason(): String =
-            listOfNotNull(lexicalError, denseError, lexicalDegraded, denseDegraded)
-                .joinToString("; ")
-                .ifBlank { "所有检索路径不可用" }
+        fun unavailableReason(): String = listOfNotNull(lexicalError, denseError, lexicalDegraded, denseDegraded)
+            .joinToString("; ")
+            .ifBlank { "所有检索路径不可用" }
     }
 
-    private suspend fun recallBothPaths(
-        request: KnowledgeSearchRequest,
-        activeGenerations: List<String>,
-        limit: Int,
-    ): RecallOutcome {
+    private suspend fun recallBothPaths(request: KnowledgeSearchRequest, activeGenerations: List<String>, limit: Int): RecallOutcome {
         var lexical: LexicalRecall? = null
         var lexicalError: String? = null
         try {

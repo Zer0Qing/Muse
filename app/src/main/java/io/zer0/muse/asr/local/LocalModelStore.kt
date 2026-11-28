@@ -29,9 +29,8 @@ internal object LocalModelStore {
     fun tokensFile(context: Context): File = File(modelDir(context), TOKENS_FILE)
 
     /** 识别可用：模型与词表都存在且非空。 */
-    fun isReady(context: Context): Boolean =
-        modelFile(context).let { it.isFile && it.length() > 0 } &&
-            tokensFile(context).let { it.isFile && it.length() > 0 }
+    fun isReady(context: Context): Boolean = modelFile(context).let { it.isFile && it.length() > 0 } &&
+        tokensFile(context).let { it.isFile && it.length() > 0 }
 
     /**
      * 下载/导入前的落位校验：模型文件存在但词表缺失时提示重新获取完整包。
@@ -46,8 +45,7 @@ internal object LocalModelStore {
     enum class ModelStatus { NOT_DOWNLOADED, READY, INCOMPLETE }
 
     /** 已下载占用字节数（两个文件之和；不存在按 0）。 */
-    fun totalBytes(context: Context): Long =
-        listOf(modelFile(context), tokensFile(context)).sumOf { if (it.isFile) it.length() else 0L }
+    fun totalBytes(context: Context): Long = listOf(modelFile(context), tokensFile(context)).sumOf { if (it.isFile) it.length() else 0L }
 
     /**
      * 删除模型文件（设置页「删除」入口）。返回是否全部清除成功。

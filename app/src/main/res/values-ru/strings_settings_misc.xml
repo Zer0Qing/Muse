@@ -93,6 +93,7 @@
     <string name="settings_model_ability_streaming">Потоковое вещание</string>
     <string name="settings_model_ability_image">Изображение</string>
     <string name="settings_model_ability_multimodal">Мультимодальный</string>
+    <string name="settings_model_ability_no_image_input">Без ввода изображений</string>
     <string name="settings_model_ability_video">Видео</string>
     <string name="settings_model_ability_chat">Чат</string>
     <!-- v1.0.8 (7.7): Context window label (e.g. "128K context") -->

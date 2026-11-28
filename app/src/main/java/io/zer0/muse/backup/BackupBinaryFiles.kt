@@ -16,7 +16,7 @@ import java.util.Base64
  * 设计约束:
  *  - 备份键是**相对 filesDir 的路径**(如 `note_attachments/img_x.png`),值是 Base64 文本;
  *  - 只允许 [allowedPrefixes] 里的目录,恢复时必须重新校验,禁止写到白名单外;
- *  - 单文件 ≤ 2MB、每个目录合计 ≤ 16MB,超限跳过并打日志(不静默截断);
+ *  - 单文件 ≤ 8MB、每个目录合计 ≤ 16MB,超限跳过并打日志(不静默截断);
  *  - 读失败跳过并记日志(不让整体备份失败);写失败向上传播(触发恢复点回滚)。
  */
 internal object BackupBinaryFiles {
@@ -24,17 +24,34 @@ internal object BackupBinaryFiles {
     /** 允许备份的目录前缀(相对 filesDir),恢复时按同一份清单校验。 */
     val allowedPrefixes: List<String> = listOf(
         "note_attachments/",
+        // 助手头像实际保存到复数目录；保留旧路径以导入历史备份。
         "avatar/",
+        "avatars/",
+        // 消息/群聊/会话附件和用户维护的封面、贴纸均位于 app 私有 filesDir。
+        "muse_images/",
+        "session_files/",
+        "covers/",
+        "stickers/",
+        "voice_messages/",
+        "tool_outputs/",
+        "workspace/",
+        "channel_conversations/",
         // 2026-11-01: 卡片数据改为按卡片分片（CardDataStore），单文件 card_data.json 只留作迁移源。
         // 不加这一条的话，分片之后卡片数据就不在备份范围里 —— 恢复后所有 show_card 内容丢失。
         "card_data/",
         // 2026-11-01: 渠道收件箱改为按条目分片（ChannelInbox），单文件 channel_inbox.json 只留作迁移源。
         // 不加这一条的话，恢复后待派发事件与近期入站历史全部丢失。
         "channel_inbox/",
+        // Media Studio 生成的图片/视频本体（`filesDir/media_studio/`）。
+        // 只带行不带文件的话，换机后记录还在但一张图都打不开。
+        // 单文件受 MAX_FILE_BYTES(8MB) 与目录合计 MAX_DIR_BYTES(16MB) 约束，
+        // 超限文件会被跳过并打 W 日志：MediaGenAssetEntity.remoteUrl 保留了原始远程地址，
+        // 行还在就能重新取回，所以宁可备份不完整也不把备份撑爆。
+        "media_studio/",
     )
 
-    /** 单文件上限:2MB。 */
-    const val MAX_FILE_BYTES: Long = 2L * 1024 * 1024
+    /** 单文件上限:8MB。 */
+    const val MAX_FILE_BYTES: Long = 8L * 1024 * 1024
 
     /** 每个白名单目录合计上限:16MB。 */
     const val MAX_DIR_BYTES: Long = 16L * 1024 * 1024
@@ -70,25 +87,53 @@ internal object BackupBinaryFiles {
      * 明确拒绝:
      *  - 绝对路径(以 `/` 或 `\` 开头)
      *  - 反斜杠(备份键统一用 `/`;反斜杠在 Windows 上是分隔符,语义歧义)
-     *  - 任何含 `..` 的键(包括 `note_attachments/../../evil` 这种"前缀合法但内含穿越")
+     *  - 路径中的 `..` 段
      *  - 空段 / `.` 段(如 `note_attachments//x`、`note_attachments/./x`)
      *  - NUL 字符
      *  - 只有目录前缀、没有文件名的键
      */
     fun isAllowedPath(path: String): Boolean {
         val prefix = prefixOf(path)
-        return prefix != null &&
-            path.length > prefix.length &&
+        return (prefix != null || isAllowedRootBackground(path)) &&
+            path.length > (prefix?.length ?: 0) &&
             !path.startsWith("/") &&
             !path.startsWith("\\") &&
             !path.contains('\\') &&
             !path.contains('\u0000') &&
-            !path.contains("..") &&
-            path.split('/').none { it.isBlank() || it == "." }
+            path.split('/').none { it.isBlank() || it == "." || it == ".." }
     }
 
     /** 返回该路径所属的白名单前缀;不在白名单内返回 null。 */
     fun prefixOf(path: String): String? = allowedPrefixes.firstOrNull { path.startsWith(it) }
+
+    fun listForStreaming(filesDir: File): List<Pair<String, File>> {
+        val root = filesDir.canonicalFile
+        val files = mutableListOf<Pair<String, File>>()
+        for (prefix in allowedPrefixes) {
+            val directory = File(root, prefix.removeSuffix("/"))
+            if (!directory.isDirectory || directory.canonicalFile != directory) continue
+            directory.walkTopDown()
+                .onEnter { it.canonicalFile == it }
+                .onFail { _, error -> throw error }
+                .filter { it.isFile && it.canonicalFile == it }
+                .forEach { file ->
+                    val path = file.relativeTo(root).invariantSeparatorsPath
+                    require(isAllowedPath(path)) { "Invalid backup file path" }
+                    files += path to file
+                }
+        }
+        root.listFiles()?.forEach { file ->
+            if (file.isFile && file.canonicalFile == file && isAllowedRootBackground(file.name)) {
+                files += file.name to file
+            }
+        }
+        return files.sortedBy { it.first }
+    }
+
+    private fun isAllowedRootBackground(path: String): Boolean = path.matches(Regex("chat_background(?:_dark)?(?:_[0-9]+)?\\.jpg")) ||
+        path.matches(Regex("chat_bg_(?:session|assistant)_[A-Za-z0-9_-]+(?:_[0-9]+)?\\.jpg"))
+
+    private fun quotaPrefix(path: String): String? = prefixOf(path) ?: if (isAllowedRootBackground(path)) "root_backgrounds/" else null
 
     /**
      * 把备份键解析成 filesDir 下的目标文件。
@@ -104,6 +149,19 @@ internal object BackupBinaryFiles {
         val target = File(filesDir, path)
         val parent = runCatching { target.canonicalFile }.getOrNull()?.parentFile
         target.takeIf { root != null && parent != null && isInside(root, parent) }
+    }
+
+    /** 把本应用 filesDir 下的绝对引用迁移到当前设备的私有目录。 */
+    fun rebasePrivateFileReference(value: String, filesDir: File, packageName: String): String {
+        val fileUriPrefix = "file://".takeIf { value.startsWith(it) }.orEmpty()
+        val path = value.removePrefix(fileUriPrefix)
+        val escapedPackageName = Regex.escape(packageName)
+        val appFilesPrefix = Regex("^/data/(?:user/\\d+/$escapedPackageName|data/$escapedPackageName)/files/")
+        val match = appFilesPrefix.find(path) ?: return value
+        val relative = path.substring(match.range.last + 1)
+        if (!isAllowedPath(relative)) return value
+        val target = resolveTarget(filesDir, relative) ?: return value
+        return fileUriPrefix + target.absolutePath
     }
 
     /** 父目录是否落在 root 之内(含 root 本身)。 */
@@ -126,7 +184,7 @@ internal object BackupBinaryFiles {
         var skippedFiles = 0
         var skippedBytes = 0L
         collectFiles(filesDir).forEach { (relative, file) ->
-            val prefix = prefixOf(relative)
+            val prefix = quotaPrefix(relative)
             val size = file.length()
             if (prefix == null || !isAllowedPath(relative) || exceedsLimit(size, dirBytes[prefix] ?: 0L)) {
                 skippedFiles++
@@ -134,7 +192,7 @@ internal object BackupBinaryFiles {
                 return@forEach
             }
             val bytes = runCatching { file.readBytes() }
-                .onFailure { Logger.w(TAG, "读取文件失败,已跳过: $relative", it) }
+                .onFailure { Logger.w(TAG, "读取一个白名单目录文件失败,已跳过", it) }
                 .getOrNull()
             val used = dirBytes[prefix] ?: 0L
             if (bytes == null || exceedsLimit(bytes.size.toLong(), used)) {
@@ -170,19 +228,19 @@ internal object BackupBinaryFiles {
         var skippedBytes = 0L
         val dirBytes = mutableMapOf<String, Long>()
         files.toSortedMap().forEach { (path, encoded) ->
-            val prefix = prefixOf(path)
+            val prefix = quotaPrefix(path)
             val target = if (prefix == null) null else resolveTarget(filesDir, path)
             if (prefix == null || target == null) {
                 skippedFiles++
                 skippedBytes += base64SizeHint(encoded)
-                Logger.w(TAG, "拒绝恢复白名单外的路径: $path")
+                Logger.w(TAG, "拒绝恢复白名单外的文件路径")
                 return@forEach
             }
             val bytes = runCatching { Base64.getDecoder().decode(encoded) }.getOrNull()
             if (bytes == null) {
                 skippedFiles++
                 skippedBytes += base64SizeHint(encoded)
-                Logger.w(TAG, "Base64 内容非法,已跳过: $path")
+                Logger.w(TAG, "一个目录文件的 Base64 内容非法,已跳过")
                 return@forEach
             }
             val used = dirBytes[prefix] ?: 0L
@@ -216,11 +274,11 @@ internal object BackupBinaryFiles {
         val stats: SkipStats get() = SkipStats(skippedFiles, skippedBytes)
 
         fun offer(path: String, encoded: String) {
-            val prefix = prefixOf(path)
+            val prefix = quotaPrefix(path)
             if (prefix == null || !isAllowedPath(path)) {
                 skippedFiles++
                 skippedBytes += base64SizeHint(encoded)
-                Logger.w(TAG, "备份中的路径不在白名单内,已跳过: $path")
+                Logger.w(TAG, "备份中一个目录文件路径不在白名单内,已跳过")
                 return
             }
             val estimated = base64SizeHint(encoded)
@@ -243,25 +301,44 @@ private const val MAX_DEPTH = 4
 private const val BINARY_TAG = "BackupBinaryFiles"
 
 /** 估算 Base64 文本对应的原始字节数(仅用于跳过统计与容量预判,不参与解码校验)。 */
-private fun base64SizeHint(encoded: String): Long = (encoded.length / 4 * 3).toLong()
+private fun base64SizeHint(encoded: String): Long {
+    val padding = when {
+        encoded.endsWith("==") -> 2
+        encoded.endsWith("=") -> 1
+        else -> 0
+    }
+    return (encoded.length.toLong() / 4 * 3) - padding
+}
 
 /** 收集白名单目录下的全部普通文件(相对 filesDir 的路径 → File),按路径排序保证导出稳定。 */
 private fun collectFiles(filesDir: File): List<Pair<String, File>> {
     val out = mutableListOf<Pair<String, File>>()
+    val root = runCatching { filesDir.canonicalFile }.getOrNull() ?: return emptyList()
     BackupBinaryFiles.allowedPrefixes.forEach { prefix ->
-        collectInto(File(filesDir, prefix.removeSuffix("/")), prefix, out, 0)
+        val directory = File(filesDir, prefix.removeSuffix("/"))
+        val canonicalDirectory = runCatching { directory.canonicalFile }.getOrNull() ?: return@forEach
+        if (!canonicalDirectory.isDirectory || !canonicalDirectory.path.startsWith(root.path + File.separator)) return@forEach
+        collectInto(root, canonicalDirectory, canonicalDirectory, prefix, out, 0)
     }
+    root.listFiles()?.filter { it.isFile && BackupBinaryFiles.isAllowedPath(it.name) }
+        ?.forEach { file ->
+            val canonical = runCatching { file.canonicalFile }.getOrNull()
+            if (canonical != null && canonical.parentFile == root) out += file.name to canonical
+        }
     return out.sortedBy { it.first }
 }
 
-private fun collectInto(dir: File, prefix: String, out: MutableList<Pair<String, File>>, depth: Int) {
+private fun collectInto(root: File, allowedDirectory: File, dir: File, prefix: String, out: MutableList<Pair<String, File>>, depth: Int) {
     if (depth > MAX_DEPTH) return
     val children = dir.listFiles()?.sortedBy { it.name } ?: return
     children.forEach { child ->
         val relative = prefix + child.name
+        val canonical = runCatching { child.canonicalFile }.getOrNull() ?: return@forEach
+        if (!canonical.path.startsWith(allowedDirectory.path + File.separator)) return@forEach
+        if (!canonical.path.startsWith(root.path + File.separator)) return@forEach
         when {
-            child.isDirectory -> collectInto(child, "$relative/", out, depth + 1)
-            child.isFile -> out += relative to child
+            canonical.isDirectory -> collectInto(root, allowedDirectory, canonical, "$relative/", out, depth + 1)
+            canonical.isFile -> out += relative to canonical
         }
     }
 }

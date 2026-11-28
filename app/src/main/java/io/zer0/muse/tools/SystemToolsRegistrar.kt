@@ -141,6 +141,7 @@ class SystemToolsRegistrar(
                 parameterTypes = mapOf("limit" to "integer"),
                 category = "built-in",
                 riskLevel = ToolRiskLevel.SAFE,
+                hiddenFromSchema = true,
             ),
         ) { args -> impl.execListInstalledApps(args) }
 

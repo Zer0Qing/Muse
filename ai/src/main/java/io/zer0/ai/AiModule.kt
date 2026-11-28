@@ -1,14 +1,13 @@
 package io.zer0.ai
 
 import io.zer0.ai.anthropic.AnthropicProvider
+import io.zer0.ai.core.AbortSignal
 import io.zer0.ai.core.ChatCompletion
 import io.zer0.ai.core.ChatRequest
 import io.zer0.ai.core.ChatRequestMode
-import io.zer0.ai.core.AbortSignal
-import io.zer0.ai.core.abortedOnCancel
 import io.zer0.ai.core.ChatStreamEvent
+import io.zer0.ai.core.DEFAULT_FIRST_EVENT_TIMEOUT_MS
 import io.zer0.ai.core.MessageRole
-import io.zer0.ai.core.withIdleWatchdog
 import io.zer0.ai.core.Model
 import io.zer0.ai.core.ModelAbility
 import io.zer0.ai.core.ModelOutputPolicy
@@ -20,9 +19,10 @@ import io.zer0.ai.core.ProviderType
 import io.zer0.ai.core.ReasoningLevel
 import io.zer0.ai.core.ToolDefinition
 import io.zer0.ai.core.UIMessage
-import io.zer0.ai.core.DEFAULT_FIRST_EVENT_TIMEOUT_MS
+import io.zer0.ai.core.abortedOnCancel
 import io.zer0.ai.core.firstEventTimeoutMs
 import io.zer0.ai.core.withFirstEventWatchdog
+import io.zer0.ai.core.withIdleWatchdog
 import io.zer0.ai.gemini.GeminiProvider
 import io.zer0.ai.openai.OpenAIProvider
 import io.zer0.ai.registry.ModelRegistry
@@ -348,11 +348,9 @@ class ChatService(
             mode = mode,
             topP = topP?.coerceIn(0f, 1f),
             sessionId = sessionId,
-            /**
-             * 每次请求一个独立信号：以前生产链路从不置位（app/src/main 对 AbortSignal 引用为 0），
-             * Provider 里几十处 aborted 判定恒为 false。这里给一个真值，由 streamChat 在
-             * 下游取消时置位（见 abortedOnCancel）。
-             */
+            // 每次请求一个独立信号：以前生产链路从不置位（app/src/main 对 AbortSignal 引用为 0），
+            // Provider 里几十处 aborted 判定恒为 false。这里给一个真值，由 streamChat 在
+            // 下游取消时置位（见 abortedOnCancel）。
             abortSignal = AbortSignal(),
         )
         return Pair(provider, request)

@@ -38,8 +38,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.zer0.common.Logger
 import io.zer0.common.resultOf
 import io.zer0.muse.R
-import io.zer0.muse.backup.BackupService
 import io.zer0.muse.backup.BackupImportMode
+import io.zer0.muse.backup.BackupService
 import io.zer0.muse.backup.CloudBackupConfig
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.export.ConversationExporter
@@ -64,7 +64,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Date
 import java.util.Locale
-import io.zer0.muse.ui.chat.ChatListScreen
 
 /**
  * 阶段 7 + P1 修复: 备份与统计 section — 分组列表。
@@ -84,7 +83,7 @@ internal fun BackupSection(
     sessionRepository: SessionRepository,
     /** F-04: 备份记录持久化(诊断页可见最近备份结果)。 */
     autoBackupLogDao: io.zer0.muse.data.stats.AutoBackupLogDao,
-    onOpenCloudBackup: () -> Unit = {},
+    onOpenCloudBackup: (Boolean) -> Unit = {},
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -101,7 +100,7 @@ internal fun BackupSection(
         }
     // P3-4: 云备份配置与自动同步间隔编辑收敛到独立「云备份」页(CloudBackupPage)。
     // v2.x: 首页整组收敛为单行入口(状态展示 + 导航),开关与快捷操作统一在云备份页。
-    val showGoToPageHint: () -> Unit = onOpenCloudBackup
+    var includeSecrets by rememberSaveable { mutableStateOf(false) }
 
     // 进度反馈状态
     var exporting by remember { mutableStateOf(false) }
@@ -135,10 +134,14 @@ internal fun BackupSection(
         }
     }
 
-    // 导出前明确处理未设置加密密码的情况,避免用户无感知地产生明文备份。
-    var pendingPlainExportUri by remember { mutableStateOf<android.net.Uri?>(null) }
-    // v2.6.0: 待执行的导出是否包含密钥（SAF 回调前记录用户勾选）
-    var pendingExportSecrets by remember { mutableStateOf(false) }
+    // 本地 NDJSON 始终未加密，先确认再创建 SAF 文件。
+    // 注意：确认必须发生在打开系统文件选择器**之前** —— SAF 的 CreateDocument 一旦返回
+    // 就已经在磁盘上建了一个 0 字节文件，用户此时点取消只会留下一个空备份。
+    var plainExportConfirmVisible by rememberSaveable { mutableStateOf(false) }
+    var pendingExportSecrets by rememberSaveable { mutableStateOf(false) }
+    var exportNotice by rememberSaveable { mutableStateOf<String?>(null) }
+    // 导入失败要留得住：toast 三秒就消失，用户回到备份页时看不到任何痕迹。
+    var importErrorMessage by remember { mutableStateOf<String?>(null) }
     // 导入完成摘要：让"某块是空的"能当场判读，而不是让用户猜是没恢复还是备份里本来没有。
     var importSummary by remember { mutableStateOf<io.zer0.muse.backup.BackupImportSummary?>(null) }
 
@@ -146,12 +149,16 @@ internal fun BackupSection(
         scope.launch {
             exporting = true
             localBackupDialogVisible = true
-            resultOf {
-                val (s, m) = backupService.exportStreaming(context, uri, includeSecrets)
-                MuseToast.show(context.getString(R.string.settings_backup_export_success, s, m))
-            }.onError { _, t ->
-                MuseToast.show(context.getString(R.string.settings_backup_export_failed, t?.message), 3500)
-            }
+            resultOf { backupService.exportStreamingWithReport(context, uri, includeSecrets) }
+                .onSuccess { report ->
+                    if (report.skippedBinaryFiles > 0) {
+                        exportNotice = context.getString(R.string.settings_backup_export_partial, report.skippedBinaryFiles)
+                    } else {
+                        MuseToast.show(context.getString(R.string.settings_backup_export_success, report.sessions, report.messages))
+                    }
+                }.onError { message, error ->
+                    exportNotice = context.getString(R.string.settings_backup_export_failed, error?.localizedMessage ?: message)
+                }
             exporting = false
             localBackupDialogVisible = false
         }
@@ -199,12 +206,23 @@ internal fun BackupSection(
     val exportLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/json"),
     ) { uri ->
-        uri?.let {
-            if (cloudConfig.backupPassword.isBlank() && !cloudConfig.backupPasswordSet) {
-                pendingPlainExportUri = it
-            } else {
-                startExport(it, pendingExportSecrets)
-            }
+        // 用户取消选择时不产生任何文件；真正写入只在这里发生。
+        uri?.let { startExport(it, pendingExportSecrets) }
+    }
+
+    // 用可读日期而非 13 位毫秒：后者在选择器里会被截断，
+    // 既看不出导出时间，也看不到 .json 后缀，多份备份还同名。
+    fun launchExport() {
+        runCatching {
+            exportLauncher.launch(
+                "muse-backup-${
+                    java.time.format.DateTimeFormatter
+                        .ofPattern("yyyyMMdd-HHmmss")
+                        .format(java.time.LocalDateTime.now())
+                }.json",
+            )
+        }.onFailure {
+            MuseToast.show(context.getString(R.string.settings_backup_export_start_failed, it.message))
         }
     }
 
@@ -271,7 +289,6 @@ internal fun BackupSection(
     }
 
     // ── 本地备份与恢复 ──
-    var includeSecrets by rememberSaveable { mutableStateOf(false) }
     CardGroup(
         title = { Text(stringResource(R.string.settings_backup_local_title)) },
         modifier = Modifier.padding(top = MusePaddings.cardGap),
@@ -296,21 +313,9 @@ internal fun BackupSection(
             key = "backup_export",
             title = stringResource(R.string.settings_backup_export),
             onClick = {
-                runCatching {
-                    pendingExportSecrets = includeSecrets
-                    exportLauncher.launch(
-                        // 用可读日期而非 13 位毫秒：后者在选择器里会被截断，
-                        // 既看不出导出时间，也看不到 .json 后缀，多份备份还同名。
-                        "muse-backup-${
-                            java.time.format
-                                .DateTimeFormatter
-                                .ofPattern("yyyyMMdd-HHmmss")
-                                .format(java.time.LocalDateTime.now())
-                        }.json",
-                    )
-                }.onFailure {
-                    MuseToast.show(context.getString(R.string.settings_backup_export_start_failed, it.message))
-                }
+                pendingExportSecrets = includeSecrets
+                // 本地 SAF 导出始终是明文 NDJSON，与云备份密码无关；每次先确认再创建文件。
+                plainExportConfirmVisible = true
             },
         )
         actionItem(
@@ -452,7 +457,7 @@ internal fun BackupSection(
         }
         item(
             key = "backup_cloud_entry",
-            onClick = showGoToPageHint,
+            onClick = { onOpenCloudBackup(includeSecrets) },
             leadingContent = {
                 Icon(
                     imageVector = MuseIcons.cloud,
@@ -586,20 +591,20 @@ internal fun BackupSection(
     }
 
     // 导出明文确认
-    pendingPlainExportUri?.let { uri ->
+    if (plainExportConfirmVisible) {
         MuseDialog(
-            onDismissRequest = { pendingPlainExportUri = null },
+            onDismissRequest = { plainExportConfirmVisible = false },
             title = stringResource(R.string.settings_backup_plaintext_export_title),
             content = { Text(stringResource(R.string.settings_backup_plaintext_export_message)) },
             confirmText = stringResource(R.string.settings_backup_plaintext_export_action),
             onConfirm = {
-                pendingPlainExportUri = null
+                plainExportConfirmVisible = false
                 // 明文确认只是多一步；「包含密钥」是上一步的选择，必须一起传下去，
                 // 否则用户勾了密钥、确认明文后又悄悄变成不含密钥的备份。
-                startExport(uri, pendingExportSecrets)
+                launchExport()
             },
             dismissText = stringResource(R.string.common_cancel),
-            onDismiss = { pendingPlainExportUri = null },
+            onDismiss = { plainExportConfirmVisible = false },
         )
     }
 
@@ -641,6 +646,18 @@ internal fun BackupSection(
                             stringResource(R.string.settings_backup_overwrite_confirm)
                         },
                     )
+                    Spacer(Modifier.height(MusePaddings.contentGap))
+                    Text(
+                        stringResource(
+                            if (isMerge) {
+                                R.string.settings_backup_mcp_merge_notice
+                            } else {
+                                R.string.settings_backup_mcp_restore_notice
+                            },
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                     Spacer(Modifier.height(12.dp))
                     MuseTextField(
                         value = importPassword,
@@ -675,15 +692,11 @@ internal fun BackupSection(
                         // 知识库/定时任务/便签是不是真的空，要看这份快照。
                         importSummary = backupService.lastImportSummary
                     }.onError { _, t ->
-                        MuseToast.show(
-                            context.getString(
-                                R.string.settings_backup_import_failed,
-                                friendlyImportError(
-                                    raw = t?.message,
-                                    context = context,
-                                ),
-                            ),
-                            3500,
+                        // 失败必须留在屏幕上：之前只弹一个 3.5s 的 toast，用户抬头就没了，
+                        // 看起来像「导入按钮没反应」。
+                        importErrorMessage = friendlyImportError(
+                            raw = t?.message,
+                            context = context,
                         )
                     }
                     importing = false
@@ -692,6 +705,26 @@ internal fun BackupSection(
             },
             dismissText = stringResource(R.string.common_cancel),
             onDismiss = { pendingImportUri = null },
+        )
+    }
+
+    exportNotice?.let { message ->
+        MuseDialog(
+            onDismissRequest = { exportNotice = null },
+            title = stringResource(R.string.settings_backup_export),
+            content = { Text(message) },
+            confirmText = stringResource(R.string.common_confirm),
+            onConfirm = { exportNotice = null },
+        )
+    }
+
+    importErrorMessage?.let { message ->
+        MuseDialog(
+            onDismissRequest = { importErrorMessage = null },
+            title = stringResource(R.string.settings_backup_import_failed_title),
+            content = { Text(message) },
+            confirmText = stringResource(R.string.common_confirm),
+            onConfirm = { importErrorMessage = null },
         )
     }
 
@@ -733,6 +766,22 @@ internal fun BackupSection(
                                     R.string.settings_backup_summary_providers_missing
                                 },
                             ),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    if (summary.mcpServersIncluded > 0) {
+                        Text(
+                            stringResource(
+                                R.string.settings_backup_summary_mcp_servers,
+                                summary.mcpServersIncluded,
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                    if (summary.mcpCredentialsOmitted) {
+                        Text(
+                            stringResource(R.string.settings_backup_summary_mcp_credentials_missing),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -821,6 +870,12 @@ private fun formatBackupSize(bytes: Long): String = when {
 private fun friendlyImportError(raw: String?, context: android.content.Context): String {
     if (raw.isNullOrBlank()) return context.getString(R.string.backup_import_error_unreadable)
     val lower = raw.lowercase()
+    // 0 字节 / 空文件排在最前：它既不缺密码也不是版本不符，说成「已回滚」会让人
+    // 以为备份被搞坏了，实际是那个文件根本没内容。
+    // 「空」用码点写：这里比较的是后端抛出的原始文案，不是给用户看的字面量。
+    if ("empty" in lower || "0 b" in lower || "\u7a7a" in raw || "unrecognized" in lower) {
+        return context.getString(R.string.backup_import_error_empty)
+    }
     val rules = listOf(
         listOf("verify", "check") to context.getString(R.string.backup_import_error_mismatch),
         listOf("password", "decrypt") to context.getString(R.string.backup_import_error_password),

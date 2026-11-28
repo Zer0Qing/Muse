@@ -3,7 +3,6 @@ package io.zer0.muse.ui.settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -28,7 +27,6 @@ import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.common.surface.navigationItem
 import io.zer0.muse.ui.common.surface.switchItem
 import io.zer0.muse.ui.theme.MuseIconSizes
-import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseSpacing
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -52,6 +50,9 @@ fun KeepAliveSettingsPage(onBack: () -> Unit) {
 
     val enabled by settings.keepAliveEnabledFlow.collectAsStateWithLifecycle(initialValue = false)
     val wakeLock by settings.keepAliveWakeLockFlow.collectAsStateWithLifecycle(initialValue = false)
+    val scheduleWorkEnabled by settings.scheduleWorkEnabledFlow.collectAsStateWithLifecycle(initialValue = true)
+    val keepAwake by settings.keepAwakeFlow.collectAsStateWithLifecycle(initialValue = false)
+    val autoLaunch by settings.autoLaunchFlow.collectAsStateWithLifecycle(initialValue = false)
     val keepAliveTitle by settings.keepAliveNotificationTitleFlow
         .collectAsStateWithLifecycle(initialValue = "")
     val keepAliveText by settings.keepAliveNotificationTextFlow
@@ -117,27 +118,62 @@ fun KeepAliveSettingsPage(onBack: () -> Unit) {
             }
         }
 
-        item(key = "keep_alive_guides") {
-            CardGroup {
-                navigationItem(
-                    key = "keep_alive_battery",
-                    title = stringResource(R.string.settings_keep_alive_battery_title),
+        item(key = "keep_alive_background_policies") {
+            CardGroup(title = { Text(stringResource(R.string.settings_agent_group_background)) }) {
+                switchItem(
+                    key = "schedule_work",
+                    title = stringResource(R.string.settings_agent_schedule_work_title),
+                    checked = scheduleWorkEnabled,
+                    onCheckedChange = { v -> scope.launch { settings.saveScheduleWorkEnabled(v) } },
                     leadingContent = {
                         Icon(
-                            imageVector = MuseIcons.battery,
+                            imageVector = MuseIcons.switch,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(MuseIconSizes.iconMedium),
                         )
                     },
-                    onClick = { showGuide = true },
                 )
-                navigationItem(
-                    key = "keep_alive_rom",
-                    title = stringResource(R.string.settings_keep_alive_rom_title),
+                switchItem(
+                    key = "keep_awake",
+                    title = stringResource(R.string.settings_memory_keep_awake),
+                    checked = keepAwake,
+                    onCheckedChange = { v -> scope.launch { settings.saveKeepAwake(v) } },
                     leadingContent = {
                         Icon(
-                            imageVector = MuseIcons.sliders,
+                            imageVector = MuseIcons.bolt,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
+                    },
+                )
+                switchItem(
+                    key = "auto_launch",
+                    title = stringResource(R.string.settings_memory_auto_launch),
+                    checked = autoLaunch,
+                    onCheckedChange = { v -> scope.launch { settings.saveAutoLaunch(v) } },
+                    leadingContent = {
+                        Icon(
+                            imageVector = MuseIcons.power,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(MuseIconSizes.iconMedium),
+                        )
+                    },
+                )
+            }
+        }
+
+        item(key = "keep_alive_guides") {
+            CardGroup {
+                navigationItem(
+                    key = "keep_alive_guide",
+                    title = stringResource(R.string.settings_agent_keep_alive_title),
+                    subtitle = stringResource(R.string.settings_keep_alive_guide_subtitle),
+                    leadingContent = {
+                        Icon(
+                            imageVector = MuseIcons.lifebuoy,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(MuseIconSizes.iconMedium),
@@ -175,12 +211,7 @@ fun KeepAliveSettingsPage(onBack: () -> Unit) {
  * 两项都留空时回落到内置默认文案（见 KeepAliveService.buildNotification）。
  */
 @Composable
-private fun NotificationTextDialog(
-    currentTitle: String,
-    currentText: String,
-    onDismiss: () -> Unit,
-    onSave: (String, String) -> Unit,
-) {
+private fun NotificationTextDialog(currentTitle: String, currentText: String, onDismiss: () -> Unit, onSave: (String, String) -> Unit) {
     var title by remember { mutableStateOf(currentTitle) }
     var text by remember { mutableStateOf(currentText) }
 

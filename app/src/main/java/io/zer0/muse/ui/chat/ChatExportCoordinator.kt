@@ -99,8 +99,11 @@ class ChatExportCoordinator(
         allMessages.forEach { msg ->
             val role = auditStateString(
                 localizeString,
-                if (msg.role == MessageRole.USER) R.string.worldbook_inject_target_user
-                else R.string.worldbook_inject_target_assistant,
+                if (msg.role == MessageRole.USER) {
+                    R.string.worldbook_inject_target_user
+                } else {
+                    R.string.worldbook_inject_target_assistant
+                },
                 if (msg.role == MessageRole.USER) "用户" else "助手",
             )
             sb.append("**").append(role).append("**: ").append(msg.content).append("\n\n")
@@ -192,8 +195,11 @@ class ChatExportCoordinator(
         allMessages.forEach { msg ->
             val role = auditStateString(
                 localizeString,
-                if (msg.role == MessageRole.USER) R.string.worldbook_inject_target_user
-                else R.string.worldbook_inject_target_assistant,
+                if (msg.role == MessageRole.USER) {
+                    R.string.worldbook_inject_target_user
+                } else {
+                    R.string.worldbook_inject_target_assistant
+                },
                 if (msg.role == MessageRole.USER) "用户" else "助手",
             )
             sb.append("[$role]\n").append(msg.content).append("\n\n")
@@ -266,7 +272,9 @@ class ChatExportCoordinator(
     /** 解析当前会话标题(空标题回退为 "muse 对话")。 */
     private fun resolveTitle(state: ChatUiState): String {
         val sessionId = resolveSessionId(state)
-        return state.sessions.find { it.id == sessionId }?.title?.takeIf { it.isNotBlank() } ?: auditStateString(localizeString, R.string.audit_export_default_title, "muse 对话")
+        return state.sessions.find {
+            it.id == sessionId
+        }?.title?.takeIf { it.isNotBlank() } ?: auditStateString(localizeString, R.string.audit_export_default_title, "muse 对话")
     }
 
     private suspend fun loadAllMessages(state: ChatUiState): List<io.zer0.ai.core.UIMessage> {
@@ -278,8 +286,7 @@ class ChatExportCoordinator(
         }
     }
 
-    private fun resolveSessionId(state: ChatUiState): String? =
-        if (state.isAgentMode) state.agentSessionId else state.currentSessionId
+    private fun resolveSessionId(state: ChatUiState): String? = if (state.isAgentMode) state.agentSessionId else state.currentSessionId
 
     /**
      * v0.32: 极简 Markdown → HTML 转换(分享模板 html 格式用,不引入额外依赖)。

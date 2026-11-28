@@ -1,8 +1,8 @@
 package io.zer0.muse.ui.chat
 
 import io.zer0.ai.core.MessageRole
-import io.zer0.common.Result
 import io.zer0.ai.core.UIMessage
+import io.zer0.common.Result
 
 /**
  * 生成流程的纯判定函数与阈值常量。
@@ -115,4 +115,3 @@ internal fun shouldRollbackOptimisticSend(state: ChatUiState, requestSessionId: 
  */
 internal fun usableProviderPresent(providers: List<io.zer0.ai.core.ProviderConfig>): Boolean =
     providers.any { it.enabled && (it.apiKey.isNotBlank() || it.allowMissingApiKey) }
-

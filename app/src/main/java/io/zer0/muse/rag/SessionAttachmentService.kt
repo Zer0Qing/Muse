@@ -72,8 +72,7 @@ class SessionAttachmentService(
      * 调用方必须显式把这个集合传给 `RagService.retrieve` / `buildInjectionContextWithCitations`
      * 才能召回本会话附件。
      */
-    fun activeAttachmentDocIds(sessionId: String): Set<String> =
-        attachmentsBySession(sessionId).mapTo(linkedSetOf()) { it.docId }
+    fun activeAttachmentDocIds(sessionId: String): Set<String> = attachmentsBySession(sessionId).mapTo(linkedSetOf()) { it.docId }
 
     /**
      * 索引一个会话附件。

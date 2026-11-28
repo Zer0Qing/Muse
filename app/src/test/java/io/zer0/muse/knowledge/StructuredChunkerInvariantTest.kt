@@ -27,10 +27,9 @@ class StructuredChunkerInvariantTest {
      * 这样 1/37/4096 粒度下同一内容位置得到同一 (page, section) —— 「分块不随输入
      * 窗口变化」的忠实表达(等价合同的前提是 locator 由内容决定,而非由物理切块决定)。
      */
-    private fun blocksOf(content: String, pieceSize: Int): List<ParsedBlock> =
-        content.chunked(pieceSize).mapIndexed { i, t ->
-            ParsedBlock(text = t, page = 1, section = ((i * pieceSize) / 10) + 1)
-        }
+    private fun blocksOf(content: String, pieceSize: Int): List<ParsedBlock> = content.chunked(pieceSize).mapIndexed { i, t ->
+        ParsedBlock(text = t, page = 1, section = ((i * pieceSize) / 10) + 1)
+    }
 
     private fun assertEquivalentChunks(expected: List<LocatedChunk>, actual: List<LocatedChunk>, label: String) {
         assertEquals("$label: chunk 数量必须一致", expected.size, actual.size)

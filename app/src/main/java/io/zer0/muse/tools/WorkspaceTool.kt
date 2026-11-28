@@ -447,12 +447,7 @@ object WorkspaceTool {
         }
     }
 
-    internal fun resourceScopeError(
-        name: String,
-        args: Map<String, String>,
-        declaredScope: String,
-        knownMountIds: Set<String>,
-    ): String? {
+    internal fun resourceScopeError(name: String, args: Map<String, String>, declaredScope: String, knownMountIds: Set<String>): String? {
         if (declaredScope.isBlank()) return "任务未声明可写资源范围"
         val targets = when (name) {
             NAME_MOVE -> listOfNotNull(args["from"], args["to"])

@@ -25,6 +25,15 @@ object AutomationRuntime {
     @Volatile
     private var launchOnMainFn: (suspend (String) -> Boolean)? = null
 
+    @Volatile
+    private var swipeFn: (suspend (displayId: Int, x1: Int, y1: Int, x2: Int, y2: Int) -> Boolean)? = null
+
+    @Volatile
+    private var keyEventFn: (suspend (displayId: Int, key: String) -> Boolean)? = null
+
+    @Volatile
+    private var inputTextFn: (suspend (displayId: Int, text: String) -> Boolean)? = null
+
     /** 由 [AutomationInitializer] 在虚拟屏组件就绪后调用一次。 */
     fun install(
         screenshot: suspend (Int) -> ByteArray?,
@@ -32,11 +41,17 @@ object AutomationRuntime {
         destroy: suspend (Int) -> Boolean,
         /** 在主屏（默认显示屏）拉起目标应用 —— "交回主屏"用的就是它。 */
         launchOnMain: suspend (packageName: String) -> Boolean = { false },
+        swipe: suspend (displayId: Int, x1: Int, y1: Int, x2: Int, y2: Int) -> Boolean = { _, _, _, _, _ -> false },
+        keyEvent: suspend (displayId: Int, key: String) -> Boolean = { _, _ -> false },
+        inputText: suspend (displayId: Int, text: String) -> Boolean = { _, _ -> false },
     ) {
         screenshotFn = screenshot
         tapFn = tap
         destroyFn = destroy
         launchOnMainFn = launchOnMain
+        swipeFn = swipe
+        keyEventFn = keyEvent
+        inputTextFn = inputText
     }
 
     /** 虚拟屏通道是否可用（界面据此决定显不显示预览入口）。 */
@@ -45,6 +60,12 @@ object AutomationRuntime {
     suspend fun screenshot(displayId: Int): ByteArray? = screenshotFn?.invoke(displayId)
 
     suspend fun tap(displayId: Int, x: Int, y: Int): Boolean = tapFn?.invoke(displayId, x, y) ?: false
+
+    suspend fun swipe(displayId: Int, x1: Int, y1: Int, x2: Int, y2: Int): Boolean = swipeFn?.invoke(displayId, x1, y1, x2, y2) ?: false
+
+    suspend fun keyEvent(displayId: Int, key: String): Boolean = keyEventFn?.invoke(displayId, key) ?: false
+
+    suspend fun inputText(displayId: Int, text: String): Boolean = inputTextFn?.invoke(displayId, text) ?: false
 
     suspend fun destroy(displayId: Int): Boolean = destroyFn?.invoke(displayId) ?: false
 
@@ -62,5 +83,8 @@ object AutomationRuntime {
         tapFn = null
         destroyFn = null
         launchOnMainFn = null
+        swipeFn = null
+        keyEventFn = null
+        inputTextFn = null
     }
 }

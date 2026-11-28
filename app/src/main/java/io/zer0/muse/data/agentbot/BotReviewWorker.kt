@@ -20,6 +20,19 @@ import kotlinx.serialization.Serializable
  */
 class BotReviewWorker {
 
+    /** 输入审核所需的事实，避免把验收规则与执行结果拆散在长参数列表中。 */
+    data class ReviewInput(
+        val criteria: String,
+        val claimedSummary: String,
+        val producedArtifacts: List<String>,
+        val verifiedChecks: List<String>,
+        val expectedBaseHash: String = "",
+        val actualBaseHash: String = "",
+        val attempt: Int = 1,
+        val irreversibleSideEffects: List<String> = emptyList(),
+        val summaryOnly: Boolean = false,
+    )
+
     /**
      * 审核结论。
      *
@@ -54,25 +67,16 @@ class BotReviewWorker {
      * @param producedArtifacts 实际产出的产物引用。空表示它什么都没留下。
      * @param verifiedChecks 实际跑过的校验（测试、构建、diff 核对）。
      */
-    fun review(
-        criteria: String,
-        claimedSummary: String,
-        producedArtifacts: List<String>,
-        verifiedChecks: List<String>,
-        expectedBaseHash: String = "",
-        actualBaseHash: String = "",
-        attempt: Int = 1,
-        /**
-         * 已经发生、无法回滚的副作用（V23）。
-         *
-         * 有些操作不能暂存：发了消息、调了外部接口、改了数据库。
-         * 这类操作一旦发生，新约束只能前向生效 —— **不能假装撤销**，
-         * 也不能对用户隐瞒"其实已经做了"。
-         */
-        irreversibleSideEffects: List<String> = emptyList(),
-        /** 空 resourceScope 的只读任务可以交付摘要，但摘要不伪装成文件产物。 */
-        summaryOnly: Boolean = false,
-    ): Decision {
+    fun review(input: ReviewInput): Decision {
+        val criteria = input.criteria
+        val claimedSummary = input.claimedSummary
+        val producedArtifacts = input.producedArtifacts
+        val verifiedChecks = input.verifiedChecks
+        val expectedBaseHash = input.expectedBaseHash
+        val actualBaseHash = input.actualBaseHash
+        val attempt = input.attempt
+        val irreversibleSideEffects = input.irreversibleSideEffects
+        val summaryOnly = input.summaryOnly
         val findings = mutableListOf<String>()
 
         // 0) V23：副作用已发生。必须先如实汇报，再谈别的。
@@ -80,7 +84,7 @@ class BotReviewWorker {
         // 顺序放在最前是刻意的：如果一件事已经做了一半，用户最需要知道的是
         // "哪些已经做了"，而不是"目标哈希对不对"。
         if (irreversibleSideEffects.isNotEmpty()) {
-            findings += irreversibleSideEffects.map { "已发生且无法回滚: ${it}" }
+            findings += irreversibleSideEffects.map { "已发生且无法回滚: $it" }
             findings += "新约束只对后续生效；以上操作无法撤销，也不会被隐藏"
             // 有产物且没有其他硬伤时算 PARTIAL —— 做了但没全做完。
             val otherwiseClean = producedArtifacts.isNotEmpty()
@@ -149,11 +153,7 @@ class BotReviewWorker {
      * 默认最多自动返工 2 次 —— 无限循环会烧掉用户预算，而且第二次之后
      * 再试通常也不会有新信息。超过就如实说明阻塞与选项。
      */
-    private fun decideReworkOrGiveUp(
-        findings: List<String>,
-        attempt: Int,
-        brief: String,
-    ): Decision = if (attempt < MAX_AUTO_REWORK) {
+    private fun decideReworkOrGiveUp(findings: List<String>, attempt: Int, brief: String): Decision = if (attempt < MAX_AUTO_REWORK) {
         Decision(ReviewDisposition.REWORK, findings, brief)
     } else {
         Decision(

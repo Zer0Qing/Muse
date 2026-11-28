@@ -1,9 +1,7 @@
 package io.zer0.muse.data.agentbot
 
 import android.content.Context
-import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
-import io.zer0.muse.data.session.MuseDb
 import io.zer0.muse.tools.ToolRegistry
 import io.zer0.muse.tools.ToolRiskLevel
 import kotlinx.coroutines.test.runTest
@@ -32,10 +30,10 @@ class AgentBotRunnerIntegrationTest {
 
     @Before
     fun setUp() {
-        val context: Context = ApplicationProvider.getApplicationContext();
-        workspace = File(System.getProperty("java.io.tmpdir"), "runner-ws-" + System.nanoTime());
-        workspace.mkdirs();
-        registry = ToolRegistry(context);
+        val context: Context = ApplicationProvider.getApplicationContext()
+        workspace = File(System.getProperty("java.io.tmpdir"), "runner-ws-" + System.nanoTime())
+        workspace.mkdirs()
+        registry = ToolRegistry(context)
         registry.register(
             ToolRegistry.ToolDef(
                 name = "read_note",
@@ -45,15 +43,15 @@ class AgentBotRunnerIntegrationTest {
                 riskLevel = ToolRiskLevel.SAFE,
             ),
         ) { args ->
-            val path = args["path"]?.toString().orEmpty();
-            val file = File(workspace, path);
+            val path = args["path"]?.toString().orEmpty()
+            val file = File(workspace, path)
             if (file.isFile) file.readText() else "文件不存在"
-        };
+        }
     }
 
     @After
     fun tearDown() {
-        workspace.deleteRecursively();
+        workspace.deleteRecursively()
     }
 
     @Test
@@ -62,18 +60,18 @@ class AgentBotRunnerIntegrationTest {
             "只读工具必须被识别为 SAFE，否则每个任务都会判 PARTIAL",
             ToolRiskLevel.SAFE,
             registry.getToolRiskLevel("read_note"),
-        );
+        )
     }
 
     @Test
     fun `unknown tool has no risk level`() {
-        assertEquals(null, registry.getToolRiskLevel("never_registered"));
+        assertEquals(null, registry.getToolRiskLevel("never_registered"))
     }
 
     @Test
     fun `tool executes against the real workspace file`() = runTest {
-        File(workspace, "a.md").writeText("真实内容");
-        val result = registry.executeFromJson("read_note", """{"path":"a.md"}""");
-        assertTrue("工具必须真的读到文件", result.contains("真实内容"));
+        File(workspace, "a.md").writeText("真实内容")
+        val result = registry.executeFromJson("read_note", """{"path":"a.md"}""")
+        assertTrue("工具必须真的读到文件", result.contains("真实内容"))
     }
 }

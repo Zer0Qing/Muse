@@ -74,6 +74,9 @@ object AgentWatcherStatus {
     const val PAUSED = "PAUSED"
     const val ENDED = "ENDED"
     const val ERROR = "ERROR"
+    const val ERROR_REMOTE_REVOCATION_PENDING = "REMOTE_REVOCATION_PENDING"
+    const val ERROR_REMOTE_BINDING_UNKNOWN = "REMOTE_BINDING_UNKNOWN"
+    const val WATCHER_NOTIFY_PENDING_PREFIX = "WATCHER_NOTIFY_PENDING|"
 
     val ALL: List<String> = listOf(ACTIVE, PAUSED, ENDED, ERROR)
 
@@ -110,6 +113,12 @@ interface AgentWatcherDao {
     @Query("SELECT * FROM agent_watchers WHERE status = 'ACTIVE' ORDER BY nextCheckAt ASC")
     suspend fun listActive(): List<AgentWatcherEntity>
 
+    @Query("SELECT * FROM agent_watchers WHERE status IN ('PAUSED','ENDED') AND remoteWatcherId != ''")
+    suspend fun listPendingRemoteRevocation(): List<AgentWatcherEntity>
+
+    @Query("SELECT * FROM agent_watchers WHERE lastError GLOB 'WATCHER_NOTIFY_PENDING|*'")
+    suspend fun listPendingNotifications(): List<AgentWatcherEntity>
+
     @Query("SELECT * FROM agent_watchers WHERE status = 'ACTIVE' AND nextCheckAt <= :now ORDER BY nextCheckAt ASC")
     suspend fun listDue(now: Long): List<AgentWatcherEntity>
 
@@ -123,17 +132,13 @@ interface AgentWatcherDao {
             "lastCheckedAt = :checkedAt, nextCheckAt = :nextCheckAt, lastError = :error, " +
             "updatedAt = :checkedAt WHERE watcherId = :watcherId",
     )
-    suspend fun recordCheck(
-        watcherId: String,
-        fingerprint: String,
-        result: String,
-        checkedAt: Long,
-        nextCheckAt: Long,
-        error: String,
-    ): Int
+    suspend fun recordCheck(watcherId: String, fingerprint: String, result: String, checkedAt: Long, nextCheckAt: Long, error: String): Int
 
     @Query("UPDATE agent_watchers SET status = :status, updatedAt = :updatedAt WHERE watcherId = :watcherId")
     suspend fun setStatus(watcherId: String, status: String, updatedAt: Long): Int
+
+    @Query("UPDATE agent_watchers SET lastError = '' WHERE watcherId = :watcherId AND lastError = :expectedMarker")
+    suspend fun clearPendingNotification(watcherId: String, expectedMarker: String): Int
 
     @Query("DELETE FROM agent_watchers WHERE watcherId = :watcherId")
     suspend fun deleteById(watcherId: String)

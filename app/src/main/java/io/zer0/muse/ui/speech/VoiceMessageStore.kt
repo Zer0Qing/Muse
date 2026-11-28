@@ -6,6 +6,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.security.MessageDigest
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * 音频时长探测器。
@@ -55,6 +56,66 @@ interface VoiceMessageArchiver {
 
     /** 见 [VoiceMessageStore.delete]。 */
     suspend fun delete(uri: String)
+
+    /** 持久化语音条对应的文字稿，供「转文字」展示；默认 no-op 兼容无文字稿假实现。 */
+    suspend fun saveTranscript(uri: String, text: String) {}
+}
+
+private fun resolveVoiceFile(key: String, storageDir: File): File? {
+    val raw = key.removePrefix("file://").trim()
+    if (raw.isEmpty()) return null
+    val root = runCatching { storageDir.canonicalFile }.getOrNull()
+    val candidate = if (File(raw).isAbsolute) File(raw) else File(storageDir, raw)
+    val canonical = runCatching { candidate.canonicalFile }.getOrNull()
+    return if (root != null && canonical != null && canonical.parentFile == root) {
+        canonical.takeIf(File::isFile)
+    } else {
+        null
+    }
+}
+
+/** 按音频文件魔数识别真实格式，避免云端 MP3 被误写为 .wav。 */
+private fun detectAudioExtension(file: File): String? = runCatching {
+    val header = ByteArray(12)
+    val count = file.inputStream().use { it.read(header) }
+    detectAudioExtension(header, count)
+}.getOrNull()
+
+private fun detectAudioExtension(header: ByteArray, count: Int): String? {
+    if (count < 4) return null
+    val b0 = header[0].toInt() and 0xFF
+    val b1 = header[1].toInt() and 0xFF
+    val b2 = header[2].toInt() and 0xFF
+    val b3 = header[3].toInt() and 0xFF
+    return when {
+        b0 == 'I'.code && b1 == 'D'.code && b2 == '3'.code -> "mp3"
+        b0 == 0xFF && (b1 and 0xE0) == 0xE0 -> "mp3"
+        b0 == 'R'.code && b1 == 'I'.code && b2 == 'F'.code && b3 == 'F'.code -> "wav"
+        b0 == 'O'.code && b1 == 'g'.code && b2 == 'g'.code && b3 == 'S'.code -> "ogg"
+        b0 == 'f'.code && b1 == 'L'.code && b2 == 'a'.code && b3 == 'C'.code -> "flac"
+        count >= 8 && header[4].toInt() == 'f'.code && header[5].toInt() == 't'.code &&
+            header[6].toInt() == 'y'.code && header[7].toInt() == 'p'.code -> "m4a"
+        else -> null
+    }
+}
+
+private fun sameFile(a: File, b: File): Boolean = runCatching { a.canonicalPath == b.canonicalPath }.getOrDefault(false)
+
+/** 存档文件名 = key 的内容哈希 + 源文件扩展名（默认 wav）。 */
+private fun fileNameFor(key: String, extension: String): String {
+    val ext = extension.lowercase().filter { it.isLetterOrDigit() }.ifEmpty { "wav" }
+    return keyHash(key) + "." + ext
+}
+
+private fun keyHash(key: String): String {
+    val digest = MessageDigest.getInstance("SHA-256").digest(key.toByteArray(Charsets.UTF_8))
+    return digest.joinToString("") { "%02x".format(it) }.take(16)
+}
+
+private fun shouldDeleteVoiceFile(file: File, keep: Set<String>, temporarySuffix: String): Boolean {
+    if (file.name.endsWith(temporarySuffix)) return file.delete()
+    val path = runCatching { file.canonicalPath }.getOrNull() ?: return false
+    return path !in keep && file.delete()
 }
 
 /**
@@ -85,13 +146,19 @@ class VoiceMessageStore(
      * @param key 内容键（消息 id 或文本哈希），决定存档文件名
      * @return 存档引用（`file://` + 绝对路径）；源文件缺失/为空或落盘失败时返回 null
      */
+    private val transcriptCache = ConcurrentHashMap<String, String>()
+    private val resolvedFileCache = ConcurrentHashMap<String, File>()
+    private val missingUriCache = ConcurrentHashMap.newKeySet<String>()
+    private val transcriptDir: File by lazy { File(storageDir.parentFile, TRANSCRIPT_DIR_NAME) }
+
     override suspend fun persist(tempFile: File, key: String): String? = withContext(Dispatchers.IO) {
         if (!tempFile.isFile || tempFile.length() <= 0L) {
             Logger.w(TAG, "语音落盘跳过：源文件不存在或为空 ${tempFile.name}")
             return@withContext null
         }
         val dir = ensureStorageDir() ?: return@withContext null
-        val target = File(dir, fileNameFor(key, tempFile.extension))
+        val detectedExt = detectAudioExtension(tempFile) ?: tempFile.extension
+        val target = File(dir, fileNameFor(key, detectedExt))
         if (sameFile(tempFile, target)) return@withContext FILE_PREFIX + target.absolutePath
         val staging = File(dir, target.name + TMP_SUFFIX)
         runCatching {
@@ -103,7 +170,10 @@ class VoiceMessageStore(
             runCatching { staging.delete() }
         }
         if (!target.isFile) return@withContext null
-        FILE_PREFIX + target.absolutePath
+        val uri = FILE_PREFIX + target.absolutePath
+        missingUriCache.remove(uri)
+        resolvedFileCache[uri] = target
+        uri
     }
 
     /**
@@ -114,22 +184,89 @@ class VoiceMessageStore(
      *
      * @return 文件不存在/引用非法时返回 null
      */
-    fun resolve(uri: String): File? {
-        val raw = uri.trim().removePrefix(FILE_PREFIX).trim()
-        if (raw.isEmpty()) return null
-        val root = runCatching { storageDir.canonicalFile }.getOrNull()
-        val candidate = if (File(raw).isAbsolute) File(raw) else File(storageDir, raw)
-        val canonical = runCatching { candidate.canonicalFile }.getOrNull()
-        if (root == null || canonical == null || canonical.parentFile != root) return null
-        return canonical.takeIf { it.isFile }
+    /** Returns the already-cached File for [uri], or null without blocking on disk. */
+    fun getCachedResolved(uri: String): File? {
+        val key = uri.trim()
+        if (key.isEmpty() || key in missingUriCache) return null
+        return resolvedFileCache[key]?.takeIf { it.isFile }
     }
 
-    /** 删除单条语音存档；引用非法或文件已不存在时静默忽略。 */
+    /** Returns true if [uri] resolution (hit or miss) is already cached in memory. */
+    fun isResolveCached(uri: String): Boolean {
+        val key = uri.trim()
+        return key.isEmpty() || key in missingUriCache || resolvedFileCache.containsKey(key)
+    }
+
+    /** Resolves [uri] off the Main thread with in-memory caching. */
+    suspend fun resolveAsync(uri: String): File? = withContext(Dispatchers.IO) { resolve(uri) }
+
+    fun resolve(uri: String): File? {
+        val key = uri.trim()
+        val resolved = when {
+            key.isEmpty() || key in missingUriCache -> null
+            else -> resolvedFileCache[key]?.let { cached ->
+                if (cached.isFile) cached else null.also { resolvedFileCache.remove(key) }
+            } ?: resolveVoiceFile(key, storageDir)
+        }
+        if (resolved != null) {
+            resolvedFileCache[key] = resolved
+        } else if (key.isNotEmpty()) {
+            missingUriCache.add(key)
+        }
+        return resolved
+    }
+
+    /** 删除单条语音存档及对应文字稿；引用非法或文件已不存在时静默忽略。 */
     override suspend fun delete(uri: String) {
         withContext(Dispatchers.IO) {
             val file = resolve(uri) ?: return@withContext
+            val stem = file.nameWithoutExtension
             if (!file.delete()) Logger.w(TAG, "语音存档删除失败: ${file.name}")
+            transcriptCache.remove(uri)
+            resolvedFileCache.remove(uri.trim())
+            missingUriCache.add(uri.trim())
+            transcriptFileForStem(stem)?.let { tf ->
+                if (tf.exists()) runCatching { tf.delete() }
+            }
         }
+    }
+
+    /** 保存语音条对应的口语文字稿（存放在旁路 `voice_transcripts/` 目录，不污染音频存档目录）。 */
+    override suspend fun saveTranscript(uri: String, text: String) {
+        val clean = text.trim()
+        if (clean.isEmpty()) return
+        withContext(Dispatchers.IO) {
+            val file = resolve(uri) ?: return@withContext
+            val tDir = ensureTranscriptDir() ?: return@withContext
+            val target = File(tDir, "${file.nameWithoutExtension}$TRANSCRIPT_EXT")
+            val staging = File(tDir, target.name + TMP_SUFFIX)
+            runCatching {
+                staging.writeText(clean, Charsets.UTF_8)
+                if (target.exists()) target.delete()
+                if (!staging.renameTo(target)) staging.copyTo(target, overwrite = true)
+            }.onSuccess {
+                transcriptCache[uri] = clean
+            }.onFailure { e ->
+                Logger.w(TAG, "语音文字稿保存失败: ${e.message}")
+                runCatching { staging.delete() }
+            }
+        }
+    }
+
+    /** Returns cached transcript text without disk I/O, or null on miss. */
+    fun getCachedTranscript(uri: String): String? = transcriptCache[uri]
+
+    /** Loads transcript on [Dispatchers.IO]. */
+    suspend fun readTranscriptAsync(uri: String): String? = withContext(Dispatchers.IO) { readTranscript(uri) }
+
+    /** 同步读取或缓存查询某条语音条的文字稿（找不到返回 null）。 */
+    fun readTranscript(uri: String): String? {
+        val transcript = transcriptCache[uri] ?: resolve(uri)
+            ?.let { transcriptFileForStem(it.nameWithoutExtension) }
+            ?.takeIf(File::isFile)
+            ?.let { file -> runCatching { file.readText(Charsets.UTF_8).trim().takeIf(String::isNotEmpty) }.getOrNull() }
+        transcript?.let { transcriptCache[uri] = it }
+        return transcript
     }
 
     /**
@@ -145,7 +282,16 @@ class VoiceMessageStore(
     suspend fun cleanupOrphans(referencedUris: Collection<String>): Int = withContext(Dispatchers.IO) {
         val files = storageDir.listFiles() ?: return@withContext 0
         val keep = referencedUris.mapNotNull { canonicalPathOf(it) }.toSet()
-        files.count { file -> file.isFile && shouldDelete(file, keep) }
+        val removed = files.count { file -> file.isFile && shouldDeleteVoiceFile(file, keep, TMP_SUFFIX) }
+        resolvedFileCache.clear()
+        missingUriCache.clear()
+        val keepStems = keep.mapTo(HashSet()) { File(it).nameWithoutExtension }
+        transcriptDir.listFiles()?.forEach { tf ->
+            if (tf.isFile && (tf.name.endsWith(TMP_SUFFIX) || tf.nameWithoutExtension !in keepStems)) {
+                runCatching { tf.delete() }
+            }
+        }
+        removed
     }
 
     /** 按引用探测时长；引用不可解析时返回 0。 */
@@ -159,12 +305,6 @@ class VoiceMessageStore(
         .getOrDefault(0L)
         .coerceAtLeast(0L)
 
-    private fun shouldDelete(file: File, keep: Set<String>): Boolean {
-        if (file.name.endsWith(TMP_SUFFIX)) return file.delete()
-        val path = runCatching { file.canonicalPath }.getOrNull() ?: return false
-        return path !in keep && file.delete()
-    }
-
     private fun canonicalPathOf(uri: String): String? = resolve(uri)?.let {
         runCatching { it.canonicalPath }.getOrNull()
     }
@@ -177,17 +317,14 @@ class VoiceMessageStore(
         return storageDir.takeIf { it.isDirectory }
     }
 
-    private fun sameFile(a: File, b: File): Boolean = runCatching { a.canonicalPath == b.canonicalPath }.getOrDefault(false)
-
-    /** 存档文件名 = key 的内容哈希 + 源文件扩展名（默认 wav）。 */
-    private fun fileNameFor(key: String, extension: String): String {
-        val ext = extension.lowercase().filter { it.isLetterOrDigit() }.ifEmpty { DEFAULT_EXTENSION }
-        return keyHash(key) + "." + ext
+    private fun ensureTranscriptDir(): File? {
+        if (!transcriptDir.exists() && !transcriptDir.mkdirs()) return null
+        return transcriptDir.takeIf { it.isDirectory }
     }
 
-    private fun keyHash(key: String): String {
-        val digest = MessageDigest.getInstance("SHA-256").digest(key.toByteArray(Charsets.UTF_8))
-        return digest.joinToString("") { "%02x".format(it) }.take(HASH_CHARS)
+    private fun transcriptFileForStem(stem: String): File? {
+        if (stem.isBlank()) return null
+        return File(transcriptDir, "$stem$TRANSCRIPT_EXT")
     }
 
     private companion object {
@@ -204,5 +341,8 @@ class VoiceMessageStore(
 
         /** 哈希取前 16 位十六进制（64 bit），足够避免同一目录内碰撞。 */
         private const val HASH_CHARS = 16
+
+        private const val TRANSCRIPT_DIR_NAME = "voice_transcripts"
+        private const val TRANSCRIPT_EXT = ".txt"
     }
 }

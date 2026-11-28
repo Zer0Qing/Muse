@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="automation_overlay_stop">Stop</string>
+
+    <string name="automation_vdisplay_title_no_pkg">Display #%1$d</string>
+    <string name="automation_vdisplay_title_with_pkg">Display #%1$d · %2$s</string>
+    <string name="automation_vdisplay_content_desc">Virtual display preview</string>
+    <string name="automation_vdisplay_disconnected">Preview unavailable. The virtual display service may have disconnected.</string>
+    <string name="automation_vdisplay_loading">Loading preview…</string>
+    <string name="automation_vdisplay_tap_hint">Tap or drag on the screen to interact</string>
+    <string name="automation_vdisplay_last_tap">Tapped (%1$d, %2$d)</string>
+    <string name="automation_vdisplay_last_swipe">Swiped</string>
+    <string name="automation_vdisplay_key_back">Back</string>
+    <string name="automation_vdisplay_key_home">Home</string>
+    <string name="automation_vdisplay_input_placeholder">Type text</string>
+    <string name="automation_vdisplay_input_send">Send text</string>
+    <string name="automation_vdisplay_input_cd">Send text</string>
+    <string name="automation_vdisplay_input_rejected_non_ascii">Text contains unsupported characters or is too long</string>
+
+    <string name="automation_readiness_title">Capabilities</string>
+    <string name="automation_readiness_ready">Ready</string>
+    <string name="automation_readiness_off">Off</string>
+    <string name="automation_readiness_dead">Stopped</string>
+    <string name="automation_readiness_accessibility">Screen access (A11y)</string>
+    <string name="automation_readiness_shell">Shell (Shizuku / Root)</string>
+    <string name="automation_readiness_vdisplay">Virtual display</string>
+    <string name="automation_readiness_vision">Vision model</string>
+    <string name="automation_readiness_vision_on">Configured: %1$s</string>
+    <string name="automation_readiness_vision_on_unnamed">Enabled</string>
+    <string name="automation_readiness_vision_off">Not set, tree reading only</string>
+    <string name="automation_a11y_dead_banner">Accessibility service stopped by system. Toggle Muse off and back on in System Accessibility settings.</string>
+
+    <string name="automation_selftest_title">4-Point Self-Test</string>
+    <string name="automation_selftest_action">Run self-test</string>
+    <string name="automation_selftest_pass">Pass</string>
+    <string name="automation_selftest_fail">Fail</string>
+    <string name="automation_selftest_warn">Check</string>
+    <string name="automation_selftest_check_a11y">Accessibility</string>
+    <string name="automation_selftest_check_shell">Shell / Root</string>
+    <string name="automation_selftest_check_vdisplay">Virtual display</string>
+    <string name="automation_selftest_check_screen">Screen read</string>
+    <string name="automation_selftest_a11y_live">Service connected</string>
+    <string name="automation_selftest_a11y_dead">Switch on, service dead</string>
+    <string name="automation_selftest_a11y_off">Disabled</string>
+    <string name="automation_selftest_shell_ok">Channel: %1$s</string>
+    <string name="automation_selftest_shell_off">No Shizuku or Root</string>
+    <string name="automation_selftest_vd_ok">Ready (%1$s)</string>
+    <string name="automation_selftest_vd_off">Unavailable (%1$s)</string>
+    <string name="automation_selftest_screen_ok">%1$d nodes · %2$dx%3$d</string>
+
+    <string name="automation_autonomous_pick_app">Pick installed app</string>
+    <string name="automation_autonomous_picker_title">Select allowed apps</string>
+    <string name="automation_autonomous_picker_search">Search app name or package</string>
+    <string name="automation_autonomous_picker_empty">No matching apps</string>
+    <string name="automation_autonomous_picker_done">Done</string>
+    <string name="automation_autonomous_picker_added">Added</string>
+</resources>

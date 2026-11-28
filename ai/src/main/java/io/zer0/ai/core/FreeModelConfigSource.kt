@@ -157,8 +157,11 @@ class FreeModelConfigSource(
                 conn.readTimeout = TIMEOUT_MS
                 conn.requestMethod = "GET"
                 conn.setRequestProperty("Accept", "application/json")
-                if (conn.responseCode !in 200..299) null
-                else conn.inputStream.bufferedReader().use { it.readText() }
+                if (conn.responseCode !in 200..299) {
+                    null
+                } else {
+                    conn.inputStream.bufferedReader().use { it.readText() }
+                }
             } finally {
                 conn.disconnect()
             }

@@ -535,6 +535,7 @@
     <string name="accessibility_status_disabled">Не включено. Разрешите «Автоматизацию UI Muse» в настройках системы.</string>
     <string name="accessibility_status_enabled">Служба специальных возможностей включена. Доступны действия UI (клик/свайп/ввод/скриншот/чтение дерева UI).</string>
     <string name="common_load_failed">Не удалось загрузить</string>
+    <string name="common_save_failed">Не удалось сохранить</string>
     <string name="action_undo">Отменить</string>
     <string name="chat_unarchived">Архив восстановлен</string>
     <string name="agent_dm_empty">Личных сообщений пока нет</string>
@@ -736,6 +737,8 @@
     <string name="wake_diagnostics_denied">не исключено</string>
     <string name="wake_diagnostics_next_run">Следующий запуск: %1$s</string>
     <string name="wake_diagnostics_next_run_none">не в очереди</string>
+    <string name="wake_diagnostics_next_run_overdue">Время наступило, ждём планировщик (было %1$s)</string>
+    <string name="wake_diagnostics_next_run_overdue_constrained">Время наступило, ждём условий (было %1$s)</string>
     <string name="wake_diagnostics_attempts">Попыток: %1$d</string>
     <string name="wake_diagnostics_history">Ещё записей: %1$d</string>
     <string name="wake_diagnostics_constrained">есть ограничения запуска</string>

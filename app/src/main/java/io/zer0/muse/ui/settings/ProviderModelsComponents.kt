@@ -1,4 +1,13 @@
-@file:Suppress("FunctionNaming", "LongMethod", "LongParameterList", "CyclomaticComplexMethod", "TooManyFunctions", "ReturnCount", "MaxLineLength", "ComplexCondition")
+@file:Suppress(
+    "FunctionNaming",
+    "LongMethod",
+    "LongParameterList",
+    "CyclomaticComplexMethod",
+    "TooManyFunctions",
+    "ReturnCount",
+    "MaxLineLength",
+    "ComplexCondition",
+)
 
 package io.zer0.muse.ui.settings
 
@@ -370,7 +379,10 @@ internal fun ModelAbilityEditorDialog(model: Model, onDismiss: () -> Unit, onSav
                 AbilitySwitchRow(stringResource(R.string.settings_provider_ability_reasoning), supportsReasoning) { supportsReasoning = it }
                 AbilitySwitchRow(stringResource(R.string.settings_provider_ability_streaming), supportsStreaming) { supportsStreaming = it }
                 AbilitySwitchRow(stringResource(R.string.settings_provider_ability_vision), supportsVision) { supportsVision = it }
-                AbilitySwitchRow(stringResource(R.string.settings_provider_ability_image_output), supportsImageOutput) { supportsImageOutput = it }
+                AbilitySwitchRow(
+                    stringResource(R.string.settings_provider_ability_image_output),
+                    supportsImageOutput,
+                ) { supportsImageOutput = it }
                 AbilitySwitchRow(stringResource(R.string.settings_provider_ability_video), supportsVideo) { supportsVideo = it }
 
                 MuseTextField(

@@ -44,9 +44,9 @@ import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.state.MuseLoadingState
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.util.launchSafely
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
-import io.zer0.muse.util.launchSafely
 
 /**
  * v1.61-A: 数据迁移与导入页。
@@ -199,9 +199,9 @@ fun SettingsDataImportPage(onBack: () -> Unit) {
                 ),
                 onSelect = {
                     filePicker.launchSafely(
-                            arrayOf("application/zip", "application/octet-stream", "application/json", "text/plain", "*/*"),
-                            context,
-                        )
+                        arrayOf("application/zip", "application/octet-stream", "application/json", "text/plain", "*/*"),
+                        context,
+                    )
                 },
             )
         }

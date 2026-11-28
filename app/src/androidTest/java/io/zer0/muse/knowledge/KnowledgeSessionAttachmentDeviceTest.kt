@@ -48,7 +48,13 @@ class KnowledgeSessionAttachmentDeviceTest {
             KnowledgeV2DocEntity(docId = "att-2", ownerType = "SessionAttachment", ownerId = "session-1", createdAt = 1L, updatedAt = 1L),
         )
         dao.insertDoc(
-            KnowledgeV2DocEntity(docId = "att-other", ownerType = "SessionAttachment", ownerId = "session-2", createdAt = 1L, updatedAt = 1L),
+            KnowledgeV2DocEntity(
+                docId = "att-other",
+                ownerType = "SessionAttachment",
+                ownerId = "session-2",
+                createdAt = 1L,
+                updatedAt = 1L,
+            ),
         )
 
         assertEquals(

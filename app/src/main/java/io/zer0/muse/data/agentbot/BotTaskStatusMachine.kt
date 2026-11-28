@@ -32,13 +32,13 @@ object BotTaskStatusMachine {
         /** 协程仍在内存中挂起等待时收到用户批准或拒绝，原地恢复到 RUNNING 继续执行同一轮。 */
         RESUME_IN_PLACE,
 
-    /**
-     * 用户在 NEEDS_USER 状态点了"继续"。
-     *
-     * 与 RESUME_FROM_APPROVAL 分开：那个是"审批系统说可以了"，
-     * 这个是"用户本人确认要重跑"。两者不能合并 —— 前者不该自动触发重跑。
-     */
-    USER_CONFIRMED_CONTINUE,
+        /**
+         * 用户在 NEEDS_USER 状态点了"继续"。
+         *
+         * 与 RESUME_FROM_APPROVAL 分开：那个是"审批系统说可以了"，
+         * 这个是"用户本人确认要重跑"。两者不能合并 —— 前者不该自动触发重跑。
+         */
+        USER_CONFIRMED_CONTINUE,
 
         /** 执行完毕，进入审核。 */
         EXECUTE_DONE,

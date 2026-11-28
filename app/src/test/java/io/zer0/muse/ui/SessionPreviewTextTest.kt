@@ -1,8 +1,8 @@
 package io.zer0.muse.ui
 
+import io.zer0.muse.ui.chat.sessionPreviewText
 import org.junit.Assert.assertEquals
 import org.junit.Test
-import io.zer0.muse.ui.chat.sessionPreviewText
 
 /**
  * 会话列表预览列的显示口径（走查 §十六）。

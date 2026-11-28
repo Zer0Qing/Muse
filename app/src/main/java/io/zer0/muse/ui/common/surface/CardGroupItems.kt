@@ -108,13 +108,7 @@ fun CardGroupScope.navigationItem(
 }
 
 /** 居中主色动作行（测试连接、刷新、导入等）。[loading] 时在文字前显示转圈并忽略点击。 */
-fun CardGroupScope.actionItem(
-    title: String,
-    onClick: () -> Unit,
-    key: Any? = null,
-    enabled: Boolean = true,
-    loading: Boolean = false,
-) {
+fun CardGroupScope.actionItem(title: String, onClick: () -> Unit, key: Any? = null, enabled: Boolean = true, loading: Boolean = false) {
     item(
         key = key,
         onClick = if (enabled && !loading) onClick else null,

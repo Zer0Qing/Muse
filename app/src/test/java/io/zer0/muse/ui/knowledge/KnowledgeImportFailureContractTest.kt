@@ -126,7 +126,7 @@ class KnowledgeImportFailureContractTest {
     @Test
     fun `kb and folder mutations go through shared cascade`() {
         val source = screen()
-        assertTrue("删库走共享级联", source.contains("cascade.deleteKnowledgeBase(kb.id)"))
+        assertTrue("删库走共享级联", source.contains("cascade.deleteKnowledgeBase("))
         assertTrue("目录新建走共享级联", source.contains("cascade.createFolder("))
         assertTrue("目录重命名走共享级联", source.contains("cascade.renameFolder("))
         assertTrue("目录删除走共享级联", source.contains("cascade.deleteFolder("))

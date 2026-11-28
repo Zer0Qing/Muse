@@ -4,7 +4,6 @@ import io.zer0.common.Logger
 import io.zer0.muse.data.proactive.ProactiveOutcomeRepository
 import io.zer0.muse.notification.MuseNotificationIdPolicy
 import io.zer0.muse.notification.MuseNotificationTarget
-import io.zer0.muse.notification.MuseNotificationManager
 import kotlinx.coroutines.CancellationException
 
 class ProactiveNotificationRecovery(
@@ -34,7 +33,7 @@ class ProactiveNotificationRecovery(
                     )
                 } catch (e: CancellationException) {
                     throw e
-                } catch (e: Exception) {
+                } catch (e: RuntimeException) {
                     Logger.w(TAG, "通知补发异常: ${e.message}")
                     false
                 }

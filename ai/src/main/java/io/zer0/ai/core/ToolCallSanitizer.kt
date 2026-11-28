@@ -46,10 +46,7 @@ object ToolCallSanitizer {
      * @param knownToolNames 本轮真正要暴露给模型的工具名。只有能对上市名单才还原；
      *   传空集表示调用方没有名单，此时不猜，仍然丢弃非法调用。
      */
-    fun sanitize(
-        toolCalls: List<ToolCall>,
-        knownToolNames: Set<String> = emptySet(),
-    ): List<ToolCall> = toolCalls.mapNotNull { tc ->
+    fun sanitize(toolCalls: List<ToolCall>, knownToolNames: Set<String> = emptySet()): List<ToolCall> = toolCalls.mapNotNull { tc ->
         if (tc.name.isBlank()) {
             safeWarn("丢弃工具调用：name 为空, id=${tc.id}")
             return@mapNotNull null

@@ -14,29 +14,21 @@ class KnowledgeManagementFacade(
     private val lifecycle: KnowledgeLifecycleService,
 ) {
 
-    suspend fun deleteFromUi(docId: String, clearCitationSnapshots: Boolean) =
-        lifecycle.deleteDocument(docId, clearCitationSnapshots)
+    suspend fun deleteFromUi(docId: String, clearCitationSnapshots: Boolean) = lifecycle.deleteDocument(docId, clearCitationSnapshots)
 
-    suspend fun deleteFromTool(docId: String, clearCitationSnapshots: Boolean) =
-        lifecycle.deleteDocument(docId, clearCitationSnapshots)
+    suspend fun deleteFromTool(docId: String, clearCitationSnapshots: Boolean) = lifecycle.deleteDocument(docId, clearCitationSnapshots)
 
-    suspend fun deleteFromWeb(docId: String, clearCitationSnapshots: Boolean) =
-        lifecycle.deleteDocument(docId, clearCitationSnapshots)
+    suspend fun deleteFromWeb(docId: String, clearCitationSnapshots: Boolean) = lifecycle.deleteDocument(docId, clearCitationSnapshots)
 
-    suspend fun createFolderFromUi(kbId: String, parentId: String, name: String) =
-        lifecycle.createFolder(kbId, parentId, name)
+    suspend fun createFolderFromUi(kbId: String, parentId: String, name: String) = lifecycle.createFolder(kbId, parentId, name)
 
-    suspend fun createFolderFromTool(kbId: String, parentId: String, name: String) =
-        lifecycle.createFolder(kbId, parentId, name)
+    suspend fun createFolderFromTool(kbId: String, parentId: String, name: String) = lifecycle.createFolder(kbId, parentId, name)
 
-    suspend fun renameFolderFromUi(folderId: String, newName: String) =
-        lifecycle.renameFolder(folderId, newName)
+    suspend fun renameFolderFromUi(folderId: String, newName: String) = lifecycle.renameFolder(folderId, newName)
 
-    suspend fun renameFolderFromTool(folderId: String, newName: String) =
-        lifecycle.renameFolder(folderId, newName)
+    suspend fun renameFolderFromTool(folderId: String, newName: String) = lifecycle.renameFolder(folderId, newName)
 
-    suspend fun moveFolderFromUi(folderId: String, newParentId: String) =
-        lifecycle.moveFolder(folderId, newParentId)
+    suspend fun moveFolderFromUi(folderId: String, newParentId: String) = lifecycle.moveFolder(folderId, newParentId)
 
     suspend fun deleteFolderFromUi(folderId: String, policy: KnowledgeLifecycleService.FolderDeletePolicy) =
         lifecycle.deleteFolder(folderId, policy)

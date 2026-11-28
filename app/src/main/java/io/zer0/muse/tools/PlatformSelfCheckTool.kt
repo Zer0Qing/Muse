@@ -55,7 +55,7 @@ object PlatformSelfCheckTool {
                 externalReady -> "外置运行环境（proot）"
                 node.isFile -> "包内二进制 (${node.length() / 1024 / 1024}MB)"
                 else -> "缺失"
-            }
+            },
         )
         val nodeV = runCatching { MuseRuntime.execNode(context, listOf("-v"), timeoutMs = 20_000) }.getOrNull()
         sb.append("\n  - node -v: ").append(

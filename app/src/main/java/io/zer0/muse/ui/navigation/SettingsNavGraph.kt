@@ -8,10 +8,13 @@ import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
 import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.license.LicensesScreen
-import io.zer0.muse.ui.chat.ChatViewModel
 import io.zer0.muse.ui.account.AccountScreen
+import io.zer0.muse.ui.chat.ChatViewModel
+import io.zer0.muse.ui.debug.DebugScreen
 import io.zer0.muse.ui.dev.ComponentGalleryScreen
 import io.zer0.muse.ui.knowledge.KnowledgeScreen
+import io.zer0.muse.ui.memory.MemoryScreen
+import io.zer0.muse.ui.screen.WorkspaceScreen
 import io.zer0.muse.ui.settings.AgentDirectivesPage
 import io.zer0.muse.ui.settings.AgentSettingsPage
 import io.zer0.muse.ui.settings.AuditLogPage
@@ -39,7 +42,9 @@ import io.zer0.muse.ui.settings.SettingsDataPage
 import io.zer0.muse.ui.settings.SettingsDiagnosticsPage
 import io.zer0.muse.ui.settings.SettingsGroupPage
 import io.zer0.muse.ui.settings.SettingsMcpPage
+import io.zer0.muse.ui.settings.SettingsMediaGenPage
 import io.zer0.muse.ui.settings.SettingsModelPage
+import io.zer0.muse.ui.settings.SettingsScreen
 import io.zer0.muse.ui.settings.SettingsSessionTermsPage
 import io.zer0.muse.ui.settings.SettingsTutorialPage
 import io.zer0.muse.ui.settings.SettingsWebSearchPage
@@ -54,10 +59,6 @@ import io.zer0.muse.ui.settings.WebAccessPage
 import io.zer0.muse.ui.settings.directEntryRoute
 import io.zer0.muse.ui.terminal.TerminalScreen
 import org.koin.compose.koinInject
-import io.zer0.muse.ui.debug.DebugScreen
-import io.zer0.muse.ui.memory.MemoryScreen
-import io.zer0.muse.ui.settings.SettingsScreen
-import io.zer0.muse.ui.screen.WorkspaceScreen
 
 /**
  * 设置域 NavGraph — 包含设置主页 + 31 个二级/三级设置页(账户/模型/外观/代理/多 Agent/
@@ -67,6 +68,16 @@ import io.zer0.muse.ui.screen.WorkspaceScreen
  * 所有 composable 统一使用 [MuseTransitions.horizontalPushEnter] / [horizontalPushPopExit] 过渡。
  */
 fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedViewModel: ChatViewModel) {
+    val openMcpDraft: (String, String) -> Unit = { assistantId, text ->
+        sharedViewModel.createNewSession(
+            assistantIdOverride = assistantId,
+            onReady = {
+                sharedViewModel.updateInput(text)
+                navController.navigateSingleTop(ChatDetailRoute)
+            },
+        )
+    }
+
     // 设置页(slide-in)
     composable<SettingsRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
@@ -192,6 +203,19 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
     ) {
         SettingsMcpPage(
             onBack = { navController.popBackStackSafe() },
+            onOpenRuntime = { navController.navigateSingleTop(SettingsRuntimeRoute) },
+            onOpenChatDraft = openMcpDraft,
+        )
+    }
+    composable<McpServerSettingsRoute>(
+        enterTransition = { MuseTransitions.horizontalPushEnter() },
+        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+    ) { entry ->
+        SettingsMcpPage(
+            onBack = { navController.popBackStackSafe() },
+            onOpenRuntime = { navController.navigateSingleTop(SettingsRuntimeRoute) },
+            onOpenChatDraft = openMcpDraft,
+            focusServerId = entry.toRoute<McpServerSettingsRoute>().serverId,
         )
     }
     // v1.133: 设置二级页 — 助手资源(从 SettingsModelPage 拆出:收藏夹/世界书/快捷消息/模式注入/Skills/记忆开关)
@@ -235,7 +259,9 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
     ) {
         SettingsDataPage(
             onBack = { navController.popBackStackSafe() },
-            onOpenCloudBackup = { navController.navigateSingleTop(SettingsCloudBackupRoute) },
+            onOpenCloudBackup = { includeSecrets ->
+                navController.navigateSingleTop(SettingsCloudBackupRoute(includeSecrets))
+            },
             onOpenWebAccess = { navController.navigateSingleTop(SettingsWebAccessRoute) },
         )
     }
@@ -252,8 +278,9 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
     composable<SettingsCloudBackupRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
-    ) {
+    ) { entry ->
         CloudBackupPage(
+            includeSecrets = entry.toRoute<SettingsCloudBackupRoute>().includeSecrets,
             onBack = { navController.popBackStackSafe() },
         )
     }
@@ -314,6 +341,7 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
             onBack = { navController.popBackStackSafe() },
             onOpenQuickActions = { navController.navigateSingleTop(SettingsQuickActionsRoute) },
             onOpenToolsSettings = { navController.navigateSingleTop(ToolsSettingsRoute) },
+            onOpenStickers = { navController.navigateSingleTop(StickerSettingsRoute) },
         )
     }
     // v2.6.0: 设置三级页 — 消息快捷按钮自定义（Via 式）
@@ -377,6 +405,15 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
             onOpenVoiceCloning = { navController.navigateSingleTop(VoiceCloningRoute) },
             // 模型只在供应商里维护：候选为空时出口指回供应商列表
             onOpenProviderSettings = { navController.navigateSingleTop(SettingsModelRoute) },
+        )
+    }
+    // 生图与生视频模型配置页
+    composable<SettingsMediaGenRoute>(
+        enterTransition = { MuseTransitions.horizontalPushEnter() },
+        popExitTransition = { MuseTransitions.horizontalPushPopExit() },
+    ) {
+        SettingsMediaGenPage(
+            onBack = { navController.popBackStackSafe() },
         )
     }
     // v0.32: 设置二级页 — 实验性
@@ -470,7 +507,11 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
-        ProactiveMessageSettingsPage(onBack = { navController.popBackStackSafe() })
+        ProactiveMessageSettingsPage(
+            onBack = { navController.popBackStackSafe() },
+            onOpenDirectives = { navController.navigateSingleTop(SettingsAgentDirectivesRoute) },
+            onOpenKeepAlive = { navController.navigateSingleTop(KeepAliveSettingsRoute) },
+        )
     }
     composable<SettingsAgentRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
@@ -481,6 +522,8 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
             onOpenMultiAgentSettings = { navController.navigateSingleTop(SettingsMultiAgentRoute) },
             onOpenAgentDm = { navController.navigateSingleTop(AgentDmRoute) },
             onOpenPreferences = { navController.navigateSingleTop(SettingsPreferenceRoute) },
+            onOpenDirectives = { navController.navigateSingleTop(SettingsAgentDirectivesRoute) },
+            onOpenKeepAlive = { navController.navigateSingleTop(KeepAliveSettingsRoute) },
         )
     }
     // v2.6.7 fix (AUDIT F9): 用户偏好管理页。
@@ -548,13 +591,18 @@ fun NavGraphBuilder.settingsNavGraph(navController: NavHostController, sharedVie
             onOpenArtifacts = { navController.navigateSingleTop(ArtifactCenterRoute) },
         )
     }
-    // v2.0.1: 产物中心 — 从工作区页顶栏进入
+    // 产物库 — 从工作区顶栏 / 工具页 / 智能体工作台进入
     composable<ArtifactCenterRoute>(
         enterTransition = { MuseTransitions.horizontalPushEnter() },
         popExitTransition = { MuseTransitions.horizontalPushPopExit() },
     ) {
         io.zer0.muse.ui.artifact.ArtifactCenterScreen(
             onBack = { navController.popBackStackSafe() },
+            onOpenSession = { sessionId ->
+                sharedViewModel.switchSession(sessionId)
+                navController.navigate(ChatDetailRoute) { launchSingleTop = true }
+            },
+            onOpenMediaStudio = { navController.navigateSingleTop(MediaStudioRoute) },
         )
     }
     // v2.0.1: 连接中心 — 从设置首页进入（连接总览）

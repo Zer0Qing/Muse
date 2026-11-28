@@ -1,10 +1,10 @@
 package io.zer0.memory.ticker
 
-import java.nio.file.Files
-import java.nio.file.Path
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.nio.file.Files
+import java.nio.file.Path
 
 /**
  * 记忆 ticker 与写闸的接线回归。

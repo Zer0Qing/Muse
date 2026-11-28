@@ -1,11 +1,8 @@
 package io.zer0.muse.data.session
 
 import androidx.room.migration.Migration
-import io.zer0.common.Logger
 import androidx.sqlite.db.SupportSQLiteDatabase
-import kotlinx.serialization.builtins.ListSerializer
-import kotlinx.serialization.builtins.serializer
-import java.io.File
+import io.zer0.common.Logger
 
 /**
 Room 迁移链第三段（46 个迁移）。
@@ -1073,4 +1070,4 @@ internal object MigrationsC {
             ensureGroupChatMessageColumns(db)
         }
     }
-};
+}

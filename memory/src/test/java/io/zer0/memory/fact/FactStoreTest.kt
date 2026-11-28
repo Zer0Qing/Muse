@@ -196,7 +196,8 @@ class FactStoreTest {
     fun `addBatch merges similar facts instead of duplicating`() = runTest {
         val entries = listOf(
             FactStore.Fact(fact = "用户对青霉素过敏"),
-            FactStore.Fact(fact = "对青霉素过敏"), // 去主语后相同,应被识别为相似
+            // 去主语后相同,应被识别为相似
+            FactStore.Fact(fact = "对青霉素过敏"),
         )
         store.addBatch(entries)
 
@@ -306,7 +307,8 @@ class FactStoreTest {
                 fact = "青霉素过敏(关键)",
                 tags = "[]",
                 createdAt = oldDate,
-                importance = 2, // 关键,永不衰减
+                // 关键,永不衰减
+                importance = 2,
                 lastHitAt = null,
             ),
         )

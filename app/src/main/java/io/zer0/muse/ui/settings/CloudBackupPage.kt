@@ -86,7 +86,7 @@ import kotlin.math.roundToInt
  *  - 密码 / 密钥 / 口令输入统一用 [MuseSecretTextField](自带显隐切换)。
  */
 @Composable
-fun CloudBackupPage(onBack: () -> Unit) {
+fun CloudBackupPage(includeSecrets: Boolean = false, onBack: () -> Unit) {
     val settings: SettingsRepository = koinInject()
     val backupService: BackupService = koinInject()
     val cloudBackupService: CloudBackupService = koinInject()
@@ -117,9 +117,6 @@ fun CloudBackupPage(onBack: () -> Unit) {
     var intervalDays by remember(cloudConfig.autoSyncIntervalHours) {
         mutableStateOf(intervalDaysOf(cloudConfig))
     }
-
-    // v2.6.0: 云备份包含供应商密钥(与本地备份同语义,默认关)
-    var cloudIncludeSecrets by remember { mutableStateOf(false) }
 
     // 操作进度状态
     var testing by remember { mutableStateOf(false) }
@@ -304,21 +301,6 @@ fun CloudBackupPage(onBack: () -> Unit) {
         // ── 2. 操作分组 ──
         item(key = "cloud_backup_actions_group") {
             CardGroup(title = { Text(stringResource(R.string.cloud_backup_section_actions)) }) {
-                // v2.6.0: 云备份包含供应商密钥(与本地备份同语义,默认关)
-                switchItem(
-                    key = "cloud_backup_include_secrets",
-                    title = stringResource(R.string.settings_backup_include_secrets),
-                    checked = cloudIncludeSecrets,
-                    onCheckedChange = { cloudIncludeSecrets = it },
-                    leadingContent = {
-                        Icon(
-                            imageVector = MuseIcons.key,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(MuseIconSizes.iconMedium),
-                        )
-                    },
-                )
                 item(
                     key = "cloud_backup_now",
                     onClick = backupNow@{
@@ -330,16 +312,21 @@ fun CloudBackupPage(onBack: () -> Unit) {
                         backingUp = true
                         cloudBackupDialogVisible = true
                         scope.launch {
-                            val outcome = backupService.exportToCloud(includeSecrets = cloudIncludeSecrets)
+                            val outcome = backupService.exportToCloud(includeSecrets = includeSecrets)
                             val ok = outcome == io.zer0.muse.backup.BackupService.CloudBackupOutcome.SUCCESS
                             backingUp = false
                             cloudBackupDialogVisible = false
                             MuseToast.show(
                                 context.getString(
-                                    if (ok) {
-                                        R.string.cloud_backup_backup_success
-                                    } else {
-                                        R.string.cloud_backup_backup_failed
+                                    when {
+                                        ok -> R.string.cloud_backup_backup_success
+                                        outcome == io.zer0.muse.backup.BackupService.CloudBackupOutcome.PASSWORD_UNAVAILABLE ->
+                                            if (includeSecrets && !cloudConfig.backupPasswordSet) {
+                                                R.string.cloud_backup_provider_secrets_require_password
+                                            } else {
+                                                R.string.settings_backup_password_unavailable
+                                            }
+                                        else -> R.string.cloud_backup_backup_failed
                                     },
                                 ),
                             )
@@ -367,6 +354,9 @@ fun CloudBackupPage(onBack: () -> Unit) {
                                 stringResource(R.string.settings_backup_upload_subtitle_unconfigured)
                             },
                         )
+                        if (cloudConfig.isConfigured && includeSecrets) {
+                            Text(stringResource(R.string.settings_backup_include_secrets))
+                        }
                     },
                 )
                 item(

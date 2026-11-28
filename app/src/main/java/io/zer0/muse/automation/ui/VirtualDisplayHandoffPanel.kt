@@ -1,46 +1,53 @@
 package io.zer0.muse.automation.ui
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import io.zer0.muse.R
+import io.zer0.muse.automation.AutomationRuntime
+import io.zer0.muse.automation.vdisplay.VirtualDisplayInputCommand
+import io.zer0.muse.ui.common.form.IosCapsuleButtonVariant
 import io.zer0.muse.ui.common.form.MuseCapsuleButton
+import io.zer0.muse.ui.common.form.MuseTextField
+import io.zer0.muse.ui.common.icons.MuseIcons
+import io.zer0.muse.ui.theme.MuseButtonSize
 import io.zer0.muse.ui.theme.MusePaddings
+import io.zer0.muse.ui.theme.MuseSpacing
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.math.min
 
 /**
- * 虚拟屏预览 + 触摸接管（对比清单 P1-02 第二段）。
- *
- * 存在的意义：`ui_agent` 在虚拟屏上操作时用户看不见，任务结束后屏也被销毁。
- * 这个面板把画面轮询进来、把点击翻译成注入事件 —— 用户能看着它，也能自己上手。
- *
- * 三个刻意的取舍：
- *  1. **轮询而不是推流**：链路上只有"截图"是稳定能力，硬造推流会在弱设备上卡死；
- *     2.5 帧/秒够看清"在发生什么"，不够看电影 —— 但这不是看视频的场景。
- *  2. **点击必须按缩放换算**：预览等比缩放并居中，直接拿点击坐标当屏幕坐标会点偏，
- *     越靠边缘偏得越多（[mapTapToDisplay] 负责这段，单独可测）。
- *  3. **失败要说出来**：连续取不到画面就显示原因，而不是让用户对着空白等。
+ * 虚拟屏预览 + 触摸/按键/文本接管面板。
  */
 @Composable
 fun VirtualDisplayHandoffPanel(
@@ -51,22 +58,43 @@ fun VirtualDisplayHandoffPanel(
     /** 把目标应用交回主屏。返回 false 表示服务不可用或应用起不来。 */
     bringToMain: suspend () -> Boolean,
     onClose: () -> Unit,
+    swipe: suspend (x1: Int, y1: Int, x2: Int, y2: Int) -> Boolean = { x1, y1, x2, y2 ->
+        AutomationRuntime.swipe(displayId, x1, y1, x2, y2)
+    },
+    keyEvent: suspend (String) -> Boolean = { key ->
+        AutomationRuntime.keyEvent(displayId, key)
+    },
+    inputText: suspend (String) -> Boolean = { text ->
+        AutomationRuntime.inputText(displayId, text)
+    },
 ) {
-    var frame by remember(displayId) { mutableStateOf<android.graphics.Bitmap?>(null) }
-    var failures by remember(displayId) { mutableStateOf(0) }
-    var lastTap by remember(displayId) { mutableStateOf<String?>(null) }
+    var frame by remember(displayId) { mutableStateOf<Bitmap?>(null) }
+    var failures by remember(displayId) { mutableIntStateOf(0) }
+    var lastAction by remember(displayId) { mutableStateOf<String?>(null) }
     var actionResult by remember(displayId) { mutableStateOf<String?>(null) }
+    var textDraft by remember(displayId) { mutableStateOf("") }
     val scope = rememberCoroutineScope()
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val context = LocalContext.current
+
+    DisposableEffect(displayId) {
+        onDispose {
+            frame?.recycle()
+            frame = null
+        }
+    }
 
     LaunchedEffect(displayId) {
         while (true) {
-            val bytes = runCatching { screenshot() }.getOrNull()
-            val bitmap = bytes?.let { raw ->
-                runCatching { android.graphics.BitmapFactory.decodeByteArray(raw, 0, raw.size) }.getOrNull()
+            val bitmap = withContext(Dispatchers.Default) {
+                val bytes = runCatching { screenshot() }.getOrNull() ?: return@withContext null
+                runCatching { BitmapFactory.decodeByteArray(bytes, 0, bytes.size) }.getOrNull()
             }
             if (bitmap != null) {
+                val previous = frame
                 frame = bitmap
+                if (previous != null && previous !== bitmap && !previous.isRecycled) {
+                    previous.recycle()
+                }
                 failures = 0
             } else {
                 failures += 1
@@ -79,28 +107,34 @@ fun VirtualDisplayHandoffPanel(
         modifier = Modifier
             .fillMaxWidth()
             .padding(MusePaddings.screen),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(MuseSpacing.sm),
     ) {
         Text(
-            text = if (packageName.isBlank()) "虚拟屏 #$displayId" else "虚拟屏 #$displayId · $packageName",
+            text = if (packageName.isBlank()) {
+                stringResource(R.string.automation_vdisplay_title_no_pkg, displayId)
+            } else {
+                stringResource(R.string.automation_vdisplay_title_with_pkg, displayId, packageName)
+            },
             style = MaterialTheme.typography.titleSmall,
         )
         val current = frame
         if (current == null) {
             Text(
                 text = if (failures > 3) {
-                    "取不到画面（虚拟屏服务可能已断开）。可以关闭后让助手重新执行一次。"
+                    stringResource(R.string.automation_vdisplay_disconnected)
                 } else {
-                    "正在获取画面…"
+                    stringResource(R.string.automation_vdisplay_loading)
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         } else {
             val image = remember(current) { current.asImageBitmap() }
+            var dragStart by remember(displayId) { mutableStateOf<Offset?>(null) }
+            var dragEnd by remember(displayId) { mutableStateOf<Offset?>(null) }
             Image(
                 bitmap = image,
-                contentDescription = "虚拟屏预览",
+                contentDescription = stringResource(R.string.automation_vdisplay_content_desc),
                 contentScale = ContentScale.Fit,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -111,31 +145,116 @@ fun VirtualDisplayHandoffPanel(
                                 viewSize = Size(size.width.toFloat(), size.height.toFloat()),
                                 displaySize = Size(current.width.toFloat(), current.height.toFloat()),
                             )
-                            lastTap = "#$x,$y"
+                            lastAction = context.getString(R.string.automation_vdisplay_last_tap, x, y)
                             scope.launch { runCatching { tap(x, y) } }
                         }
+                    }
+                    .pointerInput(displayId, current) {
+                        detectDragGestures(
+                            onDragStart = { start ->
+                                dragStart = start
+                                dragEnd = start
+                            },
+                            onDrag = { change, _ ->
+                                dragEnd = change.position
+                            },
+                            onDragCancel = {
+                                dragStart = null
+                                dragEnd = null
+                            },
+                            onDragEnd = {
+                                val start = dragStart
+                                val end = dragEnd
+                                dragStart = null
+                                dragEnd = null
+                                if (start != null && end != null) {
+                                    val viewSize = Size(size.width.toFloat(), size.height.toFloat())
+                                    val dispSize = Size(current.width.toFloat(), current.height.toFloat())
+                                    val (x1, y1) = mapTapToDisplay(start, viewSize, dispSize)
+                                    val (x2, y2) = mapTapToDisplay(end, viewSize, dispSize)
+                                    if (kotlin.math.hypot((x2 - x1).toDouble(), (y2 - y1).toDouble()) >= MIN_SWIPE_DISTANCE_PX) {
+                                        lastAction = context.getString(R.string.automation_vdisplay_last_swipe)
+                                        scope.launch { runCatching { swipe(x1, y1, x2, y2) } }
+                                    }
+                                }
+                            },
+                        )
                     },
             )
             Text(
-                text = lastTap?.let { "已点击 $it（若界面没反应，可能该控件不接受注入）" } ?: "点击画面即可操作这块屏",
+                text = lastAction ?: stringResource(R.string.automation_vdisplay_tap_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(MuseSpacing.smTight),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                MuseCapsuleButton(
+                    text = stringResource(R.string.automation_vdisplay_key_back),
+                    onClick = { scope.launch { runCatching { keyEvent("KEYCODE_BACK") } } },
+                    variant = IosCapsuleButtonVariant.Secondary,
+                    size = MuseButtonSize.Compact,
+                    fillWidth = false,
+                )
+                MuseCapsuleButton(
+                    text = stringResource(R.string.automation_vdisplay_key_home),
+                    onClick = { scope.launch { runCatching { keyEvent("KEYCODE_HOME") } } },
+                    variant = IosCapsuleButtonVariant.Secondary,
+                    size = MuseButtonSize.Compact,
+                    fillWidth = false,
+                )
+            }
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(MuseSpacing.smTight),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                MuseTextField(
+                    value = textDraft,
+                    onValueChange = { textDraft = it },
+                    placeholder = { Text(stringResource(R.string.automation_vdisplay_input_placeholder)) },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f),
+                )
+                MuseCapsuleButton(
+                    text = stringResource(R.string.automation_vdisplay_input_send),
+                    onClick = {
+                        val text = textDraft.trim()
+                        if (text.isNotEmpty()) {
+                            val rejection = VirtualDisplayInputCommand.textRejectionReason(text)
+                            if (rejection != null) {
+                                actionResult = context.getString(R.string.automation_vdisplay_input_rejected_non_ascii)
+                            } else {
+                                scope.launch {
+                                    if (runCatching { inputText(text) }.getOrDefault(false)) {
+                                        textDraft = ""
+                                        actionResult = null
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    leadingIcon = MuseIcons.send,
+                    size = MuseButtonSize.Compact,
+                    fillWidth = false,
+                )
+            }
         }
         // 能力边界必须写在按钮旁边：交回主屏**不保证**页面与输入状态还在。
         Text(
-            text = androidx.compose.ui.res.stringResource(R.string.automation_handoff_bring_main_hint),
+            text = stringResource(R.string.automation_handoff_bring_main_hint),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         actionResult?.let { text ->
             Text(text = text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
         }
-        androidx.compose.foundation.layout.Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(MuseSpacing.smTight),
         ) {
             MuseCapsuleButton(
-                text = androidx.compose.ui.res.stringResource(R.string.automation_handoff_bring_main),
+                text = stringResource(R.string.automation_handoff_bring_main),
                 onClick = {
                     scope.launch {
                         val ok = runCatching { bringToMain() }.getOrDefault(false)
@@ -151,8 +270,9 @@ fun VirtualDisplayHandoffPanel(
                 fillWidth = false,
             )
             MuseCapsuleButton(
-                text = androidx.compose.ui.res.stringResource(R.string.automation_handoff_close_destroy),
+                text = stringResource(R.string.automation_handoff_close_destroy),
                 onClick = onClose,
+                variant = IosCapsuleButtonVariant.Secondary,
                 fillWidth = false,
             )
         }
@@ -181,3 +301,4 @@ internal fun mapTapToDisplay(tap: Offset, viewSize: Size, displaySize: Size): Pa
 
 /** 预览轮询间隔：2.5 帧/秒 —— 够看清"在发生什么"，又不至于把设备压垮。 */
 private const val PREVIEW_INTERVAL_MS = 400L
+private const val MIN_SWIPE_DISTANCE_PX = 24.0

@@ -5,7 +5,6 @@ package io.zer0.muse.ui.settings
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,7 +13,6 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -50,6 +48,7 @@ import io.zer0.muse.data.SettingsRepository
 import io.zer0.muse.data.assistant.AssistantEntity
 import io.zer0.muse.data.assistant.AssistantRepository
 import io.zer0.muse.tools.DelegationContract
+import io.zer0.muse.ui.assistant.ModelSwitchSheet
 import io.zer0.muse.ui.common.feedback.MuseDialog
 import io.zer0.muse.ui.common.form.MuseChip
 import io.zer0.muse.ui.common.form.MuseDropdown
@@ -68,12 +67,9 @@ import io.zer0.muse.ui.common.surface.switchItem
 import io.zer0.muse.ui.theme.MuseHaptics
 import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseShapes
-import io.zer0.muse.ui.theme.MuseSpacing
-import io.zer0.muse.ui.theme.pill
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import java.util.UUID
-import io.zer0.muse.ui.assistant.ModelSwitchSheet
 
 /**
  * v1.25: 多 Agent 协作团队管理页。

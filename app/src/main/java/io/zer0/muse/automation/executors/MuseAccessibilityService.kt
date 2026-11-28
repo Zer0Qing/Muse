@@ -49,7 +49,15 @@ class MuseAccessibilityService : io.zer0.muse.accessibility.MuseAccessibilitySer
             now = System.currentTimeMillis(),
         )
         when (decision) {
-            is TeachEventSanitizer.Decision.Record -> recorder.recordStep(decision.action, decision.targetApp)
+            is TeachEventSanitizer.Decision.Record -> recorder.recordStructuredStep(
+                action = decision.action,
+                targetApp = decision.targetApp,
+                targetPackage = decision.targetPackage,
+                targetText = decision.targetText,
+                contentDesc = decision.contentDesc,
+                resourceIdHint = decision.resourceIdHint,
+                actionKind = decision.actionKind,
+            )
             is TeachEventSanitizer.Decision.Blocked -> Unit
             TeachEventSanitizer.Decision.Ignored -> Unit
         }
@@ -65,6 +73,7 @@ class MuseAccessibilityService : io.zer0.muse.accessibility.MuseAccessibilitySer
                 viewId = sourceNode?.viewIdResourceName.orEmpty(),
                 text = text?.joinToString(separator = "") { chunk -> chunk?.toString().orEmpty() },
                 contentDescription = contentDescription?.toString(),
+                isEditable = sourceNode?.isEditable == true,
                 isPassword = isPassword || sourceNode?.isPassword == true,
                 timestamp = System.currentTimeMillis(),
             )

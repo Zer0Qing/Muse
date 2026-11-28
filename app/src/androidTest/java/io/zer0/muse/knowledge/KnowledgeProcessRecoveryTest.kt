@@ -56,8 +56,11 @@ class KnowledgeProcessRecoveryTest {
         )
         database.knowledgeJobDao().insertJobItem(
             KnowledgeJobItemEntity(
-                jobItemId = "item-1", jobId = "job-1", docId = "doc-1",
-                state = KnowledgeJobState.QUEUED.name, stage = KnowledgeJobStage.ACQUIRE.name,
+                jobItemId = "item-1",
+                jobId = "job-1",
+                docId = "doc-1",
+                state = KnowledgeJobState.QUEUED.name,
+                stage = KnowledgeJobStage.ACQUIRE.name,
             ),
         )
         val firstRun = JobRunner(database.knowledgeJobDao())

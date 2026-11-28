@@ -252,5 +252,9 @@ private fun termOrder(): Comparator<SessionTermEntity> = compareByDescending<Ses
 private fun statusLabel(entity: SessionTermEntity): Int = when {
     entity.scope == SessionTermEntity.SCOPE_ASSISTANT -> R.string.settings_session_terms_scope_assistant
     entity.confirmed -> R.string.settings_session_terms_scope_confirmed
-    else -> R.string.settings_session_terms_scope_candidate
+    // 「待确认」这个词只能留给真正达到确认阈值、会被计入分组标题的条目。
+    // 未达阈值（出现次数还不够）以前也写「待确认」，于是标题显示 0 条、列表里却有 6 条待确认。
+    SessionTerms.awaitingConfirmation(entity.occurrences, entity.confirmed) ->
+        R.string.settings_session_terms_scope_candidate
+    else -> R.string.settings_session_terms_scope_pending
 }

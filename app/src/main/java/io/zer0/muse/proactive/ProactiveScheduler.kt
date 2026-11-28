@@ -1,13 +1,40 @@
 package io.zer0.muse.proactive
 
 import io.zer0.common.Logger
+import io.zer0.muse.data.ProactiveMessageConfig
 import io.zer0.muse.data.proactive.OutcomeState
+import io.zer0.muse.data.proactive.PendingThoughtEntity
+import io.zer0.muse.data.proactive.ProactiveTimingEngine
+import io.zer0.muse.data.proactive.ThoughtStatus
 import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+
+internal fun hasLiveSchedule(thought: PendingThoughtEntity, now: Long): Boolean =
+    thought.status == ThoughtStatus.OPEN.name && thought.triggerAt != null &&
+        (thought.expiresAt == null || thought.expiresAt > now)
+
+internal fun scheduledWakeAt(thought: PendingThoughtEntity, config: ProactiveMessageConfig?, now: Long): Long? {
+    val triggerAt = thought.triggerAt?.takeIf { hasLiveSchedule(thought, now) } ?: return null
+    val target = maxOf(now, triggerAt)
+    val effectiveAt = if (config == null) {
+        target
+    } else {
+        ProactiveTimingEngine.adjustTriggerForQuietHours(
+            targetAt = target,
+            allowedHourStart = config.allowedHourStart,
+            allowedHourEnd = config.allowedHourEnd,
+            allDayAllowed = config.allDayAllowed,
+        )
+    }
+    return effectiveAt.takeIf { thought.expiresAt == null || it < thought.expiresAt }
+}
 
 /**
  * 主动消息调度器（重建版）。
@@ -22,6 +49,8 @@ class ProactiveScheduler(
     private val stores: ProactiveStores,
     private val cycle: ProactiveCycleRunner,
     private val appScope: CoroutineScope,
+    private val appContext: android.content.Context? = null,
+    private val settings: io.zer0.muse.data.SettingsRepository? = null,
 ) {
 
     companion object {
@@ -63,6 +92,7 @@ class ProactiveScheduler(
     }
 
     private var job: Job? = null
+    private val wakeUpScheduleMutex = Mutex()
 
     /** 最近一次巡检的结论，供设置页「测试」按钮如实反馈。 */
     @Volatile
@@ -95,6 +125,7 @@ class ProactiveScheduler(
         job?.cancel()
         job = appScope.launch(GlobalCoroutineExceptionHandler) {
             Logger.i(TAG, "主动消息调度已启动")
+            refreshWakeUpForOpenThoughts()
             while (isActive) {
                 // 走 runCycle 而不是 cycle.execute：四路触发源必须落在同一个入口上，
                 // 否则周期路径既拿不到 lastOutcome，也容易在下次改动时被漏掉互斥。
@@ -107,16 +138,27 @@ class ProactiveScheduler(
                 //  · alreadyRunning 才是「被占着」—— 等前一轮跑完再看，所以是短间隔。
                 // v2.6.23(P2): 连续被模型 Skip 时指数拉长（上限 6 小时）——
                 // 「没话说」是持续状态，不该每小时醒一次重复同一次空判断。
-                delay(
-                    when {
-                        outcome == null -> CHECK_IDLE_MS
-                        outcome.alreadyRunning -> CHECK_RETRY_MS
-                        outcome.ledgerNotEmpty ->
-                            backoffForSkips(CHECK_WITH_WORK_MS, cycle.consecutiveSkips)
+                val baseDelayMs = when {
+                    outcome == null -> CHECK_IDLE_MS
+                    outcome.alreadyRunning -> CHECK_RETRY_MS
+                    outcome.ledgerNotEmpty ->
+                        backoffForSkips(CHECK_WITH_WORK_MS, cycle.consecutiveSkips)
 
-                        else -> backoffForSkips(CHECK_IDLE_MS, cycle.consecutiveSkips)
-                    },
-                )
+                    else -> backoffForSkips(CHECK_IDLE_MS, cycle.consecutiveSkips)
+                }
+                val now = System.currentTimeMillis()
+                val nextScheduledAt = runCatching {
+                    io.zer0.muse.data.proactive.ProactiveTimingEngine.nextScheduledTriggerAt(
+                        stores.thoughts.getAllOpen(),
+                        now,
+                    )
+                }.getOrNull()
+                val effectiveDelayMs = if (nextScheduledAt != null) {
+                    minOf(baseDelayMs, (nextScheduledAt - now).coerceAtLeast(60_000L))
+                } else {
+                    baseDelayMs
+                }
+                delay(effectiveDelayMs)
             }
         }
     }
@@ -132,10 +174,46 @@ class ProactiveScheduler(
     // ══════════════════════════════════════════════════════════════
 
     /** 跑一轮（Worker / 回前台 / 设置页测试都走这里）。 */
-    suspend fun runCycle(trigger: String, force: Boolean = false): ProactiveCycleRunner.Outcome {
-        val outcome = cycle.execute(trigger, force)
+    suspend fun runCycle(
+        trigger: String,
+        force: Boolean = false,
+        scheduledThought: PendingThoughtEntity? = null,
+    ): ProactiveCycleRunner.Outcome {
+        val outcome = cycle.execute(trigger, force, scheduledThought)
         lastOutcome = outcome.detail
         return outcome
+    }
+
+    internal suspend fun findScheduledThought(id: String, triggerAt: Long, now: Long): PendingThoughtEntity? =
+        stores.thoughts.getById(id)?.takeIf {
+            it.triggerAt == triggerAt && hasLiveSchedule(it, now)
+        }
+
+    /** 为带有明确未来时间点的牵挂预约一次定点唤醒（跨免打扰时段会自动顺延到允许窗口起点）。 */
+    suspend fun scheduleWakeUpForThought(triggerAt: Long) {
+        if (triggerAt <= 0L) return
+        refreshWakeUpForOpenThoughts()
+    }
+
+    /** 同一条预约保留它自己的待执行任务，后来的预约不能改写它的执行机会。 */
+    suspend fun refreshWakeUpForOpenThoughts() {
+        val ctx = appContext ?: return
+        wakeUpScheduleMutex.withLock {
+            val now = System.currentTimeMillis()
+            try {
+                val config = settings?.proactiveMessageConfigFlow?.first()
+                if (config?.enabled == false) return@withLock
+                for (thought in stores.thoughts.getAllOpen()) {
+                    val triggerAt = thought.triggerAt ?: continue
+                    val wakeAt = scheduledWakeAt(thought, config, now) ?: continue
+                    ProactiveWorker.scheduleOneShotWakeUp(ctx, thought.id, triggerAt, (wakeAt - now).coerceAtLeast(0L))
+                }
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (error: RuntimeException) {
+                Logger.w(TAG, "预约主动消息唤醒失败: ${error.message}", error)
+            }
+        }
     }
 
     /**

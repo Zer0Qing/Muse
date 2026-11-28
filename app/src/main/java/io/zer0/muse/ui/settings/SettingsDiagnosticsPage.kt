@@ -21,7 +21,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.zer0.memory.fact.MemoryAuditSource
-import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.R
 import io.zer0.muse.diagnostics.DiagnosticsSnapshot
 import io.zer0.muse.diagnostics.MainThreadJankTracker
@@ -31,6 +30,7 @@ import io.zer0.muse.ui.common.form.MuseTactileButton
 import io.zer0.muse.ui.common.icons.MuseIcons
 import io.zer0.muse.ui.common.surface.CardGroup
 import io.zer0.muse.ui.common.surface.CardGroupScope
+import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.ui.theme.MusePaddings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -257,7 +257,13 @@ private fun BackgroundCard(data: DiagnosticsSnapshot) {
             add(stringResource(R.string.settings_diagnostics_bg_none) to "")
         }
         data.background.entries.forEach { entry ->
-            val next = entry.nextRunAtMillis?.let { formatEpochMillis(it) } ?: "—"
+            // 被系统推迟的任务会保留一个已经过去的时间；直接格式化会让人以为调度坏了。
+            val at = entry.nextRunAtMillis
+            val next = when {
+                at == null -> "—"
+                at < System.currentTimeMillis() - 60_000L -> "${formatEpochMillis(at)} (!)"
+                else -> formatEpochMillis(at)
+            }
             add(entry.kind.name.lowercase() to "${entry.state.name} · $next")
         }
     }

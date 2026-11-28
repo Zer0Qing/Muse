@@ -30,11 +30,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
 import java.util.Locale
 import java.util.concurrent.atomic.AtomicBoolean
-import io.zer0.muse.ui.chat.ChatViewModel
 
 /**
  * Phase 8.7: 文本转语音管理器(Android 系统 TextToSpeech)。
@@ -202,6 +203,15 @@ class TtsManager(
 
     /** 朗读状态回调: (utteranceId, isSpeaking) — UI 据此切换图标。 */
     var onStateChange: ((utteranceId: String?, isSpeaking: Boolean) -> Unit)? = null
+
+    /** 开始朗读前互斥回调（用于停掉语音条播放，避免两路同时出声）。 */
+    var onBeforePlaybackStart: (() -> Unit)? = null
+
+    /** 串行化合成请求，避免并发调用覆盖单一 [synthesizeDone] 句柄或篡改克隆配置。 */
+    private val synthMutex = Mutex()
+
+    /** 云端引擎不依赖 Android 系统 TextToSpeech 就绪状态。 */
+    fun isEngineAvailable(): Boolean = mediaConfig.ttsEngine != "system" || ready.get()
 
     /** v0.33: 当前生效的媒体配置(由 MuseApp 订阅 mediaConfigFlow 后调 [applyConfig] 更新)。 */
     @Volatile
@@ -548,10 +558,10 @@ class TtsManager(
     /**
      * v1.104: 系统 TTS 合成(从 synthesizeToFile 抽出,供云端失败回退复用)。
      */
-    private suspend fun synthesizeWithSystemTts(text: String, file: File): Boolean {
+    private suspend fun synthesizeWithSystemTts(text: String, file: File): Boolean = synthMutex.withLock {
         if (!ready.get()) {
             Logger.w("TtsManager", "synthesizeToFile: TTS not ready")
-            return false
+            return@withLock false
         }
         // 确保合成参数已应用(避免首次朗读用默认值)
         if (globalSpeechRate() != 1.0f || globalPitch() != 1.0f) {
@@ -567,9 +577,9 @@ class TtsManager(
         if (result != TextToSpeech.SUCCESS) {
             synthesizeDone = null
             Logger.w("TtsManager", "synthesizeToFile failed: result=$result")
-            return false
+            return@withLock false
         }
-        return try {
+        try {
             // 30 秒超时兜底(单片 150 字符通常数秒内完成)
             val ok = withTimeoutOrNull(30_000) { deferred.await() } != null
             if (!ok) Logger.w("TtsManager", "synthesizeToFile timeout: ${text.take(20)}...")
@@ -621,6 +631,7 @@ class TtsManager(
             Logger.d("TtsManager", "speak(flush=false): 排队追加 ${chunks.size} 片,队列深度=${pendingTail.size}")
             return true
         }
+        onBeforePlaybackStart?.invoke()
         currentUtteranceId = utteranceId
         currentChunks = chunks
         // 标记朗读开始(UI 高亮)
@@ -915,6 +926,7 @@ class TtsManager(
      */
     fun speakStream(chunk: String, utteranceId: String) {
         if (chunk.isEmpty()) return
+        onBeforePlaybackStart?.invoke()
         // 云端 TTS 路径:双 Channel 流水线
         if (mediaConfig.ttsEngine != "system") {
             // 新消息打断旧流(不同 utteranceId 视为新一段流式朗读)
@@ -1352,12 +1364,12 @@ class TtsManager(
         emotionOverride: String?,
         voiceId: String,
         providerId: String = "elevenlabs",
-    ): TtsSynthResult {
-        if (voiceId.isBlank()) return synthesizeTo(text, outputFile, emotionOverride)
+    ): TtsSynthResult = synthMutex.withLock {
+        if (voiceId.isBlank()) return@withLock synthesizeTo(text, outputFile, emotionOverride)
         val original = mediaConfig
         val needOverride = original.ttsEngine != providerId || original.ttsVoice != voiceId
         if (needOverride) applyConfig(original.copy(ttsEngine = providerId, ttsVoice = voiceId))
-        return try {
+        try {
             synthesizeTo(text, outputFile, emotionOverride)
         } finally {
             if (needOverride) applyConfig(original)

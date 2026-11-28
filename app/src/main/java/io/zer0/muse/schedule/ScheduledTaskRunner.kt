@@ -32,6 +32,8 @@ import io.zer0.muse.notification.MuseNotificationManager
 import io.zer0.muse.notification.MuseNotificationTarget
 import io.zer0.muse.tools.ToolRegistry
 import io.zer0.muse.tools.ToolRiskLevel
+import io.zer0.muse.ui.chat.PendingMessage
+import io.zer0.muse.ui.theme.MuseDateFormats
 import io.zer0.muse.util.GlobalCoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -42,8 +44,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.JsonObject
 import java.util.concurrent.atomic.AtomicInteger
-import io.zer0.muse.ui.chat.PendingMessage
-import io.zer0.muse.ui.theme.MuseDateFormats
 
 /**
  * Phase 17: 定时任务执行器。
@@ -626,7 +626,20 @@ class ScheduledTaskRunner(
                     type = task.actionType,
                     config = task.actionConfigJson.toAction().config,
                 )
-                val output = executeAction(task, action)
+                val output = if (task.id.startsWith("routine:")) {
+                    val routineEngine = resultOf {
+                        org.koin.core.context.GlobalContext.get().get<io.zer0.muse.data.agentbot.AgentRoutineEngine>()
+                    }.getOrNull() ?: error("惯例调度服务不可用")
+                    val routineId = task.id.removePrefix("routine:")
+                    val queued = routineEngine.runScheduled(
+                        routineId = routineId,
+                        originSessionId = task.dedicatedSessionId,
+                        scheduledAt = current.nextRunAt,
+                    )
+                    "惯例已进入 Agent 任务队列：${queued.taskId}"
+                } else {
+                    executeAction(task, action)
+                }
                 replySummary = output.take(EXECUTION_DETAIL_MAX_LEN)
                 // 3. 触发链式任务
                 triggerChainTasks(task, chainDepth)

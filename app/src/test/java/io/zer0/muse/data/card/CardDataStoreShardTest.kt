@@ -2,7 +2,9 @@ package io.zer0.muse.data.card
 
 import androidx.test.core.app.ApplicationProvider
 import io.zer0.muse.backup.BackupBinaryFiles
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -31,6 +33,43 @@ class CardDataStoreShardTest {
     private fun shards(): List<File> = shardDir.listFiles().orEmpty().filter { it.isFile }
 
     private fun newStore(): CardDataStore = CardDataStore(ApplicationProvider.getApplicationContext())
+
+    @Test
+    fun `gomoku reset persists while late moves cannot overwrite it`() = runTest {
+        val store = newStore()
+        val coordinator = CardSilentAiCoordinator(cardDataStore = store)
+        val played = """{"__museGomokuRevision":1,"moves":[{"p":"B"}]}"""
+        val reset = """{"__museGomokuRevision":2,"moves":[]}"""
+        val lateReply = """{"__museGomokuRevision":2,"moves":[{"p":"B"},{"p":"W"}]}"""
+
+        assertTrue(coordinator.saveCardState("gomoku", played))
+        assertTrue(coordinator.saveCardState("gomoku", reset))
+        assertFalse(coordinator.saveCardState("gomoku", lateReply))
+        assertFalse(coordinator.saveCardState("gomoku", played))
+        val persisted = File(shardDir, CardDataFiles.shardName("gomoku")).readText()
+        assertEquals(reset, store.get("gomoku"))
+        assertEquals(reset, CardDataFiles.decode(persisted)?.second)
+
+        assertTrue(coordinator.saveCardState("custom", """{"moves":[1,2]}"""))
+        assertTrue(coordinator.saveCardState("custom", """{"moves":[]}"""))
+        assertEquals("""{"moves":[]}""", store.get("custom"))
+    }
+
+    @Test
+    fun `compare and put rejects stale snapshots even when data text matches`() {
+        val store = newStore()
+        val key = "space-cas-${System.nanoTime()}"
+        val initial = """{"v":1}"""
+        val replacement = """{"v":2}"""
+        store.put(key, initial)
+        val staleSnapshot = store.snapshot(key)
+        store.put(key, initial)
+
+        assertNull(store.compareAndPut(key, staleSnapshot.revision, replacement))
+        val current = store.snapshot(key)
+        assertTrue(store.compareAndPut(key, current.revision, replacement) != null)
+        assertEquals(replacement, store.get(key))
+    }
 
     @Test
     fun `card removed during restore_is_not_resurrected`() {

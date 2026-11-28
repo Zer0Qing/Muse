@@ -25,6 +25,7 @@ import {
   PostgresMemoryRepository,
   PostgresRagRepository,
   PostgresFileRepository,
+  PostgresMcpRepository,
   PostgresJobQueue,
   SecretVault,
   type DatabaseClient,
@@ -32,6 +33,7 @@ import {
 } from "@muse/database";
 import { AuthService, PostgresAuthStore } from "./auth.js";
 import type { PushSubscriptionRecord } from "@muse/contracts";
+import { InMemoryMcpConnectionStore, type McpConnectionStore } from "@muse/mcp";
 import { MemoryStore, type Fact, type MemorySpace } from "@muse/memory";
 import { chunkText, searchChunks, toCitations, type RagCitation, type TextChunk } from "@muse/rag";
 import { createS3ObjectStorage, type ObjectStorage } from "@muse/storage";
@@ -168,6 +170,7 @@ export interface ApiRuntime {
   readonly jobs: ManagedJobQueue;
   readonly storage: ObjectStorage;
   readonly files: FilePort;
+  readonly mcp: McpConnectionStore;
   readonly database?: DatabaseClient;
   readonly close: () => Promise<void>;
 }
@@ -178,7 +181,7 @@ export async function createApiRuntime(): Promise<ApiRuntime> {
   const redisUrl = process.env.REDIS_URL;
   if (!databaseUrl) {
     const jobs: ManagedJobQueue = redisUrl ? await createRedisQueue(redisUrl) : new InMemoryJobQueue();
-    return { auth: new AuthService(), sessions: new InMemorySessionRepository(), billing: new InMemoryBillingPort(new BillingCatalog()), paymentOrders: new InMemoryPaymentPort(new PaymentOrderBook()), assistants: new InMemoryAssistantCatalog(), providers: new (await import("@muse/core")).InMemoryProviderCatalog(), memory: new InMemoryMemoryPort(new MemoryStore()), rag: new InMemoryRagPort(), push: new InMemoryPushPort(), jobs, storage: createObjectStorage(), files: new InMemoryFilePort(), close: async () => { await jobs.redisQuit?.(); } };
+    return { auth: new AuthService(), sessions: new InMemorySessionRepository(), billing: new InMemoryBillingPort(new BillingCatalog()), paymentOrders: new InMemoryPaymentPort(new PaymentOrderBook()), assistants: new InMemoryAssistantCatalog(), providers: new (await import("@muse/core")).InMemoryProviderCatalog(), memory: new InMemoryMemoryPort(new MemoryStore()), rag: new InMemoryRagPort(), push: new InMemoryPushPort(), jobs, storage: createObjectStorage(), files: new InMemoryFilePort(), mcp: new InMemoryMcpConnectionStore(), close: async () => { await jobs.redisQuit?.(); } };
   }
   const pg = await import("pg");
   const pool = new pg.Pool({ connectionString: databaseUrl, max: Number(process.env.DB_POOL_MAX ?? 10), idleTimeoutMillis: 30_000, connectionTimeoutMillis: 10_000 });
@@ -187,5 +190,5 @@ export async function createApiRuntime(): Promise<ApiRuntime> {
   const jobs: ManagedJobQueue = redisUrl ? await createRedisQueue(redisUrl) : new PostgresJobQueue(database);
   const secretsMasterKey = process.env.SECRETS_MASTER_KEY;
   if (!secretsMasterKey || secretsMasterKey.length < 32) throw new Error("SECRETS_MASTER_KEY is required when DATABASE_URL is configured");
-  return { auth: new AuthService(new PostgresAuthStore(database)), sessions: new PostgresChatRepository(database), billing: new PostgresBillingService(database), paymentOrders: new PostgresPaymentOrderRepository(database), assistants: new PostgresAssistantCatalog(database), providers: new PostgresProviderCatalog(database, new SecretVault(secretsMasterKey)), memory: new PostgresMemoryRepository(database), rag: new PostgresRagPort(new PostgresRagRepository(database)), push: new PostgresPushRepository(database), jobs, storage: createObjectStorage(), files: new PostgresFileRepository(database), database, close: async () => { await jobs.redisQuit?.(); await pool.end(); } };
+  return { auth: new AuthService(new PostgresAuthStore(database)), sessions: new PostgresChatRepository(database), billing: new PostgresBillingService(database), paymentOrders: new PostgresPaymentOrderRepository(database), assistants: new PostgresAssistantCatalog(database), providers: new PostgresProviderCatalog(database, new SecretVault(secretsMasterKey)), memory: new PostgresMemoryRepository(database), rag: new PostgresRagPort(new PostgresRagRepository(database)), push: new PostgresPushRepository(database), jobs, storage: createObjectStorage(), files: new PostgresFileRepository(database), mcp: new PostgresMcpRepository(database), database, close: async () => { await jobs.redisQuit?.(); await pool.end(); } };
 }

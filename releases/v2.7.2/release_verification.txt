@@ -1,0 +1,29 @@
+Muse v2.7.2 artifact and release verification — 2026-11-28
+
+Release status: proceeding with a user-approved source-provenance exception. This file and the release notes disclose the limitation.
+
+Artifact checks
+- Package: io.zer0.muse
+- Version: 2.7.2 (versionCode 297), dbVersion 142
+- Signing: apksigner verification passed with the configured Muse release certificate for all public APKs.
+- aapt metadata passed: arm64-v8a split, armeabi-v7a split, and universal package.
+- The separate x86_64 split was excluded from public assets.
+
+Public APKs
+- Muse_v2.7.2_arm64-v8a.apk | 66,410,533 bytes | SHA-256 5DA1FA4CA0A8A1F6DF33D19B6A479C76F4E972933892874AF46C54943418152A
+- Muse_v2.7.2_armeabi-v7a.apk | 63,908,814 bytes | SHA-256 7DD6B83ED9DC03AA48A813C235CE6D8250E609B108ECBFAD614C01C3E278D182
+- Muse_v2.7.2_universal.apk | 109,278,168 bytes | SHA-256 C3F4ACE77CA26B281F5E14B8C7B37AEF6A0EB5AB7CA11F0924E16EACC85A89A8
+
+Source provenance exception
+- The APK output metadata records 2.7.2/297 and the APK files were created at 2026-11-28 16:21.
+- Their build used an uncommitted worktree based on ff6a622165a18aa4bc72ec29d5ee311eae7a9f89. The exact dirty source snapshot/fingerprint was not retained.
+- The current source tree changed after the APKs were built. The release manifest therefore records sourceCommit=ff6a622165a18aa4bc72ec29d5ee311eae7a9f89 and sourceRef=local-dirty-worktree-ff6a622. Validation against tag v2.7.2 intentionally reports `sourceRef 与 tag 不一致`; this release does not claim the APKs are reproducible from the tag.
+- The current release source commit and the APK build source are not identical. This exception was explicitly accepted by the user before publication.
+
+Validation status
+- Release-note bilingual format: PASS.
+- APK signature, package/version, and ABI checks: PASS.
+- A final five-lane CI run was not performed after the last source changes. The most recent full static run before those changes failed (app detekt reported 419 weighted issues and app ktlint reported 279; memory detekt reported 4 and memory ktlint reported 13). The most recent full unit run reported 8 failures; selected targeted tests later passed, but the full suite was not rerun. No claim is made that the five release lanes passed.
+- Before publication, no v2.7.2 remote tag or GitHub Release existed.
+
+No keystore, token, or local configuration files are included in this archive.

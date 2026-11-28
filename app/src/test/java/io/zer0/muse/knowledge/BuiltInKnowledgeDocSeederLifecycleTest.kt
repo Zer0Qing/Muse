@@ -3,8 +3,8 @@ package io.zer0.muse.knowledge
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import io.mockk.coEvery
-import io.mockk.mockk
 import io.mockk.coVerify
+import io.mockk.mockk
 import io.zer0.muse.data.knowledge.BuiltInKnowledgeDocSeeder
 import io.zer0.muse.data.knowledge.KnowledgeDocDao
 import kotlinx.coroutines.runBlocking

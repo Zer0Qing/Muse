@@ -54,11 +54,11 @@ import io.zer0.muse.ui.theme.MuseIconSizes
 import io.zer0.muse.ui.theme.MuseMotion
 import io.zer0.muse.ui.theme.MusePaddings
 import io.zer0.muse.ui.theme.MuseShapes
+import io.zer0.muse.util.launchSafely
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
-import io.zer0.muse.util.launchSafely
 
 /**
  * 录音波形条:把最近振幅历史渲染成竖条。
@@ -97,7 +97,7 @@ internal fun RecordingWaveform(amplitudes: List<Float>) {
  * v0.35: 绘图模式参数面板 — 尺寸/质量/风格 + 参考图临时覆盖。
  */
 @Composable
-internal fun ImageGenParamsPanel(params: ImageGenParams, onParamsChange: (ImageGenParams) -> Unit) {
+internal fun ImageGenParamsPanel(params: ImageGenParams, onParamsChange: (ImageGenParams) -> Unit, onOpenStudio: (() -> Unit)? = null) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val imagePicker = rememberLauncherForActivityResult(
@@ -155,20 +155,52 @@ internal fun ImageGenParamsPanel(params: ImageGenParams, onParamsChange: (ImageG
                     color = MaterialTheme.colorScheme.primary,
                 )
             }
+            if (onOpenStudio != null) {
+                MuseChip(
+                    selected = false,
+                    onClick = onOpenStudio,
+                    label = stringResource(R.string.media_studio_title),
+                    leadingIcon = {
+                        Icon(
+                            imageVector = MuseIcons.wand,
+                            contentDescription = null,
+                            modifier = Modifier.size(MuseIconSizes.iconSmallTiny),
+                        )
+                    },
+                    modifier = Modifier.padding(start = MusePaddings.contentGap),
+                )
+            }
         }
 
-        // 尺寸
-        val sizes = model?.supportedSizes
-        if (!sizes.isNullOrEmpty()) {
+        // 尺寸 / 比例
+        val sizes = model?.supportedSizes?.takeIf { it.isNotEmpty() }
+            ?: listOf("1024x1024", "16:9", "9:16", "4:3")
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
+            contentPadding = PaddingValues(horizontal = 2.dp),
+        ) {
+            items(sizes, key = { it }) { value ->
+                MuseChip(
+                    selected = params.size == value,
+                    onClick = { onParamsChange(params.copy(size = value)) },
+                    label = value,
+                )
+            }
+        }
+
+        // 生成数量（模型支持多图时显示）
+        val maxN = model?.maxN ?: 4
+        if (maxN > 1) {
+            val countOptions = listOf(1, 2, 4).filter { it <= maxN }
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(MusePaddings.contentGap),
                 contentPadding = PaddingValues(horizontal = 2.dp),
             ) {
-                items(sizes, key = { it }) { value ->
+                items(countOptions, key = { it }) { count ->
                     MuseChip(
-                        selected = params.size == value,
-                        onClick = { onParamsChange(params.copy(size = value)) },
-                        label = value,
+                        selected = params.n == count,
+                        onClick = { onParamsChange(params.copy(n = count)) },
+                        label = stringResource(R.string.media_studio_count_chip, count),
                     )
                 }
             }

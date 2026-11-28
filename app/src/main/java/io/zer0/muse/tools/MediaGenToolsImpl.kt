@@ -28,7 +28,6 @@ import kotlin.coroutines.AbstractCoroutineContextElement
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.coroutineContext
 import kotlin.uuid.Uuid
-import io.zer0.muse.ui.chat.ChatViewModel
 
 /** P2-23: 媒体生成类型（语音消息沿用同一条投递链路）。 */
 enum class MediaGenKind { IMAGE, VIDEO, QR_CODE, VOICE }
@@ -133,6 +132,8 @@ class MediaGenToolsImpl(
     private val voiceSynthesizer: VoiceSynthesizer,
     /** 语音消息存档端口（[io.zer0.muse.ui.speech.VoiceMessageStore] 实现）。 */
     private val voiceMessageStore: VoiceMessageArchiver,
+    /** M4: 媒体生成持久化管理器（负责下载缓存与作品库入库，单测可为 null）。 */
+    private val mediaGenerationManager: io.zer0.muse.data.media.MediaGenerationManager? = null,
 ) {
 
     /** UI 投递宿主;无 UI 进程保持 null(结果以文件路径/URL 返回)。 */
@@ -146,6 +147,9 @@ class MediaGenToolsImpl(
     fun installHost(host: MediaGenHost?) {
         this.host = host
     }
+
+    /** 当前协程或全局 UI 宿主是否处于活跃可投递状态。 */
+    suspend fun hasActiveHost(): Boolean = currentHost() != null
 
     /**
      * v2.x (B3): 解析当前生效的投递宿主 — 协程作用域覆盖([MediaGenHostContext])优先,
@@ -205,15 +209,22 @@ class MediaGenToolsImpl(
                 Logger.w(TAG, "A-13: 图片生成完成但生成已失效(新一轮生成),跳过媒体写入")
                 return "图片已生成,但当前生成已失效,结果未展示(如需可重新请求)"
             }
+            val persistedUrls = mediaGenerationManager?.recordExternalImageResult(
+                prompt = prompt,
+                providerId = providerConfig.id,
+                modelId = model,
+                rawSources = urls,
+                source = io.zer0.muse.data.media.MediaGenTaskEntity.SOURCE_TOOL,
+            )?.takeIf { it.isNotEmpty() } ?: urls
             if (slot != null) {
-                slot.safeReport(MediaGenResult.Success(imageUrls = urls))
+                slot.safeReport(MediaGenResult.Success(imageUrls = persistedUrls))
                 // v1.0.75 fix (用户反馈): 返回给模型的字符串不再包含 URL —
                 //   图片已渲染进对话,模型复述 URL 只会造成"聊天页里塞链接"的体验。
                 "图片已生成并展示在对话中"
             } else {
                 // P2-23: 无 UI 会话(定时任务/群聊/子代理)——媒体不进对话,把可访问位置给模型转述
                 "图片已生成(当前无对话界面,未展示),结果位置:\n" +
-                    externalizeMedia(urls, "img").joinToString("\n")
+                    externalizeMedia(persistedUrls, "img").joinToString("\n")
             }
         } catch (e: CancellationException) {
             slot.safeReport(MediaGenResult.Cancelled)
@@ -242,9 +253,11 @@ class MediaGenToolsImpl(
             ?: return "缺少必填参数: prompt"
         val duration = args["duration"]?.toIntOrNull()?.let { if (it == 5 || it == 10) it else 5 } ?: 5
         val resolution = args["resolution"]?.takeIf { it.isNotBlank() } ?: "720p"
+        val aspectRatio = args["aspect_ratio"]?.takeIf { it.isNotBlank() }.orEmpty()
         val requestedModelId = args["model"]?.takeIf { it.isNotBlank() }
         val requestedProviderId = args["provider_id"]?.takeIf { it.isNotBlank() }
-        val referenceImages = parseReferenceImages(args["reference_images"])
+        val singleRef = args["reference_image"]?.takeIf { it.isNotBlank() }
+        val referenceImages = (listOfNotNull(singleRef) + parseReferenceImages(args["reference_images"])).distinct()
 
         val providers = settings.getAllProviders().filter { it.enabled && it.apiKey.isNotBlank() }
         // 读取用户在"设置→视频生成"配置的默认供应商/模型(LLM 未显式指定时优先使用)
@@ -305,6 +318,7 @@ class MediaGenToolsImpl(
                 model = videoModel.id,
                 duration = duration,
                 resolution = resolution,
+                aspectRatio = aspectRatio,
                 referenceImages = referenceImages,
             )
             // v1.137: 通过 VideoProviderRegistry 按 specId/host 路由,
@@ -315,11 +329,18 @@ class MediaGenToolsImpl(
                 Logger.w(TAG, "A-13: 视频生成完成但生成已失效(新一轮生成),跳过媒体写入")
                 return "视频已生成,但当前生成已失效,结果未展示(如需可重新请求)"
             }
+            val persistedVideoUri = mediaGenerationManager?.recordExternalVideoResult(
+                prompt = prompt,
+                providerId = providerConfig.id,
+                modelId = videoModel.id,
+                rawSource = videoUrl,
+                source = io.zer0.muse.data.media.MediaGenTaskEntity.SOURCE_TOOL,
+            ) ?: videoUrl
             if (slot != null) {
-                slot.safeReport(MediaGenResult.Success(videoFileUri = videoUrl))
+                slot.safeReport(MediaGenResult.Success(videoFileUri = persistedVideoUri))
                 "视频已生成并展示在对话中"
             } else {
-                "视频已生成(当前无对话界面,未展示),结果位置:\n$videoUrl"
+                "视频已生成(当前无对话界面,未展示),结果位置:\n$persistedVideoUri"
             }
         } catch (e: CancellationException) {
             slot.safeReport(MediaGenResult.Cancelled)
@@ -475,6 +496,7 @@ class MediaGenToolsImpl(
         // key 稳定 → 同文本同情绪重复合成命中同一存档文件，不会堆出多份等价音频
         val voiceUri = voiceMessageStore.persist(tempFile, text + VOICE_KEY_SEPARATOR + (emotion ?: ""))
             ?: return reportFailure(slot, "语音文件保存失败")
+        voiceMessageStore.saveTranscript(voiceUri, text)
         // 时长只给 UI 显示用，探测不出来（0）也照常投递
         val durationMs = voiceMessageStore.probeDurationMs(tempFile)
         if (slot == null || !slot.isActive()) {

@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="media_studio_title">创作工坊</string>
+    <string name="media_studio_tools_subtitle">文生图、图生视频、后台队列与本地作品库</string>
+    <string name="media_studio_settings_cd">媒体生成模型设置</string>
+    <string name="media_studio_tab_image">生图</string>
+    <string name="media_studio_tab_video">生视频</string>
+    <string name="media_studio_tab_gallery">作品库</string>
+    <string name="media_studio_tab_gallery_count">作品库 (%1$d)</string>
+
+    <string name="media_studio_prompt_label">创作描述</string>
+    <string name="media_studio_image_prompt_placeholder">描述你想生成的画面主题、风格、光线与构图…</string>
+    <string name="media_studio_video_prompt_placeholder">描述画面动作、镜头运动、节奏与氛围…</string>
+    <string name="media_studio_provider_label">供应商</string>
+    <string name="media_studio_model_label">模型</string>
+    <string name="media_studio_size_label">尺寸与比例</string>
+    <string name="media_studio_quality_label">画质</string>
+    <string name="media_studio_style_label">风格</string>
+    <string name="media_studio_count_label">数量</string>
+    <string name="media_studio_count_chip">%1$d 张</string>
+    <string name="media_studio_aspect_label">画面比例</string>
+    <string name="media_studio_reference_label">参考图（可选）</string>
+    <string name="media_studio_reference_pick">选择参考图</string>
+    <string name="media_studio_reference_clear">移除参考图</string>
+    <string name="media_studio_no_provider_hint">还没有配置可用供应商。请先在模型供应商中添加并启用 API Key。</string>
+    <string name="media_studio_no_image_model_hint">当前供应商没有声明生图模型，已按预设生图模型列表展示。</string>
+    <string name="media_studio_no_video_provider">未配置视频生成供应商</string>
+    <string name="media_studio_go_configure">前往配置模型</string>
+
+    <string name="media_studio_submit_image">开始生图</string>
+    <string name="media_studio_submit_video">开始生成视频</string>
+    <string name="media_studio_task_queued_hint">已加入后台队列，切换页面或退出也不会中断</string>
+    <string name="media_studio_active_tasks_title">进行中的任务</string>
+    <string name="media_studio_failed_tasks_title">最近失败的任务</string>
+    <string name="media_studio_task_elapsed">已生成 %1$d 秒…</string>
+    <string name="media_studio_task_cancel">取消</string>
+    <string name="media_studio_task_retry">重试</string>
+    <string name="media_studio_task_dismiss">移除</string>
+    <string name="media_studio_task_interrupted">应用重启导致后台任务中断</string>
+
+    <string name="media_studio_filter_all">全部</string>
+    <string name="media_studio_filter_images">图片</string>
+    <string name="media_studio_filter_videos">视频</string>
+    <string name="media_studio_filter_favorites">收藏</string>
+    <string name="media_studio_gallery_empty_title">作品库还是空的</string>
+    <string name="media_studio_gallery_empty_subtitle">在「生图」或「生视频」中创作，或通过对话工具生成的内容会自动保存在这里。</string>
+    <string name="media_studio_go_create_image">去生图</string>
+    <string name="media_studio_go_create_video">去生视频</string>
+
+    <string name="media_studio_player_title">视频播放</string>
+    <string name="media_studio_open_external_player">使用系统播放器打开</string>
+    <string name="media_studio_video_prepare_failed">无法准备视频播放地址</string>
+    <string name="media_studio_video_save_failed">下载或保存生成视频失败</string>
+    <string name="media_studio_video_download_first">请先在创作工坊缓存视频到本地后再保存</string>
+    <string name="media_studio_save_to_gallery">保存到相册</string>
+    <string name="media_studio_saved_to_gallery">已保存到系统相册</string>
+    <string name="media_studio_save_failed">保存失败：%1$s</string>
+    <string name="media_studio_copy_prompt">复制提示词</string>
+    <string name="media_studio_prompt_copied">已复制提示词</string>
+    <string name="media_studio_reuse_image_params">同参数再画</string>
+    <string name="media_studio_to_video">转生视频</string>
+    <string name="media_studio_favorite_cd">收藏或取消收藏</string>
+    <string name="media_studio_delete_asset_cd">删除作品</string>
+    <string name="media_studio_preview_cd">作品预览</string>
+</resources>
